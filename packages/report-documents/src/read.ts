@@ -20,6 +20,14 @@ import { caught, type DocumentRefusal } from './refusals.js'
  * browser's.
  */
 
+/**
+ * A document read whole. Every byte array it holds -- a stream's bytes, a
+ * string's, a page's content -- is a view of the read's own copy of the
+ * file, or of the bytes it decoded, shared between values: a stream's and a
+ * string's may be views of one buffer. A host never writes to one, and
+ * never reads past the view, through its `buffer` or otherwise: what lies
+ * beside it is another value's, or the file's.
+ */
 export interface PrintableDocument {
   /** Every page, in the order it prints. */
   readonly pages: readonly PrintablePage[]
@@ -83,9 +91,10 @@ function frozen({ pages, objects, notices }: PrintableDocument): PrintableDocume
  * caller's buffer may be reused the moment the read returns.
  */
 export function readDocument(bytes: Uint8Array): DocumentRead {
-  return caught(() => {
-    const read = readWhole(bytes)
-    if ('ok' in read) return Object.freeze(read)
-    return Object.freeze({ ok: true, document: frozen(read) })
-  })
+  return Object.freeze(
+    caught((): DocumentRead => {
+      const read = readWhole(bytes)
+      return 'ok' in read ? read : { ok: true, document: frozen(read) }
+    }),
+  )
 }

@@ -2,11 +2,9 @@ import { find, isRegular, isWhite, keyword, startsAt } from './bytes.js'
 import { Grammar } from './grammar.js'
 import { componentsOf, declared, declaredSize, namedComponents, namedSpace, type ImageSize } from './images.js'
 import { inflatedEnd, passedOn, type InflateBudget } from './inflate.js'
-import { INFLATER_VALUES } from './limits.js'
 import { viewerEndsAt } from './inline-end.js'
 import { isArray, isDict, isName, isRef, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
 import type { ParsedDocument } from './parse.js'
-import { Reading } from './reading.js'
 import { caught, DocumentRefused, refuse, type DocumentRefusal } from './refusals.js'
 
 /**
@@ -108,24 +106,6 @@ const regular = (byte: number | undefined): boolean => BEGINS[byte as number] ==
 
 /** The bits a sample may be written in (ISO 32000-1 8.9.5.1). */
 const BITS: ReadonlySet<number> = new Set([1, 2, 4, 8, 16])
-
-/**
- * One reading a document, which every inline image's dictionary in it is
- * read into: their values are counted together against
- * `MAX_DOCUMENT_VALUES`, and their names against `MAX_DOCUMENT_NAME_BYTES`,
- * as the file's own are, so that a document of a few hundred thousand
- * inline images is refused rather than read for seconds.
- */
-const readings = new WeakMap<ParsedDocument, Reading>()
-
-function readingOf(parsed: ParsedDocument): Reading {
-  let reading = readings.get(parsed)
-  if (reading === undefined) {
-    reading = new Reading()
-    readings.set(parsed, reading)
-  }
-  return reading
-}
 
 /**
  * Whether "BI" stands anywhere in `content`, found by the platform's own
@@ -281,7 +261,7 @@ class InlineImages {
    */
   private dictionary(from: number): { readonly dict: PdfDict; readonly data: number } {
     const content = this.content
-    this.grammar ??= new Grammar(content, readingOf(this.parsed), true)
+    this.grammar ??= new Grammar(content, this.parsed.budget.reading, true)
     const grammar = this.grammar
     grammar.moveTo(from)
     const entries = new Map<string, PdfValue>()
@@ -317,11 +297,8 @@ class InlineImages {
   /** Where an inline image's data, from `data`, ends, by the filter it begins in or by its rows where it has none. */
   private dataEnd(data: number, first: string | undefined, dict: PdfDict, size: ImageSize): number {
     const content = this.content
-    if (first === 'FlateDecode') {
-      // Its inflater counted before it is made: the dearest part of an inline image to read (limits.ts).
-      readingOf(this.parsed).counted(INFLATER_VALUES)
-      return data + inflatedEnd(content.subarray(data), this.budget)
-    }
+    // Its inflater is counted as it is built, as every Flate stage's is (inflate.ts).
+    if (first === 'FlateDecode') return data + inflatedEnd(content.subarray(data), this.budget)
     if (first === 'ASCIIHexDecode') {
       const marker = find(content, [GREATER], data)
       return marker < 0 ? refuse('inline-end') : marker + 1
@@ -403,7 +380,7 @@ export function heldInlineImages(parsed: ParsedDocument, content: Uint8Array, re
  * not read again. Throws the refusal.
  */
 export function heldWithResources(parsed: ParsedDocument, named: NamedSpaces, resources: PdfDict): void {
-  const reading = readingOf(parsed)
+  const reading = parsed.budget.reading
   for (const [name, components] of named) {
     reading.counted()
     if (namedComponents(parsed.objects, name, resources) !== components) refuse('inline-end')

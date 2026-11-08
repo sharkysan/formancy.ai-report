@@ -11,9 +11,6 @@ import { refuse } from './refusals.js'
  * (grammar.ts), apart from the syntax they are read by.
  */
 
-/** The bytes of every empty string: an array of none, which nothing can change, shared by every document. */
-const EMPTY = new Uint8Array(0)
-
 /** The size of a chunk the document's decoded strings are held in: a string of the bound, `MAX_DOCUMENT_STRING_LENGTH`, fits one whole. */
 const CHUNK = 64 * 1024
 
@@ -68,13 +65,20 @@ export class Reading {
   readonly generations = new Map<PdfRef, number>()
   /** Where a string that does not read as written -- escaped, or hexadecimal -- is decoded, before its bytes are held (`decoded`). */
   readonly scratch = new Uint8Array(MAX_DOCUMENT_STRING_LENGTH + 1)
-  private chunk = EMPTY
+  /** The bytes of the document's every empty string: an array of none, the document's own, so that a host that transfers one's buffer detaches no other document's. */
+  private readonly empty = new Uint8Array(0)
+  private chunk = this.empty
   private used = 0
 
-  /** `values` more counted against `MAX_DOCUMENT_VALUES`: a value, or what a costlier read is counted as. */
+  /** `values` more counted against `MAX_DOCUMENT_VALUES`: a value, or what a costlier read is counted as -- a string's view, a decoder. */
   counted(values = 1): void {
     this.values += values
     if (this.values > MAX_DOCUMENT_VALUES) refuse('values')
+  }
+
+  /** What has been counted so far: what a test reads a file's own values from. */
+  get total(): number {
+    return this.values
   }
 
   /**
@@ -84,7 +88,7 @@ export class Reading {
    * chunks no more than twice what they hold, since a string fits one whole.
    */
   decoded(length: number): Uint8Array {
-    if (length === 0) return EMPTY
+    if (length === 0) return this.empty
     if (this.used + length > this.chunk.length) {
       this.chunk = new Uint8Array(CHUNK)
       this.used = 0

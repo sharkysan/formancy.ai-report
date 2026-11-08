@@ -176,7 +176,7 @@ describe('parseDocument refuses', () => {
     expectRefused(xrefStreamBomb(zeros), 'inflates-too-far', 'inflated')
     for (const file of [contentBomb(zeros), doubleBomb(zeros)]) {
       const document = parsed(file)
-      expect(decoded(contentOf(document), { left: MAX_DOCUMENT_INFLATED })).toEqual(refusal('inflated'))
+      expect(decoded(contentOf(document), { left: MAX_DOCUMENT_INFLATED, reading: document.budget.reading })).toEqual(refusal('inflated'))
     }
   })
 

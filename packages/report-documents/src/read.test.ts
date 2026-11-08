@@ -143,7 +143,37 @@ describe('readDocument never throws', () => {
     vi.spyOn(Tally.prototype, 'notices').mockImplementation(() => {
       throw new TypeError('a fault of the reader, quoting (Jane Doe)')
     })
-    expect(readDocument(sample())).toEqual(refusal('unreadable'))
+    const read = readDocument(sample())
+    expect(read).toEqual(refusal('unreadable'))
+    // Frozen as a refusal a stage returns is: a host holds every read alike.
+    expect(Object.isFrozen(read)).toBe(true)
+  })
+
+  // A host that is not TypeScript may hand over an ArrayBuffer, a DataView
+  // or anything else: an ArrayBuffer has no length, so it passed the byte
+  // bound unread, and was read as a view of the caller's buffer, which a
+  // later write changed under the read. A Proxy can throw from any trap,
+  // and threw out of the reader through the very check that caught it.
+  // Anything but a Uint8Array is refused before a property of it is read,
+  // by a check no trap sees.
+  test('anything but a Uint8Array is refused before a property of it is read', () => {
+    const file = sample()
+    const traps: string[] = []
+    const hostile = new Proxy(file, {
+      ...Object.fromEntries(
+        (['get', 'has', 'getPrototypeOf', 'ownKeys', 'getOwnPropertyDescriptor', 'apply', 'construct'] as const).map((trap) => [
+          trap,
+          (): never => {
+            traps.push(trap)
+            throw new Error('a trap')
+          },
+        ]),
+      ),
+    })
+    for (const input of [file.buffer, new DataView(file.buffer), [...file], 'a string', hostile]) {
+      expect(readDocument(input as unknown as Uint8Array)).toEqual(refusal('not-bytes'))
+    }
+    expect(traps).toEqual([])
   })
 })
 

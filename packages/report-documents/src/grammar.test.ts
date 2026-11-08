@@ -1,4 +1,4 @@
-import { PDFArray, PDFDict, PDFNumber } from '@pdfme/pdf-lib'
+import { PDFArray, PDFCatalog, PDFDict, PDFNumber, PDFPageLeaf, PDFPageTree } from '@pdfme/pdf-lib'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { Grammar } from './grammar.js'
 import { MAX_DOCUMENT_NAME_BYTES, MAX_DOCUMENT_NAME_LENGTH, MAX_DOCUMENT_NUMBER_LENGTH, MAX_DOCUMENT_STRING_LENGTH, MAX_DOCUMENT_VALUES } from './limits.js'
@@ -233,18 +233,23 @@ describe('what a value costs', () => {
   // own, its /Type looked up in pdf-lib's pool of names, then walked again
   // into the model. The grammar makes the model's as it reads.
   test("no pdf-lib array or dictionary is made of a file's containers", () => {
-    const arrays = vi.spyOn(PDFArray, 'withContext')
-    const dicts = vi.spyOn(PDFDict, 'fromMapWithContext')
-    const { value } = new Grammar(latin1('<</Type/Page/Kids[1 0 R [2] <</A null>>]/B<<>>>>'), new Reading()).indirect()
+    // pdf-lib makes a dictionary by its /Type: a catalog, a page tree and a page each by a class of their own.
+    const made = [
+      vi.spyOn(PDFArray, 'withContext'),
+      vi.spyOn(PDFDict, 'fromMapWithContext'),
+      vi.spyOn(PDFCatalog, 'fromMapWithContext'),
+      vi.spyOn(PDFPageTree, 'fromMapWithContext'),
+      vi.spyOn(PDFPageLeaf, 'fromMapWithContext'),
+    ]
+    const { value } = new Grammar(latin1('<</Type/Page/Kids[1 0 R [2] <</A null/Type/Pages>>]/B<</Type/Catalog>>>>'), new Reading()).indirect()
     expect(value).toEqual({
       entries: new Map<string, PdfValue>([
         ['Type', { name: 'Page' }],
-        ['Kids', [{ object: 1 }, [2], { entries: new Map() }]],
-        ['B', { entries: new Map() }],
+        ['Kids', [{ object: 1 }, [2], { entries: new Map([['Type', { name: 'Pages' }]]) }]],
+        ['B', { entries: new Map([['Type', { name: 'Catalog' }]]) }],
       ]),
     })
-    expect(arrays).not.toHaveBeenCalled()
-    expect(dicts).not.toHaveBeenCalled()
+    for (const spy of made) expect(spy).not.toHaveBeenCalled()
   })
 
   // X4, measured on this reader: ten million empty strings, refused at the
@@ -268,13 +273,26 @@ describe('what a value costs', () => {
   // A string is counted twice against MAX_DOCUMENT_VALUES -- the value, and
   // the view its bytes are held in, which costs what several values do --
   // so that a file of short strings is refused at half as many as a file
-  // of numbers. The sample's 1,484 files hold at most 298 strings, a
-  // 1,000-page tagged report one.
-  test('a string is counted twice against MAX_DOCUMENT_VALUES', AT_A_BOUND, () => {
-    const half = MAX_DOCUMENT_VALUES / 2
-    parsed(withObject5(concat([latin1('['), repeated('1 ', half), latin1(']')])))
-    expectRefused(withObject5(concat([latin1('['), repeated('() ', half), latin1(']')])), 'too-many-objects', 'values')
-    expectRefused(withObject5(concat([latin1('['), repeated('<> ', half), latin1(']')])), 'too-many-objects', 'values')
+  // of numbers, and no sooner. The sample's 1,484 files hold at most 298
+  // strings, a 1,000-page tagged report one. Pinned from both sides, on the
+  // file's own values: literal strings exactly at the bound read -- counted
+  // thrice, they would be refused -- and hexadecimal strings one past it
+  // are refused -- counted once, they would read.
+  test('a string is counted twice against MAX_DOCUMENT_VALUES, no more', AT_A_BOUND, () => {
+    const of = (item: string, count: number): Uint8Array => withObject5(concat([latin1('['), repeated(item, count), latin1(']')]))
+    const strings = Math.floor((MAX_DOCUMENT_VALUES - parsed(of('', 0)).budget.reading.total) / 2)
+    parsed(of('() ', strings))
+    expectRefused(of('<> ', strings + 1), 'too-many-objects', 'values')
+  })
+
+  // A host may transfer the buffer under a read's bytes to another thread,
+  // which detaches it: an empty string's array shared between documents
+  // would leave every later read's empty strings detached, and a host that
+  // copied one would throw. Each document's empty strings share an array
+  // of their own.
+  test("two documents' empty strings share no array", () => {
+    const empty = (): Uint8Array => ((parsed(withObject5('[() <>]')).objects.get(5) as readonly PdfString[])[0] as PdfString).bytes
+    expect(empty().buffer).not.toBe(empty().buffer)
   })
 })
 

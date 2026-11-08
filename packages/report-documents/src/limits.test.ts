@@ -43,6 +43,13 @@ describe('a document at each bound reads, and one past it is refused', () => {
     expect(outcome(readDocument(past))).toEqual(refusal('bytes'))
     past[0] = 0
     expect(outcome(readDocument(past))).toEqual(refusal('bytes'))
+    // A subclass's length may say less than it holds: what the reader's copy holds is held to the bound too.
+    class Short extends Uint8Array {
+      override get length(): number {
+        return 0
+      }
+    }
+    expect(outcome(readDocument(new Short(ofBytes(MAX_DOCUMENT_BYTES + 1))))).toEqual(refusal('bytes'))
   })
 
   // Every object a file defines is counted as it is read: a count that

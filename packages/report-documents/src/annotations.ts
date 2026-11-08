@@ -250,8 +250,9 @@ interface Outcome {
  * listing of an annotation adds, so that a listing costs as many additions
  * as the kinds it is counted as -- at most three -- and not one for each of
  * the twenty-two actions it may hold. Two million listings of an annotation
- * of twenty-one actions took 1.5 s, one a code, against 0.5 s without them
- * (measured on 6 November 2026).
+ * of twenty-one actions took 1.5 s, one a code, against 0.5 s without them:
+ * the median of five cold runs each, a fresh worker a run, Node 22.23.3 on
+ * an Apple M2, at a load near 4, on 6 November 2026.
  */
 function folded(codes: readonly DocumentNoticeCode[]): readonly Counted[] {
   const counts = new Map<DocumentNoticeCode, number>()

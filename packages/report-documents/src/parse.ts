@@ -121,7 +121,7 @@ class Loop {
   private readonly bytes: Uint8Array
   private readonly reading = new Reading()
   private readonly grammar: Grammar
-  private readonly budget: InflateBudget = { left: MAX_DOCUMENT_INFLATED }
+  private readonly budget: InflateBudget = { left: MAX_DOCUMENT_INFLATED, reading: this.reading }
   private readonly definitions = new Map<number, Definition>()
   private readonly sections = new Map<number, Section>()
   private readonly claims = new Claims()
@@ -310,7 +310,12 @@ class Loop {
  */
 export function parseDocument(bytes: Uint8Array): ParsedDocument | DocumentRefusal {
   return caught(() => {
+    // An ArrayBuffer has no length, and a view of one is no copy; a Proxy traps whatever is read of it, and isView sees none.
+    if (!ArrayBuffer.isView(bytes) || !(bytes instanceof Uint8Array)) refuse('not-bytes')
     if (bytes.length > MAX_DOCUMENT_BYTES) refuse('bytes')
-    return new Loop(new Uint8Array(bytes)).read()
+    const copy = new Uint8Array(bytes)
+    // A subclass's length may say other than what it holds: the copy's is what it holds.
+    if (copy.length > MAX_DOCUMENT_BYTES) refuse('bytes')
+    return new Loop(copy).read()
   })
 }

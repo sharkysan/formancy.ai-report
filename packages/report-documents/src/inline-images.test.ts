@@ -568,14 +568,17 @@ describe('the inline images of a document are bounded together', () => {
   // An inline image compressed by Flate is inflated by a pako inflater of
   // its own, which costs what its dictionary's values cost several times
   // over: 117,647 of them, as many as the values bound let their
-  // dictionaries count, took 1.3 s. Each is counted for its inflater too,
-  // INFLATER_VALUES more, before it is inflated: here seventeen values a
-  // dictionary and the inflater's, the images at the bound read and one
-  // more refused, where as many images unfiltered read.
-  test('a Flate inline image is counted for its inflater against MAX_DOCUMENT_VALUES too', AT_A_BOUND, () => {
+  // dictionaries count, took 1.3 s. Each is counted for its inflater,
+  // INFLATER_VALUES more, as every Flate stage is, once, before it is
+  // inflated, on the document's one count: here seventeen values a
+  // dictionary and the inflater's, beside the file's own values, the images
+  // at the bound read and one more refused, where as many images unfiltered
+  // read.
+  test('a Flate inline image is counted for its inflater against MAX_DOCUMENT_VALUES too, once', AT_A_BOUND, () => {
     const flate = concat([latin1('q BI /W 1/H 1/CS/G/BPC 8/F/Fl ID '), deflate(latin1('x')), latin1('\nEI Q\n')])
     const plain = latin1('q BI /W 1/H 1/CS/G/BPC 8 ID x\nEI Q\n')
-    const atBound = Math.floor(MAX_DOCUMENT_VALUES / (17 + INFLATER_VALUES))
+    const own = parsed(drawing('')).budget.reading.total
+    const atBound = Math.floor((MAX_DOCUMENT_VALUES - own) / (17 + INFLATER_VALUES))
     expect(pagesRead(drawing(repeated(flate, atBound)))).toHaveLength(1)
     expectPrintRefused(drawing(repeated(flate, atBound + 1)), 'too-many-objects', 'values', 1)
     expect(pagesRead(drawing(repeated(plain, atBound + 1)))).toHaveLength(1)
@@ -599,14 +602,12 @@ describe('the colour-space names a shared content counts are bounded', () => {
         { 4: { dict: '/Filter/FlateDecode', data: deflate(latin1(images)) }, 5: `<</ColorSpace 6 0 R>>`, 6: spaces },
       )
     expect(pagesRead(file(() => '5 0 R'))).toHaveLength(MAX_DOCUMENT_PAGES)
-    // Thirteen values each image's dictionary reads on the first page, a key counted as a value and as a name; one a name on each page after.
-    const page = Math.floor((MAX_DOCUMENT_VALUES - 13 * names) / names) + 2
-    expectPrintRefused(
-      file((i) => `<</ColorSpace 6 0 R/Probe ${i}>>`),
-      'too-many-objects',
-      'values',
-      page,
-    )
+    const varied = file((i) => `<</ColorSpace 6 0 R/Probe ${i}>>`)
+    // On the document's one count: the file's own values, and its content's inflater; then thirteen values each
+    // image's dictionary reads on the first page, a key counted as a value and as a name; one a name on each page after.
+    const own = parsed(varied).budget.reading.total + INFLATER_VALUES
+    const page = Math.floor((MAX_DOCUMENT_VALUES - own - 13 * names) / names) + 2
+    expectPrintRefused(varied, 'too-many-objects', 'values', page)
   })
 })
 

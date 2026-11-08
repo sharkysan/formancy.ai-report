@@ -106,6 +106,7 @@ export const DOCUMENT_ADVICE: { readonly [C in DocumentRefusalCode]: string } = 
 
 /** What the reader found, at each place it refuses a file, and the code that is. */
 export const FINDINGS = {
+  'not-bytes': ['not-pdf', 'it is not the bytes of a file'],
   header: ['not-pdf', 'it does not begin as a PDF begins'],
   bytes: ['too-large', 'it is larger than a document may be'],
   encrypted: ['encrypted', 'it is encrypted'],

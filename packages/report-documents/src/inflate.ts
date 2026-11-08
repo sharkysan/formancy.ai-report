@@ -1,7 +1,9 @@
 import { decodePDFRawStream, PDFContext, PDFDict, PDFName, PDFRawStream } from '@pdfme/pdf-lib'
 import { Inflate, type ZStream } from 'pako'
 import { isWhite } from './bytes.js'
+import { DECODER_VALUES, INFLATER_VALUES } from './limits.js'
 import { isArray, isDict, isName, type PdfDict, type PdfStream, type PdfValue } from './model.js'
+import type { Reading } from './reading.js'
 import { caught, refuse, type DocumentRefusal } from './refusals.js'
 
 /**
@@ -36,6 +38,13 @@ import { caught, refuse, type DocumentRefusal } from './refusals.js'
  */
 export interface InflateBudget {
   left: number
+  /**
+   * The document's one count of values, against `MAX_DOCUMENT_VALUES`,
+   * which each decoder a stage of a stream builds is counted on as it is
+   * built (`INFLATER_VALUES`, `DECODER_VALUES`): the parse's own, which the
+   * inline images' dictionaries are read into too.
+   */
+  readonly reading: Reading
 }
 
 /** The private sentinel `onData` throws once the budget is spent, which pako lets through its `push`. */
@@ -45,11 +54,16 @@ const PAST_THE_BUDGET = new Error('past the budget')
  * The size of the chunks pako writes `input` bytes of deflate data into:
  * four times the input, from 1 KiB, never more than pako's own 64 KiB.
  * pako allocates a first chunk of its size however short the stream:
- * 99,990 streams of one byte each, every one reached, took 1.1 s, most of
- * it collecting chunks that held a byte each. A chunk of 1 KiB costs an
- * inflate of one byte 2.3 µs, one of 64 KiB 3.2 µs (over 117,647 inflates,
- * Node 22.23.3, 6 November 2026); a stream that inflates further takes more
- * chunks, each charged to the budget as it is written.
+ * 99,990 streams of one byte each, every one reached, took 1.1 s (median
+ * of five cold runs in a fresh worker, a load of 4.6), most of it
+ * collecting chunks that held a byte each. A chunk of 1 KiB cost an inflate
+ * of one byte 2.1-2.3 µs, one of 4 KiB 2.3 µs, one of 64 KiB 3.2 µs: two
+ * passes of 117,647 inflates in one process, Node 22.23.3 on an Apple M2,
+ * at a load near 3, on 6 November 2026. The four and the 1 KiB are chosen:
+ * four, so that a content stream, which deflates to about a quarter, is
+ * written into one chunk; 1 KiB, below which the cost of an inflate no
+ * longer fell. A stream that inflates further takes more chunks, each
+ * charged to the budget as it is written.
  */
 const chunkFor = (input: number): number => Math.min(64 * 1024, Math.max(1024, 4 * input))
 
@@ -86,6 +100,8 @@ function inflate(data: Uint8Array, budget: InflateBudget): { readonly bytes: Uin
   const flg = data[1] as number
   // Deflate, a header check that holds, no preset dictionary: what PDF.js holds a Flate stream's header to.
   if ((cmf & 0x0f) !== 8 || ((cmf << 8) | flg) % 31 !== 0 || (flg & 0x20) !== 0) refuse('flate-header')
+  // Every Flate stage of every stream and every Flate inline image is inflated here, each by an inflater of its own.
+  budget.reading.counted(INFLATER_VALUES)
   const inflater = new BoundedInflate(budget, data.length - 2)
   try {
     inflater.push(data.subarray(2), true)
@@ -126,6 +142,7 @@ const CONTEXT = PDFContext.create()
 
 function fixedRatio(filter: string, ratio: number, data: Uint8Array, budget: InflateBudget): Uint8Array {
   if (Math.ceil(data.length * ratio) > budget.left) refuse('inflated')
+  budget.reading.counted(DECODER_VALUES)
   const dict = PDFDict.withContext(CONTEXT)
   dict.set(PDFName.of('Filter'), PDFName.of(filter))
   const out = decodePDFRawStream(PDFRawStream.of(dict, data)).decode()

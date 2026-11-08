@@ -8,6 +8,7 @@ import type { ParsedDocument } from './parse.js'
 import { pagesOf, type PrintablePage } from './pages.js'
 import { AT_A_BOUND, parsed } from './parse-test-support.js'
 import { rootsOf } from './read.js'
+import { Reading } from './reading.js'
 import { Counted, expectPrintRefused, leaf, letter, pagesFile, printedWhole, type Body } from './pages-test-support.js'
 import { refusal } from './refusals.js'
 import { CONTENT, deflatedZeros, latin1, MIB } from './test-pdf.js'
@@ -300,5 +301,5 @@ function chain(count: number): ParsedDocument {
     objects.set(num, { entries: new Map<string, PdfValue>(num < count ? [['Next', { object: num + 1 }]] : []) })
   }
   const empty: PdfDict = { entries: new Map() }
-  return { objects, trailer: empty, catalog: empty, pages: [], budget: { left: MAX_DOCUMENT_INFLATED } }
+  return { objects, trailer: empty, catalog: empty, pages: [], budget: { left: MAX_DOCUMENT_INFLATED, reading: new Reading() } }
 }
