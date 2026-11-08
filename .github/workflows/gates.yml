@@ -288,10 +288,18 @@ jobs:
       - run: pnpm exec turbo run test:pictures --filter=@formancy/report-studio
         if: ${{ !cancelled() }}
 
-      # What the gate and the pictures' check found, for the report: each
-      # writes its own file under apps/studio/test-results however its run
-      # ends (browser-chromium.json, pictures.json), and the dist/ of every
-      # published package turbo built for the Studio.
+      # The pages' gate: every page of the sitemap in Chromium, under the
+      # demo's headers (apps/pages/scripts/browser-test.mjs). Run when the
+      # steps before it failed too, so a red Studio does not hide its answer;
+      # the job fails all the same.
+      - run: pnpm exec turbo run test:browser --filter=@formancy/report-pages
+        if: ${{ !cancelled() }}
+
+      # What the gates and the check found, for the report: each writes its
+      # own file under its app's test-results however its run ends
+      # (apps/studio's browser-chromium.json and pictures.json, apps/pages's
+      # browser-chromium.json), and the dist/ of every published package
+      # turbo built for them.
       - name: Keep what this job found, for the report
         id: collect
         if: ${{ !cancelled() }}
@@ -303,12 +311,14 @@ jobs:
           path: release-results/
           if-no-files-found: error
           overwrite: true
-      # The gate's and the check's own files, whole, for whoever reads a red run.
+      # The gates' and the check's own files, whole, for whoever reads a red run.
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: browser-results
-          path: apps/studio/test-results/
+          path: |
+            apps/studio/test-results/
+            apps/pages/test-results/
           if-no-files-found: error
           overwrite: true
 
