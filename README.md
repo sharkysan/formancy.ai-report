@@ -36,10 +36,14 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **A template's draft, kept on that server**: one per template of a tenant, saved from the version your page opened, its revision and the digest of its report, so a save from a draft another author has saved over since, or from one whose number a restore let another save take with another report, is refused with nothing written, and your page offers a reload; the report checked by the format before it is kept and served as it was saved, who saved each revision kept beside it, and the images it declares kept by their digest. `@formancy/report-client` is what your page asks it with; your page draws Save and the reload, not the builders. It renders and publishes nothing yet, and keeps no fonts ([0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 - **The Studio**, a playground with both builders and the PDF they print, beside them or in the design view's place, online at https://formancy.ai/report/ ([Try it](#try-it), [0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 
-Planned and not here: the server's publication, render jobs and
-artifacts, fonts kept beside its images, a Save in the builders themselves,
-and its published image; reviewed AI changes, a published PDF viewer, and
-a consistent read from Formancy Data.
+Planned and not here: charts and documents, which are being built; the
+server's publication, render jobs and artifacts, fonts kept beside its
+images, a Save in the builders themselves, and its published image;
+reviewed AI changes, a published PDF viewer, and a consistent read from
+Formancy Data. [The roadmap](./docs/roadmap.md) says what comes after
+them, in order -- barcodes, nested groups, more datasets, running totals,
+crosstabs, PDF/A and accessible PDFs, Excel, copy and paste in the
+editor, among the rest -- and what is not planned at all.
 
 > **Status, 31 October 2026: 0.2.0, a developer preview, is released.**
 > Its eight packages are on npm, with provenance, and

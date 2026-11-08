@@ -82,6 +82,17 @@ one answer to it could hold formancy's server
   second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
   provider takes a Data release built against a newer one.
 
+**A roadmap says what comes next, in order, and what is not planned at
+all** ([`docs/roadmap.md`](docs/roadmap.md)). The README named only the
+work planned next, so a team weighing Report against the report
+designers it already knows could not tell whether a barcode, a crosstab,
+an Excel export or a tagged PDF was coming or turned down. The page lists
+what a report can hold, what a render can be, the editor, the server and
+AI, each in order, code a report carries run in a sandbox among them,
+and the three things Report does not mean to do -- connect to a
+database, fetch by address, drill down -- with the reason for each. It promises nothing: an item is built when its
+record is written, and that record may narrow it or turn it down.
+
 **The lint and format rules are `@formancy/code-style` 0.12.0, pinned, and
 no longer a copy**
 ([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
