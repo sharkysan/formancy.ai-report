@@ -188,6 +188,12 @@ p {
   color: var(--muted);
 }
 
+/* A topic card holds its teaser, where its page stands and its link, each a
+   paragraph of its own, which run together without a gap between them. */
+.topic p + p {
+  margin-top: 0.75rem;
+}
+
 /* ------------------------------------------------------------- actions */
 
 .actions {
