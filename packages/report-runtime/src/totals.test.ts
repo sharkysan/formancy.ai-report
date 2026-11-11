@@ -375,7 +375,7 @@ describe('totalOf', () => {
       of: { kind: 'field', field: detail('amount') },
       rounding: { scale: 2, mode: 'half-away-from-zero', increment: '0.05' },
     }
-    const group = [dec('0.02'), dec('0.02')].slice(0, 1)
+    const group = [dec('0.02')]
     const series = totalOf(cash, totalsInDecimals('decimal', cash.rounding), group, group.length, collator)
     expect(series).toEqual({ ok: true, value: { type: 'decimal', value: decimalFromString('0.00') } })
     const grouped = groupedTotals(cash, [line('0.02', { label: 'x' }), line('0.02', { label: 'y' })])

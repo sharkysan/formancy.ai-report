@@ -1,3 +1,4 @@
+import { AGGREGATE_FUNCTIONS } from '@formancy/report-spec'
 import type { ChartComponent, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { sampleReport, withChart } from '../test-support.js'
@@ -76,11 +77,12 @@ describe('seriesType', () => {
 
   // A series typed otherwise than an aggregate of the same definition would
   // be totalled as another kind: one would refuse a rounding the other
-  // accepts, which R18 forbids.
-  test('types a series as the compiler types an aggregate of the same function over the same field, for every field', () => {
+  // accepts, which R18 forbids. Every function, over each of the sample's
+  // detail fields, none and one it lacks.
+  test("types a series as the compiler types an aggregate of the same function over the same field, for each of the sample's fields", () => {
     const report = sampleReport()
     const fields = report.datasets.detail?.fields.map(({ id }) => id) ?? []
-    for (const fn of ['count', 'sum', 'avg', 'min', 'max'] as const) {
+    for (const fn of AGGREGATE_FUNCTIONS) {
       for (const field of [undefined, 'missing', ...fields]) {
         const of = field === undefined ? {} : { of: { dataset: 'detail', field } }
         const aggregate = { id: 'probe', fn, ...(field === undefined ? {} : { of: { kind: 'field', field: { dataset: 'detail', field } } }) }

@@ -46,6 +46,7 @@ function least(block: Block, fonts: Pick<RenderFonts, 'face'>): number {
       return tableHeight(block, fonts)
     case 'image':
     case 'rectangle':
+    case 'chart':
       return block.height
     case 'qrCode':
     case 'epcQrCode':

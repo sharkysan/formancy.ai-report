@@ -283,8 +283,8 @@ describe('createFormatter', () => {
 })
 
 describe('percent', () => {
-  // The share's digits go to Intl as written; the locale's own percent
-  // pattern is the only thing that changes them.
+  // A share printed at other places than it was rounded to, or unscaled --
+  // 0.125 as 0.1 % -- would misstate every slice of the pie it labels.
   test('prints a share as the locale writes a percentage, from its digits', () => {
     const en = formatter('en')
     expect(en.percent(decimalFromString('0.125'), 1)).toEqual({ ok: true, text: '12.5%' })
@@ -305,7 +305,14 @@ describe('percent', () => {
     ['0.12555', 2],
     ['0.1245', 1],
   ])('refuses %s at %i places rather than let Intl round it again', (fraction, places) => {
-    expect(formatter('en').percent(decimalFromString(fraction), places)).toMatchObject({ ok: false, code: 'percent-places' })
+    expect(formatter('en').percent(decimalFromString(fraction), places)).toMatchObject({ ok: false, code: 'percent-rounds-again' })
+  })
+
+  // A message that said "1 places of percent" would read as a defect of its own.
+  test('says how many places a share has and is printed at, in words', () => {
+    expect(formatter('en').percent(decimalFromString('0.1245'), 1)).toMatchObject({
+      message: 'a share of 4 places, printed as a percentage at 1 place, would be rounded again by Intl; round it to 3 places first',
+    })
   })
 
   // A fraction at exactly places + 2 shifts its digits and rounds nothing.

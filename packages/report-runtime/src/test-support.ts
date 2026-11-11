@@ -10,9 +10,24 @@
  * `invoiceReport` is a German invoice that is an e-invoice, whose buyer,
  * dates and lines are read from the data, every field nullable, so that a
  * test can hand it a null; `invoiceData` is data it accepts.
+ *
+ * `chartReport` is a bar chart of sales by region beside a table grouped by
+ * the same region, whose group footer prints the same totals in the same
+ * format, so that a test can hold the chart's numbers to the table's;
+ * `chartData` is data it accepts.
  */
 import { validateReport } from '@formancy/report-spec'
-import type { Component, DatasetContract, FacturXInvoice, FieldRef, Inline, ReportDefinition, XRechnungInvoice } from '@formancy/report-spec'
+import type {
+  ChartComponent,
+  Component,
+  DatasetContract,
+  FacturXInvoice,
+  FieldRef,
+  Inline,
+  NumberFormat,
+  ReportDefinition,
+  XRechnungInvoice,
+} from '@formancy/report-spec'
 import type { ReportData } from './data.js'
 
 const header = (field: string): FieldRef => ({ dataset: 'header', field })
@@ -415,6 +430,128 @@ export function xrechnungReport(): ReportDefinition {
 /** Data the XRechnung report accepts in a final render: the invoice report's, and KoSIT's test Leitweg-ID for the federal test portal, `991-33333TEST-33`. */
 export function xrechnungData(rows: readonly Record<string, unknown>[] = [invoiceRow()], header: Record<string, unknown> = {}): ReportData {
   return invoiceData(rows, { leitwegId: '991-33333TEST-33', ...header })
+}
+
+/** How the chart report prints every amount: its chart's values and ticks, and its table's group footer, alike. */
+export const CHART_AMOUNT: NumberFormat = { kind: 'number', scale: 2, grouping: true }
+
+/** The chart report's chart: the revenue of each region, and the same rounded to tenths half to even, as the aggregate `rounded` is. */
+const SALES_CHART: ChartComponent = {
+  id: 'by-region',
+  kind: 'chart',
+  chart: 'bar',
+  dataset: 'detail',
+  width: 400,
+  height: 240,
+  category: { field: detail('region'), order: 'asc', nullLabel: 'No region' },
+  series: [
+    { id: 'revenue', label: 'Revenue', fn: 'sum', of: detail('amount') },
+    { id: 'rounded', label: 'Rounded', fn: 'sum', of: detail('amount'), rounding: { scale: 1, mode: 'half-even' } },
+  ],
+  valueFormat: CHART_AMOUNT,
+  emptyText: 'No sales.',
+  title: 'Sales by region',
+  categoryTitle: 'Region',
+  valueTitle: 'Amount',
+}
+
+const CHART: ReportDefinition = {
+  reportSpecVersion: '0',
+  id: 'sales',
+  title: 'Sales',
+  locale: 'en',
+  page: { size: 'A4', orientation: 'portrait', margins: { top: 56.69, right: 42.52, bottom: 56.69, left: 42.52 } },
+  styles: [],
+  datasets: {
+    detail: {
+      id: 'sales-lines',
+      fields: [
+        { id: 'region', type: 'string', label: 'Region', nullable: true },
+        { id: 'month', type: 'date', label: 'Month', nullable: false },
+        { id: 'amount', type: 'decimal', label: 'Amount', nullable: false, scale: 2 },
+        { id: 'units', type: 'integer', label: 'Units', nullable: false },
+        { id: 'discount', type: 'decimal', label: 'Discount', nullable: true, scale: 2 },
+      ],
+    },
+  },
+  parameters: [],
+  assets: [],
+  aggregates: [
+    { id: 'revenue', fn: 'sum', of: { kind: 'field', field: detail('amount') } },
+    { id: 'rounded', fn: 'sum', of: { kind: 'field', field: detail('amount') }, rounding: { scale: 1, mode: 'half-even' } },
+  ],
+  regions: {
+    reportHeader: [],
+    pageHeader: [],
+    body: [
+      SALES_CHART,
+      {
+        id: 'by-region-table',
+        kind: 'table',
+        dataset: 'detail',
+        columns: [
+          { id: 'month', header: 'Month', width: 80, align: 'left', value: { kind: 'field', field: detail('month') } },
+          { id: 'revenue', header: 'Revenue', width: 'fill', align: 'right', value: { kind: 'field', field: detail('amount'), format: CHART_AMOUNT } },
+          { id: 'rounded', header: 'Rounded', width: 80, align: 'right', value: { kind: 'field', field: detail('amount'), format: CHART_AMOUNT } },
+        ],
+        group: {
+          by: detail('region'),
+          direction: 'asc',
+          header: [{ kind: 'field', field: detail('region') }],
+          footer: [
+            {
+              cells: [
+                { column: 'revenue', value: { kind: 'aggregate', aggregate: 'revenue', over: 'group', format: CHART_AMOUNT } },
+                { column: 'rounded', value: { kind: 'aggregate', aggregate: 'rounded', over: 'group', format: CHART_AMOUNT } },
+              ],
+            },
+          ],
+        },
+        emptyText: 'No sales.',
+        repeatHeader: true,
+      },
+    ],
+    pageFooter: [],
+    summary: [],
+  },
+}
+
+/** What a test changes of the chart report's chart: a property set, or one left out as undefined. */
+export type ChartChange = { readonly [K in keyof ChartComponent]?: ChartComponent[K] | undefined }
+
+/** A fresh, mutable copy of the chart report, its chart changed by `chart` and its report by `report`, checked valid. */
+export function chartReport(chart: ChartChange = {}, report: Partial<ReportDefinition> = {}): ReportDefinition {
+  const copy = JSON.parse(JSON.stringify(CHART)) as ReportDefinition
+  const [first, ...rest] = copy.regions.body
+  const changed = Object.fromEntries(Object.entries({ ...first, ...chart }).filter(([, value]) => value !== undefined)) as unknown as ChartComponent
+  const result: ReportDefinition = { ...copy, ...report, regions: { ...copy.regions, body: [changed, ...rest] } }
+  const outcome = validateReport(result)
+  if (!outcome.valid)
+    throw new Error(`the chart report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join(', ')}`)
+  return result
+}
+
+/** One sale the chart report accepts, every field present; `overrides` replace or add fields. */
+export function chartRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return { region: 'North', month: '2026-01-01', amount: '10.00', units: '1', discount: null, ...overrides }
+}
+
+/**
+ * Sales the chart report accepts in a final render: by default two in the
+ * South, two in the North and one in no region, each region's total a tie
+ * at tenths -- 24.25 and 10.25 -- that half to even and half away from zero
+ * round apart.
+ */
+export function chartData(
+  rows: readonly Record<string, unknown>[] = [
+    chartRow({ region: 'South', month: '2026-02-01', amount: '20.00', units: '2' }),
+    chartRow({ region: 'North', amount: '10.00' }),
+    chartRow({ region: null, month: '2026-03-01', amount: '1.50' }),
+    chartRow({ region: 'South', month: '2026-02-01', amount: '4.25', units: '3' }),
+    chartRow({ region: 'North', amount: '0.25' }),
+  ],
+): ReportData {
+  return { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' }
 }
 
 /**

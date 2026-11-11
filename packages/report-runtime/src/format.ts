@@ -56,7 +56,7 @@ export const FORMAT_ERROR_CODES = [
   /** A number with more integer digits than `MAX_FORMATTED_DIGITS`, which Intl would print as '∞'. */
   'number-too-large',
   /** A share handed to `percent` at more places than it keeps, which Intl would round again by its own rule. */
-  'percent-places',
+  'percent-rounds-again',
 ] as const
 
 /**
@@ -94,6 +94,9 @@ export interface Formatter {
   /** `fraction` as the locale writes a percentage at `places`: 0.125 at 1 is 12.5%. The fraction is already rounded to `places + 2` places, so Intl shifts its digits and never rounds. */
   percent(fraction: Decimal, places: number): Formatted
 }
+
+/** A count of places as a message says it: "1 place", "3 places". */
+const placesOf = (count: number): string => `${count} ${count === 1 ? 'place' : 'places'}`
 
 function refused(code: FormatErrorCode, message: string): Formatted {
   return { ok: false, code, message }
@@ -240,8 +243,8 @@ class LocaleFormatter implements Formatter {
   percent(fraction: Decimal, places: number): Formatted {
     if (fraction.scale > places + 2) {
       return refused(
-        'percent-places',
-        `a share of ${fraction.scale} places printed at ${places} places of percent, which Intl would round again; round it to ${places + 2} places first`,
+        'percent-rounds-again',
+        `a share of ${placesOf(fraction.scale)}, printed as a percentage at ${placesOf(places)}, would be rounded again by Intl; round it to ${placesOf(places + 2)} first`,
       )
     }
     const digits = decimalToString(fraction) as Intl.StringNumericLiteral

@@ -220,7 +220,11 @@ export function computeTotals(render: Omit<Render, 'totals'>): Totals | undefine
         // Never refused: a group's values are some of those the report's
         // total took, of the kinds it took, totalled as the same kind and
         // rounded as it was, and a share of values has no kind the whole lacks.
-        if (!grouped.ok) throw new Error(`group total of aggregate ${aggregate.id} refused after the report's was not: ${grouped.code}`)
+        if (!grouped.ok) {
+          throw new RangeError(
+            `a group's total of aggregate ${aggregate.id} was refused as ${grouped.code} after the report's was not: a defect, refused rather than printed as nothing`,
+          )
+        }
         values.set(aggregate.id, grouped.value)
       }
       return values

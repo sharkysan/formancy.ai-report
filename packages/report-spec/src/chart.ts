@@ -64,7 +64,13 @@ export interface ChartComponent extends ComponentBase {
   readonly height: number
   readonly category: ChartCategory
   readonly series: readonly ChartSeries[]
-  /** How every value prints: ticks, value labels and a pie's shares. */
+  /**
+   * How every value prints: each tick, each value label, and a pie's values.
+   * A pie's shares, printed beside its values where it labels them, are not
+   * this format's: each is the exact ratio rounded once, half away from zero,
+   * to a percentage of one place, written as the locale writes one (the
+   * runtime's `SHARE_PLACES`).
+   */
   readonly valueFormat: NumberFormat | CurrencyFormat
   /** What prints in place of a chart with nothing to draw. */
   readonly emptyText: string

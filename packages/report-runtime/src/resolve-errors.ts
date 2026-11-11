@@ -56,8 +56,14 @@ export const RESOLVE_ERROR_CODES = [
   'invalid-e-invoice',
   /** A warning, never an error: a preview of an e-invoice, which writes no XML and is not the invoice. */
   'e-invoice-preview',
-  /** A chart, which this release of the runtime does not yet resolve: lowered to nothing, the report would print without it. */
-  'chart-not-resolved',
+  /**
+   * A chart of more categories than the runtime groups, `MAX_CHART_CATEGORIES`,
+   * or a pie of more categories than its palette has colours: two slices of
+   * one colour would be told apart by nothing.
+   */
+  'chart-too-many-categories',
+  /** A pie a category of which totals less than zero: a share of a whole is never negative. */
+  'chart-negative-share',
   /** More errors were found than are listed. */
   'too-many-errors',
 ] as const

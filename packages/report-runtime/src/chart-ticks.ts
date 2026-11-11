@@ -17,7 +17,11 @@ function floorDiv(numerator: bigint, denominator: bigint): bigint {
   return numerator % denominator < 0n ? quotient - 1n : quotient
 }
 
-/** The decimal of `units` at `scale`, without trailing zeros: a tick is written as its value needs. */
+/**
+ * The decimal of `units` at `scale`, without trailing zeros: a tick is
+ * written as its value needs, and printed at the value format's scale, to
+ * which the formatter pads it back -- 11 prints as 11.00 at two places.
+ */
 function tick(units: bigint, scale: number): Decimal {
   let kept = units
   let places = scale

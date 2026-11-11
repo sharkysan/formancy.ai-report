@@ -304,6 +304,9 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
     case 'epcQrCode':
       checkEpcQrCode(block, place, walk)
       return
+    case 'chart':
+      // Until the renderer draws one: a chart skipped would print the report without it, and nothing would say so.
+      throw new RenderRefusal('unsupported', `the chart ${block.id} is not drawn by this release of the renderer`, block.id)
     case 'rule':
       if (!(block.thickness > 0 && Number.isFinite(block.thickness))) throw new RenderRefusal('unsupported', `${at} is a rule ${block.thickness} pt thick`, at)
       checkColor(block.color, at)
