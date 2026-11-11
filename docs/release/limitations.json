@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:c2e03ca19c6209f8f724e128cb3a264eb5ab0d312c03786263884cdfc6500fe1",
+      "reviewed": "sha256:c30f43961eac53f46eaf689cd83fb15adc20c2932494e6f27ccde589d63a7753",
       "limitations": [
         {
           "area": "licence",
@@ -2309,7 +2309,7 @@
       ]
     },
     "0054": {
-      "reviewed": "sha256:aecf709822a48e38eabbf44f17ba90ec2cfac2ac261c7272e7dbc15e84087490",
+      "reviewed": "sha256:04b25cec17558ddeee45df2cd93ee7f4a8ae9db96798ad6c01c8b9cd537d96fa",
       "limitations": [
         {
           "area": "format",
@@ -2323,8 +2323,18 @@
         },
         {
           "area": "format",
-          "says": "A PDF past 20 MiB, 1,000 pages, 100,000 objects or 2,000,000 values is refused, so a tagged report as dense as the densest measured is refused past about 700 pages and is to be added in parts.",
+          "says": "A PDF past 20 MiB, 1,000 pages or 100,000 objects is refused, so a tagged report as dense as the densest measured is refused past about 700 pages and is to be added in parts.",
           "heldBy": "packages/report-documents/src/limits.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF that holds more than 2,000,000 values -- numbers, names, strings, arrays, dictionaries, references, and a count for each decoder its streams build -- is refused, so a file of many short compressed streams or inline images is refused sooner than its values alone would be.",
+          "heldBy": "packages/report-documents/src/grammar.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF with a stream behind a filter the reader does not decode where it must -- LZW, Crypt, a TIFF predictor, an image's own filter anywhere but last, or a name PDF does not define -- is refused, so an old file compressed with LZW is to be saved again.",
+          "heldBy": "packages/report-documents/src/inflate.test.ts"
         },
         {
           "area": "format",
@@ -2356,11 +2366,12 @@
         },
         {
           "area": "server",
-          "says": "What a read leaves in its process after it returns is not measured, beyond pdf-lib's pools of names and references, which it feeds nothing of a file, so a long-running process that reads untrusted PDFs cannot yet rely on keeping nothing."
+          "says": "What a read leaves in its process after it returns is not measured on this reader: it feeds pdf-lib's pools of names and references nothing of a file, which spies hold, and what those pools keep was measured on the spike's loop alone, so a long-running process that reads untrusted PDFs cannot yet rely on keeping nothing.",
+          "heldBy": "packages/report-documents/src/read.test.ts"
         },
         {
           "area": "licence",
-          "says": "pdf-lib's ASCIIHex, ASCII85 and RunLength decoders, which the reader runs, are ports of PDF.js's under Apache-2.0, which the licence guard judges by pdf-lib's MIT field alone."
+          "says": "pdf-lib's stream decoders are ports of PDF.js's and XPDF's under Apache-2.0, which its dist and its MIT licence file do not say and the licence guard judges by pdf-lib's MIT field alone, so a bundle that holds the reader owes Apache-2.0's text and the ports' attribution, which only an entry of the Studio's embedded notices would carry and nothing fails without."
         }
       ]
     }

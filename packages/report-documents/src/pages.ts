@@ -1,9 +1,10 @@
 import { Annotations, formAsks } from './annotations.js'
-import { decodedBytes, type InflateBudget } from './inflate.js'
+import { decodedBytes } from './inflate.js'
 import { heldInlineImages, heldWithResources, type NamedSpaces } from './inline-images.js'
 import { isArray, isDict, isRef, isStream, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
 import type { Tally } from './notices.js'
 import type { ParsedDocument } from './parse.js'
+import type { InflateBudget } from './reading.js'
 import { caught, onPage, refuse, type DocumentRefusal } from './refusals.js'
 
 /**

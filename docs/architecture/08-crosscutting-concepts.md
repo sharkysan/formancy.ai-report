@@ -345,12 +345,26 @@ anything:
   review read its MIT licence on 17 October 2026, and the guard judges it
   by pdfmake's field alone
   ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
-- **Code a package ports.** pdf-lib's ASCIIHex, ASCII85 and RunLength
-  decoders, which the one PDF reader runs, are ports of PDF.js's under
-  Apache-2.0, Copyright 2012 Mozilla Foundation, as their sources in the
-  source map pdf-lib 6.2.4 publishes say, read on 11 November 2026; the
-  guard judges them by pdf-lib's MIT field alone
-  ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
+- **Code a package ports.** pdf-lib's stream decoders are ports under
+  Apache-2.0, as their headers in the source map pdf-lib 6.2.4 publishes
+  say, read on 11 November 2026: ASCIIHex, ASCII85, RunLength and LZW, and
+  the `Stream` and `DecodeStream` they extend, of PDF.js's, Copyright 2012
+  Mozilla Foundation, and Flate of XPDF's through PDF.js, Copyright
+  1996-2003 Glyph & Cog. The one PDF reader runs the first three and the
+  two they extend; the Flate and LZW ports come with the function it
+  calls, and it never runs them. `@pdfme/pdf-lib/dist/index.js` keeps
+  none of the headers and pdf-lib's `LICENSE.md` is MIT alone, so the
+  guard judges them by pdf-lib's MIT field, and
+  `scripts/third-party-notices.mjs` would list pdf-lib under MIT alone.
+  `pdfjs-dist` 6.4.299 has no NOTICE, so section 4(d) asks nothing, but
+  section 4(a) asks that the licence go with a bundle that holds them, and
+  the headers' attribution with it: an entry of
+  `apps/studio/src/embedded-notices.ts` for
+  `@pdfme/pdf-lib/dist/index.js`, which nothing fails without, and which
+  lands with the pull request that first bundles the reader. Nothing bundles it yet. Unchecked: a NOTICE in
+  PDF.js's own repository, which of the modules a bundler keeps, and
+  whether pdf-lib's MIT label over ported files is sound, a lawyer's
+  question ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 - **What the e-invoice gate runs, and what was copied from it.** Its
   downloads carry works under their own licences -- Saxon in both, veraPDF
   under the GPL or the MPL in Mustang's, CEN/TC 434's EUPL-1.2 schematron

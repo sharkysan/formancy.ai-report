@@ -3,7 +3,7 @@ import { Inflate, type ZStream } from 'pako'
 import { isWhite } from './bytes.js'
 import { DECODER_VALUES, INFLATER_VALUES } from './limits.js'
 import { isArray, isDict, isName, type PdfDict, type PdfStream, type PdfValue } from './model.js'
-import type { Reading } from './reading.js'
+import type { InflateBudget } from './reading.js'
 import { caught, refuse, type DocumentRefusal } from './refusals.js'
 
 /**
@@ -27,25 +27,6 @@ import { caught, refuse, type DocumentRefusal } from './refusals.js'
  * instead (images.ts). A stream that keeps its data in another file is
  * refused before a byte of it is read (`filtersOf`).
  */
-
-/**
- * What a document may still decode. Every decode stage's output is taken
- * from `left` as it is written: Flate's a chunk at a time, a fixed-ratio
- * filter's at most its ratio of its input before it is decoded and then
- * what it wrote. A predictor's output is not charged: it is never larger
- * than the inflated rows it is undone from, which were. The pages take
- * from it too, for each copy of their content they hold again (pages.ts).
- */
-export interface InflateBudget {
-  left: number
-  /**
-   * The document's one count of values, against `MAX_DOCUMENT_VALUES`,
-   * which each decoder a stage of a stream builds is counted on as it is
-   * built (`INFLATER_VALUES`, `DECODER_VALUES`): the parse's own, which the
-   * inline images' dictionaries are read into too.
-   */
-  readonly reading: Reading
-}
 
 /** The private sentinel `onData` throws once the budget is spent, which pako lets through its `push`. */
 const PAST_THE_BUDGET = new Error('past the budget')

@@ -1,4 +1,3 @@
-import { PDFContext } from '@pdfme/pdf-lib'
 import { MAX_DOCUMENT_NAME_BYTES, MAX_DOCUMENT_STRING_LENGTH, MAX_DOCUMENT_VALUES } from './limits.js'
 import type { PdfDict, PdfName, PdfRef, PdfString, PdfValue } from './model.js'
 import { refuse } from './refusals.js'
@@ -47,12 +46,32 @@ export class Dict implements PdfDict {
 }
 
 /**
+ * What a document may still decode. Every decode stage's output is taken
+ * from `left` as it is written: Flate's a chunk at a time, a fixed-ratio
+ * filter's at most its ratio of its input before it is decoded and then
+ * what it wrote. A predictor's output is not charged: it is never larger
+ * than the inflated rows it is undone from, which were. The pages take
+ * from it too, for each copy of their content they hold again (pages.ts).
+ * Here, beside the count it carries, so that what a document declares
+ * names nothing of pako's or pdf-lib's (inflate.ts holds both).
+ */
+export interface InflateBudget {
+  left: number
+  /**
+   * The document's one count of values, against `MAX_DOCUMENT_VALUES`,
+   * which each decoder a stage of a stream builds is counted on as it is
+   * built (`INFLATER_VALUES`, `DECODER_VALUES`): the parse's own, which the
+   * inline images' dictionaries are read into too.
+   */
+  readonly reading: Reading
+}
+
+/**
  * What one document's parse has made so far, which every grammar over its
  * bytes and its object streams shares: its counts, its names, and its
  * references, each held once.
  */
 export class Reading {
-  readonly context = PDFContext.create()
   private values = 0
   private nameBytes = 0
   private readonly names = new Map<string, Name>()

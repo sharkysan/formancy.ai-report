@@ -1,10 +1,11 @@
 import { find, isRegular, isWhite, keyword, startsAt } from './bytes.js'
 import { Grammar } from './grammar.js'
 import { componentsOf, declared, declaredSize, namedComponents, namedSpace, type ImageSize } from './images.js'
-import { inflatedEnd, passedOn, type InflateBudget } from './inflate.js'
+import { inflatedEnd, passedOn } from './inflate.js'
 import { viewerEndsAt } from './inline-end.js'
 import { isArray, isDict, isName, isRef, resolved, type PdfDict, type PdfObjects, type PdfStream, type PdfValue } from './model.js'
 import type { ParsedDocument } from './parse.js'
+import type { InflateBudget } from './reading.js'
 import { caught, DocumentRefused, refuse, type DocumentRefusal } from './refusals.js'
 
 /**

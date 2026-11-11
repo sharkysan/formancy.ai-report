@@ -210,8 +210,10 @@ corpus pins ends it (`inline-images.ts`, `inline-end.ts`, `MIRRORED_PDFJS`,
 which `scripts/mirrored-pdfjs.test.mjs` holds), and what does not survive
 printing counted and never named (`notices.ts`); an encrypted, damaged,
 shadowed or layered file, XFA, NeedAppearances, an annotation that would
-print otherwise than a viewer shows it and a stream in another file are
-refused
+print otherwise than a viewer shows it, a filter it does not decode (LZW,
+Crypt, a TIFF predictor) and a stream in another file are refused, and
+pdf-lib's own name pool and its PNG decoder, UPNG, are never fed or called
+(`read.test.ts`)
 ([0054](docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host

@@ -1,8 +1,9 @@
 import { isDigit, keyword } from './bytes.js'
 import type { Grammar } from './grammar.js'
-import { decodedBytes, type InflateBudget } from './inflate.js'
+import { decodedBytes } from './inflate.js'
 import { MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_XREF_ENTRIES, MAX_DOCUMENT_XREF_SECTIONS } from './limits.js'
 import { isArray, isCount, type PdfDict, type PdfStream } from './model.js'
+import type { InflateBudget } from './reading.js'
 import { refuse } from './refusals.js'
 
 /**

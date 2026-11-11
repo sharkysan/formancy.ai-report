@@ -1,5 +1,5 @@
 import { isAnnotationSubtype, type AnnotationSubtype } from './annotation-subtypes.js'
-import { decodedBytes, type InflateBudget } from './inflate.js'
+import { decodedBytes } from './inflate.js'
 import { heldInlineImages, ownResources } from './inline-images.js'
 import { MAX_DOCUMENT_VALUES } from './limits.js'
 import {
@@ -19,6 +19,7 @@ import {
 import { actionOf, actionsIn, type DocumentNoticeCode, type Tally } from './notices.js'
 import type { FlattenedAppearance, Matrix, Rotation } from './pages.js'
 import type { ParsedDocument } from './parse.js'
+import type { InflateBudget } from './reading.js'
 import { onAnnotation, refuse, type Finding } from './refusals.js'
 
 /**

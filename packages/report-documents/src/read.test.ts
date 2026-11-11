@@ -1,3 +1,4 @@
+import { PDFDocument, PDFName } from '@pdfme/pdf-lib'
 import fc from 'fast-check'
 import { deflate } from 'pako'
 import { afterEach, describe, expect, test, vi } from 'vitest'
@@ -7,7 +8,7 @@ import { leaf, pagesFile } from './pages-test-support.js'
 import { AT_A_BOUND } from './parse-test-support.js'
 import { readDocument, type DocumentRead, type PrintableDocument } from './read.js'
 import { DOCUMENT_REFUSAL_CODES, refusal } from './refusals.js'
-import { CONTENT, latin1 } from './test-pdf.js'
+import { CONTENT, latin1, onePageUnderXrefStream, withObject5 } from './test-pdf.js'
 
 /**
  * `readDocument`, the reader's one entry: a PDF's bytes read whole -- its
@@ -239,5 +240,82 @@ describe('readDocument holds a copy of its own', () => {
     expect(a.objects).not.toBe(b.objects)
     a.pages[0]?.content.bytes.fill(0x20)
     expect(second).toEqual(readDocument(sample()))
+  })
+})
+
+/**
+ * Files that reach every part of pdf-lib the reader runs: the sample's
+ * Flate content, font file and image; a page whose content is behind
+ * ASCIIHex, ASCII85 and RunLength, which pdf-lib's own decoders decode; a
+ * cross-reference stream whose rows are predicted; and an object of a
+ * thousand distinct keys, each valued by a distinct name.
+ */
+function fixtures(): Uint8Array[] {
+  const staged = pagesFile([leaf('/MediaBox[0 0 612 792]/Resources<<>>/Contents[4 0 R 5 0 R 6 0 R]')], {
+    4: { dict: '/Filter/ASCIIHexDecode', data: latin1('30203020 6d>') },
+    5: { dict: '/Filter/ASCII85Decode', data: latin1('87cURD]j7BEbo80~>') },
+    6: { dict: '/Filter/RunLengthDecode', data: Uint8Array.of(0x04, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x80) },
+  })
+  const names = Array.from({ length: 1000 }, (_, i) => `/Key${String(i)} /Value${String(i)}`).join(' ')
+  return [sample(), staged, onePageUnderXrefStream(true), withObject5(`<<${names}>>`)]
+}
+
+describe("readDocument feeds pdf-lib's pools nothing of a file", () => {
+  // pdf-lib keeps every distinct name it makes for the life of the process
+  // (the parser spike measured about 28 bytes a character, never freed):
+  // a name of the file's reaching PDFName.of would let a server's every
+  // upload grow it. The reader reads names itself, so only names pdf-lib's
+  // own code passes -- a filter's, its parameters' and the keys it looks
+  // them up by, each fixed -- may reach it, while pdf-lib decodes the
+  // three fixed-ratio filters. A spy on PDFName.of over files that reach
+  // every decoder holds it, as parse.test.ts's holds PDFRef.of.
+  test("no name a file holds reaches PDFName.of, only the fixed names pdf-lib's decoders look up", () => {
+    const FIXED = ['Filter', 'DecodeParms', 'FlateDecode', 'LZWDecode', 'ASCII85Decode', 'ASCIIHexDecode', 'RunLengthDecode', 'EarlyChange']
+    const of = vi.spyOn(PDFName, 'of')
+    for (const file of fixtures()) expect(readDocument(file).ok).toBe(true)
+    const met = new Set(of.mock.calls.map(([name]) => name))
+    expect(met.has('ASCII85Decode') && met.has('RunLengthDecode')).toBe(true)
+    expect([...met].filter((name) => !FIXED.includes(name))).toEqual([])
+  })
+})
+
+describe("readDocument never runs pdf-lib's PNG decoder", () => {
+  /** The UPNG pdf-lib imported, as pdf-lib resolves it: the module, or its default where the module is a namespace. */
+  function upngOfPdfLib(): { decode: (input: ArrayBuffer) => unknown } {
+    type Require = { (id: string): unknown; resolve: (id: string) => string }
+    const node = (globalThis as unknown as { process: { getBuiltinModule: (id: string) => { createRequire: (from: string) => Require } } }).process
+    const { createRequire } = node.getBuiltinModule('node:module')
+    const fromPdfLib = createRequire(createRequire((import.meta as unknown as { url: string }).url).resolve('@pdfme/pdf-lib'))
+    const loaded = fromPdfLib('@pdf-lib/upng') as { decode?: unknown; default?: { decode: (input: ArrayBuffer) => unknown } }
+    return typeof loaded.decode === 'function'
+      ? (loaded as { decode: (input: ArrayBuffer) => unknown })
+      : (loaded.default as { decode: (input: ArrayBuffer) => unknown })
+  }
+
+  // pdf-lib decodes PNGs with UPNG 1.0.1, which never returns on truncated
+  // pixel data and blocks its thread (0005), and imports it at its top, so
+  // it is in every host's install of the reader. The reader embeds no PNG
+  // and passes an image on undecoded, so nothing it reads may reach it: a
+  // file whose image data reached UPNG could hang the read where no bound
+  // stops it. A decode that throws, put on the object pdf-lib holds -- its
+  // own embedPng fails through it, which shows the mock reaches pdf-lib --
+  // is never called while the fixtures, an image among them, are read. The
+  // PNG the control embeds is whole, a 1-by-1 grey pixel pdf-lib embeds
+  // unmocked, so that a mock that missed fails the control, where a
+  // truncated one would hang the worker in UPNG itself.
+  test('UPNG, which pdf-lib imports, is never called while a file is read', async () => {
+    const decode = vi.spyOn(upngOfPdfLib(), 'decode').mockImplementation(() => {
+      throw new Error('UPNG decoded')
+    })
+    const png = Uint8Array.of(
+      ...[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+      ...[0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x3a, 0x7e, 0x9b, 0x55],
+      ...[0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x60, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x48, 0xaf, 0xa4, 0x71],
+      ...[0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82],
+    )
+    await expect((await PDFDocument.create()).embedPng(png)).rejects.toThrow('UPNG decoded')
+    decode.mockClear()
+    for (const file of fixtures()) expect(readDocument(file).ok).toBe(true)
+    expect(decode).not.toHaveBeenCalled()
   })
 })

@@ -1,10 +1,10 @@
 import { deflate, Inflate, type ZStream } from 'pako'
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { BoundedInflate, decoded, type InflateBudget } from './inflate.js'
+import { BoundedInflate, decoded } from './inflate.js'
 import { DECODER_VALUES, INFLATER_VALUES, MAX_DOCUMENT_VALUES } from './limits.js'
 import type { PdfDict, PdfStream, PdfValue } from './model.js'
 import { AT_A_BOUND } from './parse-test-support.js'
-import { Reading } from './reading.js'
+import { Reading, type InflateBudget } from './reading.js'
 import { refusal } from './refusals.js'
 import { concat, latin1, MIB } from './test-pdf.js'
 

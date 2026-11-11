@@ -42,6 +42,21 @@ type ByteStream = ConstructorParameters<typeof PDFObjectParser>[0]
 const SCRATCH = PDFContext.create()
 
 /**
+ * Each document's own pdf-lib context, which its grammars are made over:
+ * kept here, by its reading, so that the reading -- and every type a
+ * document declares -- names nothing of pdf-lib's.
+ */
+const contexts = new WeakMap<Reading, PDFContext>()
+
+function contextOf(reading: Reading): PDFContext {
+  const known = contexts.get(reading)
+  if (known !== undefined) return known
+  const context = PDFContext.create()
+  contexts.set(reading, context)
+  return context
+}
+
+/**
  * pdf-lib's ByteStream over `data`, which its index does not export: taken
  * from the protected field `bytes` of a parser made for the purpose. An
  * internal of pdf-lib's, which `parse.test.ts` pins.
@@ -144,7 +159,7 @@ export class Grammar extends PDFObjectParser {
   private escapeEnd = 0
 
   constructor(data: Uint8Array, reading: Reading, inObjectStream = false) {
-    super(byteStreamOf(data), reading.context)
+    super(byteStreamOf(data), contextOf(reading))
     this.data = data
     this.reading = reading
     this.inObjectStream = inObjectStream

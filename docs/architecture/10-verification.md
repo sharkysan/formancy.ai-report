@@ -168,14 +168,14 @@ collected the answers -- on the PDF
 **A PDF a report will print, read by one reader.** Nothing prints one
 yet. The reader is report-documents' alone, held on PDFs its test support
 writes byte by byte, never a person's file, and the pages a report prints
-of one are to be proved with PDF.js, which shares none of its code
+of one are to be proved with PDF.js, which shares no code with it
 ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)):
 
 | Where | What holds it |
 |---|---|
 | The strict loop: the header, the end, encryption, every object read in order and nothing between them skipped, the cross-reference chained and held to every definition, a shadow refused, an object stream's members in order | `report-documents/src/parse.test.ts`, `xref.test.ts` |
-| The reader's own tokens: names, strings, numbers and references, each at its bound and one past it, the one count of values, no pdf-lib number, array or dictionary made and no reference reaching `PDFRef.of` | `report-documents/src/grammar.test.ts`, `parse.test.ts` |
-| Every stage of every stream from one budget, each decoder counted where it is built, and the pako and pdf-lib internals the reader relies on, pinned | `report-documents/src/inflate.test.ts`, `parse.test.ts` |
+| The reader's own tokens: names, strings, numbers and references, each at its bound and one past it, the one count of values, no pdf-lib number, array or dictionary made, no reference reaching `PDFRef.of` and no name of a file reaching `PDFName.of` | `report-documents/src/grammar.test.ts`, `parse.test.ts`, `read.test.ts` |
+| Every stage of every stream from one budget, each decoder counted where it is built, a filter it does not decode refused, and the pako and pdf-lib internals the reader relies on, pinned; UPNG, which pdf-lib imports, never called while a file is read | `report-documents/src/inflate.test.ts`, `parse.test.ts`, `read.test.ts` |
 | The pages, the print rule, the closure and the notices: what prints is what a viewer shows, or the document is refused naming the page and the annotation; what does not survive printing counted and never named | `report-documents/src/page-tree.test.ts`, `pages.test.ts`, `annotations.test.ts`, `closure.test.ts`, `notices.test.ts` |
 | An image held to its pixels by where it stands, passed on undecoded; an inline image ended only where PDF.js ends it, each content lexed once | `report-documents/src/images.test.ts`, `inline-images.test.ts`, `inline-shared.test.ts`; and `scripts/mirrored-pdfjs.test.mjs`, which holds the PDF.js it mirrors to the corpus's and the Studio's |
 | Each bound through `readDocument`, at it and one past it; the composition, never a throw, the host's realm alone, a frozen copy, and 2,000 seeded mutations each read whole or refused | `report-documents/src/limits.test.ts`, `read.test.ts` |
@@ -329,9 +329,12 @@ later releases and say why, and the legal gate waits for a lawyer
   ([0018](../decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 - **A PDF's bounds, on one laptop.** What each of report-documents'
   bounds costs was measured on one Apple M2 on battery, under Node and one
-  Chromium, from 6 to 8 November 2026, its sleeps found in its power log
-  and their series discarded; no runner times a read, and the criterion of
-  a second and 256 MiB gates nothing. The files it was measured on are its
+  Chromium, from 6 to 8 November 2026. Every run's times were read for a
+  sleep found in its power log: runs a sleep reached were dropped and one
+  series discarded whole, one series at 16 ran across sleeps and was kept,
+  and whether the 24 series' Chromium half did is unknown, its log gone.
+  No runner times a read, and the criterion of a second and 256 MiB gates
+  nothing. The files it was measured on are its
   own hostile files and a sample of 1,484 PDFs from one Mac and Report's
   renderer, none of them a customer's, none holding an inline image, the
   largest 1.27 MB ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).

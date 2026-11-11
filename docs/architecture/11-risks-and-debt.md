@@ -218,19 +218,24 @@ image, so how many files the inline rules refuse -- binary data that
 happens to hold `EI` and a white-space byte is one -- is unknown. A tagged
 report as dense as the densest measured is refused past about 700 pages.
 Its bounds were set against a second and 256 MiB of heap on one laptop on
-battery, where the slowest shape at its bound read in 808 ms: on a machine
-twice as slow, a read at the bounds takes more than a second, synchronously,
-on the thread that asked, and nothing times a read in CI. What a read leaves
-in its process is not measured beyond pdf-lib's pools, which it feeds
-nothing of a file, so the server that will read uploads is to read each in
-a worker it discards, which that server's record measures. The parser and
+battery, where the slowest shape at its bound read in 808 ms: by
+arithmetic, if a read's time scales with the machine, on one twice as slow
+the slowest shapes would take more than a second, synchronously, on the
+thread that asked, and nothing times a read in CI. What a read leaves in
+its process is not measured on this reader: it feeds pdf-lib's pools
+nothing of a file, which spies hold, and the pools' cost was measured on
+the spike's loop alone, so the server that will read uploads is to read
+each in a worker it discards, which that server's record measures. An old
+file compressed with LZW is refused, as is any filter the reader does not
+decode where it must. The parser and
 pako come into every bundle that reads a PDF, 234 kB gzipped by the
 spike's measurement. The reader now reads every token, both containers and
 a cross-reference stream's rows itself; what it takes of pdf-lib is the
 grammar's dispatch, its byte cursor and three decoders ported from PDF.js
-under Apache-2.0, which the licence guard reads as pdf-lib's MIT, and the
-internals it reaches into are pinned, so a release of either moves with a
-reading or not at all. The corpus's `objects.ts` reads with the same
+under Apache-2.0, which the licence guard reads as pdf-lib's MIT; UPNG,
+0005's decoder that never returns, comes with pdf-lib and is never called,
+which a test holds; and the internals it reaches into are pinned, so a
+release of either moves with a reading or not at all. The corpus's `objects.ts` reads with the same
 pdf-lib, so a page the reader read is proved with PDF.js and never with
 `objects.ts`, which review alone holds ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 
@@ -561,6 +566,7 @@ findings in its suite among it, meets the rules in that merge ([0050](../decisio
 | **Two lists of SVG hazards, two readers of a drawing, and two lists of its elements** | report-spec cannot import the corpus, which depends on it, so its tests state their own hazards, and the renderer's (`report-render-pdf/src/testing/svg.ts`) are another list; the renderer's `testing/drawing.ts` reads a drawing's exact ink, which the corpus's reader does not; and the renderer's `svg-content.ts` lists the elements a cleaned drawing holds apart from report-spec's tables, on purpose, as a guard behind the check (0030) | A hazard added to one list is not in the other, and nothing says so; the two lists of elements are held equal by `report-render-pdf/src/svg-threats.test.ts` |
 | **The builders' stylesheet dressing by widened selectors** | `report-builder-core/report-builder.css` dresses an image's unavailable Remove and its label by widening two selectors rather than adding rules (0033), and a selected payment part's band and its badge by widening a box's (0039). The file reached the size budget and is split, since 0039, into the parts of `styles/` it imports, which the package publishes and every reader of it as one text follows | `css.test.ts` holds the selectors to the hooks both builders render, and the selected band's two to the box's; what the image rows and the band look like is held by review alone |
 | **A PDF's byte bound, written twice** | report-documents depends on nothing that holds report-spec's `MAX_ASSET_BYTES`, so `MAX_DOCUMENT_BYTES` repeats it, 20 MiB ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)) | Nothing fails when one moves alone, until the test that holds them equal arrives, in a package that depends on both, with the format's record |
+| **pdf-lib's ported decoders, with no notice** | pdf-lib's stream decoders are ports of PDF.js's and XPDF's under Apache-2.0, which `@pdfme/pdf-lib/dist/index.js` and pdf-lib's MIT `LICENSE.md` do not say, and nothing bundles the reader yet ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)) | A bundle that holds the reader owes Apache-2.0's text and the ports' attribution, which only an entry of `apps/studio/src/embedded-notices.ts` would carry and nothing fails without; it lands with the pull request that first bundles the reader |
 | **Liberation Sans, twice in the package** | The Node entry reads TrueType files and the browser entry imports them as base64, for the slip and for an EPC QR code's caption ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) | The renderer's tarball went from 268,045 bytes unpacked at 0.1.0 to 2,307,611, as `npm pack --dry-run` reported on 17 October 2026 |
 | **The Preview's width, written twice** | The workspace asks the window `layout.ts`'s `MIDDLE`, and the browser gate's passes and the pictures' camera read their widths from `narrow.css`'s query ([0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)) | Nothing while `apps/studio/src/styles.test.tsx` holds the two equal; a reader of a third copy would need a test of its own |
 | **A workbench rule admitted inside the Preview** | `@formancy/themes`' `.wb *`, which turns transitions off when motion is reduced, reaches everything in the builder, the Preview standing in its middle included, and is upstream's to scope (0029) | A workbench.css that declares more under it fails the Studio's stylesheet test and the browser gate, until upstream scopes it or the Preview stands outside `.wb` |

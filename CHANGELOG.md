@@ -197,16 +197,25 @@ one yet.
   objects, an earlier revision than its cross-reference names, optional
   content, XFA and NeedAppearances, an annotation that would print
   otherwise than a viewer shows it, an inline image PDF.js would end
-  elsewhere, and a stream whose data is in another file. **Optional content
+  elsewhere, a filter the reader does not decode where it must -- LZW,
+  though pdf-lib carries a port of it, since the reader decodes only what
+  it can charge as it decodes; Crypt; a TIFF predictor; a name PDF does not
+  define -- and a stream whose data is in another file. An old file
+  compressed with LZW is to be saved again. **Optional content
   is what real files are refused for most:** of 1,484 PDFs that carry no
   person's data, read on 8 November 2026, 1,367 read, 116 were refused for
   layers and one for a cross-reference that is not where it says.
 - **The parser is `@pdfme/pdf-lib` 6.2.4's object grammar**, every token
   read by the reader's own code, and `pako` 3.0.2, both at exact versions
-  and both permissive; three of pdf-lib's decoders are ports of PDF.js's,
-  under Apache-2.0. Both come into every bundle that reads a PDF: 234 kB
-  gzipped, as measured of the spike's code that chose them, not of this
-  package.
+  and both permissive. pdf-lib's stream decoders are ports of PDF.js's and
+  XPDF's under Apache-2.0, which its bundle and its MIT licence file do not
+  say: a bundle that holds the reader owes that licence's text and the
+  ports' attribution, through an entry of the notices that lands with the
+  pull request that first bundles it. Both come into every bundle that
+  reads a PDF: 234 kB gzipped, as measured of the spike's code that chose
+  them, not of this package. UPNG, the PNG decoder of pdf-lib's that never
+  returns on a truncated image, comes with it, and the reader never calls
+  it.
 - `isPdf` and `PDF_MEDIA_TYPE` say whether bytes are a PDF by their header
   alone.
 

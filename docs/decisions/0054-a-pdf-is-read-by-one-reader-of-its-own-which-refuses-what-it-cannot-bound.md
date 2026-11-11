@@ -1,6 +1,6 @@
 # 0054 — A PDF is read by one reader of its own, which refuses what it cannot bound
 
-- **Status:** accepted; numbered while 0053 was another branch's; extends [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose format holds no PDF engine, so that a PDF is read beside it by a package of its own; and [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md), whose guard now walks a PDF parser and pako in a published package's production dependencies, every package of their closure under licence metadata the policy allows and none an exception, three of the parser's decoders being ports of PDF.js's under Apache-2.0, which the guard judges by the parser's MIT field alone
+- **Status:** accepted; numbered while 0053 was another branch's; extends [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose format holds no PDF engine, so that a PDF is read beside it by a package of its own; and [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md), whose guard now walks a PDF parser and pako in a published package's production dependencies, every package of their closure under licence metadata the policy allows and none an exception, the parser's stream decoders being ports of PDF.js's and XPDF's under Apache-2.0, which neither its dist nor its licence file says and the guard judges by the parser's MIT field alone
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -75,9 +75,13 @@
       reader's own after the pages are read, a refusal and never a throw;
       anything but a Uint8Array of the host's realm refused before a
       property of it is read; the result frozen, a deep copy of nothing
-      the caller holds, and two reads of one file deep-equal; and 2,000
+      the caller holds, and two reads of one file deep-equal; 2,000
       seeded splices of tokens and bytes into a PDF, every one read whole
-      or refused.
+      or refused; no name of a file reaching pdf-lib's `PDFName.of`, a spy
+      on it seeing only the fixed names pdf-lib's own decoders look up;
+      and UPNG, which pdf-lib imports, never called while a file is read,
+      a `decode` that throws put on the object pdf-lib holds, which its
+      own `embedPng` fails through.
     - `sniff.test.ts`: `isPdf`, a header at the first byte and nothing
       else.
   - **The PDF.js the reader mirrors.** `scripts/mirrored-pdfjs.test.mjs`,
@@ -95,11 +99,16 @@
     header, type-checked against the built `dist` with `skipLibCheck` off.
   - **Seen failing, 3 to 11 November 2026.** Each case was run before the
     code it holds, or with its guard broken in the working tree and put
-    back, and failed for its own reason, as each task's report records;
-    the guards of the parse, the pages, the closure, the annotations and
-    the images were mutated one at a time, and every mutant failed a test
-    but an equivalent one, an `isRef` type check, and two refusals that
-    move the cursor forward, which would loop and were not mutated.
+    back, and failed for its own reason. The guards of the parse, the
+    pages, the closure, the annotations and the images were mutated one at
+    a time, and every mutant failed a test but an equivalent one, an
+    `isRef` type check, and two refusals that move the cursor forward,
+    which would loop and were not mutated. On 11 November, the grammar
+    made to hand each plain name to `PDFName.of` failed the names' spy,
+    naming the file's names; the read made to hand pdf-lib's `PngEmbedder`
+    the file's first bytes failed the UPNG guard, its mock called four
+    times; and the mock put on a copy of UPNG's object rather than
+    pdf-lib's failed the guard's control, the PNG embedded.
   - **Measured, not gated.** What each bound costs, written beside it in
     `limits.ts`, the acceptance sample and every time below are
     measurements of one machine on the days given: nothing fails when they
@@ -134,7 +143,9 @@ it. A reader of untrusted bytes that runs synchronously, as report-spec's
 report on
 ([0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)),
 cannot be stopped either. It has to end, and in a bounded heap, by its own
-construction.
+construction. UPNG is in the reader's own closure: pdf-lib imports it at
+its top, so every host that installs the reader installs it. The reader
+embeds no PNG and never calls it, which `read.test.ts` holds.
 
 **What pdf-lib's own reading does, measured.** A spike read the hostile
 files it wrote, one shape each, with pdf-lib 6.2.4's `PDFDocument.load` as
@@ -170,8 +181,8 @@ engine.** Its `readDocument` reads a PDF's bytes whole -- its pages in
 order, every object they draw with, and what it holds that does not
 survive printing -- or refuses them. The runtime, the renderer, the server
 and the builders are to read a PDF through it and through no other code.
-The corpus proves the pages a report prints with PDF.js, which shares none
-of it.
+The corpus proves the pages a report prints with PDF.js, which shares no
+code with it.
 
 **What it promises.**
 - **Synchronous**, and no global of Node's or a browser's: ES2023's library
@@ -179,8 +190,9 @@ of it.
   `DecompressionStream` does not compile. It reaches no network and no
   file system.
 - **A neutral object model of its own** (`model.ts`): no type of pdf-lib's
-  leaves the package, so neither a host nor another package meets one, and
-  the parser can change behind it.
+  or pako's leaves the package, so neither a host nor another package meets
+  one, and the parser can change behind it. The built declarations import
+  neither, as read after the build on 11 November 2026; no test holds it.
 - **Never a throw.** Anything thrown while it reads -- by pdf-lib's
   grammar, by pako, by a fault of the reader's own -- is a refusal in its
   own words.
@@ -204,8 +216,8 @@ of it.
 grammar, `PDFObjectParser`, driven by a strict loop of the reader's own
 (`parse.ts`, `xref.ts`), with pako 3.0.2's streaming `Inflate`. pdf-lib's
 `load`, its document parser and its object-stream parser are not used.
-Every token is the reader's to read, measured before it is copied and
-refused past its bound (`grammar.ts`, `reading.ts`):
+Every token but the keywords is the reader's to read, measured before it
+is copied and refused past its bound (`grammar.ts`, `reading.ts`):
 - **names** read and held flat, once a document, and never in pdf-lib's
   pool;
 - **literal and hexadecimal strings** by readers of its own, as ISO
@@ -227,14 +239,14 @@ refused past its bound (`grammar.ts`, `reading.ts`):
 
 What pdf-lib still does is the grammar's dispatch on the next byte and its
 keywords, its byte cursor, and its ports of PDF.js's ASCIIHex, ASCII85 and
-RunLength decoders. Flate is pako's, inflated raw after the zlib header the
-reader checks, its Adler-32 not compared, as neither PDF.js nor pdf-lib
-compares it: twelve of Apple's PDFs in the spike's sample carry checksums
-that do not match, and were refused while pako compared them. The internals
-the reader reaches into -- pdf-lib's `ByteStream` in a protected field,
-pako's stream on `onStart`, what it leaves in `avail_in` and how
-`chunkSize` sizes its output -- are pinned by tests, and both packages by
-exact versions.
+RunLength decoders, with the `Stream` and `DecodeStream` they extend.
+Flate is pako's, inflated raw after the zlib header the reader checks, its
+Adler-32 not compared, as neither PDF.js nor pdf-lib compares it: twelve
+of Apple's PDFs in the spike's sample carry checksums that do not match,
+and were refused while pako compared them. The internals the reader
+reaches into -- pdf-lib's `ByteStream` in a protected field, pako's
+stream on `onStart`, what it leaves in `avail_in` and how `chunkSize` sizes
+its output -- are pinned by tests, and both packages by exact versions.
 
 **What it bounds, and how.** Every bound is a constant of `limits.ts`, each
 checked before the work it bounds -- the bytes before one is parsed, a
@@ -306,6 +318,14 @@ reads, and would print as whatever it draws.
   the corpus and the Studio pin. The cure is the renderer's: once it
   writes every inline image as an image XObject delimited by its length,
   a later record can lift this;
+- **a filter the reader does not decode where it must**: LZW, though
+  pdf-lib carries a port of PDF.js's, since the reader decodes only what it
+  charges as it decodes -- Flate chunk by chunk, the fixed-ratio filters by
+  their ratio first -- and LZW is neither; Crypt, which belongs to
+  encryption; a TIFF predictor, where the reader undoes PNG's alone; an
+  image's own filter, DCT, JPX, CCITTFax or JBIG2, anywhere but last on an
+  image; and a name PDF does not define. No file of the spike's sample was
+  refused for one;
 - **a stream whose data is in another file**, before a byte of it is read:
   Report never fetches by address;
 - a page tree that is not a tree, or a tree of no pages; a rotation not a
@@ -314,9 +334,10 @@ reads, and would print as whatever it draws.
 **What it reads that a stricter reader would refuse, because the sample
 did:**
 - **an entry in use at offset 0 or past the end** names no object, and is
-  read as nothing: Apple's Quartz writes an unused number so, 265 entries
-  in 150 of the spike's sample; anywhere else, where a viewer might find
-  an object the reader never saw, it is refused;
+  read as nothing: 265 entries in 150 files of the spike's sample were
+  so, 136 of the files Apple's regulatory documents written by Quartz,
+  which writes an unused number so; anywhere else, where a viewer might
+  find an object the reader never saw, it is refused;
 - **a reference to a whole number no file can define**, below 1 or past
   2^53, names nothing, as Apple's ENERGY STAR guide writes one in fifteen
   structure elements; a fraction, or a generation past 65,535, is still
@@ -332,8 +353,8 @@ field's value may be a person's data.
 
 **What it buys.**
 - **A PDF ends, or is refused.** Every hostile file of the spike's, every
-  shape the reviews named, and every bound at it and one past it, was read
-  or refused within a second and 256 MiB of heap in Node, the costliest
+  shape `limits.ts` names and every bound at it and one past it was read or
+  refused within a second and 256 MiB of heap in Node, the costliest
   within a second in Chromium too, on the machine measured and the builds
   `limits.ts` dates, where pdf-lib as it stands hung, exhausted its heap
   and once took its process with it.
@@ -362,23 +383,33 @@ field's value may be a person's data.
   so how many real files the inline rules refuse is not measured: binary
   data that happens to hold `EI` and a white-space byte is refused, and so
   is an inline image followed by an array, which PDF.js 6.4.299 itself
-  misreads.
+  misreads. Of data as random as compressed bytes, by arithmetic and not
+  by any file, `E`, `I` and one of PDF's six white-space bytes stand at a
+  byte with a chance of 6 in 2^24, about 0.15 % of 4,096-byte images and
+  3.6 % of 100,000-byte ones. An old file compressed with LZW is refused,
+  to be saved again; no file of the sample was.
 - **A dense tagged report past about 700 pages is refused**, and is to be
   added in parts. `MAX_DOCUMENT_OBJECTS` stays at 100,000: a report shaped
   as the sample's densest tagged document, 138 structure elements a page,
   reads at 709 pages in 579 to 628 ms, and its 1,000 pages, 141,022
-  objects, are refused in 358 to 362 ms. A raise would rest on an estimate
+  objects, are refused in 358 to 362 ms, on 6 November, on builds before
+  the last charges, which add about 17,000 values at 709 pages, far below
+  the bound, and were not timed again. A raise would rest on an estimate
   at the edge of the second.
 - **The second is this machine's.** The slowest shape at its bound, eight
   RunLength stages a stream, read in 808 ms in Node and 657 ms in Chromium;
   a legitimate 1,000-page tagged report in object streams in 658 ms and
-  455 ms, where one series of five at a load of 7.5 had taken 713 to
-  1,208 ms. Each is the median of five cold runs, each in a fresh worker
-  or browser context, under Node 22.23.3 and Chrome Headless Shell 156 on
-  an Apple M2 on battery, from 6 to 8 November 2026, under loads of 2 to
-  10 while other work ran; the laptop slept between wakes for much of it,
-  and every series a sleep reached, found in its power log, was discarded.
-  On a machine twice as slow, both would take more than a second.
+  455 ms. Each of those is the median of five cold runs, each in a fresh
+  worker or browser context, under Node 22.23.3 and Chrome Headless Shell
+  156 on an Apple M2 on battery, from 6 to 8 November 2026, under loads of
+  2 to 10 while other work ran; and one earlier series of the tagged
+  report, at a load of 7.5, spread from 713 to 1,208 ms. The laptop slept
+  between wakes for much of it. Every run's times were read for a sleep
+  found in its power log: runs a sleep reached were dropped, and one series
+  was discarded whole; one series at 16 ran across sleeps and was kept, and
+  whether the 24 series' Chromium half did is unknown, its log gone. By
+  arithmetic, if a read's time scales with the machine, on one twice as
+  slow those two shapes would take more than a second.
 - **Two charges were chosen, not derived.** A pako inflater counts as
   `INFLATER_VALUES`, 24, the smaller of the two charges measured: at 16,
   one series of two took more than a second, and nothing between 16 and
@@ -388,13 +419,15 @@ field's value may be a person's data.
   values alone would refuse it.
 - **The heap is what was held; outside it is said beside it.** The 256 MiB
   is the heap's. What a read decodes is held outside it, as buffers, and
-  measured beside it, not in it: 64 MiB at `MAX_DOCUMENT_INFLATED`, twice
-  the bound, on 6 November; and the reader's own copy of the file,
-  outside the heap too, is in neither figure.
+  measured beside it, not in it: up to 74 MiB with every bound at once,
+  and 64 MiB at `MAX_DOCUMENT_INFLATED` alone, twice the bound, on 6
+  November; and the reader's own copy of the file, outside the heap too,
+  is in neither figure.
 - **What a read leaves behind is not measured.** The reader feeds pdf-lib's
-  pools nothing of a file: references never reach `PDFRef.of`, which a spy
-  holds, and `PDFName.of` is called only with the three filter names of
-  the reader's own table, which review holds and no test does. Whether
+  pools nothing of a file: no reference reaches `PDFRef.of`, and no name of
+  a file reaches `PDFName.of`, only the fixed names pdf-lib's decoders look
+  up, which spies hold (`parse.test.ts`, `read.test.ts`). What those pools
+  keep was measured on the spike's loop, not on this reader, and whether
   anything else of a read is kept between reads was not measured here. A
   long-running server that reads untrusted PDFs is to read each in a
   worker it discards, which that server's record decides and measures.
@@ -407,17 +440,34 @@ field's value may be a person's data.
   among them.
 - **The corpus's second reader shares its parser.** The corpus's
   `objects.ts` reads a PDF's own objects with the same pdf-lib, so a page
-  the reader read is proved with PDF.js, which shares nothing with it, and
+  the reader read is proved with PDF.js, which shares no code with it, and
   never with `objects.ts`: a rule review holds.
 - **The byte bound is report-spec's by hand.** `MAX_DOCUMENT_BYTES` repeats
   `MAX_ASSET_BYTES`, 20 MiB, and the package depends on nothing that would
   let it import it. The test that holds the two equal belongs to a package
   that depends on both, and arrives with the format's record.
-- **Its decoders' licence is read by review.** pdf-lib's ASCIIHex, ASCII85
-  and RunLength decoders are ports of PDF.js's under Apache-2.0, Copyright
-  2012 Mozilla Foundation, as their sources in the source map pdf-lib
-  6.2.4 publishes say, read on 11 November 2026; the licence guard judges
-  them by pdf-lib's MIT field alone (0006).
+- **Its decoders' licence is said by nothing it ships.** The source map
+  pdf-lib 6.2.4 publishes, read on 11 November 2026, gives each of its
+  stream decoders a header: ASCIIHex, ASCII85, RunLength and LZW, and the
+  `Stream` and `DecodeStream` they extend, are ports of PDF.js's,
+  Copyright 2012 Mozilla Foundation, and Flate is XPDF's through PDF.js,
+  Copyright 1996-2003 Glyph & Cog, each "made available under the Apache
+  2.0 open source license". The reader runs the first three and the two
+  they extend; `decodePDFRawStream`, which it calls, holds the Flate and
+  LZW ports too, which it never runs. `@pdfme/pdf-lib/dist/index.js`
+  keeps none of those headers, and pdf-lib's `LICENSE.md` is MIT alone, so
+  the licence guard judges them by pdf-lib's MIT field alone (0006), and
+  `scripts/third-party-notices.mjs` would list pdf-lib under MIT alone.
+  `pdfjs-dist` 6.4.299 ships no NOTICE, so Apache-2.0's section 4(d) asks
+  nothing; its section 4(a) asks that a copy of the licence go with a
+  bundle that holds the reader, and the ports' copyright lines should go
+  with it. A built app's notices carry them only through an entry of
+  `apps/studio/src/embedded-notices.ts` for
+  `@pdfme/pdf-lib/dist/index.js`, and nothing fails without one. Nothing bundles the reader yet: the entry
+  lands with the pull request that first does. Unchecked: whether PDF.js's
+  own repository holds a NOTICE, which of these modules a bundler keeps,
+  and whether pdf-lib's MIT label over ported files is sound, which is a
+  lawyer's question.
 - **Every release of the parser is a reading.** pdf-lib and pako are
   pinned exactly, and moving either means reading again the internals the
   tests pin and whatever changed in what the reader still calls; a fault
