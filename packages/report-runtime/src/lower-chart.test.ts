@@ -193,6 +193,17 @@ describe('a bar chart', () => {
     expect(chart.ticks.map(({ exact }) => exact)).toEqual(['0', '200', '400', '600', '800', '1000'])
   })
 
+  // A series with no value at a category -- a greatest over rows that have
+  // none -- holds null there, where the table's footer prints nothing; a
+  // zero drawn instead would be a bar the data does not have.
+  test('holds null where a series has no value, beside the values it has', () => {
+    const report = chartReport({ series: [{ id: 'top', label: 'Top', fn: 'max', of: detail('discount') }] })
+    const chart = axis(report, chartData([chartRow({ region: 'North', discount: null }), chartRow({ region: 'South', discount: '0.50' })]))
+    expect(chart.categories).toEqual(['North', 'South'])
+    expect(chart.series[0]?.values).toEqual([null, value('0.50')])
+    expect(chart.ticks.map(({ exact }) => exact)).toEqual(['0', '0.1', '0.2', '0.3', '0.4', '0.5'])
+  })
+
   // R11 -- a bar or a line chart's own palette colours its series by place,
   // and its legend with them: a series drawn in the default colours would
   // not be the one its legend names, or the author chose.
@@ -331,10 +342,10 @@ describe('a chart with nothing to draw', () => {
 describe("a chart's bounds", () => {
   // Grouping costs what a table's grouping of the same rows costs, and
   // totalling is the rows once for each series: a chart of more categories
-  // than it groups is refused before
-  // a total is computed, or a refusal would come after the work it was
-  // there to spare. A sum of integers rounded past the editor's check would
-  // refuse its series, were it totalled.
+  // than it groups is refused before a total is computed, or a refusal
+  // would come after the work it was there to spare. A sum of integers
+  // rounded past the editor's check would refuse its series, were it
+  // totalled.
   test('refuses more categories than it groups, before it totals them', () => {
     expect(MAX_CHART_CATEGORIES).toBe(200)
     expect(resolveReport(chartReport(), regions(MAX_CHART_CATEGORIES + 1), OPTIONS)).toMatchObject({

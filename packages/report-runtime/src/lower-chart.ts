@@ -150,7 +150,7 @@ function totals(c: Charting, groups: readonly RowGroup[]): (TypedValue | null)[]
     const values: (TypedValue | null)[] = []
     for (const group of groups) {
       const read = of === undefined ? undefined : group.rows.map((row) => fieldValue(render, row.record, of))
-      // No collator: a series totals integers and decimals alone (report-spec's validator), which no language orders.
+      // No collator: a series takes no least or greatest of text (report-spec's validator), and a count orders nothing.
       const outcome = totalOf(aggregate, decimals, read, group.rows.length)
       if (!outcome.ok) {
         refused = true
