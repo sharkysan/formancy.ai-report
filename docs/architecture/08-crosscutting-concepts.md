@@ -635,7 +635,7 @@ makes rests on named tests
   start page's list of what Formancy Report does not do yet is held by
   `apps/pages/src/limits.test.ts` to report-spec's component kinds and
   printed blocks and to the published packages' manifests, but for one
-  detail table and one level of grouping.
+  detail table grouped by one field at most.
 - **What a release can make false stands under a status.** A page whose
   words a release outdates names the release it was written against, and
   the site refuses to render once the changelog names another, every such

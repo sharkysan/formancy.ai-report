@@ -69,7 +69,7 @@
     with `{version}` dropped from the English standing.
   - **`apps/pages/src/limits.test.ts`.** What the start page says
     Formancy Report does not do yet, held to the code each sentence rests
-    on, every absence but one detail table and one level of grouping. It
+    on, every absence but one detail table grouped by one field at most. It
     holds that:
     - `@formancy/report-render-pdf` is the one `report-render-*` package
       published;
@@ -82,6 +82,9 @@
       0.1.0;
     - `@formancy/report-server`'s closure in the workspace installs
       neither the runtime nor the renderer, nor pdfkit, pdfmake or uqr;
+    - report-spec reads version 0 of the report format, the draft, which
+      the start page's status section says the format still is, in every
+      language, in words;
     - every absence a predicate holds is one the page says, every absence
       worded is listed once, and every language's page lists them all, no
       line and no heading empty, with one link to `docs/roadmap.md`.
@@ -101,6 +104,8 @@
       declaring data-client too;
     - report-server-core declaring report-render-pdf, report-server
       declaring pdfmake, and report-server declaring report-runtime;
+    - report-spec's built `dist` patched to read version 1, its SHA-1 the
+      same before and after, and the English format sentence made empty;
     - `jobs` dropped from `LIMIT_ORDER`, the roadmap's link pointed at the
       getting-started guide, and the English `jobs` and the heading made
       empty;
@@ -109,7 +114,16 @@
   - **`apps/pages/src/site.test.ts`'s whole message.** The one error a
     release commit meets names the start page's whole line first, then the
     QR-bill page's and the EPC QR code page's. It failed before
-    `START_STATUS` existed, finding two lines where it asks three.
+    `START_STATUS` existed, finding two lines where it asks three. It and
+    the status tests of the start page, the QR-bill page and the EPC QR
+    code page take the later release from `test-site.ts`'s `nextRelease`,
+    the next minor after the changelog's newest, and build each line from
+    its page's status, so a release commit edits no test. A release commit
+    was simulated on 11 November 2026, and everything put back after: with
+    `## Unreleased` renamed to 0.3.0 and an empty one opened, every file of
+    the pages' suite that renders the site failed on the one status error
+    and on nothing else; with the three statuses set to 0.3.0, the suite
+    passed whole and the build rendered the site.
   - **`scripts/architecture.test.mjs` and
     `scripts/release-report/limitations.test.mjs`, in `pnpm test:repo`.**
     A section of the architecture links this record, its costs are in
@@ -133,7 +147,7 @@
     card's list holds every test its claim needs;
   - every sentence outside a card: the leads, the topic cards' teasers,
     the hero's standing, and the limits of the totals;
-  - one detail table and one level of grouping, which only `START_STATUS`
+  - one detail table grouped by one field at most, which only `START_STATUS`
     sends a release back to;
   - the translations, which no native speaker has reviewed;
   - the rule that no page compares Report with another product or names
@@ -195,7 +209,7 @@ Report does not do yet.** Its sections, in order, are these:
 - **How it behaves**, the cards no topic takes over.
 - **The starters' pictures.**
 - **What it does not do yet**, dated by the start page's status: one
-  detail table and one level of grouping; no consistent read from Formancy
+  detail table grouped by one field at most; no consistent read from Formancy
   Data; no print format but PDF; no codes but QR codes; Latin, Greek and
   Cyrillic only; no published PDF viewer; no render jobs; and no changes
   proposed by an AI. Each is stated as an absence today, never as a
@@ -250,7 +264,7 @@ safe:
 that, `@formancy/report-spec` is a devDependency of the pages. A package
 only a test reads is a devDependency. A package the build reads, to derive
 a page's words, is a dependency, with its row's column in the building
-blocks. Every absence but one detail table and one level of grouping has
+blocks. Every absence but one detail table grouped by one field at most has
 a predicate there, read from report-spec's built `dist` or from the
 published packages' manifests. A change to that code fails the pages'
 suite in the pull request that makes it, until somebody reads the sentence
@@ -320,17 +334,24 @@ nothing else.
   read packages by their names. A renderer, a viewer or a server published
   under another name, or a server that prints with a library the renderer
   does not take, pdf-lib or a headless browser, passes them, and is
-  review's.
+  review's. The predicates read kinds and package names, not what each
+  one does: a barcode added as a property of an existing component kind
+  passes `codes`, and a new output format inside report-render-pdf passes
+  `pdf`.
 - **A change to the code an absence rests on meets the start page.** A
   pull request that adds a component kind or a printed block, or moves the
   provider's Data client, fails the pages' suite until the sentence is
   read again, though nothing of the pages changed. That is the point, and
   it costs that pull request a sentence in four languages.
-- **The pages' suite needs report-spec built.** Turbo builds it before the
-  pages' `test` and `test:coverage`, in CI's job too. The suite run alone
-  reads `dist` as it stands.
+- **The pages' suite needs report-spec built, and runs uncached.** Turbo
+  builds report-spec before the pages' `test` and `test:coverage`, in CI's
+  job too. The suite run alone reads `dist` as it stands. Neither task is
+  replayed from turbo's cache (`apps/pages/turbo.json`), since the suite
+  reads files outside the package, every card's evidence among them: the
+  suite runs whole each time.
 - **One more page to read at every release.** The release commit writes
-  the start page's three sets of sentences again, beside the two payment
+  the start page's sentences again, the hero's standing, the absences, the
+  totals' limits and the report format's draft, beside the two payment
   code pages' three each, sets `START_STATUS`, and opens an empty
   Unreleased (`RELEASING.md`, step 2). The standing's second sentence is
   worded to be true whether Unreleased lists anything or nothing.

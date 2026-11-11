@@ -2310,16 +2310,16 @@
       ]
     },
     "0056": {
-      "reviewed": "sha256:f66ce73e1dca97f3255edd19feedc30c83344e605431b043f873a3dd12bd8d82",
+      "reviewed": "sha256:0903d6ffbd9f3def3cff1c978f24d7021aadf2c8a2b56b4c616419cb6065366b",
       "limitations": [
         {
           "area": "release",
-          "says": "A release commit fails the pages' suite until the start page's status is written again beside the QR-bill and EPC QR code pages': what the release holds, said in the start page's hero, what Formancy Report does not do yet and what its totals do not do, each true of the release and of main, in four languages; and the release commit opens a new, empty Unreleased in CHANGELOG.md, whose heading the start page links, or the pages' link check refuses the site.",
+          "says": "A release commit fails the pages' suite until the start page's status is written again beside the QR-bill and EPC QR code pages': what the release holds, said in the start page's hero, what Formancy Report does not do yet, what its totals do not do and that the report format is still a draft, each true of the release and of main, in four languages; and the release commit opens a new, empty Unreleased in CHANGELOG.md, whose heading the start page links, or the pages' link check refuses the site.",
           "heldBy": "apps/pages/src/product.test.ts"
         },
         {
           "area": "release",
-          "says": "What the start page says Formancy Report does not do yet fails the pages' suite in the pull request that changes the code it rests on, but for one detail table and one level of grouping; that sentence, the hero's standing and the totals' limits are read again only by a release commit, so between releases the start page at formancy.ai/report/, which is main's, can still say one of them after main has made it false. The other absences match packages by name and report-spec's lists, so a renderer, a viewer or a server published under another name passes them.",
+          "says": "What the start page says Formancy Report does not do yet fails the pages' suite in the pull request that changes the code it rests on, but for one detail table grouped by one field at most; that sentence, the hero's standing and the totals' limits are read again only by a release commit, so between releases the start page at formancy.ai/report/, which is main's, can still say one of them after main has made it false. The other absences match packages by name and report-spec's lists, so a renderer, a viewer or a server published under another name passes them, and so do a barcode added as a property of an existing component kind and a new output format inside report-render-pdf.",
           "heldBy": "apps/pages/src/limits.test.ts"
         },
         {

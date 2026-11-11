@@ -25,13 +25,15 @@ node scripts/bump.mjs 0.1.0
 #    release report's, from the run that gates it; the body carries it.
 #    Each page with a status says where it stands, and the pages refuse
 #    to render until each one's status names the new version, naming every
-#    such page in one error. The start page says what the newest release
-#    holds and what Formancy Report does not do yet: say both again, as
-#    true of the new release and of main, in `standing`, which the hero
-#    says, in apps/pages/src/content/product-copy.tsx, `items` in
-#    limits-copy.tsx and `limits.items` in totals-copy.tsx, and set
-#    START_STATUS in product.tsx beside them, its `asOf` the day they were
-#    read (0056). The QR-bill page and the EPC QR code page say where their
+#    such page in one error; no test names a version, so the pages' suite
+#    passes again once the statuses are written. The start page says what
+#    the newest release holds and what Formancy Report does not do yet:
+#    say both again, as true of the new release and of main, in
+#    `standing`, which the hero says, and `status.format`, that the report
+#    format is still a draft, in apps/pages/src/content/product-copy.tsx,
+#    `items` in limits-copy.tsx and `limits.items` in totals-copy.tsx, and
+#    set START_STATUS in product.tsx beside them, its `asOf` the day they
+#    were read (0056). The QR-bill page and the EPC QR code page say where their
 #    payment code stands -- since 0.2.0, in the newest release: say whether
 #    the release has it in the three sentences of each one's copy that say
 #    where it stands -- `standing`, `tryIt.text` and `status.text` -- and

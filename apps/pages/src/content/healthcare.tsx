@@ -86,7 +86,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
         },
         {
           title: 'Exakt oder gar nicht',
-          text: 'Beträge werden exakt berechnet und einmal gerundet. Text, der nicht passt, wird nie abgeschnitten: Der Renderer bricht ab und sagt, warum, damit kein Dokument stillschweigend eine Zeile verliert.',
+          text: 'Beträge werden exakt berechnet und höchstens einmal gerundet. Text, der nicht passt, wird nie abgeschnitten: Der Renderer bricht ab und sagt, warum, damit kein Dokument stillschweigend eine Zeile verliert.',
           evidence: EVIDENCE.exact,
         },
         {
@@ -130,7 +130,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
         },
         {
           title: 'Exact, ou refusé',
-          text: "Les montants sont calculés de manière exacte et arrondis une seule fois. Un texte qui ne tient pas n'est jamais coupé : le moteur de rendu refuse et dit pourquoi, pour qu'aucun document ne perde une ligne sans le dire.",
+          text: "Les montants sont calculés de manière exacte et arrondis au plus une fois. Un texte qui ne tient pas n'est jamais coupé : le moteur de rendu refuse et dit pourquoi, pour qu'aucun document ne perde une ligne sans le dire.",
           evidence: EVIDENCE.exact,
         },
         {
@@ -174,7 +174,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
         },
         {
           title: 'Esatto, o rifiutato',
-          text: 'Gli importi sono calcolati in modo esatto e arrotondati una sola volta. Un testo che non ci sta non viene mai tagliato: il renderer rifiuta e dice perché, così nessun documento perde una riga senza avvisare.',
+          text: 'Gli importi sono calcolati in modo esatto e arrotondati al massimo una volta. Un testo che non ci sta non viene mai tagliato: il renderer rifiuta e dice perché, così nessun documento perde una riga senza avvisare.',
           evidence: EVIDENCE.exact,
         },
         {
@@ -218,7 +218,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
         },
         {
           title: 'Exact, or refused',
-          text: 'Amounts are computed exactly and rounded once. Text that does not fit is never cut off: the renderer refuses and says why, so no document silently loses a line.',
+          text: 'Amounts are computed exactly and rounded at most once. Text that does not fit is never cut off: the renderer refuses and says why, so no document silently loses a line.',
           evidence: EVIDENCE.exact,
         },
         {

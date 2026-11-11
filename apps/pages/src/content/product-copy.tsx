@@ -41,6 +41,7 @@ export interface ProductCopy {
   readonly status: {
     readonly heading: (version: string) => string
     readonly released: (date: string) => string
+    /** That the report format is still a draft, true while report-spec reads version 0 (limits.test.ts). Re-read at each release (START_STATUS). */
     readonly format: string
     readonly changelog: (version: string) => string
     /** The words of the link to the changelog's Unreleased, here and in the hero's `standing`. */

@@ -1,20 +1,18 @@
 import { describe, expect, test } from 'vitest'
 import { linkProblems } from './checks/links.js'
+import { collapsed } from './checks/read.js'
 import { START_STATUS } from './content/product.js'
 import { PRODUCT_COPY } from './content/product-copy.js'
 import { GROUPS } from './groups.js'
 import { formatDay, LANGUAGES } from './languages.js'
 import { isRoot } from './pages.js'
 import { renderSite } from './site.js'
-import { builtOf, inputs, site } from './test-site.js'
+import { atNextRelease, builtOf, inputs, nextRelease, site } from './test-site.js'
 
 /** The product page's topic cards: what it says of each other page, and where. */
 const productPages = site.pages
   .filter((page) => page.group === 'product')
   .map((page) => ({ ...page, document: new DOMParser().parseFromString(page.html, 'text/html') }))
-
-/** Text with its whitespace collapsed, a no-break space a space, as the French pages set theirs. */
-const collapsed = (text: string | null | undefined): string => (text ?? '').replaceAll(/\s+/g, ' ').trim()
 
 describe('the product page introduces its topics', () => {
   // A topic listed only at the foot is met by a reader who has already
@@ -103,17 +101,18 @@ describe('the start page says where it stands', () => {
   // the one it was written against. The release commit that adds a newer
   // heading would leave those sentences standing, true or not: the hero
   // would credit the new release with what the old one held, and the
-  // absences would go on denying what the release may have brought. The
-  // site refuses to render until somebody reads them again, in all three
-  // files that hold them.
+  // absences would go on denying what the release may have brought, the
+  // format said to be a draft among them. The site refuses to render until
+  // somebody reads them again, in all three files that hold them. The
+  // later release is the next after the changelog's newest, derived, so
+  // the release commit that writes the status again edits no test.
   test('refuses to render once the changelog names a release its status was not written against, naming each sentence', () => {
     expect(inputs.release.version).toBe(START_STATUS.release)
-    const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
-    expect(() => renderSite(released)).toThrow(
-      /the start page's status was written when 0\.2\.0 was the newest release, and CHANGELOG\.md now names 0\.3\.0: say what that release holds and what Formancy Report does not do yet in each sentence of product-copy\.tsx, limits-copy\.tsx and totals-copy\.tsx/,
+    expect(() => renderSite(atNextRelease)).toThrow(
+      `the start page's status was written when ${START_STATUS.release} was the newest release, and CHANGELOG.md now names ${nextRelease.version}: say what that release holds and what Formancy Report does not do yet in each sentence of product-copy.tsx, limits-copy.tsx and totals-copy.tsx that says where it stands -- `,
     )
-    expect(() => renderSite(released)).toThrow(
-      /`standing`, which the hero says, in product-copy\.tsx, `items` in limits-copy\.tsx and `limits\.items` in totals-copy\.tsx -- then change START_STATUS with them/,
+    expect(() => renderSite(atNextRelease)).toThrow(
+      '`standing`, which the hero says, and `status.format` in product-copy.tsx, `items` in limits-copy.tsx and `limits.items` in totals-copy.tsx -- then change START_STATUS with them',
     )
   })
 
@@ -156,7 +155,7 @@ describe('the start page says where it stands', () => {
     const released = (path: string): string => {
       const text = built.text(path)
       if (path !== 'CHANGELOG.md') return text
-      const renamed = text.replace('## Unreleased', '## 0.3.0 — 2026-11-30')
+      const renamed = text.replace('## Unreleased', `## ${nextRelease.version} — ${nextRelease.date}`)
       // An edit that matched nothing would test the unbroken changelog.
       expect(renamed).not.toBe(text)
       return renamed

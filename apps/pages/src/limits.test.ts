@@ -1,9 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { COMPONENT_KINDS, PRINTED_BLOCKS, refusedCharacter } from '@formancy/report-spec'
+import { COMPONENT_KINDS, PRINTED_BLOCKS, REPORT_SPEC_VERSION, refusedCharacter } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
+import { collapsed } from './checks/read.js'
 import { LIMITS_COPY } from './content/limits-copy.js'
 import { LIMIT_ORDER } from './content/product.js'
+import { PRODUCT_COPY } from './content/product-copy.js'
 import { LANGUAGES } from './languages.js'
 import { inputs, repo, site } from './test-site.js'
 
@@ -13,15 +15,14 @@ import { inputs, repo, site } from './test-site.js'
  * read it: each sentence is true while the code it rests on is as it was
  * when the sentence was read, and a change to that code fails here until
  * somebody reads the sentence again and says what is true then. One detail
- * table and one level of grouping has no predicate here: review holds it,
- * and the start page's status sends a release back to it (START_STATUS).
+ * table, grouped by one field at most, has no predicate here: review holds
+ * it, and the start page's status sends a release back to it
+ * (START_STATUS). The status section's sentence that the report format is
+ * still a draft is held here too.
  */
 const productPages = site.pages
   .filter((page) => page.group === 'product')
   .map((page) => ({ ...page, document: new DOMParser().parseFromString(page.html, 'text/html') }))
-
-/** Text with its whitespace collapsed, a no-break space a space, as the French pages set theirs. */
-const collapsed = (text: string | null | undefined): string => (text ?? '').replaceAll(/\s+/g, ' ').trim()
 
 /** A code point as the character it is, beside what report-spec says of it. */
 const judged = (point: number): readonly [string, string | undefined] => [String.fromCodePoint(point), refusedCharacter(point)]
@@ -212,6 +213,23 @@ describe('what the start page says Formancy Report does not do yet', () => {
     const printing = ['@formancy/report-runtime', '@formancy/report-render-pdf', ...drawsWith]
     expect(inputs.packages).toContain('@formancy/report-server')
     expect([...installs('@formancy/report-server')].filter((name) => printing.includes(name))).toEqual([])
+  })
+
+  // "The report format is still a draft: a report written now is not
+  // promised to be read by a later release", the status section's, is
+  // true while report-spec reads version 0, the draft (0004): the release
+  // that freezes the format makes it 1, and fails here until the sentence
+  // is read again. The page is held to saying it, in every language, so
+  // the predicate holds a sentence that is there.
+  test('says the report format is still a draft while report-spec reads version 0', () => {
+    expect(REPORT_SPEC_VERSION).toBe('0')
+    for (const page of productPages) {
+      const format = collapsed(PRODUCT_COPY[page.language].status.format)
+      const status = page.document.querySelector('section[aria-labelledby="status"]')
+      // An empty sentence would be contained in every text.
+      expect([page.language, format === '']).toEqual([page.language, false])
+      expect([page.language, collapsed(status?.textContent)]).toEqual([page.language, expect.stringContaining(format)])
+    }
   })
 
   // A predicate whose sentence the page no longer says would pass while

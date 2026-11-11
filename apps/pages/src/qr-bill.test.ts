@@ -3,7 +3,7 @@ import { QR_BILL_STATUS } from './content/qr-bill.js'
 import { QR_BILL_COPY } from './content/qr-bill-copy.js'
 import { LANGUAGES } from './languages.js'
 import { renderSite } from './site.js'
-import { inputs, site } from './test-site.js'
+import { atNextRelease, inputs, nextRelease, site } from './test-site.js'
 
 /**
  * The QR-bill page (0024), where it says what nothing else on the site
@@ -27,9 +27,10 @@ describe('the QR-bill page (0024)', () => {
   // to wait for a release that has come, or promise one that dropped it.
   test('refuses to render once the changelog names a release its status was not written against, naming each sentence that says it', () => {
     expect(inputs.release.version).toBe(QR_BILL_STATUS.release)
-    const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
-    expect(() => renderSite(released)).toThrow(/the QR-bill page's status was written when 0\.2\.0 was the newest release, and CHANGELOG\.md now names 0\.3\.0/)
-    expect(() => renderSite(released)).toThrow(/`standing`, which the hero and the product page's teaser say, `tryIt\.text` and `status\.text`/)
+    expect(() => renderSite(atNextRelease)).toThrow(
+      `the QR-bill page's status was written when ${QR_BILL_STATUS.release} was the newest release, and CHANGELOG.md now names ${nextRelease.version}`,
+    )
+    expect(() => renderSite(atNextRelease)).toThrow("`standing`, which the hero and the product page's teaser say, `tryIt.text` and `status.text`")
   })
 
   // The hero and the product page's teaser are where a reader decides to

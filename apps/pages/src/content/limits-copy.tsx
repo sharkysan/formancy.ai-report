@@ -10,8 +10,8 @@
  * and `ai` to the code they rest on -- the packages published and what
  * their manifests install, report-spec's component kinds and the blocks it
  * prints -- so that a change there fails until the sentence is read again;
- * `detail` (report-spec's one detail table and one level of grouping) is
- * review's, and START_STATUS sends each release back to every item. The
+ * `detail` (report-spec's one detail table, grouped by one field at most)
+ * is review's, and START_STATUS sends each release back to every item. The
  * German is Switzerland's spelling, the French takes its no-break spaces
  * from `frenchSpaces`, and no translation is reviewed by a native speaker.
  * Reviewed by a person, not a test, for meaning; the suite holds what can
@@ -36,7 +36,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
     intro: (date) => `Jeder dieser Punkte gilt für das neueste Release und für den Quellcode auf GitHub (Stand ${date}).`,
     items: {
       detail:
-        'Eine Detailtabelle und eine Gruppierungsebene: Ein Bericht liest eine Liste von Detailzeilen, druckt sie in einer Tabelle und gruppiert sie nach höchstens einem Feld.',
+        'Eine Detailtabelle, gruppiert nach höchstens einem Feld: Ein Bericht liest eine Liste von Detailzeilen und druckt sie in einer Tabelle, deren Zeilen nach einem Feld oder gar nicht gruppiert sind.',
       data: 'Kein konsistentes Lesen aus Formancy Data: Die Daten eines Berichts werden nach bestem Bemühen (best-effort) gelesen, der Kopf, die Zeilen Anfrage für Anfrage und jede Bezeichnung zu verschiedenen Zeitpunkten; eine Zeile, die zwischen zwei Anfragen hinzukommt oder wegfällt, kann doppelt oder gar nicht gedruckt werden, und eine Summe kann verschiedene Datenstände mischen.',
       pdf: 'Kein Druckformat ausser PDF: Der Renderer druckt einen Bericht als PDF und in keinem anderen Format.',
       codes:
@@ -55,7 +55,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
     intro: (date) => `Chacun de ces points vaut pour la version la plus récente et pour le code source sur GitHub (état au ${date}).`,
     items: {
       detail:
-        "Un tableau de détail et un niveau de regroupement : un rapport lit une liste de lignes de détail, l'imprime dans un tableau et la regroupe selon un champ au plus.",
+        "Un tableau de détail, regroupé selon un champ au plus : un rapport lit une liste de lignes de détail et l'imprime dans un tableau, dont les lignes sont regroupées selon un champ ou pas du tout.",
       data: "Pas de lecture cohérente depuis Formancy Data : les données d'un rapport y sont lues en mode best-effort, l'en-tête, les lignes requête après requête et chaque libellé à des moments différents ; une ligne ajoutée ou supprimée entre deux requêtes peut être imprimée deux fois ou pas du tout, et un total peut mêler des états différents.",
       pdf: "Aucun format d'impression autre que le PDF : le moteur de rendu n'imprime un rapport qu'en PDF.",
       codes:
@@ -74,7 +74,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
     intro: (date) => `Ciascuno di questi punti vale per la versione più recente e per il codice sorgente su GitHub, in data ${date}.`,
     items: {
       detail:
-        'Una tabella di dettaglio e un livello di raggruppamento: un report legge un elenco di righe di dettaglio, lo stampa in una tabella e lo raggruppa al massimo per un campo.',
+        'Una tabella di dettaglio, raggruppata al massimo per un campo: un report legge un elenco di righe di dettaglio e lo stampa in una tabella, le cui righe sono raggruppate per un campo o per nessuno.',
       data: "Nessuna lettura coerente da Formancy Data: i dati di un report vengono letti in modalità best-effort, l'intestazione, le righe una richiesta dopo l'altra e ogni etichetta in momenti diversi; una riga aggiunta o rimossa tra due richieste può essere stampata due volte o per niente, e un totale può mescolare stati diversi.",
       pdf: 'Nessun formato di stampa se non il PDF: il renderer non stampa un report in nessun altro formato.',
       codes:
@@ -92,7 +92,8 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
     heading: 'What it does not do yet',
     intro: (date) => `Each of these is true of the newest release and of the source on GitHub (as of ${date}).`,
     items: {
-      detail: 'One detail table and one level of grouping: a report reads one list of detail rows, prints it in one table, and groups it by one field at most.',
+      detail:
+        'One detail table, grouped by one field at most: a report reads one list of detail rows and prints it in one table, whose rows are grouped by one field or by none.',
       data: "No consistent read from Formancy Data: a report's data is read from it best-effort, its header, its rows a request at a time and each label at different moments, so a row added or removed between two requests can print twice or not at all, and a total can mix states.",
       pdf: 'No print format but PDF: the renderer prints a report as a PDF and in no other format.',
       codes: "No codes but QR codes: a report prints QR codes, EPC QR codes and a QR-bill's Swiss QR Code, but no other kind of barcode.",

@@ -5,7 +5,7 @@ import { EPC_QR_CODE_STATUS, EURO_SAMPLES_READ } from './content/epc-qr-code.js'
 import { EPC_QR_CODE_COPY } from './content/epc-qr-code-copy.js'
 import { formatDay, LANGUAGES } from './languages.js'
 import { renderSite } from './site.js'
-import { inputs, repo, site } from './test-site.js'
+import { atNextRelease, inputs, nextRelease, repo, site } from './test-site.js'
 
 /**
  * The EPC QR code page (0028), where it says what nothing else on the site
@@ -44,12 +44,11 @@ describe('the EPC QR code page (0028)', () => {
   // that says it.
   test('refuses to render once the changelog names a release its status was not written against, naming each sentence that says it', () => {
     expect(inputs.release.version).toBe(EPC_QR_CODE_STATUS.release)
-    const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
-    expect(() => renderSite(released)).toThrow(
-      /the EPC QR code page's status was written when 0\.2\.0 was the newest release, and CHANGELOG\.md now names 0\.3\.0/,
+    expect(() => renderSite(atNextRelease)).toThrow(
+      `the EPC QR code page's status was written when ${EPC_QR_CODE_STATUS.release} was the newest release, and CHANGELOG.md now names ${nextRelease.version}`,
     )
-    expect(() => renderSite(released)).toThrow(
-      /epc-qr-code-copy\.tsx that says where it stands -- `standing`, which the hero and the product page's teaser say, `tryIt\.text` and `status\.text` -- then change EPC_QR_CODE_STATUS with them/,
+    expect(() => renderSite(atNextRelease)).toThrow(
+      "epc-qr-code-copy.tsx that says where it stands -- `standing`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change EPC_QR_CODE_STATUS with them",
     )
   })
 
