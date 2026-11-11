@@ -43,7 +43,8 @@ const withoutCards = (groups: readonly PageGroup[], id: string): PageGroup[] =>
 describe('the evidence every card names', () => {
   // The claims the pages make, each resting on files of this checkout: a
   // card added without its tests, or a test renamed or removed, leaves a
-  // claim nobody checks (0028's CARD_EVIDENCE, for every card).
+  // claim nobody checks (as 0028 held the EPC QR code page's cards, now
+  // for every card).
   test('finds nothing wrong on the site the build writes', () => {
     expect(evidenceProblems(builtOf(site), GROUPS)).toEqual([])
   })

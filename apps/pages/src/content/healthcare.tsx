@@ -70,7 +70,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
     },
     teaser: {
       heading: 'Für das Gesundheitswesen',
-      text: 'Formulare, gebaut mit formancy, und Zuweisungsschreiben, Arztberichte und Rechnungen an Patientinnen und Patienten, aus Ihren eigenen Daten gedruckt, auf Ihren eigenen Servern: was heute geht und was in Entwicklung ist.',
+      text: 'Zuweisungsschreiben, Arztberichte und Rechnungen an Patientinnen und Patienten, als paginierte PDFs aus den Daten gedruckt, die Ihre Anwendung übergibt, mit exakten Beträgen, nie abgeschnittenem Text und Dokumenten, die Ihnen gehören: was heute geht und was in Entwicklung ist.',
       action: 'Formancy Report im Gesundheitswesen',
     },
     eyebrow: 'Formancy Report für das Gesundheitswesen',
@@ -91,7 +91,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
         },
         {
           title: 'Patientendaten gehören Ihnen',
-          text: 'Ihre Anwendung übergibt die Daten, und jedes Bild mit seinem Namen und seinem Hashwert. Im Studio entsteht das PDF im Browser, und die Browsertests des Studios schlagen bei jeder Anfrage fehl, die nicht an seine eigenen Dateien geht. Die Daten, die Berichtsvorlagen und die erzeugten Dokumente gehören Ihnen, wie es die Lizenz festhält.',
+          text: 'Ihre Anwendung übergibt die Daten, und jedes Bild mit seinem Namen und seinem Hashwert. Im Studio entsteht das PDF im Browser, und die Browsertests des Studios schlagen, abgesehen von blob:- und data:-Adressen, bei jeder Anfrage fehl, die nicht an die Adresse geht, unter der das Studio ausgeliefert wird. Die Daten, die Berichtsvorlagen und die erzeugten Dokumente gehören Ihnen, wie es die Lizenz festhält.',
           evidence: EVIDENCE.data,
         },
       ],
@@ -114,7 +114,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
     },
     teaser: {
       heading: 'Pour le secteur de la santé',
-      text: "Des formulaires construits avec formancy, et des lettres d'adressage, rapports médicaux et factures aux patients imprimés à partir de vos propres données, sur vos propres serveurs : ce qui fonctionne aujourd'hui, et ce qui est en développement.",
+      text: "Des lettres d'adressage, rapports médicaux et factures aux patients, imprimés en PDF paginés à partir des données que fournit votre application, avec des montants exacts, sans aucun texte coupé, et des documents qui restent les vôtres : ce qui fonctionne aujourd'hui, et ce qui est en développement.",
       action: 'Formancy Report dans le secteur de la santé',
     },
     eyebrow: 'Formancy Report pour le secteur de la santé',
@@ -135,7 +135,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
         },
         {
           title: 'Les données des patients restent les vôtres',
-          text: "Votre application fournit les données, et chaque image par son nom et son empreinte. Dans le Studio, le PDF est produit dans le navigateur, et les tests du Studio dans le navigateur échouent dès qu'une requête vise autre chose que ses propres fichiers. Les données, les modèles de rapports et les documents générés restent les vôtres, comme le dit la licence.",
+          text: "Votre application fournit les données, et chaque image par son nom et son empreinte. Dans le Studio, le PDF est produit dans le navigateur, et les tests du Studio dans le navigateur échouent, adresses blob: et data: mises à part, dès qu'une requête vise une autre adresse que celle où le Studio est servi. Les données, les modèles de rapports et les documents générés restent les vôtres, comme le dit la licence.",
           evidence: EVIDENCE.data,
         },
       ],
@@ -158,7 +158,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
     },
     teaser: {
       heading: 'Per la sanità',
-      text: 'Moduli costruiti con formancy, e lettere di invio, referti e fatture ai pazienti stampati dai vostri dati, sui vostri server: che cosa funziona oggi e che cosa è in sviluppo.',
+      text: 'Lettere di invio, referti e fatture ai pazienti, stampati come PDF impaginati dai dati che la vostra applicazione fornisce, con importi esatti, senza testo tagliato e con documenti che restano vostri: che cosa funziona oggi e che cosa è in sviluppo.',
       action: 'Formancy Report nella sanità',
     },
     eyebrow: 'Formancy Report per la sanità',
@@ -179,7 +179,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
         },
         {
           title: 'I dati dei pazienti restano vostri',
-          text: 'La vostra applicazione fornisce i dati, e ogni immagine con il suo nome e il suo hash. Nello Studio il PDF viene prodotto nel browser, e i test dello Studio nel browser falliscono a qualsiasi richiesta che non vada ai suoi file. I dati, i modelli di report e i documenti generati restano vostri, come dice la licenza.',
+          text: 'La vostra applicazione fornisce i dati, e ogni immagine con il suo nome e il suo hash. Nello Studio il PDF viene prodotto nel browser, e i test dello Studio nel browser falliscono, a parte gli indirizzi blob: e data:, a qualsiasi richiesta verso un indirizzo diverso da quello da cui lo Studio è servito. I dati, i modelli di report e i documenti generati restano vostri, come dice la licenza.',
           evidence: EVIDENCE.data,
         },
       ],
@@ -202,7 +202,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
     },
     teaser: {
       heading: 'For healthcare',
-      text: 'Forms built with formancy, and referral letters, medical reports and invoices to patients printed from your own data, on your own servers: what works today, and what is in development.',
+      text: 'Referral letters, medical reports and invoices to patients, printed as paginated PDFs from the data your application hands over, with exact amounts, no text cut to fit, and documents that remain yours: what works today, and what is in development.',
       action: 'Formancy Report in healthcare',
     },
     eyebrow: 'Formancy Report for healthcare',
@@ -223,7 +223,7 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
         },
         {
           title: 'Patient data remains yours',
-          text: "Your application hands over the data, and each image by its name and digest. In the Studio, the PDF is printed in the browser, and the Studio's browser tests fail on any request outside its own files. The data, the report templates and the documents generated remain yours, as the licence says.",
+          text: "Your application hands over the data, and each image by its name and digest. In the Studio, the PDF is printed in the browser, and the Studio's browser tests fail, blob: and data: addresses aside, on any request outside the address the Studio is served at. The data, the report templates and the documents generated remain yours, as the licence says.",
           evidence: EVIDENCE.data,
         },
       ],

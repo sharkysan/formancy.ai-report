@@ -12,7 +12,7 @@ import { FIGURES } from '../content/figures.js'
 import type { Language } from '../languages.js'
 import { HL7_NOTICE } from '../shell.js'
 import type { Built } from './read.js'
-import { metaOf, read, textOf } from './read.js'
+import { collapsed, metaOf, read, textOf } from './read.js'
 
 /**
  * A negation that governs the words after it, in each language, as "… not
@@ -54,9 +54,6 @@ const BANKS_NAME = /giro[\s\p{Pd}\p{Cf}_]*code/iu
 
 /** A file's name, the last part of its path or address. */
 const nameOf = (path: string): string => path.slice(path.lastIndexOf('/') + 1)
-
-/** `text` with its whitespace collapsed, as textOf reads an element's: a no-break space a space, as the French pages set theirs. */
-const collapsed = (text: string): string => text.replaceAll(/\s+/g, ' ').trim()
 
 /** The blocks a page's text is written in, each read on its own: its whole text run together would join a heading's last word to the next paragraph's first. */
 const BLOCK = 'h1, h2, h3, h4, h5, h6, p, li, td, th, caption, figcaption'

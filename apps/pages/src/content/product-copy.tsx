@@ -58,8 +58,9 @@ const data = <a href={FORMANCY_DATA}>Formancy Data</a>
 const EVIDENCE = {
   // Neither builder brings in the other: the Angular builder's closure holds
   // no React, and the React builder's host installs no Angular builder; and
-  // the switch between them, in jsdom and in Chromium, keeps the report,
-  // its undo history and the selection, over one session.
+  // the switch between them keeps the report and its undo history over one
+  // session, in jsdom and in Chromium, and the selection, in jsdom alone
+  // (studio.test.tsx's QR-bill switch; gate-switch.mjs reads no selection).
   twoEditors: [
     'packages/report-builder-angular/src/dependencies.test.ts',
     'scripts/install-hosts.test.mjs',
@@ -176,8 +177,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
             <>
               Ein Bericht nennt seine Datensätze und Bilder, und Ihre Anwendung übergibt beides: die Daten als eigenes JSON oder, nach bestem Bemühen
               (best-effort), aus einem Server von {data}, mit den Rechten der Person, deren Token Ihre Anwendung mitgibt, und jedes Bild mit seinem Namen und
-              seinem Hashwert. Im Studio entsteht das PDF im Browser, und die Browsertests des Studios schlagen bei jeder Anfrage fehl, die nicht an seine
-              eigenen Dateien geht.
+              seinem Hashwert. Im Studio entsteht das PDF im Browser, und die Browsertests des Studios schlagen, abgesehen von blob:- und data:-Adressen, bei
+              jeder Anfrage fehl, die nicht an die Adresse geht, unter der das Studio ausgeliefert wird.
             </>
           ),
           evidence: EVIDENCE.data,
@@ -278,8 +279,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
             <>
               Un rapport nomme ses jeux de données et ses images, et votre application fournit les deux : les données en JSON, ou, en mode best-effort, depuis
               un serveur {data}, avec les droits de la personne dont votre application transmet le jeton, et chaque image par son nom et son empreinte. Dans le
-              Studio, le PDF est produit dans le navigateur, et les tests du Studio dans le navigateur échouent dès qu'une requête vise autre chose que ses
-              propres fichiers.
+              Studio, le PDF est produit dans le navigateur, et les tests du Studio dans le navigateur échouent, adresses blob: et data: mises à part, dès
+              qu'une requête vise une autre adresse que celle où le Studio est servi.
             </>
           ),
           evidence: EVIDENCE.data,
@@ -379,8 +380,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
             <>
               Un report nomina i suoi set di dati e le sue immagini, e la vostra applicazione fornisce entrambi: i dati come JSON proprio o, in modalità
               best-effort, da un server {data}, con i permessi della persona di cui la vostra applicazione fornisce il token, e ogni immagine con il suo nome e
-              il suo hash. Nello Studio il PDF viene prodotto nel browser, e i test dello Studio nel browser falliscono a qualsiasi richiesta che non vada ai
-              suoi file.
+              il suo hash. Nello Studio il PDF viene prodotto nel browser, e i test dello Studio nel browser falliscono, a parte gli indirizzi blob: e data:, a
+              qualsiasi richiesta verso un indirizzo diverso da quello da cui lo Studio è servito.
             </>
           ),
           evidence: EVIDENCE.data,
@@ -480,7 +481,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
             <>
               A report names its datasets and its images, and your application hands over both: the data as JSON of its own or, best-effort, from a {data}{' '}
               server, read as the person whose token your application supplies, and each image by its name and digest. In the Studio, the PDF is printed in the
-              browser, and the Studio's browser tests fail on any request outside its own files.
+              browser, and the Studio's browser tests fail, blob: and data: addresses aside, on any request outside the address the Studio is served at.
             </>
           ),
           evidence: EVIDENCE.data,

@@ -2,15 +2,15 @@
  * The claims the pages make, held to what holds them: every card a page
  * shows is one its group declares, in its order, and each card names the
  * tests it rests on -- files of this checkout, each a test or the entry of
- * a gate CI runs -- one list for the card in every language (0028's
- * `CARD_EVIDENCE`, for every card of the site). That a file is there, and
- * is a test, is this check's; whether it still tests what its card says is
- * review's.
+ * a gate CI runs -- one list for the card in every language, as 0028 held
+ * the EPC QR code page's cards, now for every card of the site. That a
+ * file is there, and is a test, is this check's; whether it still tests
+ * what its card says is review's.
  */
 import { LANGUAGES } from '../languages.js'
 import type { PageGroup } from '../pages.js'
 import type { Built } from './read.js'
-import { read, textOf } from './read.js'
+import { collapsed, read, textOf } from './read.js'
 
 /** A path's segment, a file's or a directory's, never `.` or `..`: no path climbs out of where it says it is. */
 const SEGMENT = String.raw`[\w-][\w.-]*`
@@ -26,9 +26,6 @@ const GATE = String.raw`scripts/(?:install-test|e-invoice|dependency-licences)\.
  * source file or a README, each of which exists and proves nothing.
  */
 export const EVIDENCE_KIND = new RegExp(`^(?:${TEST}|${GATE})$`)
-
-/** `text` with its whitespace collapsed, as textOf reads a heading: a French no-break space a space. */
-const collapsed = (text: string): string => text.replaceAll(/\s+/g, ' ').trim()
 
 export function evidenceProblems({ site, exists }: Built, groups: readonly PageGroup[]): string[] {
   const problems: string[] = []
@@ -54,8 +51,9 @@ export function evidenceProblems({ site, exists }: Built, groups: readonly PageG
     if (teaser !== undefined && LANGUAGES.some((language) => cards[language].length === 0))
       problems.push(`${id}: its teaser introduces a page that shows no card`)
   }
-  // A topic card, `li.card.topic`, introduces a page and claims nothing
-  // that page's own cards do not: it is none of the page's claims.
+  // A topic card, `li.card.topic`, introduces a page and is none of its
+  // claims: that its words claim nothing the page's own cards do not is
+  // review's, as every sentence outside a card is.
   for (const page of site.pages.map(read)) {
     const declared = (groups.find((group) => group.id === page.group)?.cards[page.language] ?? []).map((card) => collapsed(card.title))
     const shown = [...page.document.querySelectorAll('main li.card:not(.topic) h3')].map(textOf)
