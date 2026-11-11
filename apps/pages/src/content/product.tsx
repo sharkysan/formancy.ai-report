@@ -1,13 +1,17 @@
 /**
- * The product page, `/report/<lang>/`: what Formancy Report is today, what
- * it prints, where it stands, and on what terms. One layout; the words are
- * product-copy.tsx's, in each language.
+ * The product page, `/report/<lang>/`: what Formancy Report is today, its
+ * topics, its exact totals, how it behaves, what it prints, where it
+ * stands, and on what terms. One layout; the words are product-copy.tsx's,
+ * and the totals' totals-copy.tsx's, in each language.
  */
 import type { ReactElement } from 'react'
 import { npmPage } from '../links.js'
-import type { PageContext, PageGroup } from '../pages.js'
+import type { Language } from '../languages.js'
+import type { Card, PageContext, PageGroup } from '../pages.js'
 import { FigureView, STARTERS, STUDIO } from './figures.js'
 import { PRODUCT_COPY } from './product-copy.js'
+import { TOTALS_COPY } from './totals-copy.js'
+import { TotalsSection } from './totals.js'
 
 /** The packages a reader starting with the product installs first: the two builders and the renderer. */
 const FIRST_PACKAGES = ['@formancy/report-builder-react', '@formancy/report-builder-angular', '@formancy/report-render-pdf']
@@ -73,10 +77,12 @@ function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
         </ul>
       </section>
 
-      <section className="band" aria-labelledby="today">
-        <h2 id="today">{copy.today.heading}</h2>
+      <TotalsSection page={page} />
+
+      <section className="band" aria-labelledby="behaves">
+        <h2 id="behaves">{copy.behaves.heading}</h2>
         <ul className="cards">
-          {copy.today.cards.map((card) => (
+          {copy.behaves.cards.map((card) => (
             <li key={card.title} className="card">
               <h3>{card.title}</h3>
               <p>{card.text}</p>
@@ -151,12 +157,15 @@ function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
   )
 }
 
+/** The page's claim cards in `language`, in the order it shows them: the exact totals', then how it behaves. */
+const cardsOf = (language: Language): readonly Card[] => [...TOTALS_COPY[language].cards, ...PRODUCT_COPY[language].behaves.cards]
+
 export const PRODUCT_GROUP: PageGroup = {
   id: 'product',
   studioWords: ['Download PDF'],
   slug: { de: '', fr: '', it: '', en: '' },
   meta: { de: PRODUCT_COPY.de.meta, fr: PRODUCT_COPY.fr.meta, it: PRODUCT_COPY.it.meta, en: PRODUCT_COPY.en.meta },
-  cards: { de: PRODUCT_COPY.de.today.cards, fr: PRODUCT_COPY.fr.today.cards, it: PRODUCT_COPY.it.today.cards, en: PRODUCT_COPY.en.today.cards },
+  cards: { de: cardsOf('de'), fr: cardsOf('fr'), it: cardsOf('it'), en: cardsOf('en') },
   image: 'starter-quotation.png',
   Body: ProductBody,
 }

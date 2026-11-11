@@ -27,7 +27,7 @@ export interface ProductCopy {
   readonly lead: string
   readonly actions: { readonly studio: string; readonly guide: string; readonly source: string }
   readonly topics: { readonly heading: string }
-  readonly today: { readonly heading: string; readonly cards: readonly Card[] }
+  readonly behaves: { readonly heading: string; readonly cards: readonly Card[] }
   readonly examples: { readonly heading: string; readonly intro: string; readonly action: string }
   readonly status: {
     readonly heading: (version: string) => string
@@ -53,8 +53,9 @@ export interface ProductCopy {
 const data = <a href={FORMANCY_DATA}>Formancy Data</a>
 
 /**
- * The tests each card of "What it does today" rests on, one list a card,
- * which the card shares in every language (checks/evidence.ts).
+ * The tests each card of "How it behaves" rests on, one list a card, which
+ * the card shares in every language (checks/evidence.ts). The exact totals'
+ * cards rest on totals-copy.tsx's.
  */
 const EVIDENCE = {
   // Neither builder brings in the other: the Angular builder's closure holds
@@ -67,15 +68,6 @@ const EVIDENCE = {
     'scripts/install-hosts.test.mjs',
     'apps/studio/src/studio.test.tsx',
     'apps/studio/scripts/gate-switch.mjs',
-  ],
-  // A decimal read as its string, a JavaScript number refused; sums and
-  // averages exact, rounded once as declared, to each group and to the
-  // report; and each value formatted for the report's locale.
-  totals: [
-    'packages/report-runtime/src/values.test.ts',
-    'packages/report-runtime/src/decimal.test.ts',
-    'packages/report-runtime/src/totals.test.ts',
-    'packages/report-runtime/src/format.test.ts',
   ],
   // A word wider than its column, a page past the limit and a character
   // the font has no glyph for, each refused, naming where it is, and no PDF
@@ -140,18 +132,13 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     lead: 'Formancy Report ist ein Berichtsdesigner, den Sie selbst betreiben. Wer einen Bericht gestaltet, legt ihn in einem visuellen Editor an, nativ in Angular und in React; Ihre Anwendung übergibt die Daten, und der Renderer erzeugt das PDF, auf Ihrem Server oder im Browser.',
     actions: { studio: 'Im Studio ausprobieren', guide: 'Die Einführung lesen (Englisch)', source: 'Quellcode auf GitHub' },
     topics: { heading: 'Die Themen im Einzelnen' },
-    today: {
-      heading: 'Was es heute kann',
+    behaves: {
+      heading: 'Wie es sich verhält',
       cards: [
         {
           title: 'Zwei native Editoren, eine Sitzung',
           text: 'Der React-Builder und der Angular-Builder sind je nativ in ihrem Framework und stellen dasselbe Editormodell dar. Wechseln Sie vom einen zum anderen: Bericht, Rückgängig-Verlauf und Auswahl bleiben erhalten. Keiner hängt vom anderen ab.',
           evidence: EVIDENCE.twoEditors,
-        },
-        {
-          title: 'Exakte Summen',
-          text: 'Beträge werden als Dezimal-Strings weitergegeben, nie als JavaScript-Zahl. Summen werden exakt berechnet und einmal gerundet, wie es der Bericht festlegt, und jeder Wert wird für Sprache und Region des Berichts formatiert.',
-          evidence: EVIDENCE.totals,
         },
         {
           title: 'Lieber ablehnen als abschneiden',
@@ -243,18 +230,13 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     lead: 'Formancy Report est un concepteur de rapports que vous hébergez vous-même. La personne qui conçoit le rapport le met en page dans un éditeur visuel, natif en Angular et en React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur.',
     topics: { heading: 'Les sujets en détail' },
     actions: { studio: "L'essayer dans le Studio", guide: 'Lire le guide de démarrage (en anglais)', source: 'Le code source sur GitHub' },
-    today: {
-      heading: "Ce qu'il fait aujourd'hui",
+    behaves: {
+      heading: 'Comment il se comporte',
       cards: [
         {
           title: 'Deux éditeurs natifs, une session',
           text: "Le builder React et le builder Angular sont chacun natifs dans leur framework et reposent sur un même modèle d'éditeur. Passez de l'un à l'autre : le rapport, l'historique d'annulation et la sélection sont conservés. Aucun ne dépend de l'autre.",
           evidence: EVIDENCE.twoEditors,
-        },
-        {
-          title: 'Des totaux exacts',
-          text: 'Les montants circulent sous forme de chaînes décimales, jamais comme nombre JavaScript. Les totaux sont calculés de manière exacte et arrondis une seule fois, comme le rapport le déclare, et chaque valeur est formatée selon la langue et la région du rapport.',
-          evidence: EVIDENCE.totals,
         },
         {
           title: 'Il refuse plutôt que de tronquer',
@@ -345,18 +327,13 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     topics: { heading: 'Gli argomenti in dettaglio' },
     lead: 'Formancy Report è un designer di report che ospitate voi stessi. Chi progetta un report lo impagina in un editor visuale, nativo in Angular e in React; la vostra applicazione fornisce i dati, e il renderer genera il PDF, sul vostro server o nel browser.',
     actions: { studio: 'Provarlo nello Studio', guide: 'Leggere la guida introduttiva (in inglese)', source: 'Il codice sorgente su GitHub' },
-    today: {
-      heading: 'Che cosa fa oggi',
+    behaves: {
+      heading: 'Come si comporta',
       cards: [
         {
           title: 'Due editor nativi, una sessione',
           text: "Il builder React e il builder Angular sono ciascuno nativo nel proprio framework e si basano su un unico modello di editor. Passando dall'uno all'altro, il report, la cronologia degli annullamenti e la selezione restano invariati. Nessuno dei due dipende dall'altro.",
           evidence: EVIDENCE.twoEditors,
-        },
-        {
-          title: 'Totali esatti',
-          text: 'Gli importi circolano come stringhe decimali, mai come numero JavaScript. I totali sono calcolati in modo esatto e arrotondati una sola volta, come il report dichiara, e ogni valore è formattato per la lingua e la regione del report.',
-          evidence: EVIDENCE.totals,
         },
         {
           title: 'Rifiuta invece di troncare',
@@ -447,18 +424,13 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     h1: 'Paginated PDF reports, designed inside your Angular or React application',
     lead: 'Formancy Report is a report designer you host yourself. An author lays out a report in a visual editor, native in Angular and in React; your application hands over the data, and the renderer prints the PDF, on your server or in the browser.',
     actions: { studio: 'Try it in the Studio', guide: 'Read the getting-started guide', source: 'Source code on GitHub' },
-    today: {
-      heading: 'What it does today',
+    behaves: {
+      heading: 'How it behaves',
       cards: [
         {
           title: 'Two native editors, one session',
           text: 'The React builder and the Angular builder are each native to their framework and render one editor model. Switch from one to the other and the report, its undo history and the selection stay. Neither depends on the other.',
           evidence: EVIDENCE.twoEditors,
-        },
-        {
-          title: 'Totals that are exact',
-          text: "Amounts travel as decimal strings, never through a JavaScript number. Totals are computed exactly and rounded once, as the report declares, and each value is formatted for the report's language and region.",
-          evidence: EVIDENCE.totals,
         },
         {
           title: 'It refuses rather than truncates',

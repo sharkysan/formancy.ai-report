@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import { PRODUCT_COPY } from './content/product-copy.js'
 import { GROUPS } from './groups.js'
 import { LANGUAGES } from './languages.js'
 import { isRoot } from './pages.js'
@@ -50,6 +51,46 @@ describe('the product page introduces its topics', () => {
   test('keeps no teaser band at the foot', () => {
     for (const page of productPages) {
       expect([page.language, page.document.querySelectorAll('main > section[aria-labelledby^="topic-"]').length]).toEqual([page.language, 0])
+    }
+  })
+})
+
+describe('the product page shows its exact totals', () => {
+  // Exact totals were one card among the start page's claims, its tests
+  // under one heading: a section of its own holds each claim on its own
+  // tests, and stands where a reader who has met the topics reads on,
+  // before how the product behaves.
+  test('shows exact totals between the topics and how it behaves, in every language', () => {
+    expect(productPages).toHaveLength(LANGUAGES.length)
+    for (const page of productPages) {
+      const order = [...page.document.querySelectorAll('main > section')].map((section) => section.getAttribute('aria-labelledby'))
+      expect([page.language, order.slice(0, 4)]).toEqual([page.language, ['top', 'topics', 'totals', 'behaves']])
+      expect([page.language, new Set(order).size]).toEqual([page.language, order.length])
+      expect([page.language, collapsed(page.document.getElementById('behaves')?.textContent)]).toEqual([
+        page.language,
+        collapsed(PRODUCT_COPY[page.language].behaves.heading),
+      ])
+    }
+  })
+
+  // A total said to be exact and not shown is a claim the reader has to
+  // take on trust: the section points to the starters, whose pictures print
+  // the totals. The link check holds the id it points to.
+  test('points from the totals to the starters that print them', () => {
+    for (const page of productPages) {
+      const links = page.document.querySelectorAll('section[aria-labelledby="totals"] a[href="#examples"]')
+      expect([page.language, links.length]).toEqual([page.language, 1])
+    }
+  })
+
+  // The wording checks do not read <pre>, and nothing compiles code on a
+  // page: an expression shown here would say what no check reads and no
+  // build runs. The guide is the compiled one.
+  test('shows no code', () => {
+    for (const page of productPages) {
+      const section = page.document.querySelector('section[aria-labelledby="totals"]')
+      expect([page.language, section === null]).toEqual([page.language, false])
+      expect([page.language, section?.querySelectorAll('pre, code').length]).toEqual([page.language, 0])
     }
   })
 })

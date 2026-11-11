@@ -140,7 +140,7 @@ describe('the sitemap', () => {
 describe('the body', () => {
   // Two h1 split the page's one subject; none leaves it without one.
   test('a second h1', () => {
-    expect(problemsOf(editing('en/index.html', (html) => html.replace('<h2 id="today">', '<h1>Again</h1><h2 id="today">')))).toContain(
+    expect(problemsOf(editing('en/index.html', (html) => html.replace('<h2 id="behaves">', '<h1>Again</h1><h2 id="behaves">')))).toContain(
       'en/index.html: 2 h1, not one with words in it',
     )
   })
