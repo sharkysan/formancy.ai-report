@@ -138,6 +138,83 @@
     against its PDF/A-3b profile and found it compliant. CI's run on
     Temurin 17 is the gate, and had not run on this branch when this was
     written.
+  - **Each rule reverted alone, once all of it was in.** On 11 November
+    2026, with this record's code whole, each rule below was reverted on
+    its own, the test named run and seen to fail, and the file written
+    back from its committed blob, its SHA-256 checked against it. No
+    reversion passed. One failed the gate for a reason that was not its
+    own, and gained a test first, as its entry says:
+    - `checkPdfA` reading no `pdfa`: `pdfa-check.test.ts`, 10 of its 19
+      cases, the definition "expected … to match object { version: '1.7',
+      subset: 'PDF/A-2b' }", and the Factur-X, the copy, both previews and
+      the five titles each drawn, "expected Uint8Array … to be an
+      instance of RenderRefusal".
+    - The Factur-X's refusal taken out: its case alone, the Factur-X drawn
+      as its PDF/A-3b where a refusal was asked for.
+    - The XRechnung copy's refusal taken out: its case alone, the copy
+      drawn.
+    - The preview's label not read: both preview cases, each drawn.
+    - The title checked in a PDF/A-3b alone: the five title cases, each
+      drawn.
+    - The CMYK JPEG refused in a PDF/A-3b alone (`check.ts`):
+      `assets.test.ts`'s two PDF/A-2b cases, body and page header,
+      "promise resolved … instead of rejecting".
+    - An SVG checked in a PDF/A-3b alone (`check.ts`): 13 of
+      `svg-pdfa.test.ts`'s PDF/A-2b cases, every one refused for its range
+      or its nesting, the messages' case and `SVG_BOUND`'s, "expected
+      undefined to be an instance of RenderRefusal".
+    - `PDF_A_2B` without its version: `pdfa-2b.test.ts`, every starter's
+      PDF "expected '1.3' to be '1.7'" and every starter's pages case,
+      its definitions "[ undefined, 'PDF/A-2b' ]", and
+      `pdfa-check.test.ts`'s definition case.
+    - The PDF/A-3b's hook run on a PDF/A-2b with a stand-in Factur-X file
+      (`render.ts`): `pdfa-2b.test.ts`'s six "embeds no file" cases,
+      "expected [ Array(2) ] to deeply equal [ [], [] ]".
+    - The `RangeError` taken out (`render.ts`): the seven values' cases,
+      each drawn as a plain PDF, "expected Uint8Array … to be an instance
+      of RangeError".
+    - report-corpus's `catalogKeys` answering `[]`: `objects.test.ts`'s
+      two catalog cases, PDFKit's and pdf-lib's with an `/OpenAction`.
+      `pdfa-2b.test.ts`, which reads that no `OpenAction` is there, could
+      not see it, which is why the reader is held on a PDF that has one.
+    - The gate's PDF/A-2b run made with `--flavour 3b` (`e-invoice.mjs`):
+      the live gate on Zulu 22.0.1, every 2b file "validated against
+      PDF/A-3b validation profile, not the PDF/A-2b validation profile",
+      each sample and variant refused for 6.6.4-2, and the 3b control
+      accepted, "nothing is watching that".
+    - The gate's PDF/A-2b run made with no flavour: at the call, the live
+      gate stopped, "veraPDF is run with the flavour undefined, where the
+      gate holds a profile for 3b and 2b"; in `veraPdfArguments`, with
+      `--flavour` left off for a 2b alone, `verapdf.test.mjs`'s flavour
+      case, "expected [ [ '--flavour', '3b' ], [] ]", and the live gate,
+      veraPDF left to detect: the samples and variants passed as the 2b
+      they say they are, the plain control was judged "against PDF/A-1b
+      validation profile", and the 3b control "against PDF/A-3b validation
+      profile" and accepted, "nothing is watching that".
+    - `identificationProblems` answering `[]`: `pdfa-2b.test.mjs`'s XMP
+      case, "expected [] to deeply equal [ …(8) ]". The live gate would
+      not see it on a corpus drawn right, and needs not: the test is the
+      rule's.
+    - Mustang given the PDF/A-2b: in `JUDGES`, `registers.test.mjs`'s two
+      judges cases, and the live gate stopped before any Java ran, "the
+      corpus has no pdfa-2b control mustang must refuse". Handed it at the
+      call, past `judgedBy`, the live gate stopped on a `TypeError` in
+      Mustang's judge, which read an expectation the 2b has none of: a
+      failure, but not the rule's. So `mustang.test.mjs` gained a case
+      first, a PDF/A-2b handed to `judgeMustang` with Mustang's recorded
+      report on the plain control, which failed on that `TypeError`; then
+      the judge names such a file and reads nothing it said, and the
+      reversion, made again, had the live gate name each 2b file,
+      "Mustang was handed pdfa-2b-quotation.pdf, a file of the format
+      pdfa-2b, which JUDGES gives it none of".
+    - `JUDGES['pdfa-2b']` taken out: `registers.test.mjs`'s two judges
+      cases, `pdfa-2b.test.mjs` at its import, and the release report's
+      `report.test.mjs` and `render.test.mjs`, its green run then failing
+      "the e-invoice gate recorded pdfa-2b-quotation.pdf as pdfa-2b, a
+      format none of its tools judges", and the control's alike.
+    - The install consumer's `pdfa` left out of `pdfa.ts`: the install
+      gate, "the quotation was not drawn as a PDF/A-2b; it lacks PDF 1.7;
+      PDF/A-2b in the XMP; the reviewed sRGB2014 output intent".
   - **Red until the record is retaken.** `scripts/e-invoice/recorded/` is
     retaken by the gate's `--record` on a passing run, never by hand, and
     the record is the rightsholder's to make, on the machine and the Java
