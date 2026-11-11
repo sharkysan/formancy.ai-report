@@ -28,8 +28,10 @@ export interface ProductCopy {
   /**
    * What the newest release holds, said in the hero: `version` is the
    * changelog's newest release, and `unreleased` the link to what the
-   * source holds since, under the changelog's Unreleased, worded
-   * `status.unreleased`. Re-read at each release (START_STATUS).
+   * source has gained since, under the changelog's Unreleased, worded
+   * `status.unreleased`. Worded to be true whether Unreleased lists
+   * anything or, right after a release, nothing. Re-read at each release
+   * (START_STATUS).
    */
   readonly standing: (version: string, unreleased: ReactNode) => ReactNode
   readonly actions: { readonly studio: string; readonly guide: string; readonly source: string }
@@ -140,8 +142,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     lead: 'Formancy Report ist ein Berichtsdesigner, den Sie selbst betreiben. Wer einen Bericht gestaltet, legt ihn in einem visuellen Editor an, den es nativ für Angular und nativ für React gibt; Ihre Anwendung übergibt die Daten, und der Renderer erzeugt das PDF, auf Ihrem Server oder im Browser. Die Summen sind exakt, und eine QR-Rechnung wird nach den Regeln von SIX geprüft, ein EPC-QR-Code nach denen des EPC.',
     standing: (version, unreleased) => (
       <>
-        Das neueste Release, {version}, enthält den React- und den Angular-Builder, den PDF-Renderer, exakte Summen, die QR-Rechnung und den EPC-QR-Code. Der
-        Quellcode auf GitHub enthält seither mehr: siehe {unreleased}.
+        Das neueste Release, {version}, enthält den React- und den Angular-Builder, den PDF-Renderer, exakte Summen, die QR-Rechnung und den EPC-QR-Code. Was
+        seither im Quellcode auf GitHub hinzugekommen ist, steht unter {unreleased}.
       </>
     ),
     actions: { studio: 'Im Studio ausprobieren', guide: 'Die Einführung lesen (Englisch)', source: 'Quellcode auf GitHub' },
@@ -244,7 +246,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     standing: (version, unreleased) => (
       <>
         La version la plus récente, {version}, contient le builder React et le builder Angular, le moteur de rendu PDF, les totaux exacts, la facture QR et le
-        QR code SEPA. Depuis, le code source sur GitHub contient davantage : voir {unreleased}.
+        QR code SEPA. Ce qui s'est ajouté depuis au code source sur GitHub figure sous {unreleased}.
       </>
     ),
     topics: { heading: 'Les sujets en détail' },
@@ -347,7 +349,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     standing: (version, unreleased) => (
       <>
         La versione più recente, {version}, contiene il builder React e il builder Angular, il renderer PDF, i totali esatti, la fattura QR e il QR code SEPA.
-        Da allora il codice sorgente su GitHub contiene altro ancora: vedere {unreleased}.
+        Ciò che si è aggiunto da allora al codice sorgente su GitHub è elencato sotto {unreleased}.
       </>
     ),
     actions: { studio: 'Provarlo nello Studio', guide: 'Leggere la guida introduttiva (in inglese)', source: 'Il codice sorgente su GitHub' },
@@ -448,8 +450,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     lead: "Formancy Report is a report designer you host yourself. An author lays out a report in a visual editor built natively for Angular and again for React; your application hands over the data, and the renderer prints the PDF, on your server or in the browser. Totals are exact, and a QR-bill is checked against SIX's rules and an EPC QR code against the EPC's.",
     standing: (version, unreleased) => (
       <>
-        The newest release, {version}, holds the React builder and the Angular builder, the PDF renderer, exact totals, the QR-bill and the EPC QR code. The
-        source on GitHub holds more since: see {unreleased}.
+        The newest release, {version}, holds the React builder and the Angular builder, the PDF renderer, exact totals, the QR-bill and the EPC QR code.
+        Anything the source on GitHub has gained since is listed under {unreleased}.
       </>
     ),
     actions: { studio: 'Try it in the Studio', guide: 'Read the getting-started guide', source: 'Source code on GitHub' },

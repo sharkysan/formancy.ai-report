@@ -23,9 +23,9 @@ node scripts/bump.mjs 0.1.0
 # 2. Rename "## Unreleased" in CHANGELOG.md to the version's heading, and say
 #    what is knowingly missing. What the release was tested with is the
 #    release report's, from the run that gates it; the body carries it.
-#    Three pages say where they stand, and the pages refuse to render
-#    until each one's status names the new version, naming every such page
-#    in one error. The start page says what the newest release holds and
+#    Each page with a status says where it stands, and the pages refuse
+#    to render until each one's status names the new version, naming every
+#    such page in one error. The start page says what the newest release holds and
 #    what Formancy Report does not do yet: say both again, as true of the
 #    new release and of main, in `standing`, which the hero says, in
 #    apps/pages/src/content/product-copy.tsx, `items` in limits-copy.tsx

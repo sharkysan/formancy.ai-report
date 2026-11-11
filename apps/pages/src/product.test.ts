@@ -36,7 +36,7 @@ describe('the product page introduces its topics', () => {
 
   // A card that names a page and not where it stands sends a reader to a
   // page that may not have what they came for: the status is on the card.
-  test("says on a topic's card where its page stands, for every page with a status", () => {
+  test("says on a topic's card where its page stands, for every other page with a status", () => {
     const stated = GROUPS.filter((group) => !isRoot(group) && group.status !== undefined)
     expect(stated.length).toBeGreaterThan(0)
     for (const page of productPages) {

@@ -68,10 +68,11 @@ function installs(name: string): ReadonlySet<string> {
 }
 
 describe('what the start page says Formancy Report does not do yet', () => {
-  // "PDF only" is true while the one renderer published is PDF's: another
-  // report-render-* published from packages/ fails here until the
-  // sentence is read again. A renderer named otherwise is review's.
-  test('says PDF is the only output while report-render-pdf is the only renderer published', () => {
+  // "No print format but PDF" is true while the one renderer published is
+  // PDF's: another report-render-* published from packages/ fails here
+  // until the sentence is read again. A renderer named otherwise is
+  // review's.
+  test('says no print format but PDF while report-render-pdf is the only renderer published', () => {
     expect(inputs.packages.filter((name) => name.startsWith('@formancy/report-render-'))).toEqual(['@formancy/report-render-pdf'])
   })
 
@@ -203,7 +204,9 @@ describe('what the start page says Formancy Report does not do yet', () => {
   // the renderer, nor anything the renderer takes from npm to draw with: a
   // server that takes one of them, itself or through report-server-core,
   // fails here, naming it, until the sentence is read again. A server
-  // published under another name is review's.
+  // published under another name is review's, and so is one that prints
+  // with a library the renderer does not take -- pdf-lib, a headless
+  // browser -- which passes here.
   test('says no PDF is printed on a server of its own while the server installs neither the runtime nor the renderer', () => {
     const drawsWith = Object.keys(declared('@formancy/report-render-pdf')).filter((name) => !manifests.has(name))
     const printing = ['@formancy/report-runtime', '@formancy/report-render-pdf', ...drawsWith]
