@@ -73,7 +73,7 @@ describe('the EPC QR code page (0028)', () => {
     }
     for (const page of pagesOf('product')) {
       const { standing } = EPC_QR_CODE_COPY[page.language]
-      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="topic-epc-qr-code"]')?.textContent)]).toEqual([
+      expect([page.language, collapsed(page.document.querySelector('[aria-labelledby="topic-epc-qr-code"]')?.textContent)]).toEqual([
         page.language,
         expect.stringContaining(collapsed(standing)),
       ])

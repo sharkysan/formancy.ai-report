@@ -54,7 +54,7 @@ const OWN: Readonly<Record<Language, EuroCountry>> = { de: 'DE', fr: 'FR', it: '
 /** What the product page says of the EPC QR code page in `language`: its teaser, and where it stands, as the hero says it. */
 const teaserOf = (language: Language): Teaser => ({
   ...EPC_QR_CODE_COPY[language].teaser,
-  text: `${EPC_QR_CODE_COPY[language].teaser.text} ${EPC_QR_CODE_COPY[language].standing}`,
+  standing: EPC_QR_CODE_COPY[language].standing,
 })
 
 /** The decision record that says what an EPC QR code is and what it costs, which the page links for the reasons it gives. */

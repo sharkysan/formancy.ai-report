@@ -26,6 +26,7 @@ export interface ProductCopy {
   readonly h1: string
   readonly lead: string
   readonly actions: { readonly studio: string; readonly guide: string; readonly source: string }
+  readonly topics: { readonly heading: string }
   readonly today: { readonly heading: string; readonly cards: readonly Card[] }
   readonly examples: { readonly heading: string; readonly intro: string; readonly action: string }
   readonly status: {
@@ -138,6 +139,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     h1: 'Paginierte PDF-Berichte, gestaltet in Ihrer Angular- oder React-Anwendung',
     lead: 'Formancy Report ist ein Berichtsdesigner, den Sie selbst betreiben. Wer einen Bericht gestaltet, legt ihn in einem visuellen Editor an, nativ in Angular und in React; Ihre Anwendung übergibt die Daten, und der Renderer erzeugt das PDF, auf Ihrem Server oder im Browser.',
     actions: { studio: 'Im Studio ausprobieren', guide: 'Die Einführung lesen (Englisch)', source: 'Quellcode auf GitHub' },
+    topics: { heading: 'Die Themen im Einzelnen' },
     today: {
       heading: 'Was es heute kann',
       cards: [
@@ -239,6 +241,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     eyebrow: (version) => `Version ${version} · préversion pour développeurs`,
     h1: 'Des rapports PDF paginés, conçus dans votre application Angular ou React',
     lead: 'Formancy Report est un concepteur de rapports que vous hébergez vous-même. La personne qui conçoit le rapport le met en page dans un éditeur visuel, natif en Angular et en React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur.',
+    topics: { heading: 'Les sujets en détail' },
     actions: { studio: "L'essayer dans le Studio", guide: 'Lire le guide de démarrage (en anglais)', source: 'Le code source sur GitHub' },
     today: {
       heading: "Ce qu'il fait aujourd'hui",
@@ -339,6 +342,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     },
     eyebrow: (version) => `Versione ${version} · anteprima per sviluppatori`,
     h1: 'Report PDF impaginati, progettati nella vostra applicazione Angular o React',
+    topics: { heading: 'Gli argomenti in dettaglio' },
     lead: 'Formancy Report è un designer di report che ospitate voi stessi. Chi progetta un report lo impagina in un editor visuale, nativo in Angular e in React; la vostra applicazione fornisce i dati, e il renderer genera il PDF, sul vostro server o nel browser.',
     actions: { studio: 'Provarlo nello Studio', guide: 'Leggere la guida introduttiva (in inglese)', source: 'Il codice sorgente su GitHub' },
     today: {
@@ -439,6 +443,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       name: 'Formancy Report',
     },
     eyebrow: (version) => `Version ${version} · developer preview`,
+    topics: { heading: 'The topics in detail' },
     h1: 'Paginated PDF reports, designed inside your Angular or React application',
     lead: 'Formancy Report is a report designer you host yourself. An author lays out a report in a visual editor, native in Angular and in React; your application hands over the data, and the renderer prints the PDF, on your server or in the browser.',
     actions: { studio: 'Try it in the Studio', guide: 'Read the getting-started guide', source: 'Source code on GitHub' },

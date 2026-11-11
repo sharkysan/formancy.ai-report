@@ -86,6 +86,8 @@ export interface Teaser {
   readonly text: string
   /** The link's words, which name the page it leads to. */
   readonly action: string
+  /** Where the topic's page stands, for a page with a status: the card says it beside the teaser. */
+  readonly standing?: string
 }
 
 /** The product page's group, the root of each language's pages: the one whose slugs are empty. */

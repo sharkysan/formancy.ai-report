@@ -49,6 +49,30 @@ function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
         <FigureView figure={STUDIO} page={page} first />
       </section>
 
+      <section className="band" aria-labelledby="topics">
+        <h2 id="topics">{copy.topics.heading}</h2>
+        <ul className="cards topics">
+          {page.groups.map((group) => {
+            const teaser = group.teaser?.[page.language]
+            if (teaser === undefined) return null
+            return (
+              <li key={group.id} className="card topic">
+                <article aria-labelledby={`topic-${group.id}`}>
+                  <h3 id={`topic-${group.id}`}>{teaser.heading}</h3>
+                  <p>{teaser.text}</p>
+                  {teaser.standing === undefined ? null : <p>{teaser.standing}</p>}
+                  <p>
+                    <a className="quiet" href={page.pageHref(group.id)}>
+                      {teaser.action}
+                    </a>
+                  </p>
+                </article>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+
       <section className="band" aria-labelledby="today">
         <h2 id="today">{copy.today.heading}</h2>
         <ul className="cards">
@@ -123,22 +147,6 @@ function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
         </p>
         <p>{copy.licence.upstream}</p>
       </section>
-
-      {page.groups.map((group) => {
-        const teaser = group.teaser?.[page.language]
-        if (teaser === undefined) return null
-        return (
-          <section key={group.id} className="band" aria-labelledby={`topic-${group.id}`}>
-            <h2 id={`topic-${group.id}`}>{teaser.heading}</h2>
-            <p>{teaser.text}</p>
-            <p>
-              <a className="quiet" href={page.pageHref(group.id)}>
-                {teaser.action}
-              </a>
-            </p>
-          </section>
-        )
-      })}
     </>
   )
 }

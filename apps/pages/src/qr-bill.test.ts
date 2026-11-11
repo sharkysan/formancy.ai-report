@@ -53,7 +53,7 @@ describe('the QR-bill page (0024)', () => {
     }
     for (const page of pagesOf('product')) {
       const { standing } = QR_BILL_COPY[page.language]
-      expect([page.language, collapsed(page.document.querySelector('section[aria-labelledby="topic-qr-bill"]')?.textContent)]).toEqual([
+      expect([page.language, collapsed(page.document.querySelector('[aria-labelledby="topic-qr-bill"]')?.textContent)]).toEqual([
         page.language,
         expect.stringContaining(collapsed(standing)),
       ])
