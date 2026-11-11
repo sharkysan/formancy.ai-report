@@ -11,8 +11,8 @@ import { inputs, site } from './test-site.js'
  * read it: each sentence is true while the code it rests on is as it was
  * when the sentence was read, and a change to that code fails here until
  * somebody reads the sentence again and says what is true then. One detail
- * table and one level of grouping, and no render jobs on a server, have no
- * predicate here: review holds them.
+ * table and one level of grouping, a best-effort read from Formancy Data,
+ * and no render jobs on a server have no predicate here: review holds them.
  */
 const productPages = site.pages
   .filter((page) => page.group === 'product')
@@ -74,6 +74,20 @@ describe('what the start page says Formancy Report does not do yet', () => {
   // otherwise is review's.
   test('says no viewer is published while no published package is one', () => {
     expect(inputs.packages.filter((name) => /viewer/.test(name))).toEqual([])
+  })
+
+  // "No changes proposed by an AI" is true while no package published from
+  // packages/ is one: a package published with report-ai in its name fails
+  // here, naming it, until the sentence is read again. One named otherwise
+  // is review's.
+  test('says no AI proposes changes while no published package is one', () => {
+    expect(inputs.packages.filter((name) => /report-ai/.test(name))).toEqual([])
+  })
+
+  // A predicate whose sentence the page no longer says would pass while
+  // holding nothing.
+  test('says each sentence a predicate here holds', () => {
+    expect(LIMIT_ORDER).toEqual(expect.arrayContaining(['pdf', 'codes', 'scripts', 'viewer', 'ai']))
   })
 
   // A limit the copy words and LIMIT_ORDER leaves out would never print,

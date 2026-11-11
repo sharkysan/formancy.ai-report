@@ -16,10 +16,14 @@ import { TOTALS_COPY } from './totals-copy.js'
 import { TotalsSection } from './totals.js'
 
 /** Each thing the start page says Formancy Report does not do yet, worded in limits-copy.tsx. */
-export type LimitKey = 'detail' | 'pdf' | 'codes' | 'scripts' | 'viewer' | 'jobs'
+export type LimitKey = 'detail' | 'data' | 'pdf' | 'codes' | 'scripts' | 'viewer' | 'jobs' | 'ai'
 
-/** The order the start page lists them in, in every language. */
-export const LIMIT_ORDER: readonly LimitKey[] = ['detail', 'pdf', 'codes', 'scripts', 'viewer', 'jobs']
+/**
+ * The order the start page lists them in, in every language: what a report
+ * reads, what it prints, what an application runs around it, and who
+ * proposes a change to it.
+ */
+export const LIMIT_ORDER: readonly LimitKey[] = ['detail', 'data', 'pdf', 'codes', 'scripts', 'viewer', 'jobs', 'ai']
 
 /** The packages a reader starting with the product installs first: the two builders and the renderer. */
 const FIRST_PACKAGES = ['@formancy/report-builder-react', '@formancy/report-builder-angular', '@formancy/report-render-pdf']
