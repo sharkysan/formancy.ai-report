@@ -13,10 +13,11 @@ import { readPdf } from './read-pdf.js'
 import { exactBuffer, pdfmakePdf, type PdfKitDocument } from './testing/pdfmake.js'
 
 /**
- * The objects a PDF/A-3 with an embedded invoice is proved on, read by
- * pdf-lib, which is not the pdfkit that wrote them, from PDFs pdfkit
- * writes here: through pdfmake's `getStream`, between layout and `end`,
- * where the renderer embeds a file and appends XMP.
+ * The objects a PDF/A is proved on -- an e-invoice's PDF/A-3 with its
+ * embedded invoice, or a PDF/A-2b that embeds nothing -- read by pdf-lib,
+ * which is not the pdfkit that wrote them, from PDFs pdfkit writes here:
+ * through pdfmake's `getStream`, between layout and `end`, where the
+ * renderer embeds a file and appends XMP.
  */
 
 /** pdfmake's options for a PDF/A-3b: without the version pdfkit writes no XMP (pdfkit.js 6070). */
@@ -227,6 +228,41 @@ describe('readPdfObjects', () => {
     expect(masked).toHaveLength(1)
     expect(read.find(({ object }) => object === masked[0]!.softMask)).toMatchObject({ width: 16, height: 16, softMask: undefined })
     expect(Buffer.from(bytes).toString('latin1')).toContain(`/SMask ${String(masked[0]!.softMask)} 0 R`)
+  })
+
+  // That a PDF holds no action, form or JavaScript is proved from the
+  // keys of its catalog and of the catalog's /Names, and a reader that
+  // saw no keys would pass every claim of "no action". This one reads,
+  // from PDFs PDFKit writes, the keys PDFKit
+  // gives every catalog and the empty /Dests tree it names there
+  // (pdfkit.js 6113-6125), and, in a PDF/A-3b that embeds a file, the
+  // /AF, /OutputIntents and /Metadata it adds after them, in the order the
+  // file holds them, beside /EmbeddedFiles in the tree.
+  test('reads the catalog’s keys and its name tree’s, as PDFKit writes them', async () => {
+    const plain = await readPdfObjects(await pdfmakePdf({ content: [{ text: 'plain' }] }))
+    expect([plain.catalogKeys, plain.nameTreeKeys]).toEqual([['Type', 'Pages', 'Names'], ['Dests']])
+    const embedding = await readPdfObjects(await pdfmakePdf(PDFA, embed(xml)))
+    expect([embedding.catalogKeys, embedding.nameTreeKeys]).toEqual([
+      ['Type', 'Pages', 'Names', 'AF', 'OutputIntents', 'Metadata'],
+      ['Dests', 'EmbeddedFiles'],
+    ])
+  })
+
+  // PDFKit writes no action, but a PDF may hold one: an /OpenAction that
+  // runs JavaScript as the file opens, and JavaScript the name tree names,
+  // which no PDF/A may hold. Built here by pdf-lib, both are read, so that
+  // a claim of neither rests on a reader seen to find them; and a catalog
+  // with no /Names has no tree's keys.
+  test('reads an /OpenAction and a JavaScript name tree a PDF holds', async () => {
+    const document = await PDFDocument.create({ updateMetadata: false })
+    document.addPage()
+    const { context, catalog } = document
+    expect((await readPdfObjects(await document.save())).nameTreeKeys).toEqual([])
+    const script = context.register(context.obj({ Type: 'Action', S: 'JavaScript', JS: PDFString.of('app.alert(1)') }))
+    catalog.set(PDFName.of('OpenAction'), script)
+    catalog.set(PDFName.of('Names'), context.obj({ JavaScript: { Names: [PDFString.of('opened'), script] } }))
+    const objects = await readPdfObjects(await document.save())
+    expect([objects.catalogKeys, objects.nameTreeKeys]).toEqual([['Type', 'Pages', 'OpenAction', 'Names'], ['JavaScript']])
   })
 
   // The XMP is where PDF/A and Factur-X identify the file, and what is

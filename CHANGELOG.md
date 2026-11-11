@@ -10,6 +10,45 @@ later.
 
 ## Unreleased
 
+**A final render of any report that is no e-invoice may be drawn as a
+PDF/A-2b, with `renderPdf(document, { maxPages, pdfa: '2b' })`, in either
+entry**
+([0057](docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
+Switzerland's electronic patient record stores a PDF only as PDF/A-1 or
+PDF/A-2 (EPDV-EDI Anhang 2, Ziffer 2.4 lit. d, in force since 1 June
+2025), and only an e-invoice was a PDF/A here, as the PDF/A-3b the record
+does not take; Formancy Health's document for the record waits for a
+release that draws one. A host asks, and nothing changes for one that
+does not. The PDF is part 2 at level b, the one level in reach: no
+structure tree, so no tagged, accessible PDF. Its pages are the plain
+render's, it embeds nothing, and PDFKit writes its XMP and its sRGB output
+intent as it does an e-invoice's.
+- **What a PDF/A-3b refuses, a PDF/A-2b refuses**, as `unsupported` and
+  before pdfmake runs: a CMYK JPEG, an SVG whose numbers could pass
+  2,147,483,647 or that nests deeper than 28 graphics states, and a title
+  holding `&`, `<`, `>` or a character XML 1.0 cannot write. So a print
+  shop's CMYK logo, a logo shrunk into a small header box and a firm
+  called "Müller & Söhne" print as before and are refused as a PDF/A-2b,
+  and no builder or validator says so beforehand: whether a render is one
+  is the host's choice at that render.
+- **Refused as a PDF/A-2b**, each to be rendered without `pdfa`: a
+  Factur-X, which is drawn as the PDF/A-3b that embeds its XML; an
+  XRechnung's copy, which is never an archival PDF; and a preview the
+  runtime labels as one, which an archive would keep as the report. A
+  preview that lacks nothing carries no label and is drawn as its final
+  render is. Any other value of `pdfa` is a `RangeError`.
+- **The profile is a file on disk in Node.** PDFKit reads
+  `data/sRGB_IEC61966_2_1.icc` with `fs`, so a host that bundles the Node
+  entry ships that file where the bundled PDFKit's `__dirname` points, or
+  every PDF/A render fails, an e-invoice's as before and a PDF/A-2b's now.
+  The browser build carries the same bytes.
+- **The e-invoice gate's veraPDF judges every starter that is no e-invoice
+  as a PDF/A-2b**, with a page of every image kind, SVGs and a host's
+  fonts, in a second run with `--flavour 2b`, and refuses two controls:
+  the quotation drawn plain, and the e-invoice sample's PDF/A-3b, which a
+  veraPDF left to detect the flavour accepts as a 3b. That shows the
+  starters are PDF/A-2b, not that a customer's template is.
+
 **The demo at `/report/` is served under a content security policy that admits its own files
 alone**
 ([0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)).

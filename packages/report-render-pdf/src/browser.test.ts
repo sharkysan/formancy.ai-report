@@ -11,6 +11,7 @@ import {
   ALL_FIXTURES,
   E_INVOICE,
   inflatedDigest,
+  QUOTATION,
   readAnnotations,
   readCodes,
   readPdf,
@@ -19,6 +20,7 @@ import {
   SVG_FIXTURES,
   verify,
   verifyRefusal,
+  type Starter,
 } from '@formancy/report-corpus'
 import { resolveReport, type ResolvedDocument } from '@formancy/report-runtime'
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
@@ -66,11 +68,11 @@ afterAll(() => {
   expect([...warnings].filter((each) => !each.startsWith('No local access policy defined'))).toEqual([])
 })
 
-/** The de-DE e-invoice sample, resolved by the runtime in a final render: a document that carries its XML. */
-function eInvoiceDocument(): ResolvedDocument {
-  const outcome = resolveReport(E_INVOICE.report, E_INVOICE.data, {
+/** `starter` resolved by the runtime in a final render: the de-DE e-invoice sample's document carries its XML, and the quotation's none. */
+function finalDocument(starter: Starter): ResolvedDocument {
+  const outcome = resolveReport(starter.report, starter.data, {
     mode: 'final',
-    parameters: E_INVOICE.parameters,
+    parameters: starter.parameters,
     images: starterImages,
     creationDate: '2026-10-16T08:00:00Z',
   })
@@ -252,7 +254,7 @@ describe('the browser entry', () => {
   test(
     'hands pdfmake the definitions the Node entry does for an e-invoice, which embeds the same XML beside the reviewed profile',
     async () => {
-      const document = eInvoiceDocument()
+      const document = finalDocument(E_INVOICE)
       const options = { maxPages: 5 }
       const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
       const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(document, options))
@@ -279,8 +281,52 @@ describe('the browser entry', () => {
   test(
     'renders an e-invoice to the same bytes',
     async () => {
-      const document = eInvoiceDocument()
+      const document = finalDocument(E_INVOICE)
       const [first, second] = await Promise.all([renderInBrowser(document, { maxPages: 5 }), renderInBrowser(document, { maxPages: 5 })])
+      expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
+    },
+    TIMEOUT,
+  )
+
+  // A PDF/A-2b drawn in a browser is the same archive a server draws: the
+  // same definitions, PDF/A-2b's version and subset among them, no file
+  // embedded, the output intent's profile the reviewed sRGB2014, and
+  // every object the Node entry draws, each stream inflated. The profile
+  // comes from the browser build's base64 copy here, as an e-invoice's
+  // does, which the licence guard cannot read inside a script (0006): the
+  // Node entry's test of a 2b would pass whatever the browser carried.
+  test(
+    'hands pdfmake the definitions the Node entry does for a PDF/A-2b, which carries the reviewed profile and embeds nothing',
+    async () => {
+      const document = finalDocument(QUOTATION)
+      const options = { maxPages: 5, pdfa: '2b' } as const
+      const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
+      const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(document, options))
+      expect(inBrowser).toEqual(inNode)
+      expect(inBrowser.at(-1)).toContain('"version":"1.7","subset":"PDF/A-2b"')
+      const [nodeBytes, browserBytes] = [await renderInNode(document, options), await renderInBrowser(document, options)]
+      const browser = await readPdfObjects(browserBytes)
+      expect(
+        browser.outputIntents.map((intent) =>
+          createHash('sha256')
+            .update(intent.profile?.bytes ?? new Uint8Array())
+            .digest('hex'),
+        ),
+      ).toEqual([SRGB2014])
+      expect([browser.associatedFiles, browser.embeddedFiles]).toEqual([[], []])
+      expect(await inflatedDigest(browserBytes)).toBe(await inflatedDigest(nodeBytes))
+    },
+    TIMEOUT,
+  )
+
+  // An archived PDF is found again by its digest, or by nothing, in a
+  // browser as on a server.
+  test(
+    'renders a PDF/A-2b to the same bytes',
+    async () => {
+      const document = finalDocument(QUOTATION)
+      const options = { maxPages: 5, pdfa: '2b' } as const
+      const [first, second] = [await renderInBrowser(document, options), await renderInBrowser(document, options)]
       expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
     },
     TIMEOUT,

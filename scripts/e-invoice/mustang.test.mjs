@@ -362,4 +362,28 @@ describe('Mustang’s verdict on a PDF', () => {
       'control-xmp.pdf was not refused by Mustang for pdf error 16, which it is broken for',
     ])
   })
+
+  // Mustang validates an e-invoice, and a PDF/A-2b embeds none (0057): a
+  // gate that handed it the 2b, past judgedBy, would have a 2b judged by a
+  // tool that is not its judge, from an expectation the 2b has none of. The
+  // file is named, and nothing Mustang said of it is read -- here its
+  // recorded report on the plain control, which embeds no XML either.
+  test('refuses a file of a format JUDGES gives it none of, a PDF/A-2b, naming it and reading nothing it said', () => {
+    const twoB = { file: 'pdfa-2b-quotation.pdf', format: 'pdfa-2b', starter: 'quotation', embeds: null, expect: { verapdf: 'accepted' } }
+    const { rows, problems } = judged((given) => {
+      given.entries.push(twoB)
+      given.runs.set(twoB.file, runOf('control-plain.pdf', twoB.file))
+    })
+    expect(problems).toEqual(['Mustang was handed pdfa-2b-quotation.pdf, a file of the format pdfa-2b, which JUDGES gives it none of'])
+    expect(rows.at(-1)).toEqual({
+      file: 'pdfa-2b-quotation.pdf',
+      expect: undefined,
+      verdict: 'not as expected',
+      status: null,
+      validator: null,
+      refusals: [],
+      accepted: [],
+      fired: null,
+    })
+  })
 })

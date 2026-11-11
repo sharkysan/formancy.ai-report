@@ -45,8 +45,12 @@
 //   pinned and this rule with it.
 // - **Every accepted message** names files of the corpus and was raised in
 //   one of them; one that was not accepts nothing, and goes.
+// - **A file of a format JUDGES gives Mustang none of** -- a PDF/A-2b,
+//   which embeds no e-invoice for it to validate (0057) -- is a gate that
+//   handed it past `judgedBy`, and is named, and nothing it said is read.
 
 import { JVM_OPTIONS } from './java.mjs'
+import { judgedBy } from './registers.mjs'
 import { attribute, childOf, readXml, textOf } from './xml.mjs'
 
 /**
@@ -217,7 +221,8 @@ const brokenInPdfPartAlone = (expected) => expected.every((key) => key.startsWit
  * CEN's and XRechnung's for an XRechnung (0038) -- which the oracle reads.
  *
  * - `entries`: the corpus (scripts/e-invoice/corpus.mjs and pdf-corpus.mjs),
- *   XML and PDF alike;
+ *   XML and PDF alike, and only what `judgedBy` gives Mustang: a file of
+ *   any other format, a PDF/A-2b (0057), is named and nothing it said read;
  * - `runs`: file to `{ status, stdout, stderr, error? }`, one per entry run;
  * - `accepted`: scripts/e-invoice/accepted.json's entries;
  * - `pinned`: the Mustang version the register pins;
@@ -231,6 +236,10 @@ export function judgeMustang({ entries, runs, accepted, pinned, profile }) {
   const rows = entries.map((entry) => {
     const { file, expect } = entry
     const row = { file, expect: expect.mustang, verdict: 'not as expected', status: null, validator: null, refusals: [], accepted: [], fired: null }
+    if (judgedBy('mustang', [entry]).length === 0) {
+      problems.push(`Mustang was handed ${file}, a file of the format ${String(entry.format)}, which JUDGES gives it none of`)
+      return row
+    }
     const ran = runs.get(file)
     if (ran === undefined || ran.error !== undefined) {
       problems.push(`Mustang did not run on ${file}${ran?.error === undefined ? '' : `: ${ran.error.message}`}`)

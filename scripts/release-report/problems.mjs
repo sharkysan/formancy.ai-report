@@ -102,6 +102,9 @@ function installProblems(report, published, allowMissing, plan) {
   return problems
 }
 
+/** Each format the e-invoice gate judges, as a sentence names it. */
+const FORMAT_NAMES = { xml: 'XML', pdf: 'PDF', 'pdfa-2b': 'PDF/A-2b' }
+
 /** The versions a tool reported of itself, as the gate records them: a list of Mustang's reports', KoSIT's one from its console, or none. */
 const reportedVersions = (reported) => (Array.isArray(reported) ? reported : typeof reported === 'string' ? [reported] : [])
 
@@ -111,8 +114,9 @@ const reportedVersions = (reported) => (Array.isArray(reported) ? reported : typ
  * version, by the SHA-256 the gate measured of the bytes it ran and, for
  * each JAR, by the version the tool reported of itself; in CI, on the Java
  * `register.runtime` names; ran no veraPDF below `register.veraPdfFloor`,
- * its own or Mustang's; judged, as XML and as PDF, at least one sample
- * every tool of that format must accept and one control each must refuse;
+ * its own or Mustang's; judged, as XML, as PDF and as PDF/A-2b (0057), at
+ * least one sample every tool of that format must accept and one control
+ * each must refuse;
  * and has the verdict of every tool that judges a file's format
  * (scripts/e-invoice/registers.mjs's JUDGES) on every file, as its corpus
  * expects. Its own `passed` is one flag its writer sets, and the rest does
@@ -145,7 +149,7 @@ function eInvoiceProblems(report, register, allowMissing, ci) {
   problems.push(...floorProblems(gate, register))
   for (const [format, judges] of Object.entries(JUDGES)) {
     const ofFormat = gate.files.filter((file) => file.format === format)
-    const as = format.toUpperCase()
+    const as = FORMAT_NAMES[format] ?? format
     if (!ofFormat.some((file) => file.kind === 'sample' && judges.every((judge) => file.expect[judge] === 'accepted')))
       problems.push(`the e-invoice gate judged no ${as} sample every tool must accept`)
     for (const judge of judges)

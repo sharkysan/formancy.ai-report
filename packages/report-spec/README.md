@@ -560,8 +560,9 @@ What a cleaned SVG holds, in `svg-allow.ts`'s tables:
   a shape's, and the points the converter draws its outlines with, an
   arc's grown to reach its ends among them -- and how deep it nests the
   graphics state. Nothing is refused by it here; the renderer holds an
-  image in an e-invoice to it, whose PDF/A-3 holds an integer to
-  2,147,483,647 and the nesting to 28.
+  image in a PDF/A to it, an e-invoice's PDF/A-3b or the PDF/A-2b a host
+  asks for, which holds an integer to 2,147,483,647 and the nesting to 28
+  ([0057](../../docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 
 Cleaning is a fixed point: `cleanSvg` of what it wrote gives the same bytes
 with nothing removed, which is what `checkSvg` tests for.

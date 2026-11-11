@@ -30,6 +30,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **A Swiss QR-bill**, its receipt and payment part at the foot of the last page, held to SIX's rules, and edited field by field in either builder: added from SIX's example, and warned of while it holds SIX's examples ([0022](./docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0039](./docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
 - **An EPC QR code** for a SEPA credit transfer, held to the EPC's rules, with Austria's frame as an option ([0025](./docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
 - **An EN 16931 e-invoice**, the German hybrid invoice: the Factur-X / ZUGFeRD XML is written from the values the page prints, and a final render is a PDF/A-3b that embeds it. It may name the parties' electronic addresses, the seller's contact and its business process, which a German business invoice does not need. Or it is an **XRechnung 3.0** for a German public buyer, in CII: its XML, which your application takes from the resolved document and sends, is the invoice, and its PDF a copy labelled so on every page. France is not claimed. In a gate of its own, Mustang and KoSIT judge the XML of the repository's samples, an XRechnung's in KoSIT's XRechnung scenario, and veraPDF and Mustang the hybrids' PDFs ([0027](./docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), [0031](./docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0037](./docs/decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md), [0038](./docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)). Either kind is edited field by field in either builder, its terms in groups and its VAT categories a list, and an IBAN typed into the e-invoice, its QR-bill or its EPC QR code is the account all of them pay, in one step, where every one of them writes it in the report. Only its totals and its lines are held to the page: a seller, a date or a bank the page prints in its own words is yours to change with it. An e-invoice is edited and never made from nothing: a starter gives one ([0044](./docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
+- **A PDF/A-2b of any report that is no e-invoice**, where your application asks for one with `pdfa: '2b'`: a PDF/A of a part Switzerland's electronic patient record stores, its pages the plain render's, and every starter so drawn judged by veraPDF's PDF/A-2b profile in the e-invoice gate. What a PDF/A cannot hold -- a CMYK JPEG, an SVG past its numbers, a title holding `&`, `<` or `>` -- is refused at that render, and neither builder warns of it; an e-invoice and a labelled preview are refused as one ([0057](./docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 - **Fonts**: a report maps its `sans`, `serif` and `mono` tokens to TrueType fonts your application approves, pinned by digest; the renderer reads each with report-spec's reader, embeds it from its bytes with the layout tables fontkit would run removed, and refuses a character the face lacks and a weight or slant it does not map. It prints Latin, Greek and Cyrillic, with their punctuation and symbols, and refuses every other script, right-to-left, shaping and CJK among them, in any face. A token left unmapped prints in Roboto (`sans`) or is refused; a QR-bill's slip keeps Liberation Sans ([0040](./docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), [0043](./docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
 - **Images**: a PNG, a JPEG, or an SVG logo drawn as vectors, made of shapes alone: no text, no embedded picture. Where your application gives the editor a store for them, a person adds one in either builder, and your application keeps its bytes ([0030](./docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0033](./docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 - **Charts**, in the format and the editing core, and not yet in a PDF or in the builders' palettes: a bar, line or pie chart of the detail rows, its categories the values of one field and each series a sum, a count, an average, a minimum or a maximum of a field for each category, held where it is written to what a reader could use. Until the runtime resolves charts, a report that would print one is refused rather than printed without it ([0052](./docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
@@ -43,8 +44,8 @@ publication, render jobs and artifacts, fonts kept beside its images, a
 Save in the builders themselves, and its published image; reviewed AI
 changes, a published PDF viewer, and a consistent read from Formancy Data.
 [The roadmap](./docs/roadmap.md) says what comes after them, in order --
-barcodes, nested groups, more datasets, running totals, crosstabs, PDF/A
-and accessible PDFs, Excel, copy and paste in the editor, among the rest --
+barcodes, nested groups, more datasets, running totals, crosstabs,
+accessible PDFs, Excel, copy and paste in the editor, among the rest --
 and what is not planned at all.
 
 > **Status, 1 November 2026: 0.2.0, a developer preview, is released.**
@@ -60,7 +61,9 @@ and what is not planned at all.
 > images, in files on one volume, and its image is built by the gates and
 > not published; and a report may hold a chart, which the format and the
 > editing core know, the builders do not offer yet and nothing prints:
-> the runtime refuses a report that would print one. The report format is
+> the runtime refuses a report that would print one; and a final render
+> of any report that is no e-invoice may be drawn as a PDF/A-2b. The
+> report format is
 > still version "0", the draft: a report written now is not promised to be
 > read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
@@ -245,6 +248,9 @@ application has no bytes for (`missing-asset`) and, in a final render, incomplet
 it: `too-many-pages`, `content-too-large`, `invalid-asset`, `cancelled` or
 `unsupported`. Neither returns part of a document. The install gate runs
 these lines from the packed packages (`scripts/install-fixture/consume.ts`).
+With `{ maxPages: 50, pdfa: '2b' }` the same final render is a PDF/A-2b,
+and a report that is an e-invoice, or a labelled preview, is refused as one
+([0057](./docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 
 ## Packages
 

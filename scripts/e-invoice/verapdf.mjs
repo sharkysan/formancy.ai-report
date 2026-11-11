@@ -2,6 +2,10 @@
 // the gate's verdict on it, and the veraPDF inside Mustang held to the
 // register's floor, pure over what one run left so that every rule below is
 // held by a test on a recorded run (scripts/e-invoice/verapdf.test.mjs).
+// The gate runs it twice: once over the e-invoice corpus with `--flavour
+// 3b`, and once over the PDF/A-2b corpus with `--flavour 2b` (0057), each
+// run's flavour named and never detected, so that a file is judged as what
+// the renderer was asked to draw and not as what it says of itself.
 //
 // What veraPDF 1.30.3 writes with `--format json -x embeddedFile`, measured
 // on 18 October 2026 (Java 25 and 17, the same but for their times): one
@@ -28,32 +32,47 @@
 //
 // The rules:
 //
-// - **A refusal** is a rule of the PDF/A-3B profile the file failed, keyed
+// - **A refusal** is a rule of the run's profile the file failed, keyed
 //   `<clause>-<test>`, or a field of its embedded file other than the
 //   corpus's, keyed `embedded <field>`.
 // - **The run** exits 0 where no file may fail a rule and 1 where one must,
 //   writes nothing on stderr, reports the version the register pins of
 //   every part, and has one job per PDF of the corpus and no other, none of
 //   which failed to parse, was encrypted, threw or ran out of memory.
-// - **A sample** has one result, of the PDF/A-3b profile, which ended
-//   normally, complies, passed at least one rule, and has no refusal.
+// - **A sample** has one result, of the profile its run's flavour names,
+//   which ended normally, complies, passed at least one rule, and has no
+//   refusal.
 // - **A control** is refused for exactly what it expects.
 
 import { atLeast } from './registers.mjs'
 import { JVM_OPTIONS } from './java.mjs'
 import { zipEntries, entryNamed } from './zip.mjs'
 
-/** The profile `--flavour 3b` validates against, as veraPDF names it. */
-export const PROFILE = 'PDF/A-3b validation profile'
+/**
+ * The profile each flavour the gate runs validates against, as veraPDF
+ * names it: 3b's as the recorded run reports it (0031), and 2b's as
+ * veraPDF 1.30.3 reported it on every job of a run with `--flavour 2b`,
+ * measured on 11 November 2026 on Zulu 22.0.1 (0057).
+ */
+export const PROFILES = Object.freeze({ '3b': 'PDF/A-3b validation profile', '2b': 'PDF/A-2b validation profile' })
 
 /**
  * veraPDF's command line for every PDF at once, all of it but `java`
- * itself: PDF/A-3b whatever a file says of itself, a JSON report, and the
- * embedded files' features. A file is given as its name in the corpus's
- * directory, where the gate runs it.
+ * itself: the PDF/A `flavour` names whatever a file says of itself, a JSON
+ * report, and the embedded files' features. A file is given as its name in
+ * the corpus's directory, where the gate runs it. A flavour the gate holds
+ * no profile for is refused, so that no run is left to detect one.
  */
-export function veraPdfArguments({ jar, files }) {
-  return [...JVM_OPTIONS, '-jar', jar, '--flavour', '3b', '--format', 'json', '-x', 'embeddedFile', ...files]
+export function veraPdfArguments({ jar, files, flavour }) {
+  if (!Object.hasOwn(PROFILES, flavour))
+    throw new Error(`veraPDF is run with the flavour ${String(flavour)}, where the gate holds a profile for ${Object.keys(PROFILES).join(' and ')}`)
+  return [...JVM_OPTIONS, '-jar', jar, '--flavour', flavour, '--format', 'json', '-x', 'embeddedFile', ...files]
+}
+
+/** What a run of `flavour` leaves in the outputs' verapdf/ directory: its report and its stderr, the 3b run's under the names the record has always held them by. */
+export function veraPdfOutputs(flavour) {
+  const suffix = flavour === '3b' ? '' : `-${String(flavour)}`
+  return { report: `report${suffix}.json`, log: `verapdf${suffix}.log` }
 }
 
 /** The file a job names, by its last path segment: veraPDF writes each as an absolute path, with the platform's separators. */
@@ -140,26 +159,42 @@ function runProblems({ status, stderr, report, entries, pinned }) {
 }
 
 /**
+ * A problem of the run of `flavour` as a whole, as the gate says it: a 2b
+ * run's led by the run it is of, since the gate runs veraPDF twice and
+ * such a problem names no file to tell which (0057); the 3b run's as the
+ * gate said them before it ran a second, as the tests and the release
+ * report read them.
+ */
+const runOf = (flavour) => (flavour === '3b' ? (problem) => problem : (problem) => `the PDF/A-${String(flavour)} run: ${problem}`)
+
+/**
  * The verdict: `{ rows, problems, reported }`. `rows` is one per PDF of the
  * corpus, for the results file; `problems` every sentence that fails the
- * gate; `reported` the versions veraPDF reported of itself.
+ * gate; `reported` the versions veraPDF reported of itself. A problem of
+ * the run as a whole names no file, and one of a run other than the 3b's
+ * says which run it is of (`runOf`).
  *
- * - `entries`: the corpus's PDFs (scripts/e-invoice/pdf-corpus.mjs);
+ * - `entries`: the corpus's PDFs of the run's flavour
+ *   (scripts/e-invoice/pdf-corpus.mjs, pdfa-2b.mjs);
  * - `status`, `stdout`, `stderr`, `error`: how the one run ended;
+ * - `flavour`: what it was run with, `3b` or `2b`, whose profile each
+ *   result must be of;
  * - `pinned`: the veraPDF version the register pins;
  * - `file`: the name, the relationship and the media type an embedded
  *   file is declared with, and `md5`, a function from bytes to their MD5
  *   in lowercase hexadecimal.
  */
-export function judgeVeraPdf({ entries, status, stdout, stderr, error, pinned, file }) {
-  if (error !== undefined) return { rows: [], problems: [`veraPDF did not run: ${error.message}`], reported: [] }
+export function judgeVeraPdf({ entries, status, stdout, stderr, error, pinned, file, flavour }) {
+  const ofRun = runOf(flavour)
+  if (error !== undefined) return { rows: [], problems: [ofRun(`veraPDF did not run: ${error.message}`)], reported: [] }
   let report
   try {
     report = readVeraPdf(stdout)
   } catch (failure) {
-    return { rows: [], problems: [`veraPDF wrote no report it can read: ${failure.message}`], reported: [] }
+    return { rows: [], problems: [ofRun(`veraPDF wrote no report it can read: ${failure.message}`)], reported: [] }
   }
-  const problems = runProblems({ status, stderr, report, entries, pinned })
+  const problems = runProblems({ status, stderr, report, entries, pinned }).map(ofRun)
+  const profile = PROFILES[flavour]
   const rows = entries.map((entry) => {
     const row = { file: entry.file, expect: entry.expect.verapdf, verdict: 'not as expected', compliant: null, refusals: [] }
     const job = report.jobs.find((each) => each.file === entry.file)
@@ -171,7 +206,7 @@ export function judgeVeraPdf({ entries, status, stdout, stderr, error, pinned, f
     if (job.results.length !== 1) wrong.push(`veraPDF validated ${entry.file} against ${String(job.results.length)} profiles, where the gate asks for one`)
     const [result] = job.results
     if (result !== undefined) {
-      if (result.profile !== PROFILE) wrong.push(`veraPDF validated ${entry.file} against ${String(result.profile)}, not the ${PROFILE}`)
+      if (result.profile !== profile) wrong.push(`veraPDF validated ${entry.file} against ${String(result.profile)}, not the ${String(profile)}`)
       if (result.end !== 'normal') wrong.push(`veraPDF’s job on ${entry.file} ended ${String(result.end)}, not normally`)
       if (result.failedRules !== result.failed.length)
         wrong.push(`veraPDF counts ${String(result.failedRules)} rules ${entry.file} failed, and summarises ${String(result.failed.length)}`)
@@ -180,7 +215,7 @@ export function judgeVeraPdf({ entries, status, stdout, stderr, error, pinned, f
     // Sorted, so the judged order is stable: veraPDF summarises a file's failed rules in no fixed order across runs, and the gate compares them as a set.
     row.refusals = [...new Set([...(result?.failed ?? []), ...embeddedRefusals(job.embedded, entry.embeds, file)])].sort()
     if (entry.expect.verapdf === 'accepted') {
-      if (result !== undefined && result.compliant !== true) wrong.push(`veraPDF finds ${entry.file} not PDF/A-3b compliant, where it must be`)
+      if (result !== undefined && result.compliant !== true) wrong.push(`veraPDF finds ${entry.file} not PDF/A-${String(flavour)} compliant, where it must be`)
       if (result !== undefined && !(result.passedRules > 0)) wrong.push(`veraPDF passed no rule on ${entry.file}, so it checked nothing`)
       for (const key of row.refusals) wrong.push(`${entry.file} is refused by veraPDF: ${key}`)
     } else if (row.refusals.length === 0) wrong.push(`${entry.file} is broken for ${entry.why}, and veraPDF accepted it: nothing is watching that`)

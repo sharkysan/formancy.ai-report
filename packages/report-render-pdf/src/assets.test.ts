@@ -489,10 +489,11 @@ describe('a CMYK JPEG', () => {
   // from, an approved asset or a field's image, the resolved document
   // holds it as an image block like any other, and it is refused before
   // pdfmake sees it: no PDF that says it is a PDF/A and is not one.
-  test.each([
-    ['in the body', (of: ImageAsset): ResolvedDocument => bareDocument('Rechnung', [image(of)])],
-    ['in the page header', (of: ImageAsset): ResolvedDocument => ({ ...bareDocument('Rechnung', [paragraph('Rechnung')]), pageHeader: [image(of)] })],
-  ])('%s of an e-invoice is refused as unsupported, naming the image', async (_, place) => {
+  const placements: ReadonlyArray<readonly [string, (of: ImageAsset) => ResolvedDocument]> = [
+    ['in the body', (of) => bareDocument('Rechnung', [image(of)])],
+    ['in the page header', (of) => ({ ...bareDocument('Rechnung', [paragraph('Rechnung')]), pageHeader: [image(of)] })],
+  ]
+  test.each(placements)('%s of an e-invoice is refused as unsupported, naming the image', async (_, place) => {
     const createPdf = vi.spyOn(pdfmake, 'createPdf')
     try {
       await expect(renderPdf(invoiced(place(cmyk('logo-cmyk'))), { maxPages: 1 })).rejects.toMatchObject({
@@ -506,6 +507,43 @@ describe('a CMYK JPEG', () => {
       createPdf.mockRestore()
     }
   })
+
+  // A host that asks for a PDF/A-2b gets the same sRGB output intent, so
+  // a print shop's CMYK logo drawn into one is a PDF that says PDF/A-2b and
+  // fails veraPDF's 6.2.4.3-3. It is refused, naming the image and the
+  // PDF/A-2b and not an e-invoice, in the body and a page region alike.
+  test.each(placements)('%s of a PDF/A-2b is refused as unsupported, naming the image', async (_, place) => {
+    const createPdf = vi.spyOn(pdfmake, 'createPdf')
+    try {
+      await expect(renderPdf(place(cmyk('logo-cmyk')), { maxPages: 1, pdfa: '2b' })).rejects.toMatchObject({
+        code: 'unsupported',
+        subject: 'logo-cmyk',
+        message: 'the image logo-cmyk is a CMYK JPEG, which a PDF/A-2b cannot hold: its output intent is sRGB, beside which no image may be CMYK',
+      })
+      expect(createPdf).not.toHaveBeenCalled()
+    } finally {
+      createPdf.mockRestore()
+    }
+  })
+
+  // The refusal is the PDF/A-2b's: the same document rendered without pdfa
+  // draws the logo in DeviceCMYK. A check that refused the image for every
+  // render would stop a print shop's template that prints today.
+  test('is drawn in the same report rendered without pdfa', async () => {
+    const pdf = await readPdf(await renderPdf(bareDocument('Rechnung', [image(cmyk('logo-cmyk'))]), { maxPages: 1 }))
+    expect(pdf.pages.flatMap((page) => page.images)).toHaveLength(1)
+  })
+
+  // A check that refused every JPEG in a PDF/A-2b, or more than CMYK, would
+  // pass the cases above: an image of every other kind PDFKit embeds is drawn.
+  test(
+    'every other kind PDFKit embeds is drawn in a PDF/A-2b',
+    async () => {
+      const pdf = await readPdf(await renderPdf(bareDocument('Rechnung', IMAGE_KINDS.map(image)), { maxPages: 2, pdfa: '2b' }))
+      expect(pdf.pages.flatMap((page) => page.images)).toHaveLength(IMAGE_KINDS.length)
+    },
+    TIMEOUT,
+  )
 
   // The refusal is the e-invoice's: the same image in a report that is
   // not one is drawn as it always was, in DeviceCMYK.
