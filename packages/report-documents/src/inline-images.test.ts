@@ -230,7 +230,7 @@ describe('an inline image is found where an operator stands', () => {
       `(a \\) ${PAST}) Tj`,
       `(a (b) ${PAST}) Tj`,
       `(a \\\\) Tj (${PAST}) Tj`,
-      `% ${PAST.replace('\n', ' ')}\n0 0 m`,
+      `% ${PAST.replaceAll('\n', ' ')}\n0 0 m`,
       '<4249> Tj <BI> Tj',
       '/BI /ABI',
     ]) {
