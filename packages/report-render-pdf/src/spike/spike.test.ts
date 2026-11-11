@@ -182,7 +182,15 @@ function wordsOnPdf(pages: readonly PdfPage[], charts: readonly Chart[]) {
       used.add(best)
       const off = error(best)
       const font = best.font.replace(/^[A-Z]{6}\+/, '')
-      placed.push({ chart: chart.id, text: word.text, angle: best.angle, font, off: Number(off.toFixed(3)) })
+      placed.push({
+        chart: chart.id,
+        text: word.text,
+        angle: best.angle,
+        font,
+        off: Number(off.toFixed(3)),
+        expected: Object.fromEntries(Object.entries(box).map(([key, value]) => [key, Number(value.toFixed(3))])),
+        read: { x: Number(best.x.toFixed(3)), top: Number(best.top.toFixed(3)), width: Number(best.width.toFixed(3)), height: Number(best.height.toFixed(3)), baseline: Number(baselineOf(best).toFixed(3)) },
+      })
       if (off > EDGE) problems.push(`${chart.id}: "${word.text}" is ${off.toFixed(3)} pt from where the converter's rule puts it`)
       if (best.angle !== box.angle) problems.push(`${chart.id}: "${word.text}" at ${best.angle}°, expected ${box.angle}°`)
       if (font !== face) problems.push(`${chart.id}: "${word.text}" in ${font}, expected ${face}`)
@@ -334,12 +342,18 @@ process.stdout.write(createHash('sha256').update(bytes).digest('hex'))
 `
 
 describe('laziness: the chart module is imported only for a document that holds a chart', () => {
+  // Run alone (-t laziness) for a count from a fresh module graph: earlier tests in the file load it.
   test('counted', async () => {
     const before = loads.count
     await renderInBrowser(bareDocument('no chart', [paragraph('Kein Diagramm')]), { maxPages: 1 })
-    const afterNone = loads.count
-    out.lazy = { before, afterNoChart: afterNone, note: 'loadOnce keeps the module once loaded: earlier tests in this file already loaded it' }
-    expect(afterNone).toBe(before)
+    const afterNoChart = loads.count
+    await renderInBrowser(bareDocument('a chart', [{ ...PIE } as never]), { maxPages: 1 })
+    const afterFirstChart = loads.count
+    await renderInBrowser(bareDocument('another chart', [{ ...BARS } as never]), { maxPages: 1 })
+    const afterSecondChart = loads.count
+    out.lazy = { before, afterNoChart, afterFirstChart, afterSecondChart }
+    expect(afterNoChart).toBe(before)
+    expect(afterSecondChart).toBe(afterFirstChart)
   })
 })
 
