@@ -15,10 +15,13 @@
   on 6 November 2026, before 93b0789, and from the night of 6 November to
   the morning of 7 November, before 06101a5, by the commits' dates and the
   times of the fix round's logs; the cases that say so, on 11 November
-  2026. The documents' guards were watched on 11 November 2026. None has
-  run in CI yet: this record's pull request is their first run there. Not
-  every case was watched on the code as committed, and each list says
-  which were not.
+  2026. The documents' guards were watched on 11 November 2026. They first
+  ran in CI in this record's pull request. Its first run, 43021904362, at
+  8bceb93, failed the pages' gate on the German terms table, which the
+  fallback face of CI's Linux runner put 8 pixels past a 320-pixel window,
+  and which 48b1e2c fixed. Run 43024857843, at 48b1e2c, passed every one,
+  on 11 November 2026. No fault was planted in CI. Not every case was
+  watched on the code as committed, and each list says which were not.
   - **`apps/pages/scripts/gate-site.test.mjs`, in the pages' suite.** The
     passes are read from the built stylesheet: the reflow width of 320
     pixels, again with the web fonts refused, a phone at 360, one pixel
@@ -32,7 +35,9 @@
     `(max-width: 700px)` and a `(width <= 40rem)` beside a breakpoint it
     reads, each passed over without a word before the refusal of a width
     query it does not read was written, and again with that refusal taken
-    out.
+    out. The same day it failed with a container query, in the form it
+    reads for the window and in an inline size, before container queries
+    were refused, and in the read form again with that refusal taken out.
   - **`apps/pages/scripts/gate-imports.test.mjs`, in the pages' suite.**
     The gate, and the Studio's `gate-measure.mjs` it takes its reads from,
     import no `@formancy/` package and import or resolve no package of the
@@ -117,9 +122,8 @@
 
   What holds nothing: what a page looks like, since the gate asserts
   numbers and computed results and never takes a screenshot; Firefox and
-  WebKit; a link from a page to the Studio, which is not served beside
-  the pages; and the minutes the gate adds to CI's browser job, until its
-  first run there.
+  WebKit; and a link from a page to the Studio, which is not served beside
+  the pages.
 
 ## Context
 
@@ -171,7 +175,9 @@ added, or a breakpoint added in rem, is measured without anybody editing
 the gate. A stylesheet that asks about the width in any other form -- a
 `min-width`, a breakpoint in pixels or em, the range syntax -- is refused,
 naming the query, since the layout at its edge would be measured by
-nobody. On 7 November 2026 that was seven passes, from 320 to 2053
+nobody. So is a container query, whatever its form: it asks about its
+container's width, which no pass sets. On 7 November 2026 that was seven
+passes, from 320 to 2053
 pixels, over the sixteen pages of the sitemap, and 1,148
 checks.
 
@@ -257,14 +263,18 @@ where by hand it was not, and the requests, which 0024's and 0028's
 rounds watched once, are now watched on every pull request.
 
 **What it costs.**
-- **CI minutes, not yet measured.** What the gate adds is the wall time
-  the release report's table of browser gates gives `apps/pages`, read
-  from its first run in CI, which is this record's pull request.
-  - The `browser` job's own time is context, not the measure: it took 12
-    minutes 56 seconds on main's run of 8 November 2026, at bf37f4d, and
-    12 minutes 46 seconds on 11 November, at c4d1a6a, both without this
-    gate. The ten seconds between them is over a third of the gate's
-    fastest local run.
+- **CI minutes: 35.2 seconds of the `browser` job.** That is the wall
+  time the release report's table of browser gates gives `apps/pages` in
+  run 43024857843, at 48b1e2c, on 11 November 2026: 1,148 checks, none
+  failed, in seven of seven passes, at 320, 360, 641, 1280, 1920 and 2053
+  pixels, in Chromium 156.0.8078.4 headless on Linux, with Playwright
+  1.64.1 and axe-core 4.14.0. Its results file gives 13:12:44.885Z to
+  13:13:20.079Z. It is the measure of what the gate adds.
+  - The `browser` job's total is context, not the measure: it holds the
+    Studio's gate, the pictures' check and the job's setup as well. It took
+    15 minutes 40 seconds in that run, from 12:57:49Z to 13:13:29Z. Main's
+    runs without this gate took 12 minutes 56 seconds on 8 November 2026,
+    at bf37f4d, and 12 minutes 46 seconds on 11 November, at c4d1a6a.
   - Six green runs on a Mac with other work running took between 26.9 and
     56.2 seconds each, from 6 to 8 November 2026. The 56.2 seconds is a
     review's run, on 7 November 2026, timed around pnpm; the others are as
@@ -295,6 +305,21 @@ rounds watched once, are now watched on every pull request.
   the check is changed to read the families a page uses. The
   check is `fontProblem` in `gate-measure.mjs`, so that change is the
   Studio's gate's too.
+- **A width query in the one form.** The gate reads a breakpoint written
+  as `(max-width: Nrem)` alone, and refuses every other width query, a
+  joined one such as `screen and (max-width: 40rem)` and every container
+  query included. A page added that needs another form either writes its
+  breakpoint in that one form, or teaches `breakpointsOf` in
+  `gate-site.mjs` the new form, with a test that its edge is measured.
+- **A table that scrolls sideways fails.** On the pages, a text whose
+  contrast axe leaves undecided because an ancestor clips it fails. So a
+  wide table in a box that scrolls sideways at a narrow width fails unless
+  every text in it gets a contrast verdict. That is stricter than WCAG
+  2.2's Reflow criterion (1.4.10), which leaves out content that needs a
+  two-dimensional layout, a data table among the examples its
+  understanding document gives. A page with such a table lays it out to
+  fit, as the terms table has since 48b1e2c, or changes the check, with
+  its reason.
 - **The request check is the second line.** Under the demo's policy, the
   browser refuses a request to anything outside the built pages, and the
   policy's check names that refusal. So the request check alone catches

@@ -19,13 +19,16 @@ every page carries, so each would have measured every page again by hand: four r
 Studio's. It serves every page of the built sitemap under `/report/` with the demo's headers,
 and measures each at 320 pixels with and without the web fonts, on a phone, one pixel past each
 breakpoint the built stylesheet writes in rem, on a laptop and on a screen, and refuses a
-stylesheet that asks about the width in any other form, since the layout at its edge would be
-measured by nobody. It fails a page that does not answer as itself, scrolls sideways, has
-anything past either edge, or has anything axe finds. It also fails a page whose first Tab is
-not its skip link, that does not wear the released room or load its faces, that fetches or hints
-at anything outside the built pages, or that the demo's policy refuses anything. It runs in
-Chromium alone, says nothing of what a page looks like, and does not follow a link to the
-Studio, which it does not serve beside the pages.
+stylesheet that asks about the width in any other form, a container query among them, since the
+layout at its edge would be measured by nobody. It fails a page that does not answer as itself,
+scrolls sideways, has anything past either edge, or has anything axe finds. It also fails a page
+whose first Tab is not its skip link, that does not wear the released room or load its faces,
+that fetches or hints at anything outside the built pages, or that the demo's policy refuses
+anything. It runs in Chromium alone, says nothing of what a page looks like, and does not follow
+a link to the Studio, which it does not serve beside the pages. Its first run in CI found the
+German licence terms table 8 pixels wider than a 320-pixel window in the runner's fallback face,
+with the web fonts refused: below 40rem the table now splits the width in half, and a word wider
+than its column breaks inside it.
 
 **The demo at `/report/` is served under a content security policy that admits its own files
 alone**

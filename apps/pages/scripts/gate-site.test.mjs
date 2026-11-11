@@ -28,6 +28,15 @@ test.each([['(min-width: 50rem)'], ['(max-width: 700px)'], ['(width <= 40rem)']]
   expect(() => sitePasses(css)).toThrow(`asks about the width in a form the gate does not measure: ${query}`)
 })
 
+// A container query asks about its container's width, which no pass sets: read as a breakpoint of
+// the window, or passed over, the layout at its edge would be measured by nobody. So it is refused
+// in the one form the gate reads for the window, and in the inline size a container query is
+// usually written in.
+test.each([['(max-width: 30rem)'], ['card (inline-size > 20rem)']])('refuses a stylesheet with the container query %s', (query) => {
+  const css = `@media (max-width: 40rem){a{}} @container ${query}{b{}}`
+  expect(() => sitePasses(css)).toThrow(`asks about the width in a form the gate does not measure: @container ${query}`)
+})
+
 // The gate walks the sitemap the build wrote: a page left out of it would be measured by nobody,
 // and an empty one would make every pass a pass with nothing in it.
 test('reads every page the built sitemap lists, at the address the gate serves it', () => {

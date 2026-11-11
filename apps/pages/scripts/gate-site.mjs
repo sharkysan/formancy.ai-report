@@ -4,23 +4,29 @@
  * so a breakpoint or a page added is measured without anybody editing the gate.
  */
 
-/** The prelude of every `@media` rule of `css` that asks about the width. */
-const WIDTH_QUERY = /@media\s*([^{]*\bwidth\b[^{]*)\{/g
+/** The rule and prelude of every `@media` or `@container` rule of `css` that asks about the width, or a container's inline size. */
+const WIDTH_QUERY = /@(media|container)\s*([^{]*\b(?:width|inline-size)\b[^{]*)\{/g
 
-/** The one form the passes read: `(max-width: Nrem)`, alone. */
+/** The one form the passes read: `(max-width: Nrem)`, alone, of the window. */
 const READ = /^\(\s*max-width:\s*([\d.]+)rem\s*\)$/
 
 /**
  * Every width query of `css` as a breakpoint in CSS pixels. A query in any
  * other form -- a `min-width`, a breakpoint in pixels or em, the range
  * syntax, a query joined to another -- is refused, naming it: the passes
- * would leave the layout at its edge measured by nobody.
+ * would leave the layout at its edge measured by nobody. So is every
+ * container query, whatever its form: it asks about its container's
+ * width, which no pass sets.
  */
 function breakpointsOf(css) {
-  const queries = [...css.matchAll(WIDTH_QUERY)].map((match) => (match[1] ?? '').trim())
-  const unread = [...new Set(queries.filter((query) => !READ.test(query)))]
+  const queries = [...css.matchAll(WIDTH_QUERY)].map((match) => ({ rule: match[1], query: (match[2] ?? '').trim() }))
+  const unread = [
+    ...new Set(
+      queries.filter(({ rule, query }) => rule !== 'media' || !READ.test(query)).map(({ rule, query }) => (rule === 'media' ? query : `@${rule} ${query}`)),
+    ),
+  ]
   if (unread.length > 0) throw new Error(`the pages' stylesheet asks about the width in a form the gate does not measure: ${unread.join(', ')}`)
-  return queries.map((query) => Number(READ.exec(query)?.[1]) * 16)
+  return queries.map(({ query }) => Number(READ.exec(query)?.[1]) * 16)
 }
 
 /**
