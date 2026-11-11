@@ -1,9 +1,10 @@
 import { MAX_SVG_COORDINATE, MAX_SVG_DEPTH, RenderRefusal, type Image } from '@formancy/report-runtime'
 import type { Vector } from './assets.js'
+import type { PdfA } from './pdfa.js'
 
 /**
- * An SVG in an e-invoice (0030, beside 0031): what the PDF/A-3 an e-invoice
- * is drawn as holds an image of one to, checked before pdfmake runs. PDF/A-2
+ * An SVG in a PDF/A (0030, beside 0031): what the PDF/A-3 an e-invoice or a
+ * PDF/A-2b is drawn as holds an image of one to, checked before pdfmake runs. PDF/A-2
  * and -3 make ISO 32000-1's implementation limits requirements (ISO
  * 19005-2, 6.1.13): no integer past 2,147,483,647 in magnitude, and the
  * graphics state nested no deeper than 28. PDFKit writes a whole number
@@ -23,8 +24,7 @@ import type { Vector } from './assets.js'
  * to do. pdfmake draws an image in the page's own stream, whether it stands
  * in the body, a page region, a section, columns or a keep-together block,
  * and nests nothing around it (measured that day with veraPDF), so the
- * drawing's nesting is the stream's. A report that is no e-invoice is no
- * PDF/A, and draws such an image as it always did.
+ * drawing's nesting is the stream's. A report drawn as no PDF/A draws such an image as it always did.
  */
 
 /** The largest integer, in magnitude, a PDF/A-2 or -3 may hold (ISO 19005-2, 6.1.13; veraPDF's rule 6.1.13-1). A real may reach 3.403 × 10^38, past the 10^21 at which PDFKit throws. */
@@ -117,13 +117,14 @@ function placed(vector: Vector, image: Pick<Image, 'width' | 'height' | 'fit'>, 
   return Math.max(fit, groups, patterns, extent.local)
 }
 
-/** Refuses `image`, an SVG of `vector`, where an e-invoice's PDF/A-3 cannot hold what the converter writes for it on `paper`. */
-export function checkSvgInEInvoice(vector: Vector, image: Image, paper: Paper): void {
+/** Refuses `image`, an SVG of `vector`, where the PDF/A `pdfa` cannot hold what the converter writes for it on `paper`. */
+export function checkSvgInPdfA(vector: Vector, image: Image, paper: Paper, pdfa: PdfA): void {
+  const drawn = pdfa.subset === 'PDF/A-3b' ? 'an e-invoice is drawn as a PDF/A-3, which' : 'a PDF/A-2b'
   const { id } = image.asset
   if (vector.extent.nesting > PDF_A_NESTING) {
     throw new RenderRefusal(
       'unsupported',
-      `the image ${id} is an SVG that pdfmake's converter draws ${vector.extent.nesting} graphics states deep, and an e-invoice is drawn as a PDF/A-3, which nests them ${PDF_A_NESTING} deep at most: flatten the groups it nests`,
+      `the image ${id} is an SVG that pdfmake's converter draws ${vector.extent.nesting} graphics states deep, and ${drawn} nests them ${PDF_A_NESTING} deep at most: flatten the groups it nests`,
       id,
     )
   }
@@ -136,7 +137,7 @@ export function checkSvgInEInvoice(vector: Vector, image: Image, paper: Paper): 
         : 'draw it larger, or flatten the transforms under its clips, its transparency and its gradients'
     throw new RenderRefusal(
       'unsupported',
-      `the image ${id} is an SVG whose numbers, drawn ${image.width} × ${image.height} pt, could reach ${Math.ceil(reach)}, and an e-invoice is drawn as a PDF/A-3, which holds an integer to ${PDF_A_INTEGER}, ${SVG_INTEGER_BOUND} with the renderer's margin for rounding: ${advice}`,
+      `the image ${id} is an SVG whose numbers, drawn ${image.width} × ${image.height} pt, could reach ${Math.ceil(reach)}, and ${drawn} holds an integer to ${PDF_A_INTEGER}, ${SVG_INTEGER_BOUND} with the renderer's margin for rounding: ${advice}`,
       id,
     )
   }

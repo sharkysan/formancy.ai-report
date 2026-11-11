@@ -101,6 +101,16 @@ export function checkPdfATitle(title: string, pdfa: PdfA): void {
   }
 }
 
+/** Refuses the CMYK JPEG `id`, which a PDF/A cannot hold beside its sRGB output intent (veraPDF 6.2.4.3-3), naming it. */
+export function refuseCmyk(id: string, pdfa: PdfA): never {
+  throw refusal(
+    pdfa.subset === 'PDF/A-3b'
+      ? `the image ${id} is a CMYK JPEG, which an e-invoice cannot hold: it is drawn as a PDF/A-3 whose output intent is sRGB, beside which no image may be CMYK`
+      : `the image ${id} is a CMYK JPEG, which a PDF/A-2b cannot hold: its output intent is sRGB, beside which no image may be CMYK`,
+    id,
+  )
+}
+
 /** XML 1.0's Char: tab, line feed and carriage return, and every code point from U+0020 but the surrogates, U+FFFE and U+FFFF. A lone surrogate is read as its own code point, and is none. */
 function xmlCharacter(code: number): boolean {
   return (

@@ -4,6 +4,7 @@ import { RenderRefusal, type Block, type Image, type ImageAsset, type ResolvedDo
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { checkImageAsset, type Vector } from './assets.js'
 import { renderPdf } from './node.js'
+import type { RenderOptions } from './options.js'
 import { PDF_A_INTEGER, PDF_A_NESTING, SVG_INTEGER_BOUND, svgReach } from './svg-pdfa.js'
 import { bareDocument, PAGE, TIMEOUT } from './testing/documents.js'
 import { invoiced } from './testing/e-invoice.js'
@@ -267,8 +268,8 @@ async function largest(pdf: Uint8Array): Promise<number> {
 }
 
 /** What `document` refuses with, or undefined when it draws. */
-const refusalOf = (document: ResolvedDocument): Promise<unknown> =>
-  renderPdf(document, { maxPages: 2 }).then(
+const refusalOf = (document: ResolvedDocument, options: RenderOptions = { maxPages: 2 }): Promise<unknown> =>
+  renderPdf(document, options).then(
     () => undefined,
     (error: unknown) => error,
   )
@@ -280,9 +281,13 @@ const REFUSED: Readonly<Record<Exclude<Verdict, 'drawn'>, RegExp>> = {
 }
 
 /** That `document` is refused as unsupported for `verdict`, naming the image `logo`, before pdfmake is asked for anything. */
-async function expectRefused(document: ResolvedDocument, verdict: Exclude<Verdict, 'drawn'> = 'range'): Promise<void> {
+async function expectRefused(
+  document: ResolvedDocument,
+  verdict: Exclude<Verdict, 'drawn'> = 'range',
+  options: RenderOptions = { maxPages: 2 },
+): Promise<void> {
   const created = vi.spyOn(pdfmake, 'createPdf')
-  const refusal = await refusalOf(document)
+  const refusal = await refusalOf(document, options)
   expect(refusal).toBeInstanceOf(RenderRefusal)
   expect(refusal).toMatchObject({ code: 'unsupported', subject: 'logo', message: expect.stringMatching(REFUSED[verdict]) })
   expect(created).not.toHaveBeenCalled()
@@ -425,6 +430,59 @@ describe('an SVG in an e-invoice', () => {
       expect(await pastTheRange(pdf)).toEqual([])
       expect(await largest(pdf)).toBeGreaterThan(SVG_INTEGER_BOUND * 0.9)
       expect(await refusalOf(at(SVG_BOUND_SIDE * 0.99))).toMatchObject({ code: 'unsupported', subject: 'bound' })
+    },
+    TIMEOUT,
+  )
+})
+
+describe('an SVG in a PDF/A-2b', () => {
+  // The PDF/A-2b's range and nesting are the 3b's (ISO 19005-2, 6.1.13), so
+  // each drawing is drawn with no integer past the range or refused naming
+  // the asset. Without it a shrunk SVG logo in a header drawn into a 2b is a
+  // PDF that says PDF/A-2b and fails veraPDF's 6.1.13.
+  test.each(CASES)(
+    '$name: $verdict',
+    async ({ name, drawing, paper, verdict, ...box }) => {
+      const document = documentOf(paper, [imageOf(svgAsset(drawing, 'logo'), box)])
+      const options: RenderOptions = { maxPages: 2, pdfa: '2b' }
+      if (verdict === 'drawn') expect(await pastTheRange(await renderPdf(document, options)), name).toEqual([])
+      else await expectRefused(document, verdict, options)
+    },
+    TIMEOUT,
+  )
+
+  // The messages name the PDF/A-2b and never an e-invoice, since a host that
+  // draws no e-invoice is told what it drew.
+  test(
+    'names the PDF/A-2b in each refusal, with its range and its nesting',
+    async () => {
+      const at = (drawing: string, side: number): Promise<unknown> =>
+        refusalOf(documentOf('portrait', [imageOf(svgAsset(drawing, 'logo'), { width: side, height: side, fit: 'contain' })]), { maxPages: 2, pdfa: '2b' })
+      expect(await at(nested(26), 100)).toMatchObject({
+        message:
+          "the image logo is an SVG that pdfmake's converter draws 29 graphics states deep, and a PDF/A-2b nests them 28 deep at most: flatten the groups it nests",
+      })
+      expect(await at(SHRUNK, 1)).toMatchObject({
+        message:
+          "the image logo is an SVG whose numbers, drawn 1 × 1 pt, could reach 84189000000, and a PDF/A-2b holds an integer to 2147483647, 2025413334 with the renderer's margin for rounding: draw it larger, or flatten the transforms under its clips, its transparency and its gradients",
+      })
+    },
+    TIMEOUT,
+  )
+
+  // report-corpus's drawing at every bound is the same drawing the 3b case
+  // draws: drawn at its side in a 2b with no integer past the range, refused
+  // a hundredth smaller.
+  test(
+    "report-corpus's SVG_BOUND is drawn at SVG_BOUND_SIDE in a PDF/A-2b with no integer past the range, and refused a hundredth smaller",
+    async () => {
+      const asset: ImageAsset = { id: 'bound', mediaType: 'image/svg+xml', bytes: SVG_BOUND }
+      const at = (side: number): ResolvedDocument => documentOf('portrait', [imageOf(asset, { width: side, height: side, fit: 'contain' })])
+      const options: RenderOptions = { maxPages: 2, pdfa: '2b' }
+      const pdf = await renderPdf(at(SVG_BOUND_SIDE), options)
+      expect(await pastTheRange(pdf)).toEqual([])
+      expect(await largest(pdf)).toBeGreaterThan(SVG_INTEGER_BOUND * 0.9)
+      expect(await refusalOf(at(SVG_BOUND_SIDE * 0.99), options)).toMatchObject({ code: 'unsupported', subject: 'bound' })
     },
     TIMEOUT,
   )

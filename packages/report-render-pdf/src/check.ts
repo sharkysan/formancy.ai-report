@@ -25,11 +25,11 @@ import { frameOf, RULE_GAP, runFace } from './content.js'
 import { epcSymbol } from './epc.js'
 import { codePoint, missingGlyph } from './glyphs.js'
 import type { FaceWanted, RenderFonts } from './host-fonts.js'
-import { checkPdfA } from './pdfa-check.js'
+import { checkPdfA, refuseCmyk } from './pdfa-check.js'
 import type { PdfA } from './pdfa.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
 import { COLOR } from './style.js'
-import { checkSvgInEInvoice } from './svg-pdfa.js'
+import { checkSvgInPdfA } from './svg-pdfa.js'
 import { cellFace, PADDING_X, PADDING_Y, styledRows, type StyledRow } from './table.js'
 import { fillWidth, fixedWidth } from './widths.js'
 
@@ -40,9 +40,11 @@ import { fillWidth, fixedWidth } from './widths.js'
  * prints in has no glyph for (`glyphs.ts`), an e-invoice the renderer does
  * not know (`e-invoice.ts`), and what a PDF/A cannot hold (`pdfa-check.ts`):
  * a title PDFKit cannot write into its XMP, a CMYK JPEG beside its sRGB
- * output intent, and an SVG whose numbers could pass its integers' range
- * or whose nesting its graphics state's (`svg-pdfa.ts`). Every refusal names where the problem is --
- * `body[2].blocks[0]`, a table's id, an asset's id -- and none of them is a
+ * output intent, an SVG whose numbers could pass its integers' range or
+ * whose nesting its graphics state's (`svg-pdfa.ts`), and a Factur-X, an
+ * XRechnung's copy or a labelled preview asked for as a PDF/A-2b. Every
+ * refusal names where the problem is -- `body[2].blocks[0]`, a table's id,
+ * an asset's id -- and none of them is a
  * partial render: a document that is refused has drawn nothing.
  *
  * The walk also collects what can only be judged once the page regions are
@@ -195,19 +197,13 @@ async function checkImages(images: Walk['images'], maxPages: number, pdfa: PdfA 
     let read = assets.get(image.asset)
     if (read === undefined) {
       read = await checkImageAsset(image.asset)
-      if (pdfa?.subset === 'PDF/A-3b' && read.kind === 'raster' && read.cmyk) {
-        throw new RenderRefusal(
-          'unsupported',
-          `the image ${id} is a CMYK JPEG, which an e-invoice cannot hold: it is drawn as a PDF/A-3 whose output intent is sRGB, beside which no image may be CMYK`,
-          id,
-        )
-      }
+      if (pdfa !== undefined && read.kind === 'raster' && read.cmyk) refuseCmyk(id, pdfa)
       assets.set(image.asset, read)
       total.data += read.kind === 'raster' ? read.data : 0
       if (total.data > MAX_IMAGE_DATA)
         throw new RenderRefusal('content-too-large', `the images up to ${id} hold ${total.data} bytes of image data; a render may hold ${MAX_IMAGE_DATA}`, id)
     }
-    if (pdfa?.subset === 'PDF/A-3b' && read.kind === 'vector') checkSvgInEInvoice(read, image, page)
+    if (pdfa !== undefined && read.kind === 'vector') checkSvgInPdfA(read, image, page, pdfa)
     if (read.kind === 'vector') addVector(total, read, region ? maxPages : 1, id)
   }
   return assets
