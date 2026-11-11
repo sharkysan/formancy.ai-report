@@ -47,6 +47,12 @@ export interface PageGroup {
   readonly cards: Readonly<Record<Language, readonly Card[]>>
   /** What the product page says of a topic page, in each language, under a heading of its own, with a link to it. */
   readonly teaser?: Readonly<Record<Language, Teaser>>
+  /**
+   * The Studio's words the page names, as the Studio writes them in every
+   * language: each is one a scene of docs/images/readme/captured.json says
+   * in quotes, and each page of the group says it (checks/studio-words.ts).
+   */
+  readonly studioWords?: readonly string[]
   /** HL7's trademark notice, which a page naming HL7 or FHIR carries in its footer. */
   readonly hl7Notice?: true
   /** Its picture for a shared link: one of the site's pictures, under docs/images, the same in every language or one for each. */

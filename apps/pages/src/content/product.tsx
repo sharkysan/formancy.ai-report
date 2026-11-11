@@ -145,6 +145,7 @@ function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
 
 export const PRODUCT_GROUP: PageGroup = {
   id: 'product',
+  studioWords: ['Download PDF'],
   slug: { de: '', fr: '', it: '', en: '' },
   meta: { de: PRODUCT_COPY.de.meta, fr: PRODUCT_COPY.fr.meta, it: PRODUCT_COPY.it.meta, en: PRODUCT_COPY.en.meta },
   cards: { de: PRODUCT_COPY.de.today.cards, fr: PRODUCT_COPY.fr.today.cards, it: PRODUCT_COPY.it.today.cards, en: PRODUCT_COPY.en.today.cards },

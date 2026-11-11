@@ -168,6 +168,7 @@ function EpcQrCodeBody({ page }: { readonly page: PageContext }): ReactElement {
 
 export const EPC_QR_CODE_GROUP: PageGroup = {
   id: 'epc-qr-code',
+  studioWords: ['Starter', 'Euro invoice', 'EPC payment code'],
   slug: { de: 'epc-qr-code', fr: 'qr-code-sepa', it: 'qr-code-sepa', en: 'epc-qr-code' },
   meta: { de: EPC_QR_CODE_COPY.de.meta, fr: EPC_QR_CODE_COPY.fr.meta, it: EPC_QR_CODE_COPY.it.meta, en: EPC_QR_CODE_COPY.en.meta },
   cards: { de: EPC_QR_CODE_COPY.de.does.cards, fr: EPC_QR_CODE_COPY.fr.does.cards, it: EPC_QR_CODE_COPY.it.does.cards, en: EPC_QR_CODE_COPY.en.does.cards },

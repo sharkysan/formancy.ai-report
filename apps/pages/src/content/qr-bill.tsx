@@ -145,6 +145,7 @@ function QrBillBody({ page }: { readonly page: PageContext }): ReactElement {
 
 export const QR_BILL_GROUP: PageGroup = {
   id: 'qr-bill',
+  studioWords: ['Starter', 'Invoice'],
   slug: { de: 'qr-rechnung', fr: 'facture-qr', it: 'fattura-qr', en: 'swiss-qr-bill' },
   meta: { de: QR_BILL_COPY.de.meta, fr: QR_BILL_COPY.fr.meta, it: QR_BILL_COPY.it.meta, en: QR_BILL_COPY.en.meta },
   cards: { de: QR_BILL_COPY.de.does.cards, fr: QR_BILL_COPY.fr.does.cards, it: QR_BILL_COPY.it.does.cards, en: QR_BILL_COPY.en.does.cards },

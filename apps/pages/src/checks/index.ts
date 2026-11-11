@@ -12,6 +12,7 @@ import { fileProblems } from './files.js'
 import { headProblems, pageSetProblems, sitemapProblems } from './head.js'
 import { linkProblems } from './links.js'
 import type { Built } from './read.js'
+import { studioWordProblems } from './studio-words.js'
 import { wordingProblems } from './wording.js'
 
 export type { Built } from './read.js'
@@ -25,6 +26,7 @@ export function siteProblems(built: Built, groups: readonly PageGroup[]): string
     ...topicProblems(built, groups),
     ...structuredDataProblems(built, groups),
     ...evidenceProblems(built, groups),
+    ...studioWordProblems(built, groups),
     ...linkProblems(built),
     ...fileProblems(built),
     ...wordingProblems(built),
