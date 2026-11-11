@@ -464,6 +464,12 @@ written against the newest release and said again at each release, and
 `src/site.tsx` reads every page's before it renders any
 ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
 [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+Its `scripts/` hold its browser gate, `browser-test.mjs`, which takes the
+Studio's gate's page reads from `apps/studio/scripts/gate-measure.mjs` and
+its recorder from `apps/studio/scripts/gate-results.mjs`, so it needs the
+Studio's install but not its build; `gate-imports.test.mjs` holds both to
+importing no package of the workspace
+([0053](../decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 
 ### The repository's scripts
 

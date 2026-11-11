@@ -4,7 +4,10 @@
   yet merged; supersedes the copied palette of
   [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)
   and the room by import of that copy in
-  [0021](0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)
+  [0021](0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md);
+  the product pages' room read in a browser by
+  [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)'s
+  gate, where nothing opened the pages' built page
 - **Date:** 2026-10-18
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -41,7 +44,7 @@
     `room.css` sets on `:root` as `room.css` gives it, a colour compared
     as a colour within one step of 255 in its alpha, since the build's
     minifier writes the room's colours as hex, and its colour scheme
-    (`paletteProblem`, `gate-page.mjs`). What the palette guard reads in
+    (`paletteProblem`, `gate-measure.mjs`). What the palette guard reads in
     the sources it measures where the build put it. Watched failing on a
     stylesheet that set `--wb-panel` and `--glass` on the built page, and
     on a build whose `main.tsx` took the workbench again after the room,

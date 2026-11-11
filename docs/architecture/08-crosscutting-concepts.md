@@ -217,9 +217,10 @@ callback, each on its own
 The corpus hands ZXing its WebAssembly from the package's own file, where
 the library would fetch it from a CDN
 ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md));
-the Studio and the pages ask no other site for anything, which the browser
-gate and the pages' checks fail on
-([0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
+the Studio and the pages ask no other site for anything, which the
+Studio's browser gate, the pages' own and the pages' checks fail on
+([0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md),
+[0053](../decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 
 **Digests are trusted.** The runtime does not check an image's bytes
 against the digest that names them, and trusts the host's lookup to return

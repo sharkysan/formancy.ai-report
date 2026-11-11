@@ -477,7 +477,7 @@
       ]
     },
     "0021": {
-      "reviewed": "sha256:43dc56586f86950b410b4bea7888ad831fe14b7d60f05027be54f823c0cb9da1",
+      "reviewed": "sha256:5411d2907df970202d4bb9f598d28680d3013d345fe25e06691c7d331a4370dc",
       "limitations": [
         {
           "area": "release",
@@ -490,7 +490,7 @@
         },
         {
           "area": "testing",
-          "says": "The pages' reflow down to 320 pixels and their colour contrast were measured in Chromium by hand, not by a gate, so a change to the pages or to the Studio's stylesheets they import is not measured in a browser in CI."
+          "says": "What formancy.ai/report/<lang>/ serves is opened in a browser by nothing here: the pages' gate measures them as each pull request and each push to main builds them, under the headers the deploy writes, and nothing here reads the pages the Studio's Worker serves."
         },
         {
           "area": "testing",
@@ -579,7 +579,7 @@
       ]
     },
     "0023": {
-      "reviewed": "sha256:396cf1d85ca9ff616a09d10a938a01896d1501ac810c3616c070d5ab136b4876",
+      "reviewed": "sha256:700cb1257e70fca0b03e74957447cad4171cff3c15e50952f8345472a527fb38",
       "limitations": [
         {
           "area": "release",
@@ -591,12 +591,12 @@
         },
         {
           "area": "testing",
-          "says": "That a product page asks no other site for anything rests on the suite reading its HTML and stylesheet, not on a browser watching its requests, which only the Studio has."
+          "says": "That a product page asks no other site for anything is watched in Chromium alone by the pages' browser gate since 0053, so in another browser it rests on the suite reading the page's HTML and stylesheet, and on the demo's policy, which refuses such a request first."
         }
       ]
     },
     "0024": {
-      "reviewed": "sha256:fb9a7489e44db6db5f6f3b9c50363c14f5a794ca2cb4d2e18c60e5f297e40c66",
+      "reviewed": "sha256:334f70fff4d20f21c43ced6d8b9917e7b955b7fd1194d9c31dbb2eb6f7856293",
       "limitations": [
         {
           "area": "release",
@@ -886,7 +886,7 @@
       ]
     },
     "0028": {
-      "reviewed": "sha256:e5aaeac0ae3d71ee9ec9f35f79a3da31c86254126b7b21026721b0bf5dbbc2aa",
+      "reviewed": "sha256:a86e98e4e19caa22de089e1a478cc85dd1b84f4e8498d9e52c0ed2fced1efdde",
       "limitations": [
         {
           "area": "release",
@@ -939,7 +939,7 @@
         },
         {
           "area": "testing",
-          "says": "The EPC QR code page's reflow down to 320 pixels and its colour contrast were measured in Chromium by hand on 17 October 2026, with every other page's, and by no gate, so a later change to a page is measured in a browser by nobody."
+          "says": "The EPC QR code page's reflow down to 320 pixels and its colour contrast were measured by hand on 17 October 2026, with every other page's, while the bar held three topic names, and are measured since 0053 by the pages' browser gate, which reads numbers and takes no picture of the page."
         }
       ]
     },
@@ -1309,7 +1309,7 @@
       ]
     },
     "0034": {
-      "reviewed": "sha256:e576dcad38ebb3e93bcbcf8f76b2b46855a1b892c0e4e549f8c4ead95b3f766f",
+      "reviewed": "sha256:9f566cf6b11fb9e88c3bcec6a7ddd830c70273ff1d8adda4c564fbccb76f5a56",
       "limitations": [
         {
           "area": "data",
@@ -2254,7 +2254,7 @@
       ]
     },
     "0051": {
-      "reviewed": "sha256:7a2e8d8fac71014d3055c3e9a9b95e747cad4657143cdd8ef8875542387786fb",
+      "reviewed": "sha256:e6d41adec55697f20287ff0385e9bb004f94927caede05060d40464028cb8d25",
       "limitations": [
         {
           "area": "release",
@@ -2305,6 +2305,23 @@
           "area": "data",
           "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
           "heldBy": "packages/report-forms/src/review.test.ts"
+        }
+      ]
+    },
+    "0053": {
+      "reviewed": "sha256:2b8c07bb462cd10e97b6c22c026442c4749b9ac6990fd3681a971ff47eb3d921",
+      "limitations": [
+        {
+          "area": "testing",
+          "says": "The pages' browser gate runs in Chromium alone, as every browser gate here does, so a page's reflow, contrast, keyboard path and requests in Firefox or WebKit are measured by nobody."
+        },
+        {
+          "area": "testing",
+          "says": "The pages' browser gate serves the pages without the Studio beside them, so a link from a page to the Studio is never followed in a browser, and the demo as the deploy stages it is held by scripts/demo.test.mjs reading the files it stages, not opened."
+        },
+        {
+          "area": "testing",
+          "says": "The pages' browser gate asserts numbers and computed results and takes no screenshot, so nothing measures what a page looks like: a page laid out badly but within the window, legible and reached by the keyboard, passes."
         }
       ]
     }

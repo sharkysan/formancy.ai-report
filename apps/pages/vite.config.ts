@@ -10,4 +10,8 @@ import { defineConfig } from 'vite'
  */
 export default defineConfig({
   plugins: [react()],
+  // Where the pages' browser gate serves dist/ with `vite preview`, failing
+  // rather than wandering to the next free port: the Studio's gate holds
+  // 4394, and 4390 to 4393 are formancy.ai-data's server and apps.
+  preview: { port: 4395, strictPort: true },
 })

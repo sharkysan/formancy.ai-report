@@ -10,7 +10,9 @@
   mark, and the samples differ still in nothing but their words and whom
   they bill; narrowed by [0039](0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md), under which each sample opens with one
   warning, that its bill pays SIX's example QR-IBAN, where this record
-  holds it to none
+  holds it to none; its pages measured in a browser by
+  [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)'s
+  gate, where this record measured them by hand
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -91,7 +93,8 @@
   - **By hand, on 17 October 2026.** The built pages, served under
     `/report/` by a script outside the repository on a port of its own,
     in the Chromium of Playwright 1.64.1, measured by the Studio's browser
-    gate's own `measureWidth` and `audit` (`apps/studio/scripts/gate-page.mjs`):
+    gate's own `measureWidth` and `audit`, then in `gate-page.mjs` and now
+    in `apps/studio/scripts/gate-measure.mjs`:
     all twelve pages at 320, 360, 641, 1280 and 1920 pixels had no
     sideways scroll and nothing past either edge, axe 4.14.0 found no
     violation, colour contrast and target size were measured and no

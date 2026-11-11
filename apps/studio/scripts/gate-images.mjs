@@ -41,7 +41,8 @@ import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SCENARIO_PNG } from '@formancy/report-builder-core'
 import { readPdf } from '@formancy/report-corpus'
-import { describeFocus, pdfBytes } from './gate-page.mjs'
+import { describeFocus } from './gate-measure.mjs'
+import { pdfBytes } from './gate-page.mjs'
 import { editorOf, open, previewInView, previewOf, said, settled, showing, WITHIN } from './gate-steps.mjs'
 
 /** The quotation's left margin, where an image placed first in its report header starts: 20 mm, in points. */

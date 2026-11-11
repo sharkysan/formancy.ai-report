@@ -25,7 +25,7 @@ export default eslintConfig({
   // project that has them.
   untyped: ['scripts/install-fixture/**'],
   // The scripts that drive Playwright: the Studio's browser gates and
-  // pictures, and the README pictures' shared steps.
-  browser: ['apps/studio/scripts/**', 'scripts/pictures/**'],
+  // pictures, the pages' browser gate, and the README pictures' shared steps.
+  browser: ['apps/studio/scripts/**', 'apps/pages/scripts/browser-test.mjs', 'scripts/pictures/**'],
   react: ['packages/report-builder-react/**/*.{ts,tsx}', 'apps/pages/**/*.{ts,tsx}', 'apps/studio/**/*.{ts,tsx}'],
 })
