@@ -175,6 +175,22 @@ describe('readDocument never throws', () => {
     }
     expect(traps).toEqual([])
   })
+
+  // An iframe's or a vm's Uint8Array is no instance of this realm's, and
+  // the check that refuses an ArrayBuffer unread refuses it too: a host
+  // that holds bytes of another realm copies them into its own first. This
+  // fails closed, where a check that let it through would have to read it.
+  test('a Uint8Array of another realm is refused, until a host copies it into its own', () => {
+    const vm = (
+      globalThis as unknown as { process: { getBuiltinModule: (id: string) => { runInNewContext: (code: string) => unknown } } }
+    ).process.getBuiltinModule('node:vm')
+    const file = sample()
+    const foreign = vm.runInNewContext(`new Uint8Array(${file.length})`) as Uint8Array
+    foreign.set(file)
+    expect(foreign instanceof Uint8Array).toBe(false)
+    expect(readDocument(foreign)).toEqual(refusal('not-bytes'))
+    expect(readDocument(Uint8Array.from(foreign)).ok).toBe(true)
+  })
 })
 
 describe('readDocument holds a copy of its own', () => {

@@ -273,14 +273,17 @@ describe('what a value costs', () => {
   // A string is counted twice against MAX_DOCUMENT_VALUES -- the value, and
   // the view its bytes are held in, which costs what several values do --
   // so that a file of short strings is refused at half as many as a file
-  // of numbers, and no sooner. The sample's 1,484 files hold at most 298
-  // strings, a 1,000-page tagged report one. Pinned from both sides, on the
-  // file's own values: literal strings exactly at the bound read -- counted
-  // thrice, they would be refused -- and hexadecimal strings one past it
-  // are refused -- counted once, they would read.
-  test('a string is counted twice against MAX_DOCUMENT_VALUES, no more', AT_A_BOUND, () => {
+  // of numbers, and no sooner: the second count is what held ten million
+  // empty strings (X4) to 56 MiB, where they had held 445 MiB. The
+  // sample's 1,484 files hold at most 298 strings, a 1,000-page tagged
+  // report one. Each kind -- a literal string as written, one escaped, a
+  // hexadecimal one -- is pinned exactly, from one string to two on a small
+  // file; and the bound itself, literal strings exactly at it reading.
+  test('a string is counted twice against MAX_DOCUMENT_VALUES, no more, whatever kind it is', AT_A_BOUND, () => {
     const of = (item: string, count: number): Uint8Array => withObject5(concat([latin1('['), repeated(item, count), latin1(']')]))
-    const strings = Math.floor((MAX_DOCUMENT_VALUES - parsed(of('', 0)).budget.reading.total) / 2)
+    const counted = (item: string, count: number): number => parsed(of(item, count)).budget.reading.total
+    for (const item of ['() ', '(a\\n) ', '<> ']) expect(counted(item, 2) - counted(item, 1)).toBe(2)
+    const strings = Math.floor((MAX_DOCUMENT_VALUES - counted('', 0)) / 2)
     parsed(of('() ', strings))
     expectRefused(of('<> ', strings + 1), 'too-many-objects', 'values')
   })

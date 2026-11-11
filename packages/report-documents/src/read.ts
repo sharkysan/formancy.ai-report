@@ -87,7 +87,9 @@ function frozen({ pages, objects, notices }: PrintableDocument): PrintableDocume
  * which names what was found and never a byte of the file. Synchronous.
  * Never throws: anything thrown while it reads -- by pdf-lib's grammar, by
  * pako, by a fault of the reader's own -- is a refusal of the reader's own
- * words (`caught`). The bytes are copied before one is read, so that the
+ * words (`caught`). The bytes are a Uint8Array of the host's own realm --
+ * one of an iframe or a vm is refused, as not-pdf, and is copied into the
+ * host's realm first -- and are copied before one is read, so that the
  * caller's buffer may be reused the moment the read returns.
  */
 export function readDocument(bytes: Uint8Array): DocumentRead {

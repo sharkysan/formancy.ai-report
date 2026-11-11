@@ -306,7 +306,11 @@ class Loop {
  * reuses its buffer, or another thread that writes the SharedArrayBuffer
  * under it while the parse runs, changes nothing that was read or checked.
  * Copied by construction, never by `slice`, which Node's Buffer makes a
- * view.
+ * view. The bytes are a Uint8Array of the host's own realm: anything else
+ * -- an ArrayBuffer, a DataView, a Proxy, an iframe's or a vm's
+ * Uint8Array -- is refused (`not-bytes`) before a property of it is read,
+ * and a host that holds bytes of another realm copies them into its own
+ * first.
  */
 export function parseDocument(bytes: Uint8Array): ParsedDocument | DocumentRefusal {
   return caught(() => {

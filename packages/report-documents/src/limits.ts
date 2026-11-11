@@ -83,19 +83,24 @@ export const MAX_DOCUMENT_XREF_SECTIONS = 1_000
  * counted twice, for the view its bytes are held in, which costs what
  * several values do; each decoder a stage of a stream builds, as
  * `INFLATER_VALUES` or `DECODER_VALUES` -- on one count a document, which
- * is what its time and heap grow with. Set by a 1,000-page tagged report, which holds
- * 1,468,102; the spike's sample held at most 298 strings a file. At it, a
- * file of numbers read in 306 ms with 53 MiB; one past it, refused in
- * 286 ms. The dearest values within it: ten million empty arrays (X3)
- * refused in 456 ms within 107 MiB; one-byte strings, literal, escaped or
- * hexadecimal, in 284-382 ms within 142 MiB; 2,000,000 listings of one
- * annotation, which the pages are held to as well, read in 607 ms with
- * 138 MiB (358 ms in Chromium); 153,846 inline images' dictionaries in
- * 378 ms; every bound at once -- the values in dictionaries shaped as a
- * page's, beside content that inflates to `MAX_DOCUMENT_INFLATED` -- in
- * 548 ms with 75 MiB (385 ms in Chromium); the decoders' shapes, each
- * at its bound and one past it, in 486-808 ms (369-657 ms in Chromium),
- * as `INFLATER_VALUES` and `DECODER_VALUES` say.
+ * is what its time and heap grow with. Set by a 1,000-page tagged report,
+ * which holds 1,468,102; the spike's sample held at most 298 strings a
+ * file. Measured on 731bd93, before the inline images' dictionaries and
+ * the decoders were counted with the file's own values: at it, a file of
+ * numbers read in 306 ms with 53 MiB, one past it refused in 286 ms; ten
+ * million empty arrays (X3) refused in 456 ms within 107 MiB; one-byte
+ * strings, literal, escaped or hexadecimal, in 284-382 ms within 142 MiB;
+ * 2,000,000 listings of one annotation, which the pages are held to as
+ * well, read in 607 ms with 138 MiB (358 ms in Chromium); 153,846 inline
+ * images' dictionaries in 378 ms, a file the one count now refuses, its
+ * dictionaries alone counting 1,999,998 beside the file's own values;
+ * every bound at once -- the values in dictionaries shaped as a page's,
+ * beside content that inflates to `MAX_DOCUMENT_INFLATED` -- in 548 ms
+ * with 75 MiB (385 ms in Chromium), a file the one count still reads, at
+ * 1,999,895 (each checked by a read on 11 November 2026, not timed). On
+ * the build that holds the one count, the decoders' shapes, each at its
+ * bound and one past it, in 486-808 ms (369-657 ms in Chromium), as
+ * `INFLATER_VALUES` and `DECODER_VALUES` say.
  */
 export const MAX_DOCUMENT_VALUES = 2_000_000
 
@@ -104,29 +109,33 @@ export const MAX_DOCUMENT_VALUES = 2_000_000
  * where it is built: every Flate stage of every stream, and every inline
  * image compressed by Flate, is inflated by one of its own, which costs
  * what a stream's dictionary does several times over. Chosen by
- * measurement: the smallest charge at which each of these shapes, at the
- * bound the charge gives it, read within a second, and one past it was
- * refused within a second, in Node and in Chromium -- streams of one,
- * four, five and six Flate stages of one byte, and one-pixel Flate inline
- * images. Median of five cold runs, a fresh worker or browser context a
- * run, Node 22.23.3 and Chrome Headless Shell 156 on an Apple M2 on
- * battery, 6 November 2026. At 16 (loads 5.5 to 12.5), four stages one
- * past their bound were refused in 1,145 ms in Node, and one stage read
- * at its bound in 1,053 ms in Chromium; at 24 (loads 4.1 to 5.6), the
- * dearest was 632 ms in Node and 588 ms in Chromium. On the build that
- * holds it, 8 November 2026, loads 2.5 to 3.0: the inline images, 48,778
- * at the bound, read in 486 ms and one more refused in 514 ms (434 and
- * 446 ms in Chromium); streams of one stage, 64,514 at the bound, in 578
- * and 573 ms (461 and 460 ms); of four, five and six stages, in 505-572 ms
- * (369-417 ms). An inline image unfiltered, or ending at an ASCII filter's
- * marker, takes no inflater.
+ * measurement, the smaller of the two charges measured, 16 and 24 -- none
+ * between them was -- at which each of these shapes, at the bound the
+ * charge gives it, read within a second and one past it was refused within
+ * a second, in Node and in Chromium: streams of one, four, five and six
+ * Flate stages of one byte, and one-pixel Flate inline images. Median of
+ * five cold runs, a fresh worker or browser context a run, Node 22.23.3
+ * and Chrome Headless Shell 156 on an Apple M2 on battery, 6 November
+ * 2026. At 16, one series of two failed: at loads of 5.5 to 12.5, four
+ * stages one past their bound were refused in 1,145 ms in Node, and one
+ * stage read at its bound in 1,053 ms in Chromium; the other, at loads of
+ * 4.2 to 16.6 across the laptop's sleeps, held, at worst 933 ms at a bound
+ * and 926 ms one past it in Node, 629 and 685 ms in Chromium. At 24, at
+ * loads of 4.1 to 5.6, every row held, the dearest 632 ms in Node and
+ * 588 ms in Chromium. On the build that holds it, 8 November 2026, loads
+ * 2.5 to 3.0: the inline images, 48,778 at the bound, read in 486 ms and
+ * one more refused in 514 ms (434 and 446 ms in Chromium); streams of one
+ * stage, 64,514 at the bound, in 578 and 573 ms (461 and 460 ms); of four,
+ * five and six stages, in 505-572 ms (369-417 ms). An inline image
+ * unfiltered, or ending at an ASCII filter's marker, takes no inflater.
  */
 export const INFLATER_VALUES = 24
 
 /**
  * What one of pdf-lib's decoders of a fixed ratio -- RunLength, ASCIIHex,
  * ASCII85 -- is counted as against `MAX_DOCUMENT_VALUES`, where a stage of
- * a stream builds one. Chosen as `INFLATER_VALUES` is, on streams of eight
+ * a stream builds one. Chosen as `INFLATER_VALUES` is, the smallest of the
+ * three charges measured, 4, 8 and 16, that held, on streams of eight
  * RunLength stages of one byte, 6 November 2026: at 4 (a load of 3.9),
  * their bound's read took 1,252 ms in Node and 1,020 ms in Chromium, the
  * refusal one past it 1,259 ms and 1,149 ms (that last at a load of 20);
