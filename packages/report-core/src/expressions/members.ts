@@ -14,7 +14,7 @@
  */
 import type { DeclaredType } from '@formancy/expressions'
 import { GROUP_KEY, walkComponents } from '@formancy/report-spec'
-import type { AggregateFunction, DatasetContract, FieldType, ReportDefinition } from '@formancy/report-spec'
+import type { AggregateFunction, ChartSeries, DatasetContract, FieldType, ReportDefinition } from '@formancy/report-spec'
 
 /**
  * The type an expression reads each readable field and parameter type as.
@@ -132,4 +132,9 @@ export const COMPUTES: { readonly [F in AggregateFunction]: (read: DeclaredType 
   avg: () => ({ type: 'decimal', nullable: true }),
   min: (read) => ({ type: read ?? 'dyn', nullable: true }),
   max: (read) => ({ type: read ?? 'dyn', nullable: true }),
+}
+
+/** What a chart's `series` computes: the compiler's type of an aggregate of its function over the detail field it names. */
+export function seriesType(report: ReportDefinition, series: ChartSeries): ExpressionMember {
+  return COMPUTES[series.fn](readAs(report.datasets.detail?.fields.find(({ id }) => id === series.of?.field)?.type))
 }

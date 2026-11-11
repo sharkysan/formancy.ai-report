@@ -2,7 +2,7 @@ import { Decimal, decimalFromString, decimalToString, roundDecimal } from '@form
 import type { Rounding, RoundingMode } from '@formancy/report-spec'
 import { ROUNDING_MODES } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import { averageDecimals, maxDecimal, minDecimal, roundDecimalAs, sumDecimals } from './decimal.js'
+import { averageDecimals, maxDecimal, minDecimal, ratioRounded, roundDecimalAs, sumDecimals } from './decimal.js'
 import { below, seeded } from './test-support.js'
 
 const dec = (text: string): Decimal => decimalFromString(text)
@@ -239,5 +239,18 @@ describe('averageDecimals', () => {
       const expected = reference(units, BigInt(values.length) * 10n ** BigInt(scale), declared)
       expect({ values, declared, average: text(averageDecimals(values.map(dec), declared)) }).toEqual({ values, declared, average: expected })
     }
+  })
+})
+
+describe('ratioRounded', () => {
+  // A share computed through a double drifts at the last place.
+  test('rounds an exact ratio once', () => {
+    expect(decimalToString(ratioRounded(dec('2'), dec('3'), { scale: 3, mode: 'half-away-from-zero' }))).toBe('0.667')
+  })
+
+  // A ratio of decimals of different scales divided as their units would be
+  // off by a power of ten.
+  test('divides decimals of different scales by their values, not their units', () => {
+    expect(decimalToString(ratioRounded(dec('0.5'), dec('2.00'), { scale: 4, mode: 'half-even' }))).toBe('0.2500')
   })
 })

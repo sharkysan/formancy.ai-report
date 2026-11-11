@@ -1,10 +1,14 @@
+import { decimalFromString } from '@formancy/expressions'
 import { emptyReport } from '@formancy/report-spec'
 import type { AggregateDef, FieldRef, ReportDefinition, RowValue } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { Table } from './document.js'
+import { plainText } from './format.js'
+import type { TypedValue } from './format.js'
 import { resolveReport } from './resolve.js'
 import type { RuntimeError } from './resolve-errors.js'
 import { below, seeded } from './test-support.js'
+import { totalOf, totalsInDecimals } from './totals.js'
 
 const detail = (field: string): FieldRef => ({ dataset: 'detail', field })
 const expression = (cel: string): RowValue => ({ kind: 'expression', expression: { cel } })
@@ -352,5 +356,45 @@ describe('group totals', () => {
     expect(subtotals).toHaveLength(sites.length)
     expect(subtotals.reduce((sum, each) => sum + toCents(each), 0n)).toBe(toCents(total))
     expect(toCents(total)).toBe(rows.reduce((sum, row) => sum + toCents(row.amount as string), 0n))
+  })
+})
+
+describe('totalOf', () => {
+  const collator = new Intl.Collator('en')
+  const dec = (text: string): TypedValue => ({ type: 'decimal', value: decimalFromString(text) })
+  const rounding = { scale: 2, mode: 'half-even' } as const
+  const rates: AggregateDef = { id: 'rates', fn: 'sum', of: { kind: 'field', field: detail('rate') }, rounding }
+
+  // A series totalled by a second function could print 0.05 where the
+  // table's subtotal prints 0.00.
+  test('totals a series and an aggregate of one definition to one value', () => {
+    const rows = [line('1.00', { rate: '0.025' }), line('1.00', { rate: '0.025' })]
+    const outcome = totalOf(rates, totalsInDecimals('decimal', rates.rounding), [dec('0.025'), dec('0.025')], rows.length, collator)
+    expect(outcome.ok && plainText(outcome.value)).toBe(printed(rows, report([rates]))['rates'])
+  })
+
+  // R18 -- a series rounded by a rule of its own would print a sum the
+  // table's subtotal of the same rows does not.
+  test('rounds a sum of decimals once, as it declares, as an aggregate is rounded', () => {
+    const outcome = totalOf(rates, true, [dec('0.125'), dec('0.25')], 2, collator)
+    expect(outcome.ok && plainText(outcome.value)).toBe('0.38')
+    expect(printed([line('1.00', { rate: '0.125' }), line('1.00', { rate: '0.25' })], report([rates]))['rates']).toBe('0.38')
+  })
+
+  // A series that declared a rounding on a sum of integers would be
+  // silently left unrounded where an aggregate's is refused.
+  test("refuses a rounding declared on a sum of integers, as an aggregate's is refused", () => {
+    const ints: readonly TypedValue[] = [
+      { type: 'integer', value: 1n },
+      { type: 'integer', value: 2n },
+    ]
+    expect(totalsInDecimals('int', rounding)).toBe(false)
+    expect(totalOf(rates, totalsInDecimals('int', rounding), ints, 2, collator)).toMatchObject({ ok: false, code: 'rounding-not-decimal' })
+  })
+
+  // Only a total of unknown kind that declares a rounding is a decimal; one
+  // that declares none stays what its values are.
+  test('says a total of unknown kind is decimals only where it declares a rounding', () => {
+    expect([totalsInDecimals('dyn', rounding), totalsInDecimals('dyn', undefined), totalsInDecimals('decimal', undefined)]).toEqual([true, false, true])
   })
 })

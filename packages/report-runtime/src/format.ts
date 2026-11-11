@@ -87,6 +87,8 @@ export interface Formatter {
   readonly timeZone: string
   /** `value` as `format` shows it, or as it prints plainly without one. */
   format(value: TypedValue | null, format: Format | undefined, scope?: CurrencyScope): Formatted
+  /** `fraction` as the locale writes a percentage at `places`: 0.125 at 1 is 12.5%. The fraction is already rounded to `places + 2` places, so Intl shifts its digits and never rounds. */
+  percent(fraction: Decimal, places: number): Formatted
 }
 
 function refused(code: FormatErrorCode, message: string): Formatted {
@@ -229,6 +231,12 @@ class LocaleFormatter implements Formatter {
       default:
         return this.#number(value, format, scope)
     }
+  }
+
+  percent(fraction: Decimal, places: number): Formatted {
+    const options: Intl.NumberFormatOptions = { style: 'percent', minimumFractionDigits: places, maximumFractionDigits: places }
+    const text = kept(this.#numbers, options, () => new Intl.NumberFormat(this.locale, options)).format(decimalToString(fraction) as Intl.StringNumericLiteral)
+    return { ok: true, text }
   }
 
   #transformed(text: string, transform: TextTransform | undefined): string {

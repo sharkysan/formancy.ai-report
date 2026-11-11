@@ -281,3 +281,25 @@ describe('createFormatter', () => {
     expect(formatter('fr-CH', 'Europe/Zurich')).toMatchObject({ locale: 'fr-CH', timeZone: 'Europe/Zurich' })
   })
 })
+
+describe('percent', () => {
+  // A share printed by rounding a double could show 33.4 % for a third.
+  test('prints a share as the locale writes a percentage, from its digits', () => {
+    const en = formatter('en')
+    expect(en.percent(decimalFromString('0.125'), 1)).toEqual({ ok: true, text: '12.5%' })
+    expect(text(en.percent(decimalFromString('0.333'), 1))).toBe('33.3%')
+    expect(text(en.percent(decimalFromString('1.000'), 1))).toBe('100.0%')
+  })
+
+  // A German reader expects the space and the comma; a copied English
+  // pattern would print a wrong share.
+  test("writes the locale's own percentage", () => {
+    expect(text(formatter('de').percent(decimalFromString('0.125'), 1))).toBe('12,5\u00a0%')
+  })
+
+  // Percent never rounds: a fraction handed over at more places than asked
+  // is the caller's rounding to do, and Intl would otherwise round it by its own rule.
+  test('shifts the digits it is given and rounds nothing', () => {
+    expect(text(formatter('en').percent(decimalFromString('0.1255'), 2))).toBe('12.55%')
+  })
+})

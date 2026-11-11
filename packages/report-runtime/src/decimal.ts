@@ -50,6 +50,11 @@ function roundRatio(numerator: bigint, denominator: bigint, rounding: Rounding):
   return new Decimal(steps * step.units * 10n ** BigInt(rounding.scale - step.scale), rounding.scale)
 }
 
+/** The exact ratio of two decimals, the denominator more than 0, rounded once as `rounding` declares: a share, never computed through a double. */
+export function ratioRounded(numerator: Decimal, denominator: Decimal, rounding: Rounding): Decimal {
+  return roundRatio(numerator.units * 10n ** BigInt(denominator.scale), denominator.units * 10n ** BigInt(numerator.scale), rounding)
+}
+
 /**
  * `value` rounded as `rounding` declares, at exactly its scale. A negative
  * value that rounds to nothing is zero, never minus zero. Throws a

@@ -116,6 +116,31 @@ function rounded(total: Total, rounding: Rounding | undefined): Total {
   }
 }
 
+/** What totalling a definition comes to: its total, or why it has none. */
+export type TotalOutcome =
+  { readonly ok: true; readonly value: TypedValue | null } | { readonly ok: false; readonly code: ResolveErrorCode; readonly message: string }
+
+/** Whether a total the compiler typed as `type` is totalled in decimals: one it typed a decimal, or could not tell and declares a rounding. */
+export function totalsInDecimals(type: string | undefined, rounding: Rounding | undefined): boolean {
+  return type === 'decimal' || (type === 'dyn' && rounding !== undefined)
+}
+
+/**
+ * The aggregate over the values read from some rows -- each null or typed --
+ * or over `rows` rows when it reads nothing: the one rule every total is
+ * computed by, a chart's series included.
+ */
+export function totalOf(
+  aggregate: AggregateDef,
+  decimals: boolean,
+  read: readonly (TypedValue | null)[] | undefined,
+  rows: number,
+  collator: Intl.Collator,
+): TotalOutcome {
+  const total = reduce({ aggregate, decimals, collator }, read, rows)
+  return isRefusal(total) ? { ok: false, ...total } : { ok: true, value: total }
+}
+
 /** The aggregate over the values read from some rows -- each null or typed -- or over `rows` rows when it reads nothing. */
 function reduce(totalling: Totalling, read: readonly (TypedValue | null)[] | undefined, rows: number): Total {
   const { aggregate, decimals } = totalling
@@ -161,7 +186,7 @@ export function computeTotals(render: Omit<Render, 'totals'>): Totals | undefine
     const index = report.aggregates.findIndex((aggregate) => aggregate.id === id)
     const aggregate = report.aggregates[index] as AggregateDef
     const compiled = expressions.compilation.members.totals.get(id)?.type
-    const decimals = compiled === 'decimal' || (compiled === 'dyn' && aggregate.rounding !== undefined)
+    const decimals = totalsInDecimals(compiled, aggregate.rounding)
     const of = aggregate.of
     if (of !== undefined) {
       const path = `/aggregates/${index}/of/expression/cel`
@@ -173,12 +198,13 @@ export function computeTotals(render: Omit<Render, 'totals'>): Totals | undefine
       read.set(id, values as (TypedValue | null)[])
     }
     const totalling: Totalling = { aggregate, decimals, collator }
-    const total = reduce(totalling, read.get(id), rows.length)
-    if (isRefusal(total)) {
+    const outcome = totalOf(aggregate, decimals, read.get(id), rows.length, collator)
+    if (!outcome.ok) {
       computed = false
-      refuse(index, total)
+      refuse(index, outcome)
       continue
     }
+    const total = outcome.value
     totals.set(id, total)
     // A group's total is of its report total's kind: one that met a decimal is a decimal in every group.
     totallings.set(id, total?.type === 'decimal' ? { ...totalling, decimals: true } : totalling)
