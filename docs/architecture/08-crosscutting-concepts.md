@@ -63,10 +63,11 @@ CMYK JPEG, an SVG past its integers or its nesting, a title its XMP
 cannot write -- rather than draw a PDF that says it is a PDF/A and is not
 one
 ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
+0030 for the SVG's bound,
 [0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md));
 an XRechnung's plain PDF it draws only as its copy, labelled so (0038),
 and refuses it, a Factur-X and a labelled preview as a PDF/A-2b, which
-none of them can be.
+none of them may be.
 
 **A stage that does not handle something yet refuses it.** A chart arrives
 a stage at a time, and each stage merges on its own. The format holds a
@@ -174,8 +175,8 @@ A preview is never an archive. The renderer has no mode, so it reads the
 runtime's label: a document whose page header opens with a preview's
 label is refused as a PDF/A-2b, since it would be kept as the report. A
 preview that lacks nothing and is of no e-invoice carries no label, is
-the same document as its final render, and is drawn as a PDF/A-2b as that
-is (0057).
+the same document as its final render, as the tests show for the
+quotation, and is drawn as a PDF/A-2b as that is (0057).
 
 ## 8.4 Untrusted input
 

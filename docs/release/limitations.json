@@ -342,7 +342,7 @@
       ]
     },
     "0014": {
-      "reviewed": "sha256:06a03ba759bb15bfef91b3487f2989dce887509ace25f045510166ef1778a7e5",
+      "reviewed": "sha256:28c1efdab03ae332a6680afb0010adad1e9c2460eaab507b3f000f7507982079",
       "limitations": [
         {
           "area": "release",
@@ -1111,7 +1111,7 @@
         },
         {
           "area": "testing",
-          "says": "An e-invoice's SVG is held to PDF/A by a bound on the numbers the converter will write, never by reading its PDF back at print, and the bound assumes the converter's arithmetic strays from the cleaner's by no more than its margin, which matrices built to cancel one another term by term could defeat, and which nothing holds; the tests and the e-invoice gate read the numbers back, veraPDF none in a soft mask's group, a clip's."
+          "says": "A PDF/A's SVG, an e-invoice's or a PDF/A-2b's, is held to PDF/A by a bound on the numbers the converter will write, never by reading its PDF back at print, and the bound assumes the converter's arithmetic strays from the cleaner's by no more than its margin, which matrices built to cancel one another term by term could defeat, and which nothing holds; the tests and the e-invoice gate read the numbers back, veraPDF none in a soft mask's group, a clip's."
         },
         {
           "area": "testing",
@@ -1121,7 +1121,7 @@
       ]
     },
     "0031": {
-      "reviewed": "sha256:a9b554847e326cee26b5e61b46afa5868417816123ed945f3c5685ed6e94efd3",
+      "reviewed": "sha256:f0e255ec7c8a57fa61a982cb7a262f0c5eaa7cfbd2551736b5c8d3b1e0b2e2b8",
       "limitations": [
         {
           "area": "rendering",
@@ -2309,7 +2309,7 @@
       ]
     },
     "0057": {
-      "reviewed": "sha256:07f08d6e4ee202c9632f8aeb2e1d207dab92fecf3f8934ea71e1d1081c7a42d7",
+      "reviewed": "sha256:e3110f5b691296e84d0d03dc7e86e2a41e4a674fae6a64fbb73475ffe0efdbab",
       "limitations": [
         {
           "area": "rendering",
@@ -2338,7 +2338,7 @@
         },
         {
           "area": "rendering",
-          "says": "A report drawn as a PDF/A-2b is 4,243 to 4,262 bytes larger than drawn plain, the starters 25,037 to 77,558 bytes against 20,791 to 73,297, and their medians of nine renders within 2 ms of the plain ones, measured on 11 November 2026 from the built packages on Node 22.23.3 and an Apple M2."
+          "says": "The starters that are no e-invoice, drawn as a PDF/A-2b, were 4,243 to 4,262 bytes larger than drawn plain, 25,037 to 77,558 bytes against 20,791 to 73,297, and their medians of nine renders within 2 ms of the plain ones, within the noise of a machine at a load average about 6 from other work, measured on 11 November 2026 from the built packages on Node 22.23.3 and an Apple M2."
         },
         {
           "area": "testing",

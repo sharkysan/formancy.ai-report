@@ -3,8 +3,8 @@
 - **Status:** accepted; numbered 0057 while 0053, 0054, 0055 and 0056
   were held by branches not yet merged; extends
   [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
-  under which an e-invoice alone was a PDF/A, its refusals of a title, a
-  CMYK JPEG and an SVG now held for any PDF/A, and
+  under which an e-invoice alone was a PDF/A, its refusals of a title and
+  a CMYK JPEG now held for any PDF/A, and
   [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md),
   whose bounds on an SVG in an e-invoice alone it holds a PDF/A-2b to, and
   [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md);
@@ -12,12 +12,14 @@
   0031 did, a PDF/A-2b's render reading PDFKit's ICC profile beside the
   fonts too; and extends
   [0038](0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md),
-  whose copy is refused as a PDF/A-2b
+  whose copy is refused as a PDF/A-2b, and
+  [0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
+  whose release report judges a third format
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
 - **Verified by:** each case below was watched failing before the code
   that passes it, or with the rule it holds reverted on its own and the
-  file put back, on 11 November 2026:
+  file put back, on 11 November 2026, as each says:
   - **What a document is drawn as, decided before pdfmake sees it.**
     report-render-pdf's `src/pdfa-check.test.ts`: `pdfa` of any value but
     `'2b'` -- `'3b'`, `'2a'`, `'2u'`, `'PDF/A-2b'`, `'1b'`, `2`, `null` --
@@ -35,8 +37,9 @@
     title refused naming `info.title`, and drawn without `pdfa`. Each
     message is a literal in the test. 17 of its 18 cases failed before
     the code, the unknown kind being refused already; and five rules were
-    reverted one at a time, each failing its cases: the refusal of a
-    Factur-X put before `checkEInvoice`, the e-invoice's preview label
+    reverted one at a time, each failing its cases: the PDF/A-2b's refusal
+    of any e-invoice put before `checkEInvoice`, which failed the unknown
+    kind's and the XRechnung's cases, the e-invoice's preview label
     not read, `pdfaOptions` answering PDF/A-3b always, the title checked
     in a 3b alone, and the refusal reading the file's kind before
     `checkEInvoice` does, which passed the one unknown kind and fails
@@ -67,8 +70,9 @@
     PDF.js. A preview of the quotation that lacks nothing is its final
     render's document and draws to the same PDF/A-2b, and every starter
     draws to the same bytes twice. A guard fails when the starters drawn
-    are not every one but the e-invoice. 12 of its cases failed against
-    the corpus before its reader had the keys; and with the test's
+    are not every one but the e-invoice, watched failing with a second
+    starter filtered out and with none drawn. 12 of its cases failed
+    against the corpus before its reader had the keys; and with the test's
     renders made without `pdfa`, the 3b's hook run on a 2b, a 2b's top
     margin one point lower -- which failed again with the comparison of
     definitions taken out, on the PDF alone -- and a random creation
@@ -185,9 +189,9 @@ refused, every render reading PDFKit's profile from disk, and the profile
 in every PDF. And part 3 is a part the record does not store.
 
 What the engines give, read in PDFKit 0.19.1's `js/pdfkit.js`:
-- **PDF/A-2b is one option away.** `_importSubset` takes `PDF/A-1`,
+- **PDF/A-2b is one option away.** `initSubset` takes `PDF/A-1`,
   `-1a`, `-1b`, `-2`, `-2a`, `-2b`, `-3`, `-3a` and `-3b`, and no level u
-  (5315-5330); `initPDFA` writes, for part 2 as for part 3, the pdfaid
+  (5318-5331); `initPDFA` writes, for part 2 as for part 3, the pdfaid
   identification, the sRGB output intent with the ICC profile it reads
   with `fs` (5265), and the XMP. Without version 1.7 it writes a PDF 1.3
   with no XMP, and says nothing (`pdfmake.test.ts` pins it). For part 1
@@ -239,9 +243,9 @@ an XRechnung's PDF is the copy of the invoice a host sends, and never an
 archival PDF; and a preview says on every page it is not the report, so a
 PDF/A-2b of it would be kept as the report.
 
-**What a PDF/A-3b refuses, a PDF/A-2b refuses** -- 0031's three, held for
-any PDF/A, each naming what it refuses and the PDF/A-2b, never quoting a
-value; the PDF/A-3b's messages stay byte for byte:
+**What a PDF/A-3b refuses, a PDF/A-2b refuses** -- 0031's two and 0030's
+bound, held for any PDF/A, each naming what it refuses and the PDF/A-2b,
+never quoting a value; the PDF/A-3b's messages stay byte for byte:
 - **a title PDFKit cannot write into the XMP**, holding `&`, `<`, `>` or
   a character XML 1.0 cannot write, naming `info.title`
   (`checkPdfATitle`, moved from `e-invoice.ts`);
@@ -249,8 +253,8 @@ value; the PDF/A-3b's messages stay byte for byte:
   sRGB, beside which no image may be CMYK;
 - **an SVG whose numbers could pass 2,147,483,647, or whose drawing
   nests deeper than 28 graphics states**, naming the image and saying
-  what to do (`checkSvgInPdfA`, `svg-pdfa.ts`): 6.1.13 as veraPDF holds
-  it, the same for part 2 as for part 3.
+  what to do (`checkSvgInPdfA`, `svg-pdfa.ts`): 0030's bound, 6.1.13 as
+  veraPDF holds it, the same for part 2 as for part 3.
 
 **What holds by construction, and is shown on the PDF.** pdfmake embeds a
 subset of every face it draws -- Roboto, Liberation Sans, a host's -- and
@@ -304,10 +308,12 @@ reads what each embeds, a PDF/A-2b nothing.
 ## Consequences
 
 **What it buys.**
-- **A PDF the patient record admits, from any report.** A host that asks
-  for `pdfa: '2b'` gets a PDF/A-2b of its final render, the part and a
-  level the record stores, which Formancy Health's document can carry,
-  as Health decides (formancy.ai-health 0008).
+- **A PDF of a part the patient record stores, from any report that is
+  no e-invoice.** A host that asks for `pdfa: '2b'` gets a PDF/A-2b of its
+  final render, which veraPDF's PDF/A-2b profile accepted for every
+  starter so drawn, and which Formancy Health's document can carry, as
+  Health decides (formancy.ai-health 0008). No such PDF has been put to a
+  repository of the record.
 - **The archive is the PDF the person saw.** Each starter's PDF/A-2b has
   its plain render's pages, run for run, and draws to the same bytes
   every time.
@@ -366,7 +372,7 @@ reads what each embeds, a PDF/A-2b nothing.
 - **The e-invoice gate judges PDFs that are no e-invoice**, and its name
   no longer says all it does. Its second veraPDF run took 1.4 to 1.8 s of
   whole runs of 66 to 78 s, three of them, on the same Mac on Zulu 22.0.1
-  on 11 November 2026.
+  on 11 November 2026, while other work ran on it, its load not recorded.
 - **A starter changed is a record retaken, the PDF/A-2b's as the 3b's.**
   Every PDF/A-2b is recorded by the digest of its objects inflated, so a
   change to what a starter, a fixture or an image kind draws fails the

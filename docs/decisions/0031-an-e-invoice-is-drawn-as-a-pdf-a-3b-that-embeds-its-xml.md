@@ -18,8 +18,9 @@
   e-invoice gate's host-font variant; and by
   [0057](0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md),
   under which a report that is no e-invoice is drawn as a PDF/A-2b where
-  the host asks for one, this record's refusals of a title, a CMYK JPEG
-  and an SVG held for it, and a Factur-X refused as one: the PDF/A for
+  the host asks for one, this record's refusals of a title and a CMYK
+  JPEG, and 0030's bound on an SVG, held for it, and a Factur-X refused as
+  one: the PDF/A for
   every report this record rejects, made an option, and its gate judging
   every starter so drawn
 - **Date:** 2026-10-18

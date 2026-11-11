@@ -18,7 +18,7 @@ export interface RenderOptions {
    */
   readonly signal?: AbortSignal
   /**
-   * Asks for the final render drawn as a PDF/A-2b, the archival PDF the
+   * Asks for the final render drawn as a PDF/A-2b, an archival PDF the
    * Swiss EPR admits, which embeds no file; `'2b'` is the one value, and any
    * other is a `RangeError`. A Factur-X e-invoice, which is drawn as the
    * PDF/A-3b that embeds its XML, an XRechnung's copy and a preview the

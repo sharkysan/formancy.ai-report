@@ -397,7 +397,8 @@ message saying what to do:
   has no mode, so it reads the runtime's label, as it reads an XRechnung's
   copy's, and a PDF/A-2b of a preview would be kept as the report. A
   preview that lacks nothing and is of no e-invoice carries no label, is
-  the same document as its final render, and is drawn as one. A label
+  the same document as its final render, as the tests show for the
+  quotation, and is drawn as one. A label
   among other runs or below another block is not read;
 - what an e-invoice's PDF/A-3b refuses (below), each message naming the
   PDF/A-2b: a title holding `&`, `<`, `>` or a character XML 1.0 cannot
@@ -411,8 +412,9 @@ the host's choice at that render, which the builders and the validator do
 not know. What holds by construction: pdfmake embeds a subset of every face
 it draws, and a character a face lacks is refused; the renderer hands
 pdfmake no password, and neither writes JavaScript, an action, a form or
-an annotation; the transparency PDF/A-2 admits, an RGBA PNG's soft mask
-or an SVG's group, stands beside the one output intent. What it does not
+an annotation; the transparency an RGBA PNG's soft mask or an SVG's group
+makes stands beside the one output intent, which veraPDF's PDF/A-2b
+profile accepted in the gate's variants. What it does not
 hold: the limits of ISO 32000-1 that PDF/A-2 makes rules of, a string's or
 a name's length among them.
 
