@@ -37,4 +37,16 @@ describe('the Studio words the pages name', () => {
       expect.stringMatching(/does not say "Euro invoice"/),
     ])
   })
+
+  // A word that is only part of a name the Studio says ("Euro" in "Euro
+  // invoice") is not the Studio's: matched without its quotes, a page could
+  // name a starter that is no starter and pass.
+  test('names a word that is only part of a quoted name', () => {
+    expect(
+      studioWordProblems(
+        builtOf(site),
+        GROUPS.map((group) => (group.id === 'epc-qr-code' ? { ...group, studioWords: ['Euro'] } : group)),
+      ),
+    ).toEqual([expect.stringMatching(/"Euro", which no scene/)])
+  })
 })
