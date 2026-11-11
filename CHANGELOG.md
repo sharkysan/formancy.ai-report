@@ -109,9 +109,9 @@ render, as `unsupported`, naming the chart, until it draws charts.
   each, so that 1.0 and 1.00 are one category and grouping costs what a
   table's does. The rows without a category are one category under its
   `nullLabel`, last when sorted. A decimal category with no format prints
-  as its first row in the data's order spells it, so a chart can print
-  7.7 where a table sorted otherwise prints 7.70 of the same value; a
-  category `format` with a scale prints both alike.
+  as its first row in the data's order spells it, which a table sorted
+  otherwise may spell differently; a category `format` with a scale
+  prints both alike.
 - **Each series is totalled by the function every aggregate is**, in the
   decimals the compiler types an aggregate of the same function over the
   same field in (report-core's `seriesType`, now exported). A series and

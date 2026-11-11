@@ -2300,7 +2300,7 @@
       ]
     },
     "0055": {
-      "reviewed": "sha256:b40f406ee786c60c961d44b0dcb61b54a2b1229f6be459c0d056f1be3281f4cd",
+      "reviewed": "sha256:79068db0b7e10a6ee8dba6fe1f41c9a87c641fe9a150416bbe8a3044c1b426e8",
       "limitations": [
         {
           "area": "runtime",
@@ -2329,7 +2329,7 @@
         },
         {
           "area": "runtime",
-          "says": "A decimal category with no format prints as its first row in the data's order spells it, so a chart can print 7.7 where a table sorted otherwise prints 7.70 of the same value; a category format with a scale prints both alike.",
+          "says": "A decimal category with no format prints as its first row in the data's order spells it, so a chart and a table sorted otherwise can spell one value differently, 7.7 and 7.70; a category format with a scale prints both alike.",
           "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
         },
         {

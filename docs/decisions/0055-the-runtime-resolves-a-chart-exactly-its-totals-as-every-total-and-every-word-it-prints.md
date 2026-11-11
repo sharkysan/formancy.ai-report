@@ -43,7 +43,7 @@
       currency's symbol among them;
     - a value or a category its format cannot print is refused at
       `valueFormat` or at `category`, naming the chart, and a currency is
-      read where the report is; and a pie is refused so though it labels
+      read where the report is; and a pie is refused so, though it labels
       none of its values;
     - the runtime exports `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and
       `SHARE_PLACES`.
@@ -61,7 +61,10 @@
     category in one group. Over 100,000 distinct decimals it counts the
     decimal comparisons it makes and the reads of their units, at most two
     a row. Its `canonicalKey` case holds the key equal for two values
-    exactly when `sameKey` says they are one.
+    exactly when `sameKey` says they are one. A scan that computes each
+    row's key once and compares the stored strings makes neither count
+    grow, and is quadratic all the same: review alone holds that the
+    keys are found through the `Map`.
   - **The totals.** `src/totals.test.ts`'s `totalOf` totals a series and a
     group's aggregate of one definition to one value, on data where
     rounding each group differs from rounding the whole. It rounds a sum
@@ -376,10 +379,11 @@ and 0052's interim refusal with it.
   it has them.
 - **A decimal category with no format is spelled as its first row
   spells it.** The chart reads it from the first row in the data's order,
-  and a table's group header from the first row in the table's order,
-  which its own sort keys set: where the data spells one value 7.7 and
-  7.70, the chart and the table beside it can print it differently. A
-  category `format` with a scale prints both alike.
+  so where the data spells one value 7.7 and 7.70 it prints the
+  spelling that comes first. A table's group header reads its first row
+  in the table's own order, which its sort keys set, so the two can print
+  the value differently; that the table does is a review's probe, not a
+  test here. A category `format` with a scale prints both alike.
 - **A pie whose values its format cannot print is refused, labelled or
   not.** Every slice's value is formatted, since the block holds it, so a
   pie without value labels is refused for a value it would never print:
