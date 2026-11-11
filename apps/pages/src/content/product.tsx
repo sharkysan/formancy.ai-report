@@ -26,13 +26,13 @@ import { TotalsSection } from './totals.js'
  * totals-copy.tsx's `limits.items`, what its totals do not do.
  * limits.test.ts holds every absence but `detail` to the code it rests on
  * as well, so a change there fails before any release; `detail`, the
- * standing and the totals' limits rest on this alone. A later release may hold what 0.2.0 did not, and do
- * what it said was not done yet, so the site refuses to render once
- * CHANGELOG.md names another release, until somebody says what that one
- * holds and lacks, in all three, and changes this with them. The hero and
- * the status section link the changelog's Unreleased, which the release
- * commit renames: the link check refuses the site until it has the heading
- * again.
+ * standing and the totals' limits rest on this alone. A later release may
+ * hold what 0.2.0 did not, and do what it said was not done yet, so the
+ * site refuses to render once CHANGELOG.md names another release, until
+ * somebody says what that one holds and lacks, in all three, and changes
+ * this with them. The hero and the status section link the changelog's
+ * Unreleased, which the release commit renames: the link check refuses the
+ * site until it has the heading again.
  */
 export const START_STATUS: PageStatus = {
   asOf: '2026-11-11',

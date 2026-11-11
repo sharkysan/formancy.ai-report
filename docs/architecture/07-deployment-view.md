@@ -139,13 +139,18 @@ Before the tag, the same workflow is rehearsed: a `workflow_dispatch` on
 any branch runs `tag`, the gates and `check` as a tag would, names the
 release `dry-run`, and skips `npm-token` and `publish`, so it holds no
 secret and can neither sign nor publish. And a release commit has one step
-no gate writes for it: the QR-bill page and the EPC QR code page each say
-which release holds their code, so `pnpm build` and the pages' suite fail
-on the commit that renames *Unreleased* until each page's status is written
-again, every such page named in one error, as RELEASING.md's second step
-says
+no gate writes for it: the start page says what the newest release holds
+and what Formancy Report does not do yet, and the QR-bill page and the EPC
+QR code page each say which release holds their code, so `pnpm build` and
+the pages' suite fail on the commit that renames *Unreleased* until each
+page's status is written again, every such page named in one error, the
+start page's first
 ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
-[0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+[0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
+[0056](../decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md)).
+The start page links *Unreleased* from its hero and its status, so the same
+commit opens a new, empty `## Unreleased` above the release's heading, or
+the pages' link check refuses the site, as RELEASING.md's second step says.
 
 ## What a host sends for an XRechnung
 

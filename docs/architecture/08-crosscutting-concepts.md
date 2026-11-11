@@ -614,3 +614,36 @@ that breaks either
 with a reason review reads; an `async` that awaits nothing passes, and so
 does an `any` a test reads; and nothing compares the merge driver with
 Formancy Data's, which it copies ([§11](11-risks-and-debt.md#113-known-technical-debt)).
+
+## 8.14 What the pages claim
+
+The product's pages say what Formancy Report does, and every claim a card
+makes rests on named tests
+([0056](../decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md)):
+
+- **A card names its evidence.** Each card is a title, its words and one
+  list of files, written once in its page's copy and shared by every
+  language's card. `apps/pages/src/checks/evidence.ts` holds each file to
+  the checkout and to a test or a gate's entry, and the cards a page shows
+  to the ones its group declares. A test the release report did not see
+  run and pass, or a gate whose job did not succeed, fails the run
+  ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)),
+  so a card rests on what a passing run ran. Whether it still tests what
+  the card says, and every sentence outside a card, is review's.
+- **A claim no test holds is cut,** not reworded until it sounds safe.
+- **An absence is held to the code where a predicate reads it.** The
+  start page's list of what Formancy Report does not do yet is held by
+  `apps/pages/src/limits.test.ts` to report-spec's component kinds and
+  printed blocks and to the published packages' manifests, but for one
+  detail table and one level of grouping.
+- **What a release can make false stands under a status.** A page whose
+  words a release outdates names the release it was written against, and
+  the site refuses to render once the changelog names another, every such
+  page in one error
+  ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
+  [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+- **The Studio's words are the Studio's pictures'.** A word a page takes
+  from the Studio is one `docs/images/readme/captured.json` records it
+  saying, held by `apps/pages/src/checks/studio-words.ts`.
+- **No page compares.** No page names a competing product or compares
+  Report with one, which review alone holds: a check would list the names.

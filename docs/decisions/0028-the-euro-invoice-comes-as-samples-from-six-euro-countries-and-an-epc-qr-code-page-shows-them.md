@@ -9,7 +9,12 @@
   [0032](0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md),
   under which every sample prints the firm's mark at the head of its
   page, so that the starter's digest pinned here, `27583910…`, is the one
-  before the mark
+  before the mark; and by [0056](0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md),
+  under which this record's `CARD_EVIDENCE` became every card's
+  `evidence`, on every page of the site, held by `checks/evidence.ts`
+  rather than by this page's test, and the Studio's words this record
+  says nothing reads, "Euro invoice", "Starter" and "EPC payment code",
+  are held to the Studio's recorded pictures
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

@@ -11,7 +11,11 @@
   renders any; its room by import of the Studio's copy superseded by
   [0034](0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md): the pages import
   formancy's released `@formancy/themes/room.css` first, then the Studio's
-  stylesheets
+  stylesheets; extended by [0056](0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md),
+  whose start page leads with a card for each topic page and says what
+  Formancy Report does not do yet under a status of its own, and under
+  which every card on the site names the tests it rests on and a word a
+  page takes from the Studio is held to the Studio's recorded pictures
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

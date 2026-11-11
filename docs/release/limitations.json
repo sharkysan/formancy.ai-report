@@ -477,7 +477,7 @@
       ]
     },
     "0021": {
-      "reviewed": "sha256:43dc56586f86950b410b4bea7888ad831fe14b7d60f05027be54f823c0cb9da1",
+      "reviewed": "sha256:3ab98e1f2f1ca80596469b72495720823ecb404161dd9ca84f08ac08c95a6bf0",
       "limitations": [
         {
           "area": "release",
@@ -596,7 +596,7 @@
       ]
     },
     "0024": {
-      "reviewed": "sha256:fb9a7489e44db6db5f6f3b9c50363c14f5a794ca2cb4d2e18c60e5f297e40c66",
+      "reviewed": "sha256:01b8bd3d1ec47850968875d9d09e47bf284d248b0d2ea76f44bab76b62a643ec",
       "limitations": [
         {
           "area": "release",
@@ -886,7 +886,7 @@
       ]
     },
     "0028": {
-      "reviewed": "sha256:e5aaeac0ae3d71ee9ec9f35f79a3da31c86254126b7b21026721b0bf5dbbc2aa",
+      "reviewed": "sha256:9de197c564e8eaa340d1b0860ec2990ea8cc8e0d726e0155ee533a6f2ef469a5",
       "limitations": [
         {
           "area": "release",
@@ -918,7 +918,8 @@
         },
         {
           "area": "release",
-          "says": "The EPC QR code page names the Studio's starter \"Euro invoice\", its picker's \"Starter\" and its palette's \"EPC payment code\" as words nothing here reads, and its hero opens the Studio at its first starter, not at the euro invoice."
+          "says": "The EPC QR code page names the Studio's starter \"Euro invoice\", its picker's \"Starter\" and its palette's \"EPC payment code\" as the Studio's recorded pictures say them, not as the Studio says them as it runs, and its hero opens the Studio at its first starter, not at the euro invoice.",
+          "heldBy": "apps/pages/src/studio-words.test.ts"
         },
         {
           "area": "testing",
@@ -2305,6 +2306,30 @@
           "area": "data",
           "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
           "heldBy": "packages/report-forms/src/review.test.ts"
+        }
+      ]
+    },
+    "0056": {
+      "reviewed": "sha256:48e31c035ff7eec7c013c1ef79167da3a55b57b805b475cf01ec43e2793a2fbb",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "A release commit fails the pages' suite until the start page's status is written again beside the QR-bill and EPC QR code pages': what the release holds, said in the start page's hero, what Formancy Report does not do yet and what its totals do not do, each true of the release and of main, in four languages; and the release commit opens a new, empty Unreleased in CHANGELOG.md, whose heading the start page links, or the pages' link check refuses the site.",
+          "heldBy": "apps/pages/src/product.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The start page's topic cards, its exact totals and what it says Formancy Report does not do yet are no native speaker's words in French or Italian, and no review of them is recorded."
+        },
+        {
+          "area": "testing",
+          "says": "Every card on the product pages names the tests it rests on, each a test file or a gate's entry of the checkout, which the pages' suite holds; whether each still tests what its card says, and whether a card's list holds every test its claim needs, are held by review.",
+          "heldBy": "apps/pages/src/evidence.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "A word the product pages name as the Studio's, a starter's, the picker's or a button's, is held to the Studio's recorded pictures in docs/images/readme/captured.json, which the README pictures' check compares with the Studio's own text, and not to the Studio as it runs: the pages pass a starter renamed in the Studio until its pictures are taken again.",
+          "heldBy": "apps/pages/src/studio-words.test.ts"
         }
       ]
     }

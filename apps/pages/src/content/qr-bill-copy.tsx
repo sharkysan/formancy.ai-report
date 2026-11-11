@@ -13,9 +13,10 @@
  * guidelines and in the eyebrow, QR-facture and QR-fattura (IG, Annex C,
  * Table 24); the titles' are Switzerland's, facture QR, fattura QR. A
  * Studio word the page names, the starter "Invoice" under "Starter", is
- * the Studio's picker's, which nothing here reads (0024). Each card names
- * the tests it rests on (`EVIDENCE`). Reviewed by a person, not a test, for
- * meaning; the suite holds what can be measured (checks/).
+ * the Studio's picker's, held to its recorded pictures by
+ * checks/studio-words.ts (0056). Each card names the tests it rests on
+ * (`EVIDENCE`). Reviewed by a person, not a test, for meaning; the suite
+ * holds what can be measured (checks/).
  */
 import type { Language } from '../languages.js'
 import type { Card, Evidence, PageMeta, Teaser } from '../pages.js'

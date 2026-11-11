@@ -15,10 +15,11 @@
  * QR code SEPA, as a reader there meets the transfer. The PSA's words are
  * the PSA's: "Zahlen mit Code", the caption its frame prints. A Studio word
  * the page names, the starter "Euro invoice" under "Starter" and the
- * palette's "EPC payment code", is the Studio's, which nothing here reads
- * (0024). No translation is reviewed by a native speaker; the German is
- * Switzerland's spelling, as every German page's. Reviewed by a person, not
- * a test, for meaning; the suite holds what can be measured (checks/).
+ * palette's "EPC payment code", is the Studio's, held to its recorded
+ * pictures by checks/studio-words.ts (0056). No translation is reviewed by
+ * a native speaker; the German is Switzerland's spelling, as every German
+ * page's. Reviewed by a person, not a test, for meaning; the suite holds
+ * what can be measured (checks/).
  */
 import type { Language } from '../languages.js'
 import type { Card, Evidence, PageMeta, Teaser } from '../pages.js'
