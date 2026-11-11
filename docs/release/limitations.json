@@ -47,7 +47,7 @@
       ]
     },
     "0004": {
-      "reviewed": "sha256:10d59327ff830044597b7c201ef0f1de062c41cae436812b19801f7dc86eefe9",
+      "reviewed": "sha256:03108506e98563fc27b66830102a1b45e77d6a3c82317331b3e2e81e2d60661b",
       "limitations": [
         {
           "area": "format",
@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:b273c1a17c98fbb5afb5b1500636a85f26911195614d9c8d11b903accfebdc69",
+      "reviewed": "sha256:6e36b3e78c78f8e66734806c1fbfce16c2be1286dd782b547dfa8c0a37174931",
       "limitations": [
         {
           "area": "format",
@@ -1627,7 +1627,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:c4a0e6119e1cd9d67580e624cca27cc2cbf6e3f70b763716b9dcbc8bc2220b8d",
+      "reviewed": "sha256:ceb2357d0b57c15c26f56e1d35e94d30c6af8c318fb58dafa3962afa87d78271",
       "limitations": [
         {
           "area": "format",
@@ -1640,6 +1640,11 @@
         {
           "area": "data",
           "says": "A default a spec 5 form gives a field, left alone by the person filling it in, is stored by formancy as their answer, indistinguishable from one they chose, and prints as one."
+        },
+        {
+          "area": "data",
+          "says": "The form bridge never matches an answer against its field's `pattern`, so an answer the pattern refuses, in a submission formancy's engine never stored, prints; and a version whose pattern can be made to backtrack, which formancy published before 0.12.0, is read and printed like any other.",
+          "heldBy": "packages/report-forms/src/read.test.ts"
         },
         {
           "area": "data",
@@ -2258,6 +2263,48 @@
         {
           "area": "testing",
           "says": "The browser gate hears what the demo's policy refuses in the page, and in Chromium alone: a refusal inside PDF.js's worker, or in Firefox or WebKit, is heard by nobody, though a worker that does not start fails the gate."
+        }
+      ]
+    },
+    "0052": {
+      "reviewed": "sha256:568c43ad88b1f944eb2f00fe172641a3bd3d1b07fd4feb68571a26ea814165e6",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A chart reads the detail dataset alone, one field as its categories and each series a total of one field per category; a chart of an expression, of the header or of another dataset is not drawn.",
+          "heldBy": "packages/report-spec/src/validate-chart.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A chart holds at most eight series, and a pie one series of a sum or a count.",
+          "heldBy": "packages/report-spec/src/validate-chart.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A series is drawn in the palette’s colour at its place, and a pie’s slice in the colour at its category’s, so removing a series from the middle shifts the colour of every series after it, and no series keeps a colour of its own."
+        },
+        {
+          "area": "format",
+          "says": "A report that holds a chart is refused whole by 0.2.0, which does not know the kind, so a report saved with one opens only in a release that has it."
+        },
+        {
+          "area": "format",
+          "says": "A pie’s own palette is not held to its slices, which only the data counts: what a slice past its end is drawn in is undecided until the runtime resolves charts."
+        },
+        {
+          "area": "runtime",
+          "says": "Until the runtime resolves charts, a report that would print one is refused, a preview as a final render; one whose chart its condition hides prints.",
+          "heldBy": "packages/report-runtime/src/lower.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Until the builders offer a chart and edit its own properties, neither palette has Chart, and a chart is written in the report’s JSON by a host or a proposal; a builder shows one a report holds, moves it and removes it.",
+          "heldBy": "packages/report-builder-core/src/palette.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
         }
       ]
     }

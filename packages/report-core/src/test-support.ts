@@ -11,7 +11,7 @@
  * `eInvoiceSample` is that report as an e-invoice, for the same use.
  */
 import { validateReport } from '@formancy/report-spec'
-import type { Component, DatasetContract, FacturXInvoice, FieldRef, Inline, ReportDefinition, XRechnungInvoice } from '@formancy/report-spec'
+import type { ChartComponent, Component, DatasetContract, FacturXInvoice, FieldRef, Inline, ReportDefinition, XRechnungInvoice } from '@formancy/report-spec'
 import type { CommandOutcome, Refusal } from './outcome.js'
 
 const header = (field: string): FieldRef => ({ dataset: 'header', field })
@@ -250,6 +250,22 @@ const REPORT: ReportDefinition = {
             ],
           },
           { id: 'signature-image', kind: 'image', source: { kind: 'field', field: header('signature') }, width: 150, height: 50, fit: 'contain' },
+          // The amount and the number of lines of each site.
+          {
+            id: 'site-chart',
+            kind: 'chart',
+            chart: 'bar',
+            dataset: 'detail',
+            width: 300,
+            height: 160,
+            category: { field: detail('site'), order: 'data' },
+            series: [
+              { id: 'total', label: 'Total', fn: 'sum', of: detail('amount') },
+              { id: 'lines', label: 'Lines', fn: 'count' },
+            ],
+            valueFormat: { kind: 'number', scale: 2, grouping: true },
+            emptyText: 'No lines.',
+          },
         ],
       },
       { id: 'seal-image', kind: 'image', source: { kind: 'asset', asset: 'seal' }, width: 200, height: 150, fit: 'cover' },
@@ -324,6 +340,16 @@ function checked(report: ReportDefinition): ReportDefinition {
   const outcome = validateReport(copy)
   if (!outcome.valid) throw new Error(`the sample report is not valid: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join(', ')}`)
   return copy
+}
+
+/** `report` with its chart, which stands in the closing section of its summary, changed by `change`. */
+export function withChart(report: ReportDefinition, change: (chart: ChartComponent) => ChartComponent): ReportDefinition {
+  const closing = report.regions.summary.map((component) =>
+    component.kind === 'section'
+      ? { ...component, components: component.components.map((inner) => (inner.kind === 'chart' ? change(inner) : inner)) }
+      : component,
+  )
+  return { ...report, regions: { ...report.regions, summary: closing } }
 }
 
 /** A fresh, mutable copy of the sample report, checked valid. */

@@ -77,7 +77,7 @@ describe('the page', () => {
     expect(editor.state().document.regions.map((region) => [region.region, region.label, region.count])).toEqual([
       ['reportHeader', 'Report header', 4],
       ['pageHeader', 'Page header', 1],
-      ['body', 'Body', 9],
+      ['body', 'Body', 10],
       ['pageFooter', 'Page footer', 1],
       ['summary', 'Summary', 3],
     ])
@@ -150,7 +150,7 @@ describe('the canvas', () => {
   test('stacks a list’s blocks one below the other', () => {
     const { editor } = editorOver()
     const { boxes } = editor.state().canvas
-    const ids = ['intro', 'gap', 'lines', 'notes', 'keep', 'break']
+    const ids = ['intro', 'gap', 'lines', 'sales', 'notes', 'keep', 'break']
     for (const [index, id] of ids.slice(1).entries()) {
       const above = boxOf(boxes, ids[index] as string).pt
       expect(boxOf(boxes, id).pt.y, id).toBeCloseTo(above.y + above.height, 2)

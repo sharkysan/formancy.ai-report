@@ -1,10 +1,10 @@
 import { componentAt, DATASET_ROLES } from '@formancy/report-spec'
-import type { FieldContract, FieldType, ReportDefinition, TableComponent } from '@formancy/report-spec'
+import type { ChartComponent, ChartSeries, FieldContract, FieldType, ReportDefinition, TableComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { tryEdit } from '../draft.js'
 import { compileReport } from '../expressions/compile-report.js'
 import { openReportSession } from '../session.js'
-import { accepted, eInvoiceSample, frozen, idsIn, refused, sampleReport } from '../test-support.js'
+import { accepted, eInvoiceSample, frozen, idsIn, refused, sampleReport, withChart } from '../test-support.js'
 import { fieldReaders, removeFieldWithReaders } from './readers.js'
 
 /**
@@ -161,6 +161,7 @@ describe('removeFieldWithReaders', () => {
       '/regions/body/2/group/footer/0/cells/2',
       '/regions/body/2/totals/0/cells/2',
       '/regions/body/2/totals/1/cells/1',
+      '/regions/summary/0/components/3/series/0',
       '/regions/summary/3',
       '/aggregates/0',
       '/aggregates/2',
@@ -290,7 +291,7 @@ describe('removeFieldWithReaders', () => {
   // header and its footer with it, and the table stays.
   test('removes the group by it', () => {
     const { report, removed: gone } = removed(unbilled(), 'detail', 'site')
-    expect(gone).toEqual(['/regions/body/2/group', '/datasets/detail/fields/0'])
+    expect(gone).toEqual(['/regions/body/2/group', '/regions/summary/0/components/3', '/datasets/detail/fields/0'])
     expect(table(report).group).toBeUndefined()
     expect(table(report).columns).toHaveLength(5)
   })
@@ -435,6 +436,31 @@ function retypings(field: FieldContract): Omit<FieldContract, 'id'>[] {
 /** What a compilation says, each diagnostic by its code, its place and its words. */
 const said = (report: ReportDefinition, only?: ReadonlySet<string>): Set<string> =>
   new Set(compileReport(report, only).diagnostics.map(({ code, path, message }) => `${code} ${path} ${message}`))
+
+describe('removeFieldWithReaders of a chart', () => {
+  const chartPath = '/regions/summary/0/components/3'
+  const chartOf = (report: ReportDefinition): ChartComponent => componentAt(report, 'site-chart')?.component as ChartComponent
+
+  // A field gone under one series must not take the other series' numbers
+  // with it.
+  test('removes the series a removed field is totalled by, and keeps the chart', () => {
+    const { report, removed: gone } = removed(unbilled(), 'detail', 'amount')
+    expect(gone.filter((pointer) => pointer.startsWith(chartPath))).toEqual([`${chartPath}/series/0`])
+    expect(gone.at(-1)).toMatch(/^\/datasets\/detail\/fields\/\d+$/)
+    expect(chartOf(report).series.map(({ id }) => id)).toEqual(['lines'])
+  })
+
+  // A chart over no category, or with no series, draws nothing it could say.
+  test('removes a chart whose category, or whose last series, a removed field is', () => {
+    const byCategory = removed(unbilled(), 'detail', 'site')
+    expect(byCategory.removed).toContain(chartPath)
+    expect(componentAt(byCategory.report, 'site-chart')).toBeUndefined()
+    const single = frozen(withChart(unbilled(), (chart) => ({ ...chart, series: [chart.series[0] as ChartSeries] })))
+    const bySeries = removed(single, 'detail', 'amount')
+    expect(bySeries.removed).toContain(chartPath)
+    expect(componentAt(bySeries.report, 'site-chart')).toBeUndefined()
+  })
+})
 
 describe('fieldReaders', () => {
   // A review judges a change of a field's type, or of whether it may be

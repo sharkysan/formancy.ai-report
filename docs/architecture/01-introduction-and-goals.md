@@ -80,8 +80,10 @@ each release held is [the changelog](../../CHANGELOG.md).
 Planned and not built, as the README says: the server's publication,
 jobs and artifacts, fonts kept on it and a Save in the builders, reviewed AI changes, a published PDF
 viewer, and a consistent read from Formancy Data. Each later release gate
-is open in [`gates.json`](../release/gates.json) with the reason. Nothing below
-describes them as though they existed.
+is open in [`gates.json`](../release/gates.json) with the reason. What
+comes after them, in order, and what is not planned, is
+[the roadmap](../roadmap.md). Nothing below describes them as though they
+existed.
 
 ## Quality goals
 

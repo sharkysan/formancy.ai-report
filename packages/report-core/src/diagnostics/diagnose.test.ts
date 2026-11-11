@@ -552,6 +552,18 @@ describe('rounding', () => {
     const index = sampleReport().aggregates.findIndex((aggregate) => aggregate.id === id)
     expect(diagnose(edited(set(`/aggregates/${index}/rounding`, { scale: 2, mode: 'half-even' }))).map(({ code, path }) => `${code} ${path}`)).toEqual(codes)
   })
+
+  // diagnose() is what the editor shows. A chart's series rounded twice, or
+  // rounded with no places to round, that it left out would be said by no
+  // editor, and refused only by a render.
+  test("says of a chart's series what it says of an aggregate's rounding", () => {
+    const chart = '/regions/summary/0/components/3'
+    const rounding = { scale: 2, mode: 'half-even' }
+    const mean = { id: 'mean', label: 'Mean', fn: 'avg', of: { dataset: 'detail', field: 'amount' }, rounding }
+    const codes = (...edits: Edit[]): string[] => diagnose(edited(...edits)).map(({ code, path }) => `${code} ${path}`)
+    expect(codes(set(`${chart}/series/0`, mean), set(`${chart}/valueFormat/scale`, 0))).toEqual([`format-rounds-again ${chart}/valueFormat`])
+    expect(codes(set(`${chart}/series/1/rounding`, rounding))).toEqual([`rounding-not-decimal ${chart}/series/1/rounding`])
+  })
 })
 
 describe('unused declarations', () => {

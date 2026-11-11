@@ -18,9 +18,10 @@ import { REPORT_ATTRIBUTES, REPORT_PARTS, WORKBENCH_CLASSES } from './parts.js'
 
 /**
  * The variables formancy.ai 0.5.0's `packages/themes/workbench.css` defines,
- * read from the file at that tag, and 0.11.0's, which the Studio pins: they
- * did not change between the tags, and 0.11.0 adds one rule, for a part of
- * formancy's logic panel no builder here draws. Typed here because
+ * read from the file at that tag, and 0.12.0's, which the Studio pins: they
+ * did not change between the tags. 0.11.0 added one rule, for a part of
+ * formancy's logic panel no builder here draws, and 0.12.0's file is
+ * 0.11.0's byte for byte. Typed here because
  * `@formancy/themes` is not a dependency of this package.
  */
 const WORKBENCH_VARIABLES = [

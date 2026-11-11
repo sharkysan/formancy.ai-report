@@ -56,6 +56,8 @@ export const RESOLVE_ERROR_CODES = [
   'invalid-e-invoice',
   /** A warning, never an error: a preview of an e-invoice, which writes no XML and is not the invoice. */
   'e-invoice-preview',
+  /** A chart, which this release of the runtime does not yet resolve: lowered to nothing, the report would print without it. */
+  'chart-not-resolved',
   /** More errors were found than are listed. */
   'too-many-errors',
 ] as const
