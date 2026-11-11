@@ -162,8 +162,8 @@ const eInvoiceJob = () => ({
         file: 'pdfa-2b-control-3b.pdf',
         format: 'pdfa-2b',
         from: 'e-invoice.pdf',
-        why: 'a PDF/A-3b judged as a 2b',
-        expect: { verapdf: ['6.6.2.1-1'] },
+        why: 'the e-invoice sample’s PDF/A-3b judged as a 2b',
+        expect: { verapdf: ['6.6.4-2', '6.8-5'] },
       },
     ],
     mustang: [

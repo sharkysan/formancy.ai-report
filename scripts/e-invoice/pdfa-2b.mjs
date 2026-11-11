@@ -1,7 +1,8 @@
 // The PDF/A-2b the e-invoice gate judges (0056): every starter of
 // report-corpus that is no e-invoice, drawn by the renderer as built with
-// `pdfa: '2b'` in a final render; variants drawn on the quotation's page,
-// as scripts/e-invoice/pdf-corpus.mjs's are on the e-invoice sample's; and
+// `pdfa: '2b'` in a final render; five variants, three drawn on the
+// quotation's page as scripts/e-invoice/pdf-corpus.mjs's are on the
+// e-invoice sample's and two of the corpus's fixtures, as its are; and
 // two controls. veraPDF judges them alone, in a run of their own with
 // `--flavour 2b` (scripts/e-invoice/verapdf.mjs): Mustang validates an
 // e-invoice, and a 2b embeds no XML for it to read.
@@ -109,7 +110,7 @@ export const PDF_A_2B_CONTROLS = [
  * starter of `starters` that is no e-invoice, in their order, `{ file,
  * format, starter, embeds, expect }`; then one entry per variant, `{ file,
  * format, variant, why, embeds, expect }`; then one per control, `{ file,
- * format, from, why, embeds, expect }`. `starters` is report-corpus's
+ * format, from, make, why, embeds, expect }`. `starters` is report-corpus's
  * STARTERS as `{ id, eInvoice }`, `eInvoice` whether its report holds one;
  * `base3bXml` is the XML the e-invoice sample's PDF/A-3b embeds, which its
  * control embeds unchanged. A plan without the quotation, or whose
@@ -139,6 +140,7 @@ export function pdfa2bPlan(starters, { base3bXml }) {
       file: control.file,
       format: PDF_A_2B_FORMAT,
       from: control.from,
+      make: control.make,
       why: control.why,
       embeds: control.embeds === 'base' ? base3bXml : null,
       expect: structuredClone(control.expect),
@@ -151,18 +153,21 @@ export function pdfa2bPlan(starters, { base3bXml }) {
  * `drawStarter(id)` draws a starter as a PDF/A-2b, `drawVariant(draws)` what
  * a variant says it draws as one, `drawPlain()` the quotation without
  * `pdfa`; `sample3b` is the 3b corpus's PDF of the e-invoice sample, the
- * 3b control's bytes.
+ * 3b control's bytes. A control made any other way is refused.
  */
 export async function pdfa2bCorpus({ plan, drawStarter, drawVariant, drawPlain, sample3b }) {
   const made = []
   for (const entry of plan) {
-    const control = PDF_A_2B_CONTROLS.find((each) => each.file === entry.file)
     let pdf
     if (entry.variant !== undefined) pdf = await drawVariant(entry.variant)
-    else if (control === undefined) pdf = await drawStarter(entry.starter)
-    else if (control.make === 'plain') pdf = await drawPlain()
-    // The one other control, the 3b corpus's own bytes: drawn again, it would be a copy of the file the 3b profile accepted, not that file.
-    else pdf = sample3b
+    else if (entry.from === undefined) pdf = await drawStarter(entry.starter)
+    else if (entry.make === 'plain') pdf = await drawPlain()
+    // The 3b corpus's own bytes: drawn again, it would be a copy of the file the 3b profile accepted, not that file.
+    else if (entry.make === '3b') pdf = sample3b
+    else
+      throw new Error(
+        `${entry.file} is made by ${String(entry.make)}, which the PDF/A-2b corpus does not make: a control is the quotation drawn plain, or the 3b corpus’s own PDF`,
+      )
     made.push({ ...entry, pdf: Buffer.from(pdf) })
   }
   return made
@@ -182,12 +187,14 @@ const said = (values) => (values.length === 0 ? 'none' : values.map((value) => `
  * back by pdf-lib through `readObjects` (report-corpus's `readPdfObjects`),
  * as sentences: a PDF of a PDF format without XMP, or with one that cannot
  * be read, and a pdfaid:part or pdfaid:conformance that is not the
- * format's, or not once. veraPDF judges a file by the flavour the gate
- * names and holds the XMP to its own form, so a renderer that wrote part 3
- * into a 2b would pass every rule the two parts share. `pdfaid(xmp)` reads
- * the two properties' texts out of the packet, `{ part, conformance }`,
- * and throws where it cannot. A control is broken on purpose, and the 3b
- * one says part 3 because it is a 3b: neither is held.
+ * format's, or not once. veraPDF's profile refuses a wrong part as well
+ * (6.6.4-2 of the 2b profile, as pdfa-2b-control-3b.pdf shows); this is a
+ * second reader of what the PDF says it is, as `embeddingProblems` is of
+ * the file it embeds, and it runs before any Java does, so that a PDF
+ * drawn without `pdfa` stops the run, named file by file. `pdfaid(xmp)`
+ * reads the two properties' texts out of the packet, `{ part,
+ * conformance }`, and throws where it cannot. A control is broken on
+ * purpose, and the 3b one says part 3 because it is a 3b: neither is held.
  */
 export async function identificationProblems(entries, { readObjects, pdfaid }) {
   const problems = []

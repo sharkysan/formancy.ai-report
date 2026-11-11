@@ -159,9 +159,20 @@ function runProblems({ status, stderr, report, entries, pinned }) {
 }
 
 /**
+ * A problem of the run of `flavour` as a whole, as the gate says it: a 2b
+ * run's led by the run it is of, since the gate runs veraPDF twice and
+ * such a problem names no file to tell which (0056); the 3b run's as the
+ * gate said them before it ran a second, as the tests and the release
+ * report read them.
+ */
+const runOf = (flavour) => (flavour === '3b' ? (problem) => problem : (problem) => `the PDF/A-${String(flavour)} run: ${problem}`)
+
+/**
  * The verdict: `{ rows, problems, reported }`. `rows` is one per PDF of the
  * corpus, for the results file; `problems` every sentence that fails the
- * gate; `reported` the versions veraPDF reported of itself.
+ * gate; `reported` the versions veraPDF reported of itself. A problem of
+ * the run as a whole names no file, and one of a run other than the 3b's
+ * says which run it is of (`runOf`).
  *
  * - `entries`: the corpus's PDFs of the run's flavour
  *   (scripts/e-invoice/pdf-corpus.mjs, pdfa-2b.mjs);
@@ -174,14 +185,15 @@ function runProblems({ status, stderr, report, entries, pinned }) {
  *   in lowercase hexadecimal.
  */
 export function judgeVeraPdf({ entries, status, stdout, stderr, error, pinned, file, flavour }) {
-  if (error !== undefined) return { rows: [], problems: [`veraPDF did not run: ${error.message}`], reported: [] }
+  const ofRun = runOf(flavour)
+  if (error !== undefined) return { rows: [], problems: [ofRun(`veraPDF did not run: ${error.message}`)], reported: [] }
   let report
   try {
     report = readVeraPdf(stdout)
   } catch (failure) {
-    return { rows: [], problems: [`veraPDF wrote no report it can read: ${failure.message}`], reported: [] }
+    return { rows: [], problems: [ofRun(`veraPDF wrote no report it can read: ${failure.message}`)], reported: [] }
   }
-  const problems = runProblems({ status, stderr, report, entries, pinned })
+  const problems = runProblems({ status, stderr, report, entries, pinned }).map(ofRun)
   const profile = PROFILES[flavour]
   const rows = entries.map((entry) => {
     const row = { file: entry.file, expect: entry.expect.verapdf, verdict: 'not as expected', compliant: null, refusals: [] }

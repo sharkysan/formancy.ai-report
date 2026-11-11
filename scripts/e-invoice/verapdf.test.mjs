@@ -368,6 +368,41 @@ describe('veraPDF’s verdict', () => {
     ).toEqual(['veraPDF finds e-invoice.pdf not PDF/A-2b compliant, where it must be'])
   })
 
+  // The gate runs veraPDF twice, and a problem of a run as a whole -- how
+  // it exited, what it wrote on stderr, its version, its jobs, or that it
+  // did not run at all -- names no file to tell which: read in a failed
+  // log, a 2b run's would send its reader to the 3b run's report (0056).
+  // So the 2b run's say so; the 3b run's are the sentences the gate gave
+  // before it ran a second, and stay as they were.
+  test('names the PDF/A-2b run in each problem of the run as a whole, and leaves the 3b run’s as they were', () => {
+    const as2b = (inputs = {}, change = () => {}) =>
+      withReport(
+        (parsed) => {
+          for (const each of parsed.report.jobs) each.validationResult[0].profileName = PROFILE_2B
+          change(parsed)
+        },
+        { flavour: '2b', ...inputs },
+      ).problems
+    expect(as2b({ status: 0 })).toEqual(['the PDF/A-2b run: veraPDF exited 0, where a control fails a rule and it exits 1'])
+    expect(as2b({ stderr: 'SEVERE: Exception parsing pdfa-2b-quotation.pdf\n' })).toEqual([
+      'the PDF/A-2b run: veraPDF wrote on stderr, which it does not on a run that went as its report says: SEVERE: Exception parsing pdfa-2b-quotation.pdf',
+    ])
+    expect(as2b({ pinned: '1.30.2' })[0]).toBe('the PDF/A-2b run: veraPDF’s core is 1.30.3, not 1.30.2, which docs/release/e-invoice-tools.json pins')
+    expect(as2b({}, (parsed) => (parsed.report.batchSummary.totalJobs = entries.length + 1))).toEqual([
+      `the PDF/A-2b run: veraPDF ran ${String(entries.length + 1)} jobs, where the corpus has ${String(entries.length)} PDFs`,
+    ])
+    expect(as2b({}, (parsed) => (parsed.report.batchSummary.veraExceptions = 1))).toEqual(['the PDF/A-2b run: veraPDF’s veraExceptions is 1, not 0'])
+    expect(judged(undefined, { flavour: '2b', error: new Error('spawn java ENOENT') }).problems).toEqual([
+      'the PDF/A-2b run: veraPDF did not run: spawn java ENOENT',
+    ])
+    expect(judged(undefined, { flavour: '2b', stdout: '' }).problems[0]).toMatch(/^the PDF\/A-2b run: veraPDF wrote no report it can read: /)
+    // A problem of one file names the file, and through it the run.
+    expect(as2b({}, (parsed) => (job(parsed, 'e-invoice.pdf').validationResult[0].compliant = false))).toEqual([
+      'veraPDF finds e-invoice.pdf not PDF/A-2b compliant, where it must be',
+    ])
+    expect(judged(undefined, { status: 0 }).problems).toEqual(['veraPDF exited 0, where a control fails a rule and it exits 1'])
+  })
+
   // A control veraPDF accepted is a broken file nothing is watching; one
   // refused for something else as well, or not for all it expects, is not
   // the file its name says.

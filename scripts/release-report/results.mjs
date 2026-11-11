@@ -82,8 +82,8 @@ function containerRow(gate) {
 /**
  * The e-invoice gate as the report shows and judges it: the Java and the
  * tools it ran, and each file of its corpus, a sample, a variant or a
- * control, XML or PDF, with what the corpus expects of it and each tool's
- * verdict on it, null where the gate recorded none.
+ * control, XML, PDF or PDF/A-2b (0056), with what the corpus expects of it
+ * and each tool's verdict on it, null where the gate recorded none.
  */
 function eInvoiceRow(gate) {
   const verdict = (rows, file) => (rows ?? []).find((row) => row.file === file)?.verdict ?? null

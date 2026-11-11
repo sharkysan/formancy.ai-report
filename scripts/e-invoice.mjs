@@ -459,7 +459,7 @@ async function main(argv) {
 
   const count = (format, kind) => String(entries.filter((entry) => entry.format === format && entry[kind] !== undefined).length)
   console.log(
-    `e-invoice: ${count('xml', 'sample')} samples and ${count('xml', 'from')} controls as XML, ${count('pdf', 'sample')} samples, ${count('pdf', 'variant')} variants and ${count('pdf', 'from')} controls as PDF, ${count('pdfa-2b', 'starter')} samples, ${count('pdfa-2b', 'variant')} variants and ${count('pdfa-2b', 'from')} controls as PDF/A-2b, judged on Java ${String(jvm.version)}: drawn in ${String(drawn)} s, Mustang in ${String(mustang.seconds)} s, KoSIT in ${String(kosit.seconds)} s, veraPDF in ${String(verapdf.seconds)} s and ${String(verapdf2b.seconds)} s as PDF/A-2b, ${String(report.seconds.total)} s in all; results in ${local(results)}`,
+    `e-invoice: ${count('xml', 'sample')} samples and ${count('xml', 'from')} controls as XML, ${count('pdf', 'sample')} samples, ${count('pdf', 'variant')} variants and ${count('pdf', 'from')} controls as PDF, ${count('pdfa-2b', 'starter')} samples, ${count('pdfa-2b', 'variant')} variants and ${count('pdfa-2b', 'from')} controls as PDF/A-2b, judged on Java ${String(jvm.version)}: drawn in ${String(drawn)} s, Mustang in ${String(mustang.seconds)} s, KoSIT in ${String(kosit.seconds)} s, veraPDF in ${String(verapdf.seconds)} s as PDF/A-3b and ${String(verapdf2b.seconds)} s as PDF/A-2b, ${String(report.seconds.total)} s in all; results in ${local(results)}`,
   )
   if (problems.length > 0) {
     console.error('E-invoice gate failed:')

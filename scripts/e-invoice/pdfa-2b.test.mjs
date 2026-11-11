@@ -3,8 +3,8 @@ import { identificationProblems, PDF_A_2B_CONTROLS, PDF_A_2B_VARIANTS, pdfa2bCor
 
 /**
  * The PDF/A-2b the e-invoice gate judges (0056): every starter that is no
- * e-invoice, drawn as a 2b, variants on the quotation's page, and two
- * controls. Planned here from stand-ins for report-corpus's starters, drawn
+ * e-invoice, drawn as a 2b, five variants -- three on the quotation's page
+ * and two of the corpus's fixtures -- and two controls. Planned here from stand-ins for report-corpus's starters, drawn
  * by a stand-in for the renderer and read back by stand-ins for pdf-lib and
  * the XMP reader, as pdf-corpus.test.mjs reads the PDF/A-3b: what veraPDF
  * says of them is the gate's run, and the judges' tests over its record.
@@ -33,10 +33,11 @@ describe('the PDF/A-2b corpus as planned', () => {
     ])
   })
 
-  // What a template may draw beyond a starter's page is drawn on the
-  // quotation's, each way the 3b corpus draws it on the e-invoice
-  // sample's, and accepted as a sample is; the controls come last, as the
-  // 3b corpus's do, the plain one embedding nothing and the 3b one the
+  // What a template may draw beyond a starter's page is drawn as the 3b
+  // corpus draws it -- the blocks and the SVGs on the quotation's page, as
+  // the 3b's are on the e-invoice sample's, and the two fixtures as they
+  // are -- and accepted as a sample is; the controls come last, as the 3b
+  // corpus's do, the plain one embedding nothing and the 3b one the
   // e-invoice sample's XML, which the e-invoice sample's PDF embeds.
   test('plans the variants after the samples and the controls after them, each named pdfa-2b-…pdf', () => {
     expect(plan.map((entry) => [entry.file, entry.starter ?? entry.variant ?? entry.from])).toEqual([
@@ -65,9 +66,10 @@ describe('the PDF/A-2b corpus as planned', () => {
     expect(controls.every((entry) => entry.why.length > 0)).toBe(true)
   })
 
-  // The variants and the plain control are drawn on the quotation's page:
-  // without it they would stop the gate halfway through drawing, and an
-  // e-invoice's page would be refused as a 2b, so neither is planned.
+  // Three of the variants and the plain control are drawn on the
+  // quotation's page: without it they would stop the gate halfway through
+  // drawing, and an e-invoice's page would be refused as a 2b, so neither
+  // is planned.
   test('refuses a plan whose base starter is missing or is an e-invoice', () => {
     expect(() =>
       pdfa2bPlan(
@@ -125,6 +127,18 @@ describe('the PDF/A-2b corpus as drawn', () => {
     expect(drawn.map((entry) => entry.file)).toEqual(plan.map((entry) => entry.file))
     expect(drawn.every((entry) => Buffer.isBuffer(entry.pdf))).toBe(true)
   })
+
+  // A control made some way the corpus does not know -- a new one, or a
+  // name mistyped -- taken for the 3b control's bytes would be refused by
+  // veraPDF for that PDF/A-3b's part and its file, and read as refused for
+  // what its own name says it breaks.
+  test('refuses a control made some other way than plain or as the 3b corpus’s own PDF', async () => {
+    const stand = { drawStarter: async () => new Uint8Array(1), drawVariant: async () => new Uint8Array(1), drawPlain: async () => new Uint8Array(1) }
+    const patched = plan.map((entry) => (entry.file === 'pdfa-2b-control-3b.pdf' ? { ...entry, make: 'patch' } : entry))
+    await expect(pdfa2bCorpus({ plan: patched, ...stand, sample3b: new Uint8Array(1) })).rejects.toThrow(
+      'pdfa-2b-control-3b.pdf is made by patch, which the PDF/A-2b corpus does not make: a control is the quotation drawn plain, or the 3b corpus’s own PDF',
+    )
+  })
 })
 
 describe('what a PDF/A says it is, read back', () => {
@@ -140,12 +154,13 @@ describe('what a PDF/A says it is, read back', () => {
   const objects = (change = {}) => Object.fromEntries(entries.map((entry) => [entry.file, { metadata: change[entry.file] ?? said(entry.file) }]))
   const options = (read) => ({ readObjects: async (bytes) => read[Buffer.from(bytes).toString()], pdfaid: (packet) => JSON.parse(packet) })
 
-  // veraPDF reads the part and the conformance the XMP states, and judges
-  // the file by the flavour it is told: a renderer that wrote part 3 into
-  // a 2b, or 2 into a 3b, would be judged by the profile the gate names
-  // and pass on every rule both parts share. So the gate reads what each
-  // sample and variant says it is, each property once; a control is broken
-  // on purpose, and the 3b one says part 3 because it is a 3b.
+  // veraPDF's 2b profile refuses a part 3 (6.6.4-2, as the 3b control
+  // shows), and the gate reads what each sample and variant says it is
+  // as well: a second reader, as pdf-lib is of the embedded file, before
+  // any Java runs, so that a PDF drawn without pdfa, or whose XMP writes
+  // a property twice or another conformance, stops the run named file by
+  // file. A control is broken on purpose, and the 3b one says part 3
+  // because it is a 3b.
   test('holds each sample’s and variant’s XMP to its part and conformance, once each, and leaves a control’s', async () => {
     expect(await identificationProblems(entries, options(objects()))).toEqual([])
     const read = objects({
