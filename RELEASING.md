@@ -33,13 +33,13 @@ node scripts/bump.mjs 0.1.0
 #    format is still a draft, in apps/pages/src/content/product-copy.tsx,
 #    `items` in limits-copy.tsx and `limits.items` in totals-copy.tsx, and
 #    set START_STATUS in product.tsx beside them, its `asOf` the day they
-#    were read (0056). The QR-bill page and the EPC QR code page say where their
-#    payment code stands -- since 0.2.0, in the newest release: say whether
-#    the release has it in the three sentences of each one's copy that say
-#    where it stands -- `standing`, `tryIt.text` and `status.text` -- and
-#    set its status beside them: qr-bill-copy.tsx and QR_BILL_STATUS in
-#    qr-bill.tsx (0024); epc-qr-code-copy.tsx and EPC_QR_CODE_STATUS in
-#    epc-qr-code.tsx (0028).
+#    were read (0056). The QR-bill page and the EPC QR code page say where
+#    their payment code stands -- since 0.2.0, in the newest release: say
+#    whether the release has it in the three sentences of each one's copy
+#    that say where it stands -- `standing`, `tryIt.text` and
+#    `status.text` -- and set its status beside them: qr-bill-copy.tsx and
+#    QR_BILL_STATUS in qr-bill.tsx (0024); epc-qr-code-copy.tsx and
+#    EPC_QR_CODE_STATUS in epc-qr-code.tsx (0028).
 #    The start page links "## Unreleased" from its hero and its status, so
 #    open a new, empty "## Unreleased" above the release's heading: the
 #    pages' link check refuses the site while CHANGELOG.md has no heading

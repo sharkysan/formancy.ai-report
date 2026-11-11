@@ -31,9 +31,9 @@ import { TotalsSection } from './totals.js'
  * hold what 0.2.0 did not, and do what it said was not done yet, so the
  * site refuses to render once CHANGELOG.md names another release, until
  * somebody says what that one holds and lacks, in every one of them, and
- * changes this with them. The hero and the status section link the changelog's
- * Unreleased, which the release commit renames: the link check refuses the
- * site until it has the heading again.
+ * changes this with them. The hero and the status section link the
+ * changelog's Unreleased, which the release commit renames: the link check
+ * refuses the site until it has the heading again.
  */
 export const START_STATUS: PageStatus = {
   asOf: '2026-11-11',
