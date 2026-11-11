@@ -10,6 +10,7 @@ import type { HostFontFiles } from './host-fonts.js'
 import type { RenderOptions } from './options.js'
 import type { Finish } from './pdfa.js'
 import { render } from './render.js'
+import { faceWidths } from './spike/draw-charts.js'
 import { LIBERATION_SANS } from './style.js'
 
 /**
@@ -66,9 +67,24 @@ async function run(definition: TDocumentDefinitions, host: HostFontFiles, finish
   }
 }
 
+/** SPIKE: the faces a chart's words are measured in, opened by pdfmake's own provideFont on a document of its own createPdf. */
+async function widths(host: HostFontFiles, faces: readonly { readonly family: string; readonly bold: boolean }[]) {
+  const cleanup = registerHostFonts(virtualfs, host)
+  try {
+    pdfmake.setFonts({ ...FONTS, ...host.families })
+    pdfmake.setUrlAccessPolicy(() => false)
+    pdfmake.setLocalAccessPolicy((file) => FONT_FILES.has(file))
+    const document = (await pdfmake.createPdf({ content: [] }).getStream()) as unknown as Parameters<typeof faceWidths>[0]
+    return faceWidths(document, faces)
+  } finally {
+    cleanup()
+  }
+}
+
 /** pdfmake in Node, and the glyphs of the very font files it embeds. */
 const engine: Engine = {
   run,
+  widths,
   glyphs: glyphsOnce(FACES, async (face) => new Uint8Array(await readFile(FONTS.Roboto[face]))),
   billGlyphs: glyphsOnce(BILL_FACES, async (face) => new Uint8Array(await readFile(FONTS[LIBERATION_SANS][face]))),
 }

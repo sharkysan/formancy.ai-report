@@ -5,6 +5,7 @@ import { startsOnPage, type Build, type Fields } from './build.js'
 import { epcContent } from './epc.js'
 import type { FaceWanted } from './host-fonts.js'
 import { qrContent } from './qr.js'
+import { asChart, chartContent } from './spike/chart.js'
 import { DEFAULT_SIZE, textProperties } from './style.js'
 import { svgContent } from './svg-content.js'
 import { tableContent } from './table.js'
@@ -134,6 +135,9 @@ function keptWith(blocks: readonly Block[], contents: readonly Content[], index:
 }
 
 function blockContent(block: Block, build: Build, scope: Scope): Content {
+  // SPIKE: a chart, ECharts' SVG in its box.
+  const chart = asChart(block)
+  if (chart !== undefined) return chartContent(chart)
   switch (block.kind) {
     case 'paragraph':
       return paragraphContent(block, build, scope)

@@ -64,6 +64,7 @@ import { CODE_LISTS, oracleProblems, readCodedb, readSchematron, readVariables, 
 import {
   blocksDocument,
   boundDocument,
+  chartsDocument,
   embeddingProblems,
   PDF_BASE,
   pdfCorpus,
@@ -362,7 +363,9 @@ function samplesOf({ spec, runtime, renderer, corpus }) {
     const page =
       draws.blocks === true
         ? blocksDocument(base, corpus.IMAGE_KINDS)
-        : draws.svg === true
+        : draws.charts === true
+          ? chartsDocument(base)
+          : draws.svg === true
           ? svgDocument(base, svgAssets())
           : draws.bound === true
             ? bound()

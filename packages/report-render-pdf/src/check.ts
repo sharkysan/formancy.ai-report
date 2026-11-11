@@ -21,6 +21,7 @@ import {
   type TextStyle,
 } from '@formancy/report-runtime'
 import { checkImageAsset, MAX_IMAGE_DATA, MAX_SVG_DRAWING, type CheckedImage, type Vector } from './assets.js'
+import { asChart } from './spike/chart.js'
 import { cellLine, paragraphLine } from './bound.js'
 import { frameOf, RULE_GAP, runFace } from './content.js'
 import { epcSymbol } from './epc.js'
@@ -268,6 +269,12 @@ function checkBlocks(blocks: readonly Block[], path: string, place: Place, walk:
 }
 
 function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
+  // SPIKE: a chart, checked for nothing but its height.
+  const chart = asChart(block)
+  if (chart !== undefined) {
+    tall(walk, place, chart.height, `the chart ${chart.id}`, chart.id)
+    return
+  }
   switch (block.kind) {
     case 'paragraph': {
       walk.paths.set(block, at)

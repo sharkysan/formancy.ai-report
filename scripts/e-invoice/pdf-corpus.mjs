@@ -194,11 +194,80 @@ export const PDF_VARIANTS = [
     draws: { starter: 'e-invoice' },
   },
   {
+    file: 'variant-charts-spike.pdf',
+    why: 'SPIKE (Task 15, spike/chart-echarts, never merged): the sample’s page, a page break, and three charts laid out by Apache ECharts 6.1.0 and drawn by pdfmake’s SVG converter -- a bar chart of two series with a negative bar, value labels, both axis titles and a legend; a line chart with a gap and value labels; and a pie with its legend -- their words ECharts’ <text> in Roboto, so that veraPDF judges what ECharts writes inside a PDF/A-3b',
+    draws: { charts: true },
+  },
+  {
     file: 'variant-site-visit.pdf',
     why: 'the site visit starter, generated from a formancy form: lines of label and value, sections, boxes drawn as text, and a table of its findings (0045)',
     draws: { starter: 'site-visit' },
   },
 ]
+
+/** SPIKE (Task 15): the spike's three hand-built chart blocks, as PR 2's runtime resolves a chart (report-render-pdf's src/spike/spike-charts.ts holds the same). */
+const value = (exact, text = exact) => ({ exact, text })
+export const SPIKE_CHARTS = [
+  {
+    kind: 'chart',
+    chart: 'bar',
+    id: 'bars',
+    width: 400,
+    height: 220,
+    title: 'Umsatz nach Region',
+    categoryTitle: 'Region',
+    valueTitle: 'CHF',
+    categories: ['Nord', 'Süd', 'Ost & West'],
+    series: [
+      { color: '#5b4bb7', values: [value('70', '70.00'), value('-30', '-30.00'), value('45.5', '45.50')] },
+      { color: '#1f9e89', values: [value('20', '20.00'), value('35.25', '35.25'), value('-12', '-12.00')] },
+    ],
+    ticks: [value('-50'), value('0'), value('50'), value('100')],
+    valueLabels: true,
+    legend: [
+      { text: '2025', color: '#5b4bb7' },
+      { text: '2026', color: '#1f9e89' },
+    ],
+  },
+  {
+    kind: 'chart',
+    chart: 'line',
+    id: 'line',
+    width: 400,
+    height: 200,
+    title: 'Temperatur',
+    categoryTitle: 'Monat',
+    valueTitle: '°C',
+    categories: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai'],
+    series: [{ color: '#c0392b', values: [value('10.5', '10.50'), value('11.75', '11.75'), null, value('12.25', '12.25'), value('11', '11.00')] }],
+    ticks: [value('10.5', '10.50'), value('11', '11.00'), value('11.5', '11.50'), value('12', '12.00'), value('12.5', '12.50')],
+    valueLabels: true,
+    legend: [],
+  },
+  {
+    kind: 'chart',
+    chart: 'pie',
+    id: 'pie',
+    width: 300,
+    height: 220,
+    title: 'Anteile',
+    slices: [
+      { color: '#5b4bb7', value: value('50', '50.00') },
+      { color: '#1f9e89', value: value('30', '30.00') },
+      { color: '#e67e22', value: value('20', '20.00') },
+    ],
+    legend: [
+      { text: 'Beratung 50.00 (50 %)', color: '#5b4bb7' },
+      { text: 'Material 30.00 (30 %)', color: '#1f9e89' },
+      { text: 'Reise 20.00 (20 %)', color: '#e67e22' },
+    ],
+  },
+]
+
+/** SPIKE (Task 15): the base sample's document with, after its page, a page break and the spike's three charts: what `variant-charts-spike.pdf` draws. */
+export function chartsDocument(base) {
+  return { ...base, body: [...base.body, { kind: 'pageBreak' }, ...SPIKE_CHARTS.map((chart) => structuredClone(chart))] }
+}
 
 /** The image of `IMAGE_KINDS` that `blocksDocument` puts in the page header: the one with an alpha channel, as a logo comes. */
 const LOGO = 'png-rgba'

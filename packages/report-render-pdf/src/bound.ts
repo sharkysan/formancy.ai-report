@@ -1,5 +1,6 @@
 import { RenderRefusal, type Block, type Paragraph, type Table, type TextStyle } from '@formancy/report-runtime'
 import type { RowKind } from './build.js'
+import { asChart } from './spike/chart.js'
 import { frameOf, runFace } from './content.js'
 import type { FaceWanted, RenderFonts } from './host-fonts.js'
 import { DEFAULT_SIZE } from './style.js'
@@ -39,6 +40,9 @@ export function leastHeight(blocks: readonly Block[], fonts: Pick<RenderFonts, '
 }
 
 function least(block: Block, fonts: Pick<RenderFonts, 'face'>): number {
+  // SPIKE: a chart is its box.
+  const chart = asChart(block)
+  if (chart !== undefined) return chart.height
   switch (block.kind) {
     case 'paragraph':
       return paragraphLine(block, fonts)

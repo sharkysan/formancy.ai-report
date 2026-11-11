@@ -11,6 +11,7 @@ import { FIT_SLACK, measure, refuseLineUnderHeader, rowPitches, SENTINEL_LINE, S
 import type { RenderOptions } from './options.js'
 import { embedEInvoice } from './pdfa.js'
 import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js'
+import { drawCharts } from './spike/draw-charts.js'
 
 /**
  * A resolved document rendered with pdfmake, refused rather than truncated,
@@ -40,6 +41,8 @@ export async function render(engine: Engine, document: ResolvedDocument, options
   // Each host face read with readFont, its layout tables stripped, and the engine's virtual files made, before anything is laid out (0043).
   const fonts = planFonts(document.fonts, await engine.glyphs())
   const checked = await checkDocument(document, fonts, maxPages)
+  // SPIKE: every chart laid out by ECharts, which is imported the first time a document holds one.
+  await drawCharts(engine, document, fonts)
   const bill = document.paymentPart === undefined ? undefined : checkBill(document.paymentPart, document.page, await engine.billGlyphs())
   // An EPC QR code's caption prints in Liberation Sans too, which a browser loads only when asked; its words are the PSA's, which the face has glyphs for.
   if (checked.captioned) await engine.billGlyphs()

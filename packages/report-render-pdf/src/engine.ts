@@ -3,6 +3,7 @@ import { characterMap, type BillFace, type BillGlyphs, type Face, type Glyphs } 
 import type { HostFontFiles } from './host-fonts.js'
 import { finalizeInOrder, type PdfKitImages } from './image-order.js'
 import type { Finish, PdfKitDocument } from './pdfa.js'
+import type { FaceWidths } from './spike/chart.js'
 
 /**
  * pdfmake with the renderer's fonts and access policies, as Node's entry
@@ -32,6 +33,8 @@ export interface Engine {
    * has them for a document that prints them.
    */
   readonly billGlyphs: () => Promise<BillGlyphs>
+  /** SPIKE: a document from the entry's own pdfmake, fonts set as `run` sets them, each face opened at once with `provideFont` while the host's virtual files are registered, never ended. */
+  readonly widths?: (host: HostFontFiles, faces: readonly { readonly family: string; readonly bold: boolean }[]) => Promise<FaceWidths>
 }
 
 /** pdfmake's virtual file system, as both builds expose it: a plain `storage` object the renderer writes a host face into and removes after, since it has no delete (0043). */

@@ -9,6 +9,7 @@ import type { HostFontFiles } from './host-fonts.js'
 import type { RenderOptions } from './options.js'
 import type { Finish } from './pdfa.js'
 import { render } from './render.js'
+import { faceWidths } from './spike/draw-charts.js'
 import { LIBERATION_SANS } from './style.js'
 
 export { REFUSAL_CODES, RenderRefusal } from '@formancy/report-runtime'
@@ -96,9 +97,24 @@ async function run(definition: TDocumentDefinitions, host: HostFontFiles, finish
   }
 }
 
+/** SPIKE: the faces a chart's words are measured in, opened by pdfmake's own provideFont on a document of its own createPdf. */
+async function widths(host: HostFontFiles, faces: readonly { readonly family: string; readonly bold: boolean }[]) {
+  pdfmake.addVirtualFileSystem(fontFiles())
+  const cleanup = registerHostFonts(virtualfs, host)
+  try {
+    pdfmake.setFonts({ ...FONTS, ...host.families })
+    pdfmake.setUrlAccessPolicy(() => false)
+    const document = (await pdfmake.createPdf({ content: [] }).getStream()) as unknown as Parameters<typeof faceWidths>[0]
+    return faceWidths(document, faces)
+  } finally {
+    cleanup()
+  }
+}
+
 /** pdfmake's browser build, and the glyphs of the very virtual files it embeds. */
 const engine: Engine = {
   run,
+  widths,
   glyphs: glyphsOnce(FACES, (face) => Promise.resolve(fromBase64(vfs[FILES[face]] as string))),
   billGlyphs,
 }
