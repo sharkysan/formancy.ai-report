@@ -1,10 +1,14 @@
+import { decimalFromString } from '@formancy/expressions'
 import { emptyReport } from '@formancy/report-spec'
 import type { AggregateDef, FieldRef, ReportDefinition, RowValue } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { Table } from './document.js'
+import { plainText } from './format.js'
+import type { TypedValue } from './format.js'
 import { resolveReport } from './resolve.js'
 import type { RuntimeError } from './resolve-errors.js'
 import { below, seeded } from './test-support.js'
+import { totalOf, totalsInDecimals } from './totals.js'
 
 const detail = (field: string): FieldRef => ({ dataset: 'detail', field })
 const expression = (cel: string): RowValue => ({ kind: 'expression', expression: { cel } })
@@ -352,5 +356,85 @@ describe('group totals', () => {
     expect(subtotals).toHaveLength(sites.length)
     expect(subtotals.reduce((sum, each) => sum + toCents(each), 0n)).toBe(toCents(total))
     expect(toCents(total)).toBe(rows.reduce((sum, row) => sum + toCents(row.amount as string), 0n))
+  })
+})
+
+describe('totalOf', () => {
+  const collator = new Intl.Collator('en')
+  const dec = (text: string): TypedValue => ({ type: 'decimal', value: decimalFromString(text) })
+  const rounding = { scale: 2, mode: 'half-even' } as const
+  const rates: AggregateDef = { id: 'rates', fn: 'sum', of: { kind: 'field', field: detail('rate') }, rounding }
+
+  // A group's total is the report's rule over the group's rows: two groups
+  // of 0.02, rounded to 0.05, are 0.00 and 0.00 over 0.05, and a second
+  // function totalling a series (or a group) could print 0.05 for each.
+  test("totals a series and a group's aggregate of one definition to one value", () => {
+    const cash: AggregateDef = {
+      id: 'cash',
+      fn: 'sum',
+      of: { kind: 'field', field: detail('amount') },
+      rounding: { scale: 2, mode: 'half-away-from-zero', increment: '0.05' },
+    }
+    const group = [dec('0.02')]
+    const series = totalOf(cash, totalsInDecimals('decimal', cash.rounding), group, group.length, collator)
+    expect(series).toEqual({ ok: true, value: { type: 'decimal', value: decimalFromString('0.00') } })
+    const grouped = groupedTotals(cash, [line('0.02', { label: 'x' }), line('0.02', { label: 'y' })])
+    expect(series.ok && plainText(series.value)).toBe(grouped.subtotals[0])
+  })
+
+  // R18 -- a series rounded by a rule of its own would print a sum the
+  // table's subtotal of the same rows does not: 0.375 is 0.38 half to even.
+  test('rounds a sum of decimals once, as it declares, as an aggregate is rounded', () => {
+    const outcome = totalOf(rates, true, [dec('0.125'), dec('0.25')], 2, collator)
+    expect(outcome.ok && plainText(outcome.value)).toBe('0.38')
+    expect(printed([line('1.00', { rate: '0.125' }), line('1.00', { rate: '0.25' })], report([rates]))['rates']).toBe('0.38')
+  })
+
+  // A series that declared a rounding on a sum of integers would be
+  // silently left unrounded where an aggregate's is refused.
+  test("refuses a rounding declared on a sum of integers, as an aggregate's is refused", () => {
+    const ints: readonly TypedValue[] = [
+      { type: 'integer', value: 1n },
+      { type: 'integer', value: 2n },
+    ]
+    expect(totalsInDecimals('int', rounding)).toBe(false)
+    expect(totalOf(rates, totalsInDecimals('int', rounding), ints, 2, collator)).toMatchObject({ ok: false, code: 'rounding-not-decimal' })
+  })
+
+  // A count that declared a rounding would print as though it were rounded,
+  // where a rounding with no places is refused, never ignored: past the
+  // editor's check, the runtime refuses it as it does a sum of integers.
+  test.each([
+    ['of rows', undefined],
+    ['of a field', [dec('1.00'), null]],
+  ] as const)('refuses a rounding declared on a count %s, as on any integer total', (_, read) => {
+    const lines: AggregateDef = {
+      id: 'lines',
+      fn: 'count',
+      ...(read === undefined ? {} : { of: { kind: 'field', field: detail('amount') } }),
+      rounding: { scale: 0, mode: 'half-even' },
+    }
+    expect(totalOf(lines, totalsInDecimals('int', lines.rounding), read, 2, collator)).toEqual({
+      ok: false,
+      code: 'rounding-not-decimal',
+      message: 'declares a rounding, and its total is an integer, which has no places to round',
+    })
+  })
+
+  // A total of numbers is handed no collator, as a chart's series is; one
+  // that met text would order it by no language at all, so it is a defect
+  // there, never a code-unit order a reader would take for the language's.
+  test('orders text only by the collator it is handed', () => {
+    const first: AggregateDef = { id: 'first', fn: 'min', of: { kind: 'field', field: detail('label') } }
+    const text = (value: string): TypedValue => ({ type: 'string', value })
+    expect(totalOf(first, false, [text('b'), text('a')], 2, collator)).toEqual({ ok: true, value: text('a') })
+    expect(() => totalOf(first, false, [text('b'), text('a')], 2)).toThrow(RangeError)
+    expect(totalOf(first, false, [dec('2'), dec('1')], 2)).toEqual({ ok: true, value: dec('1') })
+  })
+
+  // Only a total of unknown kind that declares a rounding is a decimal; one
+  // that declares none stays what its values are.
+  test('says a total of unknown kind is decimals only where it declares a rounding', () => {
+    expect([totalsInDecimals('dyn', rounding), totalsInDecimals('dyn', undefined), totalsInDecimals('decimal', undefined)]).toEqual([true, false, true])
   })
 })

@@ -15,6 +15,7 @@ import type { Component, ComponentKind, RegionName } from '@formancy/report-spec
 import type { Block, TextStyle } from './document.js'
 import { imageBlock } from './images.js'
 import { encodedText, runOf } from './inlines.js'
+import { chartBlock } from './lower-chart.js'
 import { epcQrCodeBlock } from './lower-epc-qr-code.js'
 import { tableBlock } from './lower-table.js'
 import { holds, reportScope } from './render-context.js'
@@ -76,17 +77,7 @@ const LOWER: { readonly [K in ComponentKind]: Lowerer<K> } = {
     ...optional('padding', section.padding),
   }),
   table: (table, { render, path, style }) => tableBlock(render, table, path, style),
-  // Interim (the charts plan, R10): a chart lowered to nothing would print the report without it, and nothing would say so.
-  chart: (chart, { render, path }) => {
-    render.problems.error({
-      stage: 'resolve',
-      code: 'chart-not-resolved',
-      path,
-      message: `chart ${chart.id} is not resolved by this release of the runtime`,
-      componentId: chart.id,
-    })
-    return undefined
-  },
+  chart: (chart, { render, path, style }) => chartBlock(render, chart, path, style),
   pageBreak: () => ({ kind: 'pageBreak' }),
   keepTogether: (kept, { render, path, style }) => ({ kind: 'keepTogether', blocks: blocksOf(render, kept.components, `${path}/components`, style) }),
 }

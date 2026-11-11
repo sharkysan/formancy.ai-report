@@ -473,9 +473,11 @@ What they do not check:
 
 - whether a chart's categories fit its box, or how many a pie has, and
   so whether a pie's own palette has a colour for each slice, which only
-  the data says;
-- what a chart prints. No release resolves one yet: the runtime refuses a
-  report that would print one.
+  the data says: the runtime refuses a pie of more categories than its
+  palette has colours when it renders
+  ([0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md));
+- what a chart prints, which the runtime resolves. No release draws one
+  yet: the renderer refuses a report that would print one.
 
 ## An SVG asset
 

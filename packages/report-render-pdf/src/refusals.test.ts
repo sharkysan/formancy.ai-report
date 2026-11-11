@@ -2,7 +2,7 @@ import pdfmake from 'pdfmake'
 import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import { readPdf } from '@formancy/report-corpus'
 import { MAX_FONT_SIZE, MIN_FONT_SIZE, XRECHNUNG_COPY_PARAGRAPH } from '@formancy/report-runtime'
-import type { Block, Image, Paragraph, ResolvedDocument, Section, Table, TableColumn, TextStyle } from '@formancy/report-runtime'
+import type { AxisChart, Block, Image, Paragraph, ResolvedDocument, Section, Table, TableColumn, TextStyle } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { MAX_DEPTH } from './check.js'
@@ -81,6 +81,39 @@ describe('what pdfmake cannot place', () => {
     expect(
       await refusal(documentOf('Table in a column', [{ kind: 'columns', columns: [{ width: 'fill', blocks: [ledger('beside', details(1, 2))] }] }])),
     ).toMatchObject({ code: 'unsupported', subject: 'beside' })
+  })
+})
+
+describe('a chart', () => {
+  const sales: AxisChart = {
+    kind: 'chart',
+    chart: 'bar',
+    id: 'sales',
+    width: 300,
+    height: 200,
+    title: 'Sales',
+    legend: [],
+    categories: ['North', 'South'],
+    series: [{ color: '#1f77b4', values: [{ exact: '10.25', text: '10.25' }, null] }],
+    ticks: ['0', '5', '10', '15'].map((exact) => ({ exact, text: exact })),
+    valueLabels: false,
+  }
+
+  // A chart skipped would print a report without it, and nothing would say
+  // so: until the renderer draws one it refuses it, naming it, in either
+  // entry and wherever it stands -- in the body, in a column, kept on a page.
+  test.each([
+    ['in the body', 'in Node', [paragraph('Before'), sales]],
+    ['in a column', 'in Node', [{ kind: 'columns', columns: [{ width: 'fill', blocks: [sales] }] }]],
+    ['kept together', 'in Node', [{ kind: 'keepTogether', blocks: [paragraph('Heading'), sales] }]],
+    ['in the body', 'in a browser', [sales]],
+  ] as const)('refuses a chart it does not draw yet, naming it, %s, %s', async (_, entry, body) => {
+    const render = entry === 'in Node' ? renderPdf : renderInBrowser
+    const error = await render(documentOf('Chart', body as readonly Block[]), { maxPages: 5 }).then(
+      () => 'rendered',
+      (refused: unknown) => refused,
+    )
+    expect(error).toMatchObject({ code: 'unsupported', subject: sales.id, message: 'the chart sales is not drawn by this release of the renderer' })
   })
 })
 

@@ -281,3 +281,47 @@ describe('createFormatter', () => {
     expect(formatter('fr-CH', 'Europe/Zurich')).toMatchObject({ locale: 'fr-CH', timeZone: 'Europe/Zurich' })
   })
 })
+
+describe('percent', () => {
+  // A share printed at other places than it was rounded to, or unscaled --
+  // 0.125 as 0.1 % -- would misstate every slice of the pie it labels.
+  test('prints a share as the locale writes a percentage, from its digits', () => {
+    const en = formatter('en')
+    expect(en.percent(decimalFromString('0.125'), 1)).toEqual({ ok: true, text: '12.5%' })
+    expect(text(en.percent(decimalFromString('0.333'), 1))).toBe('33.3%')
+    expect(text(en.percent(decimalFromString('1.000'), 1))).toBe('100.0%')
+  })
+
+  // A German reader expects the space and the comma; a copied English
+  // pattern would print a wrong share.
+  test("writes the locale's own percentage", () => {
+    expect(text(formatter('de').percent(decimalFromString('0.125'), 1))).toBe('12,5\u00a0%')
+  })
+
+  // A fraction at more places than `places + 2` would be rounded by Intl's
+  // own rule, half away from zero: 0.12555 at 2 would print 12.56%, and
+  // 0.1245 at 1 print 12.5%, a second rounding of a share rounded before.
+  test.each([
+    ['0.12555', 2],
+    ['0.1245', 1],
+  ])('refuses %s at %i places rather than let Intl round it again', (fraction, places) => {
+    expect(formatter('en').percent(decimalFromString(fraction), places)).toMatchObject({ ok: false, code: 'percent-rounds-again' })
+  })
+
+  // A message that said "1 places of percent" would read as a defect of its own.
+  test('says how many places a share has and is printed at, in words', () => {
+    expect(formatter('en').percent(decimalFromString('0.1245'), 1)).toMatchObject({
+      message: 'a share of 4 places, printed as a percentage at 1 place, would be rounded again by Intl; round it to 3 places first',
+    })
+  })
+
+  // A fraction at exactly places + 2 shifts its digits and rounds nothing.
+  test('prints a fraction at its places plus two as written', () => {
+    expect(text(formatter('en').percent(decimalFromString('0.1255'), 2))).toBe('12.55%')
+  })
+
+  // Intl prints a number past its digit limit as infinity; the share would read as a percentage of nothing.
+  test('refuses a fraction of more digits than Intl prints, as a number is refused', () => {
+    expect(formatter('en').percent(decimalFromString(`1${'0'.repeat(400)}`), 1)).toMatchObject({ ok: false, code: 'number-too-large' })
+  })
+})

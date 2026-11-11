@@ -20,7 +20,7 @@
  */
 import { compareDecimal } from '@formancy/expressions'
 import type { Decimal } from '@formancy/expressions'
-import type { ReportDefinition, SortDirection, TableComponent } from '@formancy/report-spec'
+import type { ChartOrder, ReportDefinition, SortDirection, TableComponent } from '@formancy/report-spec'
 import type { CheckedRecord } from './data.js'
 import type { PrintableType } from './format.js'
 import type { CheckedValue } from './values.js'
@@ -116,9 +116,27 @@ export function orderRows(rows: readonly CheckedRecord[], keys: readonly OrderKe
 }
 
 /** Whether two group keys are one: decimals by value, everything else as held, and null with null. */
-function sameKey(type: PrintableType, a: CheckedValue | null, b: CheckedValue | null): boolean {
+export function sameKey(type: PrintableType, a: CheckedValue | null, b: CheckedValue | null): boolean {
   if (a === null || b === null) return a === b
   return type === 'decimal' ? compareDecimal(a as Decimal, b as Decimal) === 0 : a === b
+}
+
+/**
+ * One value a Map can find a group key by: equal for two keys of a type
+ * exactly when `sameKey` holds them one (a test holds the two to each other).
+ * A decimal is normalised -- trailing zeros stripped while it has a scale (zero ends at 0),
+ * so 1.0 and 1.00 meet; text, integers and booleans are
+ * their own keys, which a Map compares by value; null is null.
+ */
+export function canonicalKey(type: PrintableType, value: CheckedValue | null): string | bigint | boolean | null {
+  if (value === null) return null
+  if (type !== 'decimal') return value as string | bigint | boolean
+  let { units, scale } = value as Decimal
+  while (scale > 0 && units % 10n === 0n) {
+    units /= 10n
+    scale -= 1
+  }
+  return `${units}/${scale}`
 }
 
 /**
@@ -135,6 +153,31 @@ export function groupRows(rows: readonly OrderedRow[], by: { readonly field: str
     else groups.push({ key: value, rows: [row] })
   }
   return groups.map((group) => Object.freeze({ key: group.key, rows: Object.freeze(group.rows) }))
+}
+
+/**
+ * A chart's categories, grouped as a table's rows are: sorted by the
+ * category's key, nulls last, then grouped; or, in the data's order, each
+ * distinct key once at its first row's place, holding every row with that
+ * key in the provider's order. Rows without a category are one group.
+ */
+export function categoryGroups(
+  rows: readonly CheckedRecord[],
+  by: { readonly field: string; readonly type: PrintableType },
+  order: ChartOrder,
+  locale: string,
+): RowGroup[] {
+  if (order !== 'data') return groupRows(orderRows(rows, [{ ...by, direction: order }], locale), by)
+  const groups = new Map<string | bigint | boolean | null, { key: CheckedValue | null; rows: OrderedRow[] }>()
+  for (const [index, record] of rows.entries()) {
+    const value = record[by.field] ?? null
+    const row = Object.freeze({ index, record })
+    const id = canonicalKey(by.type, value)
+    const found = groups.get(id)
+    if (found !== undefined) found.rows.push(row)
+    else groups.set(id, { key: value, rows: [row] })
+  }
+  return [...groups.values()].map((group) => Object.freeze({ key: group.key, rows: Object.freeze(group.rows) }))
 }
 
 /**

@@ -60,12 +60,11 @@ if (resolution.ok) {
   term, a table of no rows in a final render, or a payment code that asks
   for another amount or account than the e-invoice names, each named by
   where it stands, its business term and its rule, never by the value;
-- a report that would print a chart (`resolve`, `chart-not-resolved`),
-  naming the chart by its id, in a preview as in a final render: this
-  release does not resolve charts, and would otherwise print the report
-  without the chart. A chart its condition hides prints nothing, as any
-  component, and is not refused
-  ([0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+- a chart of more categories than `MAX_CHART_CATEGORIES`, or a pie of
+  more categories than its palette has colours (`resolve`,
+  `chart-too-many-categories`), and a pie with a negative value
+  (`chart-negative-share`), each naming the chart by its id and saying
+  counts, never a value or a category: see [A chart](#a-chart).
 
 It never returns part of a document.
 
@@ -272,6 +271,64 @@ seconds, against 2.0 for the same report and rows without the e-invoice;
 0.23 (five runs each, from the built package, Node 24.21.0, an Intel
 i9-10900K, 17 October 2026). The e-invoice has no bound of its own yet.
 
+## A chart
+
+A `chart` component resolves to a `chart` block (`Chart`, an `AxisChart`
+or a `PieChart`), which holds every word the chart prints and every number
+as its exact digits beside its text
+([0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md),
+[0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)):
+
+```ts
+// A bar chart of sales by region, beside a table grouped by region, in a format of two places:
+const chart = resolution.document.body.find((block) => block.kind === 'chart')
+if (chart?.kind === 'chart' && chart.chart !== 'pie' && chart.empty === undefined) {
+  chart.categories // ['North', 'South', 'No region']: each key in the category's format, the rows without one under nullLabel
+  chart.series[0]?.values[0] // { exact: '10.25', text: '10.25' }: a coordinate from exact, the text printed; null where a series has no value
+  chart.ticks.map(({ text }) => text) // ['0.00', '5.00', '10.00', '15.00', '20.00', '25.00']: the value axis, fixed
+}
+```
+
+- **Its categories** are grouped where a table's rows are: sorted by the
+  table's own order, the rows without one last, or in the order the data
+  first gives each, one key each, so that 1.0 and 1.00 are one category,
+  printed with no format as its first row in the data's order spells it.
+  The rows without a category are one category under its `nullLabel`. A
+  chart with no `nullLabel`, possible only over a field that may not be
+  null, prints an empty label in a preview that lacks the field, the data
+  check having warned; one with a label prints its label.
+- **Each series** is totalled by `totalOf`, the function every aggregate
+  and every group's total is, in the decimals report-core's `seriesType`
+  gives an aggregate of the same function over the same field: a bar
+  prints what the table's group footer of the same rows prints in the same
+  format, a declared rounding applied once, and a rounding of an integer
+  total refused as `rounding-not-decimal`, as an aggregate's is.
+- **The value axis** of a bar or a line chart is one, two or five times a
+  power of ten, the finest step that covers every value of every series
+  in at most `MAX_TICK_INTERVALS` intervals and no finer than the value
+  format prints, found by BigInt division. A bar's axis holds zero, and
+  so does a flat line's; any other line's is ticked over its own range.
+  An author cannot set either.
+- **A pie's share** of each slice is its exact ratio to the sum of its
+  slices as they are totalled, rounded once, half away from zero, to
+  `SHARE_PLACES` places of a percentage, and printed by the formatter's
+  `percent`, which refuses a fraction Intl would round again
+  (`percent-rounds-again`), as no share is. Shares need not add up to
+  100.0 %, and a legend entry that labels its value reads
+  `label: value (share)` in every language. A slice's value prints only
+  in its legend entry, and a pie whose values its format cannot print is
+  refused though it labels none of them.
+- **Nothing to draw** -- no rows, a bar or a line chart with no value, a
+  pie whose values are all zero -- is the chart's title and its empty text
+  alone, with no axis and no axis title.
+- **Its colours** are the chart's own `palette` or `CHART_PALETTE`, a
+  series' at its place and a slice's at its category's.
+
+A renderer prints the block's strings and no others, a pie's values only
+in its legend, makes a coordinate of a value's `exact`, and formats no
+number. This release's renderer does not
+draw a chart yet, and refuses one.
+
 ## What else is exported
 
 Each stage is exported for a host or a tool that needs one alone:
@@ -282,7 +339,10 @@ and the decimal arithmetic; the form bridge reads `readValue`,
 words a refusal says that rule in, so that it holds an answer and an id
 by this package's rules, and says them in its words, rather than a copy
 of them (0042). The document's types, `RenderRefusal` and `REFUSAL_CODES` are
-the renderer's contract, declared here so that no engine defines them.
+the renderer's contract, declared here so that no engine defines them; a
+chart's among them, and `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and
+`SHARE_PLACES`, the runtime's bounds on a chart, which a host that tells an
+author of them reads rather than copies (0055).
 What report-spec decides of a QR-bill that an engine needs to draw its
 slip is handed on as report-spec's own objects: `QR_BILL_SIZE` and
 `QR_BILL_TOP`, the slip's size and place; `qrBillPageBreak` and its type

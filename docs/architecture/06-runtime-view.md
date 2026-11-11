@@ -69,6 +69,12 @@ once; its other terms held to EN 16931's rules (6.8)
    ▼
 format every value for the locale          Intl handed exact digits, never a double
    ▼
+a chart, where it stands: its categories grouped as a table's rows are, each
+series totalled by the aggregates' function, its axis ticked exactly, every
+word formatted (6.18)
+   ├─ more categories than MAX_CHART_CATEGORIES, or a pie than its palette's
+   │  colours, or a pie's value negative ──────────────────────▶ refused
+   ▼
 images through the host's lookup, by id and digest, once each; an SVG
 past MAX_SVG_BYTES refused (6.9)
    ▼
@@ -94,6 +100,7 @@ renderPdf(document, { maxPages, signal })
    │ an e-invoice it does not know; in a Factur-X invoice, a title
    │ its XMP cannot hold, a CMYK JPEG, an SVG whose numbers or
    │ nesting its PDF/A cannot hold (6.9) ────────────────────▶ unsupported
+   │ a chart, which this release does not draw yet (6.18) ───▶ unsupported
    ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
    │ browser its chunk imported
    ├─ measure the page regions; the body's margins follow
@@ -903,3 +910,58 @@ the store links `<64 hex>.<png|jpg|svg>` unless it is there already. The
 host keeps the bytes in its cache before `keep` resolves (6.10), and a
 save that declares an image the tenant has not kept, or kept as another
 kind than it declares, is refused, naming it.
+
+## 6.18 A chart, from the rows to its marks
+
+The runtime's half: what a chart prints, decided once. How the renderer
+draws the block is its own record's, and until it has one the renderer
+refuses the block.
+
+```
+resolveReport, a chart in the body or the summary, its condition true
+   │  every aggregate already totalled (6.2)
+   ▼
+chartBlock(render, chart, path, style)                    report-runtime's lower-chart.ts
+   ▼
+categoryGroups(detail rows, the category's field, order, locale)
+   ├─ asc, desc: the table's orderRows and groupRows, the rows without one last
+   ├─ data: each key once at its first row, found by canonicalKey through a Map
+   ├─ more than MAX_CHART_CATEGORIES ────────────────────▶ chart-too-many-categories
+   ├─ a pie of more categories than its palette's colours ─▶ chart-too-many-categories
+   ▼                                              both before anything is totalled
+each category's label: its key in category.format, or category.nullLabel
+   ├─ a format that cannot print it ─────────────────────▶ format, at …/category
+   ▼
+each series at each category: totalOf(the series as an aggregate,
+totalsInDecimals(seriesType(report, series).type, rounding), its values, rows)
+   ├─ a rounding of an integer total, past report-core's check ──▶ rounding-not-decimal
+   ▼                                     null where the series has no value there
+nothing to draw: no rows, no value, a pie whose values are all zero
+   ├─ yes, and not a pie with a negative value ──▶ the title and the empty text alone
+   ▼
+bar, line                                  pie
+chartTicks(every value of every series,    a negative value ──▶ chart-negative-share
+  bar or line, valueFormat.scale)          whole = the sum of its slices as totalled
+each value and tick in valueFormat,        share = ratioRounded(value, whole,
+  in the report's scope                      SHARE_PLACES + 2, half away from zero)
+  ├─ refused ──▶ format, at …/valueFormat  value in valueFormat, share by percent
+a legend of its series, two or more        a legend of its categories,
+                                             `label: value (share)` with value labels
+   ▼
+the chart block: every word it prints, each value's exact digits beside its text,
+its ticks, its colours by place ──▶ the ResolvedDocument (6.2)
+   ▼
+renderPdf: check.ts ──────────────────────────────────▶ unsupported, naming the chart
+```
+
+Every refusal names the chart by its id and says counts, never a value, a
+label or a category. A chart's number and the table's beside it are read
+by `fieldValue`, grouped by `sort-group.ts`, totalled by `totalOf` and
+printed by the one formatter, so where both print a total of the same
+rows in the same format, they print the same text
+([0055](../decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
+The ticks are BigInt division on a decimal's units, and a share an exact
+ratio rounded once and printed without rounding again, so nothing a chart
+prints passes through a double. What a renderer may make of the block is
+a coordinate from a value's `exact`, with `Number`, and nothing else:
+every word it draws is in the block.
