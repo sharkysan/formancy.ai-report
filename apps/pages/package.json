@@ -20,6 +20,7 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@formancy/report-spec": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

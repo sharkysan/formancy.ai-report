@@ -33,7 +33,6 @@ export interface ProductCopy {
     readonly heading: (version: string) => string
     readonly released: (date: string) => string
     readonly format: string
-    readonly missing: string
     readonly changelog: (version: string) => string
     readonly npm: (name: string) => string
   }
@@ -185,8 +184,6 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       released: (date) =>
         `Veröffentlicht am ${date}. Die Pakete sind auf npm, mit Provenance, und das Release auf GitHub enthält die signierte SBOM und den Release-Bericht des Laufs, der sie veröffentlicht hat.`,
       format: 'Das Berichtsformat ist noch ein Entwurf: Dass eine spätere Version einen heute geschriebenen Bericht liest, ist nicht zugesichert.',
-      missing:
-        'Noch nicht dabei: der Server und seine Jobs, Änderungsvorschläge einer KI, die eine Person prüft, bevor sie gelten, ein veröffentlichter PDF-Viewer und konsistentes Lesen aus Formancy Data.',
       changelog: (version) => `Was ${version} enthält, im Changelog (Englisch)`,
       npm: (name) => `${name} auf npm`,
     },
@@ -283,8 +280,6 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       released: (date) =>
         `Publiée le ${date}. Ses paquets sont sur npm, avec provenance, et la release sur GitHub contient le SBOM signé et le rapport de release de l'exécution qui les a publiés.`,
       format: "Le format des rapports est encore un brouillon : rien ne garantit qu'une version ultérieure lise un rapport écrit aujourd'hui.",
-      missing:
-        "Pas encore disponible : le serveur et ses tâches, les modifications proposées par une IA et revues par une personne avant de s'appliquer, un visualiseur PDF publié, et une lecture cohérente depuis Formancy Data.",
       changelog: (version) => `Ce que contient ${version}, dans le changelog (en anglais)`,
       npm: (name) => `${name} sur npm`,
     },
@@ -379,8 +374,6 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       released: (date) =>
         `Pubblicata il ${date}. I suoi pacchetti sono su npm, con provenance, e la release su GitHub contiene lo SBOM firmato e il rapporto di release dell'esecuzione che li ha pubblicati.`,
       format: 'Il formato dei report è ancora una bozza: non è garantito che una versione successiva legga un report scritto oggi.',
-      missing:
-        "Non ancora disponibili: il server e i suoi job, le modifiche proposte da un'IA e verificate da una persona prima di essere applicate, un visualizzatore PDF pubblicato e una lettura coerente da Formancy Data.",
       changelog: (version) => `Che cosa contiene ${version}, nel changelog (in inglese)`,
       npm: (name) => `${name} su npm`,
     },
@@ -475,8 +468,6 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       released: (date) =>
         `Released on ${date}. Its packages are on npm, with provenance, and the GitHub release carries the signed SBOM and the release report of the run that published them.`,
       format: 'The report format is still a draft: a report written now is not promised to be read by a later release.',
-      missing:
-        'Not here yet: the server and its jobs, changes an AI proposes and a person reviews before they apply, a published PDF viewer, and a consistent read from Formancy Data.',
       changelog: (version) => `What ${version} holds, in the changelog`,
       npm: (name) => `${name} on npm`,
     },

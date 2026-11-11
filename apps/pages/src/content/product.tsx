@@ -1,17 +1,25 @@
 /**
  * The product page, `/report/<lang>/`: what Formancy Report is today, its
- * topics, its exact totals, how it behaves, what it prints, where it
- * stands, and on what terms. One layout; the words are product-copy.tsx's,
- * and the totals' totals-copy.tsx's, in each language.
+ * topics, its exact totals, how it behaves, what it prints, what it does
+ * not do yet, where it stands, and on what terms. One layout; the words are
+ * product-copy.tsx's, the totals' totals-copy.tsx's and the absences'
+ * limits-copy.tsx's, in each language.
  */
 import type { ReactElement } from 'react'
 import { npmPage } from '../links.js'
 import type { Language } from '../languages.js'
 import type { Card, PageContext, PageGroup } from '../pages.js'
 import { FigureView, STARTERS, STUDIO } from './figures.js'
+import { LIMITS_COPY } from './limits-copy.js'
 import { PRODUCT_COPY } from './product-copy.js'
 import { TOTALS_COPY } from './totals-copy.js'
 import { TotalsSection } from './totals.js'
+
+/** Each thing the start page says Formancy Report does not do yet, worded in limits-copy.tsx. */
+export type LimitKey = 'detail' | 'pdf' | 'codes' | 'scripts' | 'viewer' | 'jobs'
+
+/** The order the start page lists them in, in every language. */
+export const LIMIT_ORDER: readonly LimitKey[] = ['detail', 'pdf', 'codes', 'scripts', 'viewer', 'jobs']
 
 /** The packages a reader starting with the product installs first: the two builders and the renderer. */
 const FIRST_PACKAGES = ['@formancy/report-builder-react', '@formancy/report-builder-angular', '@formancy/report-render-pdf']
@@ -26,6 +34,7 @@ function termIn(rows: Readonly<Record<string, string>>, english: string): string
 
 function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
   const copy = PRODUCT_COPY[page.language]
+  const limits = LIMITS_COPY[page.language]
   const { release, licence } = page.inputs
   return (
     <>
@@ -106,11 +115,22 @@ function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
         </p>
       </section>
 
+      <section className="band panel" aria-labelledby="limits">
+        <h2 id="limits">{limits.heading}</h2>
+        <ul className="links">
+          {LIMIT_ORDER.map((key) => (
+            <li key={key}>{limits.items[key]}</li>
+          ))}
+        </ul>
+        <p>
+          <a href={page.github('docs/roadmap.md')}>{limits.roadmap}</a>
+        </p>
+      </section>
+
       <section className="band panel" aria-labelledby="status">
         <h2 id="status">{copy.status.heading(release.version)}</h2>
         <p>{copy.status.released(page.day(release.date))}</p>
         <p>{copy.status.format}</p>
-        <p>{copy.status.missing}</p>
         <ul className="links">
           <li>
             <a href={`${page.github('CHANGELOG.md')}#${release.anchor}`}>{copy.status.changelog(release.version)}</a>
