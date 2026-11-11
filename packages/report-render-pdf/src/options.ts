@@ -17,4 +17,16 @@ export interface RenderOptions {
    * once runs it in a worker it can terminate.
    */
   readonly signal?: AbortSignal
+  /**
+   * Asks for the final render drawn as a PDF/A-2b, the archival PDF the
+   * Swiss EPR admits, which embeds no file; `'2b'` is the one value, and any
+   * other is a `RangeError`. A Factur-X e-invoice, which is drawn as the
+   * PDF/A-3b that embeds its XML, an XRechnung's copy and a preview the
+   * runtime labels so are refused with it as `unsupported`, each to be
+   * rendered without it (0056). In Node, PDFKit reads the sRGB profile its
+   * output intent embeds from its own `data/sRGB_IEC61966_2_1.icc` on disk,
+   * so a host that bundles the Node entry ships that file beside it; the
+   * browser build carries the same bytes.
+   */
+  readonly pdfa?: '2b'
 }

@@ -30,16 +30,20 @@ import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js
  * each part of its slip, which measure their information (`measureSlip`).
  * A document with a Factur-X e-invoice is drawn as a PDF/A-3b on the third
  * pass, which alone embeds its XML (`pdfa.ts`); one with an XRechnung as a
- * plain PDF, the copy its label says it is (0038).
+ * plain PDF, the copy its label says it is (0038); and a final render a
+ * host asks for as `pdfa: '2b'` as a PDF/A-2b, which embeds nothing and
+ * runs no hook (`pdfa-check.ts`, 0056).
  */
 
 export async function render(engine: Engine, document: ResolvedDocument, options: RenderOptions): Promise<Uint8Array> {
-  const { signal, maxPages } = options
+  const { signal, maxPages, pdfa } = options
   if (!Number.isSafeInteger(maxPages) || maxPages < 1) throw new RangeError(`maxPages must be a whole number of pages, at least 1; it is ${String(maxPages)}`)
+  // A level misspelt or not drawn would otherwise be a plain PDF a host files as an archival one.
+  if (pdfa !== undefined && pdfa !== '2b') throw new RangeError(`pdfa must be '2b' or left out; it is ${String(pdfa)}`)
   stopIfCancelled(signal)
   // Each host face read with readFont, its layout tables stripped, and the engine's virtual files made, before anything is laid out (0043).
   const fonts = planFonts(document.fonts, await engine.glyphs())
-  const checked = await checkDocument(document, fonts, maxPages)
+  const checked = await checkDocument(document, fonts, maxPages, pdfa)
   const bill = document.paymentPart === undefined ? undefined : checkBill(document.paymentPart, document.page, await engine.billGlyphs())
   // An EPC QR code's caption prints in Liberation Sans too, which a browser loads only when asked; its words are the PSA's, which the face has glyphs for.
   if (checked.captioned) await engine.billGlyphs()
@@ -53,7 +57,7 @@ export async function render(engine: Engine, document: ResolvedDocument, options
   refuseOversized(document.body, bodyHeight, maxPages, fonts, bill === undefined ? 0 : slipReservation(checked.page, regions))
   const plans = await measureBody(engine, checked, fonts, bodyHeight, maxPages)
   await stopIfCancelledSoon(signal)
-  const finish = checked.pdfa === undefined ? undefined : embedEInvoice(checked.pdfa, checked.creationDate)
+  const finish = checked.pdfa?.subset === 'PDF/A-3b' ? embedEInvoice(checked.pdfa.file, checked.creationDate) : undefined
   const pdf = await engine.run(layoutDefinition(document, checked, regions, plans, fonts, maxPages, bill), fonts.engine, finish)
   await stopIfCancelledSoon(signal)
   return pdf

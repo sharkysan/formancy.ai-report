@@ -11,9 +11,12 @@ import type { FacturXFile } from '@formancy/report-runtime'
  * they are added to PDFKit's document between layout and `end`, the one
  * hook the engines take (`Engine.run`'s `finish`), on the final pass alone.
  *
- * Only a document with an e-invoice is a PDF/A: the version, the subset and
- * the hook are all three its own, and every other report is drawn as it
- * always was (0031 weighs PDF/A for every report, and why not).
+ * A final render a host asks for as `pdfa: '2b'` is a PDF/A-2b (0056),
+ * the archival PDF of a report that is no e-invoice: the same version, its
+ * own subset, `PDF_A_2B`, and no hook, so that it embeds no file and its
+ * XMP is PDFKit's alone. Which a document is drawn as, if either, is
+ * `checkPdfA`'s (`pdfa-check.ts`), and every other report is drawn as it
+ * always was.
  *
  * The renderer decides none of what the file says. The XML is the
  * runtime's, encoded as UTF-8 and changed in nothing; its name, its
@@ -32,6 +35,17 @@ import type { FacturXFile } from '@formancy/report-runtime'
  * with no XMP and says nothing (pdfkit.js 6070; `pdfmake.test.ts`).
  */
 export const PDF_A_3B = { version: '1.7', subset: 'PDF/A-3b' } as const
+
+/** pdfmake's options for a PDF/A-2b: level b for the reason `PDF_A_3B` gives, and the version for the same reason, without which PDFKit writes no XMP at all. */
+export const PDF_A_2B = { version: '1.7', subset: 'PDF/A-2b' } as const
+
+/** What a document is drawn as when it is a PDF/A (`checkPdfA`): an e-invoice's PDF/A-3b with the Factur-X file it embeds, or the PDF/A-2b a host asked for, which embeds none. */
+export type PdfA = { readonly subset: 'PDF/A-3b'; readonly file: FacturXFile } | { readonly subset: 'PDF/A-2b' }
+
+/** The definition's version and subset for `pdfa`. */
+export function pdfaOptions(pdfa: PdfA): typeof PDF_A_3B | typeof PDF_A_2B {
+  return pdfa.subset === 'PDF/A-3b' ? PDF_A_3B : PDF_A_2B
+}
 
 /** What `file` takes in PDFKit 0.19.1 (pdfkit.js 5160-5244): `relationship` among it, which @types/pdfkit 0.17.6 leaves out (`pdfmake.test.ts` pins it). */
 export interface PdfKitFileOptions {
