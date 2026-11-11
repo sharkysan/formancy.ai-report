@@ -51,7 +51,7 @@ const EVIDENCE = {
   // Intl handed a decimal's exact digits, twenty places printed whole; a
   // format's fewer places rounded half away from zero before Intl sees the
   // value, and Intl handed exactly the places it prints; and without a
-  // format, a decimal's digits printed as they are, in any locale.
+  // format, a decimal's digits printed as they are, as format.test.ts shows in de-CH.
   printed: ['packages/report-runtime/src/format.test.ts'],
   // The starters and the invoice samples rendered and read back with
   // PDF.js, each total recomputed in plain BigInt from the data and
@@ -159,7 +159,7 @@ export const TOTALS_COPY: Readonly<Record<Language, TotalsCopy>> = {
   it: {
     heading: 'Totali esatti',
     intro:
-      'Dai dati alla pagina stampata, un totale è calcolato da cifre esatte e arrotondato al massimo una volta: come il report dichiara, oppure dal formato che lo stampa.',
+      'Dai dati alla pagina stampata, un totale è calcolato da cifre esatte e arrotondato al massimo una volta: come il report lo dichiara, oppure dal formato che lo stampa.',
     cards: [
       {
         title: 'Ogni decimale con le sue cifre',
