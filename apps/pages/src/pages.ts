@@ -76,6 +76,12 @@ export interface PageStatus {
   readonly asOf: string
   readonly release: string
   readonly feature: string
+  /**
+   * What the sentences must say again, where "whether that release has the
+   * <feature>" is not it: the start page's say what the release holds and
+   * what Formancy Report does not do yet.
+   */
+  readonly ask?: string
   readonly copy: string
   readonly sentences: string
   readonly constant: string

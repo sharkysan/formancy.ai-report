@@ -25,6 +25,13 @@ export interface ProductCopy {
   readonly eyebrow: (version: string) => string
   readonly h1: string
   readonly lead: string
+  /**
+   * What the newest release holds, said in the hero: `version` is the
+   * changelog's newest release, and `unreleased` the link to what the
+   * source holds since, under the changelog's Unreleased, worded
+   * `status.unreleased`. Re-read at each release (START_STATUS).
+   */
+  readonly standing: (version: string, unreleased: ReactNode) => ReactNode
   readonly actions: { readonly studio: string; readonly guide: string; readonly source: string }
   readonly topics: { readonly heading: string }
   readonly behaves: { readonly heading: string; readonly cards: readonly Card[] }
@@ -34,6 +41,8 @@ export interface ProductCopy {
     readonly released: (date: string) => string
     readonly format: string
     readonly changelog: (version: string) => string
+    /** The words of the link to the changelog's Unreleased, here and in the hero's `standing`. */
+    readonly unreleased: string
     readonly npm: (name: string) => string
   }
   readonly licence: {
@@ -128,7 +137,13 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     },
     eyebrow: (version) => `Version ${version} · Developer Preview`,
     h1: 'Paginierte PDF-Berichte, gestaltet in Ihrer Angular- oder React-Anwendung',
-    lead: 'Formancy Report ist ein Berichtsdesigner, den Sie selbst betreiben. Wer einen Bericht gestaltet, legt ihn in einem visuellen Editor an, nativ in Angular und in React; Ihre Anwendung übergibt die Daten, und der Renderer erzeugt das PDF, auf Ihrem Server oder im Browser.',
+    lead: 'Formancy Report ist ein Berichtsdesigner, den Sie selbst betreiben. Wer einen Bericht gestaltet, legt ihn in einem visuellen Editor an, den es nativ für Angular und nativ für React gibt; Ihre Anwendung übergibt die Daten, und der Renderer erzeugt das PDF, auf Ihrem Server oder im Browser. Die Summen sind exakt, und eine QR-Rechnung wird nach den Regeln von SIX geprüft, ein EPC-QR-Code nach denen des EPC.',
+    standing: (version, unreleased) => (
+      <>
+        Das neueste Release, {version}, enthält den React- und den Angular-Builder, den PDF-Renderer, exakte Summen, die QR-Rechnung und den EPC-QR-Code. Der
+        Quellcode auf GitHub enthält seither mehr: siehe {unreleased}.
+      </>
+    ),
     actions: { studio: 'Im Studio ausprobieren', guide: 'Die Einführung lesen (Englisch)', source: 'Quellcode auf GitHub' },
     topics: { heading: 'Die Themen im Einzelnen' },
     behaves: {
@@ -185,6 +200,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         `Veröffentlicht am ${date}. Die Pakete sind auf npm, mit Provenance, und das Release auf GitHub enthält die signierte SBOM und den Release-Bericht des Laufs, der sie veröffentlicht hat.`,
       format: 'Das Berichtsformat ist noch ein Entwurf: Dass eine spätere Version einen heute geschriebenen Bericht liest, ist nicht zugesichert.',
       changelog: (version) => `Was ${version} enthält, im Changelog (Englisch)`,
+      unreleased: 'Unreleased, im Changelog (Englisch)',
       npm: (name) => `${name} auf npm`,
     },
     licence: {
@@ -224,7 +240,13 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     },
     eyebrow: (version) => `Version ${version} · préversion pour développeurs`,
     h1: 'Des rapports PDF paginés, conçus dans votre application Angular ou React',
-    lead: 'Formancy Report est un concepteur de rapports que vous hébergez vous-même. La personne qui conçoit le rapport le met en page dans un éditeur visuel, natif en Angular et en React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur.',
+    lead: "Formancy Report est un concepteur de rapports que vous hébergez vous-même. La personne qui conçoit le rapport le met en page dans un éditeur visuel qui existe en version native pour Angular et pour React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur. Les totaux sont exacts, et une facture QR est vérifiée selon les règles de SIX, un QR code SEPA selon celles de l'EPC.",
+    standing: (version, unreleased) => (
+      <>
+        La version la plus récente, {version}, contient le builder React et le builder Angular, le moteur de rendu PDF, les totaux exacts, la facture QR et le
+        QR code SEPA. Depuis, le code source sur GitHub contient davantage : voir {unreleased}.
+      </>
+    ),
     topics: { heading: 'Les sujets en détail' },
     actions: { studio: "L'essayer dans le Studio", guide: 'Lire le guide de démarrage (en anglais)', source: 'Le code source sur GitHub' },
     behaves: {
@@ -281,6 +303,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         `Publiée le ${date}. Ses paquets sont sur npm, avec provenance, et la release sur GitHub contient le SBOM signé et le rapport de release de l'exécution qui les a publiés.`,
       format: "Le format des rapports est encore un brouillon : rien ne garantit qu'une version ultérieure lise un rapport écrit aujourd'hui.",
       changelog: (version) => `Ce que contient ${version}, dans le changelog (en anglais)`,
+      unreleased: 'Unreleased, dans le changelog (en anglais)',
       npm: (name) => `${name} sur npm`,
     },
     licence: {
@@ -320,7 +343,13 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     eyebrow: (version) => `Versione ${version} · anteprima per sviluppatori`,
     h1: 'Report PDF impaginati, progettati nella vostra applicazione Angular o React',
     topics: { heading: 'Gli argomenti in dettaglio' },
-    lead: 'Formancy Report è un designer di report che ospitate voi stessi. Chi progetta un report lo impagina in un editor visuale, nativo in Angular e in React; la vostra applicazione fornisce i dati, e il renderer genera il PDF, sul vostro server o nel browser.',
+    lead: "Formancy Report è un designer di report che ospitate voi stessi. Chi progetta un report lo impagina in un editor visuale che esiste in versione nativa per Angular e per React; la vostra applicazione fornisce i dati, e il renderer genera il PDF, sul vostro server o nel browser. I totali sono esatti, e una fattura QR viene verificata secondo le regole di SIX, un QR code SEPA secondo quelle dell'EPC.",
+    standing: (version, unreleased) => (
+      <>
+        La versione più recente, {version}, contiene il builder React e il builder Angular, il renderer PDF, i totali esatti, la fattura QR e il QR code SEPA.
+        Da allora il codice sorgente su GitHub contiene altro ancora: vedere {unreleased}.
+      </>
+    ),
     actions: { studio: 'Provarlo nello Studio', guide: 'Leggere la guida introduttiva (in inglese)', source: 'Il codice sorgente su GitHub' },
     behaves: {
       heading: 'Come si comporta',
@@ -375,6 +404,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         `Pubblicata il ${date}. I suoi pacchetti sono su npm, con provenance, e la release su GitHub contiene lo SBOM firmato e il rapporto di release dell'esecuzione che li ha pubblicati.`,
       format: 'Il formato dei report è ancora una bozza: non è garantito che una versione successiva legga un report scritto oggi.',
       changelog: (version) => `Che cosa contiene ${version}, nel changelog (in inglese)`,
+      unreleased: 'Unreleased, nel changelog (in inglese)',
       npm: (name) => `${name} su npm`,
     },
     licence: {
@@ -415,7 +445,13 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     eyebrow: (version) => `Version ${version} · developer preview`,
     topics: { heading: 'The topics in detail' },
     h1: 'Paginated PDF reports, designed inside your Angular or React application',
-    lead: 'Formancy Report is a report designer you host yourself. An author lays out a report in a visual editor, native in Angular and in React; your application hands over the data, and the renderer prints the PDF, on your server or in the browser.',
+    lead: "Formancy Report is a report designer you host yourself. An author lays out a report in a visual editor built natively for Angular and again for React; your application hands over the data, and the renderer prints the PDF, on your server or in the browser. Totals are exact, and a QR-bill is checked against SIX's rules and an EPC QR code against the EPC's.",
+    standing: (version, unreleased) => (
+      <>
+        The newest release, {version}, holds the React builder and the Angular builder, the PDF renderer, exact totals, the QR-bill and the EPC QR code. The
+        source on GitHub holds more since: see {unreleased}.
+      </>
+    ),
     actions: { studio: 'Try it in the Studio', guide: 'Read the getting-started guide', source: 'Source code on GitHub' },
     behaves: {
       heading: 'How it behaves',
@@ -469,6 +505,7 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         `Released on ${date}. Its packages are on npm, with provenance, and the GitHub release carries the signed SBOM and the release report of the run that published them.`,
       format: 'The report format is still a draft: a report written now is not promised to be read by a later release.',
       changelog: (version) => `What ${version} holds, in the changelog`,
+      unreleased: 'Unreleased, in the changelog',
       npm: (name) => `${name} on npm`,
     },
     licence: {

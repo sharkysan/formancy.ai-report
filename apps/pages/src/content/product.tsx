@@ -1,19 +1,48 @@
 /**
- * The product page, `/report/<lang>/`: what Formancy Report is today, its
- * topics, its exact totals, how it behaves, what it prints, what it does
- * not do yet, where it stands, and on what terms. One layout; the words are
- * product-copy.tsx's, the totals' totals-copy.tsx's and the absences'
- * limits-copy.tsx's, in each language.
+ * The product page, `/report/<lang>/`: what Formancy Report is today and
+ * what its newest release holds, its topics, its exact totals, how it
+ * behaves, what it prints, what it does not do yet, dated, where it
+ * stands, and on what terms. One layout; the words are product-copy.tsx's,
+ * the totals' totals-copy.tsx's and the absences' limits-copy.tsx's, in
+ * each language.
  */
 import type { ReactElement } from 'react'
 import { npmPage } from '../links.js'
 import type { Language } from '../languages.js'
-import type { Card, PageContext, PageGroup } from '../pages.js'
+import type { Card, PageContext, PageGroup, PageStatus } from '../pages.js'
 import { FigureView, STARTERS, STUDIO } from './figures.js'
 import { LIMITS_COPY } from './limits-copy.js'
 import { PRODUCT_COPY } from './product-copy.js'
 import { TOTALS_COPY } from './totals-copy.js'
 import { TotalsSection } from './totals.js'
+
+/**
+ * Where the start page stands: the day it was last said, and the newest
+ * release then, 0.2.0. Three sets of sentences say it, each true of that
+ * release and of the source on GitHub that day: product-copy.tsx's
+ * `standing`, in the hero, of what the release holds and that the source
+ * holds more since; limits-copy.tsx's `items`, what Formancy Report does
+ * not do yet, which the section dates by `asOf`; and totals-copy.tsx's
+ * `limits.items`, what its totals do not do. limits.test.ts holds every
+ * absence but `detail` to the code it rests on as well, so a change there
+ * fails before any release; `detail`, the standing and the totals' limits
+ * rest on this alone. A later release may hold what 0.2.0 did not, and do
+ * what it said was not done yet, so the site refuses to render once
+ * CHANGELOG.md names another release, until somebody says what that one
+ * holds and lacks, in all three, and changes this with them. The hero and
+ * the status section link the changelog's Unreleased, which the release
+ * commit renames: the link check refuses the site until it has the heading
+ * again.
+ */
+export const START_STATUS: PageStatus = {
+  asOf: '2026-11-11',
+  release: '0.2.0',
+  feature: 'start',
+  ask: 'what that release holds and what Formancy Report does not do yet',
+  copy: 'product-copy.tsx, limits-copy.tsx and totals-copy.tsx',
+  sentences: '`standing`, which the hero says, in product-copy.tsx, `items` in limits-copy.tsx and `limits.items` in totals-copy.tsx',
+  constant: 'START_STATUS',
+}
 
 /** Each thing the start page says Formancy Report does not do yet, worded in limits-copy.tsx. */
 export type LimitKey = 'detail' | 'data' | 'pdf' | 'codes' | 'scripts' | 'viewer' | 'jobs' | 'ai'
@@ -40,6 +69,7 @@ function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
   const copy = PRODUCT_COPY[page.language]
   const limits = LIMITS_COPY[page.language]
   const { release, licence } = page.inputs
+  const unreleased = `${page.github('CHANGELOG.md')}#unreleased`
   return (
     <>
       <section className="hero" aria-labelledby="top">
@@ -63,6 +93,7 @@ function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
             </a>
           </li>
         </ul>
+        <p>{copy.standing(release.version, <a href={unreleased}>{copy.status.unreleased}</a>)}</p>
         <FigureView figure={STUDIO} page={page} first />
       </section>
 
@@ -121,6 +152,7 @@ function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
 
       <section className="band panel" aria-labelledby="limits">
         <h2 id="limits">{limits.heading}</h2>
+        <p>{limits.intro(page.day(START_STATUS.asOf))}</p>
         <ul className="links">
           {LIMIT_ORDER.map((key) => (
             <li key={key}>{limits.items[key]}</li>
@@ -138,6 +170,9 @@ function ProductBody({ page }: { readonly page: PageContext }): ReactElement {
         <ul className="links">
           <li>
             <a href={`${page.github('CHANGELOG.md')}#${release.anchor}`}>{copy.status.changelog(release.version)}</a>
+          </li>
+          <li>
+            <a href={unreleased}>{copy.status.unreleased}</a>
           </li>
           {FIRST_PACKAGES.map((name) => (
             <li key={name}>
@@ -191,5 +226,6 @@ export const PRODUCT_GROUP: PageGroup = {
   meta: { de: PRODUCT_COPY.de.meta, fr: PRODUCT_COPY.fr.meta, it: PRODUCT_COPY.it.meta, en: PRODUCT_COPY.en.meta },
   cards: { de: cardsOf('de'), fr: cardsOf('fr'), it: cardsOf('it'), en: cardsOf('en') },
   image: 'starter-quotation.png',
+  status: START_STATUS,
   Body: ProductBody,
 }

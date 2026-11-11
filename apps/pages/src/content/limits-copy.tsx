@@ -2,25 +2,28 @@
  * What Formancy Report does not do yet, in each language: the start page's
  * list of the absences a reader meets first, each said as an absence
  * today and never as a plan, true of the newest release and of main when
- * it was read, and a link to the roadmap, which says what comes next and is
- * not restated here. A file of its own because the absences change as
- * what they name is built, a reason to change of their own.
- * limits.test.ts holds `pdf`, `codes`, `scripts`, `viewer` and `ai` to
- * the code they rest on -- the packages published, report-spec's component
- * kinds and the blocks it prints -- so that a change there fails until
- * the sentence is read again; `detail` (report-spec's one detail table and
- * one level of grouping), `data` (0016's best-effort read, said as its
- * costs say it) and `jobs` (no PDF printed on a server of Report's own)
- * are review's. The German is Switzerland's spelling, the French
- * takes its no-break spaces from `frenchSpaces`, and no translation is
- * reviewed by a native speaker. Reviewed by a person, not a test, for
- * meaning; the suite holds what can be measured (checks/).
+ * it was read, which `intro` says, dated by START_STATUS's `asOf`; and a
+ * link to the roadmap, which says what comes next and is not restated
+ * here. A file of its own because the absences change as what they name
+ * is built, a reason to change of their own.
+ * limits.test.ts holds `data`, `pdf`, `codes`, `scripts`, `viewer`, `jobs`
+ * and `ai` to the code they rest on -- the packages published and what
+ * their manifests install, report-spec's component kinds and the blocks it
+ * prints -- so that a change there fails until the sentence is read again;
+ * `detail` (report-spec's one detail table and one level of grouping) is
+ * review's, and START_STATUS sends each release back to every item. The
+ * German is Switzerland's spelling, the French takes its no-break spaces
+ * from `frenchSpaces`, and no translation is reviewed by a native speaker.
+ * Reviewed by a person, not a test, for meaning; the suite holds what can
+ * be measured (checks/).
  */
 import type { Language } from '../languages.js'
 import type { LimitKey } from './product.js'
 
 export interface LimitsCopy {
   readonly heading: string
+  /** What the list is true of, and since when: `date` is START_STATUS's `asOf`, as the page's language writes it. */
+  readonly intro: (date: string) => string
   /** Each absence by its key, printed in the order `LIMIT_ORDER` gives in every language. */
   readonly items: Readonly<Record<LimitKey, string>>
   /** The link's words, to docs/roadmap.md, which is in English. */
@@ -30,6 +33,7 @@ export interface LimitsCopy {
 export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
   de: {
     heading: 'Was es noch nicht tut',
+    intro: (date) => `Jeder dieser Punkte gilt für das neueste Release und für den Quellcode auf GitHub (Stand ${date}).`,
     items: {
       detail:
         'Eine Detailtabelle und eine Gruppierungsebene: Ein Bericht liest eine Liste von Detailzeilen, druckt sie in einer Tabelle und gruppiert sie nach höchstens einem Feld.',
@@ -48,6 +52,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
   },
   fr: {
     heading: "Ce qu'il ne fait pas encore",
+    intro: (date) => `Chacun de ces points vaut pour la version la plus récente et pour le code source sur GitHub (état au ${date}).`,
     items: {
       detail:
         "Un tableau de détail et un niveau de regroupement : un rapport lit une liste de lignes de détail, l'imprime dans un tableau et la regroupe selon un champ au plus.",
@@ -66,6 +71,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
   },
   it: {
     heading: 'Che cosa non fa ancora',
+    intro: (date) => `Ciascuno di questi punti vale per la versione più recente e per il codice sorgente su GitHub, in data ${date}.`,
     items: {
       detail:
         'Una tabella di dettaglio e un livello di raggruppamento: un report legge un elenco di righe di dettaglio, lo stampa in una tabella e lo raggruppa al massimo per un campo.',
@@ -84,6 +90,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
   },
   en: {
     heading: 'What it does not do yet',
+    intro: (date) => `Each of these is true of the newest release and of the source on GitHub (as of ${date}).`,
     items: {
       detail: 'One detail table and one level of grouping: a report reads one list of detail rows, prints it in one table, and groups it by one field at most.',
       data: "No consistent read from Formancy Data: a report's data is read from it best-effort, its header, its rows a request at a time and each label at different moments, so a row added or removed between two requests can print twice or not at all, and a total can mix states.",

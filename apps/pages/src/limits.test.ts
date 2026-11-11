@@ -1,9 +1,11 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { COMPONENT_KINDS, PRINTED_BLOCKS, refusedCharacter } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { LIMITS_COPY } from './content/limits-copy.js'
 import { LIMIT_ORDER } from './content/product.js'
 import { LANGUAGES } from './languages.js'
-import { inputs, site } from './test-site.js'
+import { inputs, repo, site } from './test-site.js'
 
 /**
  * What the start page says Formancy Report does not do yet (limits-copy.tsx,
@@ -11,8 +13,8 @@ import { inputs, site } from './test-site.js'
  * read it: each sentence is true while the code it rests on is as it was
  * when the sentence was read, and a change to that code fails here until
  * somebody reads the sentence again and says what is true then. One detail
- * table and one level of grouping, a best-effort read from Formancy Data,
- * and no render jobs on a server have no predicate here: review holds them.
+ * table and one level of grouping has no predicate here: review holds it,
+ * and the start page's status sends a release back to it (START_STATUS).
  */
 const productPages = site.pages
   .filter((page) => page.group === 'product')
@@ -23,6 +25,47 @@ const collapsed = (text: string | null | undefined): string => (text ?? '').repl
 
 /** A code point as the character it is, beside what report-spec says of it. */
 const judged = (point: number): readonly [string, string | undefined] => [String.fromCodePoint(point), refusedCharacter(point)]
+
+interface Manifest {
+  readonly name: string
+  readonly dependencies?: Readonly<Record<string, string>>
+  readonly peerDependencies?: Readonly<Record<string, string>>
+}
+
+/** Every manifest under packages/, by its name, as this checkout holds it. */
+const manifests: ReadonlyMap<string, Manifest> = new Map(
+  readdirSync(join(repo, 'packages'))
+    .filter((directory) => existsSync(join(repo, 'packages', directory, 'package.json')))
+    .map((directory) => JSON.parse(readFileSync(join(repo, 'packages', directory, 'package.json'), 'utf8')) as Manifest)
+    .map((manifest) => [manifest.name, manifest]),
+)
+
+/** The manifest of the package of packages/ named `name`, refused when there is none: a predicate reading a package renamed away would hold nothing. */
+function manifestOf(name: string): Manifest {
+  const manifest = manifests.get(name)
+  if (manifest === undefined) throw new Error(`no package under packages/ is named ${name}`)
+  return manifest
+}
+
+/** What `name` declares a consumer installs, its dependencies and its peers, each by its name and range. */
+const declared = (name: string): Readonly<Record<string, string>> => {
+  const manifest = manifestOf(name)
+  return { ...manifest.dependencies, ...manifest.peerDependencies }
+}
+
+/** What installing `name` installs: what its manifest declares, and what each package of packages/ among them declares in turn. */
+function installs(name: string): ReadonlySet<string> {
+  const found = new Set<string>()
+  const visit = (each: string): void => {
+    for (const dependency of Object.keys(declared(each)))
+      if (!found.has(dependency)) {
+        found.add(dependency)
+        if (manifests.has(dependency)) visit(dependency)
+      }
+  }
+  visit(name)
+  return found
+}
 
 describe('what the start page says Formancy Report does not do yet', () => {
   // "PDF only" is true while the one renderer published is PDF's: another
@@ -141,10 +184,37 @@ describe('what the start page says Formancy Report does not do yet', () => {
     expect(inputs.packages.filter((name) => /report-ai/.test(name))).toEqual([])
   })
 
+  // "No consistent read from Formancy Data" is true while the one package
+  // published from packages/ that reads Formancy Data reads it through
+  // @formancy/data-client at exactly 0.1.0, which has no snapshot export
+  // and reads a report's header, rows and labels request by request
+  // (0016): a later client, or another package reading Data through one,
+  // fails here until the sentence is read again.
+  test("says a read from Formancy Data is best-effort while the data provider alone reads it, through Data's 0.1.0 client", () => {
+    const readers = inputs.packages.flatMap((name) => {
+      const range = declared(name)['@formancy/data-client']
+      return range === undefined ? [] : [[name, range]]
+    })
+    expect(readers).toEqual([['@formancy/report-data-provider', '0.1.0']])
+  })
+
+  // "No render jobs: Formancy Report prints no PDF on a server of its own"
+  // is true while the server it publishes installs neither the runtime nor
+  // the renderer, nor anything the renderer takes from npm to draw with: a
+  // server that takes one of them, itself or through report-server-core,
+  // fails here, naming it, until the sentence is read again. A server
+  // published under another name is review's.
+  test('says no PDF is printed on a server of its own while the server installs neither the runtime nor the renderer', () => {
+    const drawsWith = Object.keys(declared('@formancy/report-render-pdf')).filter((name) => !manifests.has(name))
+    const printing = ['@formancy/report-runtime', '@formancy/report-render-pdf', ...drawsWith]
+    expect(inputs.packages).toContain('@formancy/report-server')
+    expect([...installs('@formancy/report-server')].filter((name) => printing.includes(name))).toEqual([])
+  })
+
   // A predicate whose sentence the page no longer says would pass while
   // holding nothing.
   test('says each sentence a predicate here holds', () => {
-    expect(LIMIT_ORDER).toEqual(expect.arrayContaining(['pdf', 'codes', 'scripts', 'viewer', 'ai']))
+    expect(LIMIT_ORDER).toEqual(expect.arrayContaining(['data', 'pdf', 'codes', 'scripts', 'viewer', 'jobs', 'ai']))
   })
 
   // A limit the copy words and LIMIT_ORDER leaves out would never print,

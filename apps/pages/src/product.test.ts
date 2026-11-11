@@ -1,9 +1,12 @@
 import { describe, expect, test } from 'vitest'
+import { linkProblems } from './checks/links.js'
+import { START_STATUS } from './content/product.js'
 import { PRODUCT_COPY } from './content/product-copy.js'
 import { GROUPS } from './groups.js'
-import { LANGUAGES } from './languages.js'
+import { formatDay, LANGUAGES } from './languages.js'
 import { isRoot } from './pages.js'
-import { site } from './test-site.js'
+import { renderSite } from './site.js'
+import { builtOf, inputs, site } from './test-site.js'
 
 /** The product page's topic cards: what it says of each other page, and where. */
 const productPages = site.pages
@@ -34,7 +37,7 @@ describe('the product page introduces its topics', () => {
   // A card that names a page and not where it stands sends a reader to a
   // page that may not have what they came for: the status is on the card.
   test("says on a topic's card where its page stands, for every page with a status", () => {
-    const stated = GROUPS.filter((group) => group.status !== undefined)
+    const stated = GROUPS.filter((group) => !isRoot(group) && group.status !== undefined)
     expect(stated.length).toBeGreaterThan(0)
     for (const page of productPages) {
       for (const group of stated) {
@@ -91,5 +94,74 @@ describe('the product page shows its exact totals', () => {
       expect([page.language, section === null]).toEqual([page.language, false])
       expect([page.language, section?.querySelectorAll('pre, code').length]).toEqual([page.language, 0])
     }
+  })
+})
+
+describe('the start page says where it stands', () => {
+  // The start page says what the newest release holds and what Formancy
+  // Report does not do yet, true while CHANGELOG.md's newest release is
+  // the one it was written against. The release commit that adds a newer
+  // heading would leave those sentences standing, true or not: the hero
+  // would credit the new release with what the old one held, and the
+  // absences would go on denying what the release may have brought. The
+  // site refuses to render until somebody reads them again, in all three
+  // files that hold them.
+  test('refuses to render once the changelog names a release its status was not written against, naming each sentence', () => {
+    expect(inputs.release.version).toBe(START_STATUS.release)
+    const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
+    expect(() => renderSite(released)).toThrow(
+      /the start page's status was written when 0\.2\.0 was the newest release, and CHANGELOG\.md now names 0\.3\.0: say what that release holds and what Formancy Report does not do yet in each sentence of product-copy\.tsx, limits-copy\.tsx and totals-copy\.tsx/,
+    )
+    expect(() => renderSite(released)).toThrow(
+      /`standing`, which the hero says, in product-copy\.tsx, `items` in limits-copy\.tsx and `limits\.items` in totals-copy\.tsx -- then change START_STATUS with them/,
+    )
+  })
+
+  // The page describes what the source on GitHub holds, and a reader who
+  // installs from npm gets the newest release: said nowhere, the reader
+  // would take every claim for the release's. The hero names the release,
+  // in the sentence that links what the source holds since, and the status
+  // section links it again beside the release's own entry.
+  test('says in its hero what the newest release holds, and links what main holds since', () => {
+    expect(productPages).toHaveLength(LANGUAGES.length)
+    for (const page of productPages) {
+      const hero = page.document.querySelector('section.hero')
+      const link = hero?.querySelector('a[href$="/CHANGELOG.md#unreleased"]')
+      expect([page.language, collapsed(link?.closest('p')?.textContent)]).toEqual([page.language, expect.stringContaining(inputs.release.version)])
+      expect([page.language, collapsed(link?.textContent) === '']).toEqual([page.language, false])
+      const status = page.document.querySelectorAll('section[aria-labelledby="status"] a[href$="/CHANGELOG.md#unreleased"]')
+      expect([page.language, status.length]).toEqual([page.language, 1])
+    }
+  })
+
+  // An absence said without a day reads as true whenever it is read: the
+  // list is dated by the day its status was written, which changes with
+  // the sentences when a release is read again.
+  test('dates what it says it does not do yet', () => {
+    for (const page of productPages) {
+      const section = page.document.querySelector('section[aria-labelledby="limits"]')
+      expect([page.language, collapsed(section?.textContent)]).toEqual([
+        page.language,
+        expect.stringContaining(collapsed(formatDay(START_STATUS.asOf, page.language))),
+      ])
+    }
+  })
+
+  // The release commit renames "## Unreleased" to the release's heading:
+  // the start page's links to it would then land on no heading, and a
+  // reader on the top of the changelog, guessing what the link meant. The
+  // link check refuses the site until CHANGELOG.md has the heading again.
+  test('refuses the link to Unreleased once the changelog has no such heading', () => {
+    const built = builtOf(site)
+    const released = (path: string): string => {
+      const text = built.text(path)
+      if (path !== 'CHANGELOG.md') return text
+      const renamed = text.replace('## Unreleased', '## 0.3.0 — 2026-11-30')
+      // An edit that matched nothing would test the unbroken changelog.
+      expect(renamed).not.toBe(text)
+      return renamed
+    }
+    const refused = linkProblems({ ...built, text: released }).filter((problem) => /#unreleased is no heading of CHANGELOG\.md/.test(problem))
+    expect([...new Set(refused.map((problem) => problem.slice(0, problem.indexOf(':'))))]).toEqual(productPages.map((page) => page.file))
   })
 })
