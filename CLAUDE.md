@@ -562,17 +562,17 @@ What holds this section:
   wrote, no WebSocket (`gate-images.mjs`, 0033), and no request or
   connection hint to any origin but the built Studio's, its faces included
   ([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
-  The product's pages have a gate of their own in the same job,
-  `apps/pages/scripts/browser-test.mjs`, run as
-  `pnpm --filter @formancy/report-pages test:browser`, with the pages
-  served under `/report/` and the demo's headers and the Studio's reads
-  from `gate-measure.mjs`: in Chromium, every page of the built sitemap
-  answering as itself, at 320 pixels with and without the web fonts, a phone, one pixel
-  past each breakpoint of the built stylesheet, a laptop and a screen, with
-  no sideways scroll and nothing past either edge, axe finding nothing,
-  the first Tab from the load on the skip link and Enter on `<main>`, the
-  room's variables, every face loaded, and nothing fetched, hinted or
-  refused by the policy outside the built pages
+- **The pages' browser gate**, `apps/pages/scripts/browser-test.mjs`, run
+  as `pnpm --filter @formancy/report-pages test:browser` in the same job,
+  with the pages served under `/report/` and the demo's headers and the
+  Studio's reads from `gate-measure.mjs`: in Chromium, every page of the
+  built sitemap answering as itself, at 320 pixels with and without the
+  web fonts, a phone, one pixel past each breakpoint the built stylesheet
+  writes in rem, a laptop and a screen, with no sideways scroll and
+  nothing past either edge, axe finding nothing, the first Tab from the
+  load on the skip link and Enter on it putting the keyboard on `<main>`,
+  the room's variables, every face loaded, nothing fetched or hinted
+  outside the built pages and nothing the policy refused
   ([0053](docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 - **The pages' stylesheet**, `apps/pages/src/stylesheet.test.ts`: it
   imports formancy's `room.css` first, the Studio's `room.css` second and
@@ -593,10 +593,10 @@ What holds this section:
 What nothing holds yet, said: `builder.css`'s geometry, and the colours
 admin.css's rules type that the room does not carry, are copied from
 `admin.css` by hand, and nothing fails when upstream's move; the gates run
-Chromium alone, where Formancy Data's runs Firefox and WebKit too; and what
+Chromium alone, where Formancy Data's run Firefox and WebKit too; and what
 a product page or a README picture looks like, and whether a caption's
-quote is painted in it rather than scrolled out of its part, which review
-alone holds.
+quote is painted in its picture rather than scrolled out of its part,
+which review alone holds.
 
 ## Branch names
 

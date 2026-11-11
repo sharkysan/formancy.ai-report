@@ -156,11 +156,12 @@ holds and what fails it). In short:
   builder's React or Angular as declared, as its suites ran it, and as each
   install host resolved it at both ends of its peer range; upstream
   `@formancy/*`; Node, pnpm, TypeScript and PDF.js; the Chromium the browser
-  gate launched and the Playwright that pins it;
+  gates launched and the Playwright that pins it;
 - each package's results, held to every test file the checkout holds for
   it;
-- the Studio's browser gate, held to every pass it planned and a check in
-  each, and its README pictures' check, held to every scene
+- each app's browser gate, the Studio's and the product pages', held to
+  every pass it planned and a check in each, and the Studio's README
+  pictures' check, held to every scene
   `scripts/pictures/scenes.json` gives the Studio, each launched as
   `scripts/browsers.mjs` launches the build Playwright pins;
 - the install gate host by host, held to the hosts it plans;

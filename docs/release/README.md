@@ -211,7 +211,7 @@ A `vitest.json` of one file, run after the whole suite, fails the report
 for every other test file of its package, which did not run in it. The
 results directory is held to one commit and one run, each key once: a
 collect of another commit, or a CI run's artefacts left beside this
-machine's, fails the report. The browser gate's file and the pictures'
+machine's, fails the report. The browser gates' files and the pictures'
 check's are read on a machine as in CI and held to `--since` like the rest,
 and a gate that rests on a browser gate is judged from that machine's run
 of it. A gate that rests on a job -- G1 rests on `install` -- has no result

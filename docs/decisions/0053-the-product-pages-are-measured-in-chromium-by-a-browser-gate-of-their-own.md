@@ -11,15 +11,20 @@
 - **Verified by:** the pages' suite and `pnpm test:repo`, which CI runs on
   every pull request, and the pages' gate in CI's `browser` job. Each case
   below was watched failing, its fault planted once and the file put back
-  byte for byte, on a Mac: the gate's on 6 and 7 November 2026, the
-  documents' guards on 11 November 2026. None has run in CI yet: this
-  record's pull request is their first run there.
+  byte for byte, on a Mac. The gate's and the import test's were watched
+  on 6 November 2026, before 93b0789, and from the night of 6 November to
+  the morning of 7 November, before 06101a5, by the commits' dates and the
+  times of the fix round's logs. The documents' guards were watched on 11
+  November 2026. None has run in CI yet: this record's pull request is
+  their first run there. Not every case was watched on the code as
+  committed, and each list says which were not.
   - **`apps/pages/scripts/gate-site.test.mjs`, in the pages' suite.** The
     passes are read from the built stylesheet: the reflow width of 320
     pixels, again with the web fonts refused, a phone at 360, one pixel
-    past each `max-width` breakpoint, a laptop at 1280 and a screen at
-    1920. The pages are read from the built sitemap, at the address the
-    gate serves them at. It failed before `gate-site.mjs` existed, and with
+    past each `max-width` breakpoint written in rem, a laptop at 1280 and
+    a screen at 1920. The pages are read from the built sitemap, at the
+    address the gate serves them at. It failed before `gate-site.mjs`
+    existed, and with
     each of its three refusals taken out alone: a stylesheet with no
     breakpoint, a sitemap that lists no page, and a page outside the site.
   - **`apps/pages/scripts/gate-imports.test.mjs`, in the pages' suite.**
@@ -27,17 +32,28 @@
     import no `@formancy/` package and import or resolve no package of the
     workspace, followed through every relative import. It failed on each
     of these:
-    - an import of report-corpus added to `gate-measure.mjs`;
-    - a dynamic import of report-spec one relative hop away;
+    - an import of report-corpus added to `gate-measure.mjs`, and a dynamic
+      import of report-spec one relative hop away, on 6 November 2026,
+      before the fix round rewrote the test's reader, and not run again;
     - a workspace package handed to `require.resolve`, to
-      `import.meta.resolve` and to a function `createRequire` made;
+      `import.meta.resolve` and to a function `createRequire` made, on the
+      rewritten reader;
     - its reader of resolutions broken to read nothing.
   - **The pages' gate, `apps/pages/scripts/browser-test.mjs`, in CI's
     `browser` job.** The release report reads its file,
-    `apps/pages/test-results/browser-chromium.json`, as it reads the
-    Studio's: every app with a `test:browser` script has one
+    `apps/pages/test-results/browser-chromium.json`, through the reader it
+    reads the Studio's with: `collect.mjs`'s `browser()` takes the file of
+    every app with a `test:browser` script, and `problems.mjs`'s
+    `gateProblems` fails a run whose gate left no file, ended in an error,
+    failed a check or made fewer passes than it planned
     ([0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md)).
-    Each fault below made the gate exit 1 naming its check:
+    No fault was planted in that reading for the pages, so it is not a
+    watched case here. Each fault below made the gate exit 1 naming its
+    check. The first four were watched on 6 November 2026, before the gate
+    waited for the faces ahead of the keyboard checks, and before the fix
+    round's `gathered()` around the four checks of a pass and its
+    `keyboard()`. They were not run again; Task 1.3's reviews accepted that
+    none of those changes moves what those four checks read.
     - `flex-wrap: wrap` taken off the shared list rule the bar's links wrap
       by: `no sideways scroll` at 320 pixels, 359 pixels over, and
       `nothing past either edge`, in every pass up to 641 pixels and in
@@ -57,7 +73,11 @@
       that page alone;
     - a picture from the origin outside the built pages, with `img-src`
       widened to the whole origin to let it through: the outside check,
-      naming it, where the policy's check passed;
+      naming it, where the policy's check passed. Its log is from 00:35 on
+      7 November, before the gate reached the form it was committed in,
+      which a copy taken at 04:27 holds byte for byte. The canonical's
+      watch left no log to date it. The keyboard watches below are from
+      after 04:27;
     - a positive `tabindex` on the wordmark: the first Tab, and axe's
       `tabindex`;
     - the skip link moved off screen while it has the focus: the link on
@@ -91,12 +111,14 @@ by hand. 0021 measured its eight pages, 0024 its twelve and 0028 all
 sixteen, each on 17 October 2026, served under `/report/` in Playwright's
 Chromium. The Studio's gate's own `measureWidth` and `audit` measured each
 at 320, 360, 641, 1280 and 1920 pixels: no sideways scroll, nothing past
-either edge, nothing axe found, and every text's contrast decided. The
-first of those rounds found the German healthcare page 17 pixels too wide
-at 320 pixels. 0051 opened every page under its policy once, by hand, on 5
-November 2026. Each record said so, 0028 in these words: no gate measures
-the pages, so a later change to them, or to the Studio's stylesheets they
-import, is measured by nobody.
+either edge, nothing axe found, and every text's contrast decided. 0024's
+and 0028's rounds also found that no page asked for anything outside the
+site. None of them records the keyboard path. The first of those rounds
+found the German healthcare page 17 pixels too wide at 320 pixels. 0051
+opened every page under its policy once, by hand, on 5 November 2026. Each
+record named the cost, 0028 in these words: no gate measures the pages, so
+a later change to them, or to the Studio's stylesheets they import, is
+measured by nobody.
 
 Four more pages are planned, each in its own pull request. Each adds a
 topic to the bar every page carries, so each changes every page, and each
@@ -123,14 +145,16 @@ build wrote (`sitePasses` in `gate-site.mjs`):
 - 320 pixels again with every font file refused, since the fallback stack's
   widths differ;
 - a phone at 360;
-- one pixel past each `max-width` breakpoint, where the wider layout is at
-  its narrowest;
+- one pixel past each `max-width` breakpoint written in rem, as the built
+  stylesheet writes them, where the wider layout is at its narrowest;
 - a laptop at 1280, and a screen at 1920 by 1080.
 
-The pages come from the sitemap the build wrote (`sitemapPages`). A
-breakpoint or a page added is measured without anybody editing the gate.
-On 7 November 2026 that was seven passes, from 320 to 2053 pixels, over the
-sixteen pages of the sitemap, and 1,148 checks.
+The pages come from the sitemap the build wrote (`sitemapPages`). A page
+added, or a breakpoint added in rem, is measured without anybody editing
+the gate. A breakpoint written in pixels, or in the range syntax, is not
+read, and so not measured. On 7 November 2026 that was seven passes, from
+320 to 2053 pixels, over the sixteen pages of the sitemap, and 1,148
+checks.
 
 **Served as the demo serves them.** `vite preview` serves the pages' `dist/`
 on the port `vite.config.ts` fixes, 4395, which fails rather than wanders
@@ -183,8 +207,8 @@ clicks at (1, 1) and collapses the selection, so that the next Tab starts
 at the document's start. On the pages, wherever `.site` reaches the
 window's corner, as it did at 320 pixels, that click lands in `.site`'s
 padding. Chromium then starts sequential navigation at the node the click
-landed on, and the next Tab passes the skip link, which
-comes before `.site`. In the first run, on 6 November 2026, the first Tab
+landed on, and the next Tab passes the skip link, which comes before
+`.site`. In the first run, on 6 November 2026, the first Tab
 after it reached the wordmark in every pass up to 641 pixels, where a
 fresh load's reached the skip link in all of them. So the pages' gate
 measures the keyboard path straight after the load, with only the faces
@@ -201,24 +225,29 @@ there would take the page away from every check after it.
 the four languages, at every width the stylesheet asks for, as the demo
 serves them. A change to the pages, or to the Studio's bar, room or
 stylesheets they import, that breaks one fails the pull request that made
-it, naming the page and the check. The keyboard path and the requests are
-measured too, where by hand they were not.
+it, naming the page and the check. The keyboard path is measured too,
+where by hand it was not, and the requests, which 0024's and 0028's
+rounds watched once, are now watched on every pull request.
 
 **What it costs.**
-- **CI minutes, not yet measured.** The browser job took 12 minutes 56
-  seconds on main's run of 8 November 2026, at bf37f4d, without this gate.
-  What the gate adds is read from its first run in CI, which is this
-  record's pull request: from the `browser` job's timing, and from the
-  wall time the release report's table of browser gates gives
-  `apps/pages`.
-  - Five green runs on a Mac with other work running took between 26.9
-    and 35.2 seconds each, from 6 to 8 November 2026. They are
-    observations, not a bound.
+- **CI minutes, not yet measured.** What the gate adds is the wall time
+  the release report's table of browser gates gives `apps/pages`, read
+  from its first run in CI, which is this record's pull request.
+  - The `browser` job's own time is context, not the measure: it took 12
+    minutes 56 seconds on main's run of 8 November 2026, at bf37f4d, and
+    12 minutes 46 seconds on 11 November, at c4d1a6a, both without this
+    gate. The ten seconds between them is over a third of the gate's
+    fastest local run.
+  - Six green runs on a Mac with other work running took between 26.9 and
+    56.2 seconds each, from 6 to 8 November 2026. The 56.2 seconds is
+    Task 1.3's reviewer's run, timed around pnpm; the others are as the
+    reports give them, from the gate's own record where they say so. They
+    are observations, not a bound.
   - On 6 November 2026, the same Mac took 1,016 seconds for the Studio's
-    gate.
-- **Chromium alone**, the browser `scripts/browsers.mjs` gives every gate
-  here. A page's reflow, contrast, keyboard path and requests in Firefox
-  or WebKit are measured by nobody.
+    gate, in the red run described below.
+- **Chromium alone**, the browser `scripts/browsers.mjs` gives every
+  browser gate here. A page's reflow, contrast, keyboard path and
+  requests in Firefox or WebKit are measured by nobody.
 - **The Studio's reads, shared.** The gate imports the Studio's
   `gate-measure.mjs` and `gate-results.mjs`. A change there is a change to
   this gate, measured by both gates in the same job. `fontProblem`'s
@@ -234,9 +263,13 @@ measured too, where by hand they were not.
   the pages' release.
 - **Every face on every page.** Every family the built stylesheet declares
   must load on every page. On 7 November 2026 each page had text in all
-  three faces, the mono in an eyebrow or a piece of code. A page with no
-  text in one of them would fail the font check, which would be a true
-  reading of what that page loads.
+  three faces, the mono in an eyebrow or a piece of code. A correct page
+  with no text in one of them fails the font check, whose message then
+  says that the pass measured the fallback stack, which for that page is
+  untrue. So each new page of PRs 2 to 5 either carries text in all three
+  faces, or the check is changed to read the families a page uses. The
+  check is `fontProblem` in `gate-measure.mjs`, so that change is the
+  Studio's gate's too.
 - **The request check is the second line.** Under the demo's policy, the
   browser refuses a request to anything outside the built pages, and the
   policy's check names that refusal. So the request check alone catches
@@ -245,12 +278,14 @@ measured too, where by hand they were not.
   connection hint opens a connection with no request to hear, so hints are
   read from each page's head.
 - **The Studio's gate is not green on every machine.** On the Mac this
-  gate was built on, the Studio's own gate fails one text-layer check in
-  every pass: its text layer of the invoice's first page holds one line
+  gate was built on, the Studio's own gate fails two text-layer checks, one
+  for each builder, in seven of the eight passes that read the invoice's
+  text layer: 14 in its run of 6 November 2026, the pass at 769 pixels
+  holding both. Each finds the invoice's first page holding one line
   without the firm's name, where `docs/images/pictures.json` records the
-  line with it. CI's browser job on main
-  is green: the text the pictures record is held on CI's fonts. The pages'
-  gate reads no PDF and passed whole on that Mac. Locally,
+  line with it. CI's browser job on main is green: the text the pictures
+  record is held on CI's fonts. The pages' gate reads no PDF and passed
+  whole on that Mac. Locally,
   `pnpm --filter @formancy/report-pages test:browser` runs this gate
   alone, where the root's `pnpm test:browser` runs both through turbo.
 

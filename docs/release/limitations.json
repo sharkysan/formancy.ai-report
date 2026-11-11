@@ -477,7 +477,7 @@
       ]
     },
     "0021": {
-      "reviewed": "sha256:35a2bb067e112e9017f0857a88405436627f091fa51441f7802024de07a7d99d",
+      "reviewed": "sha256:5411d2907df970202d4bb9f598d28680d3013d345fe25e06691c7d331a4370dc",
       "limitations": [
         {
           "area": "release",
@@ -490,7 +490,7 @@
         },
         {
           "area": "testing",
-          "says": "A change to the pages, or to the Studio's stylesheets they import, is measured in a browser on every pull request by the pages' own gate since 0053, and in Chromium alone."
+          "says": "What formancy.ai/report/<lang>/ serves is opened in a browser by nothing here: the pages' gate measures them as each pull request and each push to main builds them, under the headers the deploy writes, and nothing here reads the pages the Studio's Worker serves."
         },
         {
           "area": "testing",
@@ -939,7 +939,7 @@
         },
         {
           "area": "testing",
-          "says": "The EPC QR code page's reflow down to 320 pixels and its colour contrast were measured by hand on 17 October 2026, with every other page's and the bar's three topic names, and are measured since 0053 by the pages' browser gate, which reads numbers and takes no picture of the page."
+          "says": "The EPC QR code page's reflow down to 320 pixels and its colour contrast were measured by hand on 17 October 2026, with every other page's, while the bar held three topic names, and are measured since 0053 by the pages' browser gate, which reads numbers and takes no picture of the page."
         }
       ]
     },
@@ -2254,7 +2254,7 @@
       ]
     },
     "0051": {
-      "reviewed": "sha256:27bbf658a880d06fcbe105178be06f88455373a0f9800d34d41aea3f4a0d88a9",
+      "reviewed": "sha256:e6d41adec55697f20287ff0385e9bb004f94927caede05060d40464028cb8d25",
       "limitations": [
         {
           "area": "release",
@@ -2309,11 +2309,11 @@
       ]
     },
     "0053": {
-      "reviewed": "sha256:b941f7111509c979efc889dbc500e21d5ffe307bcc9f49430453b9402d83c94c",
+      "reviewed": "sha256:0b4ef5776ac73ffc719bbdbedbc698f5528ac98da319e7835b3384fe624cd16f",
       "limitations": [
         {
           "area": "testing",
-          "says": "The pages' browser gate runs in Chromium alone, as every gate here does, so a page's reflow, contrast, keyboard path and requests in Firefox or WebKit are measured by nobody."
+          "says": "The pages' browser gate runs in Chromium alone, as every browser gate here does, so a page's reflow, contrast, keyboard path and requests in Firefox or WebKit are measured by nobody."
         },
         {
           "area": "testing",

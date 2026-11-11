@@ -18,7 +18,7 @@ every page carries, so each would have measured every page again by hand: four r
 32 pages cost more than one gate. CI's `browser` job now runs the pages' own gate after the
 Studio's. It serves every page of the built sitemap under `/report/` with the demo's headers,
 and measures each at 320 pixels with and without the web fonts, on a phone, one pixel past each
-breakpoint of the built stylesheet, on a laptop and on a screen. It fails a page that does not
+breakpoint the built stylesheet writes in rem, on a laptop and on a screen. It fails a page that does not
 answer as itself, scrolls sideways, has anything past either edge, or has anything axe finds. It
 also fails a page whose first Tab is not its skip link, that does not wear the released room or
 load its faces, that fetches or hints at anything outside the built pages, or that the demo's

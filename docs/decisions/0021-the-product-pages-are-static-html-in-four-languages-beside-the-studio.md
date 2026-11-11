@@ -11,8 +11,9 @@
   renders any; its room by import of the Studio's copy superseded by
   [0034](0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md): the pages import
   formancy's released `@formancy/themes/room.css` first, then the Studio's
-  stylesheets; its pages measured in a browser by [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)'s
-  gate, where this record measured them by hand
+  stylesheets; extended by [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md),
+  whose gate measures its pages in a browser, where this record measured
+  them by hand
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
