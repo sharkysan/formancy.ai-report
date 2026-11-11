@@ -19,10 +19,12 @@
       palette colours its series and its legend;
     - the rows without a category print under its null label, once, last
       when sorted and at their first row in the data's order, in a
-      preview that lacks the field too; and a preview that lacks a field
-      which may not be null prints an empty label;
+      preview that lacks the field too; and a chart that names no null
+      label, over a field that may not be null, prints an empty label in a
+      preview that lacks the field;
     - a pie's shares are exact, rounded once, and list every category, a
-      zero among them;
+      zero among them; and each is rounded on its own, so three equal
+      slices print 33.3 % each;
     - a pie of more categories than its palette has colours is refused,
       naming both counts, its own palette's included;
     - a pie with a negative value is refused, naming the chart and
@@ -41,8 +43,9 @@
       `SHARE_PLACES`.
   - **The axis.** `src/chart-ticks.test.ts` ticks a table of axes: a bar
     from zero, negatives below it, all zero, a flat line from zero, a line
-    that does not start at zero, a count never cut into fractions, and
-    values finer than the format. It ticks a 40-digit total exactly, and
+    that does not start at zero, a count never cut into fractions, values
+    finer than the format, and a line of 10,000 and 12,000 beside bars of
+    the same values. It ticks a 40-digit total exactly, and
     covers each of 1,000 seeded ranges from 10^-20 to 10^30 in at most six
     ticks no finer than the format.
   - **The categories.** `src/sort-group.test.ts`'s `categoryGroups` keeps
@@ -75,41 +78,52 @@
     report-corpus's `src/trial/undrawn.test.ts` refuses one through both
     trial adapters.
   - **Seen failing, on 11 November 2026.** Each case was run before its
-    code existed, or with its code broken in the working tree and
-    restored:
-    - the categories' cases failed with adjacent keys alone grouped, with
-      decimals compared as written, and with nulls not last;
-    - the count of comparisons failed with each key compared with every
-      category;
-    - `canonicalKey`'s case failed with trailing zeros kept, and with null
-      keyed as the text "null";
-    - the totals' cases failed with a declared rounding ignored, in a
-      series and in a group, with an integer's rounding let through, a
-      count's among it, and with the compiler's field typed `dyn`;
-    - `ratioRounded`'s failed with the scales ignored and with a zero
-      denominator let through, and `percent`'s with either of its two
-      guards removed;
-    - report-core's failed with the series' diagnostics going on past
-      `rounding-not-decimal`, and with `seriesType` typing a series apart
-      from the compiler;
-    - the ticks' cases were written with their code and first failed
-      against a stub that threw. Five rules broken alone each failed
-      them: a bar not from zero, a flat line not from zero, no floor at
-      the format's places, one interval more, and the ceiling rounded
-      down;
-    - the block's cases failed before `chartBlock` existed. Each rule
-      broken alone failed at least one of them: a series rounded half
-      away; a value printed as its digits; the rounding dropped; the
+    code existed, or with its code broken alone and restored: by the
+    implementer of each change, in the working tree, or by its reviewer,
+    in a scratch copy of the package. By suite:
+    - `sort-group.test.ts` failed with adjacent keys alone grouped, with
+      decimals compared as written, with the sorted path taken for one
+      direction alone, and with nulls not last; its count of comparisons
+      with each key compared with every category; and its `canonicalKey`
+      case with trailing zeros kept and with null keyed as the text
+      "null";
+    - `totals.test.ts` failed with a declared rounding ignored, in a
+      series and in a group, with a decimal's rounding skipped, with an
+      integer's rounding let through, a count's among it, with a total of
+      unknown kind left in integers where it declares a rounding, and
+      with text ordered by code unit where no collator was handed;
+    - `decimal.test.ts` failed with `ratioRounded`'s scales ignored and
+      with a zero denominator let through; `format.test.ts` with either of
+      `percent`'s two guards removed, and with its message saying "1
+      places";
+    - report-core's `diagnostics/chart.test.ts` failed with the series'
+      diagnostics going on past `rounding-not-decimal`, with the
+      compiler's field typed `dyn`, and with `seriesType` typing a series
+      apart from the compiler;
+    - `chart-ticks.test.ts` was written with its code and first failed
+      against a stub that threw. It failed with a bar not from zero, a
+      flat line not from zero, every line from zero, no floor at the
+      format's places, the floor at the values' places instead, one
+      interval more, the ceiling rounded down, and a floor that rounds a
+      negative towards zero;
+    - `lower-chart.test.ts` failed whole before `chartBlock` existed. It
+      failed with each of these broken alone: a series rounded half away;
+      a value printed as its digits; the rounding dropped; a series always
+      totalled in decimals; its refusal recorded once a category; the
       categories' bound checked after totalling or off by one; the
-      palette's bound removed or off by one; an empty chart that kept an
-      axis title; a negative share let through, or one hidden by checking
-      the zero total first; a category printed outside its format; a
-      share rounded twice; ticks from the first series alone; a series in
-      the default palette; a format's refusal printed as nothing; a
-      currency not read where the report is; and a series' null printed
-      as zero;
-    - the renderer's and the trial's cases failed with `chart` left out
-      of their switches.
+      palette's bound removed or off by one; a chart with no value, or a
+      pie of zeros, not empty; an empty chart that kept an axis title; a
+      negative share let through, or one hidden by checking the zero
+      total first; a category printed outside its format; ticks printed as
+      their digits, or from the first series alone; a series in the
+      default palette; the null label not read; a share rounded twice, or
+      the last one nudged so that the shares add up; a format's refusal
+      printed as nothing; a currency not read where the report is; and a
+      series' null printed as zero. `lower.test.ts` failed with a chart's
+      style dropped;
+    - render-pdf's `refusals.test.ts` and the corpus's
+      `trial/undrawn.test.ts` failed with `chart` left out of their
+      switches.
 
     One rule rests on a weaker hold, and says so: the count of
     comparisons would not see a scan written with `canonicalKey` in place
@@ -169,8 +183,11 @@ In order:
      `category.nullLabel`, never dropped.
    - **Each label** is the group's key, read once, printed in
      `category.format`. In a preview, a field the data lacks reads as
-     null. A field that may not be null has no `nullLabel`, so a preview
-     that lacks it prints an empty label, the data check having warned.
+     null, and its rows print under `nullLabel`. A chart with no
+     `nullLabel` -- possible only over a field that may not be null, and
+     never the builders' default, which always writes one -- prints an
+     empty label in a preview that lacks the field, the data check having
+     warned; a chart with a label prints its label.
 2. **Two bounds are held before anything is totalled.** A chart of more
    than `MAX_CHART_CATEGORIES`, 200, is refused as
    `chart-too-many-categories` at its `category`, naming the count and the
@@ -223,14 +240,15 @@ In order:
    if lo = hi (both 0):          hi = 1
    span = hi - lo;  e = digits(span.units) - 1 - span.scale               -- floor(log10(span)), exactly
    for k from max(-scale, e - 1) upward, for m in (1, 2, 5):              -- no step below one unit of the format's last place;
-     s = m * 10^k                                                         -- below e - 1 every step gives more than 20 intervals
+     s = m * 10^k                                                         -- below e - 1 every step gives at least 20 intervals
      n = ceil(hi / s) - floor(lo / s)
      if n <= MAX_TICK_INTERVALS: return [floor(lo / s) * s + i * s for i in 0..n]
    ```
    Everything in it is BigInt division on a decimal's units. The loop
-   ends by `k = e + 1`, where a step at least the span gives at most two
-   intervals, and zero is a tick wherever the axis holds it. A bar's axis
-   holds zero, and a line's need not.
+   ends at the latest at `k = max(-scale, e + 1)`: there a step is at
+   least the span, which gives at most two intervals. Zero is a tick
+   wherever the axis holds it. A bar's axis holds zero, a flat line's
+   too, and any other line's need not.
    - **Six labels at most.** `MAX_TICK_INTERVALS` is 5, chosen, not
      measured, as what a reader takes in at a glance.
    - **Each tick in the value format.** A tick is written without its
@@ -250,9 +268,11 @@ In order:
      `ratioRounded(value, whole, { scale: SHARE_PLACES + 2, mode: 'half-away-from-zero' })`,
      the exact ratio rounded once. `SHARE_PLACES` is 1, chosen: 12.5 %.
    - **`Formatter.percent` prints it** as the locale writes a percentage.
-     A share at more places than it keeps is refused as
-     `percent-rounds-again`, never rounded again by Intl. A share of more
-     integer digits than Intl prints is refused as `number-too-large`.
+     It refuses a fraction at more places than it keeps as
+     `percent-rounds-again`, never rounded again by Intl, and one of more
+     integer digits than Intl prints as `number-too-large`. A pie's share
+     meets neither, at exactly `SHARE_PLACES + 2` places and at most 1;
+     they hold `percent` to its contract for any caller.
    - **Its legend** lists its categories. Where the chart labels its
      values, an entry reads `label: value (share)`; otherwise it is the
      label alone.
@@ -314,9 +334,8 @@ and 0052's interim refusal with it.
   holds zero, so two bars of 10,000 and 12,000 differ in height by a sixth
   of the taller.
 - **Shares need not add to 100.0 %.** Each share is rounded once, on its
-  own, so three equal slices print 33.3 % each, 99.9 % in all, measured
-  on 11 November 2026 through `resolveReport` under Node 22.23.3. Nothing
-  rounds the shares to a sum.
+  own, so three equal slices print 33.3 % each, 99.9 % in all, as
+  `lower-chart.test.ts` holds. Nothing rounds the shares to a sum.
 - **ICU decides how a percentage is written.** `Formatter.percent` hands
   Intl the share's digits, so the separator, the sign and any space before
   it are the engine's ICU's. `format.test.ts` holds 0.125 at one place as
@@ -331,8 +350,8 @@ and 0052's interim refusal with it.
   labels its value reads `label: value (share)` in every language. The
   words are the author's and the formatter's, but the colon and the
   parentheses are not, and nothing translates them. French sets a space
-  before a colon, and a pie in fr-CH printed `A: 1 (33,3%)`, measured as
-  the shares were.
+  before a colon, and a pie in fr-CH printed `A: 1 (33,3%)`, measured on
+  11 November 2026 under Node 22.23.3's ICU 78.3.
 - **A pie's whole is the sum of its slices as drawn.** Where its series
   declares a rounding, each slice is rounded first, and its share is of
   the rounded slices, not of the exact total of every row. For a count,
@@ -342,9 +361,11 @@ and 0052's interim refusal with it.
 - **One series' label prints nowhere.** A chart of one series has no
   legend, so it is named by its title and its value axis's title, where
   it has them.
-- **A preview's missing category prints as nothing.** A preview whose
-  data lacks a category field that may not be null prints that category
-  under an empty label, and the renderer is handed an empty string.
+- **A preview's missing category prints as nothing where the chart
+  names no label.** A chart with no `nullLabel`, over a category field
+  that may not be null, prints that category under an empty label in a
+  preview whose data lacks the field, and the renderer is handed an empty
+  string; a chart with a label prints its label.
 - **Totalled again, by the same function.** A series is totalled from the
   rows at each category, beside any aggregate that totals the same. The
   two agree because they are one function, not one computation.
@@ -374,7 +395,8 @@ digits of a span's units give its exponent exactly.
 a line of 10,000 to 12,000 would then be ticked 0 to 15,000 and drawn in a
 band of less than a seventh of its box, nearly flat. Ticked from its own
 range, 10,000 to 12,000 by 500, its rise is the chart. A bar starts at
-zero, because a bar's length is its value.
+zero, because a bar's length is its value. `chart-ticks.test.ts` holds
+both axes of those values.
 
 **Refusing a null category instead of a label.** No row would be printed
 under a word nobody chose. But a formancy form's optional answer is null

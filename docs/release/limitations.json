@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:86ef75039cd699318a9d286670157f7230c98fc3be180f3eefc61b0fde9239be",
+      "reviewed": "sha256:d2262b528a9832011368ca08c8a3b2581e9f146152a6c0760dc1c366812f758f",
       "limitations": [
         {
           "area": "runtime",
@@ -2267,7 +2267,7 @@
       ]
     },
     "0052": {
-      "reviewed": "sha256:2778e059093da722c85907d987f782d6e926f3b83e32d0ff4d45db8702145629",
+      "reviewed": "sha256:f6d9a17cf3e61f5718fa61fd297820d0797ba0a7e364630e8f57a760c86912f2",
       "limitations": [
         {
           "area": "format",
@@ -2300,7 +2300,7 @@
       ]
     },
     "0055": {
-      "reviewed": "sha256:afe595f51b359fef79b643ca5e4a4489e87c5fb453bab1fb6ece6b129110f151",
+      "reviewed": "sha256:4b256871bf917c8cdeda22cbda899e135bbd7b68d2e77888e17c85236294489a",
       "limitations": [
         {
           "area": "runtime",
@@ -2319,7 +2319,8 @@
         },
         {
           "area": "runtime",
-          "says": "A pie's shares are each rounded once, to a tenth of a percent, so they need not add up to 100.0 %: three equal slices print 33.3 % each."
+          "says": "A pie's shares are each rounded once, to a tenth of a percent, so they need not add up to 100.0 %: three equal slices print 33.3 % each.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
         },
         {
           "area": "runtime",

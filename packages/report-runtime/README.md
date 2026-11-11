@@ -293,8 +293,9 @@ if (chart?.kind === 'chart' && chart.chart !== 'pie' && chart.empty === undefine
   table's own order, the rows without one last, or in the order the data
   first gives each, one key each, so that 1.0 and 1.00 are one category.
   The rows without a category are one category under its `nullLabel`. A
-  preview that lacks a category field that may not be null prints it
-  under an empty label, the data check having warned.
+  chart with no `nullLabel`, possible only over a field that may not be
+  null, prints an empty label in a preview that lacks the field, the data
+  check having warned; one with a label prints its label.
 - **Each series** is totalled by `totalOf`, the function every aggregate
   and every group's total is, in the decimals report-core's `seriesType`
   gives an aggregate of the same function over the same field: a bar
@@ -304,8 +305,9 @@ if (chart?.kind === 'chart' && chart.chart !== 'pie' && chart.empty === undefine
 - **The value axis** of a bar or a line chart is one, two or five times a
   power of ten, the finest step that covers every value of every series
   in at most `MAX_TICK_INTERVALS` intervals and no finer than the value
-  format prints, found by BigInt division. A bar's axis holds zero, and a
-  line's is ticked over its own range. An author cannot set either.
+  format prints, found by BigInt division. A bar's axis holds zero, and
+  so does a flat line's; any other line's is ticked over its own range.
+  An author cannot set either.
 - **A pie's share** of each slice is its exact ratio to the sum of its
   slices as they are totalled, rounded once, half away from zero, to
   `SHARE_PLACES` places of a percentage, and printed by the formatter's

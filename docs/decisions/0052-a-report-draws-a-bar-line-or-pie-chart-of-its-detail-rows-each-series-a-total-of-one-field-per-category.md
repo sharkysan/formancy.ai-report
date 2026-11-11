@@ -374,13 +374,14 @@ draft's. A chart of an expression, a colour on a series and a component
 kind for each kind of chart would each be another record's.
 
 **Added 2026-11-11: the runtime resolves a chart.**
-[0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md) decides how: its
-categories grouped where a table's rows are, each series totalled by the
-function every aggregate is, `totalOf`, its value axis one, two or five
-times a power of ten, and every word it prints held in the block the
-runtime hands a renderer. `chart-not-resolved` is gone, and with it this record's interim
-refusal and its case in `lower.test.ts`; a report that would print a chart
-is refused now by the renderer, as `unsupported`, until it draws charts.
+[0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)
+decides how: its categories grouped where a table's rows are, each
+series totalled by the function every aggregate is, `totalOf`, its value
+axis one, two or five times a power of ten, and every word it prints held
+in the block the runtime hands a renderer. `chart-not-resolved` is gone,
+and with it this record's interim refusal and its case in `lower.test.ts`;
+a report that would print a chart is refused now by the renderer, as
+`unsupported`, until it draws charts.
 Two things this record left open are decided there. A series that
 declares a rounding of an integer total is refused by the runtime too,
 past report-core's check, as an aggregate's is. A pie's palette is held

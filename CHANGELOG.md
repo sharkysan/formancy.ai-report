@@ -111,34 +111,35 @@ render, as `unsupported`, naming the chart, until it draws charts.
   `nullLabel`, last when sorted.
 - **Each series is totalled by the function every aggregate is**, in the
   decimals the compiler types an aggregate of the same function over the
-  same field in (report-core's `seriesType`, now exported). A bar and the
-  table's group footer over the same rows print the same text, a declared
-  rounding applied once as an aggregate's is, and a rounding declared on
-  a count or on a sum of integers is refused by the runtime too, past the
-  editor's check. A series with no value at a category is null there,
-  never zero.
+  same field in (report-core's `seriesType`, now exported). A series and
+  a group footer's aggregate of one definition, over the same rows and in
+  one format, print the same text, a declared rounding applied once as an
+  aggregate's is, and a rounding declared on a count or on a sum of
+  integers is refused by the runtime too, past the editor's check. A
+  series with no value at a category is null there, never zero.
 - **The value axis is chosen exactly**, by one rule: one, two or five
   times a power of ten, at most `MAX_TICK_INTERVALS` (five) intervals,
   no finer than the value format prints, over every series, computed in
   BigInt so that a 40-digit total is ticked to its last digit. A bar's
-  axis holds zero, and a line's is ticked over its own values' range.
-  **An author cannot set the axis's range or its step.**
+  axis holds zero, and so does a flat line's; any other line's is ticked
+  over its own values' range. **An author cannot set the axis's range or
+  its step.**
 - **A pie's shares are exact ratios rounded once**, to `SHARE_PLACES` (one)
   place of a percentage, of the whole its slices make as they are drawn,
-  and printed by the formatter's new `percent`, which refuses a share
-  Intl would round again (`percent-rounds-again`, a new format code).
-  **Shares need not add up to 100.0 %**: three equal slices print 33.3 %
-  each. A percentage is written as the engine's ICU writes one, and a pie
-  entry that labels its value reads `label: value (share)` in every
-  language.
+  and printed by the formatter's new `percent`, which refuses a fraction
+  Intl would round again (`percent-rounds-again`, a new format code), as
+  no pie's share is. **Shares need not add up to 100.0 %**: three equal
+  slices print 33.3 % each, as `lower-chart.test.ts` holds. A percentage
+  is written as the engine's ICU writes one, and a pie entry that labels
+  its value reads `label: value (share)` in every language.
 - **Two new codes refuse what would be drawn wrong**, each naming the chart
   and quoting nothing of the data: `chart-too-many-categories`, for a chart
-  of more than `MAX_CHART_CATEGORIES` (200, chosen) categories or a pie of
-  more categories than its palette has colours, checked before anything is
-  totalled, since two slices of one colour are told apart by nothing; and
-  `chart-negative-share`, for a pie with a negative value, even one that
-  cancels to zero. A chart with nothing to draw -- no rows, no value, a pie
-  of zeros -- holds its title and its empty text alone.
+  of more than `MAX_CHART_CATEGORIES` (200, chosen) categories, or for a
+  pie of more categories than its palette has colours, since two slices of
+  one colour are told apart by nothing, either checked before anything is
+  totalled; and `chart-negative-share`, for a pie with a negative value,
+  even one that cancels to zero. A chart with nothing to draw -- no rows,
+  no value, a pie of zeros -- holds its title and its empty text alone.
 - **The runtime exports** the block's types (`Chart`, `AxisChart`,
   `PieChart`, `ChartValue`, `ChartLegendEntry`, `ChartSeriesValues`) and
   `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and `SHARE_PLACES`, so that

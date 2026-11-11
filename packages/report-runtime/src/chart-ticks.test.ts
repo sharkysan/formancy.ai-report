@@ -21,6 +21,8 @@ describe('chartTicks', () => {
     ['line', ['10.5', '12.25'], 2, ['10.5', '11', '11.5', '12', '12.5']],
     ['bar', ['0', '1'], 0, ['0', '1']], // counts are never cut into fractions
     ['line', ['12.345', '12.346'], 0, ['12', '13']], // values finer than the format: no step below a unit of what it prints
+    ['line', ['10000', '12000'], 0, ['10000', '10500', '11000', '11500', '12000']], // a line's rise is its own range, not a seventh of the box
+    ['bar', ['10000', '12000'], 0, ['0', '5000', '10000', '15000']], // the same values as bars, from zero
   ] as const)('%s of %j at scale %i ticks %j', (chart, values, scale, ticks) => {
     expect(shown(values, chart, scale)).toEqual(ticks)
   })

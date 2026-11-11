@@ -64,15 +64,16 @@ evaluate conditions and expressions        fixed capabilities; EXPRESSION_STEP_B
    ▼
 order and group the rows; compute each aggregate exactly, then round it once
    ▼
-a chart's categories grouped as a table's rows are, each series totalled by
-the aggregates' function, its axis ticked exactly, every word formatted (6.18)
-   ├─ more categories than MAX_CHART_CATEGORIES, or a pie than its palette's
-   │  colours, or a pie's value negative ──────────────────────▶ refused
-   ▼
 an e-invoice's lines, read once from its table's rows; its totals computed
 once; its other terms held to EN 16931's rules (6.8)
    ▼
 format every value for the locale          Intl handed exact digits, never a double
+   ▼
+a chart, where it stands: its categories grouped as a table's rows are, each
+series totalled by the aggregates' function, its axis ticked exactly, every
+word formatted (6.18)
+   ├─ more categories than MAX_CHART_CATEGORIES, or a pie than its palette's
+   │  colours, or a pie's value negative ──────────────────────▶ refused
    ▼
 images through the host's lookup, by id and digest, once each; an SVG
 past MAX_SVG_BYTES refused (6.9)
@@ -958,9 +959,9 @@ label or a category. A chart's number and the table's beside it are read
 by `fieldValue`, grouped by `sort-group.ts`, totalled by `totalOf` and
 printed by the one formatter, so where both print a total of the same
 rows in the same format, they print the same text
-([0055](../decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)). The ticks are
-BigInt division on a decimal's units, and a share an exact ratio rounded
-once and printed without rounding again, so nothing a chart prints passes
-through a double. What a renderer may make of the block is a coordinate
-from a value's `exact`, with `Number`, and nothing else: every word it
-draws is in the block.
+([0055](../decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
+The ticks are BigInt division on a decimal's units, and a share an exact
+ratio rounded once and printed without rounding again, so nothing a chart
+prints passes through a double. What a renderer may make of the block is
+a coordinate from a value's `exact`, with `Number`, and nothing else:
+every word it draws is in the block.

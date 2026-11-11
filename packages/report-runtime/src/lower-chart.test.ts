@@ -233,7 +233,7 @@ describe('a bar chart', () => {
     expect(of('data')).toEqual(['No region 5.00', 'South 2.00', 'North 8.00'])
     const lacking = chartData(rows.map(({ region, ...row }) => (region === null ? row : { ...row, region })))
     expect(of('asc', lacking, PREVIEW)).toEqual(['North 8.00', 'South 2.00', 'No region 5.00'])
-    // A field the validator holds never null has no null label: a preview that lacks it prints nothing for it, the data check having warned.
+    // A chart that names no null label, over a field the validator holds never null: a preview that lacks it prints nothing for it, the data check having warned.
     const months = axis(chartReport({ category: { field: detail('month'), order: 'asc' } }), chartData(rows.map(({ month: _, ...row }) => row)), PREVIEW)
     expect(months.categories).toEqual([''])
   })
@@ -271,6 +271,17 @@ describe('a pie', () => {
     // Without value labels, its legend names its categories alone.
     expect(pie(unitsPie(), data).legend.map(({ text }) => text)).toEqual(['North', 'South', 'East'])
     expect(SHARE_PLACES).toBe(1)
+  })
+
+  // Each share is rounded on its own: shares nudged to add up would change one
+  // slice when another category's value did, and a reader who divides a value
+  // by the whole would get another share than the one printed.
+  test('rounds each share on its own, so three equal slices print 33.3% each', () => {
+    expect(pie(unitsPie({ valueLabels: true }), regions(3, { units: '1' })).legend.map(({ text }) => text)).toEqual([
+      'R0: 1 (33.3%)',
+      'R1: 1 (33.3%)',
+      'R2: 1 (33.3%)',
+    ])
   })
 
   // R17 -- two slices of one colour are told apart by nothing. The runtime

@@ -281,18 +281,19 @@ itself is unchanged, and still runs when the report resolves.
 `data.test.ts` holds that `isSubmissionId` accepts what a source accepts.
 
 **Added 2026-11-11: a chart.** The document gains a `chart` block, as
-[0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md) decides: a bar, line
-or pie chart's categories, its series' values, its value axis's ticks, a
-pie's slices and its legend, each value held as its exact digits beside
-the text it prints, so that the renderer formats, rounds and ticks
-nothing. This record's rules hold of it unchanged. Its rows are grouped by
-`sort-group.ts`, as a table's, and each series is totalled by `totalOf`,
-the function every aggregate and every group's total is computed by, so
-a chart's number and a table's over the same rows are one function's. The
-value axis is chosen exactly, in BigInt (`chart-ticks.ts`), and a pie's
-share is an exact ratio rounded once and printed by `Formatter.percent`,
-which refuses a share Intl would round again. A chart past `MAX_CHART_CATEGORIES`, or a pie past its
-palette, is refused before anything is totalled. `lower-chart.test.ts`
+[0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)
+decides: a bar, line or pie chart's categories, its series' values, its
+value axis's ticks, a pie's slices and its legend, each value held as its
+exact digits beside the text it prints, so that the renderer formats,
+rounds and ticks nothing. This record's rules hold of it unchanged. Its
+rows are grouped by `sort-group.ts`, as a table's, and each series is
+totalled by `totalOf`, the function every aggregate and every group's
+total is computed by, so a chart's number and a table's over the same rows
+are one function's. The value axis is chosen exactly, in BigInt
+(`chart-ticks.ts`), and a pie's share is an exact ratio rounded once and
+printed by `Formatter.percent`, which refuses a fraction Intl would round
+again, as no share is. A chart past `MAX_CHART_CATEGORIES`, or a pie past
+its palette, is refused before anything is totalled. `lower-chart.test.ts`
 and `chart-ticks.test.ts` hold it.
 
 ## Alternatives considered
