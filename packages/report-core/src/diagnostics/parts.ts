@@ -309,6 +309,16 @@ const READERS: { readonly [K in ComponentKind]: Reader<K> } = {
     }
     into.footer(table.totals, `${path}/totals`, 'report', owner)
   },
+  // A chart holds no expression: it names the field it groups by, the field
+  // each series totals (a count of rows names none), and the currency its
+  // formats print in, all after the chart.
+  chart: (chart, path, into) => {
+    const owner = { componentId: chart.id }
+    into.field(chart.category.field, `${path}/category/field`, owner)
+    for (const [index, series] of chart.series.entries()) if (series.of !== undefined) into.field(series.of, `${path}/series/${index}/of`, owner)
+    into.format(chart.category.format, `${path}/category/format`, owner)
+    into.format(chart.valueFormat, `${path}/valueFormat`, owner)
+  },
 }
 
 type PartReader<K extends PaymentPartKind> = (part: Extract<PaymentPart, { kind: K }>, path: string, into: Collector) => void

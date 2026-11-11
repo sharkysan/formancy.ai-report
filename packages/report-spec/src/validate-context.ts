@@ -26,6 +26,8 @@ export interface Declared {
   assets: Declarations<AnyAssetMediaType | undefined>
   /** What each aggregate computes, when that is known: what an expression computes is not. */
   aggregates: Declarations<FieldType | undefined>
+  /** The fields each dataset role declares that may be null, when its contract could be read; a chart asks the label its null rows print under. */
+  nullable: Map<string, ReadonlySet<string>>
 }
 
 export interface Ctx {
@@ -42,7 +44,7 @@ export interface Ctx {
 export function newContext(): Ctx {
   return {
     f: new Findings(),
-    declared: { styles: undefined, datasets: undefined, parameters: undefined, assets: undefined, aggregates: undefined },
+    declared: { styles: undefined, datasets: undefined, parameters: undefined, assets: undefined, aggregates: undefined, nullable: new Map() },
     componentIds: new Map(),
     detailTable: undefined,
     printable: undefined,

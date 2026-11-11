@@ -655,7 +655,7 @@ describe('what the e-invoice is held against, when it could not be read', () => 
     expect(refusals(withBill({ '/paymentPart/account': literal('CH52 0483 5012 3456 7100 1') }))).toEqual(['invalid-qr-bill /paymentPart/account'])
     // A component refused leaves the regions unread: the lines' table and
     // the codes in them are not looked for, rather than reported missing.
-    expect(refusals(report({ '/regions/summary/0/kind': 'chart' }))).toEqual(['unknown-kind /regions/summary/0/kind'])
+    expect(refusals(report({ '/regions/summary/0/kind': 'gauge' }))).toEqual(['unknown-kind /regions/summary/0/kind'])
     expect(refusals(report({ '/title': 42 }))).toEqual(['wrong-type /title'])
   })
 })

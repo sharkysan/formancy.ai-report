@@ -110,6 +110,18 @@ function everyKind(): ReportDefinition {
           repeatHeader: true,
         },
         {
+          id: 'sales',
+          kind: 'chart',
+          chart: 'bar',
+          dataset: 'detail',
+          width: 300,
+          height: 180,
+          category: { field: detail('site'), order: 'data' },
+          series: [{ id: 'series-1', label: 'Amount', fn: 'sum', of: detail('amount') }],
+          valueFormat: { kind: 'number', scale: 2, grouping: true },
+          emptyText: 'No data.',
+        },
+        {
           id: 'notes',
           kind: 'section',
           padding: 6,

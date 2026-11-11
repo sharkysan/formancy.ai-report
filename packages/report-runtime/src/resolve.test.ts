@@ -120,7 +120,7 @@ describe('resolveReport', () => {
   // this version does not know is refused whole, never skipped.
   test('refuses a report the validator refuses, with its errors', () => {
     const report = sampleReport()
-    const broken = { ...report, regions: { ...report.regions, summary: [{ id: 'chart', kind: 'chart' }] } } as unknown as ReportDefinition
+    const broken = { ...report, regions: { ...report.regions, summary: [{ id: 'gauge', kind: 'gauge' }] } } as unknown as ReportDefinition
     expect(refusals(broken)).toEqual(['report unknown-kind /regions/summary/0/kind'])
   })
 

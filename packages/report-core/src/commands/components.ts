@@ -107,6 +107,7 @@ const NAMED_AFTER: { readonly [K in ComponentKind]: string } = {
   columns: 'columns',
   section: 'section',
   table: 'table',
+  chart: 'chart',
   pageBreak: 'page-break',
   keepTogether: 'keep-together',
 }

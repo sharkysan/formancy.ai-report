@@ -127,7 +127,7 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
   'unknown-property': { refuse: set('/regions/body/1/width', 10), accept: set('/regions/body/1/style', 'body'), at: ['/regions/body/1/width'] },
   // A component kind this version does not know is refused, never skipped:
   // a skipped block is silently missing content (fail closed).
-  'unknown-kind': { refuse: set('/regions/body/1/kind', 'chart'), accept: set('/regions/body/1/kind', 'spacer'), at: ['/regions/body/1/kind'] },
+  'unknown-kind': { refuse: set('/regions/body/1/kind', 'gauge'), accept: set('/regions/body/1/kind', 'spacer'), at: ['/regions/body/1/kind'] },
   // A page size the renderer has no dimensions for would print at a default
   // size the author never chose. Letter is one, for a report without the
   // fixture's QR-bill, which is printed on A4.
@@ -229,6 +229,13 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
       return report
     },
     at: ['/eInvoice/buyer/address/country'],
+  },
+  // A legend entry of nothing names no series: a reader could not tell which
+  // bars are which.
+  'invalid-chart': {
+    refuse: set('/regions/summary/4/series/1/label', ' '),
+    accept: set('/regions/summary/4/series/1/label', 'Line count'),
+    at: ['/regions/summary/4/series/1/label'],
   },
   // A rounding increment is an exact decimal; '.05' is a spelling a
   // decimal parser may read, or not.
