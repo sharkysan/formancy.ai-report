@@ -369,7 +369,7 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
-  # The e-invoice gate (0027, 0031, 0056): Mustang, KoSIT's validator
+  # The e-invoice gate (0027, 0031, 0057): Mustang, KoSIT's validator
   # with its XRechnung configuration, and veraPDF, at the releases
   # docs/release/e-invoice-tools.json pins, each fetched by URL and refused
   # unless its SHA-256 is the registered one, then run, with Java's HTTP and
@@ -379,7 +379,7 @@ jobs:
   # variants that carry the first sample's e-invoice on other pages, veraPDF
   # and Mustang, and over the PDF/A-2b it draws of every starter that is no
   # e-invoice, of three variants on the quotation's page and of two of the
-  # corpus's fixtures, veraPDF alone with its 2b profile (0056), and over
+  # corpus's fixtures, veraPDF alone with its 2b profile (0057), and over
   # controls broken one named way each, which every tool must judge exactly
   # as each expects -- Mustang never by its exit status alone, which is 0
   # on a PDF whose XML is valid whatever its PDF/A says; and report-spec's

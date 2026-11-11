@@ -70,7 +70,7 @@
       ]
     },
     "0005": {
-      "reviewed": "sha256:c25a62ca9a3c112b80f6aaaa7ac267870ff11cde01f4776d85d11beb8b4f2f97",
+      "reviewed": "sha256:2bc54ba2021b4cd2cf44fb8c9f54001b95c88e52d1de45ded470b04cce2a5c4e",
       "limitations": [
         {
           "area": "rendering",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:358a559280561418d1bafe9fe9f0cc201f522ceeb621729c28bc67651f7069a2",
+      "reviewed": "sha256:d40db9e5a7171bbb651b70a831ea839ace67724774cd9f71e33d9227c188ade5",
       "limitations": [
         {
           "area": "rendering",
@@ -1024,7 +1024,7 @@
       ]
     },
     "0030": {
-      "reviewed": "sha256:c64937d3fb7ac564b9eb61a2a27edeb159d2e71ff0008609840f9c5ec5a85f37",
+      "reviewed": "sha256:0947af8b1931833abdcbcd32d01c923e1cc8a9614a03b65cc5958a25672cd335",
       "limitations": [
         {
           "area": "format",
@@ -1121,7 +1121,7 @@
       ]
     },
     "0031": {
-      "reviewed": "sha256:6710aabd88c105f8e8f501fef033acf5ce854a9d77234fe9e0c320e82feba0fd",
+      "reviewed": "sha256:a9b554847e326cee26b5e61b46afa5868417816123ed945f3c5685ed6e94efd3",
       "limitations": [
         {
           "area": "rendering",
@@ -1399,7 +1399,7 @@
       ]
     },
     "0038": {
-      "reviewed": "sha256:c004c5e3dbade806092187a42896bd13c1e9a6c7fe0f29af725f99d6ced24210",
+      "reviewed": "sha256:3241ff5eee759216395cadd47db1ae9c166a37f0c9f818e804be9855829da813",
       "limitations": [
         {
           "area": "format",
@@ -2305,6 +2305,54 @@
           "area": "data",
           "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
           "heldBy": "packages/report-forms/src/review.test.ts"
+        }
+      ]
+    },
+    "0057": {
+      "reviewed": "sha256:07f08d6e4ee202c9632f8aeb2e1d207dab92fecf3f8934ea71e1d1081c7a42d7",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A PDF/A-2b, which a host asks for with `pdfa: '2b'`, is level b alone, so it has no structure tree and is no tagged, accessible PDF, and a receiver who asks for PDF/A-2a or 2u gets level b.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-2b.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Whether a render is a PDF/A-2b is the host's choice at that render and no report says it, so a CMYK JPEG, an SVG whose box carries its numbers past what a PDF/A holds, or a title holding `&`, `<` or `>` is refused only by a render asked for as one, and neither the builders nor the validator warn of it beforehand.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-check.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A Factur-X e-invoice, an XRechnung's copy and a preview the runtime labels so are refused as `unsupported` when asked for as a PDF/A-2b, each to be rendered without `pdfa`, so a host that sets it on every render drops it for them.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-check.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A PDF/A-2b's render in Node reads PDFKit's ICC profile from `data/sRGB_IEC61966_2_1.icc` beside PDFKit's own code, as an e-invoice's does, so a host that bundles the Node entry ships that file where the bundled PDFKit's `__dirname` points, or every PDF/A-2b render fails with the file system's error, which nobody here has tried.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A preview that lacks nothing and is of no e-invoice carries no label, so it is drawn as a PDF/A-2b like its final render, which the renderer cannot tell it from and the tests show to be the same document for the quotation alone.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-2b.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A report drawn as a PDF/A-2b is 4,243 to 4,262 bytes larger than drawn plain, the starters 25,037 to 77,558 bytes against 20,791 to 73,297, and their medians of nine renders within 2 ms of the plain ones, measured on 11 November 2026 from the built packages on Node 22.23.3 and an Apple M2."
+        },
+        {
+          "area": "testing",
+          "says": "veraPDF judges as PDF/A-2b the starters that are no e-invoice, three variant pages on the quotation's and the corpus's two fonts fixtures, so a customer's template is held by the renderer's refusals and not by a validator.",
+          "heldBy": "scripts/e-invoice/pdfa-2b.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "The e-invoice gate records every PDF/A-2b by the digest of its objects inflated, so a change to what a starter draws, and the PDF/A-2b corpus until it is first recorded, fails CI's `e-invoice` job and the judges' tests until somebody with a Java retakes the record with `--record` on a passing run.",
+          "heldBy": "scripts/e-invoice/record.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "veraPDF's PDF/A-2b verdicts were read on 11 November 2026 on Zulu 22.0.1 on a Mac, not on the Temurin 17 the register names and CI runs, where they have not been seen."
         }
       ]
     }

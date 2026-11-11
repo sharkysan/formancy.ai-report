@@ -89,7 +89,7 @@ describe('veraPDF’s command line', () => {
 
   // veraPDF left without a flavour judges a file by the one its XMP
   // declares: a PDF/A-3b drawn where a 2b was asked for would be accepted
-  // as the 3b it says it is (0056). So each corpus is run with its flavour
+  // as the 3b it says it is (0057). So each corpus is run with its flavour
   // named, and a run of no flavour the gate holds a profile for is refused
   // before it starts.
   test('validates the e-invoice corpus with --flavour 3b and the PDF/A-2b corpus with --flavour 2b', () => {
@@ -195,7 +195,7 @@ describe('veraPDF’s verdict', () => {
     expect(reported).toEqual(['1.30.3'])
   })
 
-  // The recorded PDF/A-2b run as it is (0056): every starter that is no
+  // The recorded PDF/A-2b run as it is (0057): every starter that is no
   // e-invoice and every variant PDF/A-2b, and each control refused for
   // exactly what it breaks -- the quotation drawn plain, and the e-invoice
   // sample's PDF/A-3b, which the 2b profile refuses because the flavour is
@@ -339,7 +339,7 @@ describe('veraPDF’s verdict', () => {
   // A 2b run is judged by the 2b profile: a job validated against another,
   // such as the 3b profile a veraPDF that detected the flavour would pick
   // for a PDF whose XMP says part 3, is no verdict on a PDF/A-2b, whatever
-  // it found (0056). Here the recorded 3b run, each job's profile renamed
+  // it found (0057). Here the recorded 3b run, each job's profile renamed
   // the 2b one, stands for a 2b run, and one job left with the 3b profile.
   test('refuses a PDF/A-2b judged against another profile than the 2b one', () => {
     const as2b = (left = []) =>
@@ -371,7 +371,7 @@ describe('veraPDF’s verdict', () => {
   // The gate runs veraPDF twice, and a problem of a run as a whole -- how
   // it exited, what it wrote on stderr, its version, its jobs, or that it
   // did not run at all -- names no file to tell which: read in a failed
-  // log, a 2b run's would send its reader to the 3b run's report (0056).
+  // log, a 2b run's would send its reader to the 3b run's report (0057).
   // So the 2b run's say so; the 3b run's are the sentences the gate gave
   // before it ran a second, and stay as they were.
   test('names the PDF/A-2b run in each problem of the run as a whole, and leaves the 3b run’s as they were', () => {

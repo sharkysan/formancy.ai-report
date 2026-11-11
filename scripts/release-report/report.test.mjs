@@ -297,7 +297,7 @@ describe('the e-invoice gate', () => {
     ])
   })
 
-  // The PDF/A-2b is a format of its own, judged by veraPDF alone (0056): a
+  // The PDF/A-2b is a format of its own, judged by veraPDF alone (0057): a
   // run whose gate drew no 2b veraPDF accepted judged no 2b at all, and
   // one without a 2b control it refused cannot show that veraPDF judged
   // the 2b by its 2b profile, rather than accepting a file as whatever it

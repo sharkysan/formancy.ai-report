@@ -9,7 +9,7 @@ import { bareDocument, fixture, paragraph, TIMEOUT } from './testing/documents.j
 import { copied, E_INVOICE_FILE, invoiced } from './testing/e-invoice.js'
 
 /**
- * What a document is drawn as, which `checkPdfA` decides once (0056): an
+ * What a document is drawn as, which `checkPdfA` decides once (0057): an
  * e-invoice's PDF/A-3b, the PDF/A-2b a host asked for with `pdfa: '2b'`,
  * or a plain PDF; and what it refuses as a PDF/A-2b. Each case runs
  * through the Node entry, watching what pdfmake is handed, so that a

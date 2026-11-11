@@ -23,7 +23,7 @@ import type { RenderOptions } from './options.js'
 import { TIMEOUT } from './testing/documents.js'
 
 /**
- * The PDF/A-2b a host asks for with `pdfa: '2b'` (0056), proved on the
+ * The PDF/A-2b a host asks for with `pdfa: '2b'` (0057), proved on the
  * PDF the engine produced (0003): every starter that is no e-invoice,
  * resolved by the real runtime in a final render with the starters'
  * approved images (`starterImages`, the lookup of `STARTER_IMAGES`) and
@@ -213,7 +213,7 @@ describe('the starters drawn as PDF/A-2b', () => {
     TIMEOUT,
   )
 
-  // The renderer has no mode (0056): a preview that lacks nothing carries
+  // The renderer has no mode (0057): a preview that lacks nothing carries
   // no label, and is its final render's document. Drawn as 2b it is that
   // render's 2b, byte for byte; refused, or drawn otherwise, a host that
   // archived the preview would hold another PDF than the report's.

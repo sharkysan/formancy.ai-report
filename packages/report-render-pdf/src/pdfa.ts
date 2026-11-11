@@ -11,7 +11,7 @@ import type { FacturXFile } from '@formancy/report-runtime'
  * they are added to PDFKit's document between layout and `end`, the one
  * hook the engines take (`Engine.run`'s `finish`), on the final pass alone.
  *
- * A final render a host asks for as `pdfa: '2b'` is a PDF/A-2b (0056),
+ * A final render a host asks for as `pdfa: '2b'` is a PDF/A-2b (0057),
  * the archival PDF of a report that is no e-invoice: the same version, its
  * own subset, `PDF_A_2B`, and no hook, so that it embeds no file and its
  * XMP is PDFKit's alone. Which a document is drawn as, if either, is

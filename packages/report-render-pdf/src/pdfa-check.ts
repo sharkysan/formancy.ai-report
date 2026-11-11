@@ -8,7 +8,7 @@ import type { PdfA } from './pdfa.js'
  * Factur-X e-invoice as the PDF/A-3b that embeds its XML (0031); an
  * XRechnung as the plain copy its label says it is (0038); a document a
  * host asks for as `pdfa: '2b'` as a PDF/A-2b, which embeds nothing
- * (0056); and every other document as a plain PDF, as it always was. The
+ * (0057); and every other document as a plain PDF, as it always was. The
  * definition, the final pass's hook and the image checks read the one
  * answer, `Checked.pdfa`, and none of them decides it again.
  *

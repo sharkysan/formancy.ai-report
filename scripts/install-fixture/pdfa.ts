@@ -1,7 +1,7 @@
 /*
  * A PDF/A-2b, from the packed packages under Node: the quotation drawn in a
  * final render with `pdfa: '2b'`, the archival PDF an e-invoice is not
- * (D-pdfa). consume.ts runs it and prints what it returns. What only this
+ * (0057). consume.ts runs it and prints what it returns. What only this
  * gate sees is the PDFKit a clean npm install gives pdfmake, the one
  * report-render-pdf pins (0036), and the profile it reads from its own
  * directory there; embedding.ts reads PDFKit's bytes with Node alone.

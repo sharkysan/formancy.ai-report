@@ -57,11 +57,16 @@ dropped: a construct nobody decided about is one a browser may draw and
 the converter not (0030).
 And the renderer refuses an e-invoice whose file it does not know, whole,
 rather than embed it as something else or draw it as a plain PDF without
-the XML that, in Germany, is the invoice (0027), and a Factur-X invoice
-that its PDF/A-3b cannot hold, a CMYK JPEG or a title its XMP cannot
-write, rather than draw a PDF that says it is a PDF/A and is not one
-([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md));
-an XRechnung's plain PDF it draws only as its copy, labelled so (0038).
+the XML that, in Germany, is the invoice (0027), and what any PDF/A
+cannot hold, a Factur-X's PDF/A-3b or the PDF/A-2b a host asks for -- a
+CMYK JPEG, an SVG past its integers or its nesting, a title its XMP
+cannot write -- rather than draw a PDF that says it is a PDF/A and is not
+one
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
+[0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md));
+an XRechnung's plain PDF it draws only as its copy, labelled so (0038),
+and refuses it, a Factur-X and a labelled preview as a PDF/A-2b, which
+none of them can be.
 
 **A stage that does not handle something yet refuses it.** A chart arrives
 a stage at a time, and each stage merges on its own. The format holds a
@@ -164,6 +169,13 @@ render writes the XML or refuses
 and the renderer draws a final render as the PDF/A-3b that embeds it, and
 a preview as a plain PDF that embeds nothing
 ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+
+A preview is never an archive. The renderer has no mode, so it reads the
+runtime's label: a document whose page header opens with a preview's
+label is refused as a PDF/A-2b, since it would be kept as the report. A
+preview that lacks nothing and is of no e-invoice carries no label, is
+the same document as its final render, and is drawn as a PDF/A-2b as that
+is (0057).
 
 ## 8.4 Untrusted input
 
@@ -331,8 +343,8 @@ anything:
 - **A font or a profile inside a script.** pdfmake's vfs_fonts.js carries
   Roboto as base64, and the renderer's browser build carries Liberation
   Sans so, for the slip and for an EPC QR code's caption; pdfmake's browser
-  build carries the sRGB profile an e-invoice's PDF/A embeds as base64
-  too. The renderer's `browser.test.ts` holds the fonts to the bytes of
+  build carries the sRGB profile a PDF/A embeds, an e-invoice's or a
+  PDF/A-2b, as base64 too. The renderer's `browser.test.ts` holds the fonts to the bytes of
   the font files the guard does read, and the profile to the digest the
   guard reviewed in PDFKit's file
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),

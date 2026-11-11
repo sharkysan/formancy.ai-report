@@ -291,7 +291,7 @@ describe('the e-invoice gate', () => {
     expect(section(renderContent(report((inputs) => (job(inputs, 'e-invoice').eInvoice = null))))).toContain('The e-invoice gate left no results in this run.')
   })
 
-  // A PDF/A-2b is judged by veraPDF alone (0056): a Mustang or KoSIT cell
+  // A PDF/A-2b is judged by veraPDF alone (0057): a Mustang or KoSIT cell
   // that said "not judged" on its row would read as a verdict missing, and
   // one that said "as expected" as a verdict nobody made. The section says
   // what the gate judges as PDF/A-2b, and how long veraPDF took over it.

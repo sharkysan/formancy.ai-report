@@ -148,7 +148,7 @@ describe('the recorded corpus', () => {
     ).toEqual([])
   })
 
-  // A PDF/A-2b is a PDF, deflated by whatever zlib drew it (0056): held to
+  // A PDF/A-2b is a PDF, deflated by whatever zlib drew it (0057): held to
   // an XML file of its name, it would be stale on every run, and the
   // record could never hold it; held by its inflated digest, it is held as
   // the PDF/A-3b's are.

@@ -110,12 +110,13 @@ drawing past 10,000 weighted segments, which a detailed crest can be. The sample
 many real logos are refused is not known
 ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
-### An SVG in an e-invoice is held to PDF/A by a bound, not by reading the PDF
+### An SVG in a PDF/A is held to it by a bound, not by reading the PDF
 
 An e-invoice is drawn as a PDF/A-3b
 ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)),
-which holds an integer to 2,147,483,647 and nests the graphics state 28
-deep at most. svg-to-pdfkit writes a page-sized group's box and a
+and a report a host asks for as one as a PDF/A-2b
+([0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)), each of which holds an integer to 2,147,483,647 and nests the
+graphics state 28 deep at most. svg-to-pdfkit writes a page-sized group's box and a
 gradient's matrix through the inverse of the drawing's transform and the
 image's box, a gradient's and a clip's in the box it measures on the
 outline, and an outline in points of its own, an arc's grown to reach its
@@ -124,17 +125,19 @@ logo could pass the range: one whose clip and transparency are shrunk a
 millionfold, a point square, wrote a box of 78,520,000,000 into an
 e-invoice that said it was a PDF/A-3b, which veraPDF 1.30.3 failed, and an
 arc of radii a millionth and a million wrote control points of 5 ×
-10^17 at any size. The renderer now refuses such an image in an e-invoice
+10^17 at any size. The renderer now refuses such an image in a PDF/A
 before pdfmake runs, by an upper bound on every number the converter will
 write for it, from the extent report-spec's cleaner measured -- over every
 box inside a shape's, since the cleaner holds a curve by its control
 points and the converter by its outline -- the image's box and the page,
 less a margin of 5.7 % for rounding
-(`report-render-pdf/src/svg-pdfa.ts`); a report that is no e-invoice
-draws it as before. PDF/A-3 keeps none of PDF/A-1's 32,767 for a
+(`report-render-pdf/src/svg-pdfa.ts`); a report drawn as no PDF/A
+draws it as before, and a report that is no e-invoice finds it out only
+at a render its host asks for as a PDF/A-2b. PDF/A-3 keeps none of PDF/A-1's 32,767 for a
 real: veraPDF's PDF/A-3b profile holds a real to 3.403 × 10^38, past the
 10^21 at which PDFKit throws; and the groups' `/DeviceRGB` is accepted
-beside the sRGB output intent, in the gate's two SVG variants.
+beside the sRGB output intent, in the gate's two SVG variants of each
+PDF/A.
 
 What is not held: the bound assumes the converter's arithmetic agrees with
 the cleaner's to that margin, which matrices built to cancel one another
@@ -522,7 +525,8 @@ findings in its suite among it, meets the rules in that merge ([0050](../decisio
 | **Two picture manifests** | The browser gate holds `pictures.json` to the starters the picker offers, and the samples are not starters ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)) | A third list of pictures is a third manifest, or a change to the gate |
 | **A renderer that predates `eInvoice`** | `checkDocument` reads the keys it knows, and 0.1.0's knows no e-invoice ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) | It would draw a resolved e-invoice as a plain PDF, which only two runtimes in one install could hand it, since the packages pin each other exactly |
 | **PDFKit's `/CheckSum` and `/ID`, as PDFKit writes them** | A patch would be a copy of upstream (0002), and filing them upstream is the rightsholder's call; `report-render-pdf/src/pdfmake.test.ts` pins both ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) | An e-invoice's embedded file declares its MD5 in 32 hexadecimal digits where ISO 32000-1 asks for 16 bytes, which veraPDF does not flag, and two e-invoices of one title and creation date share a trailer `/ID` |
-| **A file beside the fonts, outside pdfmake's policy** | PDFKit reads the ICC profile of a PDF/A from its own `data` directory with `fs` (0031) | A host that bundles the Node entry puts the profile where the bundled PDFKit's `__dirname` points, or every e-invoice render fails; nobody here has bundled one |
+| **A file beside the fonts, outside pdfmake's policy** | PDFKit reads the ICC profile of a PDF/A from its own `data` directory with `fs` (0031, 0057) | A host that bundles the Node entry puts the profile where the bundled PDFKit's `__dirname` points, or every PDF/A render fails, an e-invoice's and a PDF/A-2b's; nobody here has bundled one |
+| **veraPDF judges the starters, not a customer's template** | The e-invoice gate draws its PDF/A-2b corpus from the starters, three variant pages on the quotation's and the corpus's two fonts fixtures ([0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)) | A template that draws what none of them does is held by the renderer's refusals alone; what veraPDF would say of it is not known, and the limits of ISO 32000-1 that PDF/A-2 makes rules of, a string's length among them, the renderer does not check |
 | **The demo's policy, held where a gate can see it and not where it is served** | Nothing here reads what the address serves (0018), and the gate runs in Chromium alone, listening in the page, which PDF.js's worker is not ([0051](../decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)) | A Cloudflare setting that drops or rewrites a header goes unnoticed until somebody reads the response, as RELEASING.md says to after a deploy; a refusal inside the worker, or in Firefox or WebKit, is heard by nobody, though a worker that did not start fails the gate; the product's pages were opened under the policy once, by hand |
 | **The fx values wait for a registration** | The official ZUGFeRD package's XMP example sits behind a registration with FeRD only the rightsholder can make (0031) | The renderer's test holds the namespace, prefix and properties to the transcription's values, which agree with Mustang's reading, and to nothing more official |
 | **The corpus's table check and a word broken at its hyphen** | report-corpus's `verify` reads a cell's words by line, and misread "Gas-" over "Brennwertkessel", a word pdfmake broke at its hyphen, as measured on 18 October 2026 (0031) | The e-invoice samples' test on the PDF reads its table itself; a starter or a fixture whose cell breaks so is misreported by the corpus's table check |

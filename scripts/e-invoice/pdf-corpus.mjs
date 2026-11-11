@@ -378,7 +378,7 @@ const said = (values) => (values.length === 0 ? 'none' : values.map((value) => `
  * that XML's. The XML the other tools judged is then the one inside the
  * PDF, byte for byte, as a second reader than veraPDF reads it; veraPDF's
  * feature report gives the file's /Params as the PDF declares them. A
- * PDF/A-2b is read so too, and embeds nothing, as a plain PDF does (0056),
+ * PDF/A-2b is read so too, and embeds nothing, as a plain PDF does (0057),
  * where a control made of a PDF/A-3b embeds what that PDF/A-3b does.
  *
  * And, of a sample's PDF and a variant's -- what the renderer draws as it

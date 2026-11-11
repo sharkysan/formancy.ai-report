@@ -86,14 +86,17 @@ ResolvedDocument + manifest, naming the data's source where it has one
 (+ a preview's warnings)                                     every reason, or none
    │
    ▼
-renderPdf(document, { maxPages, signal })
+renderPdf(document, { maxPages, signal, pdfa })
+   ├─ pdfa neither '2b' nor left out ────────────────────────▶ RangeError
    ├─ before pdfmake sees it: a glyph per character, nothing malformed or
    │ wider than where it stands, each asset's bytes, an SVG's in the form
    │ cleanSvg writes and within what SVGs may cost (6.9), a bill, each
    │ code encoded once and held to its square ───────────────▶ RenderRefusal
-   │ an e-invoice it does not know; in a Factur-X invoice, a title
-   │ its XMP cannot hold, a CMYK JPEG, an SVG whose numbers or
-   │ nesting its PDF/A cannot hold (6.9) ────────────────────▶ unsupported
+   │ an e-invoice it does not know; asked for as pdfa: '2b', a
+   │ Factur-X, an XRechnung's copy or a labelled preview (6.19);
+   │ in a Factur-X invoice or a PDF/A-2b, a title its XMP cannot
+   │ hold, a CMYK JPEG, an SVG whose numbers or nesting its
+   │ PDF/A cannot hold (6.9) ────────────────────────────────▶ unsupported
    ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
    │ browser its chunk imported
    ├─ measure the page regions; the body's margins follow
@@ -108,6 +111,7 @@ renderPdf(document, { maxPages, signal })
    │       an abort is read between passes ──────────────────▶ cancelled
    ├─ an e-invoice: a PDF/A-3b, and on this last pass alone its XML embedded
    │ and its XMP written, through PDFKit's document before it ends (6.8)
+   ├─ pdfa: '2b': a PDF/A-2b on this last pass, nothing embedded (6.19)
    ▼
 Uint8Array
 ```
@@ -903,3 +907,43 @@ the store links `<64 hex>.<png|jpg|svg>` unless it is there already. The
 host keeps the bytes in its cache before `keep` resolves (6.10), and a
 save that declares an image the tenant has not kept, or kept as another
 kind than it declares, is refused, naming it.
+
+## 6.19 A PDF/A-2b, from the host's option to the PDF
+
+```
+host: renderPdf(document, { maxPages, pdfa: '2b' })        a final render
+   ├─ pdfa anything but '2b' or left out ────────────────────▶ RangeError
+   ▼
+checkPdfA(document, '2b'), once, before pdfmake sees it:
+   ├─ an e-invoice it does not know ─────────────────────────▶ unsupported, as without pdfa
+   ├─ a Factur-X, or an XRechnung's copy ────────────────────▶ unsupported, eInvoice
+   ├─ a page header opening with the runtime's PREVIEW_LABEL
+   │  or E_INVOICE_PREVIEW_LABEL, one run ───────────────────▶ unsupported, pageHeader
+   ├─ a title its XMP cannot hold ───────────────────────────▶ unsupported, info.title
+   ▼
+Checked.pdfa = { subset: 'PDF/A-2b' }, which each reader takes:
+   ├─ the images: a CMYK JPEG, an SVG past PDF/A's integers
+   │  or 28 graphics states (6.9) ───────────────────────────▶ unsupported, the image
+   ├─ the measuring passes: neither version nor subset, the pages
+   │  laid out as the final pass lays them out
+   ├─ the final pass: version 1.7, subset PDF/A-2b; no hook runs,
+   │  so nothing is embedded
+   ▼
+PDFKit ends it: the pdfaid identification, part 2 and B, the
+sRGB output intent with the ICC profile it reads from its own
+package, the XMP ────────────────────────────────────────────▶ a PDF/A-2b
+```
+
+A document is drawn as a PDF/A-2b only where the host asks, and the
+renderer decides what it is drawn as in one place, `checkPdfA` in
+`pdfa-check.ts`: the definition, the hook and the image checks read its
+answer and none of them decides it again. The renderer has no mode, so a
+preview is known by the label the runtime heads its every page with, as
+an XRechnung's copy is by its own (0038): a labelled preview is refused
+as a PDF/A-2b, since it would be kept as the report, and one that lacks
+nothing carries no label and is drawn as its final render is. The pages
+are the plain render's, so an archive holds the PDF the person saw. The
+e-invoice gate draws every starter that is no e-invoice so, and has
+veraPDF judge them with its PDF/A-2b profile, `--flavour 2b` and never by
+what the file says it is
+([0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).

@@ -82,7 +82,7 @@ function containerRow(gate) {
 /**
  * The e-invoice gate as the report shows and judges it: the Java and the
  * tools it ran, and each file of its corpus, a sample, a variant or a
- * control, XML, PDF or PDF/A-2b (0056), with what the corpus expects of it
+ * control, XML, PDF or PDF/A-2b (0057), with what the corpus expects of it
  * and each tool's verdict on it, null where the gate recorded none.
  */
 function eInvoiceRow(gate) {

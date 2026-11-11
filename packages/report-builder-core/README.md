@@ -418,7 +418,11 @@ nothing decodes: a picture whose data is corrupt is added, and refused as
 `invalid-asset` when it prints. Nor is what the report gains later: a
 CMYK JPEG added before the report has a Factur-X invoice is refused at its
 final render, as an SVG whose numbers its box would carry past what a
-PDF/A holds is.
+PDF/A holds is. Nor is how a host draws it: in a report that is no
+e-invoice, a CMYK JPEG, such an SVG and a title holding `&`, `<` or `>`
+are added and edited without a word, and refused only by a render the
+host asks for as a PDF/A-2b, which no builder knows of
+([0057](../../docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 
 ## What a builder renders
 

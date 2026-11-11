@@ -281,7 +281,8 @@ from `data/sRGB_IEC61966_2_1.icc`, beside its own `js/pdfkit.js`, so a host
 that bundles the Node entry ships that file where the bundled PDFKit's
 `__dirname` points, or every PDF/A render fails, an e-invoice's and an
 archival one alike. Nobody here has bundled one. Why it is drawn so, and
-what it does not hold, is D-pdfa's.
+what it does not hold, is
+[0057](./decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)'s.
 
 What it costs: pdfmake lays out a whole document in one synchronous pass on
 the thread that calls it. The render yields between its passes, so an

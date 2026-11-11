@@ -22,7 +22,7 @@ export type { RenderOptions } from './options.js'
  * same OFL-1.1 fonts the dependency-licence guard reads (0006). Nothing here
  * touches a file system: the fonts are pdfmake's virtual files, and every
  * address is denied. The output intent of a PDF/A -- an e-invoice's
- * PDF/A-3b, or the PDF/A-2b a host asks for (0056) -- is the ICC profile
+ * PDF/A-3b, or the PDF/A-2b a host asks for (0057) -- is the ICC profile
  * the browser build carries as base64 (`build/pdfmake.js` 20777), the very
  * bytes of PDFKit's file, which `browser.test.ts` holds.
  *

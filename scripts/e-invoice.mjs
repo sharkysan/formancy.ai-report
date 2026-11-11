@@ -1,4 +1,4 @@
-// The e-invoice gate (0027, 0031, 0038, 0056): Mustang, KoSIT's validator
+// The e-invoice gate (0027, 0031, 0038, 0057): Mustang, KoSIT's validator
 // and veraPDF, at the releases docs/release/e-invoice-tools.json pins, over
 // the CII XML the runtime writes of every e-invoice sample of the corpus --
 // the Factur-X samples' and the XRechnung sample's, each in its kind's

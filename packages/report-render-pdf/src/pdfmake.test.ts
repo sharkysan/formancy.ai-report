@@ -84,7 +84,7 @@ describe('pdfmake as the renderer configures it', () => {
   // `data` folder with `fs`, past pdfmake's policy, as it ends the
   // document (pdfkit.js 5265): the one file beside the fonts a render
   // reads (0031, amending 0005), and only a PDF/A's -- an e-invoice's
-  // PDF/A-3b, or the PDF/A-2b a host asked for (0056). A host that
+  // PDF/A-3b, or the PDF/A-2b a host asked for (0057). A host that
   // bundles the Node entry must copy it there, as it does the fonts. Were
   // PDFKit to read anything else -- its standard fonts' metrics, a second
   // profile -- or a plain report to read the profile, this fails first.

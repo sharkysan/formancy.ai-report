@@ -18,7 +18,7 @@ import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
 
 try {
   const pdf: Uint8Array = await renderPdf(document, { maxPages: 200, signal })
-  // the whole report, every page of it
+  // the whole report, every page of it; with pdfa: '2b', a PDF/A-2b of it
 } catch (error) {
   if (!(error instanceof RenderRefusal)) throw error // the engine failing, not the report
   // error.code says what stopped it; error.subject names the asset, table
@@ -30,7 +30,8 @@ try {
 `renderPdf` resolves to the PDF's bytes, or rejects with a `RenderRefusal`.
 A refusal is decided before the PDF is written: a refused report has no
 PDF at all. Anything else it rejects with is a fault, and a `maxPages` that
-is not a whole number of pages, at least 1, is the caller's: a `RangeError`.
+is not a whole number of pages, at least 1, or a `pdfa` other than `'2b'`,
+is the caller's: a `RangeError`.
 
 The same document renders to the same bytes: the creation date is the
 document's own (`info.creationDate`), and nothing else in the file varies.
@@ -49,7 +50,7 @@ same objects, each stream inflated, not to the same file.
 
 | Entry | pdfmake | Fonts |
 |---|---|---|
-| `@formancy/report-render-pdf` | the Node build | the four Roboto files in pdfmake's package, and for a QR-bill's slip and an EPC QR code's caption the two Liberation Sans files in this package's `fonts`, read from disk; for an e-invoice, PDFKit reads its ICC profile from its own package (below) |
+| `@formancy/report-render-pdf` | the Node build | the four Roboto files in pdfmake's package, and for a QR-bill's slip and an EPC QR code's caption the two Liberation Sans files in this package's `fonts`, read from disk; for a PDF/A, an e-invoice's or a PDF/A-2b, PDFKit reads its ICC profile from its own package (below) |
 | `@formancy/report-render-pdf/browser` | the browser build, `pdfmake/build/pdfmake.js` | the same Roboto, from pdfmake's `build/vfs_fonts.js`, and the same Liberation Sans from a chunk of the build's own, imported the first time a document has a bill or a captioned EPC QR code |
 
 The two entries share everything but the build of pdfmake and where the
@@ -151,7 +152,7 @@ Every block of the resolved document:
 | `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
 | `invalid-asset` | An image's bytes are not the PNG, JPEG or SVG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side, and for an SVG a mebibyte; a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031); an SVG is not exactly the drawing report-spec's `cleanSvg` writes (below). A PNG's or a JPEG's structure is read by report-spec's `imageHeader`, which a builder refuses an image a person adds by too, in the same words (0033); whether a PNG's image data inflates to the scanlines its header promises is read here alone, since it needs the platform's decompressor. A host's font `readFont` refuses, one PDFKit would draw as another face, or one asset id handed in two byte strings, naming the asset (0043). |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or one its PDF/A-3b cannot hold, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them (below). |
+| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or what a PDF/A cannot hold, an e-invoice's PDF/A-3b or a PDF/A-2b, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them; and as a PDF/A-2b, a Factur-X, an XRechnung's copy and a labelled preview (below). |
 
 ## SVG images
 
@@ -203,9 +204,10 @@ the form that was approved.
   `MAX_SVG_SEGMENTS` and `MAX_SVG_GROUPS` over every SVG image of the body,
   as though all fell on one page, and those of the page regions. A
   translucent logo printed twice in the body can be refused for it.
-- **Held to PDF/A in an e-invoice** (below): an SVG whose numbers could
-  pass the integers a PDF/A-3 holds, or whose drawing nests deeper than
-  its graphics state may, is refused there and drawn in any other report.
+- **Held to PDF/A's limits in a PDF/A** (below), an e-invoice's PDF/A-3b or a
+  PDF/A-2b: an SVG whose numbers could pass the integers a PDF/A holds, or
+  whose drawing nests deeper than its graphics state may, is refused there
+  and drawn in a report drawn as no PDF/A.
 
 ## QR codes
 
@@ -358,6 +360,77 @@ What the slip does not do:
   decides: the lines an address and the additional information print,
   each section's height, an amount's printed form, and the code's 997.
 
+## PDF/A-2b
+
+`renderPdf(document, { maxPages, pdfa: '2b' })` draws a final render of a
+report that is no e-invoice as a PDF/A-2b, in either entry
+([0057](../../docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)):
+part 2, which Switzerland's electronic patient record stores a PDF as, at
+the level pdfmake and PDFKit reach. `'2b'` is the one value, and any other
+is a `RangeError` before anything is read. Without `pdfa` nothing changes.
+
+- **What it is.** The final pass's definition gets `version` 1.7 and
+  `subset` `PDF/A-2b`, so PDFKit writes the pdfaid identification, part 2
+  and level B, an sRGB output intent with its ICC profile, and the XMP, as
+  it does for an e-invoice's PDF/A-3b. No hook runs, and nothing is
+  embedded. The measuring passes have neither version nor subset, and lay
+  the pages out as the final pass does, so a PDF/A-2b's pages are the
+  plain render's. Level b alone: no structure tree, so no tagged,
+  accessible PDF.
+- **Decided once.** `checkPdfA` (`pdfa-check.ts`) decides what a document
+  is drawn as -- a Factur-X's PDF/A-3b, the PDF/A-2b a host asked for, or a
+  plain PDF -- and the definition, the final pass's hook and the image
+  checks read its answer.
+
+It refuses, as `unsupported` and before pdfmake sees the document, each
+message saying what to do:
+
+- a Factur-X e-invoice and an XRechnung's copy, naming `eInvoice`: a
+  Factur-X is drawn as the PDF/A-3b that embeds its XML, which a PDF/A-2b
+  may not embed, and an XRechnung's PDF is the copy of the XML a host
+  sends, never an archival PDF. Each is rendered without `pdfa`. An
+  e-invoice the renderer does not know is refused for what it is, with
+  `pdfa` or without;
+- a preview the runtime labels so, naming `pageHeader`: a page header
+  whose first block is a paragraph of one run, the runtime's
+  `PREVIEW_LABEL` or `E_INVOICE_PREVIEW_LABEL`, in any style. The renderer
+  has no mode, so it reads the runtime's label, as it reads an XRechnung's
+  copy's, and a PDF/A-2b of a preview would be kept as the report. A
+  preview that lacks nothing and is of no e-invoice carries no label, is
+  the same document as its final render, and is drawn as one. A label
+  among other runs or below another block is not read;
+- what an e-invoice's PDF/A-3b refuses (below), each message naming the
+  PDF/A-2b: a title holding `&`, `<`, `>` or a character XML 1.0 cannot
+  write, naming `info.title`, which report-spec refuses in an e-invoice
+  report alone, so a report that is none may hold one; a CMYK JPEG, naming
+  the image; and an SVG whose numbers could pass the integers a PDF/A
+  holds, or whose drawing nests deeper than 28 graphics states, naming it.
+
+None of these is said before the render: whether a render is a PDF/A-2b is
+the host's choice at that render, which the builders and the validator do
+not know. What holds by construction: pdfmake embeds a subset of every face
+it draws, and a character a face lacks is refused; the renderer hands
+pdfmake no password, and neither writes JavaScript, an action, a form or
+an annotation; the transparency PDF/A-2 admits, an RGBA PNG's soft mask
+or an SVG's group, stands beside the one output intent. What it does not
+hold: the limits of ISO 32000-1 that PDF/A-2 makes rules of, a string's or
+a name's length among them.
+
+**What the tests show, and what they do not.** `src/pdfa-check.test.ts`
+holds the decision and every refusal above, each document drawn without
+`pdfa`, and `src/assets.test.ts` and `src/svg-pdfa.test.ts` the images,
+every number of a drawn SVG read back with report-corpus's
+`readPdfNumbers`. `src/pdfa-2b.test.ts` draws every starter that is no
+e-invoice both ways and reads the PDF/A-2b back with readers that are not
+PDFKit: PDF 1.7, its XMP part 2 and B, one sRGB output intent byte for
+byte PDFKit's profile, nothing embedded, no action, form or annotation,
+and the plain render's pages, faces and fonts; and the same bytes twice.
+`src/browser.test.ts` holds the browser entry's to the Node entry's.
+Whether a validator takes the PDF is the e-invoice gate's: veraPDF judges
+every starter so drawn, three variant pages on the quotation's and the
+corpus's two fonts fixtures, with its PDF/A-2b profile, and nothing here.
+A customer's template is judged by nothing.
+
 ## E-invoices
 
 A document that carries an e-invoice, `document.eInvoice`, as
@@ -366,11 +439,12 @@ Germany: a PDF/A-3b that embeds the XML the runtime wrote, the hybrid
 invoice whose XML is the invoice
 ([0031](../../docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)), in either entry.
 
-- **PDF/A-3b, for an e-invoice alone.** Its definition gets `version`
+- **PDF/A-3b, for a Factur-X alone.** Its definition gets `version`
   1.7 and `subset` `PDF/A-3b`, so PDFKit writes the pdfaid identification,
   an sRGB output intent with its ICC profile, and the XMP. Level b is the
   one in reach: level a needs a structure tree pdfmake does not build, and
-  PDFKit has no level u. Every other report is drawn as it was.
+  PDFKit has no level u. A report that is no e-invoice is drawn as it was,
+  or as a PDF/A-2b where its host asks (above).
 - **The file, changed in nothing.** On the final pass alone, through
   PDFKit's own document before it ends, `pdfa.ts` embeds the XML's UTF-8
   bytes as `factur-x.xml`, `text/xml`, related as `Alternative` -- the
@@ -449,11 +523,11 @@ It refuses, as `unsupported` and before pdfmake sees the document:
   is not held for matrices built to cancel one another term by term, whose
   products floating point gets wrong.
 
-Every other kind of image PDFKit embeds is drawn in an e-invoice:
-report-corpus's `IMAGE_KINDS` -- grey and colour JPEGs, and PNGs of every
-colour type, with alpha, a palette, its transparency or a colour key, at
-1 and 16 bits, interlaced -- which the e-invoice gate has veraPDF and
-Mustang judge in one. A colour key is drawn as PDFKit's PNG reader,
+Every other kind of image PDFKit embeds is drawn in an e-invoice, and in
+a PDF/A-2b: report-corpus's `IMAGE_KINDS` -- grey and colour JPEGs, and
+PNGs of every colour type, with alpha, a palette, its transparency or a
+colour key, at 1 and 16 bits, interlaced -- which the e-invoice gate has
+veraPDF and Mustang judge in one e-invoice, and veraPDF in one PDF/A-2b. A colour key is drawn as PDFKit's PNG reader,
 png-js 1.1.0, reads it, in every report since 0.1.0: a grey key by its
 high byte, and an RGB key as twelve numbers where ISO 32000-1 asks two a
 component, which a viewer may ignore; report-corpus's test pins both.
@@ -466,11 +540,12 @@ and creation date.
 
 **One file besides the fonts.** PDFKit reads the output intent's profile
 from its own `data/sRGB_IEC61966_2_1.icc` with `fs`, past pdfmake's access
-policy, which governs only what pdfmake opens: a render of an e-invoice
-reads that file and the fonts, and nothing else through
-`fs.readFileSync`, which a test holds. A
+policy, which governs only what pdfmake opens: a render of a PDF/A, an
+e-invoice's or a PDF/A-2b, reads that file and the fonts, and nothing else
+through `fs.readFileSync`, which a test holds, and one whose profile PDFKit
+cannot read rejects with the file system's error and no PDF. A
 host that bundles the Node entry puts the profile where the bundled
-PDFKit's `__dirname` points, or every e-invoice render fails. The browser
+PDFKit's `__dirname` points, or every PDF/A render fails. The browser
 entry's profile is the base64 copy in pdfmake's browser build, held to the
 same bytes. The profile is the ICC's sRGB2014, which the dependency-licence
 guard admits by its digest, with the ICC's licence sentence a review read

@@ -23,7 +23,7 @@ export interface RenderOptions {
    * other is a `RangeError`. A Factur-X e-invoice, which is drawn as the
    * PDF/A-3b that embeds its XML, an XRechnung's copy and a preview the
    * runtime labels so are refused with it as `unsupported`, each to be
-   * rendered without it (0056). In Node, PDFKit reads the sRGB profile its
+   * rendered without it (0057). In Node, PDFKit reads the sRGB profile its
    * output intent embeds from its own `data/sRGB_IEC61966_2_1.icc` on disk,
    * so a host that bundles the Node entry ships that file beside it; the
    * browser build carries the same bytes.

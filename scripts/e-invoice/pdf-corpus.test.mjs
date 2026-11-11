@@ -369,7 +369,7 @@ describe('what a PDF embeds, read back', () => {
   })
 
   // A PDF/A-2b may embed only a PDF/A-1 or -2, and the renderer embeds
-  // nothing in one (0056): a 2b that carried the e-invoice's XML, or any
+  // nothing in one (0057): a 2b that carried the e-invoice's XML, or any
   // file, would be refused by no rule veraPDF's 2b profile runs on its
   // name. So pdf-lib reads each as it reads a plain PDF, held to none; the
   // control that is the e-invoice sample's 3b embeds that sample's XML.

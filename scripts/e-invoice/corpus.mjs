@@ -349,7 +349,7 @@ function sameFile(entry, other) {
  * list of keys, a control that does not say what it breaks, is its sample
  * unbroken -- of its own format, since a file judged as another format is
  * broken by being judged so, as the PDF/A-2b control that is the
- * e-invoice sample's PDF/A-3b is (0056) -- or that every tool accepts,
+ * e-invoice sample's PDF/A-3b is (0057) -- or that every tool accepts,
  * and, of each format, a corpus without a sample every judge accepts or
  * without a control each judge refuses: the gate judges the XML, the PDF
  * and the PDF/A-2b, and a corpus that lost one judges it no more.

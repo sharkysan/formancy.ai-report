@@ -3,7 +3,7 @@
 // register's floor, pure over what one run left so that every rule below is
 // held by a test on a recorded run (scripts/e-invoice/verapdf.test.mjs).
 // The gate runs it twice: once over the e-invoice corpus with `--flavour
-// 3b`, and once over the PDF/A-2b corpus with `--flavour 2b` (0056), each
+// 3b`, and once over the PDF/A-2b corpus with `--flavour 2b` (0057), each
 // run's flavour named and never detected, so that a file is judged as what
 // the renderer was asked to draw and not as what it says of itself.
 //
@@ -52,7 +52,7 @@ import { zipEntries, entryNamed } from './zip.mjs'
  * The profile each flavour the gate runs validates against, as veraPDF
  * names it: 3b's as the recorded run reports it (0031), and 2b's as
  * veraPDF 1.30.3 reported it on every job of a run with `--flavour 2b`,
- * measured on 11 November 2026 on Zulu 22.0.1 (0056).
+ * measured on 11 November 2026 on Zulu 22.0.1 (0057).
  */
 export const PROFILES = Object.freeze({ '3b': 'PDF/A-3b validation profile', '2b': 'PDF/A-2b validation profile' })
 
@@ -161,7 +161,7 @@ function runProblems({ status, stderr, report, entries, pinned }) {
 /**
  * A problem of the run of `flavour` as a whole, as the gate says it: a 2b
  * run's led by the run it is of, since the gate runs veraPDF twice and
- * such a problem names no file to tell which (0056); the 3b run's as the
+ * such a problem names no file to tell which (0057); the 3b run's as the
  * gate said them before it ran a second, as the tests and the release
  * report read them.
  */

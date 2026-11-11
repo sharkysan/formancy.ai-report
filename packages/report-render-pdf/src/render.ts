@@ -32,7 +32,7 @@ import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js
  * pass, which alone embeds its XML (`pdfa.ts`); one with an XRechnung as a
  * plain PDF, the copy its label says it is (0038); and a final render a
  * host asks for as `pdfa: '2b'` as a PDF/A-2b, which embeds nothing and
- * runs no hook (`pdfa-check.ts`, 0056).
+ * runs no hook (`pdfa-check.ts`, 0057).
  */
 
 export async function render(engine: Engine, document: ResolvedDocument, options: RenderOptions): Promise<Uint8Array> {

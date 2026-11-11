@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { identificationProblems, PDF_A_2B_CONTROLS, PDF_A_2B_VARIANTS, pdfa2bCorpus, pdfa2bPlan } from './pdfa-2b.mjs'
 
 /**
- * The PDF/A-2b the e-invoice gate judges (0056): every starter that is no
+ * The PDF/A-2b the e-invoice gate judges (0057): every starter that is no
  * e-invoice, drawn as a 2b, five variants -- three on the quotation's page
  * and two of the corpus's fixtures -- and two controls. Planned here from stand-ins for report-corpus's starters, drawn
  * by a stand-in for the renderer and read back by stand-ins for pdf-lib and

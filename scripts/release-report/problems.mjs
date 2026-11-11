@@ -114,7 +114,7 @@ const reportedVersions = (reported) => (Array.isArray(reported) ? reported : typ
  * version, by the SHA-256 the gate measured of the bytes it ran and, for
  * each JAR, by the version the tool reported of itself; in CI, on the Java
  * `register.runtime` names; ran no veraPDF below `register.veraPdfFloor`,
- * its own or Mustang's; judged, as XML, as PDF and as PDF/A-2b (0056), at
+ * its own or Mustang's; judged, as XML, as PDF and as PDF/A-2b (0057), at
  * least one sample every tool of that format must accept and one control
  * each must refuse;
  * and has the verdict of every tool that judges a file's format

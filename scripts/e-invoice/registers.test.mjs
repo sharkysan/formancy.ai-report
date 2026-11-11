@@ -218,7 +218,7 @@ describe('the judges', () => {
 
   // A PDF/A-2b embeds no XML, and Mustang validates an e-invoice: handed
   // one, it would refuse it for want of the XML, and the gate would blame
-  // the renderer for a file it drew right (0056). So each tool is handed the
+  // the renderer for a file it drew right (0057). So each tool is handed the
   // files of the formats it judges and no other, and a file of a format no
   // tool judges is handed to none.
   test('gives Mustang the XML and the PDFs, KoSIT the XML, and veraPDF the PDFs and the PDF/A-2b', () => {

@@ -55,7 +55,7 @@ const PROGRAMS = new Set(['mustang', 'kosit', 'verapdf'])
  * The tools that judge each format of the corpus, in the order the gate
  * reports them: the XML the runtime writes by Mustang and KoSIT, a PDF the
  * renderer draws of an e-invoice by veraPDF and Mustang (0031), and a
- * PDF/A-2b it draws of a report that is none by veraPDF alone (0056):
+ * PDF/A-2b it draws of a report that is none by veraPDF alone (0057):
  * Mustang validates an e-invoice, and a 2b embeds no XML. KoSIT reads no
  * PDF, and veraPDF no XML.
  */

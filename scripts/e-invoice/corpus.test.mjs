@@ -232,7 +232,7 @@ describe('what the corpus refuses', () => {
 
   // A PDF/A-2b is a PDF, written where veraPDF reads it by its .pdf name,
   // and judged by veraPDF alone: Mustang validates an e-invoice, which a 2b
-  // is not (0056). A corpus that lost its 2b judges the PDF/A-2b no more.
+  // is not (0057). A corpus that lost its 2b judges the PDF/A-2b no more.
   test('names a PDF/A-2b file .pdf, and holds it to veraPDF alone', () => {
     const one = (change) => {
       const copy = structuredClone(all)

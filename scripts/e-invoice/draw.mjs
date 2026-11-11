@@ -1,7 +1,7 @@
 // How the e-invoice gate draws what it judges (0031): every sample
 // resolved once in a final render, as a host resolves it, and drawn by the
 // renderer as built; each variant drawn with the base sample's e-invoice;
-// and the PDF/A-2b corpus (0056), every starter, variant and control of
+// and the PDF/A-2b corpus (0057), every starter, variant and control of
 // scripts/e-invoice/pdfa-2b.mjs drawn as the renderer draws one for a host
 // that asks for `pdfa: '2b'`. The packages are handed in, as
 // scripts/e-invoice.mjs imports them from their dist/, so that nothing
@@ -17,7 +17,7 @@ const CREATED = '2026-10-17T08:00:00Z'
 const MAX_PAGES = 1
 /** The most pages a variant may have, and a PDF/A-2b: a bound on the work, since nothing reads a variant's pages; the longest printed two on 18 October 2026. */
 const VARIANT_MAX_PAGES = 10
-/** What a host asks the renderer for to draw a final render as a PDF/A-2b (0056). */
+/** What a host asks the renderer for to draw a final render as a PDF/A-2b (0057). */
 const AS_2B = { maxPages: VARIANT_MAX_PAGES, pdfa: '2b' }
 
 /**
