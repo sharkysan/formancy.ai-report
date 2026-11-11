@@ -265,6 +265,24 @@ order pdfmake opened them however long each takes to decode
 `maxPages` is required, and a
 report that needs more is refused rather than cut short.
 
+Still in `quotation.ts`, the same final render can be drawn as an archival
+PDF:
+
+```ts guide=node
+// The same final render, drawn as a PDF/A-2b for an archive.
+await writeFile('quotation-archive.pdf', await renderPdf(resolution.document, { maxPages: 50, pdfa: '2b' }))
+```
+
+That is a PDF/A-2b: part 2, level b, the sRGB profile embedded as its output
+intent and nothing attached. An e-invoice and a labelled preview are refused
+as one, since a Factur-X is drawn as the PDF/A-3b that embeds its XML and a
+preview must never be kept as the report. PDFKit reads the profile with `fs`
+from `data/sRGB_IEC61966_2_1.icc`, beside its own `js/pdfkit.js`, so a host
+that bundles the Node entry ships that file where the bundled PDFKit's
+`__dirname` points, or every PDF/A render fails, an e-invoice's and an
+archival one alike. Nobody here has bundled one. Why it is drawn so, and
+what it does not hold, is D-pdfa's.
+
 What it costs: pdfmake lays out a whole document in one synchronous pass on
 the thread that calls it. The render yields between its passes, so an
 `AbortSignal` passed as `signal` arrives, but a pass under way runs to its
@@ -496,8 +514,9 @@ bundle carries them. A report with a Swiss QR-bill prints its slip in
 Liberation Sans, and one with an EPC QR code in Austria's frame its
 caption, which the entry imports from a chunk of its own the first time a
 document has either, so a bundler that splits dynamic imports keeps it out
-of a page that prints neither. Nothing in it touches a file system or
-follows an address.
+of a page that prints neither. The browser entry takes `pdfa: '2b'` too, its
+profile the base64 copy in pdfmake's browser build. Nothing in it touches a
+file system or follows an address.
 
 In `print.ts`, a preview prints the report against sample data, with the
 approved assets -- a logo -- that the page hands over. The runtime asks

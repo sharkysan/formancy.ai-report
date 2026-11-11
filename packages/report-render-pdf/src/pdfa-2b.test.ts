@@ -168,13 +168,14 @@ describe('the starters drawn as PDF/A-2b', () => {
     TIMEOUT,
   )
 
-  // A PDF/A may run no JavaScript and its catalog may name no /AA, and
-  // part 2 holds the actions, forms and annotations it does admit to
+  // A PDF/A may run no JavaScript or action, and part 2 holds the actions, forms and annotations it does admit to
   // rules of their own. A 2b holds none of them -- no /OpenAction, /AA or
   // /AcroForm, no JavaScript in the name tree, no annotation, such as the
   // link an SVG's <a> would write and `svg-content.ts` refuses -- since
   // neither pdfmake nor the renderer writes any; read from the file, a
-  // pdfmake that began to would show here. That the reader finds such
+  // pdfmake that began to would show here, in the catalog's keys and the
+  // name tree's, and the annotations of every page; a page-level /AA is
+  // not read. That the reader finds such
   // keys where they are is `objects.test.ts`'s.
   test.each(samples)(
     '%s holds no action, form or annotation',
