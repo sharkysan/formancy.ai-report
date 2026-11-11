@@ -299,17 +299,31 @@ describe('categoryGroups', () => {
 
   // A grouping that compares each row with every category so far is
   // quadratic: 100,000 distinct keys would spin for seconds, and it would
-  // have to be refused before the chart's own bound is reached.
+  // have to be refused before the chart's own bound is reached. Two counts
+  // hold it, whatever does the comparing: the decimal comparisons such a
+  // scan makes, and the reads of a decimal's units, which a scan over
+  // canonical keys makes for every category at every row, where one key a
+  // row reads each row's once.
   test("finds each row's category by one key, not by comparing it with every category", () => {
     const decimal = { field: 'value', type: 'decimal' } as const
-    const rows = records(Array.from({ length: 100_000 }, (_, at) => dec(String(at))))
+    const length = 100_000
+    let reads = 0
+    const counted = (value: Decimal): Decimal =>
+      new Proxy(value, {
+        get(target, property, receiver) {
+          if (property === 'units' && ++reads > 2 * length) throw new RangeError('more reads of a decimal than linear grouping makes')
+          return Reflect.get(target, property, receiver) as unknown
+        },
+      })
+    const rows = records(Array.from({ length }, (_, at) => counted(dec(String(at)))))
     comparisons.count = 0
-    comparisons.limit = 100_000
+    comparisons.limit = length
     try {
-      expect(categoryGroups(rows, decimal, 'data', 'en')).toHaveLength(100_000)
+      expect(categoryGroups(rows, decimal, 'data', 'en')).toHaveLength(length)
     } finally {
       comparisons.limit = Infinity
     }
+    expect(reads).toBeLessThanOrEqual(2 * length)
   })
 })
 

@@ -22,9 +22,14 @@
       preview that lacks the field too; and a chart that names no null
       label, over a field that may not be null, prints an empty label in a
       preview that lacks the field;
+    - a decimal category with no format prints as its first row in the
+      data's order spells it, 0.5 or 0.50, and with a format of two places
+      as 0.50 either way;
     - a pie's shares are exact, rounded once, and list every category, a
       zero among them; and each is rounded on its own, so three equal
       slices print 33.3 % each;
+    - a pie's legend entry is `label: value (share)` in de-CH and in fr-CH
+      as in English, around each locale's own figures;
     - a pie of more categories than its palette has colours is refused,
       naming both counts, its own palette's included;
     - a pie with a negative value is refused, naming the chart and
@@ -38,7 +43,8 @@
       currency's symbol among them;
     - a value or a category its format cannot print is refused at
       `valueFormat` or at `category`, naming the chart, and a currency is
-      read where the report is;
+      read where the report is; and a pie is refused so though it labels
+      none of its values;
     - the runtime exports `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and
       `SHARE_PLACES`.
   - **The axis.** `src/chart-ticks.test.ts` ticks a table of axes: a bar
@@ -52,9 +58,10 @@
     the order the data gives its categories, each once, and every row
     under its own. It holds decimals of one value as one category at every
     scale, keeps the first row's spelling, and puts the rows without a
-    category in one group. It counts the decimal comparisons it makes over
-    100,000 distinct decimals. Its `canonicalKey` case holds the key equal
-    for two values exactly when `sameKey` says they are one.
+    category in one group. Over 100,000 distinct decimals it counts the
+    decimal comparisons it makes and the reads of their units, at most two
+    a row. Its `canonicalKey` case holds the key equal for two values
+    exactly when `sameKey` says they are one.
   - **The totals.** `src/totals.test.ts`'s `totalOf` totals a series and a
     group's aggregate of one definition to one value, on data where
     rounding each group differs from rounding the whole. It rounds a sum
@@ -83,8 +90,9 @@
     in a scratch copy of the package. By suite:
     - `sort-group.test.ts` failed with adjacent keys alone grouped, with
       decimals compared as written, with the sorted path taken for one
-      direction alone, and with nulls not last; its count of comparisons
-      with each key compared with every category; and its `canonicalKey`
+      direction alone, and with nulls not last; its counts with each key
+      compared with every category, by `sameKey` or by `canonicalKey`; and
+      its `canonicalKey`
       case with trailing zeros kept and with null keyed as the text
       "null";
     - `totals.test.ts` failed with a declared rounding ignored, in a
@@ -114,7 +122,9 @@
       palette's bound removed or off by one; a chart with no value, or a
       pie of zeros, not empty; an empty chart that kept an axis title; a
       negative share let through, or one hidden by checking the zero
-      total first; a category printed outside its format; ticks printed as
+      total first; a category printed outside its format, or from its
+      last row's spelling; a pie's unlabelled values left unformatted; a
+      legend joined otherwise outside English; ticks printed as
       their digits, or from the first series alone; a series in the
       default palette; the null label not read; a share rounded twice, or
       the last one nudged so that the shares add up; a format's refusal
@@ -124,10 +134,6 @@
     - render-pdf's `refusals.test.ts` and the corpus's
       `trial/undrawn.test.ts` failed with `chart` left out of their
       switches.
-
-    One rule rests on a weaker hold, and says so: the count of
-    comparisons would not see a scan written with `canonicalKey` in place
-    of `sameKey`, which makes no decimal comparison. Review holds that.
 
 ## Context
 
@@ -182,8 +188,11 @@ In order:
    - **The rows without a category** are one category under
      `category.nullLabel`, never dropped.
    - **Each label** is the group's key, read once, printed in
-     `category.format`. In a preview, a field the data lacks reads as
-     null, and its rows print under `nullLabel`. A chart with no
+     `category.format`. The key is the first row's value in the data's
+     order, so a decimal category the data spells at two scales, 7.7 and
+     7.70, prints with no format as that row spells it, and with a format
+     of a scale as the format does. In a preview, a field the data lacks
+     reads as null, and its rows print under `nullLabel`. A chart with no
      `nullLabel` -- possible only over a field that may not be null, and
      never the builders' default, which always writes one -- prints an
      empty label in a preview that lacks the field, the data check having
@@ -286,7 +295,9 @@ In order:
   entry, and its empty text. Each is the formatter's output or the
   author's own words, but for the colon and the parentheses of a pie's
   legend entry. A renderer prints these and no other word, and formats,
-  rounds or converts no number.
+  rounds or converts no number. A pie's slice prints its value only inside
+  its legend entry, where the chart labels its values: a renderer draws no
+  label on a slice.
 - **Every value twice.** `exact` is the value's digits
   (`decimalToString`), which a renderer may make a coordinate of with
   `Number`. `text` is what it prints, and all a renderer prints of it.
@@ -350,8 +361,10 @@ and 0052's interim refusal with it.
   labels its value reads `label: value (share)` in every language. The
   words are the author's and the formatter's, but the colon and the
   parentheses are not, and nothing translates them. French sets a space
-  before a colon, and a pie in fr-CH printed `A: 1 (33,3%)`, measured on
-  11 November 2026 under Node 22.23.3's ICU 78.3.
+  before a colon, and a pie in fr-CH prints the locale's figures around
+  the runtime's colon, `North: 66'649 (66,6%)` under Node 22.23.3's ICU
+  78.3, measured on 11 November 2026; `lower-chart.test.ts` holds the
+  join in de-CH and fr-CH.
 - **A pie's whole is the sum of its slices as drawn.** Where its series
   declares a rounding, each slice is rounded first, and its share is of
   the rounded slices, not of the exact total of every row. For a count,
@@ -361,6 +374,16 @@ and 0052's interim refusal with it.
 - **One series' label prints nowhere.** A chart of one series has no
   legend, so it is named by its title and its value axis's title, where
   it has them.
+- **A decimal category with no format is spelled as its first row
+  spells it.** The chart reads it from the first row in the data's order,
+  and a table's group header from the first row in the table's order,
+  which its own sort keys set: where the data spells one value 7.7 and
+  7.70, the chart and the table beside it can print it differently. A
+  category `format` with a scale prints both alike.
+- **A pie whose values its format cannot print is refused, labelled or
+  not.** Every slice's value is formatted, since the block holds it, so a
+  pie without value labels is refused for a value it would never print:
+  its currency read from a header field with no value, for one.
 - **A preview's missing category prints as nothing where the chart
   names no label.** A chart with no `nullLabel`, over a category field
   that may not be null, prints that category under an empty label in a

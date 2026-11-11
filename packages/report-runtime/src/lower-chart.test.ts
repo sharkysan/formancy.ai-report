@@ -204,6 +204,25 @@ describe('a bar chart', () => {
     expect(chart.ticks.map(({ exact }) => exact)).toEqual(['0', '0.1', '0.2', '0.3', '0.4', '0.5'])
   })
 
+  // A decimal category the data spells at two scales is one category, and
+  // with no format it prints as the first row in the data's order spells it,
+  // which a table sorted otherwise may spell another way; a format with a
+  // scale prints every spelling alike. A label read from another row would
+  // change with rows the category does not depend on.
+  test('prints a decimal category without a format as its first row spells it, and with one as the format does', () => {
+    const rated = (format?: { kind: 'number'; scale: number; grouping: boolean }) =>
+      chartReport({
+        category: { field: detail('discount'), order: 'data', nullLabel: 'None', ...(format === undefined ? {} : { format }) },
+        series: [{ id: 'lines', label: 'Lines', fn: 'count' }],
+      })
+    const spelt = (first: string, second: string) => chartData([chartRow({ discount: first }), chartRow({ discount: second })])
+    expect(axis(rated(), spelt('0.5', '0.50')).categories).toEqual(['0.5'])
+    expect(axis(rated(), spelt('0.50', '0.5')).categories).toEqual(['0.50'])
+    const twoPlaces = { kind: 'number', scale: 2, grouping: true } as const
+    expect(axis(rated(twoPlaces), spelt('0.5', '0.50')).categories).toEqual(['0.50'])
+    expect(axis(rated(twoPlaces), spelt('0.50', '0.5')).categories).toEqual(['0.50'])
+  })
+
   // R11 -- a bar or a line chart's own palette colours its series by place,
   // and its legend with them: a series drawn in the default colours would
   // not be the one its legend names, or the author chose.
@@ -271,6 +290,21 @@ describe('a pie', () => {
     // Without value labels, its legend names its categories alone.
     expect(pie(unitsPie(), data).legend.map(({ text }) => text)).toEqual(['North', 'South', 'East'])
     expect(SHARE_PLACES).toBe(1)
+  })
+
+  // The legend's colon and parentheses are the runtime's, the same in every
+  // language, around the locale's own figures: a join that changed with the
+  // language would be words no formatter wrote and no record decided, and
+  // figures printed as English would misstate a slice to its reader.
+  test.each(['de-CH', 'fr-CH'])("joins a pie's legend entry as label: value (share) in %s, around the locale's figures", (locale) => {
+    const data = chartData([chartRow({ region: 'North', units: '66649' }), chartRow({ region: 'South', units: '33351' })])
+    const number = new Intl.NumberFormat(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+    const percent = new Intl.NumberFormat(locale, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    const at = (digits: string) => digits as Intl.StringNumericLiteral
+    expect(pie({ ...unitsPie({ valueLabels: true }), locale }, data).legend.map(({ text }) => text)).toEqual([
+      `North: ${number.format(at('66649'))} (${percent.format(at('0.666'))})`,
+      `South: ${number.format(at('33351'))} (${percent.format(at('0.334'))})`,
+    ])
   })
 
   // Each share is rounded on its own: shares nudged to add up would change one
@@ -459,6 +493,23 @@ describe("a chart's formats", () => {
     expect(refusals(labelled, priced(null))).toEqual(['format no-currency /regions/body/0/category'])
     expect(refusals(labelled, priced('chf'))).toEqual(['format invalid-currency /regions/body/0/category'])
     expect(axis(labelled, priced('CHF')).categories[0]).toBe('CHF\u00a00.25')
+  })
+
+  // A pie holds every slice's value as the formatter wrote it, labelled or
+  // not, so a format that cannot print one refuses the pie: a slice holding
+  // a text no formatter wrote would break the block's word, and turning the
+  // value labels on would print it.
+  test('refuses a pie whose values its format cannot print, though it labels none', () => {
+    const pied = headed({
+      chart: 'pie',
+      category: { field: detail('region'), order: 'data', nullLabel: 'No region' },
+      series: [{ id: 'units', label: 'Units', fn: 'sum', of: detail('units') }],
+      valueFormat: francs,
+      categoryTitle: undefined,
+      valueTitle: undefined,
+    })
+    expect(chartIn(pied).valueLabels).toBeUndefined()
+    expect(refusals(pied, priced(null))).toEqual(['format no-currency /regions/body/0/valueFormat'])
   })
 })
 

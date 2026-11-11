@@ -72,7 +72,12 @@ export interface AxisChart extends ChartFrame {
 /** A pie chart: one series, a slice for each category. */
 export interface PieChart extends ChartFrame {
   readonly chart: 'pie'
-  /** One per category, in its order; its legend entry is the same index. */
+  /**
+   * One per category, in its order; its legend entry is the same index. A
+   * slice's `value.text` prints only inside its legend entry, where the
+   * chart labels its values: a renderer draws no label on a slice, so that
+   * no value prints twice or where its author turned the labels off.
+   */
   readonly slices: readonly { readonly color: string; readonly value: ChartValue }[]
 }
 

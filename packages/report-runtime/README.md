@@ -291,7 +291,8 @@ if (chart?.kind === 'chart' && chart.chart !== 'pie' && chart.empty === undefine
 
 - **Its categories** are grouped where a table's rows are: sorted by the
   table's own order, the rows without one last, or in the order the data
-  first gives each, one key each, so that 1.0 and 1.00 are one category.
+  first gives each, one key each, so that 1.0 and 1.00 are one category,
+  printed with no format as its first row in the data's order spells it.
   The rows without a category are one category under its `nullLabel`. A
   chart with no `nullLabel`, possible only over a field that may not be
   null, prints an empty label in a preview that lacks the field, the data
@@ -311,18 +312,21 @@ if (chart?.kind === 'chart' && chart.chart !== 'pie' && chart.empty === undefine
 - **A pie's share** of each slice is its exact ratio to the sum of its
   slices as they are totalled, rounded once, half away from zero, to
   `SHARE_PLACES` places of a percentage, and printed by the formatter's
-  `percent`, which refuses a share Intl would round again
-  (`percent-rounds-again`). Shares need not add up to 100.0 %, and a
-  legend entry that labels its value reads `label: value (share)` in every
-  language.
+  `percent`, which refuses a fraction Intl would round again
+  (`percent-rounds-again`), as no share is. Shares need not add up to
+  100.0 %, and a legend entry that labels its value reads
+  `label: value (share)` in every language. A slice's value prints only
+  in its legend entry, and a pie whose values its format cannot print is
+  refused though it labels none of them.
 - **Nothing to draw** -- no rows, a bar or a line chart with no value, a
   pie whose values are all zero -- is the chart's title and its empty text
   alone, with no axis and no axis title.
 - **Its colours** are the chart's own `palette` or `CHART_PALETTE`, a
   series' at its place and a slice's at its category's.
 
-A renderer prints the block's strings and no others, makes a coordinate of
-a value's `exact`, and formats no number. This release's renderer does not
+A renderer prints the block's strings and no others, a pie's values only
+in its legend, makes a coordinate of a value's `exact`, and formats no
+number. This release's renderer does not
 draw a chart yet, and refuses one.
 
 ## What else is exported

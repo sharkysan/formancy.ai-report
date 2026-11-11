@@ -2300,7 +2300,7 @@
       ]
     },
     "0055": {
-      "reviewed": "sha256:4b256871bf917c8cdeda22cbda899e135bbd7b68d2e77888e17c85236294489a",
+      "reviewed": "sha256:b40f406ee786c60c961d44b0dcb61b54a2b1229f6be459c0d056f1be3281f4cd",
       "limitations": [
         {
           "area": "runtime",
@@ -2325,6 +2325,16 @@
         {
           "area": "runtime",
           "says": "A pie's legend entry that labels its value reads `label: value (share)`, its colon and its parentheses the same in every language.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A decimal category with no format prints as its first row in the data's order spells it, so a chart can print 7.7 where a table sorted otherwise prints 7.70 of the same value; a category format with a scale prints both alike.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A pie whose values its format cannot print is refused even where it labels none of them.",
           "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
         },
         {

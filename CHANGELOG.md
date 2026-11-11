@@ -108,7 +108,10 @@ render, as `unsupported`, naming the chart, until it draws charts.
   table's own order, or in the order the data first gives each, one key
   each, so that 1.0 and 1.00 are one category and grouping costs what a
   table's does. The rows without a category are one category under its
-  `nullLabel`, last when sorted.
+  `nullLabel`, last when sorted. A decimal category with no format prints
+  as its first row in the data's order spells it, so a chart can print
+  7.7 where a table sorted otherwise prints 7.70 of the same value; a
+  category `format` with a scale prints both alike.
 - **Each series is totalled by the function every aggregate is**, in the
   decimals the compiler types an aggregate of the same function over the
   same field in (report-core's `seriesType`, now exported). A series and
@@ -131,7 +134,10 @@ render, as `unsupported`, naming the chart, until it draws charts.
   no pie's share is. **Shares need not add up to 100.0 %**: three equal
   slices print 33.3 % each, as `lower-chart.test.ts` holds. A percentage
   is written as the engine's ICU writes one, and a pie entry that labels
-  its value reads `label: value (share)` in every language.
+  its value reads `label: value (share)` in every language. A slice's
+  value prints only in its legend entry, never on the slice, and a pie
+  whose values its format cannot print is refused though it labels none
+  of them.
 - **Two new codes refuse what would be drawn wrong**, each naming the chart
   and quoting nothing of the data: `chart-too-many-categories`, for a chart
   of more than `MAX_CHART_CATEGORIES` (200, chosen) categories, or for a

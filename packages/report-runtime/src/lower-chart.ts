@@ -224,7 +224,8 @@ function pieChart(c: Charting, frame: Frame, categories: readonly string[], valu
     if (chart.valueLabels === true) {
       const share = ratioRounded(exact[index] as Decimal, total, { scale: SHARE_PLACES + 2, mode: 'half-away-from-zero' })
       // Never refused: a share is at exactly `SHARE_PLACES + 2` places and at most 1, which `percent` prints as written.
-      const percent = said(c, c.render.formatter.percent(share, SHARE_PLACES), `${path}/valueFormat`)
+      // Were it, the refusal would stand at the series whose share it is: no value format prints a share.
+      const percent = said(c, c.render.formatter.percent(share, SHARE_PLACES), `${path}/series/0`)
       if (percent === undefined) return undefined
       text = `${label}: ${value.text} (${percent})`
     }

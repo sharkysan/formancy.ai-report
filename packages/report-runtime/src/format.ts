@@ -95,6 +95,9 @@ export interface Formatter {
   percent(fraction: Decimal, places: number): Formatted
 }
 
+/** Whether `digits`, a number as `decimalToString` writes it, has more integer digits than Intl prints: it would print them as infinity. */
+const tooManyDigits = (digits: string): boolean => digits.replace(/^-/, '').split('.')[0]!.length > MAX_FORMATTED_DIGITS
+
 /** A count of places as a message says it: "1 place", "3 places". */
 const placesOf = (count: number): string => `${count} ${count === 1 ? 'place' : 'places'}`
 
@@ -248,7 +251,7 @@ class LocaleFormatter implements Formatter {
       )
     }
     const digits = decimalToString(fraction) as Intl.StringNumericLiteral
-    if (digits.replace(/^-/, '').split('.')[0]!.length > MAX_FORMATTED_DIGITS) {
+    if (tooManyDigits(digits)) {
       return refused('number-too-large', `a share of more than ${MAX_FORMATTED_DIGITS} integer digits, which Intl would print as infinity`)
     }
     const options: Intl.NumberFormatOptions = { style: 'percent', minimumFractionDigits: places, maximumFractionDigits: places }
@@ -266,7 +269,7 @@ class LocaleFormatter implements Formatter {
     const currency = format.kind === 'currency' ? currencyOf(format.currency, scope) : undefined
     if (typeof currency === 'object') return currency
     const rounded = decimalToString(roundDecimalAs(exact, { scale: format.scale, mode: 'half-away-from-zero' })) as Intl.StringNumericLiteral
-    if (rounded.replace(/^-/, '').split('.')[0]!.length > MAX_FORMATTED_DIGITS) {
+    if (tooManyDigits(rounded)) {
       return refused(
         'number-too-large',
         `a number of more than ${MAX_FORMATTED_DIGITS} digits, which Intl would print as infinity; printed without a format, it prints whole`,
