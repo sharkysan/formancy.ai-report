@@ -2,9 +2,11 @@
 // given: the Studio's browser gate (apps/studio/scripts/browser-test.mjs),
 // applied to the pages. Their suite renders the site and reads the HTML
 // back with jsdom, which applies no CSS, resolves no media query, lays
-// nothing out, loads no face and enforces no content security policy, so
-// these claims the pages make were measured by hand when each page arrived
-// (0021, 0024, 0028):
+// nothing out, loads no face and enforces no content security policy. Of
+// the claims below, the layout, axe's findings and the contrast were
+// measured by hand when each page arrived (0021, 0024, 0028), and the
+// requests by the last two of those rounds; the keyboard path, the room and
+// the faces never were, and the policy was opened once, by hand (0051):
 //
 //   - every page the built sitemap lists answers as itself: 200, with the
 //     production address the sitemap gives it as its one canonical, so a
@@ -12,11 +14,14 @@
 //     never measured as though it were the page;
 //   - nothing scrolls sideways and nothing is past either edge, at the
 //     reflow width of 320 pixels, again there with the web fonts refused,
-//     whose fallback widths differ, a phone, one pixel past each breakpoint
-//     of the built stylesheet, a laptop and a screen (gate-site.mjs);
+//     whose fallback widths differ, a phone, one pixel past each rem
+//     `max-width` breakpoint of the built stylesheet, a laptop and a screen
+//     (gate-site.mjs, which refuses a stylesheet that asks about the width
+//     in any other form);
 //   - axe's default rules and its target-size rule find nothing,
 //     contrast and target size were measured, over something, and the
-//     contrast of every text in view was decided;
+//     contrast of every text was decided, none of it left undecided by an
+//     ancestor that clips it;
 //   - the keyboard path: from the top of the page as it loads, the first
 //     Tab reaches the skip link, on screen, where axe finds nothing on it
 //     and measured its contrast, and Enter on it puts the keyboard on <main>;
@@ -65,7 +70,16 @@ import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { headersFor, SITE } from '../../../scripts/demo-headers.mjs'
 import { demoBase, demoUrl, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
-import { audit, describeFocus, fontProblem, measureWidth, paletteProblem } from '../../studio/scripts/gate-measure.mjs'
+import {
+  audit,
+  connectionHints,
+  describeFocus,
+  fontProblem,
+  listenForRefusals,
+  measureWidth,
+  paletteProblem,
+  refusalsOf,
+} from '../../studio/scripts/gate-measure.mjs'
 import { gateRecorder } from '../../studio/scripts/gate-results.mjs'
 import { sitemapPages, sitePasses } from './gate-site.mjs'
 
@@ -94,13 +108,18 @@ async function measured(gate, page, path) {
   gate.axe(result.axe)
   check(`${path}: axe's default rules and target size find nothing`, result.violations.length === 0 ? null : result.violations.join('; '))
   check(`${path}: contrast and target size measured, over something`, result.measured.length === 2 ? null : `only ${result.measured.join(', ') || 'nothing'}`)
-  check(`${path}: the contrast of every text in view decided`, result.undecided.length === 0 ? null : `undecided: ${result.undecided.join('; ')}`)
-  const { width: wide, height: high } = page.viewportSize() ?? { width: 0, height: 0 }
-  gate.measure({
-    name: `${path}, ${String(wide)} by ${String(high)}: texts whose contrast axe could not decide because an ancestor had scrolled them out of view`,
-    value: result.hidden,
-    unit: 'texts',
-  })
+  // A text an ancestor clips is undecided too: the pages have no pane that
+  // scrolls by design, where the Studio's gate counts such texts and brings
+  // its panes' rows into view in a tall pass.
+  check(
+    `${path}: the contrast of every text decided, none of it left to an ancestor that clips it`,
+    result.undecided.length === 0 && result.hidden === 0
+      ? null
+      : [
+          ...(result.undecided.length === 0 ? [] : [`undecided: ${result.undecided.join('; ')}`]),
+          ...(result.hidden === 0 ? [] : [`${String(result.hidden)} undecided, cut by an ancestor that clips what overflows it`]),
+        ].join('; '),
+  )
 }
 
 /**
@@ -177,16 +196,8 @@ async function pass(gate, browser, { served, site, pages }, entry) {
     const address = request.url()
     if (!address.startsWith(served) && !address.startsWith('data:')) elsewhere.add(address)
   })
-  // Whatever the demo's policy refuses a page, by directive, what it
-  // refused and where from: listened for before the page is parsed, by a
-  // script the policy does not govern (0051).
-  await page.addInitScript(() => {
-    const refused = []
-    Object.defineProperty(window, '__refused', { value: refused })
-    document.addEventListener('securitypolicyviolation', (event) =>
-      refused.push(`${event.effectiveDirective} refused ${event.blockedURI} at ${event.sourceFile}:${String(event.lineNumber)}`),
-    )
-  })
+  // Whatever the demo's policy refuses a page, listened for before the page is parsed (0051).
+  await listenForRefusals(page)
   // The fallback stack's pass: every font file refused, wherever it is from.
   if (refuseFonts) await page.route(FONT_FILE, (route) => route.abort())
   const unroomed = []
@@ -213,16 +224,9 @@ async function pass(gate, browser, { served, site, pages }, entry) {
       const room = await paletteProblem(page)
       if (room !== null) unroomed.push(`${path}: ${room}`)
       await measured(gate, page, path)
-      // A preconnect or dns-prefetch hint opens a connection with no request
-      // the listener would hear, and a connection gives the host the address
-      // all the same (formancy.ai 0154): read from each page, as it ends.
-      const hinted = await page.evaluate(() =>
-        [...document.querySelectorAll('link')]
-          .filter((link) => link.relList.contains('preconnect') || link.relList.contains('dns-prefetch'))
-          .map((link) => link.href),
-      )
-      for (const hint of hinted) if (!hint.startsWith(served)) elsewhere.add(`${hint} (a hint, on ${path})`)
-      for (const each of await page.evaluate(() => window.__refused)) refused.push(`${path}: ${each}`)
+      // The connection hints, which no request listener hears, and the policy's refusals: read from each page, as it ends.
+      for (const hint of await connectionHints(page)) if (!hint.startsWith(served)) elsewhere.add(`${hint} (a hint, on ${path})`)
+      for (const each of await refusalsOf(page)) refused.push(`${path}: ${each}`)
     }
     gate.check('every page wears the released room, every variable and the colour scheme of the installed room.css as it has them', gathered(unroomed))
     gate.check(

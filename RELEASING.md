@@ -196,7 +196,12 @@ only in a gates run; the install gate's own record is read whatever it
 allows. The browser gates need Chromium once on the machine (`pnpm --filter
 @formancy/report-studio exec playwright install chromium`); their files and
 the pictures' check's are read as in CI, and G3, which rests on the Studio's,
-is judged from them. The e-invoice gate needs a Java at least as new as
+is judged from them. The root's `pnpm test:browser` runs the two gates
+through turbo at once, where CI's `browser` job runs them one after the
+other. On a busy machine the Studio's gate can fail with "Failed to fetch":
+the Preview may revoke a Download PDF's address between the gate reading
+it and fetching it. Such a run is worth repeating with the Studio's gate
+alone, `pnpm --filter @formancy/report-studio test:browser`. The e-invoice gate needs a Java at least as new as
 each JAR's `java` in `docs/release/e-invoice-tools.json`, and fetches its
 tools into `.e-invoice-cache/` the first time. On a machine that did not
 run them, `--allow-missing install,browser,e-invoice` (or `verify`)

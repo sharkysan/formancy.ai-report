@@ -21,6 +21,13 @@ test('refuses a stylesheet with no breakpoint', () => {
   expect(() => sitePasses('a{}')).toThrow(/no max-width breakpoint/)
 })
 
+// A breakpoint the gate cannot read would leave the layout at its edge measured by nobody, while
+// every other pass stays green: so each width query of another form is refused, by name.
+test.each([['(min-width: 50rem)'], ['(max-width: 700px)'], ['(width <= 40rem)']])('refuses a stylesheet that asks %s', (query) => {
+  const css = `@media (max-width: 40rem){a{}} @media ${query}{b{}}`
+  expect(() => sitePasses(css)).toThrow(`asks about the width in a form the gate does not measure: ${query}`)
+})
+
 // The gate walks the sitemap the build wrote: a page left out of it would be measured by nobody,
 // and an empty one would make every pass a pass with nothing in it.
 test('reads every page the built sitemap lists, at the address the gate serves it', () => {

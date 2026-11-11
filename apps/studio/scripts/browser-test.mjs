@@ -107,7 +107,7 @@ import { headersFor } from '../../../scripts/demo-headers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
 import { interactions } from './gate-interactions.mjs'
-import { audit, describeFocus, fontProblem, fromTheTop, measureWidth, paletteProblem } from './gate-measure.mjs'
+import { audit, connectionHints, describeFocus, fontProblem, fromTheTop, listenForRefusals, measureWidth, paletteProblem, refusalsOf } from './gate-measure.mjs'
 import { app, cutControls, downloaded, drawnPages, passes, rulesOnThePaper } from './gate-page.mjs'
 import { builderParity } from './gate-parity.mjs'
 import { placeChecks } from './gate-place.mjs'
@@ -409,16 +409,9 @@ async function pass(gate, browser, url, entry) {
     const address = request.url()
     if (!address.startsWith(url) && !/^(blob|data):/.test(address)) elsewhere.add(address)
   })
-  // Whatever the demo's policy refuses the page, by directive, what it
-  // refused and where from: listened for before any script of the page
-  // runs, by a script the policy does not govern (0051).
-  await page.addInitScript(() => {
-    const refused = []
-    Object.defineProperty(window, '__refused', { value: refused })
-    document.addEventListener('securitypolicyviolation', (event) =>
-      refused.push(`${event.effectiveDirective} refused ${event.blockedURI} at ${event.sourceFile}:${String(event.lineNumber)}`),
-    )
-  })
+  // Whatever the demo's policy refuses the page, listened for before any
+  // script of the page runs (0051).
+  await listenForRefusals(page)
   // Every worker the page starts, by its address: PDF.js's, where the
   // policy lets it start one.
   const workers = new Set()
@@ -436,20 +429,13 @@ async function pass(gate, browser, url, entry) {
       await placeChecks(gate, page, framework, entry, { measured })
     }
     if (!light) starters = await journey(gate, page, picker, { refuseFonts })
-    // A preconnect or dns-prefetch hint opens a connection with no request
-    // the listener would hear, and a connection gives the host the address
-    // all the same (formancy.ai 0154): read from the page as it ends.
-    const hinted = await page.evaluate(() =>
-      [...document.querySelectorAll('link')]
-        .filter((link) => link.relList.contains('preconnect') || link.relList.contains('dns-prefetch'))
-        .map((link) => link.href),
-    )
-    for (const address of hinted) if (!address.startsWith(url)) elsewhere.add(`${address} (a hint)`)
+    // The connection hints, which no request listener hears: read from the page as it ends.
+    for (const address of await connectionHints(page)) if (!address.startsWith(url)) elsewhere.add(`${address} (a hint)`)
     gate.check(
       'the page fetched nothing and hinted no connection outside the built Studio, its faces included: the PDFs were printed in it',
       elsewhere.size === 0 ? null : [...elsewhere].slice(0, 4).join(', '),
     )
-    const refused = await page.evaluate(() => window.__refused)
+    const refused = await refusalsOf(page)
     gate.check(
       "the demo's content security policy refused the page nothing: no script, style, face, picture, worker or request of the Studio's is outside it",
       refused.length === 0 ? null : [...new Set(refused)].slice(0, 4).join('; '),

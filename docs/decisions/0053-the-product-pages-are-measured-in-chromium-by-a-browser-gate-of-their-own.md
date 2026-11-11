@@ -1,4 +1,4 @@
-# 0053 — The product pages are measured in Chromium by a browser gate of their own: every page of the built sitemap, at the widths the built stylesheet asks for, served under the demo's path and headers, with the Studio's gate's page reads; by hand in each pull request, more passes in the Studio's gate, the demo staged whole and the Studio's `fromTheTop` lost
+# 0053 — The product pages are measured in Chromium by a browser gate of their own: every page of the built sitemap, at every rem `max-width` breakpoint of the built stylesheet, a width query of another kind refused, served under the demo's path and headers, with the Studio's gate's page reads; by hand in each pull request, more passes in the Studio's gate, the demo staged whole and the Studio's `fromTheTop` lost
 
 - **Status:** accepted; extends [0021](0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
   whose pages it measures in a browser, as 0021,
@@ -14,10 +14,11 @@
   byte for byte, on a Mac. The gate's and the import test's were watched
   on 6 November 2026, before 93b0789, and from the night of 6 November to
   the morning of 7 November, before 06101a5, by the commits' dates and the
-  times of the fix round's logs. The documents' guards were watched on 11
-  November 2026. None has run in CI yet: this record's pull request is
-  their first run there. Not every case was watched on the code as
-  committed, and each list says which were not.
+  times of the fix round's logs; the cases that say so, on 11 November
+  2026. The documents' guards were watched on 11 November 2026. None has
+  run in CI yet: this record's pull request is their first run there. Not
+  every case was watched on the code as committed, and each list says
+  which were not.
   - **`apps/pages/scripts/gate-site.test.mjs`, in the pages' suite.** The
     passes are read from the built stylesheet: the reflow width of 320
     pixels, again with the web fonts refused, a phone at 360, one pixel
@@ -27,6 +28,11 @@
     existed, and with
     each of its three refusals taken out alone: a stylesheet with no
     breakpoint, a sitemap that lists no page, and a page outside the site.
+    On 11 November 2026 it failed with a `(min-width: 50rem)`, a
+    `(max-width: 700px)` and a `(width <= 40rem)` beside a breakpoint it
+    reads, each passed over without a word before the refusal of a width
+    query it does not read was written, and again with that refusal taken
+    out.
   - **`apps/pages/scripts/gate-imports.test.mjs`, in the pages' suite.**
     The gate, and the Studio's `gate-measure.mjs` it takes its reads from,
     import no `@formancy/` package and import or resolve no package of the
@@ -52,8 +58,15 @@
     check. The first four were watched on 6 November 2026, before the gate
     waited for the faces ahead of the keyboard checks, and before the fix
     round's `gathered()` around the four checks of a pass and its
-    `keyboard()`. They were not run again; Task 1.3's reviews accepted that
-    none of those changes moves what those four checks read.
+    `keyboard()`. None of those changes moves what those four checks read.
+    Waiting for the faces first changes the face a box is measured in, not
+    whether the bar's 359 pixels overflow, nor a colour, a hint or a
+    refusal. `gathered()` returns what the earlier expressions returned
+    whenever a page answered. `keyboard()` changed only what follows a
+    first Tab that misses the skip link. The third and fourth were watched
+    again on 11 November 2026, once the hints' reader and the policy's
+    recorder they read through had moved into `gate-measure.mjs`, each
+    failing once a pass as before; the first two were not run again.
     - `flex-wrap: wrap` taken off the shared list rule the bar's links wrap
       by: `no sideways scroll` at 320 pixels, 359 pixels over, and
       `nothing past either edge`, in every pass up to 641 pixels and in
@@ -85,7 +98,11 @@
     - the id of the skip link's target removed: Enter on `<main>`, and
       axe's `skip-link` and `region`;
     - the skip link's class renamed: the first Tab, the page holding no
-      `a.skip`.
+      `a.skip`;
+    - on 11 November 2026, the product page's table of terms given a
+      `min-width` of 60rem in a band that scrolls sideways: the contrast
+      check, naming eleven texts left undecided where the band clips them,
+      on the four product pages in every pass up to 641 pixels.
   - **`scripts/workflows.test.mjs`, in `pnpm test:repo`.** The browser job
     runs the pages' gate before it collects, also when a step before it
     failed, and uploads the pages' `test-results/` with the Studio's. It
@@ -151,9 +168,11 @@ build wrote (`sitePasses` in `gate-site.mjs`):
 
 The pages come from the sitemap the build wrote (`sitemapPages`). A page
 added, or a breakpoint added in rem, is measured without anybody editing
-the gate. A breakpoint written in pixels, or in the range syntax, is not
-read, and so not measured. On 7 November 2026 that was seven passes, from
-320 to 2053 pixels, over the sixteen pages of the sitemap, and 1,148
+the gate. A stylesheet that asks about the width in any other form -- a
+`min-width`, a breakpoint in pixels or em, the range syntax -- is refused,
+naming the query, since the layout at its edge would be measured by
+nobody. On 7 November 2026 that was seven passes, from 320 to 2053
+pixels, over the sixteen pages of the sitemap, and 1,148
 checks.
 
 **Served as the demo serves them.** `vite preview` serves the pages' `dist/`
@@ -162,8 +181,9 @@ when the port is taken. It serves them under the path the demo serves them
 at (0018, 0021), as separate pages, so an address the build does not hold
 is answered 404 and never with a page that stands in for it. Every
 response carries the headers the deploy writes, from `headersFor` in
-`scripts/demo-headers.mjs`, for the gate's own address (0051). The Studio
-is not served beside them.
+`scripts/demo-headers.mjs`, for the address the gate serves them at,
+`http://localhost:4395/report/` (0051). The Studio is not served beside
+them.
 
 **On every page, in this order:**
 1. It answered as itself: 200, with the production address the sitemap
@@ -180,7 +200,10 @@ is not served beside them.
 5. Nothing scrolls sideways, and nothing is past either edge.
 6. axe's default rules and its target-size rule find nothing. Contrast and
    target size were measured, over something, and the contrast of every
-   text in view was decided.
+   text was decided. A text axe left undecided because an ancestor clips
+   it fails too: the pages have no pane that scrolls by design, where the
+   Studio's gate counts such texts and brings its panes' rows into view in
+   a tall pass.
 7. Its connection hints and the policy's refusals are read.
 
 **Once a pass, over every page:**
@@ -198,9 +221,12 @@ than saying ok of nothing.
 **The reads are the Studio's gate's.** `measureWidth`, `audit`,
 `describeFocus`, `fontProblem` and `paletteProblem` come from
 `apps/studio/scripts/gate-measure.mjs`. They were moved out of
-`gate-page.mjs` unchanged, and the module imports no workspace package. The
-record is the Studio's recorder, `gate-results.mjs`. The two gates measure
-with the same code, and this gate needs nothing built but the pages.
+`gate-page.mjs` unchanged, and the module imports no workspace package. So
+do `listenForRefusals`, `refusalsOf` and `connectionHints`, the policy's
+recorder and the hints' reader, which the Studio's gate held and this gate
+copied until 11 November 2026, one copy since. The record is the Studio's
+recorder, `gate-results.mjs`. The two gates measure with the same code, and
+this gate needs nothing built but the pages.
 
 **The top of the page is the load, not `fromTheTop`.** The Studio's gate
 clicks at (1, 1) and collapses the selection, so that the next Tab starts
@@ -222,8 +248,9 @@ there would take the page away from every check after it.
 ## Consequences
 
 **What it buys.** Every pull request measures every page in a browser, in
-the four languages, at every width the stylesheet asks for, as the demo
-serves them. A change to the pages, or to the Studio's bar, room or
+the four languages, at every rem `max-width` breakpoint of the stylesheet,
+as the demo serves them, and a stylesheet with another kind of width query
+is refused. A change to the pages, or to the Studio's bar, room or
 stylesheets they import, that breaks one fails the pull request that made
 it, naming the page and the check. The keyboard path is measured too,
 where by hand it was not, and the requests, which 0024's and 0028's
@@ -239,9 +266,9 @@ rounds watched once, are now watched on every pull request.
     gate. The ten seconds between them is over a third of the gate's
     fastest local run.
   - Six green runs on a Mac with other work running took between 26.9 and
-    56.2 seconds each, from 6 to 8 November 2026. The 56.2 seconds is
-    Task 1.3's reviewer's run, timed around pnpm; the others are as the
-    reports give them, from the gate's own record where they say so. They
+    56.2 seconds each, from 6 to 8 November 2026. The 56.2 seconds is a
+    review's run, on 7 November 2026, timed around pnpm; the others are as
+    the reports give them, from the gate's own record where they say so. They
     are observations, not a bound.
   - On 6 November 2026, the same Mac took 1,016 seconds for the Studio's
     gate, in the red run described below.
@@ -250,9 +277,7 @@ rounds watched once, are now watched on every pull request.
   requests in Firefox or WebKit are measured by nobody.
 - **The Studio's reads, shared.** The gate imports the Studio's
   `gate-measure.mjs` and `gate-results.mjs`. A change there is a change to
-  this gate, measured by both gates in the same job. `fontProblem`'s
-  message for a build with no face names the built Studio, also when the
-  pages' build is the one that has none.
+  this gate, measured by both gates in the same job.
 - **The Studio's install, not its build.** `gate-measure.mjs` resolves
   `axe-core` and `@formancy/themes/room.css` from `apps/studio`, so the
   pages' gate needs the Studio's packages installed. The axe it evaluates
@@ -266,8 +291,8 @@ rounds watched once, are now watched on every pull request.
   three faces, the mono in an eyebrow or a piece of code. A correct page
   with no text in one of them fails the font check, whose message then
   says that the pass measured the fallback stack, which for that page is
-  untrue. So each new page of PRs 2 to 5 either carries text in all three
-  faces, or the check is changed to read the families a page uses. The
+  untrue. So each page added either carries text in all three faces, or
+  the check is changed to read the families a page uses. The
   check is `fontProblem` in `gate-measure.mjs`, so that change is the
   Studio's gate's too.
 - **The request check is the second line.** Under the demo's policy, the

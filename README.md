@@ -398,7 +398,7 @@ gate proves and what it does not.
 | `axe-core` | 4.14.0 |  |
 | `playwright` | 1.64.1 | `^1.63.0` |
 
-What a run actually ran -- the Node of each job, the React and Angular each install host resolved at both ends of the builders’ peer ranges, and the Chromium the browser gate launched -- is in the release report every CI run produces and every release attaches, signed.
+What a run actually ran -- the Node of each job, the React and Angular each install host resolved at both ends of the builders’ peer ranges, and the Chromium the browser gates launched -- is in the release report every CI run produces and every release attaches, signed.
 
 <!-- end generated -->
 

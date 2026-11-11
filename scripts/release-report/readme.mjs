@@ -58,7 +58,7 @@ export function readmeTable(facts) {
     '| --- | --- | --- |',
     ...rows.map((row) => `| ${row.map(cell).join(' | ')} |`),
     '',
-    `What a run actually ran -- the Node of each job, the React and Angular each install host resolved at both ends of the builders’ peer ranges, and the ${launched} the browser gate launched -- is in the release report every CI run produces and every release attaches, signed.`,
+    `What a run actually ran -- the Node of each job, the React and Angular each install host resolved at both ends of the builders’ peer ranges, and the ${launched} the browser gates launched -- is in the release report every CI run produces and every release attaches, signed.`,
   ].join('\n')
 }
 

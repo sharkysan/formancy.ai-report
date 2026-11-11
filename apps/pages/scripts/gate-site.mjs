@@ -4,8 +4,24 @@
  * so a breakpoint or a page added is measured without anybody editing the gate.
  */
 
-/** Every `max-width` breakpoint of `css`, in CSS pixels. */
-const breakpointsOf = (css) => [...css.matchAll(/@media\s*\(\s*max-width:\s*([\d.]+)rem\s*\)/g)].map((match) => Number(match[1]) * 16)
+/** The prelude of every `@media` rule of `css` that asks about the width. */
+const WIDTH_QUERY = /@media\s*([^{]*\bwidth\b[^{]*)\{/g
+
+/** The one form the passes read: `(max-width: Nrem)`, alone. */
+const READ = /^\(\s*max-width:\s*([\d.]+)rem\s*\)$/
+
+/**
+ * Every width query of `css` as a breakpoint in CSS pixels. A query in any
+ * other form -- a `min-width`, a breakpoint in pixels or em, the range
+ * syntax, a query joined to another -- is refused, naming it: the passes
+ * would leave the layout at its edge measured by nobody.
+ */
+function breakpointsOf(css) {
+  const queries = [...css.matchAll(WIDTH_QUERY)].map((match) => (match[1] ?? '').trim())
+  const unread = [...new Set(queries.filter((query) => !READ.test(query)))]
+  if (unread.length > 0) throw new Error(`the pages' stylesheet asks about the width in a form the gate does not measure: ${unread.join(', ')}`)
+  return queries.map((query) => Number(READ.exec(query)?.[1]) * 16)
+}
 
 /**
  * The passes worth measuring: the reflow width (WCAG 2.2 SC 1.4.10, 320 CSS

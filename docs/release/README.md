@@ -28,7 +28,7 @@ builds the report from all of them (`scripts/release-report/report.mjs`).
    declared, as its suites ran them, and as each install host resolved
    them, at the newest and the oldest release the range admits; upstream
    `@formancy/*`; Node as each job ran it and the install gate's npm; pnpm;
-   the Chromium the browser gate and the pictures launched, beside the
+   the Chromium the browser gates and the pictures launched, beside the
    build the Playwright they ran pins; and the tools, TypeScript and PDF.js
    among them.
 3. **Results:** a row per package with a suite -- files, tests, what did not

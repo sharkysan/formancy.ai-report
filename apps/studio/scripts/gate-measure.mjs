@@ -1,10 +1,12 @@
-// What the Studio's browser gate reads from a page with nothing built but
-// the page: the width and its overflow, axe, where the keyboard's focus is,
-// the start of sequential navigation, the web fonts and the room's variables
-// as the page computes them. They import no workspace package, so an app's
+// What the browser gates read from a page with nothing built but the page:
+// the width and its overflow, axe, where the keyboard's focus is, the start
+// of sequential navigation, the web fonts and the room's variables as the
+// page computes them, what the page's content security policy refused it,
+// and its connection hints. They import no workspace package, so an app's
 // gate (the Studio's, the product pages') takes them with no package built,
-// where gate-page.mjs needs the corpus and PDF.js. Moved out of gate-page.mjs
-// unchanged.
+// where gate-page.mjs needs the corpus and PDF.js. The first six were moved
+// out of gate-page.mjs unchanged; the policy's recorder and the hints'
+// reader were the Studio's gate's and a copy in the pages', one now.
 
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -131,7 +133,7 @@ export async function fromTheTop(page) {
  */
 export async function fontProblem(page, { dist, refused }) {
   const families = declaredFamilies(dist)
-  if (families.length === 0) return "no stylesheet of the built Studio declares a face; the gate reads its families from dist's @font-face rules"
+  if (families.length === 0) return "no stylesheet of the build declares a face; the gate reads its families from dist's @font-face rules"
   const loaded = await page.evaluate(async () => {
     await document.fonts.ready
     return [...new Set([...document.fonts].filter((face) => face.status === 'loaded').map((face) => face.family.replaceAll(/["']/g, '')))]
@@ -200,4 +202,39 @@ export async function paletteProblem(page) {
     { room, scheme },
   )
   return wrong.length === 0 ? null : wrong.join('; ')
+}
+
+/**
+ * Records whatever the page's content security policy refuses it, by
+ * directive, what it refused and where from, for refusalsOf() to read:
+ * listened for before any script of a document the page opens runs, by a
+ * script the policy does not govern (0051). Each document records its own.
+ */
+export function listenForRefusals(page) {
+  return page.addInitScript(() => {
+    const refused = []
+    Object.defineProperty(window, '__refused', { value: refused })
+    document.addEventListener('securitypolicyviolation', (event) =>
+      refused.push(`${event.effectiveDirective} refused ${event.blockedURI} at ${event.sourceFile}:${String(event.lineNumber)}`),
+    )
+  })
+}
+
+/** What the policy has refused the document the page holds, as listenForRefusals() recorded it: undefined where nothing listened. */
+export function refusalsOf(page) {
+  return page.evaluate(() => window.__refused)
+}
+
+/**
+ * The address of every preconnect and dns-prefetch hint of the document the
+ * page holds. A hint opens a connection with no request a listener would
+ * hear, and a connection gives the host the address all the same
+ * (formancy.ai 0154), so it is read from the page.
+ */
+export function connectionHints(page) {
+  return page.evaluate(() =>
+    [...document.querySelectorAll('link')]
+      .filter((link) => link.relList.contains('preconnect') || link.relList.contains('dns-prefetch'))
+      .map((link) => link.href),
+  )
 }
