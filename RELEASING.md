@@ -179,7 +179,7 @@ To build one on a machine, from that machine's own runs:
 since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 pnpm build && pnpm test:repo
 pnpm exec turbo run test:coverage --force --summarize   # every package, fresh, with its wall time
-pnpm test:browser && pnpm test:pictures                  # the Studio in Chromium, and its README pictures
+pnpm test:browser && pnpm test:pictures                  # the Studio and the product pages in Chromium, and the Studio's README pictures
 node scripts/install-test.mjs
 node scripts/e-invoice.mjs --java "$JAVA_HOME/bin/java"   # Mustang and KoSIT over the samples' XML, veraPDF and Mustang over their PDFs
 node scripts/release-report/collect.mjs --local --since "$since"
@@ -192,9 +192,9 @@ run that wrote its suite's results, and every test file of a package must
 have run: a report after one file run alone fails, by design. `--allow-missing
 install` is for G1, which rests on the install job, and a job's result exists
 only in a gates run; the install gate's own record is read whatever it
-allows. The browser gate needs Chromium once on the machine (`pnpm --filter
-@formancy/report-studio exec playwright install chromium`); its file and the
-pictures' check's are read as in CI, and G3, which rests on the browser gate,
+allows. The browser gates need Chromium once on the machine (`pnpm --filter
+@formancy/report-studio exec playwright install chromium`); their files and
+the pictures' check's are read as in CI, and G3, which rests on the Studio's,
 is judged from them. The e-invoice gate needs a Java at least as new as
 each JAR's `java` in `docs/release/e-invoice-tools.json`, and fetches its
 tools into `.e-invoice-cache/` the first time. On a machine that did not

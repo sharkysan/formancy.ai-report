@@ -562,6 +562,18 @@ What holds this section:
   wrote, no WebSocket (`gate-images.mjs`, 0033), and no request or
   connection hint to any origin but the built Studio's, its faces included
   ([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
+  The product's pages have a gate of their own in the same job,
+  `apps/pages/scripts/browser-test.mjs`, run as
+  `pnpm --filter @formancy/report-pages test:browser`, with the pages
+  served under `/report/` and the demo's headers and the Studio's reads
+  from `gate-measure.mjs`: in Chromium, every page of the built sitemap
+  answering as itself, at 320 pixels with and without the web fonts, a phone, one pixel
+  past each breakpoint of the built stylesheet, a laptop and a screen, with
+  no sideways scroll and nothing past either edge, axe finding nothing,
+  the first Tab from the load on the skip link and Enter on `<main>`, the
+  room's variables, every face loaded, and nothing fetched, hinted or
+  refused by the policy outside the built pages
+  ([0053](docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 - **The pages' stylesheet**, `apps/pages/src/stylesheet.test.ts`: it
   imports formancy's `room.css` first, the Studio's `room.css` second and
   only the Studio's stylesheets besides, and declares no colour and no
@@ -580,12 +592,11 @@ What holds this section:
 
 What nothing holds yet, said: `builder.css`'s geometry, and the colours
 admin.css's rules type that the room does not carry, are copied from
-`admin.css` by hand, and nothing fails when upstream's move; the gate runs
-Chromium alone, where Formancy Data's runs Firefox and WebKit too; no gate
-measures the product's pages in a browser, whose reflow and contrast were
-measured by hand when each page arrived (0021, 0024, 0028); and what
-a README picture looks like, and whether a caption's quote is painted in it
-rather than scrolled out of its part, which review alone holds.
+`admin.css` by hand, and nothing fails when upstream's move; the gates run
+Chromium alone, where Formancy Data's runs Firefox and WebKit too; and what
+a product page or a README picture looks like, and whether a caption's
+quote is painted in it rather than scrolled out of its part, which review
+alone holds.
 
 ## Branch names
 
@@ -712,9 +723,13 @@ exactly what CI does:
 - **`browser`** runs the Studio's browser gate and its README pictures'
   check in Chromium, as `pnpm exec turbo run test:browser` and
   `test:pictures` for `@formancy/report-studio`, which build what they
-  measure first. Locally, `pnpm build`, `pnpm --filter
+  measure first, then the product pages' browser gate, `test:browser` for
+  `@formancy/report-pages`, even when the steps before it failed (0053).
+  Locally, `pnpm build`, `pnpm --filter
   @formancy/report-studio exec playwright install chromium` once, then
-  `pnpm --filter @formancy/report-studio test:browser` and `test:pictures`.
+  `pnpm --filter @formancy/report-studio test:browser` and `test:pictures`,
+  and `pnpm --filter @formancy/report-pages test:browser`, which needs the
+  Studio's install but not its build.
   A change to what a picture shows is retaken with `node
   scripts/pictures.mjs`, never by hand.
 - **`install`** runs `pnpm test:e2e:install`.

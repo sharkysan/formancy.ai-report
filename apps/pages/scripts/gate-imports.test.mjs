@@ -17,7 +17,10 @@ import { workspaceManifests } from '../../../scripts/upstream-deps.mjs'
  * What it cannot see: a specifier computed at run time -- a variable, a
  * template with a substitution -- a require function handed on under
  * another binding, and a file of a package read by its path, as
- * readFileSync reads one.
+ * readFileSync reads one. Nor a require function the syntax makes other
+ * than as `const r = createRequire(...)` or a call of it at once: one
+ * assigned to a name declared before, `createRequire` imported under
+ * another name, or called through its module, as `m.createRequire(...)`.
  */
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 

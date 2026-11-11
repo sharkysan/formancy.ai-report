@@ -10,6 +10,21 @@ later.
 
 ## Unreleased
 
+**The product pages are measured in a browser on every pull request**
+([0053](docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
+Their reflow down to 320 pixels and their contrast were measured by hand in Chromium when each
+page arrived, and by nothing after. Four more pages are planned. Each adds a topic to the bar
+every page carries, so each would have measured every page again by hand: four rounds of up to
+32 pages cost more than one gate. CI's `browser` job now runs the pages' own gate after the
+Studio's. It serves every page of the built sitemap under `/report/` with the demo's headers,
+and measures each at 320 pixels with and without the web fonts, on a phone, one pixel past each
+breakpoint of the built stylesheet, on a laptop and on a screen. It fails a page that does not
+answer as itself, scrolls sideways, has anything past either edge, or has anything axe finds. It
+also fails a page whose first Tab is not its skip link, that does not wear the released room or
+load its faces, that fetches or hints at anything outside the built pages, or that the demo's
+policy refuses anything. It runs in Chromium alone, says nothing of what a page looks like, and
+does not follow a link to the Studio, which it does not serve beside the pages.
+
 **The demo at `/report/` is served under a content security policy that admits its own files
 alone**
 ([0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)).

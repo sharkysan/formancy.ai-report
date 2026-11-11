@@ -349,6 +349,11 @@ serves it on port 4394, once `pnpm build` has built the packages it
 imports. `node scripts/container.mjs` builds the server's image and runs
 the container gate's checks on it, with Docker; the server's settings are
 in [its README](./packages/report-server/README.md#settings).
+`pnpm --filter @formancy/report-pages test:browser`, after `pnpm build`
+and the Studio's `playwright install chromium`, measures every page of the
+built sitemap in Chromium, served under `/report/` with the demo's
+headers, as CI's `browser` job does
+([0053](./docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 
 CI runs the gates of `.github/workflows/gates.yml` on every pull request,
 and a release runs them before it publishes. Every run ends in a release

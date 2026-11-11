@@ -1,6 +1,9 @@
 # 0023 — The Studio and the product pages serve their own faces, and ask no other site for anything
 
-- **Status:** accepted
+- **Status:** accepted; its pages measured in a browser by
+  [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)'s
+  gate, which names a request or a connection hint outside them, where
+  this record held their requests by their HTML and stylesheet alone
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
