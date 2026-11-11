@@ -9,7 +9,9 @@
  *   handed a double and never rounds. Up to a bound: ECMA-402 reads a
  *   string whose double would be infinite as infinity, and prints '∞'. A
  *   number with more than `MAX_FORMATTED_DIGITS` integer digits is refused
- *   instead; printed without a format, it prints whole.
+ *   instead; printed without a format, it prints whole. `percent` is held
+ *   to both: a share at more places than it keeps is refused, never rounded
+ *   by Intl.
  * - **The locale's conventions.** Grouping, separators, currency symbols,
  *   month names and case are the locale's, as the engine's ICU has them.
  *   ICU versions can differ -- which mark Swiss German groups digits with is
@@ -53,6 +55,8 @@ export const FORMAT_ERROR_CODES = [
   'invalid-currency',
   /** A number with more integer digits than `MAX_FORMATTED_DIGITS`, which Intl would print as '∞'. */
   'number-too-large',
+  /** A share handed to `percent` at more places than it keeps, which Intl would round again by its own rule. */
+  'percent-places',
 ] as const
 
 /**
@@ -234,9 +238,18 @@ class LocaleFormatter implements Formatter {
   }
 
   percent(fraction: Decimal, places: number): Formatted {
+    if (fraction.scale > places + 2) {
+      return refused(
+        'percent-places',
+        `a share of ${fraction.scale} places printed at ${places} places of percent, which Intl would round again; round it to ${places + 2} places first`,
+      )
+    }
+    const digits = decimalToString(fraction) as Intl.StringNumericLiteral
+    if (digits.replace(/^-/, '').split('.')[0]!.length > MAX_FORMATTED_DIGITS) {
+      return refused('number-too-large', `a share of more than ${MAX_FORMATTED_DIGITS} integer digits, which Intl would print as infinity`)
+    }
     const options: Intl.NumberFormatOptions = { style: 'percent', minimumFractionDigits: places, maximumFractionDigits: places }
-    const text = kept(this.#numbers, options, () => new Intl.NumberFormat(this.locale, options)).format(decimalToString(fraction) as Intl.StringNumericLiteral)
-    return { ok: true, text }
+    return { ok: true, text: kept(this.#numbers, options, () => new Intl.NumberFormat(this.locale, options)).format(digits) }
   }
 
   #transformed(text: string, transform: TextTransform | undefined): string {

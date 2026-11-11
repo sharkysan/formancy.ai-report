@@ -365,16 +365,25 @@ describe('totalOf', () => {
   const rounding = { scale: 2, mode: 'half-even' } as const
   const rates: AggregateDef = { id: 'rates', fn: 'sum', of: { kind: 'field', field: detail('rate') }, rounding }
 
-  // A series totalled by a second function could print 0.05 where the
-  // table's subtotal prints 0.00.
-  test('totals a series and an aggregate of one definition to one value', () => {
-    const rows = [line('1.00', { rate: '0.025' }), line('1.00', { rate: '0.025' })]
-    const outcome = totalOf(rates, totalsInDecimals('decimal', rates.rounding), [dec('0.025'), dec('0.025')], rows.length, collator)
-    expect(outcome.ok && plainText(outcome.value)).toBe(printed(rows, report([rates]))['rates'])
+  // A group's total is the report's rule over the group's rows: two groups
+  // of 0.02, rounded to 0.05, are 0.00 and 0.00 over 0.05, and a second
+  // function totalling a series (or a group) could print 0.05 for each.
+  test("totals a series and a group's aggregate of one definition to one value", () => {
+    const cash: AggregateDef = {
+      id: 'cash',
+      fn: 'sum',
+      of: { kind: 'field', field: detail('amount') },
+      rounding: { scale: 2, mode: 'half-away-from-zero', increment: '0.05' },
+    }
+    const group = [dec('0.02'), dec('0.02')].slice(0, 1)
+    const series = totalOf(cash, totalsInDecimals('decimal', cash.rounding), group, group.length, collator)
+    expect(series).toEqual({ ok: true, value: { type: 'decimal', value: decimalFromString('0.00') } })
+    const grouped = groupedTotals(cash, [line('0.02', { label: 'x' }), line('0.02', { label: 'y' })])
+    expect(series.ok && plainText(series.value)).toBe(grouped.subtotals[0])
   })
 
   // R18 -- a series rounded by a rule of its own would print a sum the
-  // table's subtotal of the same rows does not.
+  // table's subtotal of the same rows does not: 0.375 is 0.38 half to even.
   test('rounds a sum of decimals once, as it declares, as an aggregate is rounded', () => {
     const outcome = totalOf(rates, true, [dec('0.125'), dec('0.25')], 2, collator)
     expect(outcome.ok && plainText(outcome.value)).toBe('0.38')

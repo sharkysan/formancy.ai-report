@@ -52,13 +52,6 @@ const integer = (value: bigint): TypedValue => ({ type: 'integer', value })
 const decimal = (value: Decimal): TypedValue => ({ type: 'decimal', value })
 const asDecimal = (value: TypedValue): Decimal => (value.type === 'integer' ? new Decimal(value.value, 0) : (value.value as Decimal))
 
-/** How one aggregate is totalled: its definition, whether its numbers are decimals whatever they hold, and the text order. */
-interface Totalling {
-  readonly aggregate: AggregateDef
-  readonly decimals: boolean
-  readonly collator: Intl.Collator
-}
-
 /** Values as numbers of one kind: integers while every one is and decimals are not asked for, else decimals; undefined when one is not a number. */
 function numbers(
   values: readonly TypedValue[],
@@ -98,12 +91,12 @@ function comparator(values: readonly TypedValue[], collator: Intl.Collator): ((a
 }
 
 /** The least (`sign` -1) or greatest (1) value, the first of equals as written; null over none. */
-function extreme(values: readonly TypedValue[], sign: -1 | 1, totalling: Totalling): Total {
-  const compare = comparator(values, totalling.collator)
+function extreme(values: readonly TypedValue[], sign: -1 | 1, decimals: boolean, collator: Intl.Collator): Total {
+  const compare = comparator(values, collator)
   if (compare === undefined)
     return { code: 'aggregate-value-type', message: 'takes the least or greatest of values of one kind, and the values it read are of several' }
   const found = values.reduce<TypedValue | null>((kept, value) => (kept === null || Math.sign(compare(value, kept)) === sign ? value : kept), null)
-  return found?.type === 'integer' && totalling.decimals ? decimal(asDecimal(found)) : found
+  return found?.type === 'integer' && decimals ? decimal(asDecimal(found)) : found
 }
 
 /** `total` rounded as `rounding` declares: a decimal at the rounding's scale. */
@@ -128,7 +121,7 @@ export function totalsInDecimals(type: string | undefined, rounding: Rounding | 
 /**
  * The aggregate over the values read from some rows -- each null or typed --
  * or over `rows` rows when it reads nothing: the one rule every total is
- * computed by, a chart's series included.
+ * computed by, the report's, a group's and a chart's series'.
  */
 export function totalOf(
   aggregate: AggregateDef,
@@ -137,27 +130,27 @@ export function totalOf(
   rows: number,
   collator: Intl.Collator,
 ): TotalOutcome {
-  const total = reduce({ aggregate, decimals, collator }, read, rows)
-  return isRefusal(total) ? { ok: false, ...total } : { ok: true, value: total }
-}
-
-/** The aggregate over the values read from some rows -- each null or typed -- or over `rows` rows when it reads nothing. */
-function reduce(totalling: Totalling, read: readonly (TypedValue | null)[] | undefined, rows: number): Total {
-  const { aggregate, decimals } = totalling
   const values = (read ?? []).filter((value): value is TypedValue => value !== null)
+  let total: Total
   switch (aggregate.fn) {
     case 'count':
-      return integer(BigInt(read === undefined ? rows : values.length))
+      total = integer(BigInt(read === undefined ? rows : values.length))
+      break
     case 'avg':
       // report-spec requires an average to declare its rounding.
-      return values.length === 0 ? null : average(values, aggregate.rounding as Rounding)
+      total = values.length === 0 ? null : average(values, aggregate.rounding as Rounding)
+      break
     case 'sum':
-      return rounded(sum(values, decimals), aggregate.rounding)
+      total = rounded(sum(values, decimals), aggregate.rounding)
+      break
     case 'min':
-      return rounded(extreme(values, -1, totalling), aggregate.rounding)
+      total = rounded(extreme(values, -1, decimals, collator), aggregate.rounding)
+      break
     case 'max':
-      return rounded(extreme(values, 1, totalling), aggregate.rounding)
+      total = rounded(extreme(values, 1, decimals, collator), aggregate.rounding)
+      break
   }
+  return isRefusal(total) ? { ok: false, ...total } : { ok: true, value: total }
 }
 
 /**
@@ -171,7 +164,8 @@ export function computeTotals(render: Omit<Render, 'totals'>): Totals | undefine
   const rows: readonly OrderedRow[] = data.detail.map((record, index) => ({ index, record }))
   const read = new Map<string, readonly (TypedValue | null)[]>()
   const totals = new Map<string, TypedValue | null>()
-  const totallings = new Map<string, Totalling>()
+  // Whether each aggregate's group totals are decimals: its report total's kind, which a group's values share.
+  const inDecimals = new Map<string, boolean>()
   const refuse = (index: number, refusal: Refusal): void => {
     problems.error({
       stage: 'resolve',
@@ -197,7 +191,6 @@ export function computeTotals(render: Omit<Render, 'totals'>): Totals | undefine
       }
       read.set(id, values as (TypedValue | null)[])
     }
-    const totalling: Totalling = { aggregate, decimals, collator }
     const outcome = totalOf(aggregate, decimals, read.get(id), rows.length, collator)
     if (!outcome.ok) {
       computed = false
@@ -207,7 +200,7 @@ export function computeTotals(render: Omit<Render, 'totals'>): Totals | undefine
     const total = outcome.value
     totals.set(id, total)
     // A group's total is of its report total's kind: one that met a decimal is a decimal in every group.
-    totallings.set(id, total?.type === 'decimal' ? { ...totalling, decimals: true } : totalling)
+    inDecimals.set(id, decimals || total?.type === 'decimal')
   }
   if (!computed) return undefined
 
@@ -217,18 +210,18 @@ export function computeTotals(render: Omit<Render, 'totals'>): Totals | undefine
       const values = new Map<string, TypedValue | null>()
       for (const aggregate of report.aggregates) {
         const each = read.get(aggregate.id)
+        const grouped = totalOf(
+          aggregate,
+          inDecimals.get(aggregate.id) as boolean,
+          each && group.map((row) => each[row.index] as TypedValue | null),
+          group.length,
+          collator,
+        )
         // Never refused: a group's values are some of those the report's
         // total took, of the kinds it took, totalled as the same kind and
-        // rounded as it was. Every refusal `reduce` has is about the kinds
-        // of values, and a share of values has no kind the whole lacks.
-        values.set(
-          aggregate.id,
-          reduce(
-            totallings.get(aggregate.id) as Totalling,
-            each && group.map((row) => each[row.index] as TypedValue | null),
-            group.length,
-          ) as TypedValue | null,
-        )
+        // rounded as it was, and a share of values has no kind the whole lacks.
+        if (!grouped.ok) throw new Error(`group total of aggregate ${aggregate.id} refused after the report's was not: ${grouped.code}`)
+        values.set(aggregate.id, grouped.value)
       }
       return values
     },

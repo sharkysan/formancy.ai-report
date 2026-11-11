@@ -134,7 +134,12 @@ export const COMPUTES: { readonly [F in AggregateFunction]: (read: DeclaredType 
   max: (read) => ({ type: read ?? 'dyn', nullable: true }),
 }
 
+/** What an aggregate of `fn` over the detail field `field` names computes, typed by `COMPUTES`: the one place the compiler and a chart's series ask. */
+export function fieldTotalType(report: ReportDefinition, fn: AggregateFunction, field: string | undefined): ExpressionMember {
+  return COMPUTES[fn](readAs(report.datasets.detail?.fields.find(({ id }) => id === field)?.type))
+}
+
 /** What a chart's `series` computes: the compiler's type of an aggregate of its function over the detail field it names. */
 export function seriesType(report: ReportDefinition, series: ChartSeries): ExpressionMember {
-  return COMPUTES[series.fn](readAs(report.datasets.detail?.fields.find(({ id }) => id === series.of?.field)?.type))
+  return fieldTotalType(report, series.fn, series.of?.field)
 }

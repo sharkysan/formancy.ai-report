@@ -1,6 +1,7 @@
 import type { ChartComponent, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { sampleReport, withChart } from '../test-support.js'
+import { compileReport } from '../expressions/compile-report.js'
 import { seriesType } from '../expressions/members.js'
 import { chartDiagnostics } from './chart.js'
 
@@ -71,5 +72,21 @@ describe('seriesType', () => {
   ] as const)('types a %s of %s as %s', (fn, field, type) => {
     const series = { id: 's', label: 'S', fn, ...(field === undefined ? {} : { of: { dataset: 'detail', field } }) } as ChartComponent['series'][number]
     expect(seriesType(sampleReport(), series).type).toBe(type)
+  })
+
+  // A series typed otherwise than an aggregate of the same definition would
+  // be totalled as another kind: one would refuse a rounding the other
+  // accepts, which R18 forbids.
+  test('types a series as the compiler types an aggregate of the same function over the same field, for every field', () => {
+    const report = sampleReport()
+    const fields = report.datasets.detail?.fields.map(({ id }) => id) ?? []
+    for (const fn of ['count', 'sum', 'avg', 'min', 'max'] as const) {
+      for (const field of [undefined, 'missing', ...fields]) {
+        const of = field === undefined ? {} : { of: { dataset: 'detail', field } }
+        const aggregate = { id: 'probe', fn, ...(field === undefined ? {} : { of: { kind: 'field', field: { dataset: 'detail', field } } }) }
+        const compiled = compileReport({ ...report, aggregates: [aggregate] } as ReportDefinition).members.totals.get('probe')
+        expect(seriesType(report, { id: 's', label: 'S', fn, ...of } as ChartComponent['series'][number]), `${fn} of ${String(field)}`).toEqual(compiled)
+      }
+    }
   })
 })
