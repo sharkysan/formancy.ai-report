@@ -4,16 +4,17 @@ import type { PdfA } from './pdfa.js'
 
 /**
  * An SVG in a PDF/A (0030, beside 0031): what the PDF/A-3 an e-invoice or a
- * PDF/A-2b is drawn as holds an image of one to, checked before pdfmake runs. PDF/A-2
- * and -3 make ISO 32000-1's implementation limits requirements (ISO
- * 19005-2, 6.1.13): no integer past 2,147,483,647 in magnitude, and the
- * graphics state nested no deeper than 28. PDFKit writes a whole number
- * with no point, as an integer (pdfkit.js 173-178), and svg-to-pdfkit
- * computes some of its numbers through the inverse of the drawing's matrix
- * and the image's box: a drawing whose clip and transparency are shrunk a
- * millionfold, drawn a point square, wrote a group's /BBox of
- * 78,520,000,000 into an e-invoice that said it was a PDF/A-3b, which
- * veraPDF 1.30.3 failed on its rule 6.1.13-1 (measured 18 October 2026).
+ * PDF/A-2b is drawn as holds an image of one to, checked before pdfmake
+ * runs. PDF/A-2 and -3 make ISO 32000-1's implementation limits
+ * requirements (ISO 19005-2, 6.1.13): no integer past 2,147,483,647 in
+ * magnitude, and the graphics state nested no deeper than 28. PDFKit
+ * writes a whole number with no point, as an integer (pdfkit.js 173-178),
+ * and svg-to-pdfkit computes some of its numbers through the inverse of
+ * the drawing's matrix and the image's box: a drawing whose clip and
+ * transparency are shrunk a millionfold, drawn a point square, wrote a
+ * group's /BBox of 78,520,000,000 into an e-invoice that said it was a
+ * PDF/A-3b, which veraPDF 1.30.3 failed on its rule 6.1.13-1 (measured
+ * 18 October 2026).
  *
  * So the check bounds, from above, every number the converter writes for
  * an image -- from report-spec's extent of the drawing (`svg-extent.ts`),
@@ -24,7 +25,8 @@ import type { PdfA } from './pdfa.js'
  * to do. pdfmake draws an image in the page's own stream, whether it stands
  * in the body, a page region, a section, columns or a keep-together block,
  * and nests nothing around it (measured that day with veraPDF), so the
- * drawing's nesting is the stream's. A report drawn as no PDF/A draws such an image as it always did.
+ * drawing's nesting is the stream's. A report drawn as no PDF/A draws
+ * such an image as it always did.
  */
 
 /** The largest integer, in magnitude, a PDF/A-2 or -3 may hold (ISO 19005-2, 6.1.13; veraPDF's rule 6.1.13-1). A real may reach 3.403 × 10^38, past the 10^21 at which PDFKit throws. */
@@ -54,7 +56,7 @@ export const PDF_A_NESTING = 28
  */
 export const SVG_INTEGER_MARGIN = 2 * (4 * MAX_SVG_COORDINATE ** 2) * (2 * MAX_SVG_DEPTH) * 2 ** -53
 
-/** The largest an SVG's numbers may be bounded at in an e-invoice: `PDF_A_INTEGER` less `SVG_INTEGER_MARGIN`. */
+/** The largest an SVG's numbers may be bounded at in a PDF/A: `PDF_A_INTEGER` less `SVG_INTEGER_MARGIN`. */
 export const SVG_INTEGER_BOUND = Math.floor(PDF_A_INTEGER * (1 - SVG_INTEGER_MARGIN))
 
 /**

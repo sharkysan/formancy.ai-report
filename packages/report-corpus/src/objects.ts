@@ -15,14 +15,16 @@ import {
 } from '@pdfme/pdf-lib'
 
 /**
- * The objects a PDF/A-3 with an embedded invoice is proved on, read by a
- * second reader: @pdfme/pdf-lib 6.2.4, which shares no code with the pdfkit
- * that writes a report, nor with the PDF.js that `readPdf` reads its pages
+ * The objects a PDF/A is proved on -- an e-invoice's PDF/A-3 with its
+ * embedded invoice, or a PDF/A-2b that embeds nothing -- read by a second
+ * reader: @pdfme/pdf-lib 6.2.4, which shares no code with the pdfkit that
+ * writes a report, nor with the PDF.js that `readPdf` reads its pages
  * with. What a page shows is `readPdf`'s; what the file says of itself --
- * its version, its information dictionary, its XMP, the files it embeds and
- * where it names them, its output intent -- is read here, object by object,
- * as the PDF holds it, and so are its images: each image object, soft
- * masks among them, by its number.
+ * its version, its information dictionary, its XMP, the keys of its
+ * catalog and of the catalog's name tree, the files it embeds and where it
+ * names them, its output intent -- is read here, object by object, as the
+ * PDF holds it, and so are its images: each image object, soft masks
+ * among them, by its number.
  *
  * Every key is read as the type ISO 32000-1 gives it, and a key of another
  * type throws (pdf-lib's `lookupMaybe`), so that a name written as a string,
@@ -40,6 +42,10 @@ export interface PdfObjects {
   readonly info: Readonly<Record<string, string>>
   /** The catalog's /Metadata stream; undefined where the catalog has none. */
   readonly metadata: PdfMetadata | undefined
+  /** The catalog's own keys, without the slash, in the file's order: an action or a form the catalog holds -- /OpenAction, /AA, /AcroForm -- is among them. */
+  readonly catalogKeys: readonly string[]
+  /** The keys of the catalog's /Names dictionary, in the file's order: `Dests`, `EmbeddedFiles`, `JavaScript` ...; none where the catalog has no /Names. */
+  readonly nameTreeKeys: readonly string[]
   /** The catalog's /AF: every file associated with the document as a whole, in the array's order. */
   readonly associatedFiles: readonly PdfFileSpecification[]
   /** The catalog's /Names /EmbeddedFiles tree: every name, in its order, and the file specification it names. */
@@ -149,6 +155,8 @@ export async function readPdfObjects(bytes: Uint8Array): Promise<PdfObjects> {
     id: trailerId instanceof PDFArray ? trailerId.asArray().map((_, index) => hex(trailerId.lookup(index, PDFString, PDFHexString).asBytes())) : undefined,
     info: information(context.lookup(context.trailerInfo.Info)),
     metadata: metadataOf(streamAt(catalog, 'Metadata')),
+    catalogKeys: keysOf(catalog),
+    nameTreeKeys: keysOf(catalog.lookupMaybe(key('Names'), PDFDict)),
     associatedFiles: associated.map(fileSpecification),
     embeddedFiles,
     outputIntents: dictionariesIn(catalog.lookupMaybe(key('OutputIntents'), PDFArray)).map(outputIntent),
@@ -188,6 +196,9 @@ function imagesIn(context: PDFContext): PdfImage[] {
 function dictionariesIn(array: PDFArray | undefined): PDFDict[] {
   return array === undefined ? [] : array.asArray().map((_, index) => array.lookup(index, PDFDict))
 }
+
+/** `dict`'s keys, decoded and without the slash, in the order the file holds them; none where there is no dictionary. */
+const keysOf = (dict: PDFDict | undefined): string[] => dict?.keys().map((name) => name.decodeText()) ?? []
 
 const hex = (bytes: Uint8Array): string => Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 
