@@ -1,15 +1,16 @@
 /**
  * The healthcare page, `/report/<lang>/<gesundheitswesen|sante|sanita|healthcare>/`:
- * what works today for healthcare's forms and documents -- formancy's forms
- * and Formancy Report's PDFs -- and what is in development, Formancy Health,
- * said as in development and dated. It names HL7 and FHIR, so its footer
+ * what works today for healthcare's documents, Formancy Report's PDFs, each
+ * card naming the tests it rests on (`EVIDENCE`) -- formancy's forms have no
+ * card, since no test of this checkout holds what formancy is -- and what
+ * is in development, Formancy Health, said as in development and dated. It names HL7 and FHIR, so its footer
  * carries HL7's notice (shell.tsx), which the suite holds word for word.
  */
-import type { ReactElement, ReactNode } from 'react'
+import type { ReactElement } from 'react'
 import type { Language } from '../languages.js'
-import { FORMANCY, FORMANCY_HEALTH } from '../links.js'
+import { FORMANCY_HEALTH } from '../links.js'
 import { isRoot } from '../pages.js'
-import type { PageContext, PageGroup, PageMeta, Teaser } from '../pages.js'
+import type { Card, Evidence, PageContext, PageGroup, PageMeta, Teaser } from '../pages.js'
 
 /**
  * The day the healthcare page last said where Formancy Health stands. A
@@ -24,12 +25,40 @@ interface HealthcareCopy {
   readonly eyebrow: string
   readonly h1: string
   readonly lead: string
-  readonly today: { readonly heading: string; readonly cards: readonly { readonly title: string; readonly text: ReactNode }[]; readonly not: string }
+  readonly today: { readonly heading: string; readonly cards: readonly Card[]; readonly not: string }
   readonly actions: { readonly studio: string; readonly product: string }
   readonly health: { readonly heading: string; readonly text: string; readonly status: (date: string) => string; readonly link: string }
 }
 
-const formancy = <a href={FORMANCY}>formancy.ai</a>
+/**
+ * The tests each card of "What works today" rests on, one list a card,
+ * which the card shares in every language (checks/evidence.ts).
+ */
+const EVIDENCE = {
+  // A table's header repeated on every page it reaches, and its closing
+  // rows on the page of the last row they close; the page regions on every
+  // page; and the starters printed so from the data handed over.
+  documents: [
+    'packages/report-render-pdf/src/tables.test.ts',
+    'packages/report-render-pdf/src/flow.test.ts',
+    'packages/report-render-pdf/src/starters.test.ts',
+  ],
+  // Sums and averages exact and rounded once, as declared; a word wider
+  // than its column and a line no page holds refused, naming where they
+  // are, and no PDF written of a document refused.
+  exact: [
+    'packages/report-runtime/src/decimal.test.ts',
+    'packages/report-runtime/src/totals.test.ts',
+    'packages/report-render-pdf/src/widths.test.ts',
+    'packages/report-render-pdf/src/refusals.test.ts',
+  ],
+  // In Chromium, nothing asked of any address outside the built Studio
+  // while it prints; each image asked of the host by its id and digest, and
+  // the bytes handed over drawn; and LICENSE.md's table, read row by row,
+  // in which customer data, report templates and generated documents
+  // remain the customer's.
+  data: ['apps/studio/scripts/browser-test.mjs', 'packages/report-runtime/src/lower.test.ts', 'apps/pages/scripts/inputs.test.mjs'],
+} satisfies Record<string, Evidence>
 
 const COPY: Readonly<Record<Language, HealthcareCopy>> = {
   de: {
@@ -51,25 +80,19 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
       heading: 'Was heute geht',
       cards: [
         {
-          title: 'Formulare mit formancy',
-          text: (
-            <>
-              formancy ist der visuelle Formular-Builder für Angular und React, unter der Lizenz Apache-2.0, auf {formancy}. Eintrittsfragebogen,
-              Zuweisungsformulare und Einwilligungserklärungen lassen sich in seinem Editor erstellen und in Ihrer Anwendung darstellen.
-            </>
-          ),
-        },
-        {
           title: 'Dokumente mit Formancy Report',
           text: 'Ein Zuweisungsschreiben, ein Untersuchungsbericht, eine Rechnung an eine Patientin: einmal im Editor gestaltet, dann als paginiertes PDF aus den Daten erzeugt, die Ihre Anwendung übergibt, mit Tabellenköpfen, die sich auf jeder Seite wiederholen, und Summen, die bei ihrer letzten Zeile bleiben.',
+          evidence: EVIDENCE.documents,
         },
         {
           title: 'Exakt oder gar nicht',
           text: 'Beträge werden exakt berechnet und einmal gerundet. Text, der nicht passt, wird nie abgeschnitten: Der Renderer bricht ab und sagt, warum, damit kein Dokument stillschweigend eine Zeile verliert.',
+          evidence: EVIDENCE.exact,
         },
         {
-          title: 'Patientendaten bleiben bei Ihnen',
-          text: 'Laufzeit und Renderer von Formancy Report laden nichts nach und folgen keiner Adresse, und nichts braucht eine KI. Die Daten, die Berichtsvorlagen und die erzeugten Dokumente gehören Ihnen, wie es die Lizenz festhält.',
+          title: 'Patientendaten gehören Ihnen',
+          text: 'Ihre Anwendung übergibt die Daten, und jedes Bild mit seinem Namen und seinem Hashwert. Im Studio entsteht das PDF im Browser, und die Browsertests des Studios schlagen bei jeder Anfrage fehl, die nicht an seine eigenen Dateien geht. Die Daten, die Berichtsvorlagen und die erzeugten Dokumente gehören Ihnen, wie es die Lizenz festhält.',
+          evidence: EVIDENCE.data,
         },
       ],
       not: 'Keines von beiden ist ein Klinikinformationssystem oder ein zertifiziertes Medizinprodukt: Es sind Bausteine für die Anwendung, die Sie betreiben.',
@@ -101,25 +124,19 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
       heading: "Ce qui fonctionne aujourd'hui",
       cards: [
         {
-          title: 'Des formulaires avec formancy',
-          text: (
-            <>
-              formancy est le builder visuel de formulaires pour Angular et React, sous licence Apache-2.0, sur {formancy}. Questionnaires d'admission,
-              formulaires d'adressage et consentements peuvent se construire dans son éditeur et s'afficher dans votre application.
-            </>
-          ),
-        },
-        {
           title: 'Des documents avec Formancy Report',
           text: "Une lettre d'adressage, un rapport d'examen, une facture à une patiente : mis en page une fois dans l'éditeur, puis générés en PDF paginé à partir des données que fournit votre application, avec des en-têtes de tableau répétés sur chaque page et des totaux qui restent avec leur dernière ligne.",
+          evidence: EVIDENCE.documents,
         },
         {
           title: 'Exact, ou refusé',
           text: "Les montants sont calculés de manière exacte et arrondis une seule fois. Un texte qui ne tient pas n'est jamais coupé : le moteur de rendu refuse et dit pourquoi, pour qu'aucun document ne perde une ligne sans le dire.",
+          evidence: EVIDENCE.exact,
         },
         {
-          title: 'Les données des patients restent chez vous',
-          text: "Le runtime et le moteur de rendu de Formancy Report ne vont rien chercher et ne suivent aucune adresse, et rien n'a besoin d'une IA. Les données, les modèles de rapports et les documents générés restent les vôtres, comme le dit la licence.",
+          title: 'Les données des patients restent les vôtres',
+          text: "Votre application fournit les données, et chaque image par son nom et son empreinte. Dans le Studio, le PDF est produit dans le navigateur, et les tests du Studio dans le navigateur échouent dès qu'une requête vise autre chose que ses propres fichiers. Les données, les modèles de rapports et les documents générés restent les vôtres, comme le dit la licence.",
+          evidence: EVIDENCE.data,
         },
       ],
       not: "Aucun des deux n'est un système d'information hospitalier ni un dispositif médical certifié : ce sont des briques pour l'application que vous exploitez.",
@@ -151,25 +168,19 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
       heading: 'Che cosa funziona oggi',
       cards: [
         {
-          title: 'Moduli con formancy',
-          text: (
-            <>
-              formancy è il builder visuale di moduli per Angular e React, sotto licenza Apache-2.0, su {formancy}. Questionari d'ammissione, moduli di invio e
-              consensi si possono creare nel suo editor e mostrare nella vostra applicazione.
-            </>
-          ),
-        },
-        {
           title: 'Documenti con Formancy Report',
           text: "Una lettera di invio, un referto d'esame, una fattura a una paziente: impaginati una volta nell'editor, poi generati come PDF impaginato dai dati che la vostra applicazione fornisce, con intestazioni di tabella ripetute su ogni pagina e totali che restano con la loro ultima riga.",
+          evidence: EVIDENCE.documents,
         },
         {
           title: 'Esatto, o rifiutato',
           text: 'Gli importi sono calcolati in modo esatto e arrotondati una sola volta. Un testo che non ci sta non viene mai tagliato: il renderer rifiuta e dice perché, così nessun documento perde una riga senza avvisare.',
+          evidence: EVIDENCE.exact,
         },
         {
-          title: 'I dati dei pazienti restano da voi',
-          text: "Il runtime e il renderer di Formancy Report non caricano nulla e non seguono alcun indirizzo, e nulla ha bisogno di un'IA. I dati, i modelli di report e i documenti generati restano vostri, come dice la licenza.",
+          title: 'I dati dei pazienti restano vostri',
+          text: 'La vostra applicazione fornisce i dati, e ogni immagine con il suo nome e il suo hash. Nello Studio il PDF viene prodotto nel browser, e i test dello Studio nel browser falliscono a qualsiasi richiesta che non vada ai suoi file. I dati, i modelli di report e i documenti generati restano vostri, come dice la licenza.',
+          evidence: EVIDENCE.data,
         },
       ],
       not: "Nessuno dei due è un sistema informativo ospedaliero né un dispositivo medico certificato: sono componenti per l'applicazione che gestite.",
@@ -201,25 +212,19 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
       heading: 'What works today',
       cards: [
         {
-          title: 'Forms with formancy',
-          text: (
-            <>
-              formancy is the visual form builder for Angular and React, under the Apache-2.0 licence, at {formancy}. Admission questionnaires, referral forms
-              and consent forms can be built in its editor and rendered in your application.
-            </>
-          ),
-        },
-        {
           title: 'Documents with Formancy Report',
           text: 'A referral letter, a report on an examination, an invoice to a patient: laid out once in the editor, then printed as a paginated PDF from the data your application hands over, with table headers that repeat on every page and totals that stay with their last row.',
+          evidence: EVIDENCE.documents,
         },
         {
           title: 'Exact, or refused',
           text: 'Amounts are computed exactly and rounded once. Text that does not fit is never cut off: the renderer refuses and says why, so no document silently loses a line.',
+          evidence: EVIDENCE.exact,
         },
         {
-          title: 'Patient data stays with you',
-          text: "Formancy Report's runtime and renderer fetch nothing and follow no address, and nothing needs an AI. The data, the report templates and the documents generated remain yours, as the licence says.",
+          title: 'Patient data remains yours',
+          text: "Your application hands over the data, and each image by its name and digest. In the Studio, the PDF is printed in the browser, and the Studio's browser tests fail on any request outside its own files. The data, the report templates and the documents generated remain yours, as the licence says.",
+          evidence: EVIDENCE.data,
         },
       ],
       not: 'Neither is a hospital information system or a certified medical device: they are building blocks for the application you run.',
@@ -290,6 +295,7 @@ export const HEALTHCARE_GROUP: PageGroup = {
   id: 'healthcare',
   slug: { de: 'gesundheitswesen', fr: 'sante', it: 'sanita', en: 'healthcare' },
   meta: { de: COPY.de.meta, fr: COPY.fr.meta, it: COPY.it.meta, en: COPY.en.meta },
+  cards: { de: COPY.de.today.cards, fr: COPY.fr.today.cards, it: COPY.it.today.cards, en: COPY.en.today.cards },
   teaser: { de: COPY.de.teaser, fr: COPY.fr.teaser, it: COPY.it.teaser, en: COPY.en.teaser },
   hl7Notice: true,
   Body: HealthcareBody,

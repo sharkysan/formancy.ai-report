@@ -1,7 +1,7 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
-import { CARD_EVIDENCE, EPC_QR_CODE_STATUS, EURO_SAMPLES_READ } from './content/epc-qr-code.js'
+import { EPC_QR_CODE_STATUS, EURO_SAMPLES_READ } from './content/epc-qr-code.js'
 import { EPC_QR_CODE_COPY } from './content/epc-qr-code-copy.js'
 import { formatDay, LANGUAGES } from './languages.js'
 import { renderSite } from './site.js'
@@ -11,9 +11,9 @@ import { inputs, repo, site } from './test-site.js'
  * The EPC QR code page (0028), where it says what nothing else on the site
  * holds: its status, written against one release and said where a reader
  * starts; the euro invoice's samples it shows, its own language's first;
- * the way into the Studio and across to the QR-bill page; and the tests
- * each of its cards rests on. The checks every page passes are
- * site.test.ts's.
+ * and the way into the Studio and across to the QR-bill page. The checks
+ * every page passes are site.test.ts's, the tests each of its cards rests
+ * on among them (checks/evidence.ts).
  */
 const pagesOf = (group: string) =>
   site.pages.filter((page) => page.group === group).map((page) => ({ ...page, document: new DOMParser().parseFromString(page.html, 'text/html') }))
@@ -148,18 +148,6 @@ describe('the EPC QR code page (0028)', () => {
         )
         expect({ from, language: page.language, linked }).toEqual({ from, language: page.language, linked: [urlOf(to, page.language)] })
       }
-    }
-  })
-
-  // Every card says what the code does, and each claim is one a test of
-  // 0025 or 0028 holds. The list says which, card by card: a card added
-  // without its tests, or a test file renamed or removed, leaves a claim
-  // nobody checks, and fails here.
-  test('rests each card it shows on tests the checkout holds', () => {
-    for (const language of LANGUAGES) expect([language, EPC_QR_CODE_COPY[language].does.cards.length]).toEqual([language, CARD_EVIDENCE.length])
-    for (const files of CARD_EVIDENCE) {
-      expect(files.length).toBeGreaterThan(0)
-      for (const file of files) expect({ file, there: existsSync(join(repo, file)) }).toEqual({ file, there: true })
     }
   })
 

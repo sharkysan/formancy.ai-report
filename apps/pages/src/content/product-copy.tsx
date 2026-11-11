@@ -1,20 +1,16 @@
 /**
  * The product page's words, in each language. Every claim is one README.md
- * or a decision record makes, and says no more than it; a fact a file here
- * states -- the release, its date, the licence's terms and version -- is
- * read from that file (scripts/inputs.mjs) and handed in, never typed.
+ * or a decision record makes, and says no more than it, and each card names
+ * the tests it rests on (`EVIDENCE`); a fact a file here states -- the
+ * release, its date, the licence's terms and version -- is read from that
+ * file (scripts/inputs.mjs) and handed in, never typed.
  * Reviewed by a person, not a test, for meaning; the suite holds what can
  * be measured (checks/).
  */
 import type { ReactNode } from 'react'
 import type { Language } from '../languages.js'
 import { FORMANCY_DATA } from '../links.js'
-import type { PageMeta } from '../pages.js'
-
-export interface Card {
-  readonly title: string
-  readonly text: ReactNode
-}
+import type { Card, Evidence, PageMeta } from '../pages.js'
 
 /** The licence's footnote's parts: the version line's, and the two links. */
 export interface Footnote {
@@ -55,6 +51,80 @@ export interface ProductCopy {
 
 const data = <a href={FORMANCY_DATA}>Formancy Data</a>
 
+/**
+ * The tests each card of "What it does today" rests on, one list a card,
+ * which the card shares in every language (checks/evidence.ts).
+ */
+const EVIDENCE = {
+  // Neither builder brings in the other: the Angular builder's closure holds
+  // no React, and the React builder's host installs no Angular builder; and
+  // the switch between them, in jsdom and in Chromium, keeps the report,
+  // its undo history and the selection, over one session.
+  twoEditors: [
+    'packages/report-builder-angular/src/dependencies.test.ts',
+    'scripts/install-hosts.test.mjs',
+    'apps/studio/src/studio.test.tsx',
+    'apps/studio/scripts/gate-switch.mjs',
+  ],
+  // A decimal read as its string, a JavaScript number refused; sums and
+  // averages exact, rounded once as declared, to each group and to the
+  // report; and each value formatted for the report's locale.
+  totals: [
+    'packages/report-runtime/src/values.test.ts',
+    'packages/report-runtime/src/decimal.test.ts',
+    'packages/report-runtime/src/totals.test.ts',
+    'packages/report-runtime/src/format.test.ts',
+  ],
+  // A word wider than its column, a page past the limit and a character
+  // the font has no glyph for, each refused, naming where it is, and no PDF
+  // written of a document refused; a final render refusing incomplete data.
+  refuses: [
+    'packages/report-render-pdf/src/widths.test.ts',
+    'packages/report-render-pdf/src/corpus.test.ts',
+    'packages/report-render-pdf/src/glyphs.test.ts',
+    'packages/report-render-pdf/src/refusals.test.ts',
+    'packages/report-runtime/src/resolve.test.ts',
+  ],
+  // The preview printed by the renderer's browser entry and read back with
+  // PDF.js; Download PDF the very bytes the paper shows; and in Chromium,
+  // every page drawn on white paper with the text it prints, and Download
+  // PDF a PDF.
+  preview: ['apps/studio/src/preview/pipeline.test.ts', 'apps/studio/src/preview/pdf-view.test.tsx', 'apps/studio/scripts/browser-test.mjs'],
+  // Each read of a field the data does not declare, named where it is;
+  // each builder listing the problems and linking each to its component;
+  // a refusal linked to the component it names, and in Chromium Enter on
+  // it putting the keyboard on that component's outline row.
+  problems: [
+    'packages/report-core/src/diagnostics/diagnose.test.ts',
+    'packages/report-builder-react/src/scenarios.test.tsx',
+    'packages/report-builder-angular/src/scenarios.test.ts',
+    'apps/studio/src/preview/problems.test.ts',
+    'apps/studio/scripts/browser-test.mjs',
+  ],
+  // The keys the core maps, the places a drag reaches as a list to choose
+  // from, the keyboard in each builder, and every scenario run in each
+  // builder in each of the editor's languages, with axe over its end.
+  keyboard: [
+    'packages/report-builder-core/src/keys.test.ts',
+    'packages/report-builder-core/src/targets.test.ts',
+    'packages/report-builder-react/src/keyboard.test.tsx',
+    'packages/report-builder-react/src/scenarios.test.tsx',
+    'packages/report-builder-angular/src/keyboard.test.ts',
+    'packages/report-builder-angular/src/scenarios.test.ts',
+  ],
+  // In Chromium, nothing asked of any address outside the built Studio
+  // while it prints, adding and printing an image included; each image
+  // asked of the host by its id and digest, and the bytes handed over
+  // drawn; and Formancy Data read best-effort, with the person's token on
+  // every request.
+  data: [
+    'apps/studio/scripts/browser-test.mjs',
+    'apps/studio/scripts/gate-images.mjs',
+    'packages/report-runtime/src/lower.test.ts',
+    'packages/report-data-provider/src/read.test.ts',
+  ],
+} satisfies Record<string, Evidence>
+
 export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
   de: {
     meta: {
@@ -73,36 +143,44 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         {
           title: 'Zwei native Editoren, eine Sitzung',
           text: 'Der React-Builder und der Angular-Builder sind je nativ in ihrem Framework und stellen dasselbe Editormodell dar. Wechseln Sie vom einen zum anderen: Bericht, Rückgängig-Verlauf und Auswahl bleiben erhalten. Keiner hängt vom anderen ab.',
+          evidence: EVIDENCE.twoEditors,
         },
         {
           title: 'Exakte Summen',
           text: 'Beträge werden als Dezimal-Strings weitergegeben, nie als JavaScript-Zahl. Summen werden exakt berechnet und einmal gerundet, wie es der Bericht festlegt, und jeder Wert wird für Sprache und Region des Berichts formatiert.',
+          evidence: EVIDENCE.totals,
         },
         {
           title: 'Lieber ablehnen als abschneiden',
           text: 'Ein Wort, breiter als seine Spalte, eine Seite zu viel, ein Zeichen, das die Schrift nicht darstellen kann: Der Renderer sagt, warum er abbricht, und liefert dann gar kein PDF – nie eines, dem etwas fehlt. Ein endgültiger Druck lehnt unvollständige Daten ab.',
+          evidence: EVIDENCE.refuses,
         },
         {
           title: 'Die Vorschau ist das PDF',
           text: 'Die Vorschau im Studio ist keine Nachbildung in HTML: Sie ist das PDF, das der Renderer erzeugt hat, von PDF.js auf weisses Papier gezeichnet, und «Download PDF» gibt Ihnen genau diese Datei.',
+          evidence: EVIDENCE.preview,
         },
         {
           title: 'Probleme vor dem Druck',
           text: 'Der Builder prüft jeden Ausdruck gegen die Felder, die die Daten des Berichts deklarieren, und sagt, was nicht stimmt, bevor etwas gedruckt wird. Kann die Vorschau nicht drucken, nennt sie die Komponente, die das verhindert – einen Tastendruck entfernt.',
+          evidence: EVIDENCE.problems,
         },
         {
           title: 'Tastatur zuerst',
           text: 'Was sich ziehen lässt, geht auch mit der Tastatur, und beide Builder werden mit axe in den drei Sprachen geprüft, die der Editor heute spricht: Englisch, Deutsch (Schweiz) und Französisch (Schweiz).',
+          evidence: EVIDENCE.keyboard,
         },
         {
-          title: 'Ihre Daten bleiben bei Ihnen',
+          title: 'Ihre Anwendung übergibt die Daten',
           text: (
             <>
-              Laufzeit und Renderer laden nichts nach und folgen keiner Adresse. Ein Bericht nennt seine Datensätze und Bilder, und Ihre Anwendung übergibt
-              beides: als eigenes JSON oder, nach bestem Bemühen (best-effort), aus einem Server von {data}, mit den Rechten der Person, deren Token Ihre
-              Anwendung mitgibt.
+              Ein Bericht nennt seine Datensätze und Bilder, und Ihre Anwendung übergibt beides: die Daten als eigenes JSON oder, nach bestem Bemühen
+              (best-effort), aus einem Server von {data}, mit den Rechten der Person, deren Token Ihre Anwendung mitgibt, und jedes Bild mit seinem Namen und
+              seinem Hashwert. Im Studio entsteht das PDF im Browser, und die Browsertests des Studios schlagen bei jeder Anfrage fehl, die nicht an seine
+              eigenen Dateien geht.
             </>
           ),
+          evidence: EVIDENCE.data,
         },
       ],
     },
@@ -167,36 +245,44 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         {
           title: 'Deux éditeurs natifs, une session',
           text: "Le builder React et le builder Angular sont chacun natifs dans leur framework et reposent sur un même modèle d'éditeur. Passez de l'un à l'autre : le rapport, l'historique d'annulation et la sélection sont conservés. Aucun ne dépend de l'autre.",
+          evidence: EVIDENCE.twoEditors,
         },
         {
           title: 'Des totaux exacts',
           text: 'Les montants circulent sous forme de chaînes décimales, jamais comme nombre JavaScript. Les totaux sont calculés de manière exacte et arrondis une seule fois, comme le rapport le déclare, et chaque valeur est formatée selon la langue et la région du rapport.',
+          evidence: EVIDENCE.totals,
         },
         {
           title: 'Il refuse plutôt que de tronquer',
           text: "Un mot plus large que sa colonne, une page de trop, un caractère que la police ne peut pas dessiner : le moteur de rendu dit pourquoi il s'arrête et ne livre aucun PDF, jamais un PDF auquel il manque quelque chose. Un rendu final refuse les données incomplètes.",
+          evidence: EVIDENCE.refuses,
         },
         {
           title: "L'aperçu est le PDF",
           text: "L'aperçu du Studio n'est pas une imitation en HTML : c'est le PDF que le moteur de rendu a généré, dessiné par PDF.js sur papier blanc, et « Download PDF » vous remet ce même fichier.",
+          evidence: EVIDENCE.preview,
         },
         {
           title: "Les problèmes avant l'impression",
           text: "Le builder vérifie chaque expression par rapport aux champs que déclarent les données du rapport, et signale ce qui ne va pas avant tout rendu. Si l'aperçu ne peut pas s'imprimer, il nomme le composant en cause, accessible d'une seule touche.",
+          evidence: EVIDENCE.problems,
         },
         {
           title: "Le clavier d'abord",
           text: "Chaque glisser-déposer a son équivalent au clavier, et les deux builders sont testés avec axe dans les trois langues que l'éditeur parle aujourd'hui : l'anglais, l'allemand (Suisse) et le français (Suisse).",
+          evidence: EVIDENCE.keyboard,
         },
         {
-          title: 'Vos données restent chez vous',
+          title: 'Votre application fournit les données',
           text: (
             <>
-              Le runtime et le moteur de rendu ne vont rien chercher et ne suivent aucune adresse. Un rapport nomme ses jeux de données et ses images, et votre
-              application fournit les deux : en JSON, ou, en mode best-effort, depuis un serveur {data}, avec les droits de la personne dont votre application
-              transmet le jeton.
+              Un rapport nomme ses jeux de données et ses images, et votre application fournit les deux : les données en JSON, ou, en mode best-effort, depuis
+              un serveur {data}, avec les droits de la personne dont votre application transmet le jeton, et chaque image par son nom et son empreinte. Dans le
+              Studio, le PDF est produit dans le navigateur, et les tests du Studio dans le navigateur échouent dès qu'une requête vise autre chose que ses
+              propres fichiers.
             </>
           ),
+          evidence: EVIDENCE.data,
         },
       ],
     },
@@ -260,36 +346,44 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         {
           title: 'Due editor nativi, una sessione',
           text: "Il builder React e il builder Angular sono ciascuno nativo nel proprio framework e si basano su un unico modello di editor. Passando dall'uno all'altro, il report, la cronologia degli annullamenti e la selezione restano invariati. Nessuno dei due dipende dall'altro.",
+          evidence: EVIDENCE.twoEditors,
         },
         {
           title: 'Totali esatti',
           text: 'Gli importi circolano come stringhe decimali, mai come numero JavaScript. I totali sono calcolati in modo esatto e arrotondati una sola volta, come il report dichiara, e ogni valore è formattato per la lingua e la regione del report.',
+          evidence: EVIDENCE.totals,
         },
         {
           title: 'Rifiuta invece di troncare',
           text: 'Una parola più larga della sua colonna, una pagina di troppo, un carattere che il font non sa disegnare: il renderer dice perché si è fermato e non restituisce alcun PDF, mai uno a cui manchi qualcosa. Una stampa definitiva rifiuta dati incompleti.',
+          evidence: EVIDENCE.refuses,
         },
         {
           title: "L'anteprima è il PDF",
           text: "L'anteprima dello Studio non è un'imitazione in HTML: è il PDF che il renderer ha generato, disegnato da PDF.js su carta bianca, e «Download PDF» vi consegna proprio quel file.",
+          evidence: EVIDENCE.preview,
         },
         {
           title: 'I problemi prima della stampa',
           text: "Il builder verifica ogni espressione rispetto ai campi che i dati del report dichiarano, e segnala che cosa non va prima di qualsiasi stampa. Se l'anteprima non si può stampare, indica il componente che l'ha bloccata, raggiungibile con un tasto.",
+          evidence: EVIDENCE.problems,
         },
         {
           title: 'Prima la tastiera',
           text: "Ogni trascinamento ha un equivalente da tastiera, ed entrambi i builder sono verificati con axe nelle tre lingue che l'editor parla oggi: inglese, tedesco (Svizzera) e francese (Svizzera). L'italiano non ancora.",
+          evidence: EVIDENCE.keyboard,
         },
         {
-          title: 'I vostri dati restano da voi',
+          title: 'La vostra applicazione fornisce i dati',
           text: (
             <>
-              Il runtime e il renderer non caricano nulla e non seguono alcun indirizzo. Un report nomina i suoi set di dati e le sue immagini, e la vostra
-              applicazione fornisce entrambi: come JSON proprio o, in modalità best-effort, da un server {data}, con i permessi della persona di cui la vostra
-              applicazione fornisce il token.
+              Un report nomina i suoi set di dati e le sue immagini, e la vostra applicazione fornisce entrambi: i dati come JSON proprio o, in modalità
+              best-effort, da un server {data}, con i permessi della persona di cui la vostra applicazione fornisce il token, e ogni immagine con il suo nome e
+              il suo hash. Nello Studio il PDF viene prodotto nel browser, e i test dello Studio nel browser falliscono a qualsiasi richiesta che non vada ai
+              suoi file.
             </>
           ),
+          evidence: EVIDENCE.data,
         },
       ],
     },
@@ -353,35 +447,43 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
         {
           title: 'Two native editors, one session',
           text: 'The React builder and the Angular builder are each native to their framework and render one editor model. Switch from one to the other and the report, its undo history and the selection stay. Neither depends on the other.',
+          evidence: EVIDENCE.twoEditors,
         },
         {
           title: 'Totals that are exact',
           text: "Amounts travel as decimal strings, never through a JavaScript number. Totals are computed exactly and rounded once, as the report declares, and each value is formatted for the report's language and region.",
+          evidence: EVIDENCE.totals,
         },
         {
           title: 'It refuses rather than truncates',
           text: 'A word wider than its column, a page too many, a character the font cannot draw: the renderer says why it stopped and returns no PDF, never one with something missing. A final render refuses incomplete data.',
+          evidence: EVIDENCE.refuses,
         },
         {
           title: 'The preview is the PDF',
           text: "The Studio's preview is no imitation in HTML: it is the PDF the renderer printed, drawn by PDF.js on white paper, and “Download PDF” hands you that same file.",
+          evidence: EVIDENCE.preview,
         },
         {
           title: 'Problems before printing',
           text: "The builder checks every expression against the fields the report's data declares, and says what is wrong before anything is rendered. A preview that cannot print names the component that stopped it, one key press away.",
+          evidence: EVIDENCE.problems,
         },
         {
           title: 'Keyboard first',
           text: 'Every drag has a keyboard path, and both builders are tested with axe in the three languages the editor speaks today: English, German (Switzerland) and French (Switzerland).',
+          evidence: EVIDENCE.keyboard,
         },
         {
-          title: 'Your data stays with you',
+          title: 'Your application hands over the data',
           text: (
             <>
-              The runtime and the renderer fetch nothing and follow no address. A report names its datasets and its images, and your application hands over
-              both: as JSON of its own or, best-effort, from a {data} server, read as the person whose token your application supplies.
+              A report names its datasets and its images, and your application hands over both: the data as JSON of its own or, best-effort, from a {data}{' '}
+              server, read as the person whose token your application supplies, and each image by its name and digest. In the Studio, the PDF is printed in the
+              browser, and the Studio's browser tests fail on any request outside its own files.
             </>
           ),
+          evidence: EVIDENCE.data,
         },
       ],
     },

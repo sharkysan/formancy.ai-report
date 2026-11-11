@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import type { SiteInputs } from './inputs.js'
 import type { Language } from './languages.js'
 
@@ -7,6 +7,21 @@ export interface PageMeta {
   readonly title: string
   readonly description: string
   readonly name: string
+}
+
+/**
+ * The tests a claim rests on, one at least: each a file of this checkout,
+ * a test or the entry of a gate CI runs (checks/evidence.ts's
+ * `EVIDENCE_KIND`), so a test renamed or removed leaves the claim refused
+ * rather than resting on nothing.
+ */
+export type Evidence = readonly [string, ...string[]]
+
+/** A claim a page makes, as a card: its heading, its words, and the tests it rests on. */
+export interface Card {
+  readonly title: string
+  readonly text: ReactNode
+  readonly evidence: Evidence
 }
 
 /**
@@ -24,6 +39,12 @@ export interface PageGroup {
    */
   readonly slug: Readonly<Record<Language, string>>
   readonly meta: Readonly<Record<Language, PageMeta>>
+  /**
+   * Every claim card the page shows, in its order, in each language: the
+   * page shows these and no other (checks/evidence.ts), and each language's
+   * card rests on the one list of tests the English one does.
+   */
+  readonly cards: Readonly<Record<Language, readonly Card[]>>
   /** What the product page says of a topic page, in each language, under a heading of its own, with a link to it. */
   readonly teaser?: Readonly<Record<Language, Teaser>>
   /** HL7's trademark notice, which a page naming HL7 or FHIR carries in its footer. */

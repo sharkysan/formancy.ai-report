@@ -1,8 +1,8 @@
 /**
  * The EPC QR code page's words, in each language (0028). Every claim is one
  * decision 0025 makes and its tests hold, or one the euro invoice's samples
- * make and theirs hold, and says no more than it: each card's tests are
- * listed beside the cards, in `CARD_EVIDENCE` (epc-qr-code.tsx), and the
+ * make and theirs hold, and says no more than it: each card names its
+ * tests, listed once in `EVIDENCE`, and the
  * limits are 0025's costs and 0028's, and 0027's and 0031's where one says
  * what an e-invoice is: its XML written by the runtime and embedded in the
  * PDF/A-3b the renderer draws, for Germany alone, which veraPDF, Mustang and
@@ -21,7 +21,68 @@
  * a test, for meaning; the suite holds what can be measured (checks/).
  */
 import type { Language } from '../languages.js'
-import type { PageMeta, Teaser } from '../pages.js'
+import type { Card, Evidence, PageMeta, Teaser } from '../pages.js'
+
+/**
+ * The tests each card of the page's "does" section rests on, one list a
+ * card, which the card shares in every language: each claim is one 0025
+ * makes and these hold, or one the euro invoice's samples make (0028).
+ * checks/evidence.ts holds every file to the checkout.
+ */
+const EVIDENCE = {
+  // The EPC's rules: the IBAN and its country's length, the QR-IBAN, the BIC
+  // and its country, the creditor reference, each text, the bytes; and the
+  // same functions for what the report writes and what the data brings.
+  rules: [
+    'packages/report-spec/src/epc-payload.test.ts',
+    'packages/report-spec/src/sepa.test.ts',
+    'packages/report-spec/src/payment-reference.test.ts',
+    'packages/report-spec/src/validate-epc-qr-code.test.ts',
+    'packages/report-runtime/src/lower-epc-qr-code.test.ts',
+  ],
+  // Refused before the PDF, on its field: the IBAN's rules the validator
+  // applies -- its check digits, its country's length, a country of SEPA --
+  // and its refusal when the report is validated, on its field, unquoted;
+  // shown there by both builders, which run the core's scenario "insert an
+  // EPC payment code, and type its account"; the data held to the same
+  // rules by the runtime, never quoting a value. That a typo which still
+  // fits the check digits, or another account's valid IBAN, passes is
+  // what the payload's test shows of any valid IBAN: every country's
+  // example account is taken.
+  refused: [
+    'packages/report-spec/src/epc-payload.test.ts',
+    'packages/report-spec/src/validate-epc-qr-code.test.ts',
+    'packages/report-builder-core/src/epc-qr-code.test.ts',
+    'packages/report-builder-react/src/scenarios.test.tsx',
+    'packages/report-builder-angular/src/scenarios.test.ts',
+    'packages/report-runtime/src/lower-epc-qr-code.test.ts',
+  ],
+  // The amount: the PSA's spellings, more than two decimals refused rather
+  // than rounded, null left to the payer, and each invoice's total computed
+  // in BigInt against the code's.
+  amount: [
+    'packages/report-spec/src/epc-payload.test.ts',
+    'packages/report-runtime/src/lower-epc-qr-code.test.ts',
+    'packages/report-corpus/src/starters/starters.test.ts',
+    'packages/report-corpus/src/starters/euro-samples.test.ts',
+  ],
+  // The details beside the code: decoded, and each read back beside it.
+  details: ['packages/report-render-pdf/src/starters.test.ts', 'packages/report-render-pdf/src/euro-samples.test.ts'],
+  // Austria's frame: the PSA's frame, caption and modules' widths, and the
+  // Austrian sample alone wearing it.
+  frame: [
+    'packages/report-spec/src/epc-print.test.ts',
+    'packages/report-render-pdf/src/epc-qr-code.test.ts',
+    'packages/report-render-pdf/src/euro-samples.test.ts',
+  ],
+  // Proved on the PDF: the EPC's examples byte for byte at level M, and
+  // every invoice down to the amount it prints, decoded by ZXing.
+  proved: [
+    'packages/report-render-pdf/src/epc-qr-code.test.ts',
+    'packages/report-render-pdf/src/starters.test.ts',
+    'packages/report-render-pdf/src/euro-samples.test.ts',
+  ],
+} satisfies Record<string, Evidence>
 
 export interface EpcQrCodeCopy {
   readonly meta: PageMeta
@@ -33,8 +94,8 @@ export interface EpcQrCodeCopy {
   /** Where the code stands, in a sentence: said in the hero and after the teaser, where a reader decides to try it. */
   readonly standing: string
   readonly actions: { readonly studio: string; readonly samples: string }
-  /** What it does, card by card, in the order `CARD_EVIDENCE` lists each card's tests. */
-  readonly does: { readonly heading: string; readonly cards: readonly { readonly title: string; readonly text: string }[] }
+  /** What it does, card by card, each with the tests it rests on. */
+  readonly does: { readonly heading: string; readonly cards: readonly Card[] }
   readonly samples: {
     readonly heading: string
     /** What the samples are: `date` is the day their VAT rates were read. */
@@ -91,26 +152,32 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         {
           title: 'Die Regeln des EPC, an einem Ort',
           text: 'IBAN, BIC, Referenz und jeder Text werden nach EPC069-12 geprüft, den Richtlinien des EPC: eine IBAN eines Landes im SEPA-Raum, so lang wie die IBANs dieses Landes und mit richtigen Prüfziffern, nie eine QR-IBAN; ein BIC aus dem Land des Kontos, verlangt für ein Konto ausserhalb des EWR; als strukturierte Referenz nur eine Creditor Reference nach ISO 11649; jeder Text nicht länger, als der EPC erlaubt, und ohne Steuerzeichen oder Zeilenumbruch; und alles zusammen höchstens 331 Bytes in UTF-8. Dieselben Prüfungen gelten für das, was im Bericht steht, und für das, was aus den Daten kommt.',
+          evidence: EVIDENCE.rules,
         },
         {
           title: 'Vor dem PDF abgelehnt, auf seinem Feld',
           text: 'Eine IBAN mit falschen Prüfziffern, falscher Länge oder aus einem Land ausserhalb des SEPA-Raums wird schon bei der Validierung des Berichts abgelehnt, auf ihrem Feld und mit der verletzten Regel, und beide Builder zeigen es dort. Was aus den Daten kommt, prüft die Laufzeit nach denselben Regeln, bevor das PDF entsteht. Keine Meldung nennt den Wert selbst, also nie einen Namen, ein Konto oder eine Referenz. Ein Tippfehler, der zu den Prüfziffern trotzdem passt, oder die gültige IBAN eines anderen Kontos fällt nicht auf.',
+          evidence: EVIDENCE.refused,
         },
         {
           title: 'Der Betrag, auf den Cent genau',
           text: 'Der Betrag ist ein Ausdruck über die Werte des Berichts, in den Beispielen ihr Rechnungsbetrag: exakt berechnet und so kurz geschrieben, wie es Payment Services Austria (PSA) verlangt. Ein Betrag mit mehr als zwei Nachkommastellen wird abgelehnt, nicht gerundet. Ohne Betrag bleibt er der zahlenden Person überlassen.',
+          evidence: EVIDENCE.amount,
         },
         {
           title: 'Neben den Angaben, die er enthält',
           text: 'Jedes Beispiel druckt neben dem Code Empfänger, IBAN, BIC, Betrag und Referenz, für den Fall, den EPC069-12 beschreibt: Die zahlende Person sieht die Daten der Überweisung zugleich als Text. Die Tests des Renderers decodieren den Code und lesen jede dieser Angaben neben ihm auf der Seite zurück.',
+          evidence: EVIDENCE.details,
         },
         {
           title: 'Österreichs Rahmen, auf Wunsch',
           text: 'Auf Wunsch trägt der Code den Rahmen, den die PSA vorgibt, mit «Zahlen mit Code» an seiner rechten Seite, von unten nach oben gelesen, und mit Modulen von 0,381 bis 0,508 mm, wie die PSA sie verlangt. Das österreichische Beispiel trägt ihn.',
+          evidence: EVIDENCE.frame,
         },
         {
           title: 'Am erzeugten PDF bewiesen',
           text: 'Die Tests lesen den Code aus den Pixeln der Seite zurück, die PDF.js aus dem erzeugten PDF zeichnet, und decodieren ihn mit ZXing: die Beispiele des EPC Byte für Byte, mit der Fehlerkorrekturstufe M, und jedes Beispiel dieser Seite bis zum Betrag, den es druckt.',
+          evidence: EVIDENCE.proved,
         },
       ],
     },
@@ -180,26 +247,32 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         {
           title: "Les règles de l'EPC, en un seul endroit",
           text: "L'IBAN, le BIC, la référence et chaque texte sont vérifiés selon EPC069-12, les directives de l'EPC : un IBAN d'un pays de l'espace SEPA, de la longueur des IBAN de ce pays et avec des chiffres de contrôle corrects, jamais un QR-IBAN ; un BIC du pays du compte, exigé pour un compte hors de l'EEE ; comme référence structurée, seulement une Creditor Reference selon ISO 11649 ; chaque texte pas plus long que l'EPC ne le permet, sans caractère de contrôle ni saut de ligne ; et le tout en 331 octets au plus en UTF-8. Les mêmes contrôles s'appliquent à ce que dit le rapport et à ce qu'apportent les données.",
+          evidence: EVIDENCE.rules,
         },
         {
           title: 'Refusé avant le PDF, sur son champ',
           text: "Un IBAN dont les chiffres de contrôle ou la longueur sont faux, ou qui est d'un pays hors de l'espace SEPA, est refusé dès la validation du rapport, sur son champ et avec la règle enfreinte, et les deux builders l'y affichent. Ce qui vient des données est vérifié par le runtime selon les mêmes règles, avant que le PDF soit produit. Aucun message ne cite la valeur elle-même : jamais un nom, un compte ou une référence. Une faute de frappe qui respecte malgré tout les chiffres de contrôle, ou l'IBAN valide d'un autre compte, passe inaperçue.",
+          evidence: EVIDENCE.refused,
         },
         {
           title: 'Le montant, exact au centime',
           text: "Le montant est une expression sur les valeurs du rapport ; dans les exemples, le total de la facture : calculé de manière exacte et écrit sous la forme la plus courte possible, comme l'exige Payment Services Austria (PSA). Un montant de plus de deux décimales est refusé, pas arrondi. Sans montant, c'est la personne qui paie qui le saisit.",
+          evidence: EVIDENCE.amount,
         },
         {
           title: "À côté des données qu'il contient",
           text: "Chaque exemple imprime à côté du code le bénéficiaire, l'IBAN, le BIC, le montant et la référence, pour le cas que décrit EPC069-12 : la personne qui paie voit en même temps les données du virement en texte. Les tests du moteur de rendu décodent le code et relisent chacune de ces données à côté de lui sur la page.",
+          evidence: EVIDENCE.details,
         },
         {
           title: 'Le cadre autrichien, sur demande',
           text: "Sur demande, le code porte le cadre que prescrit la PSA, avec « Zahlen mit Code » sur son côté droit, à lire de bas en haut, et des modules de 0,381 à 0,508 mm, comme la PSA les exige. L'exemple autrichien le porte.",
+          evidence: EVIDENCE.frame,
         },
         {
           title: 'Prouvé sur le PDF produit',
           text: "Les tests relisent le code dans les pixels de la page que PDF.js dessine à partir du PDF produit, et le décodent avec ZXing : les exemples de l'EPC octet par octet, au niveau de correction M, et chaque exemple de cette page jusqu'au montant qu'il imprime.",
+          evidence: EVIDENCE.proved,
         },
       ],
     },
@@ -269,26 +342,32 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         {
           title: "Le regole dell'EPC, in un solo posto",
           text: "L'IBAN, il BIC, il riferimento e ogni testo vengono verificati secondo EPC069-12, le linee guida dell'EPC: un IBAN di un paese dell'area SEPA, della lunghezza degli IBAN di quel paese e con cifre di controllo corrette, mai un QR-IBAN; un BIC del paese del conto, richiesto per un conto fuori dal SEE; come riferimento strutturato solo una Creditor Reference secondo ISO 11649; ogni testo non più lungo di quanto l'EPC permette, senza caratteri di controllo né a capo; e il tutto in 331 byte al massimo in UTF-8. Gli stessi controlli valgono per ciò che dice il report e per ciò che arriva dai dati.",
+          evidence: EVIDENCE.rules,
         },
         {
           title: 'Rifiutato prima del PDF, sul suo campo',
           text: "Un IBAN con cifre di controllo o lunghezza sbagliate, o di un paese fuori dall'area SEPA, viene rifiutato già alla validazione del report, sul suo campo e con la regola violata, e i due builder lo mostrano lì. Ciò che viene dai dati è verificato dal runtime secondo le stesse regole, prima che il PDF venga prodotto. Nessun messaggio cita il valore stesso: mai un nome, un conto o un riferimento. Un errore di battitura che rispetta comunque le cifre di controllo, o l'IBAN valido di un altro conto, non viene notato.",
+          evidence: EVIDENCE.refused,
         },
         {
           title: "L'importo, esatto al centesimo",
           text: "L'importo è un'espressione sui valori del report; negli esempi, il totale della fattura: calcolato in modo esatto e scritto nella forma più breve, come richiede Payment Services Austria (PSA). Un importo con più di due decimali viene rifiutato, non arrotondato. Senza importo, lo inserisce chi paga.",
+          evidence: EVIDENCE.amount,
         },
         {
           title: 'Accanto ai dati che contiene',
           text: "Ogni esempio stampa accanto al codice il beneficiario, l'IBAN, il BIC, l'importo e il riferimento, per il caso che descrive EPC069-12: chi paga vede nello stesso momento i dati del bonifico come testo. I test del renderer decodificano il codice e rileggono ciascuno di questi dati accanto a esso sulla pagina.",
+          evidence: EVIDENCE.details,
         },
         {
           title: 'La cornice austriaca, su richiesta',
           text: "Su richiesta, il codice porta la cornice che prescrive la PSA, con «Zahlen mit Code» sul lato destro, da leggere dal basso verso l'alto, e moduli da 0,381 a 0,508 mm, come la PSA li richiede. L'esempio austriaco la porta.",
+          evidence: EVIDENCE.frame,
         },
         {
           title: 'Dimostrato sul PDF generato',
           text: "I test rileggono il codice dai pixel della pagina che PDF.js disegna a partire dal PDF prodotto, e lo decodificano con ZXing: gli esempi dell'EPC byte per byte, con il livello di correzione M, e ogni esempio di questa pagina fino all'importo che stampa.",
+          evidence: EVIDENCE.proved,
         },
       ],
     },
@@ -357,26 +436,32 @@ export const EPC_QR_CODE_COPY: Readonly<Record<Language, EpcQrCodeCopy>> = {
         {
           title: "The EPC's rules, in one place",
           text: "The IBAN, the BIC, the reference and every text are checked against EPC069-12, the EPC's guidelines: an IBAN of a SEPA country, of that country's length and with its check digits right, never a QR-IBAN; a BIC of the account's country, asked for where the account is outside the EEA; as a structured reference, an ISO 11649 creditor reference and no other; each text no longer than the EPC allows, with no control character or line break; and all of it in 331 bytes at most in UTF-8. The same checks hold what the report says and what the data brings.",
+          evidence: EVIDENCE.rules,
         },
         {
           title: 'Refused before the PDF, on its field',
           text: "An IBAN whose check digits or length are wrong, or of a country outside SEPA, is refused when the report is validated, on its field and naming the rule it breaks, and both builders show it there. What comes from the data is checked by the runtime under the same rules before the PDF is made. No message quotes the value itself: never a name, an account or a reference. A typo that still fits the check digits, or another account's valid IBAN, passes.",
+          evidence: EVIDENCE.refused,
         },
         {
           title: 'The amount, exact to the cent',
           text: "The amount is an expression over the report's values; in the samples, the invoice's total: computed exactly, and written as short as it can be, as Payment Services Austria (PSA) asks. An amount with more than two decimals is refused, not rounded. A code without an amount leaves it to the payer.",
+          evidence: EVIDENCE.amount,
         },
         {
           title: 'Beside the details it holds',
           text: "Each sample prints the beneficiary, the IBAN, the BIC, the amount and the reference beside its code, for the use EPC069-12 describes: the payer sees the transfer's details as text at the same time. The renderer's tests decode the code and read each of those details back beside it on the page.",
+          evidence: EVIDENCE.details,
         },
         {
           title: "Austria's frame, where asked",
           text: 'Where asked, the code wears the frame the PSA sets out, with “Zahlen mit Code” up its right side, read from bottom to top, and modules of 0.381 to 0.508 mm, as the PSA asks. The Austrian sample wears it.',
+          evidence: EVIDENCE.frame,
         },
         {
           title: 'Proved on the PDF it produced',
           text: "The tests read the code back from the pixels of the page PDF.js draws from the PDF produced, and decode it with ZXing: the EPC's own examples byte for byte, at error correction level M, and every sample on this page down to the amount it prints.",
+          evidence: EVIDENCE.proved,
         },
       ],
     },
