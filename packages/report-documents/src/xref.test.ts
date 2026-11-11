@@ -389,13 +389,16 @@ describe('what a cross-reference may claim', () => {
     // ISO 32000 requires a trailer's /Size; without one, nothing holds its subsections.
     expectRefused(past(''), 'malformed', 'xref-size')
     // A subsection of no entries names no object, and is held below /Size by its first number all the same.
-    const empty = (first: number): Uint8Array => {
+    const empty = (...firsts: number[]): Uint8Array => {
       const v = new PdfWriter()
       basic(v)
-      return v.end(v.raw(`xref\n0 5\n0000000000 65535 f \n${lines}${String(first)} 0\ntrailer\n<</Size 5/Root 1 0 R>>\n`))
+      const headers = firsts.map((first) => `${String(first)} 0\n`).join('')
+      return v.end(v.raw(`xref\n0 5\n0000000000 65535 f \n${lines}${headers}trailer\n<</Size 5/Root 1 0 R>>\n`))
     }
     parsed(empty(5))
     expectRefused(empty(6), 'malformed', 'xref-size')
+    // Only the largest first number of them is kept, so one past /Size is refused wherever it stands, not only last.
+    expectRefused(empty(9, 0), 'malformed', 'xref-size')
   })
 
   // A subsection of no entries claims nothing, so no claim bounds how many

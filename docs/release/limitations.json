@@ -2338,7 +2338,7 @@
         },
         {
           "area": "format",
-          "says": "The same count holds three values for each annotation a PDF's pages list, every page together, so a thousand pages that share one list of about 660 annotations are refused.",
+          "says": "The same count holds three values for each annotation a PDF's pages list, every page together, so a thousand pages that share one list of more than about 660 annotations are refused.",
           "heldBy": "packages/report-documents/src/annotations.test.ts"
         },
         {

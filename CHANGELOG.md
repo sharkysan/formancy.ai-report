@@ -221,9 +221,9 @@ one yet.
   layers and one for a cross-reference that is not where it says.
 - **The parser is `@pdfme/pdf-lib` 6.2.4's object grammar**, every token
   but the keywords read by the reader's own code, and `pako` 3.0.2, both
-  at exact versions and both permissive. pdf-lib's stream decoders are ports of PDF.js's and
-  XPDF's under Apache-2.0, which its bundle and its MIT licence file do not
-  say: a bundle that holds the reader owes that licence's text and the
+  at exact versions and both permissive. pdf-lib's stream decoders are
+  ports of PDF.js's and XPDF's under Apache-2.0, which its bundle and its
+  MIT licence file do not say: a bundle that holds the reader owes that licence's text and the
   ports' attribution, through an entry of the notices that lands with the
   pull request that first bundles it. Both come into every bundle that
   reads a PDF: 234 kB gzipped, as measured of the spike's code that chose
