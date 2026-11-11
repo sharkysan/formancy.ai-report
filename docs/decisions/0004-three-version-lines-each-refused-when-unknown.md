@@ -177,6 +177,22 @@ the version it names; and `review.test.ts` reviews a version that moves
 to spec 5 for them as one that prints. Each failed at 0.7.0, which
 refused the form. arc42 8.6's row for the form spec changed with it.
 
+**Added 2026-10-31: formancy 0.12.0, read as 0.11.0 was.** The
+repository pins formancy 0.12.0, whose validator reads spec versions 1 to
+5 and refuses what 0.11.0's refused, nothing more: its built code differs
+from 0.11.0's only in what it imports from where and in the description
+of a field's `pattern`. It compiles a pattern unwrapped, with formancy's
+new `PATTERN_FLAGS`, the `u` it always passed, and analyses none. What
+0.12.0 refuses that 0.11.0 published, a pattern that backtracks only with
+the `u` flag, is refused by formancy's server, at publish and only when
+a form is published again
+([formancy.ai 0226](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0226-a-pattern-is-analysed-as-it-runs.md)),
+and Report depends on no package of that server. So, by the rule above,
+the bridge reads such a version. `read.test.ts` reads one with `(\p{L}+)+` and refuses one with
+`a{`, which does not compile with `u`, by the validator's code, at 0.11.0
+and at 0.12.0 alike; it failed with the bridge made to refuse a version
+that holds a pattern.
+
 ## Alternatives considered
 
 **Let the report's version follow the package version.** Rejected, for

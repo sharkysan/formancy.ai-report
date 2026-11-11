@@ -404,6 +404,12 @@ printed of a field never null, and none at all are refused, and at most
   as formancy's engine does from 0.8.0 (formancy.ai 0076, 0189): its
   stored value prints with `read: 'value'`, its label is refused, and an
   empty value is refused as `invalid-answer`, as it is for any choice.
+- **Hold an answer to its field's pattern.** The bridge runs no
+  `pattern`: an answer the pattern refuses, which formancy's engine never
+  stores, prints. A version whose pattern can be made to backtrack, which
+  formancy's server published until 0.12.0 refused one at publish
+  ([formancy.ai 0226](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0226-a-pattern-is-analysed-as-it-runs.md)),
+  is read like any other and costs a render nothing.
 - **Read a row formancy nulled.** formancy nulls a repeater row it strips
   rather than shift its siblings; a submission holding one is refused, in
   any repeater it holds, whether the report reads that repeater or not.

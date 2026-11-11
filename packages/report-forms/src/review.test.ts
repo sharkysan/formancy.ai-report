@@ -135,6 +135,33 @@ function invoiceFromForm(): { readonly report: ReportDefinition; readonly form: 
   return { report: report.report, form }
 }
 
+/**
+ * `base` with a bar chart of the findings after its table: hours totalled
+ * and rows counted for each area, its rows without an area labelled, as a
+ * builder's chart labels them, unless `labelled` is false.
+ */
+function chartedReport(base: ReportDefinition = REPORT, labelled = true): { readonly report: ReportDefinition; readonly path: string } {
+  const chart: Component = {
+    id: 'hours-by-area',
+    kind: 'chart',
+    chart: 'bar',
+    dataset: 'detail',
+    width: 400,
+    height: 200,
+    category: { field: { dataset: 'detail', field: 'area' }, order: 'data', ...(labelled ? { nullLabel: 'No area' } : {}) },
+    series: [
+      { id: 'hours', label: 'Hours', fn: 'sum', of: { dataset: 'detail', field: 'hours' } },
+      { id: 'rows', label: 'Findings', fn: 'count' },
+    ],
+    valueFormat: { kind: 'number', scale: 2, grouping: false },
+    emptyText: 'No findings',
+  }
+  const report = validateReport({ ...base, regions: { ...base.regions, body: [...base.regions.body, chart] } })
+  if (!report.valid) throw new Error(`the charted report is no report: ${report.errors.map((error) => `${error.code} ${error.path}`).join('; ')}`)
+  const placed = walkComponents(report.report).find(({ component }) => component.id === 'hours-by-area')
+  return { report: report.report, path: placed?.path ?? '' }
+}
+
 describe('reviewFormVersion, what prints', () => {
   // FB-Q5: no review for every version. A version that changed nothing
   // the report prints -- a title, a layout -- prints, and says so; the
@@ -179,6 +206,26 @@ describe('reviewFormVersion, what prints', () => {
     ])
     expect(itemsOf(reviewed(helped))).toMatchObject({ status: 'compatible', items: [] })
     expect(headerOf(read(REPORT, helped, answered()))).toEqual(headerOf(read(REPORT, V1, answered())))
+  })
+
+  // formancy 0.12.0 refuses at publish a pattern that backtracks as its
+  // engine runs it, with the `u` flag, which every release before it
+  // published (formancy.ai 0226), and asks a host to publish every form
+  // with a pattern again: one it refuses goes out with the pattern
+  // rewritten. A review that blocked on that would stop every report of
+  // the form for a rule its answers met when they were stored. The draft
+  // of the version that held the old pattern is the first version's but
+  // for the version it names, and the version that rewrote it, a
+  // constraint tightened in formancy's diff, prints.
+  test('a version that rewrites a pattern formancy refuses from 0.12.0 is compatible with the report drafted from the one before', () => {
+    const backtracking = version((fields) => changed(fields, 'name', (field) => ({ ...field, pattern: '(\\p{L}+)+' })))
+    const rewritten = version((fields) => changed(fields, 'name', (field) => ({ ...field, pattern: '\\p{L}+' })))
+    const drafted = generatedFrom(generate(backtracking, { id: 'visit', locale: 'en', detail: { kind: 'repeater', repeater: 'findings' } })).report
+    expect({ ...drafted, provenance: REPORT.provenance }).toEqual(REPORT)
+    const said = diffSchemas(backtracking as unknown as FormSchema, rewritten as unknown as FormSchema).map((change) => `${change.kind} ${change.path}`)
+    expect(said).toEqual(['field.constraintTightened model.fields.inspector.name'])
+    expect(itemsOf(reviewed(rewritten, drafted, [backtracking]))).toMatchObject({ status: 'compatible', items: [] })
+    expect(headerOf(read(drafted, rewritten, answered()))).toEqual(headerOf(read(REPORT, V1, answered())))
   })
 
   // "A harmless additional column does not automatically appear in an
@@ -760,6 +807,64 @@ describe('reviewFormVersion, other reports', () => {
     const followed = resolved(reviewed(renamed), undefined, 'follow-rename')
     const missing = reviewFormVersion(followed, { form: V1, versions: [] })
     expect(missing.ok ? [] : missing.errors.map((error) => `${error.code} ${error.message.includes(schemaHash(renamed))}`)).toEqual(['missing-version true'])
+  })
+})
+
+describe('reviewFormVersion, a chart', () => {
+  // A version that drops the field a chart totals would print the chart
+  // without its numbers, or refuse every render: the removal takes that
+  // series alone and the chart keeps the series that count rows.
+  test('blocks a version that removes a field a chart totals, and its removal takes the series', () => {
+    const { report, path } = chartedReport()
+    const removed = version((fields) => changed(fields, 'hours', () => undefined))
+    const review = itemsOf(reviewed(removed, report))
+    expect(summary(review.items)).toEqual([['detail', 'hours', 'field.removed', true, ['print-nothing', 'remove']]])
+    const removal = review.items[0]?.resolutions.find((resolution) => resolution.kind === 'remove')
+    expect(removal?.removes).toContain(`${path}/series/0`)
+    const gone = resolved(reviewed(removed, report), 'hours', 'remove', report)
+    const chart = walkComponents(gone).find(({ component }) => component.id === 'hours-by-area')?.component
+    expect(chart?.kind === 'chart' ? chart.series.map(({ id }) => id) : null).toEqual(['rows'])
+  })
+
+  // Printing nothing of a removed field declares it nullable, and a chart
+  // whose category may be null labels its rows without one, or the
+  // validator refuses it. A builder's chart always has that label, so a
+  // version that removes its category, a field the version proved
+  // answered, is offered print-nothing; a chart written without the label
+  // is offered the removal alone.
+  test('offers to print nothing of a removed category where the chart labels its rows without one', () => {
+    const required = formOf([...changed(FIELDS, 'area', (field) => ({ ...field, required: true }))])
+    const base = generatedFrom(generate(required, { id: 'visit', locale: 'en', detail: { kind: 'repeater', repeater: 'findings' } })).report
+    expect(base.datasets.detail?.fields.find(({ id }) => id === 'area')?.nullable).toBe(false)
+    const removed = version((fields) => changed(fields, 'area', () => undefined))
+    const offered = (labelled: boolean) => summary(itemsOf(reviewed(removed, chartedReport(base, labelled).report, [required])).items)
+    expect(offered(true)).toEqual([['detail', 'area', 'field.removed', true, ['print-nothing', 'remove']]])
+    expect(offered(false)).toEqual([['detail', 'area', 'field.removed', true, ['remove']]])
+  })
+
+  // A retype the chart could not total would be applied and every render
+  // refused: a field read as a decimal over text hours, held by the next
+  // version as a choice, is offered the retype to text on a table alone, and
+  // not where a chart sums it -- the validator refuses a sum of text.
+  test('offers no retype of a field a chart sums to a type it cannot total', () => {
+    const texted = (fields: readonly Field[]): Field[] => changed(fields, 'hours', ({ key, label }) => ({ key, label, type: 'text' }))
+    const first = formOf([...texted(FIELDS)])
+    const chartedOverTextHours = (): ReportDefinition => {
+      const session = sessionOf(generatedFrom(generate(first, { id: 'visit', locale: 'en', detail: { kind: 'repeater', repeater: 'findings' } })).report)
+      const field = session.document().datasets.detail?.fields.find(({ id }) => id === 'hours') as FieldContract
+      const { id, ...body } = field
+      const outcome = session.apply({ command: 'putField', args: ['detail', id, { ...body, type: 'decimal' }] })
+      if (!outcome.ok) throw new Error(`refused: ${outcome.code} ${outcome.message}`)
+      return chartedReport(session.document()).report
+    }
+    const charted = chartedOverTextHours()
+    const chosen = formOf([...changed(texted(FIELDS), 'hours', ({ key, label }) => ({ key, label, type: 'select', options: [{ value: 'a', label: 'A' }] }))])
+    const retypes = (report: ReportDefinition) =>
+      itemsOf(reviewed(chosen, report, [first]))
+        .items.find((item) => item.field === 'hours')
+        ?.resolutions.filter((resolution) => resolution.kind === 'retype')
+    const plain = { ...charted, regions: { ...charted.regions, body: charted.regions.body.filter((component) => component.kind !== 'chart') } }
+    expect([retypes(plain)?.length, retypes(charted)?.length]).toEqual([1, 0])
   })
 })
 

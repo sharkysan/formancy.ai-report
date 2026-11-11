@@ -165,7 +165,8 @@ describe('provenance', () => {
 describe('the page and its lengths', () => {
   // Landscape swaps the page's sides before the margins are taken off: the
   // same margins can fit one way and not the other. These leave 81.89
-  // points of height, less than the seal's 150 and the two QR codes' 85.04.
+  // points of height, less than the seal's 150, the chart's 200 and the two
+  // QR codes' 85.04.
   // A QR-bill is printed on A4 in portrait only, so the landscape page is
   // measured without the fixture's.
   test('the printable area is measured on the page as oriented', () => {
@@ -177,6 +178,7 @@ describe('the page and its lengths', () => {
       'exceeds-printable-area /regions/summary/1/height',
       'exceeds-printable-area /regions/summary/2/size',
       'exceeds-printable-area /regions/summary/3/size',
+      'exceeds-printable-area /regions/summary/4/height',
     ])
     const wide = edited((r) => {
       removeAt(r, '/paymentPart')

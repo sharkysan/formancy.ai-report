@@ -19,6 +19,7 @@ compiles and runs. How work is done here, and the bar a change meets, is
 | Looking for where something lives | [Building blocks](architecture/05-building-blocks.md) |
 | Following a report from data to a PDF | [Runtime view](architecture/06-runtime-view.md) |
 | Wondering why an obvious simpler thing was not done | [Decision records](decisions/README.md) and their index |
+| Asking what comes next, or whether something is planned at all | [The roadmap](roadmap.md) |
 | Integrating the packages, or deciding whether to | [Deployment view](architecture/07-deployment-view.md), then [Risks and technical debt](architecture/11-risks-and-debt.md) and [the known limitations](release/limitations.json) |
 | About to change something load-bearing | [Verification](architecture/10-verification.md), [Risks and technical debt](architecture/11-risks-and-debt.md) and the record behind it |
 

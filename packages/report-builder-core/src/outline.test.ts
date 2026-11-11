@@ -83,6 +83,7 @@ describe('the outline', () => {
       lines: 'Table',
       'lines/sku': 'SKU',
       'lines/amount': 'Amount',
+      sales: 'Chart',
       notes: 'Section',
       note: 'Note',
       box: 'Rectangle',

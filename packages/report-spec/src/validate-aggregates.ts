@@ -49,7 +49,7 @@ function readIncrement(f: Findings, value: unknown, path: string, scale: number 
   return increment
 }
 
-function readRounding(f: Findings, value: unknown, path: string): Rounding | undefined {
+export function readRounding(f: Findings, value: unknown, path: string): Rounding | undefined {
   const o = shape(f, value, path, ['scale', 'mode'], ['increment'])
   const scale = integer(f, o?.scale, at(path, 'scale'), 0, MAX_SCALE)
   const mode = oneOf(f, o?.mode, at(path, 'mode'), ROUNDING_MODES)

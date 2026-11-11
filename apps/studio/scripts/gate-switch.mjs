@@ -12,6 +12,7 @@
 // page draws them.
 
 import { readPdf } from '@formancy/report-corpus'
+import { pdfBytes } from './gate-page.mjs'
 import { builder, editorOf, open, present, selectRow, setField, settled, showing, untilLine, WITHIN } from './gate-steps.mjs'
 
 /** The quotation's payment line, and what the switch check makes of it. */
@@ -39,8 +40,8 @@ async function firstSettled(page) {
     { timeout: WITHIN },
   )
   const { text, href } = await handle.jsonValue()
-  const bytes = href === null ? [] : await page.evaluate(async (address) => [...new Uint8Array(await (await fetch(address)).arrayBuffer())], href)
-  const read = bytes.length === 0 ? { pages: [] } : await readPdf(new Uint8Array(bytes))
+  const bytes = href === null ? new Uint8Array() : await pdfBytes(page, href)
+  const read = bytes.length === 0 ? { pages: [] } : await readPdf(bytes)
   return {
     text,
     downloaded: read.pages

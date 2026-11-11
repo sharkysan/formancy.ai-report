@@ -19,6 +19,27 @@ import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist'
 import worker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { PX_PER_PT } from '@formancy/report-builder-core'
 
+/** What this file asks of Trusted Types, which TypeScript's DOM library does not declare. */
+interface TrustedTypes {
+  readonly defaultPolicy: unknown
+  createPolicy(name: 'default', rules: { createScriptURL(url: string): string | null }): unknown
+}
+
+/**
+ * The demo's policy refuses a string handed to a sink that loads code
+ * (0051), and PDF.js starts its worker with one, `new Worker(workerSrc)`.
+ * Refused, PDF.js does not fail: it runs the worker's code on the page's
+ * own thread, and prints every preview there. So the default policy, the
+ * one policy the demo allows, lets the worker's address through and no
+ * other; it has no rule for markup or a script's text, which stay refused.
+ * Made once, where the browser has Trusted Types and no default policy is
+ * made yet: a second throws, and would take the preview down with it.
+ */
+const types = (globalThis as { trustedTypes?: TrustedTypes }).trustedTypes
+if (types !== undefined && types.defaultPolicy === null) {
+  types.createPolicy('default', { createScriptURL: (url) => (url === worker ? url : null) })
+}
+
 GlobalWorkerOptions.workerSrc = worker
 
 export interface LoadedPdf {

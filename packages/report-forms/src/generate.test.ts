@@ -508,4 +508,11 @@ describe('generateReport, its notes', () => {
     expect([...new Set(notes.map((note) => note.code))].sort()).toEqual([...NOTE_CODES].sort())
     expect(notes.filter((note) => note.message.includes(marked(''))).map((note) => note.code)).toEqual([])
   })
+
+  // A first draft that drew a chart would guess a total the form never
+  // asked for (0045): a person adds one.
+  test('draws no chart: a person adds one', () => {
+    const { report } = generatedFrom(generate(SITE_VISIT_V2, VISIT))
+    expect(everything(report).some((component) => component.kind === 'chart')).toBe(false)
+  })
 })

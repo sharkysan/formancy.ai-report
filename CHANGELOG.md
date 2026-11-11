@@ -10,6 +10,160 @@ later.
 
 ## Unreleased
 
+**The demo at `/report/` is served under a content security policy that admits its own files
+alone**
+([0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)).
+It was served with none, unlike the demonstrations of Data and Health. The page already sent
+nothing anywhere, which the browser gate held by listening; now the browser refuses it too. Every
+connection is refused, scripts, styles, faces and PDF.js's worker come only from the Studio's and
+the pages' own directories, and Trusted Types are required. The deploy writes the headers, and
+`pnpm demo` and the browser gate serve the Studio under the same headers for their own address.
+Measured under the policy, the Studio broke it twice, and both are fixed. The Angular builder's
+`display: contents` was a style attribute, which is refused, and is now a style binding. PDF.js
+started its worker from a string, which Trusted Types refuse; refused, it would have printed every
+preview on the page's own thread. The Studio now makes the one policy the demo allows, which lets
+only that worker's address through. The gate reads the Download PDF by downloading it, not by a
+fetch the policy refuses.
+
+**The legal notice and the privacy review are answered, and are no longer drafts.** The operator
+has no commercial register entry or VAT number, and the privacy review says what was read from the
+live demonstration at `/report/` on 2026-11-04: no cookie, no browser storage, no analytics, and
+nothing sent anywhere. formancy.ai's legal and privacy notices, which these point at, were finished
+the same day (formancy.ai 0232).
+
+**Report takes formancy 0.12.0.** The upstream `@formancy/*` packages
+move from 0.11.0 to 0.12.0, exact, for what 0.11.0 was taken for:
+`@formancy/spec` for report-spec's report hash and for report-forms,
+which reads a formancy form; `@formancy/expressions` for report-core and
+report-runtime; `@formancy/themes` for the Studio, the pages and the
+getting-started guide's install lines. Report keeps to the newest
+formancy, and 0.12.0 fixes a denial of service every release from 0.2.0
+shipped: a field's `pattern` that backtracks only with the `u` flag
+formancy's engine runs it with, such as `(\p{L}+)+`, was published, and
+one answer to it could hold formancy's server
+([formancy.ai 0226](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0226-a-pattern-is-analysed-as-it-runs.md)).
+
+- **A form version whose pattern backtracks still prints**
+  ([0004](docs/decisions/0004-three-version-lines-each-refused-when-unknown.md),
+  [0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+  formancy's server refuses such a pattern at publish from 0.12.0, but
+  analyses a version stored before only when its form is published
+  again. The validator report-forms reads a form with compiles a pattern
+  with the `u` it always passed and analyses none, so it refuses exactly
+  what 0.11.0's refused: a version with `(\p{L}+)+` is read, drafted and
+  printed, and one with `a{`, which does not compile with `u`, refused by
+  formancy's code, as before. report-forms runs no pattern, so such a
+  version costs a render nothing, and an answer its pattern refuses,
+  which formancy's engine never stores, prints. **What a host does** is
+  what formancy asks: publish every form with a pattern again. A version
+  that comes of it with the pattern rewritten, a tightened constraint in
+  formancy's diff, reviews as compatible with a report drafted from the
+  version before it, and prints as any other version does.
+- **An expression evaluates as it did.** `@formancy/expressions`
+  0.12.0's code is 0.11.0's but for two lines: a record whose `seconds`
+  and `nanos` are numbers is handed back as the record, where 0.11.0
+  took it for one of CEL's durations and handed back the string
+  "[object Object]". A report writes such a record only with doubles,
+  which report-core refuses before anything is evaluated, and one of
+  integers was a map at both releases, refused as `unprintable-value`; so
+  no report printed it, and none prints it now. Its type declarations are
+  the same.
+- **A report's hash is the one it was.** `schemaHash`'s code is 0.11.0's:
+  `hash.test.ts`'s pinned digest held, and so did the site visit
+  starter, which names its form version by that hash.
+- **The Studio and the pages look as they did.** `@formancy/themes`
+  0.12.0's stylesheets are 0.11.0's, byte for byte.
+- **Nothing here implements an interface formancy changed.** The
+  interfaces whose functions now declare `this: void`
+  ([formancy.ai 0225](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0225-the-four-repositories-lint-and-format-by-one-set-of-rules-published-here.md))
+  are in formancy's renderers, core, server-core and builder, none of
+  which Report depends on.
+- **A host that installs `@formancy/report-data-provider` still gets a
+  second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
+  provider takes a Data release built against a newer one.
+
+**A roadmap says what comes next, in order, and what is not planned at
+all** ([`docs/roadmap.md`](docs/roadmap.md)). The README named only the
+work planned next, so a team weighing Report against the report
+designers it already knows could not tell whether a barcode, a crosstab,
+an Excel export or a tagged PDF was coming or turned down. The page lists
+what a report can hold, what a render can be, the editor, the server and
+AI, each in order, code a report carries run in a sandbox among them,
+and the three things Report does not mean to do -- connect to a
+database, fetch by address, drill down -- with the reason for each. It promises nothing: an item is built when its
+record is written, and that record may narrow it or turn it down.
+
+**A report may hold a bar, line or pie chart of its detail rows, which no
+release prints yet**
+([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+Reports are often read for a shape -- which month was up, which category
+is most of the total -- and Report could print numbers only in tables. A
+chart arrives a stage at a time, the format and the editing core first,
+and a stage that does not handle one yet refuses it rather than print the
+report without it: **the runtime refuses a report that would print a
+chart, a preview as a final render, as `chart-not-resolved`**, naming the
+chart, until it resolves charts; and **neither builder offers one yet**.
+- **report-spec's `chart` component.** `chart` is `bar`, `line` or `pie`
+  (`CHART_KINDS`), a property, so a bar chart becomes a line chart in
+  place; `dataset` is `'detail'`; `width` and `height` are a box of at
+  least `MIN_CHART_SIDE`, an inch, within the printable area. Its
+  `category` is a detail field of text, a date or a number
+  (`CHART_CATEGORY_TYPES`), in the data's order or sorted by it
+  (`CHART_ORDERS`), and a field that may be null asks for the `nullLabel`
+  its rows print under, never blank, so that no row is drawn under no
+  word. Each of its one to `MAX_CHART_SERIES` series is a function an
+  aggregate takes over a detail field of its own,
+  `{ id, label, fn, of?, rounding? }`, an average declaring its rounding,
+  rather than a declared aggregate, which neither builder can make. Every
+  value prints in one number or currency format, `valueFormat`, read in
+  the report's scope; `emptyText` is what a chart with nothing to draw
+  prints; a title, axis titles and value labels are optional. It stands
+  in the body and the summary, and in a section, a columns block or a
+  keep-together block there.
+- **Colours by place.** A series is drawn in `CHART_PALETTE`'s colour at
+  its place, and a pie's slice at its category's: eight colours, each at
+  least 3:1 against white paper, so that the eight series a chart may
+  have are each told apart, or a chart's own `palette` of one to eight,
+  which in a bar or a line chart has a colour for each series. **Removing
+  a series from the middle shifts the colour of every series after it.**
+- **`invalid-chart`**, a new error code, refuses what no reader could use:
+  a blank series label, `emptyText` or `nullLabel`, a palette that names a
+  colour twice or, in a bar or a line chart, has fewer colours than the
+  chart has series, a pie of more than one series, of a function other
+  than a sum or a count (`PIE_FUNCTIONS`), or with an axis title, and
+  value labels on a line chart of several series, which could only print
+  over one another.
+- **report-core names what a chart reads**, so a field only a chart reads
+  is not warned of as unused, and `fieldReaders`,
+  `removeFieldWithReaders` and a form review find it. A removed field
+  takes the series that totals it, alone, and a chart goes whole where the
+  field is its category or every series goes. `format-rounds-again` now
+  says of a series too that it is printed at fewer places than its
+  rounding keeps, and `rounding-not-decimal` that it declares a rounding
+  of an integer -- a count, or a sum, a least or a greatest of integers --
+  which the runtime will refuse. A chart changes through
+  `updateComponent`, with no command of its own.
+- **`chart-not-resolved`**, a new code of the runtime's, is the refusal
+  above. A chart its condition hides prints nothing, so its report is not
+  refused. The code goes when the runtime resolves charts.
+- **Neither builder's palette offers Chart yet**, and an insert or a drag
+  of one is refused as `unavailable`: until the builders edit a chart's
+  own properties, a chart inserted from the palette would be a box nobody
+  could edit, in a report the runtime refuses to render. A chart a report
+  holds is drawn in the design view as a box of its size, moved and
+  removed, with the properties every component has, so a chart is a
+  host's or a proposal's to write in the JSON for now.
+- **A form version that removes a field a chart totals** blocks the
+  report's submissions of it until reviewed, and the review's removal
+  takes that series alone. One that removes the field a chart groups by
+  is offered printing nothing of it only where the chart labels its rows
+  without a category, since that makes the field nullable; a chart
+  without `nullLabel` is offered the removal alone. `generateReport`
+  draws no chart, since a first draft would guess a total the form never
+  asked for.
+- **0.2.0 refuses a report with a chart** as `unknown-kind`, never skipping
+  it: the format is still the draft, version "0".
+
 **The lint and format rules are `@formancy/code-style` 0.12.0, pinned, and
 no longer a copy**
 ([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).

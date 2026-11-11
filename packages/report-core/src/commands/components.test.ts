@@ -30,7 +30,12 @@ describe('insertComponent', () => {
     ['at the end of a region', { region: 'body', index: 5 }, 'body', ['intro', 'gap', 'lines', 'keep', 'break', 'new']],
     ['into an empty region', { region: 'pageHeader', index: 1 }, 'pageHeader', ['running-title', 'new']],
     ['into a keep-together block', { region: 'body', parent: 'keep', index: 1 }, 'body:keep', ['box', 'new', 'note']],
-    ['into a section', { region: 'summary', parent: 'closing', index: 3 }, 'summary:closing', ['threshold', 'statistics', 'signature-image', 'new']],
+    [
+      'into a section',
+      { region: 'summary', parent: 'closing', index: 4 },
+      'summary:closing',
+      ['threshold', 'statistics', 'signature-image', 'site-chart', 'new'],
+    ],
     ['into a column of a columns block', { region: 'reportHeader', parent: 'heading', column: 1, index: 0 }, 'reportHeader:heading:1', ['new', 'title']],
   ] as const)('places a component %s', (_name, location, where, ids) => {
     const report = frozenSample()
