@@ -252,7 +252,7 @@ describe('the judges', () => {
   // accepted as the 3b it says it is (0057). The gate runs and judges each
   // corpus with the flavour this table gives its format, so a swap here,
   // or a format veraPDF judges with no flavour, fails before any Java runs.
-  test('validates the e-invoice corpus as PDF/A-3b and the PDF/A-2b corpus as PDF/A-2b, and every format veraPDF judges with a flavour', () => {
+  test('names PDF/A-3b as the flavour of the e-invoice corpus and PDF/A-2b as the flavour of the PDF/A-2b corpus, and a flavour for every format veraPDF judges', () => {
     expect(VERAPDF_FLAVOURS).toEqual({ pdf: '3b', 'pdfa-2b': '2b' })
     expect(Object.isFrozen(VERAPDF_FLAVOURS)).toBe(true)
     expect(Object.keys(VERAPDF_FLAVOURS)).toEqual(Object.keys(JUDGES).filter((format) => JUDGES[format].includes('verapdf')))
