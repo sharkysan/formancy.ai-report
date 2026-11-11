@@ -190,7 +190,13 @@ one yet.
   measured at it and one past it, within a second and 256 MiB of heap on
   the laptop measured: the bytes, 20 MiB as an asset's are, the pages,
   the objects, one count of values a document, what its streams decode
-  to, an image's pixels, and the others `limits.ts` exports. **A tagged
+  to, an image's pixels, and the others `limits.ts` exports. Nothing a
+  file makes the reader do is on a count of its own: each decoder, each
+  annotation a page lists, the second read of the last trailer and each
+  walk the closure makes again are counted with the file's values, so
+  that a file at several bounds at once is bounded by the one count too,
+  and three such files were measured within the second and 256 MiB, at
+  748 ms the slowest and 190 MiB the most heap, on mains power. **A tagged
   report as dense as the densest measured is refused past about 700
   pages**, and is to be added in parts.
 - **Refused:** a file encrypted, cut short or damaged, bytes between its
@@ -200,13 +206,16 @@ one yet.
   elsewhere, a filter the reader does not decode where it must -- LZW,
   though pdf-lib carries a port of it, since the reader decodes only what
   it can charge as it decodes; Crypt; a TIFF predictor; a name PDF does not
-  define -- and a stream whose data is in another file. An old file
-  compressed with LZW is to be saved again. **Optional content
+  define -- a stream whose data is in another file, and a form or an
+  image that names another file to print in its place (a reference
+  XObject's `/Ref`, an `/OPI` dictionary), since Report never fetches by
+  address and its PDF must name nothing to fetch. An old file compressed
+  with LZW is to be saved again. **Optional content
   is what real files are refused for most:** of 1,484 PDFs that carry no
   person's data, read on 8 November 2026, 1,367 read, 116 were refused for
   layers and one for a cross-reference that is not where it says.
 - **The parser is `@pdfme/pdf-lib` 6.2.4's object grammar**, every token
-  read by the reader's own code, and `pako` 3.0.2, both at exact versions
+  but the keywords read by the reader's own code, and `pako` 3.0.2, both at exact versions
   and both permissive. pdf-lib's stream decoders are ports of PDF.js's and
   XPDF's under Apache-2.0, which its bundle and its MIT licence file do not
   say: a bundle that holds the reader owes that licence's text and the

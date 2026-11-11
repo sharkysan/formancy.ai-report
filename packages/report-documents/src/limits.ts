@@ -10,10 +10,14 @@
  * Each was measured through `readDocument`, at the bound and one past it,
  * from 6 to 8 November 2026 in Node 22.23.3 on an Apple M2 (8 cores,
  * 16 GiB) on battery, under a load average of 2 to 10 while other work
- * ran, each comment saying when where it matters: each run in a fresh
- * worker, the median time of five runs and the largest heap of them, the
- * memory outside the heap -- buffers: the reader's copy of the file, what
- * it inflates -- said beside it. The costliest legitimate files and shapes
+ * ran, and `LISTING_VALUES` and files at several bounds at once on 11
+ * November on mains power, each comment saying when where it matters:
+ * each run in a fresh worker, the median time of five runs and the
+ * largest heap of them, the memory outside the heap -- buffers: the
+ * reader's copy of the file, what it inflates -- said beside it. The same
+ * machine read the RunLength shape and the two 1,000-page tagged reports
+ * 1.4 to 1.7 times slower on battery on 8 November than on mains on 11
+ * November, on builds that differ only in the final fix wave. The costliest legitimate files and shapes
  * were also read in Chromium (Headless Shell 156), as each says; the
  * others were not. Those that say "chosen" are not set by a measurement,
  * and say why they are what they are.
@@ -79,11 +83,15 @@ export const MAX_DOCUMENT_XREF_SECTIONS = 1_000
 /**
  * Values the reader makes -- each number, name, array, dictionary,
  * reference and keyword, the file's and its inline images' dictionaries';
- * each dictionary key, a name that is a value, counted twice; each string
- * counted twice, for the view its bytes are held in, which costs what
- * several values do; each decoder a stage of a stream builds, as
- * `INFLATER_VALUES` or `DECODER_VALUES` -- on one count a document, which
- * is what its time and heap grow with. Set by a 1,000-page tagged report,
+ * each name that is a value counted twice, as a value and as a name, a key
+ * once; each string counted twice, for the view its bytes are held in,
+ * which costs what several values do; the last trailer twice, read by the
+ * encryption check and again by the loop -- and what the reader does with
+ * them: each decoder a stage of a stream builds, as `INFLATER_VALUES` or
+ * `DECODER_VALUES`; each annotation a page lists, as `LISTING_VALUES`; each
+ * entry of a container the closure walks again under another way of
+ * reading it, one value an entry. One count a document, which is what its
+ * time and heap grow with. Set by a 1,000-page tagged report,
  * which holds 1,468,102; the spike's sample held at most 298 strings a
  * file. Measured on 731bd93, before the inline images' dictionaries and
  * the decoders were counted with the file's own values: at it, a file of
@@ -94,13 +102,31 @@ export const MAX_DOCUMENT_XREF_SECTIONS = 1_000
  * well, read in 607 ms with 138 MiB (358 ms in Chromium); 153,846 inline
  * images' dictionaries in 378 ms, a file the one count now refuses, its
  * dictionaries alone counting 1,999,998 beside the file's own values;
- * every bound at once -- the values in dictionaries shaped as a page's,
- * beside content that inflates to `MAX_DOCUMENT_INFLATED` -- in 548 ms
+ * the values in dictionaries shaped as a page's, beside content that
+ * inflates to `MAX_DOCUMENT_INFLATED` but holds no inline image, in 548 ms
  * with 75 MiB (385 ms in Chromium), a file the one count still reads, at
  * 1,999,895 (each checked by a read on 11 November 2026, not timed). On
  * the build that holds the one count, the decoders' shapes, each at its
  * bound and one past it, in 486-808 ms (369-657 ms in Chromium), as
- * `INFLATER_VALUES` and `DECODER_VALUES` say.
+ * `INFLATER_VALUES` and `DECODER_VALUES` say. On the build that counts
+ * every listing, the encryption check and the closure's walks again here
+ * too, files at several bounds at once, the count at the bound exactly,
+ * 11 November 2026, Node 22.23.3 on mains power, loads 3.5 to 5.6: a
+ * thousand pages, content that inflates to `MAX_DOCUMENT_INFLATED` and is
+ * lexed whole to an inline image at its end, and the count spread over
+ * 450,000 one-byte strings, 200 listings a page, a list of 40,000
+ * references the closure walks seven ways and 100,000 numbers in the last
+ * trailer, the file 20 MiB, read in 685 ms with 97 MiB, one value past
+ * refused in 657 ms, one inflated byte past in 574 ms (674, 658 and 441 ms
+ * in Chromium); the count spent on 23,000 streams of eight RunLength
+ * stages, the dearest a value comes, beside the same content and 115
+ * strings of the longest a string may be, in 748 ms with 39 MiB, one past
+ * in 754 ms (575 and 563 ms), the parts it is made of read alone in 487 ms
+ * and 216 ms; the count spent on 990,000 one-byte strings the closure
+ * walks, the dearest a value is to hold, beside the same content, in
+ * 424 ms with 190 MiB, the most heap of any file measured, one past in
+ * 396 ms (297 and 251 ms). Outside the heap, up to 89 MiB, the reader's
+ * copy of the file among it.
  */
 export const MAX_DOCUMENT_VALUES = 2_000_000
 
@@ -148,6 +174,23 @@ export const INFLATER_VALUES = 24
 export const DECODER_VALUES = 8
 
 /**
+ * What one annotation a page lists is counted as against
+ * `MAX_DOCUMENT_VALUES`, null or not, every page together: a listing is
+ * read, drawn, and walked by the closure as one of the page's roots, which
+ * a value is not. Two, a listing's cost against a value's, measured in one
+ * series on 11 November 2026, Node 22.23.3 on an Apple M2 on mains power,
+ * a load of 4.5 to 5.6, medians of five cold runs in fresh workers: a
+ * thousand pages sharing one /Annots of 989 listings of one printed Stamp
+ * of 21 actions, the most within the bound at two, read in 181 ms with
+ * 76 MiB, 183 ns a listing; 2,000,000 numbers, the values bound at its
+ * cheapest, in 186 ms, 93 ns a value, a ratio of 1.97 (7b's medians on
+ * battery, two million listings counted apart from the values, gave 1.98).
+ * One listing more is refused on page 1000 in 73 ms, before the closure
+ * (119 and 50 ms in Chromium, Headless Shell 156).
+ */
+export const LISTING_VALUES = 2
+
+/**
  * The bytes of a PDF's distinct names, decoded, together. Chosen: 78 times
  * the most a sample of 1,484 PDFs held (3,351 bytes), and it keeps a file
  * of hundreds of thousands of long distinct names, which every other bound
@@ -186,9 +229,11 @@ export const MAX_DOCUMENT_INFLATED = 32 * MIB
  * deepest of the sample (8); nesting costs nothing until the stack runs
  * out, near 10,000 arrays in pdf-lib's own grammar. At it, 4.2 ms; refused
  * past it in 2.2-2.6 ms, however deep the file goes, a million levels
- * among them.
+ * among them. Nesting, not depth: report-forms' `MAX_DOCUMENT_DEPTH`, 64,
+ * bounds a JSON form or answer, and a host that imports both meets each
+ * under a name of its own.
  */
-export const MAX_DOCUMENT_DEPTH = 32
+export const MAX_DOCUMENT_NESTING = 32
 
 /** A name's bytes as written: ISO 32000-1's Annex C limit, 127; the sample's longest was 115. At it 3.8 ms, refused past it in 2.1 ms. */
 export const MAX_DOCUMENT_NAME_LENGTH = 127
@@ -205,10 +250,13 @@ export const MAX_DOCUMENT_NUMBER_LENGTH = 32
 
 /**
  * Pixels one image declares -- its width times its height -- which is what
- * a viewer of the report decodes it to: an image is never decoded by the
- * reader and never taken from `MAX_DOCUMENT_INFLATED`, so that a lossless
- * scan is held to its size and not to what its data inflates to. Each
- * image alone: an XObject, its masks, or one inline in a content stream.
+ * a viewer of the report decodes it to: an image XObject and its masks are
+ * never decoded by the reader and never taken from `MAX_DOCUMENT_INFLATED`,
+ * so that a lossless scan is held to its size and not to what its data
+ * inflates to. An inline image compressed by Flate is the exception: its
+ * data is inflated through that budget, its inflater counted, to find where
+ * it ends (inline-images.ts), and passed on as written. Each image alone:
+ * an XObject, its masks, or one inline in a content stream.
  * Chosen, a ruling: the parser spike's value and its meaning, so that a
  * 48-megapixel photograph (8,000 by 6,000), which a site visit's uploads
  * hold, passes; the largest image of the spike's sample of 1,484 PDFs was

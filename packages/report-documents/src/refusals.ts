@@ -26,13 +26,13 @@ export const DOCUMENT_REFUSAL_CODES = [
   'encrypted',
   /** Not written as ISO 32000 writes a PDF, or damaged: cut short, bytes between or after its objects, a token past its bound, a stream whose length or data is wrong. */
   'malformed',
-  /** Arrays and dictionaries nested past `MAX_DOCUMENT_DEPTH`. */
+  /** Arrays and dictionaries nested past `MAX_DOCUMENT_NESTING`. */
   'too-deep',
-  /** More objects than `MAX_DOCUMENT_OBJECTS`, written, claimed by a cross-reference or reached by its pages; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`, in the file or in its inline images' dictionaries and their inflaters, or annotations listed by its pages, every page together; names past `MAX_DOCUMENT_NAME_BYTES`. */
+  /** More objects than `MAX_DOCUMENT_OBJECTS`, written or claimed by a cross-reference; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`, on one count of what the file holds, its inline images' dictionaries, the decoders its streams build, the annotations its pages list and what the closure walks again; names past `MAX_DOCUMENT_NAME_BYTES`. */
   'too-many-objects',
   /** Streams that decode past `MAX_DOCUMENT_INFLATED`, every stage of every stream together; an image that declares more pixels than `MAX_DOCUMENT_IMAGE_PIXELS`, which a viewer decodes it to. */
   'inflates-too-far',
-  /** A filter the reader does not decode where it has to, or does not pass on: LZW, Crypt, a TIFF predictor, an image's own filter anywhere but last on an image, or a name PDF does not define; a stream whose data is in another file; an inline image whose end the reader cannot find. */
+  /** A filter the reader does not decode where it has to, or does not pass on: LZW, Crypt, a TIFF predictor, an image's own filter anywhere but last on an image, or a name PDF does not define; a stream whose data is in another file, a form that stands in for a page of another file (/Ref), or an image or a form that names another file to be printed in its place (/OPI); an inline image whose end the reader cannot find. */
   'unsupported-filter',
   /** The cross-reference and the objects disagree: an earlier definition named than the last one written, a place where no object is, an object it does not list, a generation no object has. */
   'xref-disagrees',
@@ -179,13 +179,13 @@ export const FINDINGS = {
   contents: ['malformed', 'it names content that is not a stream or a list of streams'],
   resources: ['malformed', 'it gives resources that are not a dictionary'],
   group: ['malformed', 'it gives a transparency group that is not a dictionary'],
+  // No file's bytes reach it: the parse holds the objects a file defines to the same bound. The closure's guard on its own walk, for a caller that hands it more.
   reached: ['too-many-objects', 'its pages reach more objects than a document may hold'],
   rotation: ['unsupported-rotation', 'it is turned by other than a quarter turn'],
   area: ['no-area', 'it gives a box of no area'],
   layers: ['optional-content', 'it holds layers a viewer may hide'],
   'resource-page': ['resource-names-a-page', 'what its pages draw with reaches a page'],
   annots: ['malformed', 'it lists its annotations in other than an array'],
-  annotations: ['too-many-objects', 'its pages list more annotations than a document may'],
   annotation: ['malformed', 'it lists an annotation that is not a dictionary'],
   flags: ['malformed', 'an annotation in it gives flags that are not a whole number'],
   rect: ['malformed', 'an annotation in it gives no rectangle of four numbers'],
@@ -207,6 +207,8 @@ export const FINDINGS = {
   'inline-reference': ['malformed', 'an inline image in it names an object outside its content'],
   'inline-filter': ['unsupported-filter', 'an inline image in it is compressed in a way whose end the reader cannot find'],
   external: ['unsupported-filter', 'a stream in it keeps its data in another file'],
+  'reference-xobject': ['unsupported-filter', 'a form in it stands in for a page of another file'],
+  opi: ['unsupported-filter', 'an image or a form in it names another file to be printed in its place'],
 } as const satisfies Record<string, readonly [DocumentRefusalCode, string]>
 export type Finding = keyof typeof FINDINGS
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_DEPTH, MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_PAGES } from './limits.js'
+import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_NESTING, MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_PAGES } from './limits.js'
 import { AT_A_BOUND } from './parse-test-support.js'
 import { readDocument, type DocumentRead } from './read.js'
 import { refusal } from './refusals.js'
@@ -72,9 +72,9 @@ describe('a document at each bound reads, and one past it is refused', () => {
 
   // Nesting is counted as it is read, before the stack is in question:
   // arrays nested exactly the bound deep read, one level more is refused.
-  test('a document nested MAX_DOCUMENT_DEPTH deep reads and one level more is refused as too-deep', () => {
-    expect(pagesRead(withObject5(nestedArrays(MAX_DOCUMENT_DEPTH)))).toBe(1)
-    expect(outcome(readDocument(withObject5(nestedArrays(MAX_DOCUMENT_DEPTH + 1))))).toEqual(refusal('depth'))
+  test('a document nested MAX_DOCUMENT_NESTING deep reads and one level more is refused as too-deep', () => {
+    expect(pagesRead(withObject5(nestedArrays(MAX_DOCUMENT_NESTING)))).toBe(1)
+    expect(outcome(readDocument(withObject5(nestedArrays(MAX_DOCUMENT_NESTING + 1))))).toEqual(refusal('depth'))
   })
 
   // A hybrid file lists every object twice, in its classic table and in

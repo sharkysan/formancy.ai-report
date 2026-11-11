@@ -12,7 +12,7 @@ import { readDocument } from '@formancy/report-documents'
 const read = readDocument(bytes) // a Uint8Array of this realm
 if (read.ok) {
   read.document.pages // each page in the order it prints: its box, rotation, content, resources, appearances
-  read.document.objects // every object the pages draw with, by number
+  read.document.objects // every object the pages draw with, by number; a reference to a number it does not hold names nothing
   read.document.notices // what does not survive printing, a count of each kind: [{ code: 'links', count: 2 }]
 } else {
   read.code // one of DOCUMENT_REFUSAL_CODES, such as 'encrypted' or 'optional-content'

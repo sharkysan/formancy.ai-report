@@ -1,6 +1,19 @@
 import { isRegular, isWhite } from './bytes.js'
 
 /**
+ * Internal: the release of PDF.js whose ends of inline images the reader
+ * mirrors, read from its legacy/build/pdf.worker.mjs -- the one the corpus
+ * proves pages with and the Studio previews in: `findDefaultInlineStreamEnd`'s
+ * search, its text and operator tests and its operator map (here), and the
+ * byte `inlineStreamSkipEI` passes over after a marker's `EI`
+ * (inline-images.ts, `ended`). scripts/mirrored-pdfjs.test.mjs fails when
+ * the pdfjs-dist the corpus or the Studio pins is another; it reads this
+ * module, which imports bytes.ts alone, so that the guard loads nothing of
+ * pdf-lib's or pako's.
+ */
+export const MIRRORED_PDFJS = '6.4.299'
+
+/**
  * Where PDF.js 6.4.299 (`MIRRORED_PDFJS`) -- the viewer the corpus pins, and the Studio's --
  * ends an inline image whose data it finds the end of by searching:
  * unfiltered and Flate (`Parser.findDefaultInlineStreamEnd`,

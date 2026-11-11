@@ -24,8 +24,8 @@ import { caught, refuse, type DocumentRefusal } from './refusals.js'
  * an image's own filters are refused where a stream must be decoded. An
  * image is never decoded: its filters are checked and it is passed on to
  * the viewer as it is written (`passedOn`), held to the pixels it declares
- * instead (images.ts). A stream that keeps its data in another file is
- * refused before a byte of it is read (`filtersOf`).
+ * instead (images.ts). A stream that keeps its data in another file, or
+ * stands for one, is refused before a byte of it is read (`filtersOf`).
  */
 
 /** The private sentinel `onData` throws once the budget is spent, which pako lets through its `push`. */
@@ -198,9 +198,20 @@ const listed = (value: PdfValue | undefined): readonly PdfValue[] => (value === 
  */
 const EXTERNAL = ['F', 'FFilter', 'FDecodeParms'] as const
 
-/** Internal: the filters a stream names, in order: a name, an array of names, or none; refused, before its data is read, where its data is in another file. */
+/**
+ * Internal: the filters a stream names, in order: a name, an array of
+ * names, or none. Refused, before its data is read, where what it draws is
+ * in another file: its data (`EXTERNAL`); a form that stands in for a page
+ * of another file, a reference XObject (/Ref, ISO 32000-1 8.10.4), which a
+ * printing product may print in the form's place; or an image or a form
+ * that names another file a prepress system prints in its place (/OPI,
+ * 14.11.7). Report never fetches by address, and its PDF must name no file
+ * to fetch: every stream the reader decodes or holds is read through here.
+ */
 export function filtersOf(dict: PdfDict): readonly string[] {
   if (EXTERNAL.some((key) => dict.entries.has(key))) refuse('external')
+  if (dict.entries.has('Ref')) refuse('reference-xobject')
+  if (dict.entries.has('OPI')) refuse('opi')
   return listed(dict.entries.get('Filter')).map((item) => (isName(item) ? item.name : refuse('filter-name')))
 }
 

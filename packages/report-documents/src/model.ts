@@ -17,6 +17,7 @@ export type PdfValue = null | boolean | number | PdfName | PdfString | readonly 
 export interface PdfName {
   readonly name: string
 }
+/** A string's bytes, its escapes decoded: no `dict`, which a stream has. */
 export interface PdfString {
   readonly bytes: Uint8Array
 }
@@ -26,7 +27,7 @@ export interface PdfDict {
 export interface PdfRef {
   readonly object: number
 }
-/** Its dictionary and its bytes as encoded, the filters its dictionary names. */
+/** Its dictionary and its data as encoded, the filters its dictionary names: `bytes` is the stream's data, where a PdfString's is the string's. */
 export interface PdfStream {
   readonly dict: PdfDict
   readonly bytes: Uint8Array

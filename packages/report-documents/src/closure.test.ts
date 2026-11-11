@@ -109,7 +109,7 @@ describe('the closure follows every name a page draws with', () => {
   test('a resource named as a structure names its keys is held to every guard', AT_A_BOUND, () => {
     const zeros = deflatedZeros(17 * MIB)
     const layer = { 30: form(CONTENT, '/OC 31 0 R'), 31: '<<>>' }
-    for (const name of ['X', 'P', 'Parent', 'Metadata', 'PieceInfo', 'OC']) {
+    for (const name of ['X', 'P', 'Parent', 'Metadata', 'PieceInfo', 'OC', 'HT', 'SMask']) {
       const named = (target: number, objects: Readonly<Record<number, Body>> = {}): Uint8Array =>
         pagesFile([letter('', { resources: `<</XObject<</${name} ${target} 0 R>>>>` })], objects)
       expectPrintRefused(named(30, layer), 'optional-content', 'layers')
@@ -145,7 +145,7 @@ describe('the closure follows every name a page draws with', () => {
     const halftone = (entries: string, objects: Readonly<Record<number, Body>>): Uint8Array =>
       pagesFile([letter('', { resources: `<</ExtGState<</G0<</HT<</Type/Halftone/Default 90 0 R${entries}>>>>>>>>` })], { 90: screen, ...objects })
     const threshold = { dict: '/HalftoneType 6/Width 1/Height 1/Filter/LZWDecode', data: latin1('x') }
-    for (const name of ['X', 'P', 'Parent', 'Metadata', 'PieceInfo']) {
+    for (const name of ['X', 'P', 'Parent', 'Metadata', 'PieceInfo', 'HT', 'SMask']) {
       expectPrintRefused(deviceN(`<</Colorants<</${name}[/Separation/${name}/DeviceCMYK 81 0 R]>>>>`, { 81: lzw }), 'unsupported-filter', 'filter')
       expectPrintRefused(deviceN(`<</MixingHints<</DotGain<</${name} 81 0 R>>>>>>`, { 81: lzw }), 'unsupported-filter', 'filter')
       expectPrintRefused(halftone(`/HalftoneType 5/${name} 91 0 R`, { 91: threshold }), 'unsupported-filter', 'filter')
@@ -236,6 +236,42 @@ describe('the closure follows every name a page draws with', () => {
     expect(closureOf({ ...document, objects: counted }, rootsOf(read))).toHaveProperty('size', 0)
     expect(counted.gets).toBeLessThan(counted.limit)
   })
+
+  // A container is walked once for each way it is read -- as any value, as
+  // resources, as a name map, as glyphs, as XObjects, as alternates and as
+  // an alternate -- and a file can reach one each way: a container of a
+  // million entries was a walk of seven million that no count held. Its
+  // first walk is of what the parse counted as it made them; each walk
+  // after it is counted on the document's one count, a value an entry.
+  test('a container walked again under another reading is counted for its entries', () => {
+    const entries = 1_000
+    const total = (resources: string): number =>
+      printedWhole(pagesFile([letter('', { resources: `<<${resources}>>` })], { 5: `[${'1 '.repeat(entries)}]` })).parsed.budget.reading.total
+    // Object 5 under every reading, and the same keys and values read as any value, so that the parse counts each file alike.
+    const every = total('/Resources 5 0 R/Probe 5 0 R/CharProcs 5 0 R/HT 5 0 R/XObject 5 0 R/Alternates 5 0 R/Other<</Alternates[5 0 R]>>')
+    const once = total('/Ra 5 0 R/Probe 5 0 R/Rb 5 0 R/Rc 5 0 R/Rd 5 0 R/Re 5 0 R/Other<</Rf[5 0 R]>>')
+    expect(every - once).toBe(6 * entries)
+  })
+
+  // An image is held to its pixels wherever it is reached -- but held
+  // again at every reach, one a page's XObjects name under many names was
+  // read again for each: an image of a hundred thousand filters named ten
+  // thousand times, a file of 1.3 MB, took 17.7 s. An image is the same
+  // image wherever it stands, and is held once; each hold reads its size
+  // here, through the objects map that counts each look-up.
+  test('an image named under many names is held once', () => {
+    const names = 1_000
+    const document = parsed(
+      pagesFile([letter('', { resources: `<</XObject<<${Array.from({ length: names }, (_, i) => `/I${String(i)} 30 0 R`).join('')}>>>>` })], {
+        30: { dict: '/Type/XObject/Subtype/Image/Width 31 0 R/Height 31 0 R/ColorSpace/DeviceGray/BitsPerComponent 8', data: new Uint8Array(1) },
+        31: '1',
+      }),
+    )
+    const read = pagesOf(document, new Tally()) as readonly PrintablePage[]
+    const counted = new Counted(document.objects, names)
+    expect(closureOf({ ...document, objects: counted }, rootsOf(read))).toHaveProperty('size', 2)
+    expect(counted.gets).toBeLessThan(counted.limit)
+  })
 })
 
 describe('the closure is refused', () => {
@@ -254,6 +290,25 @@ describe('the closure is refused', () => {
     })
     expectPrintRefused(chained, 'resource-names-a-page', 'resource-page')
     expectPrintRefused(pagesFile([letter('', { resources: '<</Properties<</MC0 1 0 R>>>>' })]), 'resource-names-a-page', 'resource-page')
+  })
+
+  // A reference XObject (ISO 32000-1 8.10.4) is a form that stands in for
+  // a page of another file, which a printing product may print in its
+  // place, and an OPI dictionary (14.11.7) names another file a prepress
+  // system prints in place of an image or a form: either would print what
+  // the author never saw, from a file Report never fetches by its address.
+  // Each is refused, under a finding of its own, as a stream whose data is
+  // in another file is, wherever the reader reads the stream.
+  test('a form that stands in for another file, and an image or a form that names one to print in its place, are refused', () => {
+    const drawn = (body: Body): Uint8Array => pagesFile([drawing(30)], { ...FONT, 30: body })
+    const opi = '/OPI<</2.0<</Type/OPI/Version 2.0/F(scan.tif)/Inks/full_color>>>>'
+    expectPrintRefused(drawn(form(CONTENT, '/Ref<</F(other.pdf)/Page 0>>')), 'unsupported-filter', 'reference-xobject')
+    expectPrintRefused(drawn(form(CONTENT, opi)), 'unsupported-filter', 'opi')
+    const image = `/Type/XObject/Subtype/Image/Width 1/Height 1/ColorSpace/DeviceGray/BitsPerComponent 8`
+    expectPrintRefused(drawn({ dict: `${image}${opi}`, data: new Uint8Array(1) }), 'unsupported-filter', 'opi')
+    // Each without its key draws.
+    expect(printedWhole(drawn(form(CONTENT))).closure.has(30)).toBe(true)
+    expect(printedWhole(drawn({ dict: image, data: new Uint8Array(1) })).closure.has(30)).toBe(true)
   })
 
   // A parse holds no more objects than the bound, so no file reaches it

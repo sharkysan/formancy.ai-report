@@ -39,17 +39,6 @@ import { caught, DocumentRefused, refuse, type DocumentRefusal } from './refusal
  * its operators are the viewer's.
  */
 
-/**
- * Internal: the release of PDF.js whose ends of inline images the reader
- * mirrors, read from its legacy/build/pdf.worker.mjs -- the one the corpus
- * proves pages with and the Studio previews in: `findDefaultInlineStreamEnd`'s
- * search, its text and operator tests and its operator map (inline-end.ts),
- * and the byte `inlineStreamSkipEI` passes over after a marker's `EI`
- * (`ended`). scripts/mirrored-pdfjs.test.mjs fails when the pdfjs-dist the
- * corpus or the Studio pins is another.
- */
-export const MIRRORED_PDFJS = '6.4.299'
-
 const PERCENT = 0x25
 const LEFT = 0x28
 const RIGHT = 0x29

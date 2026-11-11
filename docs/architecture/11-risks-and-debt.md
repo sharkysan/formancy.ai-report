@@ -218,10 +218,13 @@ image, so how many files the inline rules refuse -- binary data that
 happens to hold `EI` and a white-space byte is one -- is unknown. A tagged
 report as dense as the densest measured is refused past about 700 pages.
 Its bounds were set against a second and 256 MiB of heap on one laptop on
-battery, where the slowest shape at its bound read in 808 ms: by
-arithmetic, if a read's time scales with the machine, on one twice as slow
-the slowest shapes would take more than a second, synchronously, on the
-thread that asked, and nothing times a read in CI. What a read leaves in
+battery, where the slowest shape at its bound read in 808 ms, and files at
+several bounds at once were measured on mains power, where the slowest
+read in 748 ms and the dearest held 190 MiB: on battery the same laptop
+read the shapes it read both ways 1.4 to 1.7 times slower, so by
+arithmetic that file would take more than a second there, as the slowest
+shapes would on a machine twice as slow, synchronously, on the thread that
+asked; and nothing times a read in CI. What a read leaves in
 its process is not measured on this reader: it feeds pdf-lib's pools
 nothing of a file, which spies hold, and the pools' cost was measured on
 the spike's loop alone, so the server that will read uploads is to read
@@ -229,10 +232,11 @@ each in a worker it discards, which that server's record measures. An old
 file compressed with LZW is refused, as is any filter the reader does not
 decode where it must. The parser and
 pako come into every bundle that reads a PDF, 234 kB gzipped by the
-spike's measurement. The reader now reads every token, both containers and
-a cross-reference stream's rows itself; what it takes of pdf-lib is the
-grammar's dispatch, its byte cursor and three decoders ported from PDF.js
-under Apache-2.0, which the licence guard reads as pdf-lib's MIT; UPNG,
+spike's measurement. The reader now reads every token but the keywords,
+both containers and a cross-reference stream's rows itself; what it takes
+of pdf-lib is the grammar's dispatch, its byte cursor, and three decoders
+ported from PDF.js and the classes they extend, under Apache-2.0, which
+the licence guard reads as pdf-lib's MIT; UPNG,
 0005's decoder that never returns, comes with pdf-lib and is never called,
 which a test holds; and the internals it reaches into are pinned, so a
 release of either moves with a reading or not at all. The corpus's `objects.ts` reads with the same

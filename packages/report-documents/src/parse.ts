@@ -86,14 +86,19 @@ const names = (entry: Exclude<Entry, { kind: 'free' }>, where: Where): boolean =
  * Whether the trailer the last `startxref` names says the file is
  * encrypted: read before the loop, so that an encrypted file is refused as
  * that, not as an object stream that does not inflate. Anything that
- * stops this reading is the loop's to find.
+ * stops this reading is the loop's to find. Read on the loop's own
+ * `reading`, so that what it reads is counted against the document's
+ * bounds as the loop's read of the same object is again: on a count of
+ * its own, a last trailer of a million values was read twice and counted
+ * once. A trailer, or the cross-reference stream's dictionary, holds tens
+ * of values, which count twice.
  */
-function encryptedByItsLastTrailer(bytes: Uint8Array): boolean {
+function encryptedByItsLastTrailer(bytes: Uint8Array, reading: Reading): boolean {
   const startxref = findLast(bytes, STARTXREF)
   if (startxref < 0) return false
   return (
     caught(() => {
-      const grammar = new Grammar(bytes, new Reading())
+      const grammar = new Grammar(bytes, reading)
       grammar.moveTo(startxref + STARTXREF.length)
       grammar.space()
       const at = grammar.int('no-startxref')
@@ -140,7 +145,7 @@ class Loop {
     if (eof < 0) refuse('no-eof')
     for (let at = eof + EOF.length; at < bytes.length; at += 1) if (!isWhite(bytes[at])) refuse('after-eof')
     if (bytes.length - eof > EOF_WITHIN) refuse('eof-far')
-    if (encryptedByItsLastTrailer(bytes)) refuse('encrypted')
+    if (encryptedByItsLastTrailer(bytes, this.reading)) refuse('encrypted')
     const grammar = this.grammar
     for (grammar.space(); !grammar.done(); grammar.space()) {
       const at = grammar.at

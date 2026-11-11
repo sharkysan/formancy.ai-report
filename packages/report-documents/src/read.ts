@@ -31,7 +31,14 @@ import { caught, type DocumentRefusal } from './refusals.js'
 export interface PrintableDocument {
   /** Every page, in the order it prints. */
   readonly pages: readonly PrintablePage[]
-  /** Every object the pages reach, by the number a PdfRef names: shared between pages. */
+  /**
+   * Every object the pages reach, by the number a PdfRef names: shared
+   * between pages. A reference among them may name a number the map does
+   * not hold -- under /Parent, /P, /Metadata or /PieceInfo, which the
+   * closure does not follow; a number no object has; or 0, which a number
+   * no file can define names -- and names nothing: null, as ISO 32000-1
+   * 7.3.10 reads a reference to no object, and to a writer of the objects.
+   */
   readonly objects: ReadonlyMap<number, PdfValue | PdfStream>
   /** What the document holds that does not survive printing, a count of each kind, said to whoever adds it. */
   readonly notices: readonly DocumentNotice[]

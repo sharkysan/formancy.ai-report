@@ -16,7 +16,9 @@
       past the file or behind a chain of references, an object that is
       nothing but a reference, an earlier definition than the last one
       written, each refused; every bound the parse holds refused before
-      the work it bounds; no reference a file holds reaching pdf-lib's
+      the work it bounds; the last trailer the encryption check reads
+      counted on the document's one count beside the loop's read of it;
+      no reference a file holds reaching pdf-lib's
       `PDFRef.of`, a spy on it never called; and pdf-lib's `ByteStream`,
       which the reader takes from a protected field, pinned as the reader
       uses it.
@@ -26,8 +28,9 @@
       with a character that is not a digit, a number that is not one, an
       object number past what a number holds exactly, each refused; a
       reference to a number no file can define naming nothing; each token
-      at its bound read and one past it refused; the values bound and the
-      names' bytes bound; each number read once and no pdf-lib number,
+      at its bound read and one past it refused; the values bound, and the
+      names' bytes bound read at it and refused one past it; each number
+      read once and no pdf-lib number,
       array or dictionary made; a string a view of the file, each kind
       counted exactly twice.
     - `xref.test.ts`: object streams, hybrid files, an entry in use at
@@ -50,16 +53,21 @@
       pass, its content joined and charged; a rotation not a multiple of
       90, a box of no area and a document of no pages refused; optional
       content in the catalog refused.
-    - `closure.test.ts`: every object the pages draw with, each walked
-      once and counted before it is kept, a name map followed by where it
-      stands and never by what it says of itself; a layer and a resource
-      that reaches a page refused.
+    - `closure.test.ts`: every object the pages draw with, each container
+      walked once for each way it is read, each walk after the first
+      counted on the document's one count, and each image held once
+      however many names reach it; a name map followed by where it stands
+      and never by what it says of itself, its keys among them the ones
+      that change how a value is read elsewhere; a layer, a resource that
+      reaches a page, a form that stands in for another file's page
+      (`/Ref`) and an image or a form that names one to print in its place
+      (`/OPI`) refused.
     - `annotations.test.ts`, `notices.test.ts`: the print rule; a field
       with no appearance, a missing appearance state, a link border a
       viewer would draw, NoRotate on a turned page, XFA and
       NeedAppearances each refused, naming the page and the annotation by
-      the reader's own count; what does not survive printing counted by
-      code, never named.
+      the reader's own count; each listing counted on the document's one
+      count; what does not survive printing counted by code, never named.
     - `images.test.ts`, `inline-images.test.ts`, `inline-shared.test.ts`:
       an image held to its pixels by where it stands, never by its
       `/Subtype`, and passed on undecoded; a font file or a function that
@@ -87,7 +95,11 @@
   - **The PDF.js the reader mirrors.** `scripts/mirrored-pdfjs.test.mjs`,
     in `pnpm test:repo`, fails when the corpus or the Studio pins another
     `pdfjs-dist` than `MIRRORED_PDFJS`, the release whose ends of an
-    inline image the reader's were copied from.
+    inline image the reader's were copied from; it reads `inline-end.ts`,
+    which imports nothing of pdf-lib's or pako's.
+  - **The built declarations.** `scripts/documents-declarations.test.mjs`,
+    in `pnpm test:repo`, which CI runs after `pnpm build`, fails when the
+    package's `dist/index.d.mts` names any module.
   - **The licences.** `scripts/dependency-licences.mjs`, in `verify` and
     through its test in `pnpm test:repo`, walks the package's production
     dependencies with every other published package's
@@ -99,8 +111,15 @@
     header, type-checked against the built `dist` with `skipLibCheck` off.
   - **Seen failing, 3 to 11 November 2026.** Each case was run before the
     code it holds, or with its guard broken in the working tree and put
-    back, and failed for its own reason. The guards of the parse, the
-    pages, the closure, the annotations and the images were mutated one at
+    back, and failed for its own reason. On 11 November, the listings, the
+    encryption check and the closure's walks again each taken off the one
+    count failed their tests; so did an image held at every reach, `/Ref`
+    and `/OPI` read, the names' bytes refused at their bound, a name map
+    read by the keys that mean something elsewhere -- which the tests did
+    not hold before `/HT` and `/SMask` were among its names -- a type of
+    pdf-lib's exported, and `MIRRORED_PDFJS` moved. The guards of the
+    parse, the pages, the closure, the annotations and the images were
+    mutated one at
     a time, and every mutant failed a test but an equivalent one, an
     `isRef` type check, and two refusals that move the cursor forward,
     which would loop and were not mutated. On 11 November, the grammar
@@ -191,8 +210,10 @@ code with it.
   file system.
 - **A neutral object model of its own** (`model.ts`): no type of pdf-lib's
   or pako's leaves the package, so neither a host nor another package meets
-  one, and the parser can change behind it. The built declarations import
-  neither, as read after the build on 11 November 2026; no test holds it.
+  one, and the parser can change behind it. The built declarations name no
+  module, which `scripts/documents-declarations.test.mjs` holds. The
+  model's type guards stay internal for now: the first package that walks
+  the objects exports them from here rather than write its own.
 - **Never a throw.** Anything thrown while it reads -- by pdf-lib's
   grammar, by pako, by a fault of the reader's own -- is a refusal in its
   own words.
@@ -260,17 +281,28 @@ beside how it was measured, at it and one past it, or why it was chosen:
   sections, counted as each is met;
 - **one count of values a document**, `MAX_DOCUMENT_VALUES`: every number,
   name, array, dictionary, reference and keyword, its own and its inline
-  images' dictionaries'; a key twice, and a string twice, for the view it
-  is held in; and each decoder a stage of a stream builds, a pako inflater
-  as `INFLATER_VALUES` and a fixed-ratio decoder as `DECODER_VALUES`,
-  counted where it is built;
+  images' dictionaries'; a name that is a value twice, as a value and as a
+  name, and a string twice, for the view it is held in; the last trailer,
+  or the cross-reference stream's dictionary, twice, as the encryption
+  check reads it before the loop does; each decoder a stage of a stream
+  builds, a pako inflater as `INFLATER_VALUES` and a fixed-ratio decoder
+  as `DECODER_VALUES`, counted where it is built; each annotation a page
+  lists, as `LISTING_VALUES`, every page together; and each entry of a
+  container the closure walks again under another way of reading it, one
+  value an entry. Nothing a document makes the reader do is on a count of
+  its own beside this one, but what the bytes, the inflate budget, the
+  objects, the cross-reference's entries and sections, the names' bytes
+  and the pages bound;
 - the distinct names' bytes together; the pages; what every stage of every
   stream decodes to, together, from one budget; nesting; a name's, a
   string's and a number's length;
 - **an image's pixels**, `MAX_DOCUMENT_IMAGE_PIXELS`, its width times its
-  height, which is what a viewer decodes it to: an image is never decoded
-  and never charged to the inflate budget, so a lossless scan is held to
-  its size and not to what its data inflates to.
+  height, which is what a viewer decodes it to: an image XObject is never
+  decoded and never charged to the inflate budget, so a lossless scan is
+  held to its size and not to what its data inflates to; a Flate inline
+  image is inflated through that budget, its inflater counted, to find
+  where its data ends, and passed on as written. Each image is held once,
+  however many names reach it.
 
 The criterion each bound was held to: every hostile file refused by a
 stable code, or read within every bound, within a second and 256 MiB of
@@ -326,8 +358,13 @@ reads, and would print as whatever it draws.
   image's own filter, DCT, JPX, CCITTFax or JBIG2, anywhere but last on an
   image; and a name PDF does not define. No file of the spike's sample was
   refused for one;
-- **a stream whose data is in another file**, before a byte of it is read:
-  Report never fetches by address;
+- **a stream whose data is in another file**, before a byte of it is read,
+  and **a form or an image that names another file to print in its
+  place**: a reference XObject's `/Ref`, a form standing in for a page of
+  another file that a printing product may print instead, and an `/OPI`
+  dictionary, naming a file a prepress system prints in place of an image
+  or a form. Report never fetches by address, and the PDF it prints must
+  name no file to fetch;
 - a page tree that is not a tree, or a tree of no pages; a rotation not a
   multiple of 90; a box of no area; a resource that reaches a page.
 
@@ -357,7 +394,22 @@ field's value may be a person's data.
   refused within a second and 256 MiB of heap in Node, the costliest
   within a second in Chromium too, on the machine measured and the builds
   `limits.ts` dates, where pdf-lib as it stands hung, exhausted its heap
-  and once took its process with it.
+  and once took its process with it. Each bound was measured alone, and
+  the work they bound adds up, so files at several bounds at once were
+  measured too, on 11 November 2026, on the build where nothing a
+  document makes the reader do is on a count of its own: a thousand
+  pages, content that inflates to the inflate bound and is lexed whole,
+  and the values count at its bound exactly, spent on strings, listings,
+  the closure's walks and the last trailer, the file 20 MiB, read in
+  685 ms with 97 MiB of heap; spent on the dearest decoders instead, in
+  748 ms, its parts alone taking 487 and 216 ms; and on the strings that
+  cost the most heap, in 424 ms with 190 MiB, the most of any file
+  measured; each refused one past its bound within 754 ms. In Chromium
+  the three read in 297 to 674 ms, and were refused one past in 251 to
+  658 ms. That was on mains power, where the same machine read the shapes
+  it had read on battery 1.4 to 1.7 times faster: by
+  arithmetic, not measured, the dearest of those files on battery would
+  take more than a second.
 - **What prints is what a viewer shows.** A shadowed revision, a layer, a
   field without an appearance and an inline image a viewer would end
   elsewhere are refused rather than printed otherwise than the author saw
@@ -396,8 +448,10 @@ field's value may be a person's data.
   the last charges, which add about 17,000 values at 709 pages, far below
   the bound, and were not timed again. A raise would rest on an estimate
   at the edge of the second.
-- **The second is this machine's.** The slowest shape at its bound, eight
-  RunLength stages a stream, read in 808 ms in Node and 657 ms in Chromium;
+- **The second is this machine's.** The slowest shape at its bound alone,
+  eight RunLength stages a stream, read in 808 ms in Node and 657 ms in
+  Chromium on battery, and 487 ms and 384 ms on mains on 11 November, when
+  the same stages beside lexed content at the inflate bound took 748 ms;
   a legitimate 1,000-page tagged report in object streams in 658 ms and
   455 ms. Each of those is the median of five cold runs, each in a fresh
   worker or browser context, under Node 22.23.3 and Chrome Headless Shell
@@ -418,11 +472,11 @@ field's value may be a person's data.
   many short Flate streams or inline images is refused sooner than its
   values alone would refuse it.
 - **The heap is what was held; outside it is said beside it.** The 256 MiB
-  is the heap's. What a read decodes is held outside it, as buffers, and
-  measured beside it, not in it: up to 74 MiB with every bound at once,
-  and 64 MiB at `MAX_DOCUMENT_INFLATED` alone, twice the bound, on 6
-  November; and the reader's own copy of the file, outside the heap too,
-  is in neither figure.
+  is the heap's. What a read decodes is held outside it, as buffers, with
+  the reader's own copy of the file, and measured beside it, not in it: up
+  to 89 MiB for a file at several bounds at once, 20 MiB of it the copy,
+  on 11 November, and 64 MiB at `MAX_DOCUMENT_INFLATED` alone, twice the
+  bound, on 6 November.
 - **What a read leaves behind is not measured.** The reader feeds pdf-lib's
   pools nothing of a file: no reference reaches `PDFRef.of`, and no name of
   a file reaches `PDFName.of`, only the fixed names pdf-lib's decoders look
@@ -451,20 +505,23 @@ field's value may be a person's data.
   stream decoders a header: ASCIIHex, ASCII85, RunLength and LZW, and the
   `Stream` and `DecodeStream` they extend, are ports of PDF.js's,
   Copyright 2012 Mozilla Foundation, and Flate is XPDF's through PDF.js,
-  Copyright 1996-2003 Glyph & Cog, each "made available under the Apache
-  2.0 open source license". The reader runs the first three and the two
-  they extend; `decodePDFRawStream`, which it calls, holds the Flate and
-  LZW ports too, which it never runs. `@pdfme/pdf-lib/dist/index.js`
-  keeps none of those headers, and pdf-lib's `LICENSE.md` is MIT alone, so
-  the licence guard judges them by pdf-lib's MIT field alone (0006), and
+  its header both Copyright 1996-2003 Glyph & Cog and Copyright 2012
+  Mozilla Foundation, each "made available under the Apache 2.0 open
+  source license". The reader runs the first three and the two they
+  extend; `decodePDFRawStream`, which it calls, holds the Flate and LZW
+  ports too, which it never runs. `@pdfme/pdf-lib/dist/index.js` keeps
+  none of those headers, and pdf-lib's `LICENSE.md` is MIT alone, so the
+  licence guard judges them by pdf-lib's MIT field alone (0006), and
   `scripts/third-party-notices.mjs` would list pdf-lib under MIT alone.
-  `pdfjs-dist` 6.4.299 ships no NOTICE, so Apache-2.0's section 4(d) asks
-  nothing; its section 4(a) asks that a copy of the licence go with a
-  bundle that holds the reader, and the ports' copyright lines should go
-  with it. A built app's notices carry them only through an entry of
+  `pdfjs-dist` 6.4.299 ships no NOTICE, so as far as pdfjs-dist shows
+  Apache-2.0's section 4(d) asks nothing; its section 4(a) asks that a
+  copy of the licence go with a bundle that holds the reader, and its
+  section 4(c) that the ports' attribution be kept. A built app's notices
+  carry them only through an entry of
   `apps/studio/src/embedded-notices.ts` for
-  `@pdfme/pdf-lib/dist/index.js`, and nothing fails without one. Nothing bundles the reader yet: the entry
-  lands with the pull request that first does. Unchecked: whether PDF.js's
+  `@pdfme/pdf-lib/dist/index.js`, and nothing fails without one. Nothing
+  bundles the reader yet: the entry lands with the pull request that
+  first does. Unchecked: whether PDF.js's
   own repository holds a NOTICE, which of these modules a bundler keeps,
   and whether pdf-lib's MIT label over ported files is sound, which is a
   lawyer's question.
@@ -505,5 +562,5 @@ strict loop when the spike chose it, with decoders ported from PDF.js. It
 is also the alternative this record is likeliest to be undone for: the
 reader has since replaced every token reader, both containers and the
 cross-reference rows, and what it still takes of pdf-lib is the dispatch,
-the byte cursor and three decoders, for a dependency that costs every
-bundle that prints.
+the byte cursor, and three decoders and the classes they extend, for a
+dependency that costs every bundle that prints.

@@ -2309,7 +2309,7 @@
       ]
     },
     "0054": {
-      "reviewed": "sha256:04b25cec17558ddeee45df2cd93ee7f4a8ae9db96798ad6c01c8b9cd537d96fa",
+      "reviewed": "sha256:8369ea4fd6c73d5cfb04adc1071736c637cac2c6d4e432f4c6821a1015c622a0",
       "limitations": [
         {
           "area": "format",
@@ -2328,13 +2328,28 @@
         },
         {
           "area": "format",
-          "says": "A PDF that holds more than 2,000,000 values -- numbers, names, strings, arrays, dictionaries, references, and a count for each decoder its streams build -- is refused, so a file of many short compressed streams or inline images is refused sooner than its values alone would be.",
+          "says": "A PDF that holds more than 2,000,000 values -- numbers, names, strings, arrays, dictionaries and references, its last trailer counted twice since it is read twice -- is refused.",
           "heldBy": "packages/report-documents/src/grammar.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The same count holds what each decoder a PDF's streams build costs, so a file of many short compressed streams or inline images is refused sooner than its values alone would be.",
+          "heldBy": "packages/report-documents/src/inflate.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The same count holds two values for each annotation a PDF's pages list, every page together, so a thousand pages that share one list of about a thousand annotations are refused.",
+          "heldBy": "packages/report-documents/src/annotations.test.ts"
         },
         {
           "area": "format",
           "says": "A PDF with a stream behind a filter the reader does not decode where it must -- LZW, Crypt, a TIFF predictor, an image's own filter anywhere but last, or a name PDF does not define -- is refused, so an old file compressed with LZW is to be saved again.",
           "heldBy": "packages/report-documents/src/inflate.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF that holds a form standing in for a page of another file (a reference XObject's /Ref), or an image or a form naming another file a printer may print in its place (/OPI), is refused, as one whose stream keeps its data in another file is, since Report fetches nothing by its address.",
+          "heldBy": "packages/report-documents/src/closure.test.ts"
         },
         {
           "area": "format",
@@ -2358,7 +2373,7 @@
         },
         {
           "area": "runtime",
-          "says": "A read is synchronous and was measured to a second at its bounds on one laptop, so a PDF at the bounds holds the thread it is read on for up to about a second there, and longer on a slower machine."
+          "says": "A read is synchronous and was measured within a second at its bounds on one laptop, files at several bounds at once among them, so a PDF at the bounds holds the thread it is read on for up to about a second there, and longer on battery or a slower machine."
         },
         {
           "area": "runtime",

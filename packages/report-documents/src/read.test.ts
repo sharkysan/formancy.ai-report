@@ -274,7 +274,8 @@ describe("readDocument feeds pdf-lib's pools nothing of a file", () => {
     const of = vi.spyOn(PDFName, 'of')
     for (const file of fixtures()) expect(readDocument(file).ok).toBe(true)
     const met = new Set(of.mock.calls.map(([name]) => name))
-    expect(met.has('ASCII85Decode') && met.has('RunLengthDecode')).toBe(true)
+    // A spy that saw nothing would pass the next assertion: it saw the decoders' names, and DecodeParms, which only pdf-lib's own decodePDFRawStream passes.
+    expect(met.has('ASCII85Decode') && met.has('RunLengthDecode') && met.has('DecodeParms')).toBe(true)
     expect([...met].filter((name) => !FIXED.includes(name))).toEqual([])
   })
 })
@@ -302,7 +303,12 @@ describe("readDocument never runs pdf-lib's PNG decoder", () => {
   // is never called while the fixtures, an image among them, are read. The
   // PNG the control embeds is whole, a 1-by-1 grey pixel pdf-lib embeds
   // unmocked, so that a mock that missed fails the control, where a
-  // truncated one would hang the worker in UPNG itself.
+  // truncated one would hang the worker in UPNG itself. The mock reaches
+  // pdf-lib's UPNG only because Node loads @pdf-lib/upng's CommonJS main
+  // once, for pdf-lib's require and for this one (`upngOfPdfLib`); where
+  // a bundler or another runtime loads a second copy, the control fails,
+  // the PNG embedded, rather than the guard passing on a copy pdf-lib never
+  // calls.
   test('UPNG, which pdf-lib imports, is never called while a file is read', async () => {
     const decode = vi.spyOn(upngOfPdfLib(), 'decode').mockImplementation(() => {
       throw new Error('UPNG decoded')

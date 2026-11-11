@@ -349,19 +349,21 @@ anything:
   Apache-2.0, as their headers in the source map pdf-lib 6.2.4 publishes
   say, read on 11 November 2026: ASCIIHex, ASCII85, RunLength and LZW, and
   the `Stream` and `DecodeStream` they extend, of PDF.js's, Copyright 2012
-  Mozilla Foundation, and Flate of XPDF's through PDF.js, Copyright
-  1996-2003 Glyph & Cog. The one PDF reader runs the first three and the
-  two they extend; the Flate and LZW ports come with the function it
-  calls, and it never runs them. `@pdfme/pdf-lib/dist/index.js` keeps
-  none of the headers and pdf-lib's `LICENSE.md` is MIT alone, so the
-  guard judges them by pdf-lib's MIT field, and
-  `scripts/third-party-notices.mjs` would list pdf-lib under MIT alone.
-  `pdfjs-dist` 6.4.299 has no NOTICE, so section 4(d) asks nothing, but
-  section 4(a) asks that the licence go with a bundle that holds them, and
-  the headers' attribution with it: an entry of
+  Mozilla Foundation, and Flate of XPDF's through PDF.js, its header both
+  Copyright 1996-2003 Glyph & Cog and Copyright 2012 Mozilla Foundation.
+  The one PDF reader runs the first three and the two they extend; the
+  Flate and LZW ports come with the function it calls, and it never runs
+  them. `@pdfme/pdf-lib/dist/index.js` keeps none of the headers and
+  pdf-lib's `LICENSE.md` is MIT alone, so the guard judges them by
+  pdf-lib's MIT field, and `scripts/third-party-notices.mjs` would list
+  pdf-lib under MIT alone. `pdfjs-dist` 6.4.299 ships no NOTICE, so as far
+  as pdfjs-dist shows section 4(d) asks nothing; section 4(a) asks that the
+  licence go with a bundle that holds them, and section 4(c) that the
+  headers' attribution be kept: an entry of
   `apps/studio/src/embedded-notices.ts` for
   `@pdfme/pdf-lib/dist/index.js`, which nothing fails without, and which
-  lands with the pull request that first bundles the reader. Nothing bundles it yet. Unchecked: a NOTICE in
+  lands with the pull request that first bundles the reader. Nothing
+  bundles it yet. Unchecked: a NOTICE in
   PDF.js's own repository, which of the modules a bundler keeps, and
   whether pdf-lib's MIT label over ported files is sound, a lawyer's
   question ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).

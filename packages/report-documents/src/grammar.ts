@@ -14,7 +14,7 @@ import {
   type PDFString,
 } from '@pdfme/pdf-lib'
 import { find, hexValue, isDelimiter, isDigit, isNumeric, isRegular, isWhite, keyword } from './bytes.js'
-import { MAX_DOCUMENT_DEPTH, MAX_DOCUMENT_NAME_LENGTH, MAX_DOCUMENT_NUMBER_LENGTH, MAX_DOCUMENT_STRING_LENGTH } from './limits.js'
+import { MAX_DOCUMENT_NESTING, MAX_DOCUMENT_NAME_LENGTH, MAX_DOCUMENT_NUMBER_LENGTH, MAX_DOCUMENT_STRING_LENGTH } from './limits.js'
 import { isRef, type PdfDict, type PdfStream, type PdfValue } from './model.js'
 import { Bytes, Dict, Name, Reading, Reference } from './reading.js'
 import { refuse, type Finding } from './refusals.js'
@@ -405,7 +405,7 @@ export class Grammar extends PDFObjectParser {
 
   private enter(): void {
     this.depth += 1
-    if (this.depth > MAX_DOCUMENT_DEPTH) refuse('depth')
+    if (this.depth > MAX_DOCUMENT_NESTING) refuse('depth')
   }
 
   /**

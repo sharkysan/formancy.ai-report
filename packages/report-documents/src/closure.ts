@@ -16,12 +16,21 @@ import { caught, refuse, type DocumentRefusal } from './refusals.js'
  * and dictionary walked once for each way it is read, so that a font two
  * pages share is one object, a direct /Resources a thousand pages inherit
  * is walked once, and a chain of any length is walked as far as the bound.
- * Each object is counted against `MAX_DOCUMENT_OBJECTS` as it is reached,
- * before it is kept. Each stream is read as a viewer of the report will
- * read it where it stands, and none is kept decoded: an image -- an
- * XObject that says it is one, a soft mask, a stencil mask, an alternate
- * a printing viewer may print in its place -- is held to the pixels it
- * declares and passed on undecoded, charged nothing
+ * Each object is held to `MAX_DOCUMENT_OBJECTS` as it is reached, before it
+ * is kept, which guards the walk and no file reaches: the parse holds the
+ * objects a file defines to the same bound. A container's first walk is of values the parse counted as it made them;
+ * each walk after it, under another way of reading it, is counted on the
+ * document's one count, `MAX_DOCUMENT_VALUES`, a value an entry, so that a
+ * container reached every way is not walked seven times uncounted: a value
+ * an entry is more than a walk costs -- one page reaching a list of
+ * 285,705 references every way, the most the count admits, read in 126 ms
+ * against 186 ms for the bound's numbers (98 and 118 ms in Chromium; 11
+ * November 2026, Node 22.23.3 on an Apple M2 on mains power). Each
+ * stream is read as a viewer of the report will read it where it stands,
+ * and none is kept decoded: an image -- an XObject that says it is one, a
+ * soft mask, a stencil mask, an alternate a printing viewer may print in
+ * its place -- is held to the pixels it declares, once however often it is
+ * reached, and passed on undecoded, charged nothing
  * (images.ts); content -- a form's, a tiling pattern's, a Type 3 glyph's,
  * a soft mask's group's -- is decoded once, from the document's one
  * budget, and its inline images held as a page's are (inline-images.ts);
@@ -129,16 +138,21 @@ function drawsContent(objects: PdfObjects, stream: PdfStream): boolean {
 
 /**
  * The streams the closure reaches, each read as a viewer reads it where it
- * stands, every time it is reached: an image held to the pixels it
- * declares and passed on undecoded; content decoded and its inline images
- * held, with its own resources; anything else decoded. A stream that stands
- * in two places is read as each, once for each: an image a font descriptor
- * also names is decoded as the font file a viewer reads it as. Each decode
- * is taken from the document's one budget -- a stream decoded as data and
- * later reached as content is decoded again there, and charged again.
+ * stands: an image held to the pixels it declares and passed on undecoded;
+ * content decoded and its inline images held, with its own resources;
+ * anything else decoded. Each is read once for each of those it is reached
+ * as, however often: held again at every reach, an image a page's XObjects
+ * named under ten thousand names, each hold reading its hundred thousand
+ * filters, kept a read of a 1.3 MB file for 17.7 s. A stream that stands in
+ * two places is read as each: an image a font descriptor also names is
+ * decoded as the font file a viewer reads it as. Each decode is taken from
+ * the document's one budget -- a stream decoded as data and later reached
+ * as content is decoded again there, and charged again.
  */
 class Streams {
   private readonly parsed: ParsedDocument
+  /** The images held to their pixels already. */
+  private readonly held = new Set<PdfStream>()
   private readonly decoded = new Set<PdfStream>()
   /** The content streams read for their inline images already. */
   private readonly drawn = new Set<PdfStream>()
@@ -150,10 +164,16 @@ class Streams {
   /** A stream reached where `reading` says it stands. */
   reached(stream: PdfStream, reading: Reading): void {
     const objects = this.parsed.objects
-    // An image is held again wherever it is reached: a few look-ups, and nothing taken from the budget.
-    if (reading === IMAGE || (reading === XOBJECT && isImage(objects, stream))) heldImage(objects, stream)
+    if (reading === IMAGE || (reading === XOBJECT && isImage(objects, stream))) this.image(stream)
     else if (reading === CONTENT || drawsContent(objects, stream)) this.content(stream)
     else this.data(stream)
+  }
+
+  /** A stream drawn as an image: held to its pixels and its filters, nothing taken from the budget, once however often it is reached so. */
+  private image(stream: PdfStream): void {
+    if (this.held.has(stream)) return
+    this.held.add(stream)
+    heldImage(this.parsed.objects, stream)
   }
 
   /** A stream drawn as content: decoded, and its inline images held, once however often it is reached so. */
@@ -182,7 +202,9 @@ export function closureOf(parsed: ParsedDocument, roots: readonly PdfValue[]): R
     const pages = new Set(parsed.pages)
     const closure = new Map<number, PdfValue | PdfStream>()
     const streams = new Streams(parsed)
-    const walked = Array.from({ length: ALTERNATE + 1 }, () => new Set<object>())
+    /** The ways each container has been walked, a bit a reading. */
+    const walked = new Map<object, number>()
+    const { reading: count } = parsed.budget
     const values: PdfValue[] = []
     const readings: Reading[] = []
     const reach = (value: PdfValue, reading: Reading): void => {
@@ -200,6 +222,8 @@ export function closureOf(parsed: ParsedDocument, roots: readonly PdfValue[]): R
           object = parsed.objects.get(value.object)
           // A reference to no object is null (ISO 32000-1 7.3.10).
           if (object === undefined) continue
+          // No file reaches this: the parse holds the objects it defines to the same bound. It holds the walk to it
+          // for a caller that hands it more.
           if (closure.size >= MAX_DOCUMENT_OBJECTS) refuse('reached')
           closure.set(value.object, object)
         }
@@ -208,9 +232,10 @@ export function closureOf(parsed: ParsedDocument, roots: readonly PdfValue[]): R
         continue
       }
       if (!isArray(value) && !isDict(value)) continue
-      const seen = walked[read] as Set<object>
-      if (seen.has(value)) continue
-      seen.add(value)
+      const ways = walked.get(value) ?? 0
+      if ((ways & (1 << read)) !== 0) continue
+      walked.set(value, ways | (1 << read))
+      if (ways !== 0) count.counted(isArray(value) ? value.length : value.entries.size)
       const entries = ENTRIES.get(read)
       if (isArray(value)) for (const item of value) reach(item, read === ALTERNATES ? ALTERNATE : VALUE)
       else if (entries !== undefined) for (const item of value.entries.values()) reach(item, entries)

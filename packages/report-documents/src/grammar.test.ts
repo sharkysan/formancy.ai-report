@@ -2,7 +2,8 @@ import { PDFArray, PDFCatalog, PDFDict, PDFNumber, PDFPageLeaf, PDFPageTree } fr
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { Grammar } from './grammar.js'
 import { MAX_DOCUMENT_NAME_BYTES, MAX_DOCUMENT_NAME_LENGTH, MAX_DOCUMENT_NUMBER_LENGTH, MAX_DOCUMENT_STRING_LENGTH, MAX_DOCUMENT_VALUES } from './limits.js'
-import { isRef, isStream, resolved, type PdfDict, type PdfString, type PdfValue } from './model.js'
+import { isArray, isDict, isName, isRef, isStream, resolved, type PdfDict, type PdfStream, type PdfString, type PdfValue } from './model.js'
+import type { ParsedDocument } from './parse.js'
 import { AT_A_BOUND, expectRefused, parsed } from './parse-test-support.js'
 import { Reading } from './reading.js'
 import { basic, concat, CONTENT, latin1, onePage, PdfWriter, repeated, withObject5, type XrefEntry } from './test-pdf.js'
@@ -30,6 +31,23 @@ const object5 = (body: string | Uint8Array): PdfValue | undefined => {
   const value = parsed(withObject5(body)).objects.get(5)
   if (isStream(value)) throw new Error('object 5 is a stream')
   return value
+}
+
+/** Every distinct name a parse holds: each key and each name its objects and its trailer hold, a stream's dictionary's among them. */
+function namesOf(document: ParsedDocument): Set<string> {
+  const names = new Set<string>()
+  const values: (PdfValue | PdfStream)[] = [document.trailer, ...document.objects.values()]
+  for (let value = values.pop(); value !== undefined; value = values.pop()) {
+    if (isStream(value)) values.push(value.dict)
+    else if (isName(value)) names.add(value.name)
+    else if (isArray(value)) values.push(...value)
+    else if (isDict(value))
+      for (const [key, item] of value.entries) {
+        names.add(key)
+        values.push(item)
+      }
+  }
+  return names
 }
 
 afterEach(() => {
@@ -146,6 +164,23 @@ describe('a value is refused', () => {
     expectRefused(withObject5(`<<${Array.from({ length: keys }, (_, i) => `/K${String(i).padStart(35, '0')} 0`).join('')}>>`), 'too-many-objects', 'name-bytes')
     // The same name a thousand times is one name's bytes.
     expect(object5(`[${'/Repeated '.repeat(1000)}]`)).toHaveLength(1000)
+  })
+
+  // A bound refused one past it and never read at it may refuse a file
+  // within it: distinct names whose bytes, the file's own names among
+  // them, come to the bound exactly are read, and one byte more refused.
+  // The file's own are every name its objects and its trailer hold, read
+  // from the parse of the file without the keys.
+  test('distinct names whose bytes come to MAX_DOCUMENT_NAME_BYTES are read', AT_A_BOUND, () => {
+    const own = namesOf(parsed(withObject5('<<>>')))
+    const ownBytes = [...own].reduce((sum, name) => sum + name.length, 0)
+    const keys = Math.floor((MAX_DOCUMENT_NAME_BYTES - ownBytes - 1) / 36)
+    const last = MAX_DOCUMENT_NAME_BYTES - ownBytes - 36 * keys
+    const named = (lastBytes: number): Uint8Array =>
+      withObject5(`<<${Array.from({ length: keys }, (_, i) => `/K${String(i).padStart(35, '0')} 0`).join('')}/${'L'.repeat(lastBytes)} 0>>`)
+    expect(own.has('L') || own.has('K')).toBe(false)
+    expect((parsed(named(last)).objects.get(5) as PdfDict).entries.size).toBe(keys + 1)
+    expectRefused(named(last + 1), 'too-many-objects', 'name-bytes')
   })
 
   // A number sign that escapes no byte is read as itself by some viewers

@@ -192,16 +192,20 @@ a category, held to the validator meanwhile
 `@formancy/report-documents` is the one reader of PDFs, beside report-spec,
 which holds no PDF engine, and nothing calls it yet: `readDocument`, in
 `read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
-of its own (`model.ts`) that no pdf-lib type leaves, or refuses them with
+of its own (`model.ts`) that no pdf-lib type leaves, which
+`scripts/documents-declarations.test.mjs` holds of its built declarations,
+or refuses them with
 one of `DOCUMENT_REFUSAL_CODES` in its own words, a page and an annotation
 by its own count and never a byte of the file, and never throws. It drives
 `@pdfme/pdf-lib` 6.2.4's object grammar with a strict loop of its own
-(`parse.ts`, `xref.ts`), every token, both containers and a cross-reference
-stream's rows read by its own code (`grammar.ts`, `reading.ts`), and
-inflates with `pako` 3.0.2 from one budget a document (`inflate.ts`); every
-bound is `limits.ts`'s, held before the work it bounds and measured at it
-and one past it in Node, the costliest in Chromium too, one count of values
-a document and each decoder counted where it is built. The pages are read
+(`parse.ts`, `xref.ts`), every token but the keywords, both containers and
+a cross-reference stream's rows read by its own code (`grammar.ts`,
+`reading.ts`), and inflates with `pako` 3.0.2 from one budget a document
+(`inflate.ts`); every bound is `limits.ts`'s, held before the work it
+bounds and measured at it and one past it in Node, the costliest in
+Chromium too, one count of values a document, on which each decoder, each
+annotation a page lists, the encryption peek and each walk the closure
+makes again are counted. The pages are read
 as a viewer shows them (`page-tree.ts`, `pages.ts`), their annotations
 flattened by the print rule (`annotations.ts`), every object they draw
 with collected (`closure.ts`), an image held to its pixels and passed on
@@ -211,9 +215,10 @@ which `scripts/mirrored-pdfjs.test.mjs` holds), and what does not survive
 printing counted and never named (`notices.ts`); an encrypted, damaged,
 shadowed or layered file, XFA, NeedAppearances, an annotation that would
 print otherwise than a viewer shows it, a filter it does not decode (LZW,
-Crypt, a TIFF predictor) and a stream in another file are refused, and
-pdf-lib's own name pool and its PNG decoder, UPNG, are never fed or called
-(`read.test.ts`)
+Crypt, a TIFF predictor), a stream in another file, and a form or an image
+that names one to print in its place (`/Ref`, `/OPI`) are refused;
+pdf-lib's own name pool is never fed a file's names, and its PNG decoder,
+UPNG, never called (`read.test.ts`)
 ([0054](docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host

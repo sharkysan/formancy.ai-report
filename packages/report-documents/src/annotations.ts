@@ -1,7 +1,7 @@
 import { isAnnotationSubtype, type AnnotationSubtype } from './annotation-subtypes.js'
 import { decodedBytes } from './inflate.js'
 import { heldInlineImages, ownResources } from './inline-images.js'
-import { MAX_DOCUMENT_VALUES } from './limits.js'
+import { LISTING_VALUES } from './limits.js'
 import {
   isArray,
   isCount,
@@ -41,6 +41,7 @@ import { onAnnotation, refuse, type Finding } from './refusals.js'
  * counted.
  *
  * Bounded by what the pages list, every page together: each listing is
+ * counted on the document's one count of values, as `LISTING_VALUES`, and
  * read at a constant cost -- an annotation listed many times is read once
  * -- every field above a widget is read once, and each appearance's form
  * is decoded once, from the document's one budget, and its inline images
@@ -270,8 +271,6 @@ export class Annotations {
   private readonly budget: InflateBudget
   private readonly tally: Tally
   private readonly fields: Fields
-  /** The annotations the pages have listed so far, every page together. */
-  private listed = 0
   /** What each annotation comes to, read once however many times the pages list it. */
   private readonly outcomes = new Map<PdfDict, Outcome>()
   /** The forms decoded and read for inline images already, each charged once however many annotations draw it. */
@@ -290,10 +289,11 @@ export class Annotations {
    * where it does not survive printing, and the actions of the page's own
    * /AA counted too. A page's own key refuses a reference that names no
    * object, as its others do (pages.ts); in its list, one is null, and no
-   * annotation. What the pages list is held to `MAX_DOCUMENT_VALUES`,
-   * every page together: the most a file that lists each annotation once
-   * could list, so that one list a thousand pages share is not walked into
-   * a billion.
+   * annotation. Each listing, null or not, is counted on the document's one
+   * count as `LISTING_VALUES` values, beside every value the file holds and
+   * every decoder it builds, so that one list a thousand pages share is not
+   * walked into a billion, and the pages' listings take no more than the
+   * values bound leaves.
    */
   of(page: PdfDict, rotate: Rotation): readonly FlattenedAppearance[] {
     for (const code of actionsIn(this.objects, page.entries.get('AA'))) this.tally.add(code)
@@ -303,8 +303,7 @@ export class Annotations {
     if (!isArray(annots)) refuse('annots')
     const drawn: FlattenedAppearance[] = []
     for (const [i, item] of annots.entries()) {
-      this.listed += 1
-      if (this.listed > MAX_DOCUMENT_VALUES) refuse('annotations')
+      this.budget.reading.counted(LISTING_VALUES)
       const annot = resolved(this.objects, item)
       if (annot === null) continue
       const outcome = onAnnotation(

@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
-import { MIRRORED_PDFJS } from '../packages/report-documents/src/inline-images.ts'
+import { MIRRORED_PDFJS } from '../packages/report-documents/src/inline-end.ts'
 
 /**
  * report-documents ends an inline image only where PDF.js ends it, its
  * tests copied from one release of PDF.js's worker (`MIRRORED_PDFJS`,
- * inline-images.ts and inline-end.ts). The corpus proves pages with
+ * inline-end.ts, and inline-images.ts). The corpus proves pages with
  * pdfjs-dist and the Studio previews in it: moved past the release the
  * reader mirrors, the two may end an inline image at different bytes, and
  * nothing in the package's own tests would fail. This does, until the

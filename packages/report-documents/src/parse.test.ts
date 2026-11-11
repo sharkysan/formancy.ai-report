@@ -3,7 +3,7 @@ import { deflate } from 'pako'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { byteStreamOf, Grammar } from './grammar.js'
 import { decoded } from './inflate.js'
-import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_DEPTH, MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_OBJECTS } from './limits.js'
+import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_NESTING, MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_VALUES } from './limits.js'
 import { isDict, isStream, type PdfStream } from './model.js'
 import { parseDocument, type ParsedDocument } from './parse.js'
 import { AT_A_BOUND, expectRefused, parsed } from './parse-test-support.js'
@@ -133,9 +133,9 @@ describe('parseDocument reads', () => {
   // Nesting is bounded, not forbidden: a structure tree or an annotation's
   // appearance nests a few levels, and a bound that refused what it admits
   // would refuse real files.
-  test('nesting at MAX_DOCUMENT_DEPTH parses', AT_A_BOUND, () => {
-    parsed(withObject5(nestedArrays(MAX_DOCUMENT_DEPTH)))
-    parsed(withObject5(nestedDicts(MAX_DOCUMENT_DEPTH)))
+  test('nesting at MAX_DOCUMENT_NESTING parses', AT_A_BOUND, () => {
+    parsed(withObject5(nestedArrays(MAX_DOCUMENT_NESTING)))
+    parsed(withObject5(nestedDicts(MAX_DOCUMENT_NESTING)))
   })
 })
 
@@ -150,6 +150,33 @@ describe('parseDocument refuses', () => {
     expectRefused(encryptedAesv3(), 'encrypted', 'encrypted')
     // Its object stream, met before the trailer that says it is encrypted, is not read as a damaged one.
     expectRefused(encryptedObjectStream(), 'encrypted', 'encrypted')
+  })
+
+  // The trailer the last startxref names is read once to see whether the
+  // file is encrypted, then again by the loop. Read on a count of its own,
+  // a last trailer of a million values was counted once for two reads, and
+  // a file past MAX_DOCUMENT_VALUES read whole: both reads are counted on
+  // the document's one count, so a real trailer's few values count twice.
+  test("the encryption peek is counted on the document's one count, beside the loop's read of the same object", AT_A_BOUND, () => {
+    const total = (bytes: Uint8Array): number => parsed(bytes).budget.reading.total
+    const table = (entries: string): Uint8Array => {
+      const w = new PdfWriter()
+      basic(w)
+      return w.end(w.xref(`/Root 1 0 R${entries}`))
+    }
+    const stream = (entries: string): Uint8Array => {
+      const w = new PdfWriter()
+      basic(w)
+      const rows = new Map<number, XrefEntry>([...w.offsets].map(([num, offset]) => [num, { kind: 'at', offset }]))
+      return w.end(w.xrefStream(5, `/Root 1 0 R${entries}`, rows))
+    }
+    // One entry more, which counts what it counts in any object, in a classic trailer and in a cross-reference stream's dictionary: each read twice.
+    const entry = total(withObject5('<</Probe 1>>')) - total(withObject5('<<>>'))
+    expect(entry).toBeGreaterThan(0)
+    expect(total(table('/Probe 1')) - total(table(''))).toBe(2 * entry)
+    expect(total(stream('/Probe 1')) - total(stream(''))).toBe(2 * entry)
+    // Numbers past half the bound in the last trailer: within it read once, past it read twice.
+    expectRefused(table(`/Pad[${'1 '.repeat(MAX_DOCUMENT_VALUES / 2 + 1)}]`), 'too-many-objects', 'values')
   })
 
   // H2: pdf-lib loads a file cut just before `startxref` as if it were
@@ -201,9 +228,9 @@ describe('parseDocument refuses', () => {
   // H4: pdf-lib recurses into nested arrays until V8's stack ends; the
   // reader counts its depth and refuses past the bound, however deep the
   // file goes, before the stack is in question.
-  test('nesting past MAX_DOCUMENT_DEPTH is refused as too-deep and nesting at it parses', AT_A_BOUND, () => {
-    parsed(withObject5(nestedArrays(MAX_DOCUMENT_DEPTH)))
-    for (const depth of [MAX_DOCUMENT_DEPTH + 1, 1e3, 1e4, 1e5, 1e6]) {
+  test('nesting past MAX_DOCUMENT_NESTING is refused as too-deep and nesting at it parses', AT_A_BOUND, () => {
+    parsed(withObject5(nestedArrays(MAX_DOCUMENT_NESTING)))
+    for (const depth of [MAX_DOCUMENT_NESTING + 1, 1e3, 1e4, 1e5, 1e6]) {
       expectRefused(withObject5(nestedArrays(depth)), 'too-deep', 'depth')
       expectRefused(withObject5(nestedDicts(depth)), 'too-deep', 'depth')
     }

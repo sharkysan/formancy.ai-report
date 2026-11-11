@@ -1,7 +1,7 @@
 import { deflate } from 'pako'
 import { describe, expect, test, vi } from 'vitest'
 import { annotated, annotation, expectAnnotationRefused, form, widget } from './annotations-test-support.js'
-import { MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_PAGES, MAX_DOCUMENT_VALUES } from './limits.js'
+import { LISTING_VALUES, MAX_DOCUMENT_INFLATED, MAX_DOCUMENT_PAGES, MAX_DOCUMENT_VALUES } from './limits.js'
 import { Tally } from './notices.js'
 import { pagesOf, type PrintablePage } from './pages.js'
 import { AT_A_BOUND, parsed } from './parse-test-support.js'
@@ -502,15 +502,27 @@ describe('a page of many annotations', () => {
 
   // One /Annots a thousand pages share is walked a thousand times, and a
   // list of two thousand would draw two million times, from a file that
-  // writes it once: what the pages list, every page together, is held to
-  // MAX_DOCUMENT_VALUES -- the most a file that lists each annotation once
-  // could list -- and refused on the page where the walk passes it.
-  test('the annotations the pages list are bounded, every page together', AT_A_BOUND, () => {
-    const pages = Array.from({ length: MAX_DOCUMENT_PAGES }, () => letter('/Annots 5 0 R'))
-    const atBound = MAX_DOCUMENT_VALUES / MAX_DOCUMENT_PAGES
-    expect(pagesRead(pagesFile(pages, { 5: `[${'null '.repeat(atBound)}]` }))).toHaveLength(MAX_DOCUMENT_PAGES)
-    const past = atBound + 1
-    expectPrintRefused(pagesFile(pages, { 5: `[${'null '.repeat(past)}]` }), 'too-many-objects', 'annotations', Math.floor(MAX_DOCUMENT_VALUES / past) + 1)
+  // writes it once. Held to a count of their own beside the document's,
+  // the listings could spend MAX_DOCUMENT_VALUES again after the file had
+  // spent it, and a read take the time of both: each listing is counted on
+  // the document's one count, as LISTING_VALUES values, and the read is
+  // refused on the page whose listings carry the count past the bound.
+  test("each annotation the pages list is counted on the document's one count", AT_A_BOUND, () => {
+    const listing = (nulls: number): Uint8Array =>
+      pagesFile(
+        Array.from({ length: MAX_DOCUMENT_PAGES }, () => letter('/Annots 5 0 R')),
+        { 5: `[${'null '.repeat(nulls)}]` },
+      )
+    const counted = (nulls: number): number => printedWhole(listing(nulls)).parsed.budget.reading.total
+    // One null more in the list every page shares: a value the parse makes, and a listing on each page.
+    const own = counted(0)
+    const each = 1 + MAX_DOCUMENT_PAGES * LISTING_VALUES
+    expect(counted(1) - own).toBe(each)
+    const most = Math.floor((MAX_DOCUMENT_VALUES - own) / each)
+    expect(counted(most)).toBe(own + most * each)
+    const past = most + 1
+    const page = Math.floor((MAX_DOCUMENT_VALUES - own - past) / (past * LISTING_VALUES)) + 1
+    expectPrintRefused(listing(past), 'too-many-objects', 'values', page)
   })
 })
 
