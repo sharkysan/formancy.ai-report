@@ -118,11 +118,15 @@
     written and nothing else.
 
   Not run: the pages' browser gate, which 0053 adds, and which this record's
-  branch was cut before. On 11 November 2026 no browser had opened the
-  start page's topic cards, its totals, its list of what it does not do yet
-  or its hero's standing. CI's `browser` job measures them once main, with
-  0053, is merged into this branch, and no fault of this record's has been
-  planted there.
+  branch was cut before. No gate has measured the start page's topic
+  cards, its totals, its list of what it does not do yet or its hero's
+  standing in a browser, and no fault of this record's has been planted in
+  one; CI's `browser` job measures them once main, with 0053, is merged
+  into this branch. On 11 November 2026 the built start page was looked at
+  by hand in Chromium, in English at 1280 pixels and in German at 320, for
+  the topic cards' spacing and for nothing else: a card's teaser, standing
+  and link ran together, and 8047605 spaced them, with nothing past the
+  window at 320.
 
   What holds nothing:
   - whether a sentence claims more than its evidence shows, and whether a
@@ -142,13 +146,14 @@
 0028 added the two payment codes' pages. A design for the pages, read
 against main at da76a44 on 5 November 2026, found four things:
 - **The topics were at the start page's foot.** A band per topic page
-  stood after the licence, where a reader who came for the product has already left.
+  stood after the licence, where a reader who came for the product has
+  already left.
 - **One page in four named the tests its cards rest on.** The EPC QR code
   page's `CARD_EVIDENCE` was held to the checkout by its own test (0028).
   The start page's, the QR-bill page's and the healthcare page's cards
   rested on nothing a test read.
-- **The start page's absences had no status.** "Not here yet: the server and its jobs…"
-  was true of 0.2.0, but main had a server
+- **The start page's absences had no status.** "Not here yet: the server
+  and its jobs…" was true of 0.2.0, but main had a server
   ([0046](0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
   [0049](0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
   The start page had no `PageStatus`, so at the next release that
@@ -215,7 +220,8 @@ once in its page's copy and shared by reference by every language's card.
   repository's scripts, or the entry of a gate CI runs and the parts an
   app's browser gate runs;
 - every language to the English card's one list;
-- every page's cards, as the built HTML shows them, to its group's.
+- every page's cards, as the built HTML shows them, to its group's;
+- every topic page the start page introduces to a card of its own.
 
 0028's `CARD_EVIDENCE` is this, for every card. The release report fails a
 run in which a test file of the checkout did not run or did not pass
@@ -233,7 +239,8 @@ safe:
   both. The Studio's browser gate fails on any request outside the address
   the Studio is served at, `blob:` and `data:` addresses aside. "Your data
   stays with you" is gone.
-- **The totals' claims are worded to `format.test.ts`.** Only a number a
+- **The totals' claims are worded to their tests,** `format.test.ts` and
+  the editor's `format-rounds-again` in `diagnose.test.ts`. Only a number a
   format shows goes through `Intl`, and a total is rounded at most once.
   The division limit says that an expression divides only through a
   function that names its places.
@@ -316,9 +323,9 @@ nothing else.
   review's.
 - **A change to the code an absence rests on meets the start page.** A
   pull request that adds a component kind or a printed block, or moves the
-  provider's Data client, fails the pages' suite until the sentence is read again, though
-  nothing of the pages changed. That is the point, and it costs that pull
-  request a sentence in four languages.
+  provider's Data client, fails the pages' suite until the sentence is
+  read again, though nothing of the pages changed. That is the point, and
+  it costs that pull request a sentence in four languages.
 - **The pages' suite needs report-spec built.** Turbo builds it before the
   pages' `test` and `test:coverage`, in CI's job too. The suite run alone
   reads `dist` as it stands.

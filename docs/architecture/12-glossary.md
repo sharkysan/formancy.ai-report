@@ -125,3 +125,10 @@ error and a `RenderRefusal` alike. Each layer's kind is in
 **"Plan"** is the delivery plan, a working document kept out of the
 repository, which records cite by section; and "planned", which these
 documents say only where the README or a record does.
+
+**"Evidence"** is two things. A release gate's evidence is what
+[`gates.json`](../release/gates.json) names for it, which a run must pass;
+a card's `evidence` is the list of test files and gate entries a claim on
+a product page rests on, which `apps/pages/src/checks/evidence.ts` holds to
+the checkout
+([0056](../decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md)).

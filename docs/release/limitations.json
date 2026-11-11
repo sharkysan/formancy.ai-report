@@ -2310,7 +2310,7 @@
       ]
     },
     "0056": {
-      "reviewed": "sha256:48e31c035ff7eec7c013c1ef79167da3a55b57b805b475cf01ec43e2793a2fbb",
+      "reviewed": "sha256:f66ce73e1dca97f3255edd19feedc30c83344e605431b043f873a3dd12bd8d82",
       "limitations": [
         {
           "area": "release",
@@ -2318,12 +2318,17 @@
           "heldBy": "apps/pages/src/product.test.ts"
         },
         {
+          "area": "release",
+          "says": "What the start page says Formancy Report does not do yet fails the pages' suite in the pull request that changes the code it rests on, but for one detail table and one level of grouping; that sentence, the hero's standing and the totals' limits are read again only by a release commit, so between releases the start page at formancy.ai/report/, which is main's, can still say one of them after main has made it false. The other absences match packages by name and report-spec's lists, so a renderer, a viewer or a server published under another name passes them.",
+          "heldBy": "apps/pages/src/limits.test.ts"
+        },
+        {
           "area": "testing",
           "says": "The start page's topic cards, its exact totals and what it says Formancy Report does not do yet are no native speaker's words in French or Italian, and no review of them is recorded."
         },
         {
           "area": "testing",
-          "says": "Every card on the product pages names the tests it rests on, each a test file or a gate's entry of the checkout, which the pages' suite holds; whether each still tests what its card says, and whether a card's list holds every test its claim needs, are held by review.",
+          "says": "Every card on the product pages names the tests it rests on, each a test file or a gate's entry of the checkout, which the pages' suite holds; whether each still tests what its card says, whether a card's list holds every test its claim needs, and every sentence outside a card, the healthcare page's title, h1, description and lead among them, are held by review.",
           "heldBy": "apps/pages/src/evidence.test.ts"
         },
         {

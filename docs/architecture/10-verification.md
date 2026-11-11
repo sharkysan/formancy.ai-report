@@ -199,8 +199,8 @@ review. None of these is required to merge: `main`'s ruleset requires no
 status check ([`GOVERNANCE.md`](../../GOVERNANCE.md)).
 
 **The product pages' suite**, one of the `test` job's, reads the pages the
-build writes back with the DOM, as a crawler reads them, and holds what
-they claim
+build writes back with the DOM, as a crawler reads them, and holds them
+to these rules
 ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)):
 
 | What | What holds it |
