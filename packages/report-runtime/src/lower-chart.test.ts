@@ -118,7 +118,18 @@ describe('a chart beside a table', () => {
     const aggregated = chartReport({}, { aggregates: [...chartReport().aggregates, { id: 'lines', fn: 'count', rounding }] })
     expect(refusals(aggregated)).toEqual(['expressions rounding-not-decimal /aggregates/2/rounding'])
 
-    // Past the editor's check, the runtime refuses a sum of integers rounded itself, once for the series and in an aggregate's words, never once a category.
+    // Past the editor's check, the runtime refuses a count or a sum of integers rounded itself, once for the series and in an aggregate's words, never once a category.
+    const countRender = unchecked(counted)
+    expect(chartBlock(countRender, chartIn(counted), '/regions/body/0', undefined)).toBeUndefined()
+    expect(countRender.problems.errors()).toEqual([
+      {
+        stage: 'resolve',
+        code: 'rounding-not-decimal',
+        path: '/regions/body/0/series/1',
+        message: 'series lines of chart by-region declares a rounding, and its total is an integer, which has no places to round',
+        componentId: 'by-region',
+      },
+    ])
     const summed = chartReport({
       series: [...chartIn(chartReport()).series.slice(0, 1), { id: 'units', label: 'Units', fn: 'sum', of: detail('units'), rounding }],
     })
@@ -165,10 +176,30 @@ describe('a bar chart', () => {
     })
   })
 
-  // A legend of one entry names nothing the title does not; the series is
-  // the chart.
+  // A legend tells series apart, and one entry tells nothing apart: drawn,
+  // it would take a line of the box from the plot to say what nothing
+  // needs told. The brief's rule: one series' label then prints nowhere, so
+  // a chart of one series is named by its title and its value axis's.
   test('has no legend for one series', () => {
     expect(axis(chartReport({ series: chartIn(chartReport()).series.slice(0, 1) })).legend).toEqual([])
+  })
+
+  // An axis ticked over one series would leave a taller second one standing
+  // past its last tick, drawn off the axis or cut at the box, and nothing
+  // would see it.
+  test('ticks an axis that covers every series, not its first alone', () => {
+    const report = chartReport({ series: [chartIn(chartReport()).series[0]!, { id: 'units', label: 'Units', fn: 'sum', of: detail('units') }] })
+    const chart = axis(report, chartData([chartRow({ amount: '1.00', units: '900' })]))
+    expect(chart.ticks.map(({ exact }) => exact)).toEqual(['0', '200', '400', '600', '800', '1000'])
+  })
+
+  // R11 -- a bar or a line chart's own palette colours its series by place,
+  // and its legend with them: a series drawn in the default colours would
+  // not be the one its legend names, or the author chose.
+  test('colours its series and its legend from its own palette', () => {
+    const chart = axis(chartReport({ palette: ['#000000', '#444444'] }))
+    expect(chart.series.map(({ color }) => color)).toEqual(['#000000', '#444444'])
+    expect(chart.legend.map(({ color }) => color)).toEqual(['#000000', '#444444'])
   })
 
   // Review Focus 1 -- a formancy form's optional answer: rows without a
@@ -298,8 +329,9 @@ describe('a chart with nothing to draw', () => {
 })
 
 describe("a chart's bounds", () => {
-  // Grouping is linear in the rows, and totalling is the categories times
-  // the series: a chart of more categories than it groups is refused before
+  // Grouping costs what a table's grouping of the same rows costs, and
+  // totalling is the rows once for each series: a chart of more categories
+  // than it groups is refused before
   // a total is computed, or a refusal would come after the work it was
   // there to spare. A sum of integers rounded past the editor's check would
   // refuse its series, were it totalled.
@@ -372,11 +404,49 @@ describe("a chart's words", () => {
   })
 })
 
+describe("a chart's formats", () => {
+  const francs = { kind: 'currency', currency: { kind: 'field', field: { dataset: 'header', field: 'currency' } }, scale: 2 } as const
+  /** The chart report with a header whose currency may be null, its chart changed by `chart`. */
+  const headed = (chart: ChartChange): ReportDefinition =>
+    chartReport(chart, {
+      datasets: { ...chartReport().datasets, header: { id: 'sale', fields: [{ id: 'currency', type: 'string', label: 'Currency', nullable: true }] } },
+    })
+  const priced = (currency: string | null): ReportData => ({ ...chartData(), header: { currency } })
+
+  // A value or a category printed as nothing would be a bar with no number,
+  // or a slice with no name, and nothing to say why; one printed in a
+  // currency read from anywhere but where the report is would be in
+  // another currency than the table beside it prints. Each refusal names the
+  // chart and quotes nothing of the data.
+  test('refuses a value or a category its format cannot print, naming the chart, and prints a currency read where the report is', () => {
+    const valued = headed({ valueFormat: francs })
+    for (const [currency, code] of [
+      [null, 'no-currency'],
+      ['chf', 'invalid-currency'],
+    ] as const) {
+      expect(resolveReport(valued, priced(currency), OPTIONS), String(currency)).toMatchObject({
+        ok: false,
+        errors: [{ stage: 'format', code, path: '/regions/body/0/valueFormat', componentId: 'by-region', message: expect.stringContaining('chart by-region') }],
+      })
+    }
+    const ticks = axis(valued, priced('CHF')).ticks
+    expect(ticks.at(-1)?.text).toBe(new Intl.NumberFormat('en', { style: 'currency', currency: 'CHF' }).format(25))
+    expect(ticks.at(-1)?.text).toBe('CHF\u00a025.00')
+
+    const labelled = headed({ category: { field: detail('amount'), order: 'asc', format: francs } })
+    expect(refusals(labelled, priced(null))).toEqual(['format no-currency /regions/body/0/category'])
+    expect(refusals(labelled, priced('chf'))).toEqual(['format invalid-currency /regions/body/0/category'])
+    expect(axis(labelled, priced('CHF')).categories[0]).toBe('CHF\u00a00.25')
+  })
+})
+
 describe('what the runtime hands on of a chart', () => {
-  // The bound is the runtime's, and a host that says so to an author reads
-  // it rather than a copy of the number.
+  // The bounds and the places a share prints at are the runtime's, and a
+  // host that says so to an author reads them rather than a copy of the
+  // number, which could disagree and nobody would find out.
   test('exports its bounds', () => {
     expect(runtime.MAX_CHART_CATEGORIES).toBe(MAX_CHART_CATEGORIES)
     expect(runtime.MAX_TICK_INTERVALS).toBe(5)
+    expect(runtime.SHARE_PLACES).toBe(SHARE_PLACES)
   })
 })

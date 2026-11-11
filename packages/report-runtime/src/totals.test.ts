@@ -401,6 +401,37 @@ describe('totalOf', () => {
     expect(totalOf(rates, totalsInDecimals('int', rounding), ints, 2, collator)).toMatchObject({ ok: false, code: 'rounding-not-decimal' })
   })
 
+  // A count that declared a rounding would print as though it were rounded,
+  // where a rounding with no places is refused, never ignored: past the
+  // editor's check, the runtime refuses it as it does a sum of integers.
+  test.each([
+    ['of rows', undefined],
+    ['of a field', [dec('1.00'), null]],
+  ] as const)('refuses a rounding declared on a count %s, as on any integer total', (_, read) => {
+    const lines: AggregateDef = {
+      id: 'lines',
+      fn: 'count',
+      ...(read === undefined ? {} : { of: { kind: 'field', field: detail('amount') } }),
+      rounding: { scale: 0, mode: 'half-even' },
+    }
+    expect(totalOf(lines, totalsInDecimals('int', lines.rounding), read, 2, collator)).toEqual({
+      ok: false,
+      code: 'rounding-not-decimal',
+      message: 'declares a rounding, and its total is an integer, which has no places to round',
+    })
+  })
+
+  // A total of numbers is handed no collator, as a chart's series is; one
+  // that met text would order it by no language at all, so it is a defect
+  // there, never a code-unit order a reader would take for the language's.
+  test('orders text only by the collator it is handed', () => {
+    const first: AggregateDef = { id: 'first', fn: 'min', of: { kind: 'field', field: detail('label') } }
+    const text = (value: string): TypedValue => ({ type: 'string', value })
+    expect(totalOf(first, false, [text('b'), text('a')], 2, collator)).toEqual({ ok: true, value: text('a') })
+    expect(() => totalOf(first, false, [text('b'), text('a')], 2)).toThrow(RangeError)
+    expect(totalOf(first, false, [dec('2'), dec('1')], 2)).toEqual({ ok: true, value: dec('1') })
+  })
+
   // Only a total of unknown kind that declares a rounding is a decimal; one
   // that declares none stays what its values are.
   test('says a total of unknown kind is decimals only where it declares a rounding', () => {

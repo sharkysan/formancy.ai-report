@@ -50,7 +50,8 @@ const isRefusal = (value: Total): value is Refusal => value !== null && 'code' i
 
 const integer = (value: bigint): TypedValue => ({ type: 'integer', value })
 const decimal = (value: Decimal): TypedValue => ({ type: 'decimal', value })
-const asDecimal = (value: TypedValue): Decimal => (value.type === 'integer' ? new Decimal(value.value, 0) : (value.value as Decimal))
+/** A number as a decimal: an integer at no places. */
+export const asDecimal = (value: TypedValue): Decimal => (value.type === 'integer' ? new Decimal(value.value, 0) : (value.value as Decimal))
 
 /** Values as numbers of one kind: integers while every one is and decimals are not asked for, else decimals; undefined when one is not a number. */
 function numbers(
@@ -79,19 +80,28 @@ function average(values: readonly TypedValue[], rounding: Rounding): Total {
 
 const ordered = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 
-/** -1, 0 or 1 for two values of one kind: numbers by value, text as the report's language sorts it, dates as days, moments in time order. */
-function comparator(values: readonly TypedValue[], collator: Intl.Collator): ((a: TypedValue, b: TypedValue) => number) | undefined {
+/**
+ * -1, 0 or 1 for two values of one kind: numbers by value, text as the
+ * report's language sorts it, through `collator`, dates as days, moments in
+ * time order. Text met without a collator is a defect: a total handed none
+ * -- a chart's series, which totals numbers alone -- would otherwise order
+ * it by code unit, which no reader takes for their language's order.
+ */
+function comparator(values: readonly TypedValue[], collator: Intl.Collator | undefined): ((a: TypedValue, b: TypedValue) => number) | undefined {
   const types = new Set(values.map(({ type }) => type))
   if ([...types].every((type) => type === 'integer' || type === 'decimal')) return (a, b) => compareDecimal(asDecimal(a), asDecimal(b))
   const only = types.size === 1 ? [...types][0] : undefined
-  if (only === 'string') return (a, b) => collator.compare(a.value as string, b.value as string)
+  if (only === 'string') {
+    if (collator === undefined) throw new RangeError("a least or greatest of text is ordered by the report's collator, and none was handed: a defect")
+    return (a, b) => collator.compare(a.value as string, b.value as string)
+  }
   if (only === 'date') return (a, b) => ordered(a.value as string, b.value as string)
   if (only === 'datetime' || only === 'instant') return (a, b) => ordered(fixedWidth(a.value as string), fixedWidth(b.value as string))
   return undefined
 }
 
 /** The least (`sign` -1) or greatest (1) value, the first of equals as written; null over none. */
-function extreme(values: readonly TypedValue[], sign: -1 | 1, decimals: boolean, collator: Intl.Collator): Total {
+function extreme(values: readonly TypedValue[], sign: -1 | 1, decimals: boolean, collator: Intl.Collator | undefined): Total {
   const compare = comparator(values, collator)
   if (compare === undefined)
     return { code: 'aggregate-value-type', message: 'takes the least or greatest of values of one kind, and the values it read are of several' }
@@ -121,20 +131,21 @@ export function totalsInDecimals(type: string | undefined, rounding: Rounding | 
 /**
  * The aggregate over the values read from some rows -- each null or typed --
  * or over `rows` rows when it reads nothing: the one rule every total is
- * computed by, the report's, a group's and a chart's series'.
+ * computed by, the report's, a group's and a chart's series'. `collator`
+ * orders text, for a least or a greatest of it; a total of numbers needs none.
  */
 export function totalOf(
   aggregate: AggregateDef,
   decimals: boolean,
   read: readonly (TypedValue | null)[] | undefined,
   rows: number,
-  collator: Intl.Collator,
+  collator?: Intl.Collator,
 ): TotalOutcome {
   const values = (read ?? []).filter((value): value is TypedValue => value !== null)
   let total: Total
   switch (aggregate.fn) {
     case 'count':
-      total = integer(BigInt(read === undefined ? rows : values.length))
+      total = rounded(integer(BigInt(read === undefined ? rows : values.length)), aggregate.rounding)
       break
     case 'avg':
       // report-spec requires an average to declare its rounding.

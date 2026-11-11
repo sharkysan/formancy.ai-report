@@ -28,11 +28,14 @@
  *    categories; where it labels its values, each entry says its value and
  *    its share, the exact ratio rounded once to `SHARE_PLACES` places of a
  *    percentage, which `Formatter.percent` prints without rounding again.
+ *    The whole a share is of is the sum of the slices as they are totalled
+ *    and drawn -- each rounded where its series declares a rounding -- not
+ *    a total over every row.
  *
  * A refusal names the chart by its id and says counts, never a value, a
  * label or a category, each of which may be the data's.
  */
-import { Decimal } from '@formancy/expressions'
+import type { Decimal } from '@formancy/expressions'
 import { seriesType } from '@formancy/report-core'
 import { CHART_PALETTE } from '@formancy/report-spec'
 import type { AggregateDef, ChartComponent, ChartSeries } from '@formancy/report-spec'
@@ -47,7 +50,7 @@ import type { Render } from './render-context.js'
 import type { ResolveErrorCode } from './resolve-errors.js'
 import { categoryGroups } from './sort-group.js'
 import type { RowGroup } from './sort-group.js'
-import { totalOf, totalsInDecimals } from './totals.js'
+import { asDecimal, totalOf, totalsInDecimals } from './totals.js'
 
 /**
  * The most categories a chart groups its rows into: 200, chosen, not
@@ -103,15 +106,17 @@ function chartedAll<T extends TypedValue | null>(c: Charting, values: readonly T
   return found as (T extends null ? null : ChartValue)[]
 }
 
-const asDecimal = (total: TypedValue): Decimal => (total.type === 'integer' ? new Decimal(total.value, 0) : (total.value as Decimal))
-
-/** Each category's label, in order; undefined when one could not be printed, which is recorded. */
-function labels(c: Charting, groups: readonly RowGroup[]): string[] | undefined {
-  const { field, format, nullLabel } = c.chart.category
+/**
+ * Each category's label, in order: its key, of the category field's `type`,
+ * as `categoryGroups` read it once, in the category's format; undefined
+ * when one could not be printed, which is recorded.
+ */
+function labels(c: Charting, groups: readonly RowGroup[], type: PrintableType): string[] | undefined {
+  const { format, nullLabel } = c.chart.category
   const found: string[] = []
-  for (const group of groups) {
-    const key = fieldValue(c.render, group.rows[0]?.record, field)
-    const label = key === null ? (nullLabel ?? '') : said(c, c.render.formatter.format(key, format, c.currency), `${c.path}/category`)
+  for (const { key } of groups) {
+    const typed = { type, value: key } as TypedValue
+    const label = key === null ? (nullLabel ?? '') : said(c, c.render.formatter.format(typed, format, c.currency), `${c.path}/category`)
     if (label === undefined) return undefined
     found.push(label)
   }
@@ -137,7 +142,6 @@ function asAggregate(series: ChartSeries): AggregateDef {
  */
 function totals(c: Charting, groups: readonly RowGroup[]): (TypedValue | null)[][] | undefined {
   const { render, chart } = c
-  const collator = new Intl.Collator(render.report.locale, { usage: 'sort' })
   let refused = false
   const found = chart.series.map((series, index) => {
     const aggregate = asAggregate(series)
@@ -146,7 +150,8 @@ function totals(c: Charting, groups: readonly RowGroup[]): (TypedValue | null)[]
     const values: (TypedValue | null)[] = []
     for (const group of groups) {
       const read = of === undefined ? undefined : group.rows.map((row) => fieldValue(render, row.record, of))
-      const outcome = totalOf(aggregate, decimals, read, group.rows.length, collator)
+      // No collator: a series totals integers and decimals alone (report-spec's validator), which no language orders.
+      const outcome = totalOf(aggregate, decimals, read, group.rows.length)
       if (!outcome.ok) {
         refused = true
         refuse(c, outcome.code, `${c.path}/series/${index}`, `series ${series.id} of chart ${chart.id} ${outcome.message}`)
@@ -218,6 +223,7 @@ function pieChart(c: Charting, frame: Frame, categories: readonly string[], valu
     let text = label
     if (chart.valueLabels === true) {
       const share = ratioRounded(exact[index] as Decimal, total, { scale: SHARE_PLACES + 2, mode: 'half-away-from-zero' })
+      // Never refused: a share is at exactly `SHARE_PLACES + 2` places and at most 1, which `percent` prints as written.
       const percent = said(c, c.render.formatter.percent(share, SHARE_PLACES), `${path}/valueFormat`)
       if (percent === undefined) return undefined
       text = `${label}: ${value.text} (${percent})`
@@ -243,7 +249,7 @@ export function chartBlock(render: Render, chart: ChartComponent, path: string, 
     const message = `chart ${chart.id} is a pie of ${groups.length} categories; a pie colours each slice apart, and its palette has ${c.palette.length} colours`
     return refuse(c, 'chart-too-many-categories', `${path}/category`, message)
   }
-  const categories = labels(c, groups)
+  const categories = labels(c, groups, by.type)
   const values = categories && totals(c, groups)
   if (categories === undefined || values === undefined) return undefined
   const frame: Frame = {
