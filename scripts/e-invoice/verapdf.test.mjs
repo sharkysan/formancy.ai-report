@@ -7,8 +7,8 @@ import { corpus } from './corpus.mjs'
 import { JVM_OPTIONS } from './java.mjs'
 import { pdfPlan } from './pdf-corpus.mjs'
 import { pdfa2bPlan } from './pdfa-2b.mjs'
-import { readRegisters } from './registers.mjs'
-import { bundledProblems, bundledVeraPdf, judgeVeraPdf, readVeraPdf, veraPdfArguments } from './verapdf.mjs'
+import { readRegisters, VERAPDF_FLAVOURS } from './registers.mjs'
+import { bundledProblems, bundledVeraPdf, judgeVeraPdf, PROFILES, readVeraPdf, veraPdfArguments } from './verapdf.mjs'
 import { zipOf } from './zip-of.mjs'
 
 /**
@@ -89,10 +89,13 @@ describe('veraPDF’s command line', () => {
 
   // veraPDF left without a flavour judges a file by the one its XMP
   // declares: a PDF/A-3b drawn where a 2b was asked for would be accepted
-  // as the 3b it says it is (0057). So each corpus is run with its flavour
-  // named, and a run of no flavour the gate holds a profile for is refused
-  // before it starts.
-  test('validates the e-invoice corpus with --flavour 3b and the PDF/A-2b corpus with --flavour 2b', () => {
+  // as the 3b it says it is (0057). So the flavour a run is given is named
+  // on its command line, once, and a run of no flavour the gate holds a
+  // profile for is refused before it starts. Which corpus gets which is
+  // registers.mjs's VERAPDF_FLAVOURS, held in registers.test.mjs; here,
+  // that each flavour it gives has a profile the judge holds a result to.
+  test('names the flavour it is given with --flavour, once, has a profile for each flavour VERAPDF_FLAVOURS gives, and refuses any other', () => {
+    expect(Object.values(VERAPDF_FLAVOURS).filter((flavour) => !Object.hasOwn(PROFILES, flavour))).toEqual([])
     const flavourOf = (flavour) => {
       const args = veraPdfArguments({ jar: 'cli.jar', files: ['a.pdf'], flavour })
       return args.slice(args.indexOf('--flavour'), args.indexOf('--flavour') + 2)

@@ -2,7 +2,18 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
-import { ACCEPTING, acceptedProblems, ADMITTED_LICENCES, atLeast, JUDGES, judgedBy, PDF_FORMATS, readRegisters, toolProblems } from './registers.mjs'
+import {
+  ACCEPTING,
+  acceptedProblems,
+  ADMITTED_LICENCES,
+  atLeast,
+  JUDGES,
+  judgedBy,
+  PDF_FORMATS,
+  readRegisters,
+  toolProblems,
+  VERAPDF_FLAVOURS,
+} from './registers.mjs'
 
 /**
  * The two registers the e-invoice gate rests on (0027, 0031):
@@ -234,6 +245,17 @@ describe('the judges', () => {
     expect(files('verapdf')).toEqual(['e-invoice.pdf', 'pdfa-2b-quotation.pdf'])
     // Both formats are PDFs: written as bytes, named .pdf, and recorded by their inflated objects.
     expect(PDF_FORMATS).toEqual(['pdf', 'pdfa-2b'])
+  })
+
+  // veraPDF left without a flavour judges a file by the one its XMP
+  // declares, so a PDF/A-3b drawn where a 2b was asked for would be
+  // accepted as the 3b it says it is (0057). The gate runs and judges each
+  // corpus with the flavour this table gives its format, so a swap here,
+  // or a format veraPDF judges with no flavour, fails before any Java runs.
+  test('validates the e-invoice corpus as PDF/A-3b and the PDF/A-2b corpus as PDF/A-2b, and every format veraPDF judges with a flavour', () => {
+    expect(VERAPDF_FLAVOURS).toEqual({ pdf: '3b', 'pdfa-2b': '2b' })
+    expect(Object.isFrozen(VERAPDF_FLAVOURS)).toBe(true)
+    expect(Object.keys(VERAPDF_FLAVOURS)).toEqual(Object.keys(JUDGES).filter((format) => JUDGES[format].includes('verapdf')))
   })
 })
 

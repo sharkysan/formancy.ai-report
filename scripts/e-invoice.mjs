@@ -32,7 +32,8 @@
 //    it is, among it, refusing to run on a wrong one, and writes it.
 // 4. Runs Mustang once per file of the XML and the PDF/A-3b, KoSIT once
 //    over the XML, and veraPDF once over the PDF/A-3b with `--flavour 3b`
-//    and once over the PDF/A-2b with `--flavour 2b`, every proxy a dead
+//    and once over the PDF/A-2b with `--flavour 2b`, each flavour the one
+//    registers.mjs's VERAPDF_FLAVOURS gives its format, every proxy a dead
 //    port (scripts/e-invoice/java.mjs), stdin an empty pipe.
 // 5. Judges what each said (mustang.mjs, kosit.mjs, verapdf.mjs) and holds
 //    report-spec's lists and rule ids to the schematrons the runs name, and
@@ -68,9 +69,9 @@ import { judgeKosit, kositArguments, readKositConsole, reportName } from './e-in
 import { judgeMustang, mustangArguments, mustangOutputs } from './e-invoice/mustang.mjs'
 import { CODE_LISTS, oracleProblems, readCodedb, readSchematron, readVariables, scenarioSchematrons } from './e-invoice/oracle.mjs'
 import { embeddingProblems, PDF_BASE, pdfCorpus, variantProblems } from './e-invoice/pdf-corpus.mjs'
-import { identificationProblems, pdfa2bCorpus, pdfa2bPlan } from './e-invoice/pdfa-2b.mjs'
+import { identificationProblems, PDF_A_2B_FORMAT, pdfa2bCorpus, pdfa2bPlan } from './e-invoice/pdfa-2b.mjs'
 import { recordedConsole, recordedText, staleRecorded } from './e-invoice/record.mjs'
-import { acceptedProblems, judgedBy, PDF_FORMATS, readRegisters, toolOf, toolProblems } from './e-invoice/registers.mjs'
+import { acceptedProblems, judgedBy, PDF_FORMATS, readRegisters, toolOf, toolProblems, VERAPDF_FLAVOURS } from './e-invoice/registers.mjs'
 import { bundledProblems, bundledVeraPdf, judgeVeraPdf, veraPdfArguments, veraPdfOutputs } from './e-invoice/verapdf.mjs'
 import { entryNamed, unzip } from './e-invoice/zip.mjs'
 
@@ -390,8 +391,8 @@ async function main(argv) {
   const mustangEntries = judgedBy('mustang', entries)
   const mustang = runMustang({ java, jar: tools.where.file(tools.mustang), entries: mustangEntries, work })
   const kosit = runKosit({ java, major: jvm.major, tools, entries: xmlEntries, work })
-  const verapdf = runVeraPdf({ java, tools, entries: pdfEntries, work, flavour: '3b' })
-  const verapdf2b = runVeraPdf({ java, tools, entries: pdfa2bEntries, work, flavour: '2b' })
+  const verapdf = runVeraPdf({ java, tools, entries: pdfEntries, work, flavour: VERAPDF_FLAVOURS.pdf })
+  const verapdf2b = runVeraPdf({ java, tools, entries: pdfa2bEntries, work, flavour: VERAPDF_FLAVOURS[PDF_A_2B_FORMAT] })
   const profile = spec.FACTUR_X_PROFILES.en16931
   const mustangVerdict = judgeMustang({
     entries: mustangEntries,
@@ -403,8 +404,8 @@ async function main(argv) {
   const hashes = new Map(xmlEntries.map((entry) => [entry.file, base64Sha256(entry.xml)]))
   const kositVerdict = judgeKosit({ entries: xmlEntries, ...kosit, accepted: accepted.accepted, pinned: tools.kosit.version, hashes, scenario: SCENARIO })
   const file = { fileName: spec.FACTUR_X.fileName, relationship: profile.relationship, mediaType: spec.FACTUR_X.mediaType, md5 }
-  const veraVerdict = judgeVeraPdf({ entries: pdfEntries, ...verapdf, pinned: tools.verapdf.version, file, flavour: '3b' })
-  const vera2bVerdict = judgeVeraPdf({ entries: pdfa2bEntries, ...verapdf2b, pinned: tools.verapdf.version, file, flavour: '2b' })
+  const veraVerdict = judgeVeraPdf({ entries: pdfEntries, ...verapdf, pinned: tools.verapdf.version, file, flavour: VERAPDF_FLAVOURS.pdf })
+  const vera2bVerdict = judgeVeraPdf({ entries: pdfa2bEntries, ...verapdf2b, pinned: tools.verapdf.version, file, flavour: VERAPDF_FLAVOURS[PDF_A_2B_FORMAT] })
   const schematrons = pinnedSchematrons({ tools, mustangVerdict, kositVerdict, profile: profile.guideline })
   const oracle =
     schematrons.problems.length > 0

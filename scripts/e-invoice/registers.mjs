@@ -68,6 +68,15 @@ export const JUDGES = Object.freeze({
 /** The formats whose files are PDFs: written as their bytes, named .pdf, and recorded by the digest of their inflated objects. */
 export const PDF_FORMATS = Object.freeze(['pdf', 'pdfa-2b'])
 
+/**
+ * The flavour veraPDF validates each format it judges with, named on its
+ * command line and never left to what a file says of itself (0057): a PDF
+ * of an e-invoice as PDF/A-3b (0031), a PDF/A-2b as PDF/A-2b. The gate runs
+ * and judges each corpus with its format's entry here, and nowhere writes a
+ * flavour of its own.
+ */
+export const VERAPDF_FLAVOURS = Object.freeze({ pdf: '3b', 'pdfa-2b': '2b' })
+
 /** The entries of `entries` of a format `tool` judges, in order: what the gate hands that tool, and nothing else. */
 export function judgedBy(tool, entries) {
   return entries.filter((entry) => Object.hasOwn(JUDGES, entry.format) && JUDGES[entry.format].includes(tool))

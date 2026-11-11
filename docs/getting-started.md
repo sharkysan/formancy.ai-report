@@ -280,7 +280,13 @@ preview must never be kept as the report. PDFKit reads the profile with `fs`
 from `data/sRGB_IEC61966_2_1.icc`, beside its own `js/pdfkit.js`, so a host
 that bundles the Node entry ships that file where the bundled PDFKit's
 `__dirname` points, or every PDF/A render fails, an e-invoice's and an
-archival one alike. Nobody here has bundled one. Why it is drawn so, and
+archival one alike. Nobody here has bundled one.
+
+A template that prints today may be refused as a PDF/A-2b: a CMYK JPEG
+logo, an SVG drawn so small that its numbers pass what a PDF/A holds, and
+a title holding `&`, `<` or `>` are each refused as `unsupported`, naming
+the image or `info.title`, and the same report still prints without
+`pdfa`. Nothing says so before that render. Why it is drawn so, and
 what it does not hold, is
 [0057](./decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)'s.
 

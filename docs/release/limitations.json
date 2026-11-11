@@ -2309,7 +2309,7 @@
       ]
     },
     "0057": {
-      "reviewed": "sha256:5fa4ef43005c16cffc2ecab688c3a45d9d9d1424acb573f27fbcec9f50d9d9b1",
+      "reviewed": "sha256:0c8315fd65b57bbbe153c97d1474f97e9e8fd10bc2b921e8fb611da9be1a10a6",
       "limitations": [
         {
           "area": "rendering",
@@ -2338,7 +2338,7 @@
         },
         {
           "area": "rendering",
-          "says": "The starters that are no e-invoice, drawn as a PDF/A-2b, were 4,243 to 4,262 bytes larger than drawn plain, 25,037 to 77,558 bytes against 20,791 to 73,297, and their medians of nine renders within 2 ms of the plain ones, within the noise of a machine at a load average about 6 from other work, measured on 11 November 2026 from the built packages on Node 22.23.3 and an Apple M2."
+          "says": "The starters that are no e-invoice, drawn as a PDF/A-2b, were 4,243 to 4,262 bytes larger than drawn plain, 25,037 to 77,558 bytes against 20,791 to 73,297, and the quotation's and grouped-equipment's medians of nine renders, the two timed, within 2 ms of the plain ones, within the noise of a machine at a load average about 6 from other work, measured on 11 November 2026 from the built packages on Node 22.23.3 and an Apple M2."
         },
         {
           "area": "testing",
@@ -2347,12 +2347,8 @@
         },
         {
           "area": "testing",
-          "says": "The e-invoice gate records every PDF/A-2b by the digest of its objects inflated, so a change to what a starter draws, and the PDF/A-2b corpus until it is first recorded, fails CI's `e-invoice` job and the judges' tests until somebody with a Java retakes the record with `--record` on a passing run.",
+          "says": "The e-invoice gate records every PDF/A-2b by the digest of its objects inflated, so a change to what a starter draws fails CI's `e-invoice` job and the judges' tests until somebody with a Java retakes the record with `--record` on a passing run.",
           "heldBy": "scripts/e-invoice/record.test.mjs"
-        },
-        {
-          "area": "testing",
-          "says": "veraPDF's PDF/A-2b verdicts were read on 11 November 2026 on Zulu 22.0.1 on a Mac, not on the Temurin 17 the register names and CI runs, where they have not been seen."
         }
       ]
     }

@@ -53,7 +53,7 @@ export const PDF_A_2B_VARIANTS = [
   },
   {
     file: 'pdfa-2b-svg.pdf',
-    why: 'the quotation’s page, a page break, and SVG images in every way svg-to-pdfkit paints one -- report-corpus’s mark and window, the window’s clip path a soft mask and its sky a gradient, and a drawing of a gradient with a translucent stop, a group at an opacity, a translucent fill and stroke and a dash -- with the mark in the page header of each page: the transparency PDF/A-2 admits beside its output intent, drawn on the quotation’s page as variant-svg.pdf is on the e-invoice sample’s',
+    why: 'the quotation’s page, a page break, and SVG images in every way svg-to-pdfkit paints one -- report-corpus’s mark and window, the window’s clip path a soft mask and its sky a gradient, and a drawing of a gradient with a translucent stop, a group at an opacity, a translucent fill and stroke and a dash -- with the mark in the page header of each page: transparency beside its output intent, which veraPDF’s PDF/A-2b profile must accept, drawn on the quotation’s page as variant-svg.pdf is on the e-invoice sample’s',
     draws: { svg: true },
   },
   {

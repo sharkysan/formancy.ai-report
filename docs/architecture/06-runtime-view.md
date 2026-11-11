@@ -910,6 +910,9 @@ kind than it declares, is refused, naming it.
 
 ## 6.19 A PDF/A-2b, from the host's option to the PDF
 
+Numbered 6.19 while 6.18, a chart's resolution, was held by a branch not
+yet merged, the chart runtime's pull request (#72).
+
 ```
 host: renderPdf(document, { maxPages, pdfa: '2b' })        a final render
    ├─ pdfa anything but '2b' or left out ────────────────────▶ RangeError

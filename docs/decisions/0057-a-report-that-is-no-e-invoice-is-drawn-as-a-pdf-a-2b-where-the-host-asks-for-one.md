@@ -107,7 +107,11 @@
   - **The gate, on PDFs** (`scripts/e-invoice.mjs`, the `e-invoice` job).
     The corpus's format `pdfa-2b` (`scripts/e-invoice/pdfa-2b.mjs`),
     judged by veraPDF alone (`JUDGES`, `judgedBy` in `registers.mjs`), in
-    a second run with `--flavour 2b`, each result held to the profile
+    a second run with `--flavour 2b`, the flavour `registers.mjs`'s
+    `VERAPDF_FLAVOURS` gives the format, which `registers.test.mjs` pins
+    and the gate reads at each run and its judge -- that it reads the
+    format's own entry is held by the live gate alone, as the reversions
+    of the flavour below show -- each result held to the profile
     `PDF/A-2b validation profile` (`verapdf.mjs`'s `PROFILES`), a run with
     no flavour refused before it starts, and a problem of the run as a
     whole named as the PDF/A-2b run's; samples derived from report-corpus's
@@ -116,8 +120,10 @@
     part 2 and B, once each, before any Java runs; and pdf-corpus.mjs's
     `embeddingProblems` holding that a 2b embeds nothing. Held by
     `scripts/e-invoice/pdfa-2b.test.mjs`, `verapdf.test.mjs`,
-    `registers.test.mjs`, `corpus.test.mjs`, `pdf-corpus.test.mjs` and
-    `record.test.mjs`, and by the release report's `report.test.mjs` and
+    `registers.test.mjs`, `corpus.test.mjs`, `pdf-corpus.test.mjs`,
+    `record.test.mjs`, and `mustang.test.mjs` and `kosit.test.mjs`, whose
+    judges name a PDF/A-2b handed to them past `judgedBy` and read nothing
+    they said of it, and by the release report's `report.test.mjs` and
     `render.test.mjs`, which judge the format by its tool and fail a run
     with no 2b sample or no 2b control veraPDF refuses: 71 cases failed
     before the code, and the two added in answer to its review before
@@ -215,12 +221,12 @@
     - The install consumer's `pdfa` left out of `pdfa.ts`: the install
       gate, "the quotation was not drawn as a PDF/A-2b; it lacks PDF 1.7;
       PDF/A-2b in the XMP; the reviewed sRGB2014 output intent".
-  - **Red until the record is retaken.** `scripts/e-invoice/recorded/` is
-    retaken by the gate's `--record` on a passing run, never by hand, and
-    the record is the rightsholder's to make, on the machine and the Java
-    he chooses: until it is, `verapdf.test.mjs`'s "passes the recorded
-    PDF/A-2b run" fails in `pnpm test:repo`, and CI's `e-invoice` job
-    fails on the PDF/A-2b files the record does not name.
+  - **The record.** `scripts/e-invoice/recorded/` is retaken by the
+    gate's `--record` on a passing run, never by hand, by the rightsholder
+    on the machine and the Java he chooses. `verapdf.test.mjs`'s "passes
+    the recorded PDF/A-2b run" judges the 2b run it holds, in
+    `pnpm test:repo`, and fails, as CI's `e-invoice` job does, while a
+    PDF/A-2b file the gate draws is not in it.
   - **Not held by anything here.**
     - The limits of ISO 32000-1 that PDF/A-2 makes rules of, a string's or
       a name's length among them. The renderer does not check them;
@@ -454,12 +460,21 @@ reads what each embeds, a PDF/A-2b nothing.
   Every PDF/A-2b is recorded by the digest of its objects inflated, so a
   change to what a starter, a fixture or an image kind draws fails the
   e-invoice job until somebody with a Java runs the gate with `--record`.
-  This record's own corpus is in that state: its PDFs are not in the
-  record yet, so CI's `e-invoice` job and the judges' test of the
-  recorded 2b run fail until the rightsholder retakes it on a passing run.
-- **Seen on one Java, locally.** The 2b profile's verdicts were read on
-  Zulu 22.0.1, not on the register's Temurin 17, which CI runs; the
-  PDF/A-3b corpus was seen on Zulu 25 and Temurin 17 before (0031).
+  When this record was written, on 11 November 2026, its own PDF/A-2b
+  corpus was in that state: not yet recorded, so CI's `e-invoice` job and
+  the judges' test of the recorded 2b run were red, and the record was
+  the rightsholder's to retake on a passing run.
+- **Read first on one Java, locally.** The 2b profile's verdicts this
+  record states were read on Zulu 22.0.1 on 11 November 2026, as
+  evidence; CI's run on the register's Temurin 17 is the gate, as it is
+  for the PDF/A-3b corpus, which was seen on Zulu 25 and Temurin 17
+  before (0031).
+- **What holds by construction holds of what pdfmake draws.** A foreign
+  PDF's page drawn into a PDF/A, as the documents the roadmap plans would
+  draw one, would carry that PDF's fonts, transparency, actions and
+  annotations past every row that holds by construction, so their
+  renderer must refuse a `document` block in any PDF/A, reading
+  `Checked.pdfa`, until the gate judges one as a PDF/A.
 - **veraPDF's licence, admitted for the gate as before.** The PDF/A-2b
   run is the same release, 1.30.3, in the same gate, under 0031's
   admission; a new release is a licence to read again.

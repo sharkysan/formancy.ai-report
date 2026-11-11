@@ -229,4 +229,27 @@ describe('KoSIT’s verdict', () => {
       'control-br-27.xml was refused by KoSIT for error val-sch.1 BR-27 as well, which it is not broken for',
     ])
   })
+
+  // KoSIT reads XML alone, and a PDF/A-2b has no expectation of it (0057):
+  // a gate that handed it one, past judgedBy, would have the file judged by
+  // a tool that is not its judge, and counted among the controls KoSIT's
+  // exit status is held to. The file is named, and nothing KoSIT said of it
+  // is read -- here its recorded report on a control, which it refused.
+  test('refuses a file of a format JUDGES gives it none of, a PDF/A-2b, naming it and reading nothing it said', () => {
+    const twoB = { file: 'pdfa-2b-quotation.pdf', format: 'pdfa-2b', starter: 'quotation', embeds: null, expect: { verapdf: 'accepted' } }
+    const { rows, problems } = judged((given) => {
+      given.entries.push(twoB)
+      given.reports.set(twoB.file, recorded('kosit', reportName('control-br-27.xml')))
+    })
+    expect(problems).toEqual(['KoSIT was handed pdfa-2b-quotation.pdf, a file of the format pdfa-2b, which JUDGES gives it none of'])
+    expect(rows.at(-1)).toEqual({
+      file: 'pdfa-2b-quotation.pdf',
+      expect: undefined,
+      verdict: 'not as expected',
+      scenario: null,
+      assessment: null,
+      refusals: [],
+      accepted: [],
+    })
+  })
 })
