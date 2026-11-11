@@ -397,19 +397,22 @@ field's value may be a person's data.
   and once took its process with it. Each bound was measured alone, and
   the work they bound adds up, so files at several bounds at once were
   measured too, on 11 November 2026, on the build where nothing a
-  document makes the reader do is on a count of its own: a thousand
-  pages, content that inflates to the inflate bound and is lexed whole,
-  and the values count at its bound exactly, spent on strings, listings,
-  the closure's walks and the last trailer, the file 20 MiB, read in
-  685 ms with 97 MiB of heap; spent on the dearest decoders instead, in
-  748 ms, its parts alone taking 487 and 216 ms; and on the strings that
-  cost the most heap, in 424 ms with 190 MiB, the most of any file
-  measured; each refused one past its bound within 754 ms. In Chromium
-  the three read in 297 to 674 ms, and were refused one past in 251 to
-  658 ms. That was on mains power, where the same machine read the shapes
-  it had read on battery 1.4 to 1.7 times faster: by
-  arithmetic, not measured, the dearest of those files on battery would
-  take more than a second.
+  document makes the reader do is on a count of its own and each decoder
+  is charged what it costs: a thousand pages, content that inflates to
+  the inflate bound and is lexed whole, and the values count at its bound
+  exactly, spent on strings, listings, the closure's walks and the last
+  trailer, the file 20 MiB, read in 676 ms with 97 MiB of heap; spent on
+  the dearest decoders instead, in 502 ms; and on the strings that cost
+  the most heap, in 442 ms with 190 MiB, the most of any file measured,
+  three quarters of the 256 MiB; each refused one past its bound within
+  663 ms. In Chromium the three read in 272 to 525 ms, and were refused
+  one past in 253 to 486 ms. That was on mains power, where the same
+  machine read the shapes it had read on battery 1.4 to 1.7 times faster.
+  By that arithmetic, not measured, the decoders' file would take 0.70 to
+  0.85 s on battery, inside the second; the first would take 0.95 to
+  1.15 s, at the second or past it. 218 ms of its 676 is the comment that
+  pads it to 20 MiB, which pdf-lib's grammar passes a byte at a time and
+  which costs 42 ms in a file of nothing else.
 - **What prints is what a viewer shows.** A shadowed revision, a layer, a
   field without an appearance and an inline image a viewer would end
   elsewhere are refused rather than printed otherwise than the author saw
@@ -450,10 +453,10 @@ field's value may be a person's data.
   at the edge of the second.
 - **The second is this machine's.** The slowest shape at its bound alone,
   eight RunLength stages a stream, read in 808 ms in Node and 657 ms in
-  Chromium on battery, and 487 ms and 384 ms on mains on 11 November, when
-  the same stages beside lexed content at the inflate bound took 748 ms;
-  a legitimate 1,000-page tagged report in object streams in 658 ms and
-  455 ms. Each of those is the median of five cold runs, each in a fresh
+  Chromium on battery at the charge of 8, and, charged what each decoder
+  costs, the dearest of the decoders' shapes in 205 ms and 139 ms on mains
+  on 11 November; a legitimate 1,000-page tagged report in object streams
+  in 658 ms and 455 ms on battery, 409 ms and 365 ms on mains. Each of those is the median of five cold runs, each in a fresh
   worker or browser context, under Node 22.23.3 and Chrome Headless Shell
   156 on an Apple M2 on battery, from 6 to 8 November 2026, under loads of
   2 to 10 while other work ran; and one earlier series of the tagged
@@ -464,17 +467,23 @@ field's value may be a person's data.
   whether the 24 series' Chromium half did is unknown, its log gone. By
   arithmetic, if a read's time scales with the machine, on one twice as
   slow those two shapes would take more than a second.
-- **Two charges were chosen, not derived.** A pako inflater counts as
-  `INFLATER_VALUES`, 24, the smaller of the two charges measured: at 16,
-  one series of two took more than a second, and nothing between 16 and
-  24 was measured. A fixed-ratio decoder counts as `DECODER_VALUES`, 8, the
-  smallest of 4, 8 and 16 that held; at 4 the shape took 1.25 s. A file of
-  many short Flate streams or inline images is refused sooner than its
-  values alone would refuse it.
+- **Each decoder is charged what it costs.** A pako inflater counts as
+  `INFLATER_VALUES`, 79, and a fixed-ratio decoder as `DECODER_VALUES`,
+  30: what each was measured to cost against a value on 11 November, the
+  dearest of Node and Chromium rounded up -- an inline image's inflater,
+  whose input runs to its content's end, at 78.1 values in Chromium, and
+  ASCIIHex's decoder at 29.6 -- as a listing's `LISTING_VALUES` is. Until
+  then they were 24 and 8, the smallest that kept those shapes within a
+  second on battery, which left a file at several bounds at once within
+  it on mains alone. A file of many short Flate streams or inline images
+  is refused sooner than its values alone would refuse it: a thousand
+  pages of one Flate content stream each count 79,000 for their
+  inflaters, 55,000 more than before, and the sample's dearest file reads
+  at 31,531 of the 2,000,000, from 18,147.
 - **The heap is what was held; outside it is said beside it.** The 256 MiB
   is the heap's. What a read decodes is held outside it, as buffers, with
   the reader's own copy of the file, and measured beside it, not in it: up
-  to 89 MiB for a file at several bounds at once, 20 MiB of it the copy,
+  to 90 MiB for a file at several bounds at once, 20 MiB of it the copy,
   on 11 November, and 64 MiB at `MAX_DOCUMENT_INFLATED` alone, twice the
   bound, on 6 November.
 - **What a read leaves behind is not measured.** The reader feeds pdf-lib's

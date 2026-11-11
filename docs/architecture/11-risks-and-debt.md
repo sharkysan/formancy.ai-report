@@ -218,13 +218,15 @@ image, so how many files the inline rules refuse -- binary data that
 happens to hold `EI` and a white-space byte is one -- is unknown. A tagged
 report as dense as the densest measured is refused past about 700 pages.
 Its bounds were set against a second and 256 MiB of heap on one laptop on
-battery, where the slowest shape at its bound read in 808 ms, and files at
-several bounds at once were measured on mains power, where the slowest
-read in 748 ms and the dearest held 190 MiB: on battery the same laptop
+battery, where the slowest shape at its bound read in 808 ms, and, with
+each decoder charged what it costs, files at several bounds at once on
+mains power, where the slowest read in 676 ms and the dearest held
+190 MiB, three quarters of the heap's 256 MiB: on battery the same laptop
 read the shapes it read both ways 1.4 to 1.7 times slower, so by
-arithmetic that file would take more than a second there, as the slowest
-shapes would on a machine twice as slow, synchronously, on the thread that
-asked; and nothing times a read in CI. What a read leaves in
+arithmetic the slowest would take 0.95 to 1.15 s there -- 218 ms of it a
+padding comment pdf-lib's grammar passes a byte at a time -- and the
+decoders' 0.70 to 0.85 s, synchronously, on the thread that asked; and
+nothing times a read in CI. What a read leaves in
 its process is not measured on this reader: it feeds pdf-lib's pools
 nothing of a file, which spies hold, and the pools' cost was measured on
 the spike's loop alone, so the server that will read uploads is to read

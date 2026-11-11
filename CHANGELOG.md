@@ -195,8 +195,11 @@ one yet.
   annotation a page lists, the second read of the last trailer and each
   walk the closure makes again are counted with the file's values, so
   that a file at several bounds at once is bounded by the one count too,
-  and three such files were measured within the second and 256 MiB, at
-  748 ms the slowest and 190 MiB the most heap, on mains power. **A tagged
+  and each decoder is counted as what it was measured to cost against a
+  value -- an inflater 79, a fixed-ratio decoder 30 -- so that a file of
+  many short compressed streams or inline images is refused sooner. Three
+  such files were measured within the second and 256 MiB on mains power,
+  at 676 ms the slowest and 190 MiB the most heap. **A tagged
   report as dense as the densest measured is refused past about 700
   pages**, and is to be added in parts.
 - **Refused:** a file encrypted, cut short or damaged, bytes between its
