@@ -116,9 +116,27 @@ export function orderRows(rows: readonly CheckedRecord[], keys: readonly OrderKe
 }
 
 /** Whether two group keys are one: decimals by value, everything else as held, and null with null. */
-function sameKey(type: PrintableType, a: CheckedValue | null, b: CheckedValue | null): boolean {
+export function sameKey(type: PrintableType, a: CheckedValue | null, b: CheckedValue | null): boolean {
   if (a === null || b === null) return a === b
   return type === 'decimal' ? compareDecimal(a as Decimal, b as Decimal) === 0 : a === b
+}
+
+/**
+ * One value a Map can find a group key by: equal for two keys of a type
+ * exactly when `sameKey` holds them one (a test holds the two to each other).
+ * A decimal is normalised -- trailing zeros stripped while it has a scale (zero ends at 0),
+ * so 1.0 and 1.00 meet; text, integers and booleans are
+ * their own keys, which a Map compares by value; null is null.
+ */
+export function canonicalKey(type: PrintableType, value: CheckedValue | null): string | bigint | boolean | null {
+  if (value === null) return null
+  if (type !== 'decimal') return value as string | bigint | boolean
+  let { units, scale } = value as Decimal
+  while (scale > 0 && units % 10n === 0n) {
+    units /= 10n
+    scale -= 1
+  }
+  return `${units}/${scale}`
 }
 
 /**
@@ -150,15 +168,16 @@ export function categoryGroups(
   locale: string,
 ): RowGroup[] {
   if (order !== 'data') return groupRows(orderRows(rows, [{ ...by, direction: order }], locale), by)
-  const groups: { key: CheckedValue | null; rows: OrderedRow[] }[] = []
+  const groups = new Map<string | bigint | boolean | null, { key: CheckedValue | null; rows: OrderedRow[] }>()
   for (const [index, record] of rows.entries()) {
     const value = record[by.field] ?? null
     const row = Object.freeze({ index, record })
-    const found = groups.find((group) => sameKey(by.type, group.key, value))
+    const id = canonicalKey(by.type, value)
+    const found = groups.get(id)
     if (found !== undefined) found.rows.push(row)
-    else groups.push({ key: value, rows: [row] })
+    else groups.set(id, { key: value, rows: [row] })
   }
-  return groups.map((group) => Object.freeze({ key: group.key, rows: Object.freeze(group.rows) }))
+  return [...groups.values()].map((group) => Object.freeze({ key: group.key, rows: Object.freeze(group.rows) }))
 }
 
 /**
