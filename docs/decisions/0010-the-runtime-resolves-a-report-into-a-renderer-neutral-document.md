@@ -1,6 +1,6 @@
 # 0010 — The runtime resolves a report into a renderer-neutral document, exactly, or refuses it
 
-- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which computes an e-invoice's totals once for the page and its XML, writes the XML, and refuses one EN 16931's rules refuse, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which fetches an SVG asset, drawn again wherever it prints rather than embedded once, and corrects this record's reason for trusting digests, by [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose manifest names where the data came from, by identifiers alone, by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose form bridge holds each answer to its type by the runtime's own `readValue` and a submission's id by its `isSubmissionId`, and by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose asset resolver is widened to a host's fonts
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which computes an e-invoice's totals once for the page and its XML, writes the XML, and refuses one EN 16931's rules refuse, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which fetches an SVG asset, drawn again wherever it prints rather than embedded once, and corrects this record's reason for trusting digests, by [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose manifest names where the data came from, by identifiers alone, by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose form bridge holds each answer to its type by the runtime's own `readValue` and a submission's id by its `isSubmissionId`, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose asset resolver is widened to a host's fonts, and by [0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md), which resolves a chart into a block of its own, its totals by the function every aggregate is totalled by
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-runtime`, run by its
@@ -279,6 +279,21 @@ there, as the runtime refuses it here; and a submission's id by
 own check, so the two cannot read an id differently. The data check
 itself is unchanged, and still runs when the report resolves.
 `data.test.ts` holds that `isSubmissionId` accepts what a source accepts.
+
+**Added 2026-11-11: a chart.** The document gains a `chart` block, as
+[0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md) decides: a bar, line
+or pie chart's categories, its series' values, its value axis's ticks, a
+pie's slices and its legend, each value held as its exact digits beside
+the text it prints, so that the renderer formats, rounds and ticks
+nothing. This record's rules hold of it unchanged. Its rows are grouped by
+`sort-group.ts`, as a table's, and each series is totalled by `totalOf`,
+the function every aggregate and every group's total is computed by, so
+a chart's number and a table's over the same rows are one function's. The
+value axis is chosen exactly, in BigInt (`chart-ticks.ts`), and a pie's
+share is an exact ratio rounded once and printed by `Formatter.percent`,
+which refuses a share Intl would round again. A chart past `MAX_CHART_CATEGORIES`, or a pie past its
+palette, is refused before anything is totalled. `lower-chart.test.ts`
+and `chart-ticks.test.ts` hold it.
 
 ## Alternatives considered
 

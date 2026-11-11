@@ -294,7 +294,10 @@ one.
   rounded total at fewer places than its rounding keeps, which would round
   it twice, a series' printed in its chart's `valueFormat`. A series is
   typed as the compiler types an aggregate of its function over its
-  field. And one is about an e-invoice: a total its XML holds that no text or
+  field: `seriesType`, exported, is that type, by the one function the
+  compiler asks, `fieldTotalType`, and the runtime totals a series in it,
+  so the editor and a render cannot type a series apart
+  ([0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)). And one is about an e-invoice: a total its XML holds that no text or
   table of the page prints (`e-invoice-total-unprinted`). Each of these is
   held: the total
   without VAT, `invoice.taxBasisTotal` or `invoice.lineTotal`; the VAT
