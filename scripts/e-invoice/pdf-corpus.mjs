@@ -36,6 +36,7 @@
 // XMP states of it (`embeddingProblems`).
 
 import { KINDS } from './corpus.mjs'
+import { PDF_FORMATS } from './registers.mjs'
 
 /** The sample every control is made from, as the XML corpus's controls are. */
 export const PDF_BASE = 'e-invoice'
@@ -376,7 +377,9 @@ const said = (values) => (values.length === 0 ? 'none' : values.map((value) => `
  * the corpus says it embeds, with the name `fileName`, or bytes that are not
  * that XML's. The XML the other tools judged is then the one inside the
  * PDF, byte for byte, as a second reader than veraPDF reads it; veraPDF's
- * feature report gives the file's /Params as the PDF declares them.
+ * feature report gives the file's /Params as the PDF declares them. A
+ * PDF/A-2b is read so too, and embeds nothing, as a plain PDF does (0056),
+ * where a control made of a PDF/A-3b embeds what that PDF/A-3b does.
  *
  * And, of a sample's PDF and a variant's -- what the renderer draws as it
  * is, where a control is broken on purpose -- an XMP whose
@@ -391,7 +394,7 @@ const said = (values) => (values.length === 0 ? 'none' : values.map((value) => `
  */
 export async function embeddingProblems(entries, { readObjects, fileName, fx, guidelineOf, profiles }) {
   const problems = []
-  for (const entry of entries.filter((each) => each.format === 'pdf')) {
+  for (const entry of entries.filter((each) => PDF_FORMATS.includes(each.format))) {
     const objects = await readObjects(new Uint8Array(entry.pdf))
     const wanted = entry.embeds === null ? 0 : 1
     if (objects.associatedFiles.length !== wanted || objects.embeddedFiles.length !== wanted) {

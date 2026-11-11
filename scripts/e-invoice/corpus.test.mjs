@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 import { CONTROL_BASE, CONTROLS, corpus, corpusProblems, KINDS, plusOneCent, strayAccepted, taxAt, XRECHNUNG_BASE } from './corpus.mjs'
 import { pdfPlan } from './pdf-corpus.mjs'
+import { pdfa2bPlan } from './pdfa-2b.mjs'
 
 /**
  * What the e-invoice gate judges (0027): the XML the runtime writes of
@@ -21,8 +22,14 @@ const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid
 /** Each recorded sample's kind and BT-24, as the run that recorded it made them. */
 const KINDS_OF = { kindOf: (sample) => run.kinds[sample.id].kind, guidelineOf: (sample) => run.kinds[sample.id].guideline }
 const entries = corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`), ...KINDS_OF })
-/** The whole corpus the gate judges: the XML, then the PDFs as planned, which the judges' tests build without drawing them. */
-const all = [...entries, ...pdfPlan(entries)]
+/** report-corpus's starters, by id, and whether each is an e-invoice, as the gate hands them to the PDF/A-2b plan. */
+const STARTERS = ['service-inspection', 'quotation', 'grouped-equipment', 'invoice', 'euro-invoice', 'e-invoice', 'site-visit'].map((id) => ({
+  id,
+  eInvoice: id === 'e-invoice',
+}))
+/** The whole corpus the gate judges: the XML, then the PDFs and the PDF/A-2b as planned, which the judges' tests build without drawing them. */
+const pdfa2b = pdfa2bPlan(STARTERS, { base3bXml: recorded('e-invoice.xml') })
+const all = [...entries, ...pdfPlan(entries), ...pdfa2b]
 
 describe('the corpus', () => {
   // Every sample is judged as the runtime wrote it, and each must be
@@ -185,7 +192,7 @@ describe('what the corpus refuses', () => {
       'the corpus has no xml control mustang must refuse',
       'the corpus has no xml control kosit must refuse',
     ])
-    expect(one((copy) => copy.splice(0, SAMPLES.length))).toEqual(['the corpus has no xml sample both tools must accept'])
+    expect(one((copy) => copy.splice(0, SAMPLES.length))).toEqual(['the corpus has no xml sample every tool must accept'])
   })
 
   // KoSIT reads no PDF and veraPDF no XML: an expectation of either on the
@@ -216,10 +223,50 @@ describe('what the corpus refuses', () => {
     expect(corpusProblems(copy)).toEqual([
       `control-xmp.pdf is broken for ${copy.find((entry) => entry.file === 'control-xmp.pdf').why}, and no tool is to refuse it`,
     ])
-    expect(corpusProblems(entries)).toEqual([
-      'the corpus has no pdf sample both tools must accept',
+    expect(corpusProblems([...entries, ...pdfa2b])).toEqual([
+      'the corpus has no pdf sample every tool must accept',
       'the corpus has no pdf control verapdf must refuse',
       'the corpus has no pdf control mustang must refuse',
+    ])
+  })
+
+  // A PDF/A-2b is a PDF, written where veraPDF reads it by its .pdf name,
+  // and judged by veraPDF alone: Mustang validates an e-invoice, which a 2b
+  // is not (0056). A corpus that lost its 2b judges the PDF/A-2b no more.
+  test('names a PDF/A-2b file .pdf, and holds it to veraPDF alone', () => {
+    const one = (change) => {
+      const copy = structuredClone(all)
+      change(copy)
+      return corpusProblems(copy)
+    }
+    const quotation = (copy) => copy.find((entry) => entry.file === 'pdfa-2b-quotation.pdf')
+    expect(corpusProblems(all)).toEqual([])
+    expect(one((copy) => (quotation(copy).file = 'pdfa-2b-quotation.xml'))).toEqual(['pdfa-2b-quotation.xml is a PDF/A-2b, which its name does not say'])
+    expect(one((copy) => (quotation(copy).expect.mustang = 'accepted'))).toEqual([
+      'pdfa-2b-quotation.pdf expects something of mustang, which does not judge a PDF/A-2b',
+    ])
+    expect(corpusProblems([...entries, ...pdfPlan(entries)])).toEqual([
+      'the corpus has no pdfa-2b sample every tool must accept',
+      'the corpus has no pdfa-2b control verapdf must refuse',
+    ])
+  })
+
+  // The PDF/A-2b control that is the e-invoice sample's PDF/A-3b is those
+  // bytes on purpose: unbroken as a 3b, it is broken as a 2b, which its
+  // format says. A control of its sample's own format with its sample's
+  // bytes is still the sample under a control's name.
+  test('takes a control judged as another format than its sample for broken by that format, and one of the same format and bytes for unbroken', () => {
+    const drawn = (copy, file, text) => (copy.find((entry) => entry.file === file).pdf = Buffer.from(text))
+    const copy = structuredClone(all)
+    drawn(copy, 'e-invoice.pdf', '%PDF-1.7 the sample as PDF/A-3b')
+    drawn(copy, 'pdfa-2b-control-3b.pdf', '%PDF-1.7 the sample as PDF/A-3b')
+    expect(corpusProblems(copy)).toEqual([])
+    drawn(copy, 'pdfa-2b-quotation.pdf', '%PDF-1.7 the quotation')
+    drawn(copy, 'pdfa-2b-control-plain.pdf', '%PDF-1.7 the quotation')
+    drawn(copy, 'control-plain.pdf', '%PDF-1.7 the sample as PDF/A-3b')
+    expect(corpusProblems(copy)).toEqual([
+      'control-plain.pdf is the sample it is made from, unbroken',
+      'pdfa-2b-control-plain.pdf is the sample it is made from, unbroken',
     ])
   })
 })

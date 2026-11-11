@@ -273,7 +273,7 @@ describe('the e-invoice gate', () => {
     const section = (markdown) => markdown.slice(markdown.indexOf('## E-invoice gate'), markdown.indexOf('## Build identity'))
     const green = section(renderContent(report()))
     expect(green).toContain(
-      'The e-invoice gate passed on Java 17.0.20.1, with mustang 2.26.0, kosit 1.6.3, xrechnung-configuration 2026-08-31 and verapdf 1.30.3, Mustang in 47.5 s, KoSIT in 6.5 s and veraPDF in 2.4 s:',
+      'The e-invoice gate passed on Java 17.0.20.1, with mustang 2.26.0, kosit 1.6.3, xrechnung-configuration 2026-08-31 and verapdf 1.30.3, Mustang in 47.5 s, KoSIT in 6.5 s and veraPDF in 2.4 s as PDF/A-3b and 1.9 s as PDF/A-2b:',
     )
     expect(green).toContain('| File | Is | Mustang | KoSIT | veraPDF |')
     expect(green).toContain('| e-invoice.xml | a sample, to accept | as expected | as expected |  |')
@@ -289,6 +289,19 @@ describe('the e-invoice gate', () => {
     )
     expect(unjudged).toContain('| e-invoice.pdf | a sample, to accept | as expected |  | not judged |')
     expect(section(renderContent(report((inputs) => (job(inputs, 'e-invoice').eInvoice = null))))).toContain('The e-invoice gate left no results in this run.')
+  })
+
+  // A PDF/A-2b is judged by veraPDF alone (0056): a Mustang or KoSIT cell
+  // that said "not judged" on its row would read as a verdict missing, and
+  // one that said "as expected" as a verdict nobody made. The section says
+  // what the gate judges as PDF/A-2b, and how long veraPDF took over it.
+  test('shows a PDF/A-2b’s veraPDF verdict and leaves its Mustang and KoSIT cells empty', () => {
+    const section = (markdown) => markdown.slice(markdown.indexOf('## E-invoice gate'), markdown.indexOf('## Build identity'))
+    const green = section(renderContent(report()))
+    expect(green).toContain('| pdfa-2b-quotation.pdf | a sample, to accept |  |  | as expected |')
+    expect(green).toContain('| pdfa-2b-control-3b.pdf | a control, to refuse |  |  | as expected |')
+    expect(green).toContain('veraPDF over the PDF/A-2b the renderer draws of every starter that is no e-invoice')
+    expect(green).toContain('1.9 s as PDF/A-2b')
   })
 })
 

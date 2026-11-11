@@ -54,10 +54,24 @@ const PROGRAMS = new Set(['mustang', 'kosit', 'verapdf'])
 /**
  * The tools that judge each format of the corpus, in the order the gate
  * reports them: the XML the runtime writes by Mustang and KoSIT, a PDF the
- * renderer draws by veraPDF and Mustang (0031). KoSIT reads no PDF, and
- * veraPDF no XML.
+ * renderer draws of an e-invoice by veraPDF and Mustang (0031), and a
+ * PDF/A-2b it draws of a report that is none by veraPDF alone (0056):
+ * Mustang validates an e-invoice, and a 2b embeds no XML. KoSIT reads no
+ * PDF, and veraPDF no XML.
  */
-export const JUDGES = Object.freeze({ xml: Object.freeze(['mustang', 'kosit']), pdf: Object.freeze(['verapdf', 'mustang']) })
+export const JUDGES = Object.freeze({
+  xml: Object.freeze(['mustang', 'kosit']),
+  pdf: Object.freeze(['verapdf', 'mustang']),
+  'pdfa-2b': Object.freeze(['verapdf']),
+})
+
+/** The formats whose files are PDFs: written as their bytes, named .pdf, and recorded by the digest of their inflated objects. */
+export const PDF_FORMATS = Object.freeze(['pdf', 'pdfa-2b'])
+
+/** The entries of `entries` of a format `tool` judges, in order: what the gate hands that tool, and nothing else. */
+export function judgedBy(tool, entries) {
+  return entries.filter((entry) => Object.hasOwn(JUDGES, entry.format) && JUDGES[entry.format].includes(tool))
+}
 
 /** The tools whose warnings and notices accepted.json may accept: veraPDF has none, a rule of its profile passing or failing. */
 export const ACCEPTING = Object.freeze(['mustang', 'kosit'])

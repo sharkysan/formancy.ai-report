@@ -16,6 +16,7 @@ import {
   svgDocument,
   variantProblems,
 } from './pdf-corpus.mjs'
+import { pdfa2bPlan } from './pdfa-2b.mjs'
 
 /**
  * The PDFs the e-invoice gate judges (0031): each sample's, drawn from the
@@ -364,6 +365,25 @@ describe('what a PDF embeds, read back', () => {
     const entries = plan.filter((entry) => entry.file === 'e-invoice.pdf').map((entry) => ({ ...entry, embeds: other }))
     expect(await embeddingProblems(entries, options({ 'e-invoice.pdf': embedding(other) }))).toEqual([
       'e-invoice.pdf embeds an XML of the guideline urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0, which no profile of report-spec’s names',
+    ])
+  })
+
+  // A PDF/A-2b may embed only a PDF/A-1 or -2, and the renderer embeds
+  // nothing in one (0056): a 2b that carried the e-invoice's XML, or any
+  // file, would be refused by no rule veraPDF's 2b profile runs on its
+  // name. So pdf-lib reads each as it reads a plain PDF, held to none; the
+  // control that is the e-invoice sample's 3b embeds that sample's XML.
+  test('holds a PDF/A-2b to embedding no file, as a plain PDF', async () => {
+    const starters = ['quotation', 'invoice', 'e-invoice'].map((id) => ({ id, eInvoice: id === 'e-invoice' }))
+    const pdfa2b = pdfa2bPlan(starters, { base3bXml: xmlOf('e-invoice.xml') }).map((entry) => ({ ...entry, pdf: Buffer.from(entry.file) }))
+    const none = { metadata: undefined, associatedFiles: [], embeddedFiles: [] }
+    const read = Object.fromEntries(pdfa2b.map((entry) => [entry.file, entry.embeds === null ? none : embedding(entry.embeds)]))
+    expect(await embeddingProblems(pdfa2b, options(read))).toEqual([])
+    read['pdfa-2b-quotation.pdf'] = embedding(xmlOf('e-invoice.xml'))
+    read['pdfa-2b-control-3b.pdf'] = none
+    expect(await embeddingProblems(pdfa2b, options(read))).toEqual([
+      'pdfa-2b-quotation.pdf associates 1 files with the document and names 1, where the corpus says it embeds 0',
+      'pdfa-2b-control-3b.pdf associates 0 files with the document and names 0, where the corpus says it embeds 1',
     ])
   })
 })

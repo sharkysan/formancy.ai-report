@@ -1,18 +1,24 @@
 // How the e-invoice gate draws what it judges (0031): every sample
 // resolved once in a final render, as a host resolves it, and drawn by the
-// renderer as built; each variant drawn with the base sample's e-invoice.
-// The packages are handed in, as scripts/e-invoice.mjs imports them from
-// their dist/, so that nothing here imports a package itself.
+// renderer as built; each variant drawn with the base sample's e-invoice;
+// and the PDF/A-2b corpus (0056), every starter, variant and control of
+// scripts/e-invoice/pdfa-2b.mjs drawn as the renderer draws one for a host
+// that asks for `pdfa: '2b'`. The packages are handed in, as
+// scripts/e-invoice.mjs imports them from their dist/, so that nothing
+// here imports a package itself.
 
 import { blocksDocument, boundDocument, PDF_BASE, svgDocument, TRANSLUCENT_SVG } from './pdf-corpus.mjs'
+import { PDF_A_2B_BASE } from './pdfa-2b.mjs'
 
 /** The instant every sample is resolved at: the XML reads no clock, and a final render needs one. */
 const CREATED = '2026-10-17T08:00:00Z'
 
 /** The most pages a PDF of the corpus may have: every sample prints on one (the renderer's e-invoice-samples.test.ts reads each as one), and one that grows is refused rather than judged unread. */
 const MAX_PAGES = 1
-/** The most pages a variant may have: a bound on the work, since nothing reads a variant's pages; the longest printed two on 18 October 2026. */
+/** The most pages a variant may have, and a PDF/A-2b: a bound on the work, since nothing reads a variant's pages; the longest printed two on 18 October 2026. */
 const VARIANT_MAX_PAGES = 10
+/** What a host asks the renderer for to draw a final render as a PDF/A-2b (0056). */
+const AS_2B = { maxPages: VARIANT_MAX_PAGES, pdfa: '2b' }
 
 /**
  * Every sample resolved once, in a final render, as a host resolves it,
@@ -20,7 +26,10 @@ const VARIANT_MAX_PAGES = 10
  * document whose XML the corpus holds; and each variant drawn with the base
  * sample's e-invoice, a starter resolved as a host resolves it, and an SVG
  * as an approved asset holds it, in the form report-spec's `cleanSvg`
- * writes.
+ * writes. And the PDF/A-2b: each starter as a 2b (`drawStarter2b`), each
+ * variant of the 2b corpus drawn on the quotation's page as a 2b, with no
+ * e-invoice (`drawVariant2b`), and the quotation without `pdfa`
+ * (`drawPlain2bBase`).
  */
 export function samplesOf({ spec, runtime, renderer, corpus }) {
   const { starterImages: images } = corpus
@@ -61,20 +70,24 @@ export function samplesOf({ spec, runtime, renderer, corpus }) {
     const svg = (id, bytes) => ({ id, mediaType: 'image/svg+xml', bytes })
     return [svg('svg-mark', corpus.SVG_MARK), svg('svg-window', corpus.SVG_WINDOW), svg('svg-translucent', translucent)]
   }
-  const bound = () => boundDocument(documents.get(PDF_BASE), { id: 'svg-bound', mediaType: 'image/svg+xml', bytes: corpus.SVG_BOUND }, corpus.SVG_BOUND_SIDE)
+  const bound = (base) => boundDocument(base, { id: 'svg-bound', mediaType: 'image/svg+xml', bytes: corpus.SVG_BOUND }, corpus.SVG_BOUND_SIDE)
+  // What a variant draws, on `base`'s page where it adds to one: the same pages for the PDF/A-3b's and the PDF/A-2b's.
+  const variantPage = (base, draws) =>
+    draws.blocks === true
+      ? blocksDocument(base, corpus.IMAGE_KINDS)
+      : draws.svg === true
+        ? svgDocument(base, svgAssets())
+        : draws.bound === true
+          ? bound(base)
+          : draws.fixture !== undefined
+            ? fixtureDocument(draws.fixture)
+            : starterDocument(draws.starter)
   const drawVariant = (draws) => {
     const base = documents.get(PDF_BASE)
-    const page =
-      draws.blocks === true
-        ? blocksDocument(base, corpus.IMAGE_KINDS)
-        : draws.svg === true
-          ? svgDocument(base, svgAssets())
-          : draws.bound === true
-            ? bound()
-            : draws.fixture !== undefined
-              ? fixtureDocument(draws.fixture)
-              : starterDocument(draws.starter)
-    return renderer.renderPdf({ ...page, eInvoice: base.eInvoice }, { maxPages: VARIANT_MAX_PAGES })
+    return renderer.renderPdf({ ...variantPage(base, draws), eInvoice: base.eInvoice }, { maxPages: VARIANT_MAX_PAGES })
   }
-  return { documentOf, draw, drawVariant }
+  const drawStarter2b = (id) => renderer.renderPdf(starterDocument(id), AS_2B)
+  const drawVariant2b = (draws) => renderer.renderPdf(variantPage(starterDocument(PDF_A_2B_BASE), draws), AS_2B)
+  const drawPlain2bBase = () => renderer.renderPdf(starterDocument(PDF_A_2B_BASE), { maxPages: VARIANT_MAX_PAGES })
+  return { documentOf, draw, drawVariant, drawStarter2b, drawVariant2b, drawPlain2bBase }
 }

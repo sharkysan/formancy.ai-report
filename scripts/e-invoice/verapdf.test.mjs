@@ -6,8 +6,9 @@ import { describe, expect, test } from 'vitest'
 import { corpus } from './corpus.mjs'
 import { JVM_OPTIONS } from './java.mjs'
 import { pdfPlan } from './pdf-corpus.mjs'
+import { pdfa2bPlan } from './pdfa-2b.mjs'
 import { readRegisters } from './registers.mjs'
-import { bundledProblems, bundledVeraPdf, judgeVeraPdf, PROFILE, readVeraPdf, veraPdfArguments } from './verapdf.mjs'
+import { bundledProblems, bundledVeraPdf, judgeVeraPdf, readVeraPdf, veraPdfArguments } from './verapdf.mjs'
 import { zipOf } from './zip-of.mjs'
 
 /**
@@ -32,6 +33,13 @@ const entries = pdfPlan(
 const { tools } = readRegisters()
 const md5 = (bytes) => createHash('md5').update(bytes).digest('hex')
 const FILE = { fileName: 'factur-x.xml', relationship: 'Alternative', mediaType: 'text/xml', md5 }
+/** report-corpus's starters, by id, and whether each is an e-invoice, as the gate hands them to the PDF/A-2b plan. */
+const STARTERS = ['service-inspection', 'quotation', 'grouped-equipment', 'invoice', 'euro-invoice', 'e-invoice', 'site-visit'].map((id) => ({
+  id,
+  eInvoice: id === 'e-invoice',
+}))
+/** The name veraPDF 1.30.3 gives the profile `--flavour 2b` validates against, as a run on 11 November 2026 reported it. */
+const PROFILE_2B = 'PDF/A-2b validation profile'
 
 /** The recorded report, parsed, for a case to change one thing of and write again. */
 const report = () => JSON.parse(recorded('verapdf', 'report.json'))
@@ -44,18 +52,19 @@ const judged = (change = () => {}, inputs = {}) => {
     stderr: recorded('verapdf', 'verapdf.log'),
     pinned: '1.30.3',
     file: FILE,
+    flavour: '3b',
     ...inputs,
   }
   change(given)
   return judgeVeraPdf(given)
 }
 /** The run with its report changed by `change`, which receives it parsed. */
-const withReport = (change) =>
+const withReport = (change, inputs) =>
   judged((given) => {
     const parsed = report()
     change(parsed)
     given.stdout = JSON.stringify(parsed)
-  })
+  }, inputs)
 
 describe('veraPDF’s command line', () => {
   // Every PDF in one JVM, as PDF/A-3b whatever a file declares -- a file
@@ -63,7 +72,7 @@ describe('veraPDF’s command line', () => {
   // in JSON, which Node reads without a dependency, with the embedded
   // files' features, which tie the PDF to the XML the other tools judged.
   test('validates every PDF as PDF/A-3b in one run, its proxies at a dead port, with the embedded files’ features in JSON', () => {
-    expect(veraPdfArguments({ jar: 'cli.jar', files: ['a.pdf', 'b.pdf'] })).toEqual([
+    expect(veraPdfArguments({ jar: 'cli.jar', files: ['a.pdf', 'b.pdf'], flavour: '3b' })).toEqual([
       ...JVM_OPTIONS,
       '-jar',
       'cli.jar',
@@ -76,6 +85,29 @@ describe('veraPDF’s command line', () => {
       'a.pdf',
       'b.pdf',
     ])
+  })
+
+  // veraPDF left without a flavour judges a file by the one its XMP
+  // declares: a PDF/A-3b drawn where a 2b was asked for would be accepted
+  // as the 3b it says it is (0056). So each corpus is run with its flavour
+  // named, and a run of no flavour the gate holds a profile for is refused
+  // before it starts.
+  test('validates the e-invoice corpus with --flavour 3b and the PDF/A-2b corpus with --flavour 2b', () => {
+    const flavourOf = (flavour) => {
+      const args = veraPdfArguments({ jar: 'cli.jar', files: ['a.pdf'], flavour })
+      return args.slice(args.indexOf('--flavour'), args.indexOf('--flavour') + 2)
+    }
+    expect([flavourOf('3b'), flavourOf('2b')]).toEqual([
+      ['--flavour', '3b'],
+      ['--flavour', '2b'],
+    ])
+    expect(veraPdfArguments({ jar: 'cli.jar', files: ['a.pdf'], flavour: '2b' }).filter((arg) => arg === '--flavour')).toHaveLength(1)
+    expect(() => veraPdfArguments({ jar: 'cli.jar', files: ['a.pdf'] })).toThrow(
+      'veraPDF is run with the flavour undefined, where the gate holds a profile for 3b and 2b',
+    )
+    expect(() => veraPdfArguments({ jar: 'cli.jar', files: ['a.pdf'], flavour: '0' })).toThrow(
+      'veraPDF is run with the flavour 0, where the gate holds a profile for 3b and 2b',
+    )
   })
 })
 
@@ -92,7 +124,9 @@ describe('reading veraPDF', () => {
     ])
     expect(read.jobs.map((each) => each.file)).toEqual(entries.map((entry) => entry.file))
     const pdfa = read.jobs.find((each) => each.file === 'control-pdfa.pdf')
-    expect(pdfa.results).toEqual([{ profile: PROFILE, end: 'normal', compliant: false, passedRules: 145, failedRules: 1, failed: ['6.2.4.3-2'] }])
+    expect(pdfa.results).toEqual([
+      { profile: 'PDF/A-3b validation profile', end: 'normal', compliant: false, passedRules: 145, failedRules: 1, failed: ['6.2.4.3-2'] },
+    ])
     expect(pdfa.embedded).toMatchObject({ fileName: 'factur-x.xml', afRelationship: 'Alternative', subtype: 'text/xml' })
     expect(read.jobs.find((each) => each.file === 'control-plain.pdf').embedded).toBeNull()
     const posix = report()
@@ -157,6 +191,41 @@ describe('veraPDF’s verdict', () => {
       ['control-size.pdf', 'as expected', ['embedded size']],
       ['control-relationship.pdf', 'as expected', ['embedded afRelationship']],
       ['control-xml.pdf', 'as expected', []],
+    ])
+    expect(reported).toEqual(['1.30.3'])
+  })
+
+  // The recorded PDF/A-2b run as it is (0056): every starter that is no
+  // e-invoice and every variant PDF/A-2b, and each control refused for
+  // exactly what it breaks -- the quotation drawn plain, and the e-invoice
+  // sample's PDF/A-3b, which the 2b profile refuses because the flavour is
+  // named and never detected.
+  test('passes the recorded PDF/A-2b run', () => {
+    const entries2b = pdfa2bPlan(STARTERS, { base3bXml: recorded('corpus', 'e-invoice.xml') })
+    const { rows, problems, reported } = judgeVeraPdf({
+      entries: entries2b,
+      status: run.verapdf2b?.status,
+      stdout: recorded('verapdf', 'report-2b.json'),
+      stderr: recorded('verapdf', 'verapdf-2b.log'),
+      pinned: '1.30.3',
+      file: FILE,
+      flavour: '2b',
+    })
+    expect(problems).toEqual([])
+    expect(rows.map((row) => [row.file, row.verdict, row.refusals])).toEqual([
+      ['pdfa-2b-service-inspection.pdf', 'as expected', []],
+      ['pdfa-2b-quotation.pdf', 'as expected', []],
+      ['pdfa-2b-grouped-equipment.pdf', 'as expected', []],
+      ['pdfa-2b-invoice.pdf', 'as expected', []],
+      ['pdfa-2b-euro-invoice.pdf', 'as expected', []],
+      ['pdfa-2b-site-visit.pdf', 'as expected', []],
+      ['pdfa-2b-blocks.pdf', 'as expected', []],
+      ['pdfa-2b-svg.pdf', 'as expected', []],
+      ['pdfa-2b-svg-bound.pdf', 'as expected', []],
+      ['pdfa-2b-fonts.pdf', 'as expected', []],
+      ['pdfa-2b-host-fonts.pdf', 'as expected', []],
+      ['pdfa-2b-control-plain.pdf', 'as expected', ['6.2.4.3-2', '6.6.2.1-1']],
+      ['pdfa-2b-control-3b.pdf', 'as expected', ['6.6.4-2', '6.8-5']],
     ])
     expect(reported).toEqual(['1.30.3'])
   })
@@ -265,6 +334,38 @@ describe('veraPDF’s verdict', () => {
     expect(withReport((parsed) => (job(parsed, 'control-plain.pdf').featuresReport = job(parsed, 'e-invoice.pdf').featuresReport)).problems).toEqual([
       'control-plain.pdf was refused by veraPDF for embedded files as well, which it is not broken for',
     ])
+  })
+
+  // A 2b run is judged by the 2b profile: a job validated against another,
+  // such as the 3b profile a veraPDF that detected the flavour would pick
+  // for a PDF whose XMP says part 3, is no verdict on a PDF/A-2b, whatever
+  // it found (0056). Here the recorded 3b run, each job's profile renamed
+  // the 2b one, stands for a 2b run, and one job left with the 3b profile.
+  test('refuses a PDF/A-2b judged against another profile than the 2b one', () => {
+    const as2b = (left = []) =>
+      withReport(
+        (parsed) => {
+          for (const each of parsed.report.jobs)
+            if (!left.includes(String(each.itemDetails.name).split(/[\\/]/).pop())) each.validationResult[0].profileName = PROFILE_2B
+        },
+        { flavour: '2b' },
+      )
+    expect(as2b().problems).toEqual([])
+    expect(as2b(['e-invoice.pdf', 'variant-blocks.pdf']).problems).toEqual([
+      'veraPDF validated e-invoice.pdf against PDF/A-3b validation profile, not the PDF/A-2b validation profile',
+      'veraPDF validated variant-blocks.pdf against PDF/A-3b validation profile, not the PDF/A-2b validation profile',
+    ])
+    // The recorded 3b run read as a 2b one: every job is the 3b profile's.
+    expect(judged(undefined, { flavour: '2b' }).problems).toHaveLength(entries.length)
+    expect(
+      withReport(
+        (parsed) => {
+          for (const each of parsed.report.jobs) each.validationResult[0].profileName = PROFILE_2B
+          job(parsed, 'e-invoice.pdf').validationResult[0].compliant = false
+        },
+        { flavour: '2b' },
+      ).problems,
+    ).toEqual(['veraPDF finds e-invoice.pdf not PDF/A-2b compliant, where it must be'])
   })
 
   // A control veraPDF accepted is a broken file nothing is watching; one

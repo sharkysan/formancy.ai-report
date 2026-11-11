@@ -332,7 +332,7 @@ const verdictCell = (file, tool) => (JUDGES[file.format]?.includes(tool) ? (file
 
 /**
  * The e-invoice gate: the Java and the tools it ran, and every file of its
- * corpus, XML and PDF, with each tool's verdict on it.
+ * corpus, XML, PDF and PDF/A-2b, with each tool's verdict on it.
  */
 function eInvoiceSection({ results }) {
   const gate = results.eInvoice
@@ -341,11 +341,11 @@ function eInvoiceSection({ results }) {
   return [
     '## E-invoice gate',
     '',
-    'Mustang and KoSIT’s validator over the CII XML the runtime writes of each e-invoice sample of the corpus, and veraPDF and Mustang over the PDF/A-3b the renderer draws of it, at the releases `docs/release/e-invoice-tools.json` pins, and over controls broken one named way each, with Java’s HTTP and HTTPS proxies at a dead port; and report-spec’s code lists and rule ids held to the schematrons they run (`scripts/e-invoice.mjs`). A file a tool judged otherwise than the corpus expects, a tool other than the pin, or a list or a rule the schematrons do not hold fails the run.',
+    'Mustang and KoSIT’s validator over the CII XML the runtime writes of each e-invoice sample of the corpus, veraPDF and Mustang over the PDF/A-3b the renderer draws of it, and veraPDF over the PDF/A-2b the renderer draws of every starter that is no e-invoice, at the releases `docs/release/e-invoice-tools.json` pins, and over controls broken one named way each, with Java’s HTTP and HTTPS proxies at a dead port; and report-spec’s code lists and rule ids held to the schematrons they run (`scripts/e-invoice.mjs`). A file a tool judged otherwise than the corpus expects, a tool other than the pin, or a list or a rule the schematrons do not hold fails the run.',
     '',
     gate === null
       ? 'The e-invoice gate left no results in this run.'
-      : `The e-invoice gate ${gate.passed ? 'passed' : 'failed'} on Java ${String(gate.java?.version ?? 'that it did not record')}, with ${prose(tools) || 'no tool recorded'}, Mustang in ${took('mustang')} s, KoSIT in ${took('kosit')} s and veraPDF in ${took('verapdf')} s:`,
+      : `The e-invoice gate ${gate.passed ? 'passed' : 'failed'} on Java ${String(gate.java?.version ?? 'that it did not record')}, with ${prose(tools) || 'no tool recorded'}, Mustang in ${took('mustang')} s, KoSIT in ${took('kosit')} s and veraPDF in ${took('verapdf')} s as PDF/A-3b and ${took('verapdf2b')} s as PDF/A-2b:`,
     ...(gate === null
       ? []
       : [

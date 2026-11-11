@@ -292,6 +292,22 @@ describe('the e-invoice gate', () => {
       'the e-invoice gate judged no PDF sample every tool must accept',
       'the e-invoice gate made no PDF control verapdf must refuse',
       'the e-invoice gate made no PDF control mustang must refuse',
+      'the e-invoice gate judged no PDF/A-2b sample every tool must accept',
+      'the e-invoice gate made no PDF/A-2b control verapdf must refuse',
+    ])
+  })
+
+  // The PDF/A-2b is a format of its own, judged by veraPDF alone (0056): a
+  // run whose gate drew no 2b veraPDF accepted judged no 2b at all, and
+  // one without a 2b control it refused cannot show that veraPDF judged
+  // the 2b by its 2b profile, rather than accepting a file as whatever it
+  // declares.
+  test('fails a run without a PDF/A-2b sample veraPDF must accept, or without a PDF/A-2b control it must refuse', () => {
+    const without = (file) => (inputs) => (gate(inputs).corpus = gate(inputs).corpus.filter((entry) => entry.file !== file))
+    expect(withDefect(without('pdfa-2b-quotation.pdf'))).toEqual(['the e-invoice gate judged no PDF/A-2b sample every tool must accept'])
+    expect(withDefect(without('pdfa-2b-control-3b.pdf'))).toEqual(['the e-invoice gate made no PDF/A-2b control verapdf must refuse'])
+    expect(withDefect((inputs) => (gate(inputs).verapdf.find((row) => row.file === 'pdfa-2b-control-3b.pdf').verdict = 'not as expected'))).toEqual([
+      'the e-invoice gate’s verapdf judged pdfa-2b-control-3b.pdf otherwise than its corpus expects',
     ])
   })
 

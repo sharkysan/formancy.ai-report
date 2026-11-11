@@ -120,8 +120,9 @@ const E_INVOICE_RAN = [
 
 /**
  * The e-invoice gate's record, as scripts/e-invoice.mjs writes it: an XML
- * sample Mustang and KoSIT accepted and a control both refused, and a PDF
+ * sample Mustang and KoSIT accepted and a control both refused, a PDF
  * sample and a variant veraPDF and Mustang accepted and a control both
+ * refused, and a PDF/A-2b sample veraPDF accepted and a control it
  * refused, each as its corpus expects.
  */
 const eInvoiceJob = () => ({
@@ -156,6 +157,14 @@ const eInvoiceJob = () => ({
         why: 'an image of every kind',
         expect: { verapdf: 'accepted', mustang: 'accepted' },
       },
+      { file: 'pdfa-2b-quotation.pdf', format: 'pdfa-2b', starter: 'quotation', expect: { verapdf: 'accepted' } },
+      {
+        file: 'pdfa-2b-control-3b.pdf',
+        format: 'pdfa-2b',
+        from: 'e-invoice.pdf',
+        why: 'a PDF/A-3b judged as a 2b',
+        expect: { verapdf: ['6.6.2.1-1'] },
+      },
     ],
     mustang: [
       { file: 'e-invoice.xml', verdict: 'as expected' },
@@ -172,8 +181,10 @@ const eInvoiceJob = () => ({
       { file: 'e-invoice.pdf', verdict: 'as expected' },
       { file: 'control-pdfa.pdf', verdict: 'as expected' },
       { file: 'variant-blocks.pdf', verdict: 'as expected' },
+      { file: 'pdfa-2b-quotation.pdf', verdict: 'as expected' },
+      { file: 'pdfa-2b-control-3b.pdf', verdict: 'as expected' },
     ],
-    seconds: { draw: 0.9, mustang: 47.5, kosit: 6.5, verapdf: 2.4, total: 59.2 },
+    seconds: { draw: 0.9, mustang: 47.5, kosit: 6.5, verapdf: 2.4, verapdf2b: 1.9, total: 61.1 },
     problems: [],
     passed: true,
   },

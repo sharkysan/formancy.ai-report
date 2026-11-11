@@ -147,4 +147,16 @@ describe('the recorded corpus', () => {
       ),
     ).toEqual([])
   })
+
+  // A PDF/A-2b is a PDF, deflated by whatever zlib drew it (0056): held to
+  // an XML file of its name, it would be stale on every run, and the
+  // record could never hold it; held by its inflated digest, it is held as
+  // the PDF/A-3b's are.
+  test('holds a PDF/A-2b by its inflated digest, as a PDF', () => {
+    const pdfs = [{ file: 'pdfa-2b-quotation.pdf', format: 'pdfa-2b', digest: 'aa' }]
+    expect(staleRecorded(pdfs, new Map(), new Map([['pdfa-2b-quotation.pdf', 'aa']]))).toEqual([])
+    expect(staleRecorded(pdfs, new Map(), new Map([['pdfa-2b-quotation.pdf', 'ab']]))).toEqual([
+      'scripts/e-invoice/recorded/run.json records pdfa-2b-quotation.pdf as another PDF than this run drew, its objects inflated: run node scripts/e-invoice.mjs --record, and commit what it writes',
+    ])
+  })
 })
