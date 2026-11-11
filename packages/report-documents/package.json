@@ -1,7 +1,7 @@
 {
   "name": "@formancy/report-documents",
   "version": "0.2.0",
-  "description": "Formancy Report's one PDF reader: knows whether bytes are a PDF, and will read and bound one for the runtime, the renderer, the server and the builders alike. No framework, no Node, no DOM, no network.",
+  "description": "Formancy Report's one PDF reader: a PDF read whole, within bounds, or refused, for the runtime, the renderer, the server and the builders alike. No framework, no Node, no DOM, no network.",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,

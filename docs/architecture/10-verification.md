@@ -165,6 +165,26 @@ collected the answers -- on the PDF
 | On the PDF: a version-3 visit refused, its review's declared renames applied, and the same visit printing the technician's name and licence from their new paths | `report-forms/src/review-pdf.test.ts`, over the corpus's version 3, held to differing from version 2 in the rename alone by `report-corpus/src/forms/site-visit.test.ts` |
 | The packed packages | The install gate's `consume.ts`, through `scripts/install-fixture/forms.ts`: a form validated by the `@formancy/spec` the bridge brings, a submission read and rendered, two read one a row, a moved field and a wrong hash refused; a renamed group refused naming the review, reviewed, its declared rename applied through the packed report-core's session, the visit then read and the resolution stale |
 
+**A PDF a report will print, read by one reader.** Nothing prints one
+yet. The reader is report-documents' alone, held on PDFs its test support
+writes byte by byte, never a person's file, and the pages a report prints
+of one are to be proved with PDF.js, which shares none of its code
+([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)):
+
+| Where | What holds it |
+|---|---|
+| The strict loop: the header, the end, encryption, every object read in order and nothing between them skipped, the cross-reference chained and held to every definition, a shadow refused, an object stream's members in order | `report-documents/src/parse.test.ts`, `xref.test.ts` |
+| The reader's own tokens: names, strings, numbers and references, each at its bound and one past it, the one count of values, no pdf-lib number, array or dictionary made and no reference reaching `PDFRef.of` | `report-documents/src/grammar.test.ts`, `parse.test.ts` |
+| Every stage of every stream from one budget, each decoder counted where it is built, and the pako and pdf-lib internals the reader relies on, pinned | `report-documents/src/inflate.test.ts`, `parse.test.ts` |
+| The pages, the print rule, the closure and the notices: what prints is what a viewer shows, or the document is refused naming the page and the annotation; what does not survive printing counted and never named | `report-documents/src/page-tree.test.ts`, `pages.test.ts`, `annotations.test.ts`, `closure.test.ts`, `notices.test.ts` |
+| An image held to its pixels by where it stands, passed on undecoded; an inline image ended only where PDF.js ends it, each content lexed once | `report-documents/src/images.test.ts`, `inline-images.test.ts`, `inline-shared.test.ts`; and `scripts/mirrored-pdfjs.test.mjs`, which holds the PDF.js it mirrors to the corpus's and the Studio's |
+| Each bound through `readDocument`, at it and one past it; the composition, never a throw, the host's realm alone, a frozen copy, and 2,000 seeded mutations each read whole or refused | `report-documents/src/limits.test.ts`, `read.test.ts` |
+| The packed package | The install gate's `scripts/install-fixture/documents.ts`: the PDF the packed renderer drew read whole, and refused with a byte before its header |
+
+What each bound costs, in time and heap, and how many real files the
+reader refuses are measurements, dated in `limits.ts` and in 0054, and
+held by nothing.
+
 **What it does not see.** A rule or a border through a row, a shape over a
 line, a clipped glyph, white text on white: none is text or an image to
 PDF.js, and the paths it reads are an SVG drawing's alone. A drawing is
@@ -218,6 +238,7 @@ that describe the repository rather than a package. Among them:
 | `pictures/readme.test.mjs` | A README picture's caption quotes what the parts its capture recorded in `docs/images/readme/captured.json` do not say, or a picture's bytes are not the ones captured ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) |
 | `release-report/limitations.test.mjs` | A record has no register entry, or changed since it was read ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)) |
 | `e-invoice/*.test.mjs` | A module of the e-invoice gate stops doing its part: the judges, veraPDF's among them, over the run recorded in `scripts/e-invoice/recorded/`; the registers, the admitted licence, veraPDF's floor and the accepted warnings; the cache's hash check; the corpus, the PDFs and their controls; the reader of the tools' XML; the digest of a PDF's objects; the unzip; the recording, which holds no path of the machine it ran on (0027, 0031) |
+| `mirrored-pdfjs.test.mjs` | The corpus or the Studio pins another `pdfjs-dist` than the release whose ends of an inline image report-documents copied, `MIRRORED_PDFJS`, or pins it by a range ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)) |
 | `source-size.test.mjs` | A source file passes 600 lines |
 | `architecture.test.mjs` | A section of these documents is missing; a workspace package or app has no row in [the building blocks](05-building-blocks.md), or its row names other dependencies than its manifest; a decision record is cited by no section; a relative link here does not reach a file or a heading GitHub would give it; or a path written here as code names nothing the checkout holds ([0026](../decisions/0026-the-architecture-is-documented-in-arc42s-sections-held-to-the-repository-by-a-guard.md)) |
 | `heading-anchors.test.mjs` | The one reading of GitHub's heading anchors, which this guard, the guide's and the product pages' link check share, gives one of its fixture headings another anchor than the one written beside it |
@@ -306,6 +327,14 @@ later releases and say why, and the legal gate waits for a lawyer
 - **The demo is not checked.** Nothing here reads what formancy.ai/report/
   serves, or whether a deploy happened
   ([0018](../decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
+- **A PDF's bounds, on one laptop.** What each of report-documents'
+  bounds costs was measured on one Apple M2 on battery, under Node and one
+  Chromium, from 6 to 8 November 2026, its sleeps found in its power log
+  and their series discarded; no runner times a read, and the criterion of
+  a second and 256 MiB gates nothing. The files it was measured on are its
+  own hostile files and a sample of 1,484 PDFs from one Mac and Report's
+  renderer, none of them a customer's, none holding an inline image, the
+  largest 1.27 MB ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 - **Automated accessibility is a floor.** axe finds what a machine can, and
   no manual audit is recorded.
 - **The middle layout, in part.** The README's pictures are taken past

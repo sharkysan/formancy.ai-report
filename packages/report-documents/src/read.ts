@@ -88,8 +88,8 @@ function frozen({ pages, objects, notices }: PrintableDocument): PrintableDocume
  * Never throws: anything thrown while it reads -- by pdf-lib's grammar, by
  * pako, by a fault of the reader's own -- is a refusal of the reader's own
  * words (`caught`). The bytes are a Uint8Array of the host's own realm --
- * one of an iframe or a vm is refused, as not-pdf, and is copied into the
- * host's realm first -- and are copied before one is read, so that the
+ * one of an iframe or a vm is refused, as not-pdf: a host copies one into
+ * its own realm first -- and are copied before one is read, so that the
  * caller's buffer may be reused the moment the read returns.
  */
 export function readDocument(bytes: Uint8Array): DocumentRead {

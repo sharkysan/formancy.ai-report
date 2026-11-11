@@ -273,12 +273,16 @@ describe('what a value costs', () => {
   // A string is counted twice against MAX_DOCUMENT_VALUES -- the value, and
   // the view its bytes are held in, which costs what several values do --
   // so that a file of short strings is refused at half as many as a file
-  // of numbers, and no sooner: the second count is what held ten million
-  // empty strings (X4) to 56 MiB, where they had held 445 MiB. The
-  // sample's 1,484 files hold at most 298 strings, a 1,000-page tagged
-  // report one. Each kind -- a literal string as written, one escaped, a
-  // hexadecimal one -- is pinned exactly, from one string to two on a small
-  // file; and the bound itself, literal strings exactly at it reading.
+  // of numbers, and no sooner. Ten million empty strings (X4) held 445 MiB
+  // before strings were views counted twice, and 55 MiB after; no run
+  // isolated the count. Its own work is arithmetic: counted once, the
+  // values bound would admit two million one-byte strings, about 272 MB of
+  // 136-byte views, past the 256 MiB a read may take, where counted twice
+  // they were refused within 142 MiB. The sample's 1,484 files hold at
+  // most 298 strings, a 1,000-page tagged report one. Each kind -- a
+  // literal string as written, one escaped, a hexadecimal one -- is pinned
+  // exactly, from one string to two on a small file; and the bound itself,
+  // literal strings exactly at it reading.
   test('a string is counted twice against MAX_DOCUMENT_VALUES, no more, whatever kind it is', AT_A_BOUND, () => {
     const of = (item: string, count: number): Uint8Array => withObject5(concat([latin1('['), repeated(item, count), latin1(']')]))
     const counted = (item: string, count: number): number => parsed(of(item, count)).budget.reading.total
