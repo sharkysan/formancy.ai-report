@@ -4,7 +4,7 @@ import type { ReportDefinition, TableComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { checkData } from './data.js'
 import type { CheckedRecord } from './data.js'
-import { groupRows, orderKeys, orderRows, orderTable } from './sort-group.js'
+import { categoryGroups, groupRows, orderKeys, orderRows, orderTable } from './sort-group.js'
 import type { OrderKey, OrderedRow } from './sort-group.js'
 import { below, sampleData, sampleReport, sampleRow, seeded } from './test-support.js'
 
@@ -229,5 +229,39 @@ describe('orderKeys and orderTable', () => {
     expect(() => orderKeys(report, table(report))).toThrow(RangeError)
     const { detail: _detail, ...noDetail } = report.datasets
     expect(() => orderKeys({ ...report, datasets: noDetail }, table(report))).toThrow(RangeError)
+  })
+})
+
+describe('categoryGroups', () => {
+  const by = { field: 'value', type: 'string' } as const
+  const keys = (groups: ReturnType<typeof categoryGroups>) => groups.map((group) => group.key)
+  const rowsOf = (groups: ReturnType<typeof categoryGroups>) => groups.map((group) => indices(group.rows))
+
+  // A chart that re-sorted the author's months alphabetically would put April first.
+  test('keeps the order the data gives its categories, each once, every row under its own', () => {
+    const groups = categoryGroups(records(['B', 'A', 'B', 'C']), by, 'data', 'en')
+    expect(keys(groups)).toEqual(['B', 'A', 'C'])
+    expect(rowsOf(groups)).toEqual([[0, 2], [1], [3]])
+    const sorted = categoryGroups(records(['B', 'A', 'B', 'C']), by, 'asc', 'en')
+    expect(keys(sorted)).toEqual(['A', 'B', 'C'])
+    expect(keys(categoryGroups(records(['B', 'A', 'C']), by, 'desc', 'en'))).toEqual(['C', 'B', 'A'])
+  })
+
+  // 1.0 and 1.00 are one value; drawn as two bars they would split one total in two.
+  test('holds decimals of one value as one category, as a group does', () => {
+    const decimal = { field: 'value', type: 'decimal' } as const
+    const rows = records([dec('1.0'), dec('2'), dec('1.00')])
+    expect(rowsOf(categoryGroups(rows, decimal, 'data', 'en'))).toEqual([[0, 2], [1]])
+    expect(rowsOf(categoryGroups(rows, decimal, 'asc', 'en'))).toEqual([[0, 2], [1]])
+  })
+
+  // Rows without a category are a category, last when sorted, never dropped.
+  test('puts the rows without a category in one group, last when sorted, at their first row when not', () => {
+    const rows = records([null, 'B', 'A', null])
+    expect(keys(categoryGroups(rows, by, 'data', 'en'))).toEqual([null, 'B', 'A'])
+    expect(rowsOf(categoryGroups(rows, by, 'data', 'en'))).toEqual([[0, 3], [1], [2]])
+    expect(keys(categoryGroups(rows, by, 'asc', 'en'))).toEqual(['A', 'B', null])
+    expect(keys(categoryGroups(rows, by, 'desc', 'en'))).toEqual(['B', 'A', null])
+    expect(rowsOf(categoryGroups(rows, by, 'desc', 'en'))).toEqual([[1], [2], [0, 3]])
   })
 })

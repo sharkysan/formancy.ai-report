@@ -20,7 +20,7 @@
  */
 import { compareDecimal } from '@formancy/expressions'
 import type { Decimal } from '@formancy/expressions'
-import type { ReportDefinition, SortDirection, TableComponent } from '@formancy/report-spec'
+import type { ChartOrder, ReportDefinition, SortDirection, TableComponent } from '@formancy/report-spec'
 import type { CheckedRecord } from './data.js'
 import type { PrintableType } from './format.js'
 import type { CheckedValue } from './values.js'
@@ -132,6 +132,30 @@ export function groupRows(rows: readonly OrderedRow[], by: { readonly field: str
     const value = row.record[by.field] ?? null
     const last = groups.at(-1)
     if (last !== undefined && sameKey(by.type, last.key, value)) last.rows.push(row)
+    else groups.push({ key: value, rows: [row] })
+  }
+  return groups.map((group) => Object.freeze({ key: group.key, rows: Object.freeze(group.rows) }))
+}
+
+/**
+ * A chart's categories, grouped as a table's rows are: sorted by the
+ * category's key, nulls last, then grouped; or, in the data's order, each
+ * distinct key once at its first row's place, holding every row with that
+ * key in the provider's order. Rows without a category are one group.
+ */
+export function categoryGroups(
+  rows: readonly CheckedRecord[],
+  by: { readonly field: string; readonly type: PrintableType },
+  order: ChartOrder,
+  locale: string,
+): RowGroup[] {
+  if (order !== 'data') return groupRows(orderRows(rows, [{ ...by, direction: order }], locale), by)
+  const groups: { key: CheckedValue | null; rows: OrderedRow[] }[] = []
+  for (const [index, record] of rows.entries()) {
+    const value = record[by.field] ?? null
+    const row = Object.freeze({ index, record })
+    const found = groups.find((group) => sameKey(by.type, group.key, value))
+    if (found !== undefined) found.rows.push(row)
     else groups.push({ key: value, rows: [row] })
   }
   return groups.map((group) => Object.freeze({ key: group.key, rows: Object.freeze(group.rows) }))
