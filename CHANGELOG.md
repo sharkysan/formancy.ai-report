@@ -164,6 +164,75 @@ chart, until it resolves charts; and **neither builder offers one yet**.
 - **0.2.0 refuses a report with a chart** as `unknown-kind`, never skipping
   it: the format is still the draft, version "0".
 
+**`@formancy/report-documents` reads a PDF whole or refuses it, and
+nothing calls it yet**
+([0054](docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
+Report is to print the PDFs a report carries -- a delivery note, the terms
+a quotation ends with, the signed PDFs a site visit's inspector uploaded --
+as pages of the report. A PDF is untrusted input, and the reader at hand
+forgave too much: pdf-lib's own `load`, measured, hung on junk between two
+objects, exhausted its heap on a cross-reference stream that claims two
+billion rows, and printed a revision the file's cross-reference does not
+name. This package is the one reader every later stage is to read a PDF
+through, and it is the first stage: the format, the runtime, the renderer
+and the builders learn of documents in later releases, so no report holds
+one yet.
+- **`readDocument(bytes)`** reads a PDF's pages in order, as a viewer
+  shows them, every object they draw with, and a count of what does not
+  survive printing -- links, JavaScript, actions, attachments, form
+  fields, signatures -- never named; or refuses it with one of
+  `DOCUMENT_REFUSAL_CODES`, in the reader's own words, naming a page and
+  an annotation by its own count and never a byte of the file. It is
+  synchronous, has no Node or DOM global and reaches no network, never
+  throws, and takes a Uint8Array of the host's own realm alone, which it
+  copies before reading.
+- **Every bound is held before the work it bounds**, and each was
+  measured at it and one past it, within a second and 256 MiB of heap on
+  the laptop measured: the bytes, 20 MiB as an asset's are, the pages,
+  the objects, one count of values a document, what its streams decode
+  to, an image's pixels, and the others `limits.ts` exports. Nothing a
+  file makes the reader do is on a count of its own: each decoder, each
+  annotation a page lists, the second read of the last trailer, each
+  subsection header of a cross-reference table and each walk the closure
+  makes again are counted with the file's values, and a cross-reference
+  stream several sections name is merged once, so that a file at several
+  bounds at once is bounded by the one count too,
+  and each decoder is counted as what it was measured to cost against a
+  value -- an inflater 79, a fixed-ratio decoder 30 -- so that a file of
+  many short compressed streams or inline images is refused sooner. Three
+  such files were measured within the second and 256 MiB on mains power,
+  at 682 ms the slowest and 185 MiB the most heap. **A tagged
+  report as dense as the densest measured is refused past about 700
+  pages**, and is to be added in parts.
+- **Refused:** a file encrypted, cut short or damaged, bytes between its
+  objects, an earlier revision than its cross-reference names, optional
+  content, XFA and NeedAppearances, an annotation that would print
+  otherwise than a viewer shows it, an inline image PDF.js would end
+  elsewhere, a filter the reader does not decode where it must -- LZW,
+  though pdf-lib carries a port of it, since the reader decodes only what
+  it can charge as it decodes; Crypt; a TIFF predictor; a name PDF does not
+  define -- a stream whose data is in another file, and a form or an
+  image that names another file to print in its place (a reference
+  XObject's `/Ref`, an `/OPI` dictionary), since Report never fetches by
+  address and its PDF must name nothing to fetch. An old file compressed
+  with LZW is to be saved again. **Optional content
+  is what real files are refused for most:** of 1,484 PDFs that carry no
+  person's data, read on 8 November 2026, 1,367 read, 116 were refused for
+  layers and one for a cross-reference that is not where it says.
+- **The parser is `@pdfme/pdf-lib` 6.2.4's object grammar**, every token
+  but the keywords read by the reader's own code, and `pako` 3.0.2, both
+  at exact versions and both permissive. pdf-lib's stream decoders are
+  ports of PDF.js's and XPDF's under Apache-2.0, which its bundle and its
+  MIT licence file do not say: a bundle that holds the reader owes that licence's text and the
+  ports' attribution, through an entry of the notices that lands with the
+  pull request that first bundles it. Both come into every bundle that
+  reads a PDF: 234 kB gzipped, as measured of the spike's code that chose
+  them, not of this package. UPNG, the PNG decoder of pdf-lib's that never
+  returns on a truncated image, comes with it, and the reader never calls
+  it.
+- `isPdf` and `PDF_MEDIA_TYPE` say whether bytes are a PDF by their header
+  alone.
+
 **The lint and format rules are `@formancy/code-style` 0.12.0, pinned, and
 no longer a copy**
 ([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).

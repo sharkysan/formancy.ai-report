@@ -1,0 +1,300 @@
+/**
+ * How a PDF is refused: the codes, what a person can do about each, what
+ * the reader found at each place it refuses, and the refusal it throws
+ * where it finds a fault and catches once, at its edge.
+ *
+ * A refusal names what was found, in the reader's own words, never a byte
+ * of the file: no name, no string, no offset and no object number. Every
+ * message is one of `FINDINGS`, then the annotation and the page where what
+ * was found belongs to one, then its code's advice, so a message can hold
+ * nothing the file chose: the page is the reader's own count, from 1, and
+ * the annotation its place in the page's /Annots, from 1, each said in the
+ * message and given beside it (`page`, `annotation`), never a number the
+ * file wrote; an annotation's subtype is said only where it is one ISO
+ * 32000 defines, in the reader's own spelling (`ANNOTATION_SUBTYPES`).
+ */
+
+import type { AnnotationSubtype } from './annotation-subtypes.js'
+
+/** Why a PDF is refused, each the first thing found that is wrong with it. */
+export const DOCUMENT_REFUSAL_CODES = [
+  /** No PDF header at its first byte. */
+  'not-pdf',
+  /** Past `MAX_DOCUMENT_BYTES`, refused before a byte is parsed. */
+  'too-large',
+  /** A trailer that names an /Encrypt dictionary, with or without a password to open it. */
+  'encrypted',
+  /** Not written as ISO 32000 writes a PDF, or damaged: cut short, bytes between or after its objects, a token past its bound, a stream whose length or data is wrong. */
+  'malformed',
+  /** Arrays and dictionaries nested past `MAX_DOCUMENT_NESTING`. */
+  'too-deep',
+  /** More objects than `MAX_DOCUMENT_OBJECTS`, written or claimed by a cross-reference; more cross-reference entries than `MAX_DOCUMENT_XREF_ENTRIES` or sections than `MAX_DOCUMENT_XREF_SECTIONS`, every section together; more values than `MAX_DOCUMENT_VALUES`, on one count of what the file holds, its inline images' dictionaries, the decoders its streams build, the annotations its pages list and what the closure walks again; names past `MAX_DOCUMENT_NAME_BYTES`. */
+  'too-many-objects',
+  /** Streams that decode past `MAX_DOCUMENT_INFLATED`, every stage of every stream together; an image that declares more pixels than `MAX_DOCUMENT_IMAGE_PIXELS`, which a viewer decodes it to. */
+  'inflates-too-far',
+  /** A filter the reader does not decode where it has to, or does not pass on: LZW, Crypt, a TIFF predictor, an image's own filter anywhere but last on an image, or a name PDF does not define; a stream whose data is in another file, a form that stands in for a page of another file (/Ref), or an image or a form that names another file to be printed in its place (/OPI); an inline image whose end the reader cannot find. */
+  'unsupported-filter',
+  /** The cross-reference and the objects disagree: an earlier definition named than the last one written, a place where no object is, an object it does not list, a generation no object has. */
+  'xref-disagrees',
+  /** A page tree that is not a tree -- a node reached twice, a parent that is not the node holding it, a count that is not its pages -- or a tree of no pages, which prints nothing. */
+  'page-tree',
+  /** More pages than `MAX_DOCUMENT_PAGES`. */
+  'too-many-pages',
+  /** A page turned by other than a multiple of 90 degrees. */
+  'unsupported-rotation',
+  /** A page whose box has no area. */
+  'no-area',
+  /** Optional content: layers a viewer may hide and a print would show, on what a page draws with or on an annotation. */
+  'optional-content',
+  /** A resource of a page that reaches a page object. */
+  'resource-names-a-page',
+  /** A form a viewer draws and a print of what its fields hold cannot: one drawn from XFA, or one that asks the viewer to draw its fields (/NeedAppearances). */
+  'needs-appearances',
+  /** An annotation that prints, over an area, and holds no appearance to print, or one that is not a form. */
+  'annotation-without-appearance',
+  /** An annotation whose appearances are kept by state, and that names no state, or one it does not hold. */
+  'appearance-state-missing',
+  /** An annotation that draws and stays upright (NoRotate) on a turned page. */
+  'annotation-turned',
+  /** A link that prints without an appearance, whose border a viewer would draw. */
+  'link-border',
+] as const
+export type DocumentRefusalCode = (typeof DOCUMENT_REFUSAL_CODES)[number]
+
+export interface DocumentRefusal {
+  readonly ok: false
+  readonly code: DocumentRefusalCode
+  /** English, for a log or a person, said after the document's name: what was found, then what to do. */
+  readonly message: string
+  /** The page, counted from 1, where what was found belongs to one. */
+  readonly page?: number
+  /** The annotation, counted from 1 in its page's /Annots, where what was found belongs to one. */
+  readonly annotation?: number
+}
+
+/** An annotation's place: where it stands in its page's /Annots, from 1, and its subtype where it is one ISO 32000 defines. */
+export interface AnnotationPlace {
+  readonly index: number
+  readonly subtype: AnnotationSubtype | undefined
+}
+
+const SAVE_AGAIN = 'save it again as a PDF from the program that made it'
+
+/** What a person can do about each kind of refusal, said after what was found. */
+export const DOCUMENT_ADVICE: { readonly [C in DocumentRefusalCode]: string } = {
+  'not-pdf': 'save it as a PDF and add that file',
+  'too-large': 'add a smaller PDF, or split this one',
+  encrypted: 'save a copy without a password or restrictions, and add that',
+  malformed: SAVE_AGAIN,
+  'too-deep': SAVE_AGAIN,
+  'too-many-objects': `${SAVE_AGAIN}, or split it`,
+  'inflates-too-far': `${SAVE_AGAIN}, or split it`,
+  'unsupported-filter': SAVE_AGAIN,
+  'xref-disagrees': SAVE_AGAIN,
+  'page-tree': SAVE_AGAIN,
+  'too-many-pages': 'split it into PDFs of fewer pages',
+  'unsupported-rotation': 'save it again with its pages turned by quarter turns',
+  'no-area': SAVE_AGAIN,
+  'optional-content': 'save it again with its layers flattened, so that it prints what it shows',
+  'resource-names-a-page': SAVE_AGAIN,
+  'needs-appearances': 'save it again from a PDF editor so that its form fields are drawn, or print it to a PDF',
+  'annotation-without-appearance': 'flatten its annotations and form fields, or print it to a PDF, and add that',
+  'appearance-state-missing': 'flatten its annotations and form fields, or print it to a PDF, and add that',
+  'annotation-turned': 'flatten its annotations and form fields, or print it to a PDF, and add that',
+  'link-border': 'save it again without borders around its links, or print it to a PDF',
+}
+
+/** What the reader found, at each place it refuses a file, and the code that is. */
+export const FINDINGS = {
+  'not-bytes': ['not-pdf', 'it is not the bytes of a file'],
+  header: ['not-pdf', 'it does not begin as a PDF begins'],
+  bytes: ['too-large', 'it is larger than a document may be'],
+  encrypted: ['encrypted', 'it is encrypted'],
+  'no-eof': ['malformed', 'it does not end as a PDF ends, and may have been cut short'],
+  'after-eof': ['malformed', 'it holds bytes after its end'],
+  'eof-far': ['malformed', 'its end is further from its last byte than a PDF allows'],
+  'between-objects': ['malformed', 'it holds bytes between its objects that belong to none of them'],
+  'object-header': ['malformed', 'an object in it does not begin as an object does'],
+  'object-end': ['malformed', 'an object in it does not end as an object does'],
+  'trailer-alone': ['malformed', 'its trailer follows no cross-reference'],
+  'xref-entry': ['malformed', 'an entry of its cross-reference is not written as one'],
+  'xref-trailer': ['malformed', 'its cross-reference has no trailer'],
+  'name-length': ['malformed', 'a name in it is longer than a name may be'],
+  'name-escape': ['malformed', 'a name in it holds a number sign that escapes no byte'],
+  'string-length': ['malformed', 'a string in it is longer than a string may be'],
+  'string-end': ['malformed', 'a string in it does not end'],
+  'hex-string': ['malformed', 'a hexadecimal string in it holds a character that is not a hexadecimal digit'],
+  'number-length': ['malformed', 'a number in it is longer than a number may be'],
+  number: ['malformed', 'a number in it is not one'],
+  reference: ['malformed', 'a reference in it names no object a PDF can hold'],
+  'stream-inside': ['malformed', 'a stream in it stands inside another object'],
+  'stream-length': ['malformed', 'a stream in it does not give its length as a number'],
+  'stream-past-end': ['malformed', 'a stream in it runs past the end of the file'],
+  'stream-end': ['malformed', 'a stream in it does not end where its length says'],
+  'bare-reference': ['malformed', 'an object in it is nothing but a reference to another'],
+  'xref-stream': ['malformed', 'its cross-reference stream does not say how its rows are laid out'],
+  'xref-stream-rows': ['malformed', 'its cross-reference stream holds fewer rows than it says'],
+  'xref-size': ['malformed', 'its cross-reference lists an object past the number of objects it says it holds'],
+  'object-stream': ['malformed', 'an object stream in it does not say how its objects are laid out'],
+  'object-stream-offset': ['malformed', 'an object stream in it places an object past its end'],
+  'object-stream-order': ['malformed', 'an object stream in it does not hold its objects one after another'],
+  'prev-cycle': ['malformed', 'its cross-references name one another in a cycle'],
+  'no-startxref': ['malformed', 'it does not say where its cross-reference is'],
+  'no-catalog': ['malformed', 'its trailer names no catalog'],
+  'filter-name': ['malformed', 'a stream in it does not name its filters directly, by name'],
+  'flate-header': ['malformed', 'a compressed stream in it does not begin as compressed data does'],
+  'flate-data': ['malformed', 'a compressed stream in it is damaged or cut short'],
+  'flate-after': ['malformed', 'a compressed stream in it holds bytes after its compressed data'],
+  predictor: ['malformed', 'a predicted stream in it is not laid out as its predictor says'],
+  unreadable: ['malformed', 'it is written in a way the reader cannot follow'],
+  depth: ['too-deep', 'it nests arrays or dictionaries deeper than a document may'],
+  stack: ['too-deep', 'it nests deeper than the reader can follow'],
+  objects: ['too-many-objects', 'it holds more objects than a document may'],
+  'xref-claim': ['too-many-objects', 'its cross-reference claims more objects than a document may hold'],
+  'xref-sections': ['too-many-objects', 'it holds more cross-reference sections than a document may'],
+  values: ['too-many-objects', 'it holds more values than a document may'],
+  'name-bytes': ['too-many-objects', "its names, together, are longer than a document's may be"],
+  inflated: ['inflates-too-far', 'its compressed streams expand past what a document may hold'],
+  repeated: ['inflates-too-far', 'its pages hold more content than a document may'],
+  filter: ['unsupported-filter', 'a stream in it is compressed in a way the reader does not decode'],
+  startxref: ['xref-disagrees', 'it says its cross-reference is where none is'],
+  prev: ['xref-disagrees', 'its cross-reference names an earlier one where none is'],
+  'xref-stream-nowhere': ['xref-disagrees', 'its cross-reference names a cross-reference stream where none is'],
+  shadow: ['xref-disagrees', 'its cross-reference names an earlier definition of an object than the last one written'],
+  unlisted: ['xref-disagrees', 'it holds an object its cross-reference does not list'],
+  misplaced: ['xref-disagrees', 'its cross-reference places an object where the object is not'],
+  missing: ['xref-disagrees', 'its cross-reference names an object it does not hold'],
+  generation: ['xref-disagrees', 'a reference in it names a generation of an object that its cross-reference does not give'],
+  'pages-root': ['page-tree', 'its catalog names no page tree'],
+  'pages-root-parent': ['page-tree', "its page tree's root has a parent"],
+  'pages-kids': ['page-tree', 'a node of its page tree does not list its kids in an array'],
+  'pages-kid': ['page-tree', 'its page tree holds a kid that is neither a page nor a node'],
+  'pages-twice': ['page-tree', 'its page tree reaches one node twice'],
+  'pages-parent': ['page-tree', 'a page or a node of its page tree names another parent than the node that holds it'],
+  'pages-count': ['page-tree', 'a node of its page tree counts other than the pages under it'],
+  'no-pages': ['page-tree', 'it has no pages'],
+  pages: ['too-many-pages', 'it has more pages than a document may'],
+  box: ['malformed', 'it gives no box of four numbers'],
+  'user-unit': ['malformed', 'it gives a user unit that is not a positive number'],
+  contents: ['malformed', 'it names content that is not a stream or a list of streams'],
+  resources: ['malformed', 'it gives resources that are not a dictionary'],
+  group: ['malformed', 'it gives a transparency group that is not a dictionary'],
+  // No file's bytes reach it: the parse holds the objects a file defines to the same bound. The closure's guard on its own walk, for a caller that hands it more.
+  reached: ['too-many-objects', 'its pages reach more objects than a document may hold'],
+  rotation: ['unsupported-rotation', 'it is turned by other than a quarter turn'],
+  area: ['no-area', 'it gives a box of no area'],
+  layers: ['optional-content', 'it holds layers a viewer may hide'],
+  'resource-page': ['resource-names-a-page', 'what its pages draw with reaches a page'],
+  annots: ['malformed', 'it lists its annotations in other than an array'],
+  annotation: ['malformed', 'it lists an annotation that is not a dictionary'],
+  flags: ['malformed', 'an annotation in it gives flags that are not a whole number'],
+  rect: ['malformed', 'an annotation in it gives no rectangle of four numbers'],
+  bbox: ['malformed', 'an appearance in it gives no bounding box of four numbers'],
+  matrix: ['malformed', 'an appearance in it gives a matrix that is not six numbers'],
+  fields: ['malformed', 'its form fields name their parents in a cycle'],
+  'need-appearances': ['needs-appearances', 'its form asks the viewer to draw its fields'],
+  xfa: ['needs-appearances', 'its form is drawn by XFA, which Report does not draw'],
+  'no-appearance': ['annotation-without-appearance', 'an annotation in it prints and holds no appearance to print'],
+  'appearance-state': ['appearance-state-missing', 'an annotation in it names no appearance state it holds'],
+  upright: ['annotation-turned', 'an annotation in it stays upright on a turned page'],
+  'link-border': ['link-border', 'a link in it holds no appearance and a viewer draws its border'],
+  'image-size': ['malformed', 'an image in it does not give its width and height as whole numbers'],
+  'image-space': ['malformed', 'an inline image in it is drawn in colours the reader cannot count'],
+  'image-pixels': ['inflates-too-far', 'an image in it is larger than a document may hold'],
+  'inline-image': ['malformed', 'an inline image in it is not written as one'],
+  'inline-end': ['malformed', 'an inline image in it does not end where its data ends'],
+  'inline-place': ['malformed', 'an inline image in it begins where a viewer reads none'],
+  'inline-reference': ['malformed', 'an inline image in it names an object outside its content'],
+  'inline-filter': ['unsupported-filter', 'an inline image in it is compressed in a way whose end the reader cannot find'],
+  external: ['unsupported-filter', 'a stream in it keeps its data in another file'],
+  'reference-xobject': ['unsupported-filter', 'a form in it stands in for a page of another file'],
+  opi: ['unsupported-filter', 'an image or a form in it names another file to be printed in its place'],
+} as const satisfies Record<string, readonly [DocumentRefusalCode, string]>
+export type Finding = keyof typeof FINDINGS
+
+/** The words that say where an annotation stands: its place, and its subtype where the reader knows it. */
+const said = ({ index, subtype }: AnnotationPlace): string => (subtype === undefined ? `annotation ${index}` : `annotation ${index} (${subtype})`)
+
+/** The refusal for what was found, at `annotation` of `page`, counted from 1, where it belongs to one. */
+export function refusal(finding: Finding, page?: number, annotation?: AnnotationPlace): DocumentRefusal {
+  const [code, found] = FINDINGS[finding]
+  const where = [...(annotation === undefined ? [] : [said(annotation)]), ...(page === undefined ? [] : [`on page ${page}`])]
+  return {
+    ok: false,
+    code,
+    message: `${[found, ...where].join(', ')}; ${DOCUMENT_ADVICE[code]}`,
+    ...(page === undefined ? {} : { page }),
+    ...(annotation === undefined ? {} : { annotation: annotation.index }),
+  }
+}
+
+/**
+ * A refusal on its way out of the reader. It is thrown where the fault is
+ * found, deep in a token or a cross-reference, and caught once, at the
+ * reader's edge (`caught`), so that nothing partly read is ever returned.
+ * It keeps what was found, so that the page it belongs to can be named on
+ * its way out of that page (`onPage`).
+ */
+export class DocumentRefused extends Error {
+  readonly finding: Finding
+  readonly annotation: AnnotationPlace | undefined
+  readonly refusal: DocumentRefusal
+
+  constructor(finding: Finding, page?: number, annotation?: AnnotationPlace) {
+    const refused = refusal(finding, page, annotation)
+    super(refused.message)
+    this.finding = finding
+    this.annotation = annotation
+    this.refusal = refused
+  }
+}
+
+/** Refused for what was found. */
+export function refuse(finding: Finding): never {
+  throw new DocumentRefused(finding)
+}
+
+/** What `read` returns; whatever it refuses, wherever it is found, refused on `page`, counted from 1. */
+export function onPage<T>(page: number, read: () => T): T {
+  try {
+    return read()
+  } catch (error) {
+    throw error instanceof DocumentRefused ? new DocumentRefused(error.finding, page, error.annotation) : error
+  }
+}
+
+/**
+ * What `read` returns; whatever it refuses, refused at annotation `index`
+ * of its page's /Annots, counted from 1, of the subtype `subtype` reads --
+ * read only once a refusal names it, so that an annotation listed a million
+ * times costs no more than its listing until one is refused.
+ */
+export function onAnnotation<T>(index: number, subtype: () => AnnotationSubtype | undefined, read: () => T): T {
+  try {
+    return read()
+  } catch (error) {
+    throw error instanceof DocumentRefused ? new DocumentRefused(error.finding, undefined, { index, subtype: subtype() }) : error
+  }
+}
+
+/**
+ * What `read` returns, or the refusal it throws. Anything else thrown --
+ * pdf-lib's own exceptions for bytes its grammar cannot follow, and any
+ * fault of the reader's -- is a stable refusal too, never the exception's
+ * class or message, which may quote the file: running out of stack is
+ * `too-deep`, everything else `malformed`. V8 and JavaScriptCore say a
+ * stack ran out by a RangeError whose message names the call stack,
+ * SpiderMonkey by an InternalError of "too much recursion". The depth bound
+ * and the iterative walks keep a file from running the stack out; a host
+ * that calls the reader deep in its own stack still may.
+ */
+export function caught<T>(read: () => T): T | DocumentRefusal {
+  try {
+    return read()
+  } catch (error) {
+    if (error instanceof DocumentRefused) return error.refusal
+    if (error instanceof RangeError && /call stack/i.test(error.message)) return refusal('stack')
+    if (error instanceof Error && error.name === 'InternalError' && /too much recursion/i.test(error.message)) return refusal('stack')
+    return refusal('unreadable')
+  }
+}

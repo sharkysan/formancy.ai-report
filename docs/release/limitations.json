@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:9aa302bebb9713fcf99b72a29eb6f5f8c3a9346fabc261258d24a1b18ecaeee1",
+      "reviewed": "sha256:c30f43961eac53f46eaf689cd83fb15adc20c2932494e6f27ccde589d63a7753",
       "limitations": [
         {
           "area": "licence",
@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:6e36b3e78c78f8e66734806c1fbfce16c2be1286dd782b547dfa8c0a37174931",
+      "reviewed": "sha256:4904bb6eb6cceda257192ce65f5e520c94d13e298feeb80a246fcbcf7bbf6368",
       "limitations": [
         {
           "area": "format",
@@ -2305,6 +2305,88 @@
           "area": "data",
           "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
           "heldBy": "packages/report-forms/src/review.test.ts"
+        }
+      ]
+    },
+    "0054": {
+      "reviewed": "sha256:1e71d0a639e827143e14ab2ee5ddc621d37f62670f9180ee72e1af69fa2d041a",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A PDF that holds optional content is refused, even where every layer would print, as 116 of 1,484 PDFs that carry no person's data were when the reader was measured on 8 November 2026.",
+          "heldBy": "packages/report-documents/src/pages.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF that is encrypted, cut short or damaged, whose cross-reference names an earlier definition of an object than the last one written, or that holds bytes between its objects is refused, never repaired.",
+          "heldBy": "packages/report-documents/src/parse.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF past 20 MiB, 1,000 pages or 100,000 objects is refused, so a tagged report as dense as the densest measured is refused past about 700 pages and is to be added in parts.",
+          "heldBy": "packages/report-documents/src/limits.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF that holds more than 2,000,000 values -- numbers, names, strings, arrays, dictionaries and references, its last trailer counted twice since it is read twice -- is refused.",
+          "heldBy": "packages/report-documents/src/grammar.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The same count holds what each decoder a PDF's streams build costs, so a file of many short compressed streams or inline images is refused sooner than its values alone would be.",
+          "heldBy": "packages/report-documents/src/inflate.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The same count holds three values for each annotation a PDF's pages list, every page together, so a thousand pages that share one list of more than about 660 annotations are refused.",
+          "heldBy": "packages/report-documents/src/annotations.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF with a stream behind a filter the reader does not decode where it must -- LZW, Crypt, a TIFF predictor, an image's own filter anywhere but last, or a name PDF does not define -- is refused, so an old file compressed with LZW is to be saved again.",
+          "heldBy": "packages/report-documents/src/inflate.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF that holds a form standing in for a page of another file (a reference XObject's /Ref), or an image or a form naming another file a printer may print in its place (/OPI), is refused, as one whose stream keeps its data in another file is, since Report fetches nothing by its address.",
+          "heldBy": "packages/report-documents/src/closure.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF whose form is XFA or asks the viewer to draw its fields, or that holds an annotation that prints with no appearance, a link whose border a viewer would draw, or an annotation that stays upright on a turned page, is refused.",
+          "heldBy": "packages/report-documents/src/annotations.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An inline image is refused wherever PDF.js 6.4.299 could end or begin its data otherwise than the reader does, which binary data holding `EI` and a white-space byte can do, and how many real files that refuses is not measured: none of the sample held an inline image.",
+          "heldBy": "packages/report-documents/src/inline-images.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Links, JavaScript, actions, attachments, form fields and signatures in a PDF are read as counts alone, never named, since a print of its pages keeps none of them.",
+          "heldBy": "packages/report-documents/src/notices.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "`readDocument` takes a Uint8Array of the host's own realm and nothing else, so a host holding an ArrayBuffer, or an iframe's or a vm's array, copies it into a Uint8Array of its own first.",
+          "heldBy": "packages/report-documents/src/read.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A read is synchronous and was measured within a second at its bounds on one laptop, files at several bounds at once among them, so a PDF at the bounds holds the thread it is read on for up to about a second there, and longer on battery or a slower machine."
+        },
+        {
+          "area": "runtime",
+          "says": "pdf-lib and pako come with the reader into every bundle that reads a PDF, which added 234,035 bytes gzipped to the Studio's renderer chunk as measured of the spike's code that chose them, not measured again on the package."
+        },
+        {
+          "area": "server",
+          "says": "What a read leaves in its process after it returns is not measured on this reader: it feeds pdf-lib's pools of names and references nothing of a file, which spies hold, and what those pools keep was measured on the spike's loop alone, so a long-running process that reads untrusted PDFs cannot yet rely on keeping nothing.",
+          "heldBy": "packages/report-documents/src/read.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "pdf-lib's stream decoders are ports of PDF.js's and XPDF's under Apache-2.0, which its dist and its MIT licence file do not say and the licence guard judges by pdf-lib's MIT field alone, so a bundle that holds the reader owes Apache-2.0's text and the ports' attribution, which only an entry of the Studio's embedded notices would carry and nothing fails without."
         }
       ]
     }

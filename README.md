@@ -251,6 +251,7 @@ these lines from the packed packages (`scripts/install-fixture/consume.ts`).
 | Package | What it is |
 | --- | --- |
 | [`@formancy/report-spec`](./packages/report-spec/README.md) | The report format, version 0 (a draft): its types, validation with stable error codes, a canonical hash, and the rules of a QR-bill, an EPC QR code, an e-invoice, a chart, an SVG, an image's bytes and a font's ([0007](./docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)). |
+| [`@formancy/report-documents`](./packages/report-documents/README.md) | The one PDF reader: a PDF's bytes read whole -- its pages, every object they draw with, and a count of what does not survive printing -- or refused, synchronously, within bounds measured at each, with no Node or DOM global; nothing calls it yet ([0054](./docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)). |
 | [`@formancy/report-core`](./packages/report-core/README.md) | Commands over a report, as functions and as data, several as one batch, a session that commits only what validates, with exact undo and redo, and one compilation of every expression for the diagnostics and the runtime ([0008](./docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0048](./docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)). |
 | [`@formancy/report-runtime`](./packages/report-runtime/README.md) | Resolves a report against its data into a renderer-neutral document, exact numbers as strings and totals rounded once, and writes an e-invoice's XML, or refuses with every reason; its manifest says what a render was resolved from, the data's source among it ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0041](./docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)). |
 | [`@formancy/report-render-pdf`](./packages/report-render-pdf/README.md) | Draws that document with pdfmake, in Node and through a browser entry, and refuses what it cannot draw whole rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)). |
@@ -373,6 +374,8 @@ gate proves and what it does not.
 | `@formancy/spec` (transitive) | 0.5.0 |  |
 | `@formancy/themes` | 0.12.0 | `0.12.0` |
 | `tslib`, by `@formancy/report-builder-angular` | 2.8.1 | `^2.8.0` |
+| `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
+| `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |
 | `pdfkit`, by `@formancy/report-render-pdf` | 0.19.1 | `0.19.1` |
 | `pdfmake`, by `@formancy/report-render-pdf` | 0.3.11 | `0.3.11` |
 | `uqr`, by `@formancy/report-render-pdf` | 0.1.3 | `0.1.3` |

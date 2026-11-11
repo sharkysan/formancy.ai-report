@@ -189,6 +189,37 @@ builder-core's palette withholds it (`NOT_OFFERED`) until the builders
 edit a chart's own properties, its default, which labels the rows without
 a category, held to the validator meanwhile
 ([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+`@formancy/report-documents` is the one reader of PDFs, beside report-spec,
+which holds no PDF engine, and nothing calls it yet: `readDocument`, in
+`read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
+of its own (`model.ts`) that no pdf-lib type leaves, which
+`scripts/documents-declarations.test.mjs` holds of its built declarations,
+or refuses them with
+one of `DOCUMENT_REFUSAL_CODES` in its own words, a page and an annotation
+by its own count and never a byte of the file, and never throws. It drives
+`@pdfme/pdf-lib` 6.2.4's object grammar with a strict loop of its own
+(`parse.ts`, `xref.ts`), every token but the keywords, both containers and
+a cross-reference stream's rows read by its own code (`grammar.ts`,
+`reading.ts`), and inflates with `pako` 3.0.2 from one budget a document
+(`inflate.ts`); every bound is `limits.ts`'s, held before the work it
+bounds and measured at it and one past it in Node, the costliest in
+Chromium too, one count of values a document, on which each decoder, each
+annotation a page lists, the encryption peek and each walk the closure
+makes again are counted. The pages are read
+as a viewer shows them (`page-tree.ts`, `pages.ts`), their annotations
+flattened by the print rule (`annotations.ts`), every object they draw
+with collected (`closure.ts`), an image held to its pixels and passed on
+undecoded (`images.ts`), an inline image ended only where the PDF.js the
+corpus pins ends it (`inline-images.ts`, `inline-end.ts`, `MIRRORED_PDFJS`,
+which `scripts/mirrored-pdfjs.test.mjs` holds), and what does not survive
+printing counted and never named (`notices.ts`); an encrypted, damaged,
+shadowed or layered file, XFA, NeedAppearances, an annotation that would
+print otherwise than a viewer shows it, a filter it does not decode (LZW,
+Crypt, a TIFF predictor), a stream in another file, and a form or an image
+that names one to print in its place (`/Ref`, `/OPI`) are refused;
+pdf-lib's own name pool is never fed a file's names, and its PNG decoder,
+UPNG, never called (`read.test.ts`)
+([0054](docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
@@ -307,6 +338,9 @@ before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical
    hashing and migrations. No framework, no driver, no PDF engine, no Node.
+   Beside it, `report-documents` -- the one PDF reader, on the parser and
+   pako alone, depending on no package of this repository; no framework,
+   no Node, no DOM, no network (0054).
 2. `report-core` -- pure document commands, atomic history, diagnostics.
 3. `report-builder-core` -- selection, palette, properties, geometry, review
    state, the images a person adds, a report's QR-bill and e-invoice edited
@@ -446,8 +480,8 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
 - **Nothing in a package reads configuration.** The composition root reads it,
   once. A connection string, a token or a row of customer data in a log line,
   an error message or a test fixture is a defect.
-- **Templates, expressions, datasets, fonts, images, and a formancy form's
-  versions and their submissions are untrusted**, even when an
+- **Templates, expressions, datasets, fonts, images, PDFs, and a formancy
+  form's versions and their submissions are untrusted**, even when an
   administrator wrote them or the host kept them. Expressions are typed, bounded and run no
   code. Assets are referenced by approved identifier and never fetched by
   address. Nothing in a package reaches the network.
@@ -690,7 +724,12 @@ pnpm --filter @formancy/report-spec exec vitest run src/version.test.ts    # one
 pnpm --filter @formancy/report-spec exec vitest run -t "a test's name"     # one case
 pnpm lint                                                                  # every file, after pnpm build: the typed rules read dist/
 pnpm format                                                                # Prettier writes every file, before a commit
+pnpm test:repo                                                             # the repository's guards, after pnpm build
 ```
+
+`pnpm test:repo` needs `pnpm build` first, as CI's `verify` runs it:
+`scripts/documents-declarations.test.mjs` reads report-documents' built
+`dist/index.d.mts`, and without a build it fails and says so (0054).
 
 `verify` fails a TypeScript or JavaScript file that breaks a lint rule or
 that Prettier would write otherwise (0050). A finding is fixed, not
