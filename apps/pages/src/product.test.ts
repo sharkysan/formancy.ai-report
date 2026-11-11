@@ -56,10 +56,9 @@ describe('the product page introduces its topics', () => {
 })
 
 describe('the product page shows its exact totals', () => {
-  // Exact totals were one card among the start page's claims, its tests
-  // under one heading: a section of its own holds each claim on its own
-  // tests, and stands where a reader who has met the topics reads on,
-  // before how the product behaves.
+  // Folded back into one card, the totals would rest on one list of tests
+  // under one heading; placed after the examples, they would stand where a
+  // reader no longer reads.
   test('shows exact totals between the topics and how it behaves, in every language', () => {
     expect(productPages).toHaveLength(LANGUAGES.length)
     for (const page of productPages) {
