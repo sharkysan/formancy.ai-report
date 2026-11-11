@@ -3,7 +3,7 @@ import type { Grammar } from './grammar.js'
 import { decodedBytes } from './inflate.js'
 import { MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_XREF_ENTRIES, MAX_DOCUMENT_XREF_SECTIONS } from './limits.js'
 import { isArray, isCount, type PdfDict, type PdfStream } from './model.js'
-import type { InflateBudget } from './reading.js'
+import type { InflateBudget, Reading } from './reading.js'
 import { refuse } from './refusals.js'
 
 /**
@@ -80,21 +80,31 @@ function offsetIn(trailer: PdfDict, key: string): number | undefined {
   return isCount(value) ? value : -1
 }
 
-/** A classic section, the grammar just past its `xref`: subsections of `first count` and their entries, then its trailer. */
-export function table(grammar: Grammar, claims: Claims): Section {
+/**
+ * A classic section, the grammar just past its `xref`: subsections of
+ * `first count` and their entries, then its trailer. Each subsection's
+ * header is counted on the document's one count, two values for its two
+ * numbers, since one of no entries claims nothing: five million of `0 0`
+ * held 412 MiB uncounted. One of no entries is held below /Size by its
+ * first number alone, the largest of which is all that is kept of them.
+ */
+export function table(grammar: Grammar, claims: Claims, reading: Reading): Section {
   claims.section()
   const entries = new Map<number, Entry>()
   const subsections: (readonly [number, number])[] = []
+  let emptyFirst = 0
   let claimed = 0
   grammar.space()
   while (isDigit(grammar.peek())) {
+    reading.counted(2)
     const first = grammar.int('xref-entry')
     grammar.space()
     const count = grammar.int('xref-entry')
     claimed += count
     if (claimed > MAX_DOCUMENT_OBJECTS + 1) refuse('xref-claim')
     claims.claim(count)
-    subsections.push([first, count])
+    if (count === 0) emptyFirst = Math.max(emptyFirst, first)
+    else subsections.push([first, count])
     // The rows are counted, not the object numbers: past 2^53 a number plus one is the same number.
     for (let row = 0; row < count; row += 1) {
       const num = first + row
@@ -117,6 +127,7 @@ export function table(grammar: Grammar, claims: Claims): Section {
   const size = trailer.entries.get('Size')
   if (!isCount(size)) refuse('xref-size')
   for (const [first, count] of subsections) belowSize(first, count, size)
+  belowSize(emptyFirst, 0, size)
   return { entries, trailer, prev: offsetIn(trailer, 'Prev'), xrefStm: offsetIn(trailer, 'XRefStm') }
 }
 
@@ -171,7 +182,11 @@ export function xrefStream(stream: PdfStream, budget: InflateBudget, claims: Cla
 /**
  * The entries the file's cross-reference gives, the newest section's
  * first: from the section the last `startxref` names, then its /XRefStm,
- * then its /Prev's, and so on; and the newest trailer.
+ * then its /Prev's, and so on; and the newest trailer. A cross-reference
+ * stream that several sections name is merged once, where the first names
+ * it, by the offset it is kept at: merged again, it sets nothing, the first
+ * entry for a number winning, and 999 sections over one stream of 100,001
+ * rows took 2.4 s.
  */
 export function chained(
   sections: ReadonlyMap<number, Section>,
@@ -185,6 +200,7 @@ export function chained(
     for (const [num, entry] of from) if (!entries.has(num)) entries.set(num, entry)
   }
   const seen = new Set<number>()
+  const hybrids = new Set<number>()
   for (let at: number | undefined = startxref; at !== undefined;) {
     if (seen.has(at)) refuse('prev-cycle')
     seen.add(at)
@@ -194,7 +210,10 @@ export function chained(
     if (section.xrefStm !== undefined) {
       const hybrid = sections.get(section.xrefStm)
       if (hybrid === undefined) refuse('xref-stream-nowhere')
-      merge(hybrid.entries)
+      if (!hybrids.has(section.xrefStm)) {
+        hybrids.add(section.xrefStm)
+        merge(hybrid.entries)
+      }
     }
     at = section.prev
   }

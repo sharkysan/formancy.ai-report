@@ -150,7 +150,7 @@ class Loop {
     for (grammar.space(); !grammar.done(); grammar.space()) {
       const at = grammar.at
       if (isDigit(grammar.peek())) this.object(at)
-      else if (grammar.match(XREF)) this.sections.set(at, table(grammar, this.claims))
+      else if (grammar.match(XREF)) this.sections.set(at, table(grammar, this.claims, this.reading))
       else if (grammar.match(STARTXREF)) {
         grammar.space()
         this.startxref = grammar.int('no-startxref')

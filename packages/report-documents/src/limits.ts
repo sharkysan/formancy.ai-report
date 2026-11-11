@@ -14,12 +14,16 @@
  * November on mains power, each comment saying when where it matters:
  * each run in a fresh worker, the median time of five runs and the
  * largest heap of them, the memory outside the heap -- buffers: the
- * reader's copy of the file, what it inflates -- said beside it. The same
- * machine read the RunLength shape and the two 1,000-page tagged reports
- * 1.4 to 1.7 times slower on battery on 8 November than on mains on 11
- * November, on builds that differ only in the final fix wave. The costliest legitimate files and shapes
- * were also read in Chromium (Headless Shell 156), as each says; the
- * others were not. Those that say "chosen" are not set by a measurement,
+ * reader's copy of the file, what it inflates -- said beside it. Three
+ * shapes were read both ways -- eight RunLength stages a stream at their
+ * bound, and the two 1,000-page tagged reports -- and took 1.4 to 1.7
+ * times as long on battery on 8 November as on mains on 11 November. That
+ * factor mixes power with method: the later harness collects what making
+ * the file left before the timed read, which the earlier did not, and the
+ * builds differ by the final fix wave. No file at several bounds at once
+ * was read on battery. The costliest legitimate files and shapes were also
+ * read in Chromium (Headless Shell 156), as each says; the others were
+ * not. Those that say "chosen" are not set by a measurement,
  * and say why they are what they are.
  */
 
@@ -78,7 +82,10 @@ export const MAX_DOCUMENT_XREF_ENTRIES = 2 * (MAX_DOCUMENT_OBJECTS + 1)
  * `xref trailer<</Size 0>>` held 427 MiB (the parse's re-review). A file's
  * revisions each add one, a hybrid two; the spike's sample held at most
  * three. A thousand, a ruling: a file of as many read in 13 ms, one more
- * was refused in 11 ms.
+ * was refused in 11 ms. A hybrid's /XRefStm names a stream every section
+ * of a chain may name: merged again for each, 999 sections over one stream
+ * of 100,001 rows took 2.4 s; merged once, they read in 41 ms with 30 MiB
+ * (22 ms in Chromium), 11 November 2026, on mains power, a load of 4.5.
  */
 export const MAX_DOCUMENT_XREF_SECTIONS = 1_000
 
@@ -91,9 +98,15 @@ export const MAX_DOCUMENT_XREF_SECTIONS = 1_000
  * encryption check and again by the loop -- and what the reader does with
  * them: each decoder a stage of a stream builds, as `INFLATER_VALUES` or
  * `DECODER_VALUES`; each annotation a page lists, as `LISTING_VALUES`; each
- * entry of a container the closure walks again under another way of
- * reading it, one value an entry. One count a document, which is what its
- * time and heap grow with. Set by a 1,000-page tagged report,
+ * subsection header of a cross-reference table, two values, which claims
+ * nothing where it is empty; each entry of a container the closure walks
+ * again under another way of reading it, one value an entry. One count a
+ * document, which is what its time and heap grow with. A table of five
+ * million empty subsections, 19.1 MiB, held 412 MiB uncounted; counted,
+ * 999,979 of them, the most within the bound, read in 58 ms with 0.4 MiB,
+ * one more is refused in 57 ms, and the five million in 102 ms with
+ * 0.4 MiB (39, 38 and 78 ms in Chromium; 11 November, mains, loads 4.3 to
+ * 4.8). Set by a 1,000-page tagged report,
  * which holds 1,468,102; the spike's sample held at most 298 strings a
  * file. Measured on 731bd93, before the inline images' dictionaries and
  * the decoders were counted with the file's own values: at it, a file of
@@ -114,24 +127,26 @@ export const MAX_DOCUMENT_XREF_SECTIONS = 1_000
  * charged what it costs, 11 November 2026, on mains power: those shapes in
  * 122-205 ms (89-139 ms in Chromium), against 186 ms (118 ms) for the
  * bound's numbers. On the build that counts every listing, the encryption
- * check, the closure's walks again and each decoder at its cost here, files
- * at several bounds at once, the count at the bound exactly, Node 22.23.3,
- * loads 3.8 to 6.1: a thousand pages, content that inflates to
+ * check, the closure's walks again, each decoder at its cost and a
+ * table's subsection headers here, a listing at three, files at several
+ * bounds at once, the count at the bound exactly, Node 22.23.3, 15:27 to
+ * 15:33, loads 3.9 to 5.4: a thousand pages, content that inflates to
  * `MAX_DOCUMENT_INFLATED` and is lexed whole to an inline image at its
  * end, and the count spread over 450,000 one-byte strings, 200 listings a
  * page, a list of 40,000 references the closure walks seven ways and
- * 100,000 numbers in the last trailer, the file 20 MiB, read in 676 ms
- * with 97 MiB, one value past refused in 663 ms, one inflated byte past in
- * 567 ms (525, 486 and 434 ms in Chromium) -- 218 ms of it the comment
- * that pads it to 20 MiB, read after its values, which alone reads in
- * 42 ms (`MAX_DOCUMENT_BYTES`); the count spent on 7,500 streams of eight
- * RunLength stages, beside the same content and 115 strings of the longest
- * a string may be, in 502 ms with 23 MiB, one past in 506 ms (324 and
- * 325 ms) -- 748 ms at the earlier charges, with 23,000 streams; the count
- * spent on 990,000 one-byte strings the closure walks, the dearest a value
- * is to hold, beside the same content, in 442 ms with 190 MiB, the most
- * heap of any file measured, one past in 391 ms (272 and 253 ms). Outside
- * the heap, up to 90 MiB, the reader's copy of the file among it.
+ * 100,000 numbers in the last trailer, the file 20 MiB, read in 682 ms
+ * with 95 MiB, one value past refused in 637 ms, one inflated byte past in
+ * 563 ms (509, 481 and 430 ms in Chromium) -- of which the comment that
+ * pads it to 20 MiB, read after its values, cost 218 ms on the build
+ * before, against 42 ms alone (`MAX_DOCUMENT_BYTES`); the count spent on
+ * 7,500 streams of eight RunLength stages, beside the same content and 115
+ * strings of the longest a string may be, in 502 ms with 23 MiB, one past
+ * in 504 ms (325 and 331 ms) -- 748 ms at the earlier charges, with 23,000
+ * streams; the count spent on 990,000 one-byte strings the closure walks,
+ * the dearest a value is to hold, beside the same content, in 436 ms with
+ * 185 MiB, the most heap of any file measured, one past in 380 ms (272 and
+ * 251 ms). Outside the heap, up to 90 MiB, the reader's copy of the file
+ * among it.
  */
 export const MAX_DOCUMENT_VALUES = 2_000_000
 
@@ -155,7 +170,9 @@ export const MAX_DOCUMENT_VALUES = 2_000_000
  * 15:03, loads 3.8 to 6.1: streams of one, four, five and six stages at
  * their bounds read in 123-205 ms and one past them were refused in
  * 122-203 ms (90-138 ms and 89-137 ms in Chromium); 20,832 inline images
- * read in 157 ms, one more refused in 159 ms (137 and 137 ms). It was 24
+ * read in 157 ms, one more refused in 159 ms (137 and 137 ms); with the
+ * table's headers counted, 20,831 in 160 and 167 ms (139 and 139 ms). It
+ * was 24
  * until then, the smaller of 16 and 24 that kept those shapes within a
  * second on battery (632 ms at worst in Node), a choice that left a file
  * at several bounds at once within the second on mains power alone. An
@@ -184,18 +201,22 @@ export const DECODER_VALUES = 30
  * What one annotation a page lists is counted as against
  * `MAX_DOCUMENT_VALUES`, null or not, every page together: a listing is
  * read, drawn, and walked by the closure as one of the page's roots, which
- * a value is not. Two, a listing's cost against a value's, measured in one
- * series on 11 November 2026, Node 22.23.3 on an Apple M2 on mains power,
- * a load of 4.5 to 5.6, medians of five cold runs in fresh workers: a
- * thousand pages sharing one /Annots of 989 listings of one printed Stamp
- * of 21 actions, the most within the bound at two, read in 181 ms with
- * 76 MiB, 183 ns a listing; 2,000,000 numbers, the values bound at its
- * cheapest, in 186 ms, 93 ns a value, a ratio of 1.97 (7b's medians on
- * battery, two million listings counted apart from the values, gave 1.98).
- * One listing more is refused on page 1000 in 73 ms, before the closure
- * (119 and 50 ms in Chromium, Headless Shell 156).
+ * a value is not. Its cost against a value's, the dearer of Node and
+ * Chromium rounded up, as `INFLATER_VALUES`' is. Measured on 11 November
+ * 2026, Node 22.23.3 and Chrome Headless Shell 156 on an Apple M2 on
+ * mains power, loads 4.1 to 5.6, medians of five cold runs in fresh
+ * workers or browser contexts: a thousand pages sharing one /Annots of 989
+ * listings of one printed Stamp of 21 actions read in 177.5 ms in Node and
+ * 118.6 ms in Chromium, 179 and 120 ns a listing, against 2,000,000
+ * numbers in 185.8 and 117.7 ms, 93 and 59 ns a value: 1.93 in Node, 1.97
+ * in a series of its own, and 2.04 in Chromium (7b's medians on battery,
+ * two million listings counted apart from the values, gave 1.98). At
+ * three, 15:27 to 15:33, loads 3.9 to 5.4: 660 listings a page, the most
+ * within the bound, read in 130 ms with 45 MiB (87 ms in Chromium); one
+ * more is refused on page 999 in 62 ms (38 ms), before the closure. It was
+ * two until then, Node's ratio alone.
  */
-export const LISTING_VALUES = 2
+export const LISTING_VALUES = 3
 
 /**
  * The bytes of a PDF's distinct names, decoded, together. Chosen: 78 times

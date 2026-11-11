@@ -220,13 +220,16 @@ report as dense as the densest measured is refused past about 700 pages.
 Its bounds were set against a second and 256 MiB of heap on one laptop on
 battery, where the slowest shape at its bound read in 808 ms, and, with
 each decoder charged what it costs, files at several bounds at once on
-mains power, where the slowest read in 676 ms and the dearest held
-190 MiB, three quarters of the heap's 256 MiB: on battery the same laptop
-read the shapes it read both ways 1.4 to 1.7 times slower, so by
-arithmetic the slowest would take 0.95 to 1.15 s there -- 218 ms of it a
-padding comment pdf-lib's grammar passes a byte at a time -- and the
-decoders' 0.70 to 0.85 s, synchronously, on the thread that asked; and
-nothing times a read in CI. What a read leaves in
+mains power, where the slowest read in 682 ms and the dearest held
+185 MiB, nearly three quarters of the heap's 256 MiB. Three shapes were
+read on battery too -- eight RunLength stages a stream, and the two
+tagged reports -- and took 1.4 to 1.7 times as long, a factor that mixes
+power with method, the later harness collecting before the timed read;
+no file at several bounds at once was read on battery. By that factor,
+as arithmetic, the slowest would take 0.95 to 1.16 s there -- about
+218 ms of it a padding comment pdf-lib's grammar passes a byte at a time
+-- and the decoders' 0.70 to 0.85 s, synchronously, on the thread that
+asked; and nothing times a read in CI. What a read leaves in
 its process is not measured on this reader: it feeds pdf-lib's pools
 nothing of a file, which spies hold, and the pools' cost was measured on
 the spike's loop alone, so the server that will read uploads is to read

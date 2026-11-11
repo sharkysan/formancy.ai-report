@@ -2309,7 +2309,7 @@
       ]
     },
     "0054": {
-      "reviewed": "sha256:bd34054d1b4287f13ae9ed9f06fa9f6235dc15ad6b3ae9279aebca59fc82be66",
+      "reviewed": "sha256:1e71d0a639e827143e14ab2ee5ddc621d37f62670f9180ee72e1af69fa2d041a",
       "limitations": [
         {
           "area": "format",
@@ -2338,7 +2338,7 @@
         },
         {
           "area": "format",
-          "says": "The same count holds two values for each annotation a PDF's pages list, every page together, so a thousand pages that share one list of about a thousand annotations are refused.",
+          "says": "The same count holds three values for each annotation a PDF's pages list, every page together, so a thousand pages that share one list of about 660 annotations are refused.",
           "heldBy": "packages/report-documents/src/annotations.test.ts"
         },
         {

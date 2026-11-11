@@ -1,9 +1,11 @@
 import { deflate } from 'pako'
 import { describe, expect, test } from 'vitest'
-import { MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_XREF_ENTRIES, MAX_DOCUMENT_XREF_SECTIONS } from './limits.js'
+import { MAX_DOCUMENT_OBJECTS, MAX_DOCUMENT_VALUES, MAX_DOCUMENT_XREF_ENTRIES, MAX_DOCUMENT_XREF_SECTIONS } from './limits.js'
+import type { PdfDict } from './model.js'
 import { AT_A_BOUND, expectRefused, parsed } from './parse-test-support.js'
 import { claimingXrefStream, emptySections, unchainedStreams, unchainedTables } from './test-hostile.js'
 import { basic, concat, CONTENT, latin1, MIB, onePage, PdfWriter, repeated, type XrefEntry } from './test-pdf.js'
+import { chained, type Entry, type Section } from './xref.js'
 
 /**
  * The cross-reference: read section by section, as the loop meets each,
@@ -386,6 +388,72 @@ describe('what a cross-reference may claim', () => {
     parsed(past('/Size 8'))
     // ISO 32000 requires a trailer's /Size; without one, nothing holds its subsections.
     expectRefused(past(''), 'malformed', 'xref-size')
+    // A subsection of no entries names no object, and is held below /Size by its first number all the same.
+    const empty = (first: number): Uint8Array => {
+      const v = new PdfWriter()
+      basic(v)
+      return v.end(v.raw(`xref\n0 5\n0000000000 65535 f \n${lines}${String(first)} 0\ntrailer\n<</Size 5/Root 1 0 R>>\n`))
+    }
+    parsed(empty(5))
+    expectRefused(empty(6), 'malformed', 'xref-size')
+  })
+
+  // A subsection of no entries claims nothing, so no claim bounds how many
+  // of them a table holds: five million headers of "0 0", 19 MiB within
+  // every other bound, held 412 MiB of heap and ended a process of 256 MiB
+  // (the final wave's re-review). Each subsection's header is counted on
+  // the document's one count, two values for its two numbers, and one of
+  // no entries keeps nothing.
+  test("each subsection's header is counted on the document's one count, so that empty ones past MAX_DOCUMENT_VALUES are refused", AT_A_BOUND, () => {
+    const headed = (empty: number): Uint8Array => {
+      const w = new PdfWriter()
+      basic(w)
+      const rows = [1, 2, 3, 4].map((num) => `${String(w.offsets.get(num)).padStart(10, '0')} 00000 n \n`).join('')
+      const at = w.raw(`xref\n0 5\n0000000000 65535 f \n${rows}`)
+      w.raw(repeated('0 0\n', empty))
+      w.raw('trailer\n<</Size 5/Root 1 0 R>>\n')
+      return w.end(at)
+    }
+    const total = (bytes: Uint8Array): number => parsed(bytes).budget.reading.total
+    const own = total(headed(0))
+    expect(total(headed(1)) - own).toBe(2)
+    const most = Math.floor((MAX_DOCUMENT_VALUES - own) / 2)
+    expect(total(headed(most))).toBe(own + 2 * most)
+    expectRefused(headed(most + 1), 'too-many-objects', 'values')
+  })
+
+  // A hybrid file's classic sections each name the cross-reference stream
+  // they stand beside (/XRefStm), and every section of a chain may name the
+  // same one: merged again for each, 999 sections over one stream of
+  // 100,001 rows took 2.4 s, a file of 665 KB (the re-review). Each stream
+  // is merged once, by the offset it is kept at, which reads as before: a
+  // second merge of the same entries sets nothing, the first entry for a
+  // number winning.
+  test('a cross-reference stream every section names is merged once', () => {
+    class Iterated extends Map<number, Entry> {
+      iterations = 0;
+      override [Symbol.iterator](): MapIterator<[number, Entry]> {
+        this.iterations += 1
+        return super[Symbol.iterator]()
+      }
+    }
+    const trailer: PdfDict = { entries: new Map() }
+    const stream = new Iterated([
+      [1, { kind: 'at', offset: 9, gen: 0 }],
+      [2, { kind: 'at', offset: 99, gen: 0 }],
+    ])
+    const sections = new Map<number, Section>([[1000, { entries: stream, trailer, prev: undefined, xrefStm: undefined }]])
+    // The newest section gives object 2 itself; each older one names the stream again.
+    for (let at = 0; at < 3; at += 1) {
+      const own = new Map<number, Entry>(at === 2 ? [[2, { kind: 'free' }]] : [])
+      sections.set(at, { entries: own, trailer, prev: at > 0 ? at - 1 : undefined, xrefStm: 1000 })
+    }
+    const { entries } = chained(sections, 2)
+    expect([...entries]).toEqual([
+      [2, { kind: 'free' }],
+      [1, { kind: 'at', offset: 9, gen: 0 }],
+    ])
+    expect(stream.iterations).toBe(1)
   })
 
   // The parse's review: every section the loop meets is read and kept,

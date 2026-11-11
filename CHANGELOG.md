@@ -192,14 +192,16 @@ one yet.
   the objects, one count of values a document, what its streams decode
   to, an image's pixels, and the others `limits.ts` exports. Nothing a
   file makes the reader do is on a count of its own: each decoder, each
-  annotation a page lists, the second read of the last trailer and each
-  walk the closure makes again are counted with the file's values, so
-  that a file at several bounds at once is bounded by the one count too,
+  annotation a page lists, the second read of the last trailer, each
+  subsection header of a cross-reference table and each walk the closure
+  makes again are counted with the file's values, and a cross-reference
+  stream several sections name is merged once, so that a file at several
+  bounds at once is bounded by the one count too,
   and each decoder is counted as what it was measured to cost against a
   value -- an inflater 79, a fixed-ratio decoder 30 -- so that a file of
   many short compressed streams or inline images is refused sooner. Three
   such files were measured within the second and 256 MiB on mains power,
-  at 676 ms the slowest and 190 MiB the most heap. **A tagged
+  at 682 ms the slowest and 185 MiB the most heap. **A tagged
   report as dense as the densest measured is refused past about 700
   pages**, and is to be added in parts.
 - **Refused:** a file encrypted, cut short or damaged, bytes between its
@@ -218,8 +220,8 @@ one yet.
   person's data, read on 8 November 2026, 1,367 read, 116 were refused for
   layers and one for a cross-reference that is not where it says.
 - **The parser is `@pdfme/pdf-lib` 6.2.4's object grammar**, every token
-  but the keywords read by the reader's own code, and `pako` 3.0.2, both at exact versions
-  and both permissive. pdf-lib's stream decoders are ports of PDF.js's and
+  but the keywords read by the reader's own code, and `pako` 3.0.2, both
+  at exact versions and both permissive. pdf-lib's stream decoders are ports of PDF.js's and
   XPDF's under Apache-2.0, which its bundle and its MIT licence file do not
   say: a bundle that holds the reader owes that licence's text and the
   ports' attribution, through an entry of the notices that lands with the

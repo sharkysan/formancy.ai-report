@@ -40,7 +40,10 @@
       section, chained or not, before a row is read; members of an object
       stream that share an offset, go back or run into the next refused;
       and a member read from an earlier definition of its object stream
-      than the chain names, refused as a shadow is.
+      than the chain names, refused as a shadow is; each subsection's header
+      counted on the document's one count, an empty one held below /Size
+      by its first number; and a cross-reference stream every section of a
+      chain names merged once.
     - `inflate.test.ts`: every stage of every stream from one budget,
       stopped the moment its output passes it; chunks sized to the input;
       the Adler-32 not compared; ASCIIHex, ASCII85 and RunLength refused
@@ -287,12 +290,15 @@ beside how it was measured, at it and one past it, or why it was chosen:
   check reads it before the loop does; each decoder a stage of a stream
   builds, a pako inflater as `INFLATER_VALUES` and a fixed-ratio decoder
   as `DECODER_VALUES`, counted where it is built; each annotation a page
-  lists, as `LISTING_VALUES`, every page together; and each entry of a
-  container the closure walks again under another way of reading it, one
-  value an entry. Nothing a document makes the reader do is on a count of
-  its own beside this one, but what the bytes, the inflate budget, the
-  objects, the cross-reference's entries and sections, the names' bytes
-  and the pages bound;
+  lists, as `LISTING_VALUES`, every page together; each subsection header
+  of a classic cross-reference table, two values for its two numbers,
+  since one of no entries claims nothing; and each entry of a container
+  the closure walks again under another way of reading it, one value an
+  entry. A cross-reference stream several sections name is merged once.
+  Nothing a document makes the reader do is on a count of its own beside
+  this one, but what the bytes, the inflate budget, the objects, the
+  cross-reference's entries and sections, the names' bytes and the pages
+  bound;
 - the distinct names' bytes together; the pages; what every stage of every
   stream decodes to, together, from one budget; nesting; a name's, a
   string's and a number's length;
@@ -401,18 +407,27 @@ field's value may be a person's data.
   is charged what it costs: a thousand pages, content that inflates to
   the inflate bound and is lexed whole, and the values count at its bound
   exactly, spent on strings, listings, the closure's walks and the last
-  trailer, the file 20 MiB, read in 676 ms with 97 MiB of heap; spent on
+  trailer, the file 20 MiB, read in 682 ms with 95 MiB of heap; spent on
   the dearest decoders instead, in 502 ms; and on the strings that cost
-  the most heap, in 442 ms with 190 MiB, the most of any file measured,
-  three quarters of the 256 MiB; each refused one past its bound within
-  663 ms. In Chromium the three read in 272 to 525 ms, and were refused
-  one past in 253 to 486 ms. That was on mains power, where the same
-  machine read the shapes it had read on battery 1.4 to 1.7 times faster.
-  By that arithmetic, not measured, the decoders' file would take 0.70 to
-  0.85 s on battery, inside the second; the first would take 0.95 to
-  1.15 s, at the second or past it. 218 ms of its 676 is the comment that
-  pads it to 20 MiB, which pdf-lib's grammar passes a byte at a time and
-  which costs 42 ms in a file of nothing else.
+  the most heap, in 436 ms with 185 MiB, the most of any file measured,
+  nearly three quarters of the 256 MiB; each refused one past its bound
+  within 637 ms. In Chromium the three read in 272 to 509 ms, and were
+  refused one past in 251 to 481 ms. Two shapes the review of that build
+  found were measured on it too, once fixed: a table of five million
+  empty subsections, which held 412 MiB uncounted and ended a process of
+  256 MiB, is refused in 102 ms within 0.4 MiB, and 999 sections over one
+  cross-reference stream, which took 2.4 s, read in 41 ms. All of it was
+  on mains power. Three shapes were read on battery too -- eight
+  RunLength stages a stream at their bound, and the two tagged reports --
+  and took 1.4 to 1.7 times as long there, a factor that mixes power with
+  method: the later harness collects what making the file left before the
+  timed read, and the builds differ by the final fix wave. No file at
+  several bounds at once was read on battery. By that factor, as
+  arithmetic, the decoders' file would take 0.70 to 0.85 s on battery,
+  inside the second, and the first 0.95 to 1.16 s, at the second or past
+  it: about 218 ms of its time is the comment that pads it to 20 MiB,
+  which pdf-lib's grammar passes a byte at a time and which costs 42 ms in
+  a file of nothing else.
 - **What prints is what a viewer shows.** A shadowed revision, a layer, a
   field without an appearance and an inline image a viewer would end
   elsewhere are refused rather than printed otherwise than the author saw
@@ -451,22 +466,25 @@ field's value may be a person's data.
   the last charges, which add about 17,000 values at 709 pages, far below
   the bound, and were not timed again. A raise would rest on an estimate
   at the edge of the second.
-- **The second is this machine's.** The slowest shape at its bound alone,
-  eight RunLength stages a stream, read in 808 ms in Node and 657 ms in
-  Chromium on battery at the charge of 8, and, charged what each decoder
-  costs, the dearest of the decoders' shapes in 205 ms and 139 ms on mains
-  on 11 November; a legitimate 1,000-page tagged report in object streams
-  in 658 ms and 455 ms on battery, 409 ms and 365 ms on mains. Each of those is the median of five cold runs, each in a fresh
-  worker or browser context, under Node 22.23.3 and Chrome Headless Shell
-  156 on an Apple M2 on battery, from 6 to 8 November 2026, under loads of
-  2 to 10 while other work ran; and one earlier series of the tagged
-  report, at a load of 7.5, spread from 713 to 1,208 ms. The laptop slept
-  between wakes for much of it. Every run's times were read for a sleep
-  found in its power log: runs a sleep reached were dropped, and one series
-  was discarded whole; one series at 16 ran across sleeps and was kept, and
-  whether the 24 series' Chromium half did is unknown, its log gone. By
-  arithmetic, if a read's time scales with the machine, on one twice as
-  slow those two shapes would take more than a second.
+- **The second is this machine's.** On battery, from 6 to 8 November
+  2026, the slowest shape at its bound alone, eight RunLength stages a
+  stream at the charge of 8, read in 808 ms in Node and 657 ms in
+  Chromium, and a legitimate 1,000-page tagged report in object streams in
+  658 ms and 455 ms, under loads of 2 to 10 while other work ran; one
+  earlier series of the tagged report, at a load of 7.5, spread from 713
+  to 1,208 ms. On mains power on 11 November, with each decoder charged
+  what it costs, the dearest of the decoders' shapes read in 205 ms and
+  139 ms, and the tagged report in 413 ms and 273 ms, under loads of 3.8
+  to 6.1. Each is the median of five cold runs, each in a fresh worker or
+  browser context, under Node 22.23.3 and Chrome Headless Shell 156 on an
+  Apple M2. On battery the laptop slept between wakes for much of it.
+  Every run's times were read for a sleep found in its power log: runs a
+  sleep reached were dropped, and one series was discarded whole; one
+  series at 16 ran across sleeps and was kept, and whether the 24 series'
+  Chromium half did is unknown, its log gone. On mains no sleep was
+  logged. By arithmetic, if a read's time scales with the machine, on one
+  twice as slow the slowest file at several bounds at once would take more
+  than a second.
 - **Each decoder is charged what it costs.** A pako inflater counts as
   `INFLATER_VALUES`, 79, and a fixed-ratio decoder as `DECODER_VALUES`,
   30: what each was measured to cost against a value on 11 November, the

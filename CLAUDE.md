@@ -724,7 +724,12 @@ pnpm --filter @formancy/report-spec exec vitest run src/version.test.ts    # one
 pnpm --filter @formancy/report-spec exec vitest run -t "a test's name"     # one case
 pnpm lint                                                                  # every file, after pnpm build: the typed rules read dist/
 pnpm format                                                                # Prettier writes every file, before a commit
+pnpm test:repo                                                             # the repository's guards, after pnpm build
 ```
+
+`pnpm test:repo` needs `pnpm build` first, as CI's `verify` runs it:
+`scripts/documents-declarations.test.mjs` reads report-documents' built
+`dist/index.d.mts`, and without a build it fails and says so (0054).
 
 `verify` fails a TypeScript or JavaScript file that breaks a lint rule or
 that Prettier would write otherwise (0050). A finding is fixed, not
