@@ -47,7 +47,7 @@
     "typescript": "catalog:",
     "vitest": "catalog:",
     "@analogjs/vite-plugin-angular": "^2.7.2",
-    "@angular/build": "^22.1.8",
+    "@angular/build": "^22.2.6",
     "@angular/common": "^22.1.7",
     "@angular/compiler": "^22.1.7",
     "@angular/compiler-cli": "^22.1.7",
