@@ -15,7 +15,7 @@ import { checkWords } from './words.js'
  * The pdfmake document definitions a render hands pdfmake, built from the
  * resolved document and what was measured: pure, the same in Node and in a
  * browser, and the one place either entry's definitions come from. What
- * runs them is the entry's own (`node.ts`, `browser.ts`).
+ * runs them is the entry's own (`node.ts`, `browser-engine.ts`).
  *
  * The page regions: pdfmake draws its header inside the top page margin and
  * its footer inside the bottom one, and lays the body out between. So

@@ -55,9 +55,14 @@ export interface MeasuredFace {
 export interface FaceWidths {
   /**
    * The width of `text` at `size` in `family`'s `face`: PDFKit's
-   * `widthOfString` of the face pdfmake opened, which is how pdfmake
-   * measures a text node it lays out without wrapping. Throws for a face
-   * that was not opened: its virtual file is gone by now.
+   * `widthOfString` of the face pdfmake opened. That is the width pdfmake
+   * gives a text node it lays out without wrapping only for text with no
+   * whitespace at either end and no tab: pdfmake cuts a run's leading and
+   * trailing `\s` -- no-break spaces among them -- out of its width, and
+   * expands a tab to four spaces before it measures, and this does neither
+   * (`engine.test.ts`). A word reaches it trimmed and without a tab, or is
+   * measured apart from how pdfmake prints it. Throws for a face that was
+   * not opened: its virtual file is gone by now.
    */
   width(family: string, face: Face, size: number, text: string): number
 }

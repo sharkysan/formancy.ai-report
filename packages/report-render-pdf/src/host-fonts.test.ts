@@ -206,6 +206,7 @@ describe('what a measurer knows a host face by', () => {
   // chart (12 November 2026). It is taken the first time a chart asks for
   // it, once however often it is asked, and for no face nobody asks about.
   test("takes a face's digest the first time its key is asked for, and once", () => {
+    vi.mocked(assetDigest).mockClear()
     const plan = planFonts({ sans: { normal: face('brand', HOST_SANS) }, serif: { normal: face('other', HOST_SANS_BOLD) } }, ROBOTO)
     const [sans, serif] = [...plan.engine.files.values()]
     const digests = (bytes: Uint8Array | undefined): number => vi.mocked(assetDigest).mock.calls.filter(([each]) => each === bytes).length

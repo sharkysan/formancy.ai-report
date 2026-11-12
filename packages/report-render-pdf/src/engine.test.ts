@@ -96,13 +96,18 @@ const hostFiles = (virtualfs: VirtualFs): string[] => Object.keys(virtualfs.stor
  * November 2026: a text node with `noWrap`, in a pass of pdfmake's Node
  * build, its `_maxWidth` read back, and the same width summed from
  * fontkit's advances word by word (scratchpad probe `widths.mjs`); the
- * spike's measure, in both builds (Task 15, Q3), for the regular faces.
+ * chart spike's measure, in both builds, for the regular faces. 'AVA' and
+ * 'To' kern in Liberation Serif's own bytes, to 15.26953125 and 8.328125
+ * (8.6015625 for bold 'To'): what a host's face prints in is its bytes
+ * stripped of their layout tables, measured here by its plain advances,
+ * 4437, 2275 and 2390 of its 2048 units, read with fontkit (scratchpad
+ * probe `edges-kern.mjs`).
  */
 const MEASURED: readonly { readonly family: string; readonly face: Face; readonly widths: Readonly<Record<string, number>> }[] = [
   { family: 'Roboto', face: 'normal', widths: { 'Umsatz nach Region': 73.19140625, '-30.00': 22.3046875 } },
   { family: 'Roboto', face: 'bold', widths: { 'Umsatz nach Region': 73.5703125, '-30.00': 23.12890625 } },
-  { family: HOST_SERIF, face: 'normal', widths: { 'Umsatz nach Region': 66.6484375, '-30.00': 20.6640625 } },
-  { family: HOST_SERIF, face: 'bold', widths: { 'Umsatz nach Region': 70.21875, '-30.00': 20.6640625 } },
+  { family: HOST_SERIF, face: 'normal', widths: { 'Umsatz nach Region': 66.6484375, '-30.00': 20.6640625, AVA: 17.33203125, To: 8.88671875 } },
+  { family: HOST_SERIF, face: 'bold', widths: { 'Umsatz nach Region': 70.21875, '-30.00': 20.6640625, To: 9.3359375 } },
 ]
 
 /** pdfmake's slanted faces and bold ones, as a text node names them. */
@@ -159,13 +164,14 @@ describe('the faces an engine opens for measuring', () => {
 
   // ECharts places each word by the width it is told, and pdfmake prints
   // it in the width pdfmake measures: a measure taken otherwise -- another
-  // face, another size's scale, the bytes before the render stripped them
-  // -- would put a word beside its neighbour by one width and print it in
-  // another, over it. Each width is the one a pass of the same entry's
-  // pdfmake gives the same text node, and the one measured, in Roboto and
-  // in a host's Liberation Serif, regular and bold.
+  // face, another size's scale, the bytes before the render stripped them,
+  // which kern 'AVA' and 'To' -- would put a word beside its neighbour by
+  // one width and print it in another, over it. Each width is the one a
+  // pass of the same entry's pdfmake gives the same text node, and the one
+  // measured, in Roboto and in a host's Liberation Serif, regular and bold,
+  // for words with no whitespace at their edges and no tab.
   test.each(ENTRIES)(
-    'measures each word as pdfmake measures it, in the $entry entry',
+    'measures a word with no whitespace at its edges and no tab as pdfmake measures it, in the $entry entry',
     async ({ engine }) => {
       const host = planFonts(SERIF, ROBOTO).engine
       const widths = await engine.widths(host, MEASURED)
@@ -185,6 +191,32 @@ describe('the faces an engine opens for measuring', () => {
       }))
       expect(measured).toEqual(passed)
       expect(measured).toEqual(MEASURED)
+    },
+    TIMEOUT,
+  )
+
+  // pdfmake cuts a run's leading and trailing whitespace out of the width
+  // it lays the run out by, and expands a tab to four spaces before it
+  // measures; `width` is PDFKit's, which does neither. So a word holding
+  // either is measured apart from how pdfmake prints it, and must reach
+  // `width` trimmed and without a tab. Pinned in both entries, Roboto at
+  // 8 pt, as measured on 12 November 2026 (scratchpad probe
+  // `edges-kern.mjs`): a `width` that took pdfmake's rule up would decide
+  // what a word's edges and tabs measure in a second place, and fail here.
+  test.each(ENTRIES)(
+    "measures a word's edge whitespace and a tab as PDFKit does, which pdfmake does not, in the $entry entry",
+    async ({ engine }) => {
+      const host = planFonts(undefined, ROBOTO).engine
+      const widths = await engine.widths(host, [{ family: 'Roboto', face: 'normal' }])
+      // The words as written: pdfmake may write a node's text over as it expands a tab.
+      const words = [' North ', 'a\tb', 'North']
+      const nodes = words.map((text) => ({ text, font: 'Roboto', fontSize: 8, noWrap: true }))
+      await engine.run({ content: nodes }, host)
+      expect(words.map((text, index) => [widths.width('Roboto', 'normal', 8, text), (nodes[index] as { readonly _maxWidth?: number })._maxWidth])).toEqual([
+        [24.16796875, 20.19921875],
+        [12.390625, 16.78125],
+        [20.19921875, 20.19921875],
+      ])
     },
     TIMEOUT,
   )
