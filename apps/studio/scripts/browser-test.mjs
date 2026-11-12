@@ -31,7 +31,7 @@
 //     preview says on every page that it is no e-invoice (0044); every
 //     Download PDF downloaded as a person downloads it, and read again
 //     where the Preview printed anew between the read of the link and the
-//     download (gate-download.mjs);
+//     download, each pass measuring how often it did (gate-download.mjs);
 //   - the framework switch keeps the document and its history: an edit made
 //     in React is in the Angular builder with its Undo, undone there the PDF
 //     follows, and back in React the Redo is offered; and the first moment
@@ -111,7 +111,7 @@ import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { headersFor } from '../../../scripts/demo-headers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
-import { offeredPdf } from './gate-download.mjs'
+import { offeredPdf, rereadsOn } from './gate-download.mjs'
 import { interactions } from './gate-interactions.mjs'
 import { audit, connectionHints, describeFocus, fontProblem, fromTheTop, listenForRefusals, measureWidth, paletteProblem, refusalsOf } from './gate-measure.mjs'
 import { app, cutControls, downloaded, drawnPages, passes, rulesOnThePaper } from './gate-page.mjs'
@@ -480,6 +480,12 @@ async function pass(gate, browser, url, entry) {
           : `the page started ${workers.size === 0 ? 'no worker' : [...workers].join(', ')}`,
       )
   } finally {
+    // A green run would hide a race lost and read again; the pass says how often it was (gate-download.mjs).
+    gate.measure({
+      name: `${label}: Download PDFs read again, the Preview having replaced the address read before the download`,
+      value: rereadsOn(page),
+      unit: 'rereads',
+    })
     await page.close()
   }
   if (parity) {

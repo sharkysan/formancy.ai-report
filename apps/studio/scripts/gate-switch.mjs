@@ -26,8 +26,12 @@ const EDITED = 'Zahlbar innert 10 Tagen netto.'
  * A paper that settled on the earlier PDF, or a link to bytes the paper
  * does not show, is found here. Where the Preview printed again before
  * the download and took that address away, the PDF the link offers then
- * is read (offeredPdf): nothing is edited after the edit, so it is a PDF
- * of the same edit, and a link to an earlier PDF is found all the same.
+ * is read (offeredPdf), and counted among the pass's rereads: nothing is
+ * edited after the edit, so it is a PDF of the same edit. What that loses:
+ * a link that never moves off an earlier PDF is still found, but a link
+ * one render behind the paper is not, in a pass where a later render
+ * lands before the download, since that render's PDF is read in its
+ * place. In every other pass the settled frame's own bytes are read.
  */
 async function firstSettled(page) {
   await page.waitForFunction(() => document.querySelector('.paper')?.getAttribute('aria-busy') === 'true', undefined, { timeout: WITHIN })

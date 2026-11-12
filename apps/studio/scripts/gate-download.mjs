@@ -12,16 +12,36 @@ import { readFile } from 'node:fs/promises'
 
 /**
  * How many times a download is tried again at the address the link moved
- * to. Each move is a render that landed between the gate's read of the
- * link and its download; three in a row, while the gate edits nothing, is
- * a Preview that does not settle, which is a fault of its own and said.
+ * to: chosen, not measured. Each move is a render that landed between the
+ * gate's read of the link and its download; three in a row, while the gate
+ * edits nothing, is a Preview that does not settle, which is a fault of its
+ * own and said. The worst it costs is bounded at about four times the
+ * download's wait, the page's default timeout (`WITHIN`, 30 s, in the
+ * gate): reading the link waits for nothing, and a download lost to the
+ * race fails at once, its link not found.
  */
 export const REREADS = 3
 
-/** Where the Download PDF link of `preview`, the Preview's region, points now: its `blob:` address, or null while it offers no PDF. */
+/** The rereads made on each page the gate drives, by the page. */
+const rereadsMade = new WeakMap()
+
+/**
+ * How many downloads were tried again on `page` at an address the link had
+ * moved to: what the gate measures once a pass, so that a green run says
+ * whether the race was lost and read again, which no check can.
+ */
+export const rereadsOn = (page) => rereadsMade.get(page) ?? 0
+
+/**
+ * Where the Download PDF link of `preview`, the Preview's region, points
+ * now: its `blob:` address, or null while it offers no PDF. Read in one
+ * round trip, which waits for nothing: a count and then a read of the one
+ * link counted would wait out the page's timeout for a link a render took
+ * away between the two.
+ */
 export async function downloadAddress(preview) {
-  const link = preview.getByRole('link', { name: 'Download PDF', exact: true })
-  return (await link.count()) === 1 ? await link.evaluate((anchor) => anchor.href) : null
+  const addresses = await preview.getByRole('link', { name: 'Download PDF', exact: true }).evaluateAll((links) => links.map((link) => link.href))
+  return addresses.length === 1 ? addresses[0] : null
 }
 
 /**
@@ -56,24 +76,26 @@ async function pdfBytes(page, href) {
  * the read of the link and the download takes the address read away: the
  * download fails, though the page offers a PDF. Where it fails and the
  * link points elsewhere by then, the address read was replaced, and the
- * one the link holds now is downloaded instead, up to REREADS times; where
- * the link is gone by then, the Preview offers none. Where it fails and the
- * link still points where it did, the page failed to give the PDF it
- * offers, and that is thrown as it failed.
+ * one the link holds now is downloaded instead, up to REREADS times, each
+ * counted for the page (rereadsOn); where the link is gone by then, at any
+ * reread, the Preview offers none. Where it fails and the link still
+ * points where it did, the page failed to give the PDF it offers, and that
+ * is thrown as it failed.
  */
 export async function offeredPdf(page, preview, { href, besides = null } = {}) {
   let at = href === undefined ? await downloadAddress(preview) : href
-  if (at === besides) return null
-  for (let rereads = 0; at !== null; rereads += 1) {
+  if (at === null || at === besides) return null
+  for (let rereads = 0; ; rereads += 1) {
     try {
       return { href: at, bytes: await pdfBytes(page, at) }
     } catch (error) {
       const now = await downloadAddress(preview)
       if (now === at) throw error
+      if (now === null) return null
       if (rereads === REREADS)
         throw new Error(`the Download PDF moved to another address before each of ${String(REREADS + 1)} downloads, the last from ${at}`, { cause: error })
+      rereadsMade.set(page, rereadsOn(page) + 1)
       at = now
     }
   }
-  return null
 }
