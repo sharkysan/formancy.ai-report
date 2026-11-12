@@ -139,14 +139,27 @@ export function filesIn(directory) {
   return { fonts: fonts.sort(byPath), profiles: profiles.sort(byPath) }
 }
 
-/** The licence files at the root of a package's directory, `name` to the `sha256:` digest of its bytes, as a review reads them. */
+/**
+ * The licence texts of a package's directory by digest, `path` to its
+ * `sha256:`: the files at its root named licence, copying or notice, and
+ * every file of its `licenses` directory, as a review reads them. A
+ * symlink reads as missing, so the review fails closed.
+ */
 export function licenceTextsIn(directory) {
   const found = {}
+  const digestOf = (path) =>
+    `sha256:${createHash('sha256')
+      .update(readFileSync(join(directory, path)))
+      .digest('hex')}`
   for (const item of readdirSync(directory, { withFileTypes: true })) {
-    if (item.isFile() && /^(licen[cs]e|copying)(\.[a-z]+)?$/i.test(item.name))
-      found[item.name] = `sha256:${createHash('sha256')
-        .update(readFileSync(join(directory, item.name)))
-        .digest('hex')}`
+    if (item.isFile() && /^(licen[cs]e|copying|notice)(\.[a-z]+)?$/i.test(item.name)) found[item.name] = digestOf(item.name)
+  }
+  try {
+    for (const item of readdirSync(join(directory, 'licenses'), { withFileTypes: true })) {
+      if (item.isFile()) found[`licenses/${item.name}`] = digestOf(`licenses/${item.name}`)
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error
   }
   return found
 }

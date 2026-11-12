@@ -30,6 +30,10 @@
 // read its licence and recorded, by the digest of its bytes, the sentence
 // that grants it (`ICC_PROFILES`). A profile carries no licence to read.
 //
+// A package a review read for one dependent alone is `CONFINED`: at one
+// version, by the digest of its licence files, depended on by that package
+// and no other published one.
+//
 // Where a manifest or a font is silent or wrong, a reviewed exception records
 // what the evidence says the licence is, at one exact version; the policy
 // still applies to what it records. An exception nothing installs is refused,
@@ -202,6 +206,7 @@ function pointedFile(directory, licence) {
 export function closure(start, siblings = new Set()) {
   const found = []
   const seen = new Set()
+  const dependents = new Map()
   const visit = (directory, via) => {
     if (seen.has(directory)) return
     seen.add(directory)
@@ -229,14 +234,18 @@ export function closure(start, siblings = new Set()) {
       const at = resolveFrom(directory, name)
       if (at === undefined) found.push({ name, missing: true, via: path })
       else visit(at, path)
+      if (at !== undefined) dependents.set(at, new Set([...(dependents.get(at) ?? []), manifest.name]))
     }
     for (const [name, kind] of others) {
       const at = resolveFrom(directory, name)
-      if (at !== undefined) visit(at, path)
-      else if (kind === 'peer') found.push({ name, missing: true, peer: true, via: path })
+      if (at !== undefined) {
+        visit(at, path)
+        dependents.set(at, new Set([...(dependents.get(at) ?? []), manifest.name]))
+      } else if (kind === 'peer') found.push({ name, missing: true, peer: true, via: path })
     }
   }
   visit(realpathSync(start), [])
+  for (const item of found) if (!item.missing) item.dependents = [...(dependents.get(item.dir) ?? [])].sort()
   return found
 }
 
@@ -270,8 +279,11 @@ function dependentOf(item, ids) {
 /**
  * What is wrong with a confined package (`CONFINED`): the policy judges it
  * as any other, and it is further refused at a version no review read, with
- * a licence file whose digest is not the review's, and reached from a
- * package other than the one it is for.
+ * a licence file, or a file beside it the review read, whose digest is not the
+ * review's, and depended on by any package other than the one it is for or
+ * another confined package. A package that depends on the one it is for
+ * reaches it through that package, which is allowed: what is held is that
+ * no other published package depends on it itself.
  */
 function confinement(item, id, route, confined) {
   const ids = Object.keys(confined)
@@ -283,13 +295,19 @@ function confinement(item, id, route, confined) {
     ]
   }
   const admitted = confined[id]
-  const { path, sha256 } = admitted.licenceFile
-  const dependent = dependentOf(item, ids)
+  const names = new Set(ids.map((key) => key.slice(0, key.lastIndexOf('@'))))
+  // Every package that depends on it, not the first route the walk found: a
+  // direct dependency hides behind the route through the renderer.
+  const dependents = item.dependents ?? [item.via.at(-1)]
   return [
-    ...(item.licenceTexts?.[path] === sha256
-      ? []
-      : [`${id}'s ${path} is ${item.licenceTexts?.[path] ?? 'missing'}, not the licence file the review read (${sha256}) (${route})`]),
-    ...(dependent === admitted.for ? [] : [`${id} is admitted for ${admitted.for} alone, and ${String(dependent)} depends on it (${route})`]),
+    ...[admitted.licenceFile, ...(admitted.alsoRead ?? [])].flatMap(({ path, sha256 }) =>
+      item.licenceTexts?.[path] === sha256
+        ? []
+        : [`${id}'s ${path} is ${item.licenceTexts?.[path] ?? 'missing'}, not the file the review read (${sha256}) (${route})`],
+    ),
+    ...dependents
+      .filter((dependent) => dependent !== admitted.for && !names.has(dependent))
+      .map((dependent) => `${id} is admitted for ${admitted.for} alone, and ${String(dependent)} depends on it (${route})`),
   ]
 }
 

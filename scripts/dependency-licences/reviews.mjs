@@ -95,12 +95,14 @@ export const ICC_PROFILES = Object.freeze({
  * Packages admitted for one dependent alone, at one exact version, by the
  * SHA-256 of the licence file a review read (0058, extending 0006 as 0016
  * and 0047 did for Formancy Data's packages): `name@version` to that file,
- * the package whose dependency it may be, and what the review read. The
+ * the package whose dependency it may be, what the review read, and, in
+ * `alsoRead`, the files beside the licence the review read too. The
  * policy judges them as any package; they are further refused at another
  * version of the name, because a new release is another layout and another
  * measurer nobody read, with another licence file, and from any other
- * package, so that no builder carries a charting library into an editor's
- * bundle. `problems` refuses an entry nothing installs.
+ * package: no published package but the one it is for depends on it itself.
+ * Reaching it through that package is allowed, and what a bundle holds is
+ * the install gate's and the Studio's to prove, not this table's. `problems` refuses an entry nothing installs.
  *
  * Read on 2026-11-12 from the installed packages:
  * - `echarts@6.1.0`'s `LICENSE` is the Apache License 2.0 with its "Apache
@@ -121,6 +123,10 @@ export const ICC_PROFILES = Object.freeze({
 export const CONFINED = Object.freeze({
   'echarts@6.1.0': {
     licenceFile: { path: 'LICENSE', sha256: 'sha256:634293835b43a6dd2094fa39182a3d9a6b9ca43b7fdb9ac354e8037af2a3093a' },
+    alsoRead: [
+      { path: 'NOTICE', sha256: 'sha256:d491d358344f842685c1b1585970999db65fe30ecf7ef3867af8814f4016c016' },
+      { path: 'licenses/LICENSE-d3', sha256: 'sha256:e1211892da0b0e0585b7aebe8f98c1274fba15bafe47fa1f4ee8a7a502c06304' },
+    ],
     for: '@formancy/report-render-pdf',
     evidence: 'LICENSE in the tarball: Apache License 2.0 with its Apache ECharts Subcomponents section (d3.js, BSD-3-Clause), read 2026-11-12',
   },

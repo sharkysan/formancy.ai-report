@@ -466,11 +466,11 @@ describe('confined packages', () => {
       charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER]),
     ]
     expect(problems(found, {}, {}, {}, confined)).toEqual([
-      `echarts@6.1.0's LICENSE is ${changed}, not the licence file the review read (${READ}) (@formancy/report-render-pdf > echarts)`,
+      `echarts@6.1.0's LICENSE is ${changed}, not the file the review read (${READ}) (@formancy/report-render-pdf > echarts)`,
     ])
     const gone = [charting('echarts', '6.1.0', 'Apache-2.0', [RENDERER], { licenceTexts: {} }), charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER])]
     expect(problems(gone, {}, {}, {}, confined)).toEqual([
-      `echarts@6.1.0's LICENSE is missing, not the licence file the review read (${READ}) (@formancy/report-render-pdf > echarts)`,
+      `echarts@6.1.0's LICENSE is missing, not the file the review read (${READ}) (@formancy/report-render-pdf > echarts)`,
     ])
   })
 
@@ -505,6 +505,44 @@ describe('confined packages', () => {
     expect(problems(found, {}, {}, {}, {})).toEqual([])
   })
 
+  // A direct dependency hides behind the route through the renderer: the
+  // walk keeps the first path to a package, and the builder reaches echarts
+  // first through the renderer. Held by every package that depends on it.
+  test('refuses a published package that depends on echarts itself as well as on the renderer', () => {
+    const found = [
+      charting('echarts', '6.1.0', 'Apache-2.0', ['@formancy/report-builder-core', RENDERER], { dependents: [RENDERER, '@formancy/report-builder-core'] }),
+      charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER]),
+    ]
+    expect(problems(found, {}, {}, {}, confined)).toEqual([
+      'echarts@6.1.0 is admitted for @formancy/report-render-pdf alone, and @formancy/report-builder-core depends on it (@formancy/report-builder-core > @formancy/report-render-pdf > echarts)',
+    ])
+  })
+
+  // Depending on the renderer is depending on what it depends on, and it
+  // loads ECharts only for a chart; refusing the route would refuse the renderer.
+  test('allows a published package to reach echarts through the renderer', () => {
+    const found = [
+      charting('echarts', '6.1.0', 'Apache-2.0', ['@formancy/report-builder-core', RENDERER], { dependents: [RENDERER] }),
+      charting('zrender', '6.1.0', 'BSD-3-Clause', ['@formancy/report-builder-core', RENDERER, 'echarts'], { dependents: [RENDERER, 'echarts'] }),
+    ]
+    expect(problems(found, {}, {}, {}, confined)).toEqual([])
+  })
+
+  // echarts' root LICENSE only points at d3's BSD-3 text, which lives in
+  // licenses/LICENSE-d3, and the NOTICE is Apache's: a changed one is a
+  // text nobody read.
+  test('refuses an alsoRead file whose digest is not the one the review read', () => {
+    const NOTICE = `sha256:${'e'.repeat(64)}`
+    const withNotice = { ...confined, 'echarts@6.1.0': { ...confined['echarts@6.1.0'], alsoRead: [{ path: 'licenses/LICENSE-d3', sha256: NOTICE }] } }
+    const found = [
+      charting('echarts', '6.1.0', 'Apache-2.0', [RENDERER], { licenceTexts: { LICENSE: READ, 'licenses/LICENSE-d3': READ } }),
+      charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER]),
+    ]
+    expect(problems(found, {}, {}, {}, withNotice)).toEqual([
+      `echarts@6.1.0's licenses/LICENSE-d3 is ${READ}, not the file the review read (${NOTICE}) (@formancy/report-render-pdf > echarts)`,
+    ])
+  })
+
   // A confinement names a licence file by its digest, so the walk has to
   // read the package's own: without it the review's digest is compared with
   // nothing, and every confined package would pass or fail alike.
@@ -513,9 +551,16 @@ describe('confined packages', () => {
       'app/package.json': manifest('app', '1.0.0', 'MIT'),
       'app/LICENSE': 'the terms',
       'app/LICENSE.txt': 'other terms',
+      'app/NOTICE': 'a notice',
+      'app/licenses/LICENSE-d3': 'beside it',
       'app/docs/LICENSE': 'not at the root',
     })
-    expect(closure(join(root, 'app'))[0].licenceTexts).toEqual({ LICENSE: digest('the terms'), 'LICENSE.txt': digest('other terms') })
+    expect(closure(join(root, 'app'))[0].licenceTexts).toEqual({
+      LICENSE: digest('the terms'),
+      'LICENSE.txt': digest('other terms'),
+      NOTICE: digest('a notice'),
+      'licenses/LICENSE-d3': digest('beside it'),
+    })
   })
 
   // The real tree: the renderer's echarts and zrender at the versions the
@@ -528,6 +573,8 @@ describe('confined packages', () => {
       'zrender@6.1.0': '@formancy/report-render-pdf',
     })
     const charting = entries.filter((item) => item.name === 'echarts' || item.name === 'zrender')
+    // Every package that depends on either, as the walk recorded them.
+    expect([...new Set(charting.flatMap((item) => item.dependents))].sort()).toEqual(['@formancy/report-render-pdf', 'echarts'])
     expect([...new Set(charting.map((item) => `${item.name}@${item.version}`))].sort()).toEqual(Object.keys(CONFINED).sort())
     for (const item of charting) {
       expect(item.licenceTexts[CONFINED[`${item.name}@${item.version}`].licenceFile.path]).toBe(CONFINED[`${item.name}@${item.version}`].licenceFile.sha256)
