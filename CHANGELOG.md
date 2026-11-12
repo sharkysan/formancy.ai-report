@@ -10,6 +10,14 @@ later.
 
 ## Unreleased
 
+**The locked dependencies behind open Dependabot alerts are at their patched releases.** The
+server's image installs from the lockfile, so it now ships `fast-uri` 3.1.9, which `ajv` pulls in
+under Fastify and `@formancy/spec`; that is the only change to production code. The rest are
+development tools: `undici` 8.12.4, and `@angular/build` 22.2.6, whose `vite` 8.3.5 replaces the
+8.3.0 it pinned, with the builders' range floor raised to match. `minimatch` 10.2.6 stays: it comes
+through `@formancy/code-style`'s ESLint, and the fix is formancy.ai's, since a lint rule or its
+dependencies change there and never here.
+
 **The demo at `/report/` is served under a content security policy that admits its own files
 alone**
 ([0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)).
