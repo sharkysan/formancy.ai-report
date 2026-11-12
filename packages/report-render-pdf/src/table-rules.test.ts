@@ -11,7 +11,7 @@ const ROBOTO_ONLY = {
   familyOf: () => 'Roboto',
   usable: () => true,
   defaultFamily: 'Roboto',
-  face: () => ({ glyphs: new Set<number>(), lineFactor: 2400 / 2048, name: 'Roboto' }),
+  face: () => ({ glyphs: new Set<number>(), lineFactor: 2400 / 2048, ascent: 1900 / 2048, descent: -500 / 2048, key: () => 'Roboto/normal', name: 'Roboto' }),
   engine: { families: {}, files: new Map() },
 } satisfies RenderFonts
 

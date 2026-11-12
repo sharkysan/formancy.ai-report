@@ -5,10 +5,9 @@ import { fileURLToPath } from 'node:url'
 import pdfmake from 'pdfmake'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import type { ResolvedDocument } from '@formancy/report-runtime'
-import { BILL_FACES, FACES, glyphsOnce, registerHostFonts, written, type Engine, type VirtualFs } from './engine.js'
+import { BILL_FACES, FACES, faceWidths, glyphsOnce, registerHostFonts, written, type Engine, type VirtualFs } from './engine.js'
 import type { HostFontFiles } from './host-fonts.js'
 import type { RenderOptions } from './options.js'
-import type { Finish } from './pdfa.js'
 import { render } from './render.js'
 import { LIBERATION_SANS } from './style.js'
 
@@ -54,21 +53,28 @@ const FONT_FILES: ReadonlySet<string> = new Set([...Object.values(FONTS.Roboto),
 /** pdfmake's virtual file system in Node, where a host face's bytes go for a render; the Roboto and Liberation files are paths, read from disk, so nothing of theirs is here. */
 const virtualfs = (pdfmake as unknown as { readonly virtualfs: VirtualFs }).virtualfs
 
-async function run(definition: TDocumentDefinitions, host: HostFontFiles, finish?: Finish): Promise<Uint8Array> {
+/**
+ * What `use` makes of the document pdfmake makes of `definition`, with
+ * `host`'s faces in pdfmake's virtual files and pdfmake configured in the
+ * same synchronous step as `createPdf`; the faces removed after, whether
+ * it answered or threw.
+ */
+async function withDocument<T>(definition: TDocumentDefinitions, host: HostFontFiles, use: (document: Promise<unknown>) => Promise<T>): Promise<T> {
   const cleanup = registerHostFonts(virtualfs, host)
   try {
     pdfmake.setFonts({ ...FONTS, ...host.families })
     pdfmake.setUrlAccessPolicy(() => false)
     pdfmake.setLocalAccessPolicy((file) => FONT_FILES.has(file))
-    return await written(pdfmake.createPdf(definition).getStream(), finish)
+    return await use(pdfmake.createPdf(definition).getStream())
   } finally {
     cleanup()
   }
 }
 
-/** pdfmake in Node, and the glyphs of the very font files it embeds. */
-const engine: Engine = {
-  run,
+/** pdfmake in Node, and the glyphs of the very font files it embeds; exported for its tests alone, since `index.ts`, the entry, exports `renderPdf` and nothing of this. */
+export const engine: Engine = {
+  run: (definition, host, finish) => withDocument(definition, host, (document) => written(document, finish)),
+  widths: (host, faces) => withDocument({ content: [] }, host, (document) => faceWidths(document, faces)),
   glyphs: glyphsOnce(FACES, async (face) => new Uint8Array(await readFile(FONTS.Roboto[face]))),
   billGlyphs: glyphsOnce(BILL_FACES, async (face) => new Uint8Array(await readFile(FONTS[LIBERATION_SANS][face]))),
 }
