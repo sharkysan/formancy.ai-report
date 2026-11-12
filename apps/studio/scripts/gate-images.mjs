@@ -42,7 +42,7 @@ import { fileURLToPath } from 'node:url'
 import { SCENARIO_PNG } from '@formancy/report-builder-core'
 import { readPdf } from '@formancy/report-corpus'
 import { describeFocus } from './gate-measure.mjs'
-import { pdfBytes } from './gate-page.mjs'
+import { offeredPdf } from './gate-download.mjs'
 import { editorOf, open, previewInView, previewOf, said, settled, showing, WITHIN } from './gate-steps.mjs'
 
 /** The quotation's left margin, where an image placed first in its report header starts: 20 mm, in points. */
@@ -134,13 +134,11 @@ async function untilImages(page, count) {
   let read = null
   for (;;) {
     await previewInView(page)
-    const link = previewOf(page).getByRole('link', { name: 'Download PDF', exact: true })
-    const href = (await link.count()) === 1 ? await link.evaluate((anchor) => anchor.href) : null
     // Each PDF the Preview offers has an address of its own: one read already is not read again.
-    if (href !== null && href !== read) {
-      read = href
-      const bytes = await pdfBytes(page, href)
-      const images = (await readPdf(bytes)).pages[0]?.images ?? []
+    const pdf = await offeredPdf(page, previewOf(page), { besides: read })
+    if (pdf !== null) {
+      read = pdf.href
+      const images = (await readPdf(pdf.bytes)).pages[0]?.images ?? []
       if (images.length === count) return { images }
       seen = `${String(images.length)} images`
     }

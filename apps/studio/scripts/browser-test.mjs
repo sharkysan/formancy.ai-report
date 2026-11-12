@@ -26,7 +26,10 @@
 //     page prints, and the Download PDF link a PDF whose page draws the
 //     drawings pictures.json records there, path by path -- the firm's
 //     mark, a code -- and no other; an e-invoice's with Final on, since its
-//     preview says on every page that it is no e-invoice (0044);
+//     preview says on every page that it is no e-invoice (0044); every
+//     Download PDF downloaded as a person downloads it, and read again
+//     where the Preview printed anew between the read of the link and the
+//     download (gate-download.mjs);
 //   - the framework switch keeps the document and its history: an edit made
 //     in React is in the Angular builder with its Undo, undone there the PDF
 //     follows, and back in React the Redo is offered; and the first moment
@@ -106,6 +109,7 @@ import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { headersFor } from '../../../scripts/demo-headers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
+import { offeredPdf } from './gate-download.mjs'
 import { interactions } from './gate-interactions.mjs'
 import { audit, connectionHints, describeFocus, fontProblem, fromTheTop, listenForRefusals, measureWidth, paletteProblem, refusalsOf } from './gate-measure.mjs'
 import { app, cutControls, downloaded, drawnPages, passes, rulesOnThePaper } from './gate-page.mjs'
@@ -231,11 +235,9 @@ async function paperChecks(gate, page, state, picture) {
     `${state}: page ${String(picture.page)}'s text layer holds the ${String(picture.lines.length)} lines pictures.json says it prints, and no other`,
     missing.length === 0 && extra.length === 0 ? null : `missing ${JSON.stringify(missing.slice(0, 4))}, extra ${JSON.stringify(extra.slice(0, 4))}`,
   )
-  const href = await previewOf(page)
-    .getByRole('link', { name: 'Download PDF', exact: true })
-    .evaluate((link) => link.href)
-  const { head, drawings } = await downloaded(page, href, picture.page)
-  check(`${state}: Download PDF is a PDF`, head === '%PDF-' ? null : `it begins ${JSON.stringify(head)}`)
+  const pdf = await offeredPdf(page, previewOf(page))
+  const { head, drawings } = await downloaded(pdf?.bytes ?? new Uint8Array(), picture.page)
+  check(`${state}: Download PDF is a PDF`, pdf === null ? 'the Preview offers no Download PDF' : head === '%PDF-' ? null : `it begins ${JSON.stringify(head)}`)
   // A manifest written before it recorded drawings records none, and fails here rather than passing a page it never pictured.
   const recorded = Array.isArray(picture.drawings) ? JSON.stringify(picture.drawings) : 'no drawings at all'
   check(
