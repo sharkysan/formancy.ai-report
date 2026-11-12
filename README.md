@@ -373,9 +373,11 @@ gate proves and what it does not.
 | `@formancy/spec` (transitive) | 0.5.0 |  |
 | `@formancy/themes` | 0.12.0 | `0.12.0` |
 | `tslib`, by `@formancy/report-builder-angular` | 2.8.1 | `^2.8.0` |
+| `echarts`, by `@formancy/report-render-pdf` | 6.1.0 | `6.1.0` |
 | `pdfkit`, by `@formancy/report-render-pdf` | 0.19.1 | `0.19.1` |
 | `pdfmake`, by `@formancy/report-render-pdf` | 0.3.11 | `0.3.11` |
 | `uqr`, by `@formancy/report-render-pdf` | 0.1.3 | `0.1.3` |
+| `zrender`, by `@formancy/report-render-pdf` | 6.1.0 | `6.1.0` |
 | `@fastify/rate-limit`, by `@formancy/report-server` | 11.2.1 | `11.2.1` |
 | `fastify`, by `@formancy/report-server` | 5.12.7 | `5.12.7` |
 | `@noble/hashes`, by `@formancy/report-spec` | 2.4.0 | `2.4.0` |
