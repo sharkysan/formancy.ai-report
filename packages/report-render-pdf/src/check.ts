@@ -1,9 +1,6 @@
 import {
-  MAX_FONT_SIZE,
   MAX_SVG_GROUPS,
   MAX_SVG_SEGMENTS,
-  MIN_FONT_SIZE,
-  refusedCharacter,
   RenderRefusal,
   type Block,
   type Columns,
@@ -11,26 +8,22 @@ import {
   type FacturXFile,
   type Image,
   type ImageAsset,
-  type KeepTogether,
   type QrCode,
   type Rectangle,
   type ResolvedDocument,
   type Section,
-  type Table,
-  type TableRow,
-  type TextStyle,
 } from '@formancy/report-runtime'
 import { checkImageAsset, MAX_IMAGE_DATA, MAX_SVG_DRAWING, type CheckedImage, type Vector } from './assets.js'
-import { cellLine, paragraphLine } from './bound.js'
+import { paragraphLine } from './bound.js'
+import { checkColor, checkStyle, checkText } from './check-faces.js'
+import { checkTable, checkTableCells } from './check-table.js'
+import { tall, type Measured, type Place, type Tall, type Walk } from './check-walk.js'
 import { frameOf, RULE_GAP, runFace } from './content.js'
 import { epcSymbol } from './epc.js'
 import { checkCopyLabel, checkEInvoice, checkEInvoiceTitle } from './e-invoice.js'
-import { codePoint, missingGlyph } from './glyphs.js'
-import type { FaceWanted, RenderFonts } from './host-fonts.js'
+import type { RenderFonts } from './host-fonts.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
-import { COLOR } from './style.js'
 import { checkSvgInEInvoice } from './svg-pdfa.js'
-import { cellFace, PADDING_X, PADDING_Y, styledRows, type StyledRow } from './table.js'
 import { fillWidth, fixedWidth } from './widths.js'
 
 /**
@@ -77,32 +70,6 @@ const PAPER: Readonly<Record<ResolvedDocument['page']['size'], { readonly width:
  */
 export const MAX_DEPTH = 16
 
-/** A block that is drawn at a fixed height, which no page may be too short for. */
-export interface Tall {
-  readonly height: number
-  /** The vertical space framed sections around it take from a page: their borders and padding, above and below. */
-  readonly inset: number
-  readonly what: string
-  readonly subject: string
-}
-
-/** The tallest line of a table's rows under its header, and the row it is in: what every page the table reaches must hold under the repeated header (`refuseLineUnderHeader`). */
-export interface RowLine {
-  readonly line: number
-  /** "row 2 of table lines, a total row," or "the empty text of table lines": the row, for a refusal, never its text. */
-  readonly what: string
-}
-
-/** A table or keep-together block of the body that the body pass measures, at the width it stands at. */
-export interface Measured {
-  readonly block: Table | KeepTogether
-  readonly at: string
-  readonly width: number
-  readonly inset: number
-  /** A table's tallest line under its header (`checkTableCells`); none for a keep-together block. */
-  readonly under: RowLine | undefined
-}
-
 export interface Checked {
   readonly page: Page
   readonly creationDate: Date
@@ -119,28 +86,6 @@ export interface Checked {
   /** Where each paragraph stands, for a refusal about its words to name. */
   readonly paths: ReadonlyMap<Block, string>
   readonly measured: readonly Measured[]
-}
-
-/** Where a block stands. */
-interface Place {
-  readonly region: boolean
-  /** Inside a keep-together block. */
-  readonly kept: boolean
-  /** Inside a columns block. */
-  readonly column: boolean
-  readonly width: number
-  readonly inset: number
-  readonly depth: number
-}
-
-interface Walk {
-  readonly fonts: RenderFonts
-  readonly paths: Map<Block, string>
-  readonly images: { readonly image: Image; readonly region: boolean }[]
-  readonly codes: Map<QrCode | EpcQrCode, QrSymbol>
-  captioned: boolean
-  readonly tall: Tall[]
-  readonly measured: Measured[]
 }
 
 export async function checkDocument(document: ResolvedDocument, fonts: RenderFonts, maxPages: number): Promise<Checked> {
@@ -340,168 +285,8 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
   }
 }
 
-/** Something drawn at a fixed height in the body: judged against the body once the regions are measured. A page region's is judged by measuring the region. */
-function tall(walk: Walk, place: Place, height: number, what: string, subject: string): void {
-  if (!place.region) walk.tall.push({ height, inset: place.inset, what, subject })
-}
-
 /** The digits a page number or count prints. */
 const PAGE_DIGITS = '0123456789'
-
-/**
- * Text, held to being a string -- an array would reach pdfmake as inlines
- * carrying any property of its own, a link among them -- to the characters
- * a report prints (report-spec's `refusedCharacter`), and to the face it
- * prints in, which must have a glyph for each of them. The characters come
- * first: one outside Latin, Greek and Cyrillic and what is written with
- * them is refused even where the face maps it, since pdfmake reorders
- * nothing and the renderer shapes nothing (0043, FT-Q16).
- */
-function checkText(text: unknown, wanted: FaceWanted, walk: Walk, at: string, subject = at): void {
-  if (typeof text !== 'string') throw new RenderRefusal('unsupported', `${at} prints something that is not text`, subject)
-  for (const character of text) {
-    const point = character.codePointAt(0) as number
-    const refused = refusedCharacter(point)
-    if (refused === 'script')
-      throw new RenderRefusal(
-        'unsupported',
-        `${at} prints ${codePoint(point)}, which is in no script the renderer prints: it prints Latin, Greek and Cyrillic, with the punctuation, symbols and marks written with them, and lays out no right-to-left text, no shaped script and no CJK`,
-        subject,
-      )
-    if (refused === 'bidi-control')
-      throw new RenderRefusal(
-        'unsupported',
-        `${at} prints ${codePoint(point)}, a bidirectional control: pdfmake lays text out left to right alone, and would print it as a space`,
-        subject,
-      )
-  }
-  const face = walk.fonts.face(wanted.token, wanted.bold, wanted.italic, subject)
-  const missing = missingGlyph(text, face.glyphs)
-  if (missing !== undefined) {
-    throw new RenderRefusal(
-      'unsupported',
-      `${at} prints ${codePoint(missing)}, which ${face.name} has no glyph for: it would print as an empty box, and as nothing in the PDF's text, and no other font is embedded`,
-      subject,
-    )
-  }
-}
-
-/**
- * Every cell of `table`, each as `styledRows` styles it, the walk
- * `tableContent` builds the table from: its text in the face it prints in
- * -- the renderer's weight for its row's kind under the cell's style's
- * font token, weight and slant; the empty text in italic, and only where
- * the table prints it, so a table of rows never asks for the face -- and
- * its line, the tallest of which is a row no page can start, and which
- * pdfmake would drop without a word: every cell's, at its size or the
- * table's, in the face it prints in (`cellLine`), so a host face of a
- * taller line than Roboto's is measured by its own. An empty cell's line
- * is counted too, since the measuring pass lays it out as a no-break
- * space of its size.
- *
- * Returns the tallest line of the rows under the header, and its row: one
- * that a page the table continues on cannot hold under the repeated header
- * is refused once the header is measured (`refuseLineUnderHeader`). There
- * is always one, since a table of no detail row prints its empty text.
- */
-function checkTableCells(table: Table, place: Place, walk: Walk): RowLine {
-  const at = `table ${table.id}`
-  let tallest = 0
-  let under: RowLine | undefined
-  // A running max, never a spread of one array per cell: a 100,000-row table would overflow the call stack.
-  for (const row of styledRows(table)) {
-    let line = 0
-    row.cells.forEach((text, column) => {
-      const style = row.styles[column]!
-      const where =
-        row.index !== undefined
-          ? `${at}, row ${row.index}, column ${column + 1},`
-          : row.kind === 'header'
-            ? `${at}'s header, column ${column + 1},`
-            : `${at}'s empty text`
-      checkText(text, cellFace(style, row.kind), walk, where, table.id)
-      line = Math.max(line, cellLine(style, row.kind, walk.fonts))
-    })
-    tallest = Math.max(tallest, line)
-    const { kind } = row
-    if (kind !== 'header' && line > (under?.line ?? 0)) under = { line, what: rowWords(table, kind, row.index) }
-  }
-  tall(walk, place, tallest + 2 * PADDING_Y, `a line of ${at}`, table.id)
-  return under!
-}
-
-/** A row of the document's in a person's words, by its kind. */
-const ROW_WORDS: Readonly<Record<TableRow['kind'], string>> = {
-  detail: 'a detail row',
-  groupHeader: 'a group header row',
-  groupFooter: 'a group footer row',
-  total: 'a total row',
-}
-
-/** A row under the header of `table`, for a refusal: the empty text, or where the row stands among the table's rows, `index`, and its kind. */
-function rowWords(table: Table, kind: Exclude<StyledRow['kind'], 'header'>, index: number | undefined): string {
-  return kind === 'empty' ? `the empty text of table ${table.id}` : `row ${String(index)} of table ${table.id}, ${ROW_WORDS[kind]},`
-}
-
-function checkStyle(style: TextStyle | undefined, at: string, fonts: RenderFonts): void {
-  if (style === undefined) return
-  // A font token the report maps, or sans, which is Roboto; serif and mono the report does not map are refused, as before a report could name a host font.
-  if (style.font !== undefined && !((style.font === 'sans' || style.font === 'serif' || style.font === 'mono') && fonts.usable(style.font))) {
-    throw new RenderRefusal(
-      'unsupported',
-      `${at} is set in the ${String(style.font)} font, which the report maps to no host font; the renderer embeds Roboto alone, as the sans font, and prints no other in its place`,
-      at,
-    )
-  }
-  // The format's sizes, which a document the runtime resolved holds to: the page bound counts a line as its size, and 0.001 pt put 20,000 lines on one page.
-  if (style.size !== undefined && !(style.size >= MIN_FONT_SIZE && style.size <= MAX_FONT_SIZE))
-    throw new RenderRefusal('unsupported', `${at} is set at ${style.size} pt; a report's text is ${MIN_FONT_SIZE} to ${MAX_FONT_SIZE} pt`, at)
-  if (style.align !== undefined && style.align !== 'left' && style.align !== 'center' && style.align !== 'right')
-    throw new RenderRefusal('unsupported', `${at} is aligned '${String(style.align)}'`, at)
-  checkColor(style.color, at)
-}
-
-function checkColor(color: string | undefined, at: string): void {
-  // pdfmake prints a colour it cannot read as black, without a word.
-  if (color !== undefined && !COLOR.test(color))
-    throw new RenderRefusal('unsupported', `${at} names the colour '${color}', which is not #rrggbb in lower case`, at)
-}
-
-function checkTable(table: Table, width: number, fonts: RenderFonts): void {
-  const columns = table.columns.length
-  if (columns === 0) throw new RenderRefusal('unsupported', `table ${table.id} has no columns`, table.id)
-  if (table.columns.some((column) => column.align !== 'left' && column.align !== 'center' && column.align !== 'right'))
-    throw new RenderRefusal('unsupported', `table ${table.id} aligns a column in a way the renderer does not know`, table.id)
-  if (table.header.length !== columns)
-    throw new RenderRefusal('unsupported', `the header of table ${table.id} has ${table.header.length} cells for ${columns} columns`, table.id)
-  table.rows.forEach((row, index) => {
-    const cells = row.across === true ? 1 : columns
-    if (row.cells.length !== cells) {
-      throw new RenderRefusal(
-        'unsupported',
-        `row ${index} of table ${table.id} has ${row.cells.length} cells for ${row.across === true ? 'a row across the table, which has one' : `${columns} columns`}`,
-        table.id,
-      )
-    }
-    if (row.cellStyles !== undefined && row.cellStyles.length !== row.cells.length) {
-      throw new RenderRefusal(
-        'unsupported',
-        `row ${index} of table ${table.id} has ${row.cellStyles.length} cell styles for ${row.cells.length} cells`,
-        table.id,
-      )
-    }
-    for (const style of [row.style, ...(row.cellStyles ?? [])]) checkStyle(style ?? undefined, table.id, fonts)
-  })
-  checkStyle(table.headerStyle, table.id, fonts)
-  const narrow = table.columns.find((column) => column.width !== 'fill' && !(column.width > 2 * PADDING_X && Number.isFinite(column.width)))
-  if (narrow !== undefined)
-    throw new RenderRefusal('unsupported', `table ${table.id} has a column of ${String(narrow.width)} pt, no wider than its cell padding`, table.id)
-  const widths = table.columns.map((column) => column.width)
-  const fixed = widths.reduce<number>((sum, each) => sum + fixedWidth(each), 0)
-  if (fixed > width || fillWidth(widths, width) <= 2 * PADDING_X) {
-    throw new RenderRefusal('content-too-large', `table ${table.id}'s fixed columns are ${fixed} pt wide; it stands ${width.toFixed(2)} pt wide`, table.id)
-  }
-}
 
 function checkImage(image: Image, place: Place, walk: Walk): void {
   const { id } = image.asset
