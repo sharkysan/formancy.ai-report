@@ -3,6 +3,7 @@ import {
   MAX_SVG_SEGMENTS,
   RenderRefusal,
   type Block,
+  type Chart,
   type Columns,
   type EpcQrCode,
   type FacturXFile,
@@ -15,6 +16,7 @@ import {
 } from '@formancy/report-runtime'
 import { checkImageAsset, MAX_IMAGE_DATA, MAX_SVG_DRAWING, type CheckedImage, type Vector } from './assets.js'
 import { paragraphLine } from './bound.js'
+import { checkChart } from './check-chart.js'
 import { checkColor, checkStyle, checkText } from './check-faces.js'
 import { checkTable, checkTableCells } from './check-table.js'
 import { tall, type Measured, type Place, type Tall, type Walk } from './check-walk.js'
@@ -86,6 +88,8 @@ export interface Checked {
   /** Where each paragraph stands, for a refusal about its words to name. */
   readonly paths: ReadonlyMap<Block, string>
   readonly measured: readonly Measured[]
+  /** Every chart of the body, and where it stands, each held to what the drawing lays out (`check-chart.ts`). */
+  readonly charts: readonly { readonly block: Chart; readonly at: string }[]
 }
 
 export async function checkDocument(document: ResolvedDocument, fonts: RenderFonts, maxPages: number): Promise<Checked> {
@@ -101,13 +105,24 @@ export async function checkDocument(document: ResolvedDocument, fonts: RenderFon
   if (pdfa !== undefined) checkEInvoiceTitle(document.info.title)
   if (eInvoice?.kind === 'xrechnung') checkCopyLabel(document.pageHeader)
   const page = pageOf(document.page)
-  const walk: Walk = { fonts, paths: new Map(), images: [], codes: new Map(), captioned: false, tall: [], measured: [] }
+  const walk: Walk = { fonts, paths: new Map(), images: [], codes: new Map(), captioned: false, tall: [], measured: [], charts: [] }
   const top: Omit<Place, 'region'> = { kept: false, column: false, width: page.width, inset: 0, depth: 0 }
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true }, walk)
   checkBlocks(document.body, 'body', { ...top, region: false }, walk)
   const assets = await checkImages(walk.images, maxPages, pdfa !== undefined, page)
-  return { page, creationDate, pdfa, assets, codes: walk.codes, captioned: walk.captioned, tall: walk.tall, paths: walk.paths, measured: walk.measured }
+  return {
+    page,
+    creationDate,
+    pdfa,
+    assets,
+    codes: walk.codes,
+    captioned: walk.captioned,
+    tall: walk.tall,
+    paths: walk.paths,
+    measured: walk.measured,
+    charts: walk.charts,
+  }
 }
 
 /**
@@ -250,7 +265,8 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
       checkEpcQrCode(block, place, walk)
       return
     case 'chart':
-      // Until the renderer draws one: a chart skipped would print the report without it, and nothing would say so.
+      checkChart(block, at, place, walk)
+      // Until the renderer draws one, a chart its check passes is refused all the same: a chart skipped would print the report without it, and nothing would say so.
       throw new RenderRefusal('unsupported', `the chart ${block.id} is not drawn by this release of the renderer`, block.id)
     case 'rule':
       if (!(block.thickness > 0 && Number.isFinite(block.thickness))) throw new RenderRefusal('unsupported', `${at} is a rule ${block.thickness} pt thick`, at)

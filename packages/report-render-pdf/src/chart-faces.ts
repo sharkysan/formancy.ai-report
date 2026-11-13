@@ -1,6 +1,7 @@
 import { assetDigest, type Chart } from '@formancy/report-runtime'
+import { wordOf } from './chart-option.js'
 import { type Face, faceOf } from './glyphs.js'
-import type { RenderFonts } from './host-fonts.js'
+import type { FaceWanted, RenderFonts } from './host-fonts.js'
 
 /**
  * The faces a chart's words print in, and what ECharts is told of each
@@ -55,22 +56,27 @@ export interface ChartFace {
 /** A chart's words' face, and its title's where it has a title. */
 export interface ChartFaces {
   readonly words: ChartFace
-  /** Bold in the words' token, size, slant and colour; absent for a chart without a title, which asks the plan for no bold face. */
+  /** Bold in the words' token, size, slant and colour; absent for a chart without a title, or with one that prints nothing once trimmed, which asks the plan for no bold face. */
   readonly title?: ChartFace
 }
 
 /** What a chart's words print in where its style names no colour. */
 const BLACK = '#000000'
 
+/** What a word of `chart` asks the render's plan for: its style's token and slant, and bold where the style is, or for its title. The check holds each word to this face (`check-chart.ts`), and the drawing prints it in this face. */
+export function chartFace(chart: Chart, title: boolean): FaceWanted {
+  const style = chart.style ?? {}
+  return { token: style.font, bold: title || (style.bold ?? false), italic: style.italic ?? false }
+}
+
 /** The faces `chart` prints its words and its title in, from `fonts`, the render's plan, which refuses a face the report does not map, naming the chart. */
 export function chartFaces(chart: Chart, fonts: RenderFonts): ChartFaces {
   const style = chart.style ?? {}
-  const token = style.font
-  const family = token === undefined ? fonts.defaultFamily : fonts.familyOf(token)
+  const family = style.font === undefined ? fonts.defaultFamily : fonts.familyOf(style.font)
   const size = style.size ?? CHART_TEXT_SIZE
-  const italic = style.italic ?? false
   const color = style.color ?? BLACK
-  const faceOfChart = (bold: boolean): ChartFace => {
+  const faceOfChart = (title: boolean): ChartFace => {
+    const { token, bold, italic } = chartFace(chart, title)
     const planned = fonts.face(token, bold, italic, chart.id)
     return {
       family,
@@ -88,7 +94,7 @@ export function chartFaces(chart: Chart, fonts: RenderFonts): ChartFaces {
       },
     }
   }
-  return { words: faceOfChart(style.bold ?? false), ...(chart.title === undefined ? {} : { title: faceOfChart(true) }) }
+  return { words: faceOfChart(false), ...(wordOf(chart.title, chart.id) === '' ? {} : { title: faceOfChart(true) }) }
 }
 
 /** The hex digits of the SHA-256 of `key`'s UTF-8: a host face's key holds a colon, which a font string may not. */

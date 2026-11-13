@@ -100,14 +100,17 @@ describe('a chart', () => {
   }
 
   // A chart skipped would print a report without it, and nothing would say
-  // so: until the renderer draws one it refuses it, naming it, in either
-  // entry and wherever it stands -- in the body, in a column, kept on a page.
+  // so: until the renderer draws one, a chart that passes every check of
+  // its own (`charts.test.ts`) is refused all the same, naming it, in
+  // either entry and wherever it stands -- in the body, in a column, in a
+  // section, kept on a page.
   test.each([
     ['in the body', 'in Node', [paragraph('Before'), sales]],
     ['in a column', 'in Node', [{ kind: 'columns', columns: [{ width: 'fill', blocks: [sales] }] }]],
+    ['in a section', 'in Node', [{ kind: 'section', padding: 4, blocks: [sales] }]],
     ['kept together', 'in Node', [{ kind: 'keepTogether', blocks: [paragraph('Heading'), sales] }]],
     ['in the body', 'in a browser', [sales]],
-  ] as const)('refuses a chart it does not draw yet, naming it, %s, %s', async (_, entry, body) => {
+  ] as const)('refuses a chart that passes every check, since it draws none yet, naming it, %s, %s', async (_, entry, body) => {
     const render = entry === 'in Node' ? renderPdf : renderInBrowser
     const error = await render(documentOf('Chart', body as readonly Block[]), { maxPages: 5 }).then(
       () => 'rendered',

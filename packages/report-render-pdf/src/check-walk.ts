@@ -1,4 +1,4 @@
-import type { Block, EpcQrCode, Image, KeepTogether, QrCode, Table } from '@formancy/report-runtime'
+import type { Block, Chart, EpcQrCode, Image, KeepTogether, QrCode, Table } from '@formancy/report-runtime'
 import type { RenderFonts } from './host-fonts.js'
 import type { QrSymbol } from './qr.js'
 import type { RowLine } from './check-table.js'
@@ -42,6 +42,8 @@ export interface Walk {
   captioned: boolean
   readonly tall: Tall[]
   readonly measured: Measured[]
+  /** Every chart of the body the checks passed, and where it stands: what the drawing lays out (`check-chart.ts`). */
+  readonly charts: { readonly block: Chart; readonly at: string }[]
 }
 
 /** Something drawn at a fixed height in the body: judged against the body once the regions are measured. A page region's is judged by measuring the region. */

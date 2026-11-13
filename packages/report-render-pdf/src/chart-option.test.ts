@@ -276,7 +276,9 @@ describe('the option ECharts is handed', () => {
   // from the plot's foot to its top, over the runtime's table of ranges
   // (`chart-ticks.test.ts`) and a 40-digit total. An axis of one tick, of
   // ticks that do not ascend evenly, or of a value that is no decimal, is
-  // the runtime's error, never drawn.
+  // the runtime's error, never drawn: the chart's check refuses each before
+  // anything is laid out (`charts.test.ts`), and the option holds each as
+  // an invariant all the same.
   test(
     "hands ECharts the runtime's ticks as the axis, and no other",
     async () => {
@@ -321,31 +323,18 @@ describe('the option ECharts is handed', () => {
           exacts.join(' '),
         ).toEqual(exacts)
       }
-      // Ticks that do not ascend, or not in equal steps, are no tick's place: the runtime's always do.
-      for (const exacts of [
-        ['10', '10'],
-        ['10', '0'],
-        ['0', '10', '15'],
-      ])
-        expect(thrown(() => chartOption({ ...BARS, ticks: exacts.map((exact) => value(exact)) }, measuredFaces.faces, DRAWN))).toBe(
-          'the chart bars has ticks that do not ascend evenly',
-        )
-      // A value that is no decimal as the runtime writes one has no place: refused, quoting nothing of it.
-      for (const exact of ['1e3', '12.', '.5', '+1', '', '1,000.00']) {
-        const refusal = (() => {
-          try {
-            chartOption({ ...BARS, series: [{ color: '#1f77b4', values: [value(exact), null, null] }] }, measuredFaces.faces, DRAWN)
-          } catch (error) {
-            if (error instanceof RenderRefusal) return error
-          }
-          throw new Error(`'${exact}' was placed`)
-        })()
-        expect([refusal.code, refusal.subject, refusal.message], exact).toEqual(['unsupported', 'bars', 'the chart bars holds a value that is not a decimal'])
-      }
-      // A single tick is no axis: the runtime never resolves one, and a range of nothing would place every mark at once.
-      expect(thrown(() => chartOption({ ...BARS, ticks: ticksAt(['0']) }, measuredFaces.faces, DRAWN))).toBe(
-        'the chart bars has 1 of the two or more ticks an axis needs',
-      )
+      // Ticks that do not ascend, or not in equal steps, are no tick's place, and a single tick is no axis, whose range of nothing would place every mark at once: the runtime's are two or more in equal steps.
+      for (const exacts of [['10', '10'], ['10', '0'], ['0', '10', '15'], ['0']])
+        expect(
+          thrown(() => chartOption({ ...BARS, ticks: exacts.map((exact) => value(exact)) }, measuredFaces.faces, DRAWN)),
+          exacts.join(' '),
+        ).toBe('the chart bars has ticks that do not ascend evenly, which its check refuses before it is laid out')
+      // A value that is no decimal as the runtime writes one has no place, quoted nowhere.
+      for (const exact of ['1e3', '12.', '.5', '+1', '', '1,000.00'])
+        expect(
+          thrown(() => chartOption({ ...BARS, series: [{ color: '#1f77b4', values: [value(exact), null, null] }] }, measuredFaces.faces, DRAWN)),
+          exact,
+        ).toBe('the chart bars holds a value that is not a decimal, which its check refuses before it is laid out')
     },
     TIMEOUT,
   )
@@ -502,7 +491,8 @@ describe('the option ECharts is handed', () => {
   // every slice in proportion, an ordinary pie's slices are what they
   // were, and the shares the legend prints are the runtime's still. A pie
   // whose slices sum to nothing is the runtime's error: it holds its empty
-  // text instead.
+  // text instead, and the chart's check refuses one that does not
+  // (`charts.test.ts`), which the option holds as an invariant.
   test(
     "sizes each slice by its share of the pie's exact total, however large its values",
     async () => {
@@ -532,7 +522,9 @@ describe('the option ECharts is handed', () => {
         [45, 135, 180],
       ])
       const nothing: PieChart = { ...PIE, slices: PIE.slices.map(({ color }) => ({ color, value: value('0') })) }
-      expect(thrown(() => chartOption(nothing, faces.faces, SQUARE))).toBe('the chart pie has slices that sum to nothing')
+      expect(thrown(() => chartOption(nothing, faces.faces, SQUARE))).toBe(
+        'the chart pie has slices that sum to nothing, which its check refuses before it is laid out',
+      )
     },
     TIMEOUT,
   )

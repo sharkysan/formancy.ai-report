@@ -137,13 +137,18 @@ const BROKEN = /[\t\n\v\f\r\u0085\u2028\u2029]/
  * measures and places the very word pdfmake prints (`FaceWidths.width`),
  * which may be empty. A word holding a tab or a line break is refused,
  * naming the chart and quoting nothing: pdfmake and ECharts would lay it
- * out apart.
+ * out apart. So is one that is not text, which pdfmake would read as
+ * inlines, a link among them, or neither could print.
  */
-export function chartText(text: string, id: string): string {
+export function chartText(text: unknown, id: string): string {
+  if (typeof text !== 'string') throw new RenderRefusal('unsupported', `the chart ${id} has a word that is not text`, id)
   if (BROKEN.test(text))
     throw new RenderRefusal('unsupported', `the chart ${id} has a word with a tab or a line break in it, which a chart prints on one line`, id)
   return text.trim()
 }
+
+/** A word the chart `id` may hold or not -- its title, an axis's, its empty text -- as it prints (`chartText`), '' where it holds none: a word that prints nothing asks for no face. */
+export const wordOf = (text: string | undefined, id: string): string => (text === undefined ? '' : chartText(text, id))
 
 /**
  * Every word `chart` may print, in the order listed at `ChartWord.key`;
@@ -156,14 +161,16 @@ export function chartText(text: string, id: string): string {
  */
 export function chartWords(chart: Chart, layout?: Pick<ChartLayout, 'tickEvery'>): ChartWord[] {
   const words: ChartWord[] = []
-  const add = (key: string, text: string | undefined, title = false): void => {
-    const word = text === undefined ? '' : chartText(text, chart.id)
+  const push = (key: string, word: string, title = false): void => {
     if (word !== '') words.push({ key, text: word, title })
   }
-  add('title', chart.title, true)
+  const add = (key: string, text: unknown): void => {
+    push(key, chartText(text, chart.id))
+  }
+  push('title', wordOf(chart.title, chart.id), true)
   if (chart.chart !== 'pie') {
-    add('categoryTitle', chart.categoryTitle)
-    add('valueTitle', chart.valueTitle)
+    push('categoryTitle', wordOf(chart.categoryTitle, chart.id))
+    push('valueTitle', wordOf(chart.valueTitle, chart.id))
     chart.categories.forEach((text, index) => {
       add(`category/${String(index)}`, text)
     })
@@ -171,14 +178,14 @@ export function chartWords(chart: Chart, layout?: Pick<ChartLayout, 'tickEvery'>
     if (chart.valueLabels)
       chart.series.forEach(({ values }, series) => {
         values.forEach((each, index) => {
-          add(`value/${String(series)}/${String(index)}`, each?.text)
+          if (each !== null) add(`value/${String(series)}/${String(index)}`, each.text)
         })
       })
   }
   chart.legend.forEach(({ text }, index) => {
     add(`legend/${String(index)}`, text)
   })
-  add('empty', chart.empty)
+  push('empty', wordOf(chart.empty, chart.id))
   return words
 }
 
@@ -202,7 +209,7 @@ export function chartOption(chart: Chart, faces: ChartFaces, layout: ChartLayout
 
 /** The chart's title, at the top, centred, in the title's face, with no border or background; or none where it has none, or one that is empty once trimmed. */
 function titleOf(chart: Chart, faces: ChartFaces): Pick<ChartOption, 'title'> {
-  const text = chart.title === undefined ? '' : chartText(chart.title, chart.id)
+  const text = wordOf(chart.title, chart.id)
   if (text === '') return {}
   if (faces.title === undefined) throw new Error(`the chart ${chart.id} has a title and no face to print it in`)
   return {
@@ -261,13 +268,20 @@ interface Exact {
   readonly scale: number
 }
 
-/** `exact` read as the runtime writes a decimal -- a minus or none, digits, and a point and digits or none -- and anything else refused, naming the chart and quoting nothing. */
-function exactOf(exact: string, id: string): Exact {
-  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(exact)
-  if (match === null) throw new RenderRefusal('unsupported', `the chart ${id} holds a value that is not a decimal`, id)
+/** `exact` read as the runtime writes a decimal -- a minus or none, digits, and a point and digits or none -- or undefined for anything else, which a chart's check refuses before it is laid out (`check-chart.ts`). */
+export function exactOf(exact: unknown): Exact | undefined {
+  const match = typeof exact === 'string' ? /^(-?)(\d+)(?:\.(\d+))?$/.exec(exact) : null
+  if (match === null) return undefined
   const [, sign = '', whole = '', fraction = ''] = match
   const units = BigInt(whole + fraction)
   return { units: sign === '-' ? -units : units, scale: fraction.length }
+}
+
+/** `exact`, a value of the chart `id`, read as a decimal; one that is not is an invariant of the renderer's, since the chart's check refuses it first. */
+function decimalOf(exact: string, id: string): Exact {
+  const read = exactOf(exact)
+  if (read === undefined) throw new Error(`the chart ${id} holds a value that is not a decimal, which its check refuses before it is laid out`)
+  return read
 }
 
 /** `each`'s units at `scale`, as many places as its own or more. */
@@ -294,24 +308,23 @@ const quotient = (numerator: bigint, denominator: bigint): number => Number((num
  * Where a value of `chart` stands on its value axis: its distance from the
  * lowest tick, in the ticks' interval, on the decimals' units -- a
  * `quotient`, made a double at the end. Never a double less a double: a value of 308 digits at 20 places is 328
- * digits of units, which as a double is infinite. The runtime's ticks
- * ascend in equal steps, so tick i stands at i; any others are its error,
- * never drawn.
+ * digits of units, which as a double is infinite. The runtime's ticks are
+ * two or more, ascending in equal steps, so tick i stands at i; any others
+ * are undefined, which the chart's check refuses before it is laid out,
+ * as it refuses a value that is no decimal first (`check-chart.ts`).
  */
-function placesOf(chart: AxisChart): (exact: string) => number {
-  const [lowest, next] = chart.ticks.map(({ exact }) => exactOf(exact, chart.id))
-  if (lowest === undefined || next === undefined)
-    throw new Error(`the chart ${chart.id} has ${String(chart.ticks.length)} of the two or more ticks an axis needs`)
+export function placesOf(chart: AxisChart): ((exact: string) => number) | undefined {
+  const [lowest, next] = chart.ticks.map(({ exact }) => decimalOf(exact, chart.id))
+  if (lowest === undefined || next === undefined) return undefined
   const scale = Math.max(lowest.scale, next.scale)
-  const ascending = unitsAt(next, scale) > unitsAt(lowest, scale)
+  if (unitsAt(next, scale) <= unitsAt(lowest, scale)) return undefined
   const place = (exact: string): number => {
-    const value = exactOf(exact, chart.id)
+    const value = decimalOf(exact, chart.id)
     const common = Math.max(value.scale, scale)
     const step = unitsAt(next, common) - unitsAt(lowest, common)
     return quotient(unitsAt(value, common) - unitsAt(lowest, common), step)
   }
-  if (!ascending || chart.ticks.some(({ exact }, index) => place(exact) !== index)) throw new Error(`the chart ${chart.id} has ticks that do not ascend evenly`)
-  return place
+  return chart.ticks.every(({ exact }, index) => place(exact) === index) ? place : undefined
 }
 
 /**
@@ -331,8 +344,9 @@ function placesOf(chart: AxisChart): (exact: string) => number {
  */
 function axesOf(chart: AxisChart, words: ChartFace, layout: ChartLayout): Pick<ChartOption, 'grid' | 'xAxis' | 'yAxis' | 'series'> {
   const place = placesOf(chart)
+  if (place === undefined) throw new Error(`the chart ${chart.id} has ticks that do not ascend evenly, which its check refuses before it is laid out`)
   const labelled = labelledTicks(chart, layout.tickEvery)
-  const [categoryTitle, valueTitle] = [chart.categoryTitle, chart.valueTitle].map((title) => (title === undefined ? '' : chartText(title, chart.id)))
+  const [categoryTitle, valueTitle] = [wordOf(chart.categoryTitle, chart.id), wordOf(chart.valueTitle, chart.id)]
   const under = chart.chart === 'bar' && chart.valueLabels && chart.series.some(({ values }) => values.some((each) => each !== null && belowZero(each)))
   return {
     grid: gridOf(layout),
@@ -444,13 +458,14 @@ function valueLabel(chart: AxisChart, values: readonly (ChartValue | null)[], se
  * value's share of the sum it is handed, and as doubles the slices of the
  * largest values sum past the largest double, to infinity, which would
  * leave every slice nothing. A pie whose slices sum to nothing holds its
- * empty text, never slices: any other is the runtime's error.
+ * empty text, never slices: any other has no shares, undefined, which the
+ * chart's check refuses before it is laid out (`check-chart.ts`).
  */
-function sharesOf(chart: PieChart): { readonly color: string; readonly share: number }[] {
-  const slices = chart.slices.map(({ color, value }) => ({ color, value: exactOf(value.exact, chart.id) }))
+export function sharesOf(chart: PieChart): { readonly color: string; readonly share: number }[] | undefined {
+  const slices = chart.slices.map(({ color, value }) => ({ color, value: decimalOf(value.exact, chart.id) }))
   const scale = Math.max(...slices.map(({ value }) => value.scale))
   const total = slices.reduce((sum, { value }) => sum + unitsAt(value, scale), 0n)
-  if (total <= 0n) throw new Error(`the chart ${chart.id} has slices that sum to nothing`)
+  if (total <= 0n) return undefined
   return slices.map(({ color, value }) => ({ color, share: quotient(unitsAt(value, scale), total) }))
 }
 
@@ -463,6 +478,8 @@ function sharesOf(chart: PieChart): { readonly color: string; readonly share: nu
  * alone.
  */
 function pieSeries(chart: PieChart, { plot }: ChartLayout): PieSeries {
+  const shares = sharesOf(chart)
+  if (shares === undefined) throw new Error(`the chart ${chart.id} has slices that sum to nothing, which its check refuses before it is laid out`)
   return {
     type: 'pie',
     ...(plot === undefined ? {} : { center: [plot.left + plot.width / 2, plot.top + plot.height / 2], radius: Math.min(plot.width, plot.height) / 2 }),
@@ -472,7 +489,7 @@ function pieSeries(chart: PieChart, { plot }: ChartLayout): PieSeries {
     labelLine: { show: false },
     labelLayout: null,
     itemStyle: { borderWidth: 0 },
-    data: sharesOf(chart).map(({ color, share }, index) => ({ name: categoryKey(index), value: share, itemStyle: { color, borderWidth: 0 } })),
+    data: shares.map(({ color, share }, index) => ({ name: categoryKey(index), value: share, itemStyle: { color, borderWidth: 0 } })),
   }
 }
 

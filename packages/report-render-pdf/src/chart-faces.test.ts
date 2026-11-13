@@ -144,4 +144,15 @@ describe("a chart's faces", () => {
     expect(faces.title).toBeUndefined()
     expect(faces.words).toMatchObject({ family: 'formancy-host-serif', face: 'normal' })
   })
+
+  // A title of whitespace alone prints nothing, as pdfmake cuts it, and is
+  // no title to the check, which asks for no bold face for it: faced in
+  // bold all the same, the drawing would refuse what the check passed, in
+  // a family that maps no bold face.
+  test('asks for no bold face for a title blank once trimmed, as the check asks for none', () => {
+    const regular = planFonts({ serif: { normal: SERIF.serif!.normal } }, ROBOTO)
+    const faces = chartFaces({ ...sales, title: ' \u00a0\u202f', style: { font: 'serif' } }, regular)
+    expect(faces.title).toBeUndefined()
+    expect(chartFaces(sales, planFonts(undefined, ROBOTO)).title).toMatchObject({ face: 'bold' })
+  })
 })

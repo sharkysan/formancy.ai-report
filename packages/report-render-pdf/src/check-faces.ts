@@ -42,26 +42,27 @@ export function checkText(text: unknown, wanted: FaceWanted, walk: Walk, at: str
   }
 }
 
-export function checkStyle(style: TextStyle | undefined, at: string, fonts: RenderFonts): void {
+/** `style`, which the text `at` prints in, held to what the renderer prints: refused naming `subject`, the block or the table it is. */
+export function checkStyle(style: TextStyle | undefined, at: string, fonts: RenderFonts, subject = at): void {
   if (style === undefined) return
   // A font token the report maps, or sans, which is Roboto; serif and mono the report does not map are refused, as before a report could name a host font.
   if (style.font !== undefined && !((style.font === 'sans' || style.font === 'serif' || style.font === 'mono') && fonts.usable(style.font))) {
     throw new RenderRefusal(
       'unsupported',
       `${at} is set in the ${String(style.font)} font, which the report maps to no host font; the renderer embeds Roboto alone, as the sans font, and prints no other in its place`,
-      at,
+      subject,
     )
   }
   // The format's sizes, which a document the runtime resolved holds to: the page bound counts a line as its size, and 0.001 pt put 20,000 lines on one page.
   if (style.size !== undefined && !(style.size >= MIN_FONT_SIZE && style.size <= MAX_FONT_SIZE))
-    throw new RenderRefusal('unsupported', `${at} is set at ${style.size} pt; a report's text is ${MIN_FONT_SIZE} to ${MAX_FONT_SIZE} pt`, at)
+    throw new RenderRefusal('unsupported', `${at} is set at ${style.size} pt; a report's text is ${MIN_FONT_SIZE} to ${MAX_FONT_SIZE} pt`, subject)
   if (style.align !== undefined && style.align !== 'left' && style.align !== 'center' && style.align !== 'right')
-    throw new RenderRefusal('unsupported', `${at} is aligned '${String(style.align)}'`, at)
-  checkColor(style.color, at)
+    throw new RenderRefusal('unsupported', `${at} is aligned '${String(style.align)}'`, subject)
+  checkColor(style.color, at, subject)
 }
 
-export function checkColor(color: string | undefined, at: string): void {
+export function checkColor(color: string | undefined, at: string, subject = at): void {
   // pdfmake prints a colour it cannot read as black, without a word.
   if (color !== undefined && !COLOR.test(color))
-    throw new RenderRefusal('unsupported', `${at} names the colour '${color}', which is not #rrggbb in lower case`, at)
+    throw new RenderRefusal('unsupported', `${at} names the colour '${color}', which is not #rrggbb in lower case`, subject)
 }
