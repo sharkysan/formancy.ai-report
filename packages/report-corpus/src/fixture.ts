@@ -1,4 +1,4 @@
-import type { Block, EpcQrCode, Image, Inline, RefusalCode, ResolvedDocument, Table, TableRow } from './document.js'
+import type { Block, Chart, ChartValue, EpcQrCode, Image, Inline, RefusalCode, ResolvedDocument, Table, TableRow } from './document.js'
 
 /**
  * A fixture is a document an engine must render, or refuse, and what the PDF
@@ -61,6 +61,39 @@ export interface ExpectedImage {
 export interface ExpectedFontName {
   readonly text: string
   readonly postScriptName: string
+}
+
+/**
+ * A chart in the body as its PDF must show it (0058), from the runtime's
+ * block: its box, every word it prints, and each of its series' or slices'
+ * colour and values, which the check holds its marks to
+ * (`check-charts.ts`). A word that prints nothing -- a label empty once
+ * trimmed -- is no word, and nothing could prove it printed (0058).
+ */
+export interface ExpectedChart {
+  readonly id: string
+  readonly chart: Chart['chart']
+  /** Points: the box the chart is drawn in. */
+  readonly width: number
+  readonly height: number
+  /**
+   * Every word but a tick's, each printed once inside the box: a word the
+   * list holds twice prints twice. Its title, its axes' titles, each
+   * category's label, each value's where the chart labels them and each
+   * legend entry; an empty chart's title, where it prints one, then its
+   * empty text.
+   */
+  readonly words: readonly string[]
+  /** A bar or a line chart's category labels, in order, '' where one prints nothing; a pie's none, since its legend entries hold them. */
+  readonly categories: readonly string[]
+  /** Each tick, lowest first, its value exactly, which places the axis, and its label: the chart prints every k-th label from the lowest, which the layout chooses. */
+  readonly ticks: readonly ChartValue[]
+  /** A bar or a line chart's series, each its colour and its values exactly (`ChartValue.exact`), one per category, null where it has none; a pie's slices, each its colour and its one value. */
+  readonly marks: readonly { readonly paint: string; readonly values: readonly (string | null)[] }[]
+  /** The face each of its words prints in, ticks included, by the face's PostScript name; empty where the document maps no host font. */
+  readonly faces: readonly ExpectedFontName[]
+  /** Whether it has nothing to draw: its words are then all it prints. */
+  readonly empty: boolean
 }
 
 export interface Expectation {
