@@ -4,7 +4,16 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readPdf, type PdfBox, type PdfPage, type PdfTextItem, type ReadPdf } from '@formancy/report-corpus'
-import { readFont, type AxisChart, type Block, type Chart, type FontAsset, type ResolvedDocument, type ResolvedFonts } from '@formancy/report-runtime'
+import {
+  readFont,
+  type AxisChart,
+  type Block,
+  type Chart,
+  type FontAsset,
+  type PieChart,
+  type ResolvedDocument,
+  type ResolvedFonts,
+} from '@formancy/report-runtime'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { drawChart, type DrawnChart } from './chart-draw.js'
@@ -13,7 +22,7 @@ import type { PlacedWord } from './chart-svg.js'
 import type { Engine, FaceWidths } from './engine.js'
 import { engine, renderPdf } from './node.js'
 import { render } from './render.js'
-import { BARS, EMPTY, LINE, MONO, PIE, SERIF } from './testing/charts.js'
+import { BARS, EMPTY, LINE, MONO, PIE, SERIF, value } from './testing/charts.js'
 import { collected } from './testing/collector.js'
 import { BODY_HEIGHT, bareDocument, documentOf, heading, paragraph, PAGE, TIMEOUT } from './testing/documents.js'
 import { readDrawing } from './testing/drawing.js'
@@ -464,6 +473,48 @@ describe('a chart of each kind, in the report’s faces', () => {
           shown.map((each) => each?.color),
           chart.id,
         ).toEqual(printed.map(() => color))
+      }
+    },
+    TIMEOUT,
+  )
+
+  // A slice of no share -- a zero, or a value under one part in 10^17 of
+  // its pie's total -- is drawn as nothing (`chart-draw.test.ts`): a path
+  // in its colour from the pie's centre to its rim would print as a
+  // hairline where a rasteriser paints every pixel a shape touches. In the
+  // PDF of a pie with a zero slice and of one with a slice that small,
+  // each slice with a share is one path filled in its colour, a slice
+  // without one is none, and every legend entry's swatch is filled and
+  // stroked in its slice's colour, its words printed at their boxes.
+  test(
+    "draws nothing of a pie's slice of no share, and prints its legend entry",
+    async () => {
+      const small: PieChart = {
+        ...PIE,
+        id: 'small-share',
+        width: 220,
+        height: 180,
+        slices: [value('1'), value('1'), value('0.00000000000000001')].map((each, index) => ({ color: PIE.slices[index]!.color, value: each })),
+        legend: ['North: 1 (50.0 %)', 'South: 1 (50.0 %)', 'East: 0.00000000000000001 (0.0 %)'].map((text, index) => ({
+          color: PIE.slices[index]!.color,
+          text,
+        })),
+      }
+      const read = await readOf(bareDocument('Pies', [PIE, small]))
+      for (const chart of [PIE, small]) {
+        const box = expectDrawn(read, chart)
+        const paths = box.page.paths.filter((each) => inside(each, box))
+        expect(
+          chart.slices.map(({ color }) => [
+            paths.filter(({ paint, fill }) => paint === 'fill' && fill === color).length,
+            paths.filter(({ paint, fill, stroke }) => paint === 'fillStroke' && fill === color && stroke === color).length,
+          ]),
+          chart.id,
+        ).toEqual([
+          [1, 1],
+          [1, 1],
+          [0, 1],
+        ])
       }
     },
     TIMEOUT,

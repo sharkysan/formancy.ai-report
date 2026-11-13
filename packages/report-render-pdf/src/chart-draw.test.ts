@@ -293,6 +293,42 @@ describe('a chart drawn', () => {
     TIMEOUT,
   )
 
+  // ECharts draws a slice handed a share of nothing -- a zero, or a value
+  // under one part in 10^17 of its pie's total, the parts a share is
+  // worked out in (`chart-option.ts`) -- as a sector of no sweep, a path
+  // in the slice's colour from the pie's centre to its rim, which a
+  // rasteriser that paints every pixel a shape touches may print as a
+  // hairline, and which the corpus refuses (its `check-chart-marks.ts`).
+  // Left out of the data instead, the slice would leave out its legend
+  // entry, and the drawing would refuse the chart for a word it prints
+  // nowhere. A slice of no share is drawn as nothing at all, its legend
+  // entry printed with its swatch and its words; and every slice with a
+  // share is drawn as in the pie of those slices alone, at the same angles.
+  test(
+    'draws nothing of a slice of no share, and prints its legend entry',
+    () => {
+      const pieOf = (id: string, exacts: readonly string[], colours: readonly string[]): PieChart => ({
+        ...PIE,
+        id,
+        slices: exacts.map((exact, index) => ({ color: colours[index]!, value: value(exact) })),
+        legend: exacts.map((exact, index) => ({ color: colours[index]!, text: exact.slice(0, 4) })),
+      })
+      // A pie's slices: each path ECharts writes as the chart's, filled in its colour.
+      const slicesOf = ({ svg }: DrawnChart): { readonly d: string; readonly fill: string }[] =>
+        [...svg.matchAll(/<path d="([^"]*)" fill="(#[0-9a-f]{6})"[^>]*ecmeta_ssr_type="chart"/g)].map(([, d = '', fill = '']) => ({ d, fill }))
+      // Its legend's swatches: each path moved to its entry, filled and stroked in its colour.
+      const swatchesOf = ({ svg }: DrawnChart): string[] =>
+        [...svg.matchAll(/<path d="[^"]*" transform="[^"]*" fill="(#[0-9a-f]{6})" stroke="\1"/g)].map(([, fill = '']) => fill)
+      const nothing = pieOf('no-share', ['3', '0', '1', '0.00000000000000001'], PALETTE.slice(0, 4))
+      const drawing = drawChart(nothing, FACES, WIDTHS)
+      expect(slicesOf(drawing).map(({ fill }) => fill)).toEqual([PALETTE[0], PALETTE[2]])
+      expect(slicesOf(drawing)).toEqual(slicesOf(drawChart(pieOf('shared', ['3', '1'], [PALETTE[0], PALETTE[2]]), FACES, WIDTHS)))
+      expect(swatchesOf(drawing)).toEqual(PALETTE.slice(0, 4))
+      expect(drawing.words.map(({ key, text }) => `${key} ${text}`)).toEqual(['title Anteile', 'legend/0 3', 'legend/1 0', 'legend/2 1', 'legend/3 0.00'])
+    },
+    TIMEOUT,
+  )
+
   // zrender moves a thin line to the nearest half point for a crisp edge,
   // which the option cannot turn off: a gridline stands on its tick only
   // where the plot's top is on a half point and each interval a whole

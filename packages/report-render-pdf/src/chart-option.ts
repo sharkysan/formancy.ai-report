@@ -24,8 +24,9 @@ import type { ChartFace, ChartFaces } from './chart-faces.js'
  *   share seventeen as one. This is what the drawing's fixed value axis
  *   is: the runtime's ticks by their places, never their doubles; and
  *   every number ECharts is handed is a place, or a slice's share of its
- *   pie worked out the same way, never `Number(exact)`. Every word it
- *   prints is the runtime's, looked up by index.
+ *   pie worked out the same way, or `NO_SHARE` for a slice of none, never
+ *   `Number(exact)`. Every word it prints is the runtime's, looked up by
+ *   index.
  * - **Words.** ECharts sees a category as its key (`c0`) and a series as
  *   its (`s0`). Every word comes from a formatter -- the chart's title and
  *   its axes' titles from the block itself -- and a formatter asked for an
@@ -46,12 +47,13 @@ import type { ChartFace, ChartFaces } from './chart-faces.js'
  *   title's or the words', colour included.
  *
  * What it paints, which 0058 states and the corpus reads: bars, slices
- * and line markers filled in their colour, each with no border; lines,
- * gridlines and the category axis's line stroked, that line a horizontal
- * stroke in the axis's colour beside the gridlines; legend swatches
- * filled and stroked in their colour; nothing else -- no tick, no value
- * axis line, no background, and no border or background on the title or
- * the legend.
+ * and line markers filled in their colour, each with no border, and
+ * nothing of a slice of no share (`NO_SHARE`); lines, gridlines and the
+ * category axis's line stroked, that line a horizontal stroke in the
+ * axis's colour beside the gridlines; legend swatches filled and stroked
+ * in their colour, a slice of no share's among them; nothing else -- no
+ * tick, no value axis line, no background, and no border or background on
+ * the title or the legend.
  *
  * It imports ECharts' types alone, so that a module reading a chart's
  * words loads no ECharts: the drawing, which a document with a chart
@@ -489,12 +491,32 @@ export function sharesOf(chart: PieChart): { readonly color: string; readonly sh
 }
 
 /**
+ * What ECharts is handed for a slice of no share -- a zero, or a value
+ * under one part in `QUOTIENT_UNIT` of its pie's total, whose `quotient`
+ * is 0 -- in place of that share: a value below zero, which ECharts 6.1.0
+ * leaves out of the pie's data before it lays the pie out
+ * (processor/negativeDataFilter.js, which chart/pie/install.js registers),
+ * so that it draws nothing of the slice; while the legend names each entry
+ * the series' data holds before any is left out
+ * (visual/LegendVisualProvider.js `containName`, of the raw data), so that
+ * the slice's entry prints, its swatch in its colour. Of a share of 0,
+ * ECharts draws a sector of no sweep, a path in the slice's colour from
+ * the pie's centre to its rim, which may print as a hairline; of a value
+ * it reads as missing, '-' or null, a path with no outline in zrender's
+ * default black, a colour the drawing refuses as one the option did not
+ * name (`chart-svg.ts`); and of a slice left out of the option's data, no
+ * legend entry, its words printed nowhere. Never a share: the chart's
+ * check refuses a slice below zero before it is laid out (`check-chart.ts`).
+ */
+const NO_SHARE = -1
+
+/**
  * A pie: a slice for each category, its share of the pie's total, from
  * noon and clockwise, each filled in its colour with no border and no
- * label or label line -- its words print in the legend alone -- in the
- * square the drawing gives it, once it has: until then, where ECharts
- * puts it, since the first layout is read for its title and its legend
- * alone.
+ * label or label line -- its words print in the legend alone -- and a
+ * slice of no share drawn as nothing (`NO_SHARE`), in the square the
+ * drawing gives it, once it has: until then, where ECharts puts it, since
+ * the first layout is read for its title and its legend alone.
  */
 function pieSeries(chart: PieChart, { plot }: ChartLayout): PieSeries {
   const shares = sharesOf(chart)
@@ -508,7 +530,7 @@ function pieSeries(chart: PieChart, { plot }: ChartLayout): PieSeries {
     labelLine: { show: false },
     labelLayout: null,
     itemStyle: { borderWidth: 0 },
-    data: shares.map(({ color, share }, index) => ({ name: categoryKey(index), value: share, itemStyle: { color, borderWidth: 0 } })),
+    data: shares.map(({ color, share }, index) => ({ name: categoryKey(index), value: share === 0 ? NO_SHARE : share, itemStyle: { color, borderWidth: 0 } })),
   }
 }
 
