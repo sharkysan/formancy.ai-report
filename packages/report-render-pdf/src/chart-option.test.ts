@@ -214,6 +214,23 @@ const barsOf = (svg: string): { readonly base: number; readonly end: number; rea
     ([, base = '', height = '', fill = '']) => ({ base: Number(base), end: thousandths(Number(base) + Number(height)), fill }),
   )
 
+/**
+ * Each slice's sweep in `svg`, in degrees, clockwise from where it starts:
+ * zrender writes a slice as a move to its arc's start, an arc to its end
+ * and a line back to the centre, each number to a tenth of a point.
+ */
+const sweepsOf = (svg: string): number[] =>
+  [...svg.matchAll(/<path d="M(-?[\d.]+) (-?[\d.]+)A[\d.]+ [\d.]+ 0 [01] 1 (-?[\d.]+) (-?[\d.]+)L(-?[\d.]+) (-?[\d.]+)Z" fill="#[0-9a-f]{6}"/g)].map(
+    ([, startX, startY, endX, endY, centreX, centreY]) => {
+      const bearing = (x: string | undefined, y: string | undefined): number =>
+        (Math.atan2(Number(x) - Number(centreX), Number(centreY) - Number(y)) * 180) / Math.PI
+      return (bearing(endX, endY) - bearing(startX, startY) + 360) % 360
+    },
+  )
+
+/** Points: how far a word or a mark may stand from where it is and still be read there, the corpus's reading of a PDF (report-corpus `check-page.ts`). */
+const EDGE = 0.5
+
 /** One element `svg` paints with, as zrender writes it. */
 interface Paint {
   readonly element: string
@@ -436,6 +453,86 @@ describe('the option ECharts is handed', () => {
         { base: 170.5, end: 26.5, fill: '#1f77b4' },
         { base: 170.5, end: 80.5, fill: '#1f77b4' },
       ])
+    },
+    TIMEOUT,
+  )
+
+  // A place is a quotient of decimals, cut to some digits before it is
+  // made a double: cut to three, a value a ten-thousandth of an interval
+  // below a tick stands at the tick, on a plot as tall as an A4 page --
+  // taller than any body on one -- 0.76 points from where it is, past what
+  // the corpus reads as in place. The runtime's own table holds such an
+  // axis: a line of values finer than its format prints, ticked in its
+  // units, 12 to 13. Each point stands within the corpus's tolerance of
+  // its place on the tallest plot, and to the thousandth of a point; and
+  // the place ECharts is handed is the exact quotient to within one unit
+  // in a double's last place, which sixteen digits would miss by five.
+  test(
+    'places a value to the digit a double holds, on a plot as tall as a page',
+    async () => {
+      const page = { left: 40, top: 0.5, width: 200, height: 841.89 }
+      const chart: AxisChart = {
+        ...LINE,
+        height: 843,
+        categories: ['A', 'B'],
+        series: [{ color: '#2ca02c', values: [value('12.0001', '12'), value('12.9999', '13')] }],
+        ticks: ticksAt(['12', '13']),
+        valueLabels: false,
+      }
+      const measuredFaces = await facesOf(chart)
+      const exact = [page.top + page.height * 0.9999, page.top + page.height * 0.0001]
+      const points = markersOf(drawn(chart, measuredFaces, { tickEvery: 1, plot: page }).svg, '#2ca02c').map(({ y }) => y)
+      expect(points.map((y, index) => Math.abs(y - exact[index]!) <= EDGE)).toEqual([true, true])
+      expect(points.map(thousandths)).toEqual(exact.map(thousandths))
+      // A value seventeen places past a tick: 0.12345678901234567 of an interval, whose last place in a double is 2 to the -56th.
+      const fine: AxisChart = { ...chart, series: [{ color: '#2ca02c', values: [value('12.12345678901234567', '12'), null] }] }
+      const place: unknown = at(chartOption(fine, measuredFaces.faces, { tickEvery: 1, plot: page }), 'series', 0, 'data', 0)
+      expect(typeof place).toBe('number')
+      // The double nearest the exact quotient, which as a literal would be one already rounded.
+      expect(Math.abs(Number(place) - Number('0.12345678901234567'))).toBeLessThanOrEqual(2 ** -56)
+    },
+    TIMEOUT,
+  )
+
+  // ECharts sizes a slice by its value's share of the sum of the values it
+  // is handed: as doubles, slices of 308 digits sum past the largest
+  // double, to infinity, and every slice's share is nothing. Each slice is
+  // handed its share of the pie's exact total, worked out from the
+  // runtime's decimals as a place is, so a pie of the largest values draws
+  // every slice in proportion, an ordinary pie's slices are what they
+  // were, and the shares the legend prints are the runtime's still. A pie
+  // whose slices sum to nothing is the runtime's error: it holds its empty
+  // text instead.
+  test(
+    "sizes each slice by its share of the pie's exact total, however large its values",
+    async () => {
+      const faces = await facesOf(PIE)
+      const sweeps = (chart: PieChart): number[] => sweepsOf(drawn(chart, faces, SQUARE).svg).map(Math.round)
+      const shares = (chart: PieChart): unknown =>
+        (at(chartOption(chart, faces.faces, SQUARE), 'series', 0, 'data') as readonly unknown[]).map((datum) => at(datum, 'value'))
+      expect([shares(PIE), sweeps(PIE)]).toEqual([
+        [0.5, 0.3, 0.2],
+        [180, 108, 72],
+      ])
+      const largest: PieChart = {
+        ...PIE,
+        slices: [`9${'0'.repeat(307)}`, `9${'0'.repeat(307)}`, `45${'0'.repeat(306)}`].map((exact, index) => ({
+          color: PIE.slices[index]!.color,
+          value: value(exact),
+        })),
+      }
+      expect([shares(largest), sweeps(largest)]).toEqual([
+        [0.4, 0.4, 0.2],
+        [144, 144, 72],
+      ])
+      // Values of other scales, a share worked out at the finest of them: 0.5, 1.5 and 2 of 4.
+      const halves: PieChart = { ...PIE, slices: ['0.5', '1.5', '2'].map((exact, index) => ({ color: PIE.slices[index]!.color, value: value(exact) })) }
+      expect([shares(halves), sweeps(halves)]).toEqual([
+        [0.125, 0.375, 0.5],
+        [45, 135, 180],
+      ])
+      const nothing: PieChart = { ...PIE, slices: PIE.slices.map(({ color }) => ({ color, value: value('0') })) }
+      expect(thrown(() => chartOption(nothing, faces.faces, SQUARE))).toBe('the chart pie has slices that sum to nothing')
     },
     TIMEOUT,
   )

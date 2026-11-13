@@ -22,10 +22,10 @@ import type { ChartFace, ChartFaces } from './chart-faces.js'
  *   the values' doubles would put ticks that share fifteen leading digits
  *   up to half an interval from their places, and draw two ticks that
  *   share seventeen as one. This is what the drawing's fixed value axis
- *   is: the runtime's ticks by their places, never their doubles, and a
- *   coordinate ECharts is handed a place, never `Number(exact)` -- a
- *   pie's slices aside, which ECharts sizes by their share of their sum.
- *   Every word it prints is the runtime's, looked up by index.
+ *   is: the runtime's ticks by their places, never their doubles; and
+ *   every number ECharts is handed is a place, or a slice's share of its
+ *   pie worked out the same way, never `Number(exact)`. Every word it
+ *   prints is the runtime's, looked up by index.
  * - **Words.** ECharts sees a category as its key (`c0`) and a series as
  *   its (`s0`). Every word comes from a formatter -- the chart's title and
  *   its axes' titles from the block itself -- and a formatter asked for an
@@ -242,18 +242,26 @@ function exactOf(exact: string, id: string): Exact {
 const unitsAt = (each: Exact, scale: number): bigint => each.units * 10n ** BigInt(scale - each.scale)
 
 /**
- * The digits of a place worked out exactly: seventeen, past a double's
- * precision at any place an axis of the runtime's few intervals reaches,
- * so that the one division into a double is a place's only rounding, and
- * tick i's place is i exactly.
+ * The places a quotient of decimals is worked out to before it is made a
+ * double: a value's place on the value axis, a slice's share of its pie.
+ * Seventeen, because a double holds about 15.9 significant digits: a
+ * place on an axis of the runtime's few intervals, or a share, is a
+ * quotient below ten, which to seventeen places keeps every digit a
+ * double can hold of it, so that `Number`'s rounding is the only one that
+ * shows, and tick i's place is i exactly. Cut to three, a value a
+ * ten-thousandth of an interval below a tick would stand at the tick, on
+ * a plot as tall as an A4 page 0.76 points from its place
+ * (`chart-option.test.ts`).
  */
-const PLACE_UNIT = 10n ** 17n
+const QUOTIENT_UNIT = 10n ** 17n
+
+/** `numerator / denominator`, the denominator more than 0, worked out in BigInt to `QUOTIENT_UNIT` and made a double at the end. */
+const quotient = (numerator: bigint, denominator: bigint): number => Number((numerator * QUOTIENT_UNIT) / denominator) / Number(QUOTIENT_UNIT)
 
 /**
  * Where a value of `chart` stands on its value axis: its distance from the
  * lowest tick, in the ticks' interval, on the decimals' units -- a
- * quotient scaled to `PLACE_UNIT` in BigInt and made a double at the end.
- * Never a double less a double: a value of 308 digits at 20 places is 328
+ * `quotient`, made a double at the end. Never a double less a double: a value of 308 digits at 20 places is 328
  * digits of units, which as a double is infinite. The runtime's ticks
  * ascend in equal steps, so tick i stands at i; any others are its error,
  * never drawn.
@@ -268,7 +276,7 @@ function placesOf(chart: AxisChart): (exact: string) => number {
     const value = exactOf(exact, chart.id)
     const common = Math.max(value.scale, scale)
     const step = unitsAt(next, common) - unitsAt(lowest, common)
-    return Number(((unitsAt(value, common) - unitsAt(lowest, common)) * PLACE_UNIT) / step) / Number(PLACE_UNIT)
+    return quotient(unitsAt(value, common) - unitsAt(lowest, common), step)
   }
   if (!ascending || chart.ticks.some(({ exact }, index) => place(exact) !== index)) throw new Error(`the chart ${chart.id} has ticks that do not ascend evenly`)
   return place
@@ -390,11 +398,28 @@ function valueLabel(chart: AxisChart, values: readonly (ChartValue | null)[], se
 }
 
 /**
- * A pie: a slice for each category, from noon and clockwise, each filled
- * in its colour with no border and no label or label line -- its words
- * print in the legend alone -- in the square the drawing gives it, once
- * it has: until then, where ECharts puts it, since the first layout is
- * read for its title and its legend alone.
+ * Each slice's share of `chart`'s total, worked out from the runtime's
+ * decimals as a place is (`quotient`): ECharts sizes a slice by its
+ * value's share of the sum it is handed, and as doubles the slices of the
+ * largest values sum past the largest double, to infinity, which would
+ * leave every slice nothing. A pie whose slices sum to nothing holds its
+ * empty text, never slices: any other is the runtime's error.
+ */
+function sharesOf(chart: PieChart): { readonly color: string; readonly share: number }[] {
+  const slices = chart.slices.map(({ color, value }) => ({ color, value: exactOf(value.exact, chart.id) }))
+  const scale = Math.max(...slices.map(({ value }) => value.scale))
+  const total = slices.reduce((sum, { value }) => sum + unitsAt(value, scale), 0n)
+  if (total <= 0n) throw new Error(`the chart ${chart.id} has slices that sum to nothing`)
+  return slices.map(({ color, value }) => ({ color, share: quotient(unitsAt(value, scale), total) }))
+}
+
+/**
+ * A pie: a slice for each category, its share of the pie's total, from
+ * noon and clockwise, each filled in its colour with no border and no
+ * label or label line -- its words print in the legend alone -- in the
+ * square the drawing gives it, once it has: until then, where ECharts
+ * puts it, since the first layout is read for its title and its legend
+ * alone.
  */
 function pieSeries(chart: PieChart, { plot }: ChartLayout): PieSeries {
   return {
@@ -406,7 +431,7 @@ function pieSeries(chart: PieChart, { plot }: ChartLayout): PieSeries {
     labelLine: { show: false },
     labelLayout: null,
     itemStyle: { borderWidth: 0 },
-    data: chart.slices.map(({ color, value }, index) => ({ name: categoryKey(index), value: Number(value.exact), itemStyle: { color, borderWidth: 0 } })),
+    data: sharesOf(chart).map(({ color, share }, index) => ({ name: categoryKey(index), value: share, itemStyle: { color, borderWidth: 0 } })),
   }
 }
 
