@@ -94,8 +94,9 @@ const VOCABULARY: Readonly<
     attributes: {
       // As zrender's path writer writes one (svg/SVGPathRebuilder.js): a move, then moves, lines, a rectangle's sides relative,
       // curves, arcs and closes, each its letter and its numbers, a space between them; an arc a circle's, unturned, as ECharts
-      // draws every one (`arc`, its radius twice), its flags 0 or 1.
-      d: String.raw`M${NUMBER} ${NUMBER}(?:[MLl]${NUMBER} ${NUMBER}|C${NUMBER}(?: ${NUMBER}){5}|Q${NUMBER}(?: ${NUMBER}){3}|A(?<radius>${NUMBER}) \k<radius> 0 [01] [01] ${NUMBER} ${NUMBER}|Z)*`,
+      // draws every one (`arc`, its radius twice), its flags 0 or 1. Or nothing at all, which ECharts writes for a line series
+      // with no value at any category beside one that has (ECPolyline), and the converter draws as nothing.
+      d: String.raw`(?:M${NUMBER} ${NUMBER}(?:[MLl]${NUMBER} ${NUMBER}|C${NUMBER}(?: ${NUMBER}){5}|Q${NUMBER}(?: ${NUMBER}){3}|A(?<radius>${NUMBER}) \k<radius> 0 [01] [01] ${NUMBER} ${NUMBER}|Z)*)?`,
       // A path moved, or a line's marker scaled and moved.
       transform: String.raw`${TRANSLATE}|matrix\(${NUMBER}(?:,${NUMBER}){5}\)`,
       fill: PAINT,

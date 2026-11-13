@@ -69,6 +69,9 @@ export const POINT_RADIUS = 2
 export const LINE_WIDTH = 1.5
 export const SWATCH_BORDER = 0.5
 
+/** Points: how far a value's label stands from its bar's end or its line's point, ECharts' own default, stated, since the drawing keeps room for it above the plot and below it (`chart-draw.ts`). */
+export const VALUE_LABEL_DISTANCE = 5
+
 /** The value axis's gridlines, one at every tick, and the category axis's line: the renderer's, as a table's rules are. Chosen. */
 export const GRID = { color: '#d9d9d9', width: 0.5 } as const
 export const AXIS = { color: '#000000', width: 0.75 } as const
@@ -412,6 +415,7 @@ function valueLabel(chart: AxisChart, values: readonly (ChartValue | null)[], se
   return {
     show: true,
     position: 'top' as const,
+    distance: VALUE_LABEL_DISTANCE,
     ...words.font,
     formatter: ({ dataIndex }: { readonly dataIndex: number }) => {
       const each = nth(values, dataIndex, 'value', chart.id)

@@ -340,6 +340,8 @@ describe('the SVG ECharts writes of a chart', () => {
       VALUE('path'),
     ],
     ['a path that does not start where it moves', MARKUP, (svg) => svg.replace(/<path d="M([\d.]+) ([\d.]+)L/, '<path d="L$1 $2L'), VALUE('path')],
+    // An empty path is what ECharts writes for a line with no value, and reads; a path of a space is none of its.
+    ['a path of a space', MARKUP, (svg) => svg.replace(/<path d="[^"]+"/, '<path d=" "'), VALUE('path')],
     ['an end tag that ends another element', MARKUP, (svg) => svg.replace('</path>', '</rect>'), 'holds an end tag that ends no element it opened'],
     ['an element left open', MARKUP, (svg) => svg.replace('</svg>', ''), 'holds an element left open, or no <svg>'],
     ['no drawing at all', MARKUP, () => '', 'holds an element left open, or no <svg>'],
