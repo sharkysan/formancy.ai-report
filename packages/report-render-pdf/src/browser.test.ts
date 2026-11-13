@@ -23,12 +23,14 @@ import {
 import { resolveReport, type ResolvedDocument } from '@formancy/report-runtime'
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import type * as billFonts from './bill-fonts.js'
+import type * as chartDraw from './chart-draw.js'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { renderPdf as renderInNode } from './node.js'
 import { converterOptions } from './svg-content.js'
 import { billDocument, resolvedBill, SIX_EXAMPLES } from './testing/bills.js'
 import { dataUrl, DECODED, imageOrder, SIDE } from './testing/decoding.js'
 import { documentOf, fixture, paragraph, TIMEOUT } from './testing/documents.js'
+import { BARS, EMPTY, LINE, PIE } from './testing/charts.js'
 import { face, THROWING } from './testing/fonts.js'
 import { encodePng } from './testing/images.js'
 import { DRAWINGS, MARK, rawSvgAsset, svg, SVG_THREATS, svgAsset } from './testing/svg.js'
@@ -624,6 +626,64 @@ describe('the slip’s fonts in a browser', () => {
       }))
       for (let each = 0; each < 3; each += 1) await renderPdf(bill(), { maxPages: 5 })
       expect(loads).toBe(1)
+    },
+    TIMEOUT,
+  )
+})
+
+describe('the chart chunk in a browser', () => {
+  /** A browser entry of its own, which has loaded no chunk yet, with `chart-draw.js` as `factory` makes it. */
+  async function freshEntry(factory: () => Pick<typeof chartDraw, 'drawChart'>): Promise<typeof renderInBrowser> {
+    vi.resetModules()
+    vi.doMock('./chart-draw.js', factory)
+    return (await import('./browser.js')).renderPdf
+  }
+  afterEach(() => {
+    vi.doUnmock('./chart-draw.js')
+    vi.resetModules()
+  })
+
+  // ECharts and zrender are most of a browser bundle's weight; a page that
+  // prints no chart, or only a chart with nothing to draw, would fetch them
+  // for nothing, and a host that renders many charts would decode them
+  // again for each. The mock's factory runs once for each import of the
+  // chunk, which it counts, as a getter would count a read of it for each
+  // chart: none for a document without a chart or with an empty
+  // one, one for the first chart that has marks, and no more for the next.
+  // The renders run one after another, as the slip's fonts' do above.
+  test(
+    'never loads ECharts for a document without a chart, or with only an empty one, and loads it once for the first',
+    async () => {
+      let loads = 0
+      const { drawChart } = await import('./chart-draw.js')
+      const renderPdf = await freshEntry(() => {
+        loads += 1
+        return { drawChart }
+      })
+      await renderPdf(documentOf('Text', [paragraph('Invoice 2026-0042')]), { maxPages: 5 })
+      await renderPdf(documentOf('Empty', [EMPTY]), { maxPages: 5 })
+      expect(loads).toBe(0)
+      await renderPdf(documentOf('Charts', [BARS]), { maxPages: 5 })
+      expect(loads).toBe(1)
+      await renderPdf(documentOf('More', [PIE, LINE]), { maxPages: 5 })
+      expect(loads).toBe(1)
+    },
+    TIMEOUT,
+  )
+
+  // A browser preview whose chart differed from the server's would show a
+  // layout nobody prints. The same definitions are not enough (ECharts runs
+  // in the entry's own pdfmake measurements), so the PDFs are compared as
+  // the e-invoice's are: every object, each stream inflated, since the
+  // browser build deflates with a zlib of its own.
+  test(
+    'renders a document with charts to the same bytes as the Node entry',
+    async () => {
+      const document = documentOf('Charts', [BARS, PIE, LINE, EMPTY])
+      const options = { maxPages: 5 }
+      const [inNode, inBrowser] = [await renderInNode(document, options), await renderInBrowser(document, options)]
+      expect(await inflatedDigest(inBrowser)).toBe(await inflatedDigest(inNode))
+      expect((await readPdf(inBrowser)).pages[0]!.items.map((item) => item.text)).toContain('Sales')
     },
     TIMEOUT,
   )

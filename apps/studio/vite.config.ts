@@ -64,14 +64,18 @@ export default defineConfig({
   // refuses.
   server: { port: 4394, strictPort: true },
   preview: { port: 4394, strictPort: true, headers: headersFor('http://localhost:4394/') },
-  // Measured with `vite build` (Vite 8.3.4) on 2026-10-17: the renderer's
-  // chunk is 1,922.2 kB minified, 848.8 kB gzipped -- pdfmake's browser
-  // build, and Roboto's four fonts in it as base64 -- and loads with the
-  // first preview, as PDF.js's 430.0 kB and the Angular builder's 151.7 kB
+  // Measured with `vite build` (Vite 8.3.4) on 2026-11-13: the renderer's
+  // chunk is 1,986.7 kB minified, 870.2 kB gzipped -- pdfmake's browser
+  // build, and Roboto's four fonts in it as base64 (1,922.2 kB and 848.8 kB
+  // on 2026-10-17, before the renderer's later work, charts' words among it) -- and loads with the
+  // first preview, as PDF.js's 430.1 kB and the Angular builder's 171.5 kB
   // load when first needed, and Liberation Sans's chunk, 1,100.3 kB and
-  // 518.7 kB gzipped, with the first preview of a report with a QR-bill;
-  // the page's own chunk, React and the React builder with the editor
-  // model, is 599.7 kB. The limit is the largest with a little room, so a
-  // dependency that grows any of them still warns.
-  build: { chunkSizeWarningLimit: 1950 },
+  // 518.7 kB gzipped, with the first preview of a report with a QR-bill, and
+  // ECharts' and zrender's chunk, 549.6 kB and 188.6 kB gzipped, with the
+  // first preview of a report with a chart that has marks to draw (the
+  // Studio's palette offers no chart yet, so it loads for none of its
+  // starters); the page's own chunk, React and the React builder with the
+  // editor model, is 891.5 kB. The limit is the largest with a little room,
+  // so a dependency that grows any of them still warns.
+  build: { chunkSizeWarningLimit: 2000 },
 })

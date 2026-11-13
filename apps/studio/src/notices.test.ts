@@ -1,6 +1,7 @@
 // @vitest-environment node
 
-import { readdirSync, readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { readdirSync, readFileSync, realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -137,5 +138,56 @@ describe("the notice for report-render-pdf's embedded Liberation Sans", () => {
         .map((name) => `dist/${name}`)
         .filter((name) => file.test(name)),
     ).toEqual([expect.stringMatching(/^dist\/bill-fonts-/)])
+  })
+})
+
+/** A package's directory, found from `from`'s own manifest, as the renderer's install lays it out. */
+const installed = (name: string, from = join(renderPdf, 'package.json')): string => dirname(createRequire(from).resolve(`${name}/package.json`))
+const echarts = realpathSync(installed('echarts'))
+const zrender = installed('zrender')
+/** The tslib that echarts pins, which is not the one the workspace's other packages use. */
+const tslib = realpathSync(join(echarts, '..', 'tslib'))
+
+/**
+ * The notices file the plugin writes for a build of report-render-pdf's
+ * browser entry, with the Studio's reviewed `embedded` list: the same
+ * plugin, the same list and the same package, without the Studio's page.
+ * `scripts/renderer-notices.mjs` builds it in a process of its own, which
+ * says why; it is built once for the cases below.
+ */
+let built: string | undefined
+const noticesOfRenderer = (): string =>
+  (built ??= execFileSync(process.execPath, [join(app, 'scripts', 'renderer-notices.mjs')], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
+
+describe("the notices for the chart chunk's libraries", () => {
+  // A chart is drawn by ECharts and zrender, which the Studio ships in a
+  // chunk of their own (the renderer imports it when a document holds a
+  // chart). Apache-2.0 asks that a NOTICE travel with the Work (section
+  // 4(d)), BSD-3-Clause that the licence travel with the binary: a build
+  // whose notices left one out would redistribute somebody's work without
+  // its terms. Each file is held to the package's own, not to a copy.
+  const text = (file: string): string => flowed(readFileSync(file, 'utf8').trimEnd())
+  const cases: readonly [string, string][] = [
+    ["echarts's LICENSE", join(echarts, 'LICENSE')],
+    ["echarts's NOTICE", join(echarts, 'NOTICE')],
+    ["zrender's LICENSE", join(zrender, 'LICENSE')],
+    ["the tslib that echarts pins's licence", join(tslib, 'LICENSE.txt')],
+    [
+      "echarts's licenses/LICENSE-d3, d3's BSD-3-Clause text, which lib/util/number.js says its quantile is copied under",
+      join(echarts, 'licenses', 'LICENSE-d3'),
+    ],
+  ]
+  test.each(cases)(
+    'carries %s',
+    (_, file) => {
+      expect(flowed(noticesOfRenderer())).toContain(text(file))
+    },
+    60_000,
+  )
+
+  // The tslib echarts pins is the old one beside the workspace's own: were
+  // it the same version, the case above would pass on the wrong copy.
+  test("holds echarts' tslib to the version echarts pins", () => {
+    expect(JSON.parse(readFileSync(join(tslib, 'package.json'), 'utf8')).version).toBe('2.3.0')
   })
 })

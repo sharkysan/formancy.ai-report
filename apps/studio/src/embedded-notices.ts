@@ -13,6 +13,12 @@
  *   licence file the fonts' release ships, which the package keeps beside
  *   them in fonts/, and the chunk is named by a pattern, as its build
  *   hashes the name.
+ * - echarts' lib/util/number.js carries a method copied from d3.js
+ *   (`quantile`), under d3's BSD-3-Clause, whose text echarts ships as
+ *   licenses/LICENSE-d3, a directory the plugin does not read: it reads the
+ *   licence and notice files at a package's root and in the directories
+ *   between that root and a bundled file (lib/util/), so echarts' LICENSE
+ *   and NOTICE reach the notices by themselves and this one does not.
  *
  * `notices.test.ts` holds each notice to the fonts' own name tables. Only
  * vite.config.ts and that test import this file; nothing the page loads
@@ -43,5 +49,12 @@ export const EMBEDDED_NOTICES: readonly EmbeddedNotice[] = [
     file: /^dist\/bill-fonts-[\w-]+\.mjs$/,
     name: 'Liberation Sans 2.1.5, under the SIL Open Font License 1.1',
     from: fileURLToPath(new URL('../../../packages/report-render-pdf/fonts/LICENSE-LiberationSans.txt', import.meta.url)),
+  },
+  {
+    package: 'echarts',
+    file: 'lib/util/number.js',
+    name: "d3.js's BSD-3-Clause licence, for the code echarts copied from it (echarts's licenses/LICENSE-d3)",
+    // Through report-render-pdf's own dependency, the only copy there is.
+    from: fileURLToPath(new URL('../../../packages/report-render-pdf/node_modules/echarts/licenses/LICENSE-d3', import.meta.url)),
   },
 ]
