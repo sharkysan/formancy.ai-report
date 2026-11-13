@@ -30,7 +30,9 @@ import type { ChartFace, ChartFaces } from './chart-faces.js'
  *   its (`s0`). Every word comes from a formatter -- the chart's title and
  *   its axes' titles from the block itself -- and a formatter asked for an
  *   index, a key or a place the block does not have throws, naming the
- *   chart and counts and quoting no word. Nothing wraps, cuts, hides,
+ *   chart and counts and quoting no word. Every word is the one pdfmake
+ *   prints, trimmed as pdfmake trims a run (`chartText`), for ECharts and
+ *   for the words a layout prints alike. Nothing wraps, cuts, hides,
  *   turns or reads a word as markup: no text width, overflow, ellipsis,
  *   rich text, string formatter, rotation, hideOverlap or automatic
  *   interval, and no showMinLabel or showMaxLabel, which set either way
@@ -116,18 +118,38 @@ function labelledTicks(chart: AxisChart, tickEvery: number): { readonly index: n
   return chart.ticks.flatMap((tick, index) => (index % tickEvery === 0 ? [{ index, tick }] : []))
 }
 
+/** A tab, which pdfmake prints four spaces wide, and a line break as Unicode breaks a line (UAX #14's BK, CR, LF and NL), at which zrender breaks one and pdfmake's `noWrap` does not. */
+const BROKEN = /[\t\n\v\f\r\u0085\u2028\u2029]/
+
+/**
+ * `text`, a word of the chart `id`, as the chart prints it: trimmed of the
+ * whitespace pdfmake cuts from either end of a run it prints, JavaScript's
+ * `\s`, the no-break spaces U+00A0 and U+202F among it, so that ECharts
+ * measures and places the very word pdfmake prints (`FaceWidths.width`),
+ * which may be empty. A word holding a tab or a line break is refused,
+ * naming the chart and quoting nothing: pdfmake and ECharts would lay it
+ * out apart.
+ */
+export function chartText(text: string, id: string): string {
+  if (BROKEN.test(text))
+    throw new RenderRefusal('unsupported', `the chart ${id} has a word with a tab or a line break in it, which a chart prints on one line`, id)
+  return text.trim()
+}
+
 /**
  * Every word `chart` may print, in the order listed at `ChartWord.key`;
  * with a layout's `tickEvery`, the words that layout prints, its ticks
  * every `tickEvery`-th from the lowest. A value prints only where the
- * chart labels its values and it has one, and an empty word is no word:
- * it prints nothing, so nothing could prove it printed, and its slot --
- * a category's, a legend entry's -- stays.
+ * chart labels its values and it has one. Each word is as the chart
+ * prints it (`chartText`), and a word empty once trimmed is no word: it
+ * prints nothing, so nothing could prove it printed, and its slot -- a
+ * category's, a legend entry's -- stays.
  */
 export function chartWords(chart: Chart, layout?: Pick<ChartLayout, 'tickEvery'>): ChartWord[] {
   const words: ChartWord[] = []
   const add = (key: string, text: string | undefined, title = false): void => {
-    if (text !== undefined && text !== '') words.push({ key, text, title })
+    const word = text === undefined ? '' : chartText(text, chart.id)
+    if (word !== '') words.push({ key, text: word, title })
   }
   add('title', chart.title, true)
   if (chart.chart !== 'pie') {
@@ -169,13 +191,14 @@ export function chartOption(chart: Chart, faces: ChartFaces, layout: ChartLayout
   return chart.chart === 'pie' ? { ...frame, series: [pieSeries(chart, layout)] } : { ...frame, ...axesOf(chart, faces.words, layout) }
 }
 
-/** The chart's title, at the top, centred, in the title's face, with no border or background; or none where it has none. */
+/** The chart's title, at the top, centred, in the title's face, with no border or background; or none where it has none, or one that is empty once trimmed. */
 function titleOf(chart: Chart, faces: ChartFaces): Pick<ChartOption, 'title'> {
-  if (chart.title === undefined) return {}
+  const text = chart.title === undefined ? '' : chartText(chart.title, chart.id)
+  if (text === '') return {}
   if (faces.title === undefined) throw new Error(`the chart ${chart.id} has a title and no face to print it in`)
   return {
     title: {
-      text: chart.title,
+      text,
       left: 'center',
       top: 0,
       textStyle: { ...faces.title.font },
@@ -210,7 +233,7 @@ function legendOf(chart: Chart, words: ChartFace): Pick<ChartOption, 'legend'> {
       formatter: (name: string) => {
         const index = keys.indexOf(name)
         if (index < 0) throw new Error(`the chart ${chart.id} was asked for a legend entry by a key it does not have, of ${String(keys.length)}`)
-        return nth(chart.legend, index, 'legend entry', chart.id).text
+        return chartText(nth(chart.legend, index, 'legend entry', chart.id).text, chart.id)
       },
     },
   }
@@ -295,13 +318,14 @@ function placesOf(chart: AxisChart): (exact: string) => number {
 function axesOf(chart: AxisChart, words: ChartFace, layout: ChartLayout): Pick<ChartOption, 'grid' | 'xAxis' | 'yAxis' | 'series'> {
   const place = placesOf(chart)
   const labelled = labelledTicks(chart, layout.tickEvery)
+  const [categoryTitle, valueTitle] = [chart.categoryTitle, chart.valueTitle].map((title) => (title === undefined ? '' : chartText(title, chart.id)))
   return {
     grid: gridOf(layout),
     xAxis: {
       type: 'category',
       data: chart.categories.map((_, index) => categoryKey(index)),
       boundaryGap: true,
-      ...(chart.categoryTitle === undefined ? {} : { name: chart.categoryTitle, nameLocation: 'middle', nameTextStyle: { ...words.font } }),
+      ...(categoryTitle === '' ? {} : { name: categoryTitle, nameLocation: 'middle', nameTextStyle: { ...words.font } }),
       axisTick: { show: false },
       axisLine: { show: true, onZero: false, lineStyle: { color: AXIS.color, width: AXIS.width } },
       axisLabel: {
@@ -310,7 +334,7 @@ function axesOf(chart: AxisChart, words: ChartFace, layout: ChartLayout): Pick<C
         formatter: (key: string, index: number) => {
           const text = nth(chart.categories, index, 'category', chart.id)
           if (key !== categoryKey(index)) throw new Error(`the chart ${chart.id} was asked for category ${String(index)} by another category's key`)
-          return text
+          return chartText(text, chart.id)
         },
       },
     },
@@ -320,7 +344,7 @@ function axesOf(chart: AxisChart, words: ChartFace, layout: ChartLayout): Pick<C
       max: chart.ticks.length - 1,
       // ECharts draws a bar from its axis's start value, which unless it is told another is 0, the lowest tick's place: a bar stands on zero's.
       ...(chart.chart === 'bar' ? { startValue: place('0') } : {}),
-      ...(chart.valueTitle === undefined ? {} : { name: chart.valueTitle, nameLocation: 'end', nameTextStyle: { ...words.font } }),
+      ...(valueTitle === '' ? {} : { name: valueTitle, nameLocation: 'end', nameTextStyle: { ...words.font } }),
       axisTick: { show: false, customValues: chart.ticks.map((_, index) => index) },
       splitLine: { show: true, lineStyle: { color: GRID.color, width: GRID.width } },
       axisLabel: {
@@ -329,7 +353,7 @@ function axesOf(chart: AxisChart, words: ChartFace, layout: ChartLayout): Pick<C
         formatter: (placed: number, index: number) => {
           const { index: tickPlace, tick } = nth(labelled, index, 'labelled tick', chart.id)
           if (placed !== tickPlace) throw new Error(`the chart ${chart.id} was asked for labelled tick ${String(index)} at another place`)
-          return tick.text
+          return chartText(tick.text, chart.id)
         },
       },
     },
@@ -392,7 +416,7 @@ function valueLabel(chart: AxisChart, values: readonly (ChartValue | null)[], se
     formatter: ({ dataIndex }: { readonly dataIndex: number }) => {
       const each = nth(values, dataIndex, 'value', chart.id)
       if (each === null) throw new Error(`the chart ${chart.id} was asked to label value ${String(dataIndex)} of series ${String(series)}, which has none`)
-      return each.text
+      return chartText(each.text, chart.id)
     },
   }
 }

@@ -1148,4 +1148,80 @@ describe('the option ECharts is handed', () => {
     },
     TIMEOUT,
   )
+
+  // pdfmake cuts the whitespace at either end of a run it prints --
+  // JavaScript's \s, a no-break space among it -- and prints a tab four
+  // spaces wide, and zrender breaks a line at a line break where pdfmake's
+  // noWrap does not. A word ECharts measured and placed with its edges'
+  // whitespace would print narrower than its box and shifted in it --
+  // North after a no-break space measures 22.18359375 points in Roboto at
+  // 8 points, North alone 20.19921875 -- and a word with a tab or a line
+  // break would print otherwise than ECharts laid it out. So each word is
+  // trimmed once, for the words the layout prints and for ECharts alike;
+  // a word empty once trimmed is no word, its slot kept; and a tab or a
+  // line break is refused, naming the chart and quoting nothing.
+  test(
+    'trims each word of the whitespace pdfmake cuts, drops one empty once trimmed, and refuses a tab or a line break',
+    async () => {
+      const measuredFaces = await facesOf(BARS)
+      const { faces, widths } = measuredFaces
+      const { family, face, size } = faces.words
+      expect([widths.width(family, face, size, '\u00a0North'), widths.width(family, face, size, 'North')]).toEqual([22.18359375, 20.19921875])
+      const spaced: AxisChart = {
+        ...BARS,
+        title: '\u202fUmsatz nach Region ',
+        categoryTitle: ' \u00a0',
+        valueTitle: '\u00a0Betrag\u00a0',
+        categories: ['\u00a0North', 'Süd\u00a0\u202f', ' \u00a0\u202f\ufeff'],
+        // A tick's and a value's text as no runtime writes one, which ECharts must be handed as the layout prints it all the same.
+        ticks: [value('-50', ' -50.00'), ...BARS.ticks.slice(1)],
+        series: [{ ...BARS.series[0]!, values: [value('30', '30.00\u202f'), ...BARS.series[0]!.values.slice(1)] }, BARS.series[1]!],
+        legend: [
+          { text: ' Plan', color: '#1f77b4' },
+          { text: '\u00a0', color: '#ff7f0e' },
+        ],
+      }
+      expect(chartWords(spaced).map(({ key, text }) => [key, text])).toEqual([
+        ['title', 'Umsatz nach Region'],
+        ['valueTitle', 'Betrag'],
+        ['category/0', 'North'],
+        ['category/1', 'Süd'],
+        ...chartWords(BARS)
+          .filter(({ key }) => key.startsWith('tick/') || key.startsWith('value/'))
+          .map(({ key, text }) => [key, text]),
+        ['legend/0', 'Plan'],
+      ])
+      const option = chartOption(spaced, faces, DRAWN)
+      expect(at(option, 'xAxis', 'data')).toEqual(['c0', 'c1', 'c2'])
+      expect([at(option, 'title', 'text'), at(option, 'xAxis', 'name'), at(option, 'yAxis', 'name')]).toEqual(['Umsatz nach Region', undefined, 'Betrag'])
+      expect([format(option, ['xAxis', 'axisLabel', 'formatter'], 'c0', 0), format(option, ['legend', 'formatter'], 's0')]).toEqual(['North', 'Plan'])
+      // ECharts lays out the very words the layout prints, and writes nothing for a word that is empty once trimmed.
+      expect(sorted(textsOf(drawn(spaced, measuredFaces, DRAWN).svg))).toEqual(sorted(chartWords(spaced, DRAWN).map(({ text }) => text)))
+      // A title that is nothing but whitespace is no title.
+      expect(at(chartOption({ ...BARS, title: '\u00a0 ' }, faces, DRAWN), 'title')).toBeUndefined()
+      for (const broken of ['\t', '\n', '\r', '\v', '\f', '\u0085', '\u2028', '\u2029']) {
+        const refusals = [
+          () => chartWords({ ...BARS, categories: [`Nord${broken}Ost`, 'Süd', 'Ost'] }),
+          () => chartWords({ ...BARS, legend: [{ text: `Plan${broken}`, color: '#1f77b4' }, BARS.legend[1]!] }),
+          () => chartOption({ ...BARS, title: `${broken}Umsatz` }, faces, DRAWN),
+          () => format(chartOption({ ...BARS, categories: ['Nord', `Süd${broken}`, 'Ost'] }, faces, DRAWN), ['xAxis', 'axisLabel', 'formatter'], 'c1', 1),
+        ].map((run) => {
+          try {
+            run()
+          } catch (error) {
+            if (error instanceof RenderRefusal) return [error.code, error.subject, error.message]
+          }
+          return 'not refused'
+        })
+        expect(refusals, JSON.stringify(broken)).toEqual(
+          Array.from({ length: 4 }, () => [
+            'unsupported',
+            'bars',
+            'the chart bars has a word with a tab or a line break in it, which a chart prints on one line',
+          ]),
+        )
+      }
+    },
+    TIMEOUT,
+  )
 })
