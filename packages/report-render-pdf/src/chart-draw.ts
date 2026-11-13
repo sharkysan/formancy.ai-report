@@ -72,11 +72,24 @@ import type { FaceWidths } from './engine.js'
 export const TICK_CLEARANCE = 1.25
 
 /**
- * Points: the narrowest a bar is drawn. Provisional: 2 until the corpus's
- * charts measure what still reads as a bar; never under ECharts' own
- * least, 1, at which it would widen the bar and drop its neighbours.
+ * Points: the narrowest a bar is drawn: the least width, rounded up to the
+ * quarter point, at which every bar of a bar chart is a run of at least
+ * one pixel of its colour, each channel within 8, with a white pixel,
+ * within 8 of 255, before the next, in the page PDF.js draws at 2 pixels
+ * to the point (the Studio's Preview at 100 % on a screen of device pixel
+ * ratio 2). Measured on 2026-11-13 on a Mac (Apple M2), Node 22.23.4,
+ * pdfjs-dist 6.4.299 and ECharts 6.1.0: one-series bar charts laid out by
+ * ECharts at the option's gaps and drawn by `renderPdf`, bars of 0.25 to
+ * 4 points in quarter-point steps, each width in ten charts that differ in
+ * the width of the value axis' labels and by one category, so that the
+ * bars stand at other fractions of a pixel. Every chart kept every bar
+ * apart from 3.75 up; at 3.5 eight of ten did not, and under it none did.
+ * The gap between two bars is a quarter of a bar, so it is the white pixel
+ * that sets the least. A screen of a lower density needs more. Never under
+ * ECharts' own least, 1, at which it widens the bar and drops its
+ * neighbours.
  */
-export const MIN_BAR_WIDTH = 2
+export const MIN_BAR_WIDTH = 3.75
 
 /** Lines: what the bands keep between the title, or the legend, and the plot's words. Chosen. */
 export const BAND_GAP = 0.5

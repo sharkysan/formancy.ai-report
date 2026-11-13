@@ -415,10 +415,10 @@ describe('a chart drawn', () => {
   )
 
   // A bar under the least width the drawing allows is a hairline nobody
-  // reads as a bar. Eight series over ten categories stand at or above it
-  // and draw; over eleven they would be thinner, and are refused by the
-  // width ECharts gives a bar. A line has no bars: eight lines over eleven
-  // categories draw.
+  // reads as a bar. Eight series over as many categories as stand at or above it
+  // draw; over one more they would be thinner, and are refused by the
+  // width ECharts gives a bar. A line has no bars: the same eight lines over
+  // one more category draw.
   test(
     'refuses bars narrower than MIN_BAR_WIDTH',
     () => {
@@ -427,12 +427,22 @@ describe('a chart drawn', () => {
         categories: Array.from({ length: count }, () => 'Q'),
         series: PALETTE.map((color, series) => ({ color, values: Array.from({ length: count }, () => value(String(10 + series))) })),
       })
-      drawChart(eight(10), FACES, WIDTHS)
+      // The plot does not move with the count: its words are the same. The most categories whose bars stand at MIN_BAR_WIDTH or more.
+      drawChart(eight(2), FACES, WIDTHS)
       const { width } = drawnPlot()
-      expect(barWidth(width / 10, 8)).toBeGreaterThanOrEqual(MIN_BAR_WIDTH)
-      expect(barWidth(width / 11, 8)).toBeLessThan(MIN_BAR_WIDTH)
-      refused(() => drawChart(eight(11), FACES, WIDTHS), eight(11), /has bars [\d.]+ points wide, narrower than the 2 points a bar is drawn at least$/)
-      expect(drawChart({ ...eight(11), chart: 'line', id: 'lines-11' }, FACES, WIDTHS).words.length).toBeGreaterThan(0)
+      let most = 1
+      while (barWidth(width / (most + 1), 8) >= MIN_BAR_WIDTH) most += 1
+      drawChart(eight(most), FACES, WIDTHS)
+      expect(drawnPlot().width).toBe(width)
+      expect(barWidth(width / most, 8)).toBeGreaterThanOrEqual(MIN_BAR_WIDTH)
+      expect(barWidth(width / (most + 1), 8)).toBeLessThan(MIN_BAR_WIDTH)
+      const over = eight(most + 1)
+      refused(
+        () => drawChart(over, FACES, WIDTHS),
+        over,
+        new RegExp(`has bars [\\d.]+ points wide, narrower than the ${String(MIN_BAR_WIDTH)} points a bar is drawn at least$`),
+      )
+      expect(drawChart({ ...over, chart: 'line', id: 'lines-over' }, FACES, WIDTHS).words.length).toBeGreaterThan(0)
     },
     TIMEOUT,
   )
@@ -453,7 +463,11 @@ describe('a chart drawn', () => {
         series: PALETTE.slice(0, 4).map((color, series) => ({ color, values: categories.map((_, index) => value(String(1000 + 4 * index + series))) })),
         valueLabels: true,
       }
-      const refusal = refused(() => drawChart(thin, FACES, WIDTHS), thin, /has bars ([\d.]+) points wide, narrower than the 2 points a bar is drawn at least$/)
+      const refusal = refused(
+        () => drawChart(thin, FACES, WIDTHS),
+        thin,
+        new RegExp(`has bars ([\\d.]+) points wide, narrower than the ${String(MIN_BAR_WIDTH)} points a bar is drawn at least$`),
+      )
       expect(Number(/has bars ([\d.]+) points wide/.exec(refusal.message)![1])).toBeLessThan(1)
     },
     TIMEOUT,
