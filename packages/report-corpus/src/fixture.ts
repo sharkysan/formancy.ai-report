@@ -103,6 +103,15 @@ export interface ExpectedChart {
   readonly faces: readonly ExpectedFontName[]
   /** Whether it has nothing to draw: its words are then all it prints. */
   readonly empty: boolean
+  /**
+   * A chart with nothing to draw has no box to be found by, and its words
+   * are sought after the chart that draws something before it in its own
+   * flow -- the body, or the column it stands in, through sections and
+   * keep-together blocks -- by that chart's id, where there is one.
+   */
+  readonly after?: string
+  /** Where no chart is drawn before it in its flow: how many page breaks stand before it, its words being sought on the pages after them. */
+  readonly breaks?: number
 }
 
 export interface Expectation {

@@ -33,9 +33,11 @@ import type { PdfBox, PdfPage, PdfTextItem, ReadPdf } from './read-pdf.js'
  *    (`check-chart-marks.ts`), and the slices (`check-chart-pie.ts`).
  * 7. **Nothing to draw.** A chart with nothing to draw is no drawing (R7,
  *    R8): it has no clip, so its box is not proved, which 0058 says. Its
- *    empty text is sought after the box of the chart drawn before it, with
- *    its title above it no farther than the box's size, each once there,
- *    and nothing painted between them in a chart's colour.
+ *    empty text is sought after the box of the chart drawn before it in
+ *    its own flow, the body or its column (`ExpectedChart.after`), and
+ *    where there is none on the pages after the page breaks before it,
+ *    with its title above it no farther than the box's size, each once
+ *    there, and nothing painted between them in a chart's colour.
  *
  * What it rests on, and what it does not see:
  * - **The reader's box is inside the word's line.** A run's box is as tall
@@ -49,14 +51,15 @@ import type { PdfBox, PdfPage, PdfTextItem, ReadPdf } from './read-pdf.js'
  *   break it: a chart in a column may stand on a later page than the next
  *   column's, and is then sought after it (`drawings.ts`), as an SVG image
  *   is.
- * - **An empty chart is found by its words.** One before any drawn chart
- *   is sought from the first page, so a title and a sentence of its words
- *   printed as other text would pass for it.
+ * - **An empty chart is found by its words.** One with no drawn chart
+ *   before it in its flow is sought from the page after the page breaks
+ *   before it, so a title and a sentence of its words printed as other
+ *   text there would pass for it.
  * - **A word is one run.** One the reader splits into several -- PDF.js
  *   splits a run at a change of script -- is said to be missing.
  */
 
-/** Where a drawn chart stands: its page and its box, which the next empty chart is sought after. */
+/** Where a drawn chart stands: its page and its box, which an empty chart after it in its flow is sought after. */
 interface Standing {
   readonly page: number
   readonly box: PdfBox
@@ -76,16 +79,15 @@ export function chartProblems(pdf: ReadPdf, pages: readonly Page[], expected: re
   const taken = new Set<PlacedChart>()
   const used = new Set<PdfTextItem>()
   const problems: string[] = []
-  let before: Standing | undefined
   for (const chart of expected.map(normalised)) {
     if (chart.empty) {
-      problems.push(...emptyProblems(pdf, chart, used, before))
+      const anchor = placed.find(({ chart: { id } }) => id === chart.after)
+      problems.push(...emptyProblems(pdf, chart, used, anchor === undefined ? undefined : { page: anchor.page.number, box: anchor.chart.box }))
       continue
     }
     const at = placed.find((each) => each.chart.id === chart.id && !taken.has(each.chart))
     if (at === undefined) continue
     taken.add(at.chart)
-    before = { page: at.page.number, box: at.chart.box }
     problems.push(...drawnProblems(chart, at.page, at.chart))
   }
   return problems
@@ -170,9 +172,11 @@ function itemProblems(say: (what: string) => string, items: readonly PdfTextItem
 
 /**
  * A chart with nothing to draw: its empty text, the first run of it no
- * empty chart before took, after the box of the chart drawn before it --
- * on a later page, or on its page no higher than its top -- where there is
- * one; its title, where it prints one, the nearest run of it above, no
+ * empty chart before took, after the box of the chart drawn before it in
+ * its flow, `before`, where there is one -- on a later page, or on its
+ * page no higher than its top -- and on a page after the page breaks
+ * before it where there is none; its title, where it prints one, the
+ * nearest run of it above, no
  * farther from the empty text than the box's size; each printed once where
  * they stand, nothing painted between them in a chart's colour, and both
  * held as a drawn chart's words are.
@@ -181,13 +185,19 @@ function emptyProblems(pdf: ReadPdf, chart: ExpectedChart, used: Set<PdfTextItem
   const text = chart.words.at(-1)
   if (text === undefined) return []
   const title = chart.words.length > 1 ? chart.words[0] : undefined
+  const breaks = chart.breaks ?? 0
   const after = (page: PdfPage, item: PdfTextItem): boolean =>
-    before === undefined || page.number > before.page || (page.number === before.page && item.top >= before.box.top - EDGE)
+    before === undefined ? page.number > breaks : page.number > before.page || (page.number === before.page && item.top >= before.box.top - EDGE)
+  const since =
+    before !== undefined
+      ? ' after the chart drawn before it'
+      : breaks === 0
+        ? ''
+        : ` after the ${breaks === 1 ? 'page break' : `${String(breaks)} page breaks`} before it`
   const free = (page: PdfPage, sought: string): PdfTextItem[] => page.items.filter((item) => item.text === sought && !used.has(item) && after(page, item))
   const candidates = pdf.pages.flatMap((page) => free(page, text).map((item) => ({ page, item })))
   const [first] = candidates
-  if (first === undefined)
-    return [`the chart ${chart.id} does not print its empty text ${quoted(text)}${before === undefined ? '' : ' after the chart drawn before it'}`]
+  if (first === undefined) return [`the chart ${chart.id} does not print its empty text ${quoted(text)}${since}`]
   const reach = (a: PdfBox, b: PdfBox): boolean =>
     Math.max(a.x + a.width, b.x + b.width) - Math.min(a.x, b.x) <= chart.width + EDGE &&
     Math.max(a.bottom, b.bottom) - Math.min(a.top, b.top) <= chart.height + EDGE

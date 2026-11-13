@@ -3,7 +3,7 @@ import { chartProblems } from './check-charts.js'
 import { pagesOf } from './check-page.js'
 import { placeDrawings } from './drawings.js'
 import { expectation, type ExpectedChart, type ExpectedDrawing } from './fixture.js'
-import type { PdfBox, PdfPage, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'
+import type { PdfBox, PdfCurve, PdfPage, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'
 
 /**
  * A chart proved on the PDF it produced (0003, 0058): `chartProblems` held
@@ -70,6 +70,47 @@ const stroked = (paint: `#${string}`, x: number, top: number, width: number, hei
   ],
   curves: [],
 })
+/** A curve of a slice's arc as the test writes it: its two control points and its end, each across and down the page. */
+type Arc = readonly [number, number, number, number, number, number]
+/**
+ * A pie's slice as the renderer draws it: one subpath from `start`
+ * through each curve of its arc -- its two control points and its end,
+ * which the reader writes as a curve and as a point -- and a line to
+ * `centre`, where it draws one; a whole circle draws none.
+ */
+function sector(paint: `#${string}`, x: number, top: number, width: number, height: number, start: Point, arcs: readonly Arc[], centre?: Point): PdfPath {
+  let from = start
+  const curves = arcs.map(([ax, ay, bx, by, tx, ty]): PdfCurve => {
+    const curve: PdfCurve = {
+      from,
+      through: [
+        [ax, ay],
+        [bx, by],
+      ],
+      to: [tx, ty],
+    }
+    from = curve.to
+    return curve
+  })
+  return {
+    ...box(x, top, width, height),
+    paint: 'fill',
+    fill: paint,
+    clip: 0,
+    subpaths: [[start, ...curves.map(({ to }) => to), ...(centre === undefined ? [] : [centre])]],
+    curves,
+  }
+}
+/** `path` moved `across` and `down` the page, its points and its curves with it. */
+function shifted(path: PdfPath, across: number, down: number): PdfPath {
+  const move = ([x, y]: Point): Point => [x + across, y + down]
+  return {
+    ...path,
+    ...box(path.x + across, path.top + down, path.width, path.height),
+    subpaths: path.subpaths.map((points) => points.map(move)),
+    curves: path.curves.map(({ from, through: [a, b], to }) => ({ from: move(from), through: [move(a), move(b)], to: move(to) })),
+  }
+}
 /** A legend's swatch: an 8 pt square filled and stroked in its colour. */
 const swatch = (paint: `#${string}`, x: number, top: number): PdfPath => ({
   ...box(x, top, 8, 8),
@@ -268,25 +309,30 @@ const SHARES: ExpectedChart = {
   faces: [],
   empty: false,
 }
-const NORTH_SLICE = filled('#1f77b4', 67.8, 65.647, 144.601, 144.601, [
+const NORTH_SLICE = sector(
+  '#1f77b4',
+  67.8,
+  65.647,
+  144.45,
+  144.463,
+  [140, 65.647],
   [
-    [140, 65.647],
-    [198.557, 95.401],
-    [208.867, 160.27],
-    [162.423, 206.714],
-    [97.555, 196.403],
-    [67.8, 137.847],
-    [140, 137.847],
+    [154.286, 65.644, 168.252, 69.876, 180.133, 77.808],
+    [192.015, 85.741, 201.278, 97.018, 206.751, 110.213],
+    [212.22, 123.416, 213.65, 137.944, 210.861, 151.959],
+    [208.072, 165.975, 201.19, 178.848, 191.084, 188.952],
+    [180.978, 199.056, 168.104, 205.936, 154.088, 208.723],
+    [140.072, 211.509, 125.544, 210.076, 112.342, 204.606],
+    [99.15, 199.128, 87.878, 189.862, 79.949, 177.98],
+    [72.021, 166.097, 67.793, 152.131, 67.8, 137.847],
   ],
-])
-const SOUTH_SLICE = filled('#ff7f0e', 67.8, 65.647, 72.2, 72.2, [
-  [
-    [67.8, 137.847],
-    [88.976, 86.823],
-    [140, 65.647],
-    [140, 137.847],
-  ],
-])
+  [140, 137.847],
+)
+const SOUTH_ARCS: readonly Arc[] = [
+  [67.79, 118.694, 75.385, 100.321, 88.916, 86.766],
+  [102.471, 73.233, 120.846, 65.637, 140, 65.647],
+]
+const SOUTH_SLICE = sector('#ff7f0e', 67.8, 65.647, 72.2, 72.2, [67.8, 137.847], SOUTH_ARCS, [140, 137.847])
 /** What the renderer drew of the zero slice until 8818a5a, taken off its render at 7fa9028: a sector of no sweep, from the pie's centre to its rim at noon. */
 const EAST_SLICE = filled('#2ca02c', 140, 65.647, 0, 72.2)
 const SHARES_READ: Drawn = {
@@ -1018,18 +1064,60 @@ const MIX: ExpectedChart = {
   faces: [],
   empty: false,
 }
+/** The renderer's slices of the pie of 3, 1 and 2 at 200 pt, its clip at 40, 46.547: each arc in its quarter turns or less, about the pie's centre. */
+const MIX_SLICES: readonly PdfPath[] = [
+  sector(
+    '#1f77b4',
+    140,
+    65.647,
+    80.938,
+    161.8,
+    [140, 65.647],
+    [
+      [161.459, 65.647, 182.041, 74.169, 197.218, 89.34],
+      [212.396, 104.51, 220.928, 125.087, 220.938, 146.547],
+      [220.928, 168.006, 212.396, 188.583, 197.218, 203.754],
+      [182.041, 218.925, 161.459, 227.447, 140, 227.447],
+    ],
+    [140, 146.547],
+  ),
+  sector(
+    '#ff7f0e',
+    69.9,
+    146.547,
+    70.1,
+    80.9,
+    [140, 227.447],
+    [
+      [125.8, 227.458, 111.847, 223.734, 99.542, 216.647],
+      [87.235, 209.552, 77.012, 199.344, 69.9, 187.047],
+    ],
+    [140, 146.547],
+  ),
+  sector(
+    '#2ca02c',
+    59.05,
+    65.647,
+    80.95,
+    121.4,
+    [69.9, 187.047],
+    [
+      [62.792, 174.74, 59.05, 160.779, 59.05, 146.568],
+      [59.05, 132.356, 62.792, 118.395, 69.9, 106.089],
+      [84.366, 81.055, 111.087, 65.639, 140, 65.647],
+    ],
+    [140, 146.547],
+  ),
+]
 function mixAt(x: number, top: number, clip = 0): { paths: PdfPath[]; items: PdfTextItem[] } {
-  const at = (path: PdfPath): PdfPath => ({ ...path, clip })
-  const moved = (...points: Point[]): Point[][] => [points.map(([across, down]) => [x - 40 + across, top - 46.547 + down])]
+  const at = (path: PdfPath): PdfPath => ({ ...shifted(path, x - 40, top - 46.547), clip })
   return {
     paths: [
-      filled('#1f77b4', x + 100, top + 19.1, 80.9, 161.8, moved([140, 65.647], [210.061, 106.097], [210.061, 186.997], [140, 227.447], [140, 146.547])),
-      filled('#ff7f0e', x + 29.9, top + 100, 70.1, 80.9, moved([140, 227.447], [99.537, 216.64], [69.9, 187.047], [140, 146.547])),
-      filled('#2ca02c', x + 19.032, top + 19.1, 80.968, 121.4, moved([69.9, 187.047], [60.259, 132.515], [87.951, 84.557], [140, 65.647], [140, 146.547])),
+      ...MIX_SLICES.map(at),
       swatch('#1f77b4', x + 48.785, top + 186.312),
       swatch('#ff7f0e', x + 85.762, top + 186.312),
       swatch('#2ca02c', x + 122.738, top + 186.312),
-    ].map(at),
+    ].map((path) => ({ ...path, clip })),
     items: [
       run('Shares', x + 87.621, top + 6.022, 24.758, MEDIUM),
       run('S1 3', x + 61.785, top + 186.647, 15.727),
@@ -1104,32 +1192,32 @@ describe("a pie's slices", () => {
       faces: [],
       empty: false,
     }
-    // The slice of 999 parts in 10^20 as the renderer drew it until 8818a5a, and the slice of 1000 as it draws it: its arc's ends one point, and the centre.
-    const [least, less] = [
-      filled('#ff7f0e', 120, 46.547, 0, 70.5),
-      filled('#2ca02c', 120, 46.547, 0, 70.5, [
-        [
-          [120, 46.547],
-          [120, 117.047],
-        ],
-      ]),
-    ]
+    // The slice of 999 parts in 10^20 as the renderer drew it until 8818a5a, and the slice of 1000 as it draws it, no arc and a line to the centre.
+    const [least, less] = [filled('#ff7f0e', 120, 46.547, 0, 70.5), sector('#2ca02c', 120, 46.547, 0, 70.5, [120, 46.547], [], [120, 117.047])]
     const read: Drawn = {
       clips: [box(40, 46.547, 160, 160)],
       paths: [
-        // All but 10^-17 of the pie: a whole circle, split where zrender rounds a point, and no centre.
-        filled('#1f77b4', 50.017, 46.545, 141, 141, [
+        // All but 10^-17 of the pie: a whole circle, split where zrender rounds a point, its arcs written again on the pie's circle, and no centre.
+        sector(
+          '#1f77b4',
+          49.535,
+          46.547,
+          140.934,
+          140.938,
+          [120, 46.547],
           [
-            [120, 46.547],
-            [180.711, 80.345],
-            [182.949, 149.794],
-            [124.539, 187.43],
-            [62.222, 156.693],
-            [56.534, 87.441],
-            [113, 46.947],
-            [120, 46.547],
+            [138.386, 46.547, 156.043, 53.733, 169.205, 66.57],
+            [182.366, 79.408, 189.989, 96.882, 190.447, 115.262],
+            [190.905, 133.642, 184.161, 151.473, 171.654, 164.95],
+            [159.148, 178.427, 141.87, 186.482, 123.507, 187.397],
+            [105.144, 188.312, 87.151, 182.014, 73.366, 169.847],
+            [59.582, 157.68, 51.099, 140.608, 49.728, 122.273],
+            [48.37, 103.946, 54.225, 85.814, 66.045, 71.743],
+            [77.865, 57.671, 94.714, 48.773, 113, 46.947],
+            [114.162, 46.814, 115.326, 46.709, 116.493, 46.634],
+            [117.661, 46.576, 118.83, 46.547, 120, 46.547],
           ],
-        ]),
+        ),
         less,
         swatch('#1f77b4', 65, 192.859),
         swatch('#ff7f0e', 104.543, 192.859),
@@ -1140,6 +1228,234 @@ describe("a pie's slices", () => {
     expect(problemsOf([tiny], read)).toEqual([])
     expect(problemsOf([tiny], { ...read, paths: [...read.paths, least] })).toEqual(['page 1: the chart tiny paints slice 2, which has no share of its pie'])
     expect(problemsOf([tiny], { ...read, paths: replaced(read.paths, less) })).toEqual(['page 1: the chart tiny paints nothing of slice 3'])
+  })
+
+  // A slice is held by every point of its outline (N1): a slice whose arc
+  // runs round the other side of its centre -- its ends and its apex where
+  // its sector's are, as a flipped arc flag draws its complement -- covers
+  // the slices beside it; a second wedge in its path paints another share;
+  // a slice whose outline runs back past its centre paints its neighbours';
+  // and a slice with its arc removed is a triangle. Each is the renderer's
+  // pie of 3, 1 and 2 with one slice so changed.
+  test('finds a slice drawn round the other side of its centre, one in two parts, one reaching past its centre, and one with no arc', () => {
+    const { paths, items } = mixAt(40, 46.547)
+    const read = (slice: number, path: PdfPath): Drawn => ({
+      clips: [box(40, 46.547, 200, 200)],
+      paths: replaced(paths, paths[slice]!, path),
+      items: [BEFORE, ...items],
+    })
+    const [first, second, third] = paths as [PdfPath, PdfPath, PdfPath]
+    const flip = ([x, y]: Point): Point => [280 - x, 293.094 - y]
+    const outline = first.subpaths[0]!
+    const keep = (point: Point): Point => (point === outline[0] || point === outline.at(-2) ? point : flip(point))
+    const mirrored: PdfPath = {
+      ...first,
+      subpaths: [[outline[0]!, ...outline.slice(1, -2).map(flip), outline.at(-2)!, outline.at(-1)!]],
+      curves: first.curves.map(({ from, through: [a, b], to }) => ({ from: keep(from), through: [flip(a), flip(b)], to: keep(to) })),
+    }
+    expect(problemsOf([MIX], read(0, mirrored))).toEqual([
+      "page 1: the chart mix paints slice 1 through 82.78, 203.75, 57.22 pt outside its share's sector from 140, 65.63 to 140, 227.47 round 140, 146.55",
+    ])
+    const wedged: PdfPath = {
+      ...second,
+      subpaths: [
+        ...second.subpaths,
+        [
+          [60, 60],
+          [70, 60],
+          [65, 70],
+        ],
+      ],
+    }
+    expect(problemsOf([MIX], read(1, wedged))).toEqual(['page 1: the chart mix paints slice 2 in 2 parts, where a slice is one'])
+    // An outline that runs back past its centre, to the top of the pie, paints into its neighbours' though every point stands on a line its sweep's edge runs along.
+    const [start, middle, ...rest] = second.subpaths[0]!
+    const reaching: PdfPath = { ...second, subpaths: [[start!, middle!, [140, 100], ...rest]] }
+    expect(problemsOf([MIX], read(1, reaching))).toEqual([
+      "page 1: the chart mix paints slice 2 through 140, 100, 46.55 pt outside its share's sector from 140, 227.47 to 69.92, 187.01 round 140, 146.55",
+    ])
+    const arcless: PdfPath = { ...third, subpaths: [[third.subpaths[0]![0]!, third.subpaths[0]!.at(-2)!, third.subpaths[0]!.at(-1)!]], curves: [] }
+    expect(problemsOf([MIX], read(2, arcless))).toEqual(['page 1: the chart mix paints slice 3 with no arc, where its arc is 169.48 pt long'])
+  })
+
+  // A slice drawn on another circle than the pie's bulges past its
+  // neighbours or falls short of them: each end of its curves stands on
+  // the pie's circle. The renderer's first slice of 3, 1 and 2, its first
+  // curve's end pushed 2 pt out along its ray, its next curve's start with
+  // it.
+  test("finds a slice whose arc leaves the pie's circle", () => {
+    const { paths, items } = mixAt(40, 46.547)
+    const first = paths[0]!
+    const pushed = (point: Point): Point => (point[0] === 197.218 && point[1] === 89.34 ? [198.632, 87.926] : point)
+    const bulging: PdfPath = {
+      ...first,
+      subpaths: first.subpaths.map((points) => points.map(pushed)),
+      curves: first.curves.map(({ from, through, to }) => ({ from: pushed(from), through, to: pushed(to) })),
+    }
+    expect(problemsOf([MIX], { clips: [box(40, 46.547, 200, 200)], paths: replaced(paths, first, bulging), items: [BEFORE, ...items] })).toEqual([
+      "page 1: the chart mix paints slice 1's arc to 198.63, 87.93, 82.91 pt from the pie's centre at 140, 146.55; its radius is 80.92",
+    ])
+  })
+
+  // A slice drawn in no part, or as one point, paints nothing of its share
+  // where it is counted as painted (N5): it is said, never skipped.
+  test('finds a slice drawn in no part, and one drawn as a single point', () => {
+    const { paths, items } = mixAt(40, 46.547)
+    const second = paths[1]!
+    const read = (path: PdfPath): Drawn => ({ clips: [box(40, 46.547, 200, 200)], paths: replaced(paths, second, path), items: [BEFORE, ...items] })
+    expect(problemsOf([MIX], read({ ...second, subpaths: [], curves: [] }))).toEqual(['page 1: the chart mix paints slice 2 in no part, where a slice is one'])
+    expect(problemsOf([MIX], read({ ...second, subpaths: [[second.subpaths[0]![0]!]], curves: [] }))).toEqual([
+      'page 1: the chart mix paints slice 2 as a single point',
+    ])
+  })
+
+  // A sliver whose arc is shorter than a tenth's diagonal may draw no curve,
+  // its ends rounded into one point, or a hair out to the circle and back;
+  // a slice near half a turn printed off its circle before the renderer
+  // wrote its arcs again; and a pie of one slice has no centre to read but
+  // its box's. Each is the renderer's pie at e0a8637, and passes.
+  test('passes a pie of 9999 and 1, one of 45, 2 and 44, and one of one slice', () => {
+    const pie = (id: string, size: number, values: readonly string[], words: readonly string[]): ExpectedChart => ({
+      id,
+      chart: 'pie',
+      width: size,
+      height: size,
+      words: ['Shares', ...words],
+      categories: [],
+      ticks: [],
+      marks: values.map((value, index) => ({ paint: (['#1f77b4', '#ff7f0e', '#2ca02c'] as const)[index]!, values: [value] })),
+      faces: [],
+      empty: false,
+    })
+    const sliver: Drawn = {
+      clips: [box(40, 46.547, 160.23, 160.23)],
+      paths: [
+        sector(
+          '#1f77b4',
+          59.063,
+          65.647,
+          122.105,
+          122.067,
+          [120.1, 65.647],
+          [
+            [136.286, 65.643, 151.81, 72.066, 163.262, 83.505],
+            [174.713, 94.944, 181.154, 110.461, 181.167, 126.647],
+            [181.171, 142.839, 174.743, 158.37, 163.296, 169.822],
+            [151.85, 181.274, 136.322, 187.71, 120.13, 187.714],
+            [103.938, 187.718, 88.407, 181.29, 76.955, 169.843],
+            [65.503, 158.396, 59.066, 142.869, 59.063, 126.677],
+            [59.068, 110.491, 65.501, 94.97, 76.947, 83.526],
+            [88.393, 72.082, 103.914, 65.651, 120.1, 65.647],
+          ],
+          [120.1, 126.647],
+        ),
+        // 0.038 pt of arc: a hair out to the circle and back.
+        sector(
+          '#ff7f0e',
+          120.1,
+          65.609,
+          0,
+          61.037,
+          [120.1, 65.647],
+          [
+            [120.1, 65.634, 120.1, 65.622, 120.1, 65.609],
+            [120.1, 65.622, 120.1, 65.634, 120.1, 65.647],
+          ],
+          [120.1, 126.647],
+        ),
+        swatch('#1f77b4', 80.644, 193.089),
+        swatch('#ff7f0e', 131.109, 193.089),
+      ],
+      items: [BEFORE, run('Shares', 107.736, 52.569, 24.758, MEDIUM), run('S1 9999', 93.644, 193.424, 29.215), run('S2 1', 144.109, 193.424, 15.727)],
+    }
+    expect(problemsOf([pie('sliver', 160.23, ['9999', '1'], ['S1 9999', 'S2 1'])], sliver)).toEqual([])
+    const wide: Drawn = {
+      clips: [box(40, 46.547, 300, 300)],
+      paths: [
+        sector(
+          '#1f77b4',
+          190,
+          65.647,
+          130.938,
+          261.8,
+          [190, 65.647],
+          [
+            [224.331, 65.647, 257.288, 79.13, 281.775, 103.192],
+            [306.262, 127.255, 320.319, 159.972, 320.918, 194.297],
+            [321.519, 228.636, 308.604, 261.836, 284.957, 286.742],
+            [261.31, 311.648, 228.824, 326.267, 194.5, 327.447],
+          ],
+          [190, 196.547],
+        ),
+        sector(
+          '#ff7f0e',
+          176.5,
+          196.547,
+          18,
+          130.959,
+          [194.5, 327.447],
+          [
+            [191.496, 327.537, 188.49, 327.523, 185.487, 327.407],
+            [182.484, 327.29, 179.487, 327.07, 176.5, 326.747],
+          ],
+          [190, 196.547],
+        ),
+        sector(
+          '#2ca02c',
+          59.064,
+          65.647,
+          130.936,
+          261.1,
+          [176.5, 326.747],
+          [
+            [143.129, 323.287, 112.359, 307.15, 90.539, 281.665],
+            [68.72, 256.18, 57.515, 223.291, 59.237, 189.786],
+            [60.979, 156.281, 75.516, 124.723, 99.848, 101.624],
+            [124.179, 78.524, 156.45, 65.646, 190, 65.647],
+          ],
+          [190, 196.547],
+        ),
+        swatch('#1f77b4', 134.289, 332.859),
+        swatch('#ff7f0e', 175.762, 332.859),
+        swatch('#2ca02c', 212.738, 332.859),
+      ],
+      items: [
+        BEFORE,
+        run('Shares', 177.621, 52.569, 24.758, MEDIUM),
+        run('S1 45', 147.289, 333.194, 20.223),
+        run('S2 2', 188.762, 333.194, 15.727),
+        run('S3 44', 225.738, 333.194, 20.223),
+      ],
+    }
+    expect(problemsOf([pie('wide', 300, ['45', '2', '44'], ['S1 45', 'S2 2', 'S3 44'])], wide)).toEqual([])
+    const whole: Drawn = {
+      clips: [box(40, 46.547, 200, 200)],
+      paths: [
+        sector(
+          '#1f77b4',
+          59.065,
+          65.643,
+          161.873,
+          161.841,
+          [140, 65.647],
+          [
+            [161.108, 65.647, 181.382, 73.893, 196.497, 88.627],
+            [211.612, 103.361, 220.373, 123.417, 220.912, 144.518],
+            [221.441, 165.626, 213.701, 186.105, 199.343, 201.586],
+            [184.984, 217.067, 165.145, 226.324, 144.057, 227.383],
+            [122.969, 228.441, 102.302, 221.216, 86.466, 207.251],
+            [70.63, 193.285, 60.878, 173.684, 59.291, 152.629],
+            [57.713, 131.578, 64.422, 110.744, 77.986, 94.57],
+            [91.55, 78.395, 110.897, 68.16, 131.9, 66.047],
+            [133.245, 65.901, 134.593, 65.789, 135.943, 65.711],
+            [137.295, 65.656, 138.647, 65.634, 140, 65.647],
+          ],
+        ),
+        swatch('#1f77b4', 125.762, 232.859),
+      ],
+      items: [BEFORE, run('Shares', 127.621, 52.569, 24.758, MEDIUM), run('S1 5', 138.762, 233.194, 15.727)],
+    }
+    expect(problemsOf([pie('whole', 200, ['5'], ['S1 5'])], whole)).toEqual([])
   })
 
   // A slice whose apex stands aside of the others' is a wedge with a kink,
@@ -1160,7 +1476,7 @@ describe("a pie's slices", () => {
   // a point from it, and both are named: two cannot say which is wrong.
   test('finds a slice drawn twice, one ending elsewhere, and one about another centre', () => {
     expect(problemsOf([SHARES], shares({ paths: [...SHARES_READ.paths, SOUTH_SLICE] }))).toEqual(['page 1: the chart shares paints slice 2 in 2 paths'])
-    const short = { ...SOUTH_SLICE, subpaths: [[...SOUTH_SLICE.subpaths[0]!.slice(0, -2), [130, 66.3] as const, [140, 137.847] as const]] }
+    const short = sector('#ff7f0e', 67.8, 65.647, 72.2, 72.2, [67.8, 137.847], [SOUTH_ARCS[0]!, [102.471, 73.233, 120.846, 65.637, 130, 66.3]], [140, 137.847])
     expect(problemsOf([SHARES], shares({ paths: replaced(SHARES_READ.paths, SOUTH_SLICE, short) }))).toEqual([
       "page 1: the chart shares paints slice 2 from 67.8, 137.85 to 130, 66.3 round 140, 137.85; its share's sector runs from 67.79, 137.85 to 140, 65.64 round 140, 137.85",
     ])
@@ -1222,26 +1538,56 @@ describe('a chart with nothing to draw', () => {
     expect(problemsOf([NOTHING], { ...NOTHING_READ, items: [heading, ...NOTHING_READ.items] })).toEqual([])
   })
 
-  // An empty chart stands after the chart drawn before it: its words
-  // printed only before that chart are some other text's, and do not pass
-  // for it.
-  test('seeks an empty chart after the chart drawn before it', () => {
+  // An empty chart stands after the chart drawn before it in its flow,
+  // the body or its column (`ExpectedChart.after`): its words printed only
+  // before that chart are some other text's, and do not pass for it.
+  test('seeks an empty chart after the chart drawn before it in its flow', () => {
+    const following: ExpectedChart = { ...NOTHING, after: 'sales' }
     expect(problemsOf([NOTHING, SALES], NOTHING_READ, SALES_READ)).toEqual([])
-    expect(problemsOf([SALES, NOTHING], NOTHING_READ, SALES_READ)).toEqual([
+    expect(problemsOf([SALES, following], NOTHING_READ, SALES_READ)).toEqual([
       "the chart nothing does not print its empty text 'No data' after the chart drawn before it",
     ])
     // On the drawn chart's page, its words above the drawn chart's box stand before it.
     const lower = mixAt(40, 266.547)
     const page: Drawn = { clips: [box(40, 266.547, 200, 200)], paths: lower.paths, items: [BEFORE, NOTHING_TITLE, NO_DATA, ...lower.items] }
     expect(problemsOf([NOTHING, MIX], page)).toEqual([])
-    expect(problemsOf([MIX, NOTHING], page)).toEqual(["the chart nothing does not print its empty text 'No data' after the chart drawn before it"])
+    expect(problemsOf([MIX, { ...NOTHING, after: 'mix' }], page)).toEqual([
+      "the chart nothing does not print its empty text 'No data' after the chart drawn before it",
+    ])
     // Below the drawn chart on its page, they stand after it.
     const upper = mixAt(40, 46.547)
     const below = [
       { ...NOTHING_TITLE, top: 270, bottom: 278 },
       { ...NO_DATA, top: 310, bottom: 318 },
     ]
-    expect(problemsOf([MIX, NOTHING], { clips: [box(40, 46.547, 200, 200)], paths: upper.paths, items: [BEFORE, ...upper.items, ...below] })).toEqual([])
+    expect(
+      problemsOf([MIX, { ...NOTHING, after: 'mix' }], { clips: [box(40, 46.547, 200, 200)], paths: upper.paths, items: [BEFORE, ...upper.items, ...below] }),
+    ).toEqual([])
+  })
+
+  // An empty chart in a later column than a drawn chart may stand higher
+  // than it: the column it stands in has no chart drawn before it, and its
+  // words are sought on the page the page breaks before it leave it. The
+  // read is the renderer's: the pie of 3, 1 and 2 under a 100 pt spacer in
+  // the first column, the empty chart in the second.
+  test('seeks an empty chart with no chart drawn before it in its column anywhere after its page breaks', () => {
+    const pie = mixAt(40, 146.547)
+    const read: Drawn = {
+      clips: [box(40, 146.547, 200, 200)],
+      paths: pie.paths,
+      items: [BEFORE, ...pie.items, run('Balance', 383.326, 52.569, 28.629, MEDIUM), run('No data', 383.597, 92.881, 28.086)],
+    }
+    expect(problemsOf([MIX, NOTHING], read)).toEqual([])
+    // After a page break, its words on the page before stand before it.
+    expect(problemsOf([MIX, { ...NOTHING, breaks: 1 }], read)).toEqual([
+      "the chart nothing does not print its empty text 'No data' after the page break before it",
+    ])
+    expect(problemsOf([{ ...NOTHING, breaks: 2 }], { clips: [], paths: [], items: [BEFORE] }, { clips: [], paths: [], items: [BEFORE] }, NOTHING_READ)).toEqual(
+      [],
+    )
+    expect(problemsOf([{ ...NOTHING, breaks: 3 }], NOTHING_READ)).toEqual([
+      "the chart nothing does not print its empty text 'No data' after the 3 page breaks before it",
+    ])
   })
 
   // Two empty charts of the same words are two charts: each is proved by
