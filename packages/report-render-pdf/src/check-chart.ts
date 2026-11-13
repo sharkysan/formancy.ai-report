@@ -1,6 +1,6 @@
-import { RenderRefusal, type AxisChart, type Chart, type PieChart } from '@formancy/report-runtime'
+import { MAX_CHART_CATEGORIES, MAX_CHART_SERIES, MAX_TICK_INTERVALS, RenderRefusal, type AxisChart, type Chart, type PieChart } from '@formancy/report-runtime'
 import { chartFace } from './chart-faces.js'
-import { chartWords, exactOf, placesOf, sharesOf } from './chart-option.js'
+import { belowZero, chartWords, exactOf, placesOf, sharesOf } from './chart-option.js'
 import { checkColor, checkStyle, checkText } from './check-faces.js'
 import { tall, type Place, type Walk } from './check-walk.js'
 
@@ -15,7 +15,8 @@ import { tall, type Place, type Walk } from './check-walk.js'
  *   keep-together block; never in a page region, which is drawn on every
  *   page and measured before the body, and where the runtime never puts a
  *   chart.
- * - **What it is.** A kind the renderer knows, a box of a size, every
+ * - **What it is.** A kind the renderer knows, a box of a size, within the
+ *   bounds no chart the runtime resolves passes (`checkBounds`), every
  *   colour it paints and its words' style as a paragraph's are held
  *   (`checkColor`, `checkStyle`): its words take the style's font token,
  *   size, weight, slant and colour, and its title is bold in the same
@@ -30,8 +31,8 @@ import { tall, type Place, type Walk } from './check-walk.js'
  *   draw one with some of it left out, or a legend that names a series by
  *   another's colour.
  * - **Its words**, every one it may print, every tick among them before
- *   the layout thins them (`chartWords`): each text, with no tab or line
- *   break, trimmed of the whitespace pdfmake cuts, and held as a
+ *   the layout thins them (`chartWords`): each text, with no control
+ *   character, trimmed of the whitespace pdfmake cuts, and held as a
  *   paragraph's is to the scripts the renderer prints and to the face it
  *   prints in (`checkText`, `chartFace`). A word blank once trimmed prints
  *   nothing, and asks for no face: a title of whitespace asks for no bold
@@ -41,7 +42,12 @@ import { tall, type Place, type Walk } from './check-walk.js'
  *   every value, and a bar chart's holding zero, which its bars stand on;
  *   a pie's slices none below zero, and more than nothing together
  *   (`sharesOf`). The option reads them through the same functions and
- *   holds each as an invariant, which this refuses first.
+ *   holds each as an invariant, which this refuses first. Two of them are
+ *   the runtime's decisions, re-held as what the drawing needs:
+ *   `chartTicks`' axis, which holds every value and a bar's zero
+ *   (`chart-ticks.ts`), and `chart-negative-share`, its refusal of a pie
+ *   of a negative value (`lower-chart.ts`); a change to either is a
+ *   change here.
  * - **Its size**: no wider than where it stands, as `content-too-large`,
  *   and its height judged against the body's once the page regions are
  *   measured (`tall`).
@@ -57,6 +63,7 @@ export function checkChart(chart: Chart, at: string, place: Place, walk: Walk): 
   if (kind !== 'bar' && kind !== 'line' && kind !== 'pie') throw refusal(chart, `${named} is of a kind the renderer does not know`)
   const { width, height } = chart
   if (!(width > 0 && height > 0 && Number.isFinite(width) && Number.isFinite(height))) throw refusal(chart, `${named} is drawn ${width} × ${height} pt`)
+  checkBounds(chart)
   checkStyle(chart.style, named, walk.fonts, chart.id)
   for (const color of marks(chart)) checkColor(color, named, chart.id)
   for (const { color } of chart.legend) checkColor(color, named, chart.id)
@@ -76,6 +83,33 @@ const refusal = (chart: Chart, message: string): RenderRefusal => new RenderRefu
 
 /** `count` of a thing, in the words for one of it and for more. */
 const counted = (count: number, one: string, more: string): string => `${String(count)} ${count === 1 ? one : more}`
+
+/**
+ * `chart` held to the bounds no chart the runtime resolves passes, each
+ * read from where it is decided: its categories, a pie's slices among
+ * them, to the runtime's `MAX_CHART_CATEGORIES`, a bound on the work a
+ * chart costs, as `content-too-large`; its series to report-spec's
+ * `MAX_CHART_SERIES`, one colour each from the palette, and its ticks to
+ * the `MAX_TICK_INTERVALS` intervals `chartTicks` writes at most, each as
+ * `unsupported`, a chart of a form no runtime resolves. Held before its
+ * words are read, so that a chart built by hand past them costs the check
+ * nothing more, and ECharts never lays it out.
+ */
+function checkBounds(chart: Chart): void {
+  const named = `the chart ${chart.id}`
+  const categories = chart.chart === 'pie' ? chart.slices.length : chart.categories.length
+  if (categories > MAX_CHART_CATEGORIES) {
+    throw new RenderRefusal('content-too-large', `${named} has ${String(categories)} categories; a chart has at most ${String(MAX_CHART_CATEGORIES)}`, chart.id)
+  }
+  if (chart.chart === 'pie') return
+  if (chart.series.length > MAX_CHART_SERIES)
+    throw refusal(
+      chart,
+      `${named} has ${String(chart.series.length)} series; a chart has at most ${String(MAX_CHART_SERIES)}, one colour each from its palette`,
+    )
+  if (chart.ticks.length > MAX_TICK_INTERVALS + 1)
+    throw refusal(chart, `the value axis of ${named} has ${String(chart.ticks.length)} ticks; an axis has at most ${String(MAX_TICK_INTERVALS + 1)}`)
+}
 
 /** The colours `chart` paints its marks in: its series' (bar, line), or its slices' (pie). */
 const marks = (chart: Chart): readonly string[] => (chart.chart === 'pie' ? chart.slices : chart.series).map(({ color }) => color)
@@ -121,7 +155,12 @@ function checkParts(chart: Chart): void {
   }
 }
 
-/** A bar or a line chart's numbers: every one a decimal, its ticks an axis (`placesOf`) that holds every value, and a bar chart's zero. */
+/**
+ * A bar or a line chart's numbers: every one a decimal, its ticks an axis
+ * (`placesOf`) that holds every value, and a bar chart's zero, as
+ * `chartTicks` writes one (`chart-ticks.ts`): the plot's clip would cut a
+ * value its ticks do not hold, and a bar stands on zero's place.
+ */
 function checkAxis(chart: AxisChart): void {
   const named = `the chart ${chart.id}`
   const values = chart.series.flatMap(({ values: each }) => each.flatMap((value) => (value === null ? [] : [value.exact])))
@@ -139,13 +178,11 @@ function checkAxis(chart: AxisChart): void {
   if (chart.chart === 'bar' && !held('0')) throw refusal(chart, `${named} is a bar chart whose ticks do not hold zero, which its bars stand on`)
 }
 
-/** A pie's numbers: every slice a decimal, none below zero, and together more than nothing (`sharesOf`). */
+/** A pie's numbers: every slice a decimal; none below zero (`belowZero`), which the runtime refuses as `chart-negative-share` (`lower-chart.ts`) and a share of which would be no slice; and together more than nothing (`sharesOf`). */
 function checkSlices(chart: PieChart): void {
   const named = `the chart ${chart.id}`
-  const slices = chart.slices.map(({ value }) => exactOf(value.exact))
-  if (slices.some((slice) => slice === undefined)) throw refusal(chart, `${named} holds a value that is not a decimal`)
-  if (slices.some((slice) => slice !== undefined && slice.units < 0n))
-    throw refusal(chart, `${named} is a pie with a slice below zero, which is no share of a whole`)
+  if (chart.slices.some(({ value }) => exactOf(value.exact) === undefined)) throw refusal(chart, `${named} holds a value that is not a decimal`)
+  if (chart.slices.some(({ value }) => belowZero(value))) throw refusal(chart, `${named} is a pie with a slice below zero, which is no share of a whole`)
   if (sharesOf(chart) === undefined) throw refusal(chart, `${named} is a pie whose slices sum to nothing, and holds no empty text to print in their place`)
 }
 

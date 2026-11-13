@@ -75,7 +75,7 @@ export const VALUE_LABEL_DISTANCE = 5
 /** Points: how far the category labels stand under the plot's foot, ECharts' own default, stated, since a bar below zero labelled under its end widens it. */
 export const CATEGORY_LABEL_MARGIN = 8
 
-/** Whether `value` is below zero: a bar of it stands down from zero, labelled under its end. */
+/** Whether `value` is below zero, the one test of it the option and the check make: a bar of it stands down from zero, labelled under its end, and a slice of it is refused (`check-chart.ts`). */
 export const belowZero = (value: ChartValue): boolean => value.exact.startsWith('-')
 
 /** The value axis's gridlines, one at every tick, and the category axis's line: the renderer's, as a table's rules are. Chosen. */
@@ -127,23 +127,38 @@ function labelledTicks(chart: AxisChart, tickEvery: number): { readonly index: n
   return chart.ticks.flatMap((tick, index) => (index % tickEvery === 0 ? [{ index, tick }] : []))
 }
 
-/** A tab, which pdfmake prints four spaces wide, and a line break as Unicode breaks a line (UAX #14's BK, CR, LF and NL), at which zrender breaks one and pdfmake's `noWrap` does not. */
-const BROKEN = /[\t\n\v\f\r\u0085\u2028\u2029]/
+/**
+ * A control character -- Unicode's general category Cc, which holds the
+ * tab and every line break but two -- or one of those two, the line and
+ * paragraph separators U+2028 and U+2029. zrender 6.1.0 splits a word into lines at a line
+ * feed alone (`parseText.js`), and pdfmake's `noWrap` keeps a run whole,
+ * as one word (`TextBreaker.js`); but pdfmake prints a tab four spaces
+ * wide, and any other control character as its face's glyph for it --
+ * Roboto's for U+0000 and U+0002 is empty -- while the PDF's text and
+ * ECharts' SVG hold the character itself. Refusing the whole set is
+ * fail-closed: wider than the characters either engine was read to break
+ * a line at, so that a chart's word prints as it is written or not at all.
+ */
+const CONTROL = /[\p{Cc}\u2028\u2029]/u
 
 /**
  * `text`, a word of the chart `id`, as the chart prints it: trimmed of the
  * whitespace pdfmake cuts from either end of a run it prints, JavaScript's
  * `\s`, the no-break spaces U+00A0 and U+202F among it, so that ECharts
  * measures and places the very word pdfmake prints (`FaceWidths.width`),
- * which may be empty. A word holding a tab or a line break is refused,
- * naming the chart and quoting nothing: pdfmake and ECharts would lay it
- * out apart. So is one that is not text, which pdfmake would read as
- * inlines, a link among them, or neither could print.
+ * which may be empty. A word holding a control character (`CONTROL`) is
+ * refused, naming the chart and quoting nothing: it would print otherwise
+ * than it is written. So is one that is not text, which pdfmake would read
+ * as inlines, a link among them, or neither could print.
  */
 export function chartText(text: unknown, id: string): string {
   if (typeof text !== 'string') throw new RenderRefusal('unsupported', `the chart ${id} has a word that is not text`, id)
-  if (BROKEN.test(text))
-    throw new RenderRefusal('unsupported', `the chart ${id} has a word with a tab or a line break in it, which a chart prints on one line`, id)
+  if (CONTROL.test(text))
+    throw new RenderRefusal(
+      'unsupported',
+      `the chart ${id} has a word with a tab, a line break or another control character in it, which a chart never prints`,
+      id,
+    )
   return text.trim()
 }
 

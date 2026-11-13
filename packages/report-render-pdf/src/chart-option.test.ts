@@ -1143,17 +1143,18 @@ describe('the option ECharts is handed', () => {
 
   // pdfmake cuts the whitespace at either end of a run it prints --
   // JavaScript's \s, a no-break space among it -- and prints a tab four
-  // spaces wide, and zrender breaks a line at a line break where pdfmake's
+  // spaces wide, and zrender breaks a line at a line feed where pdfmake's
   // noWrap does not. A word ECharts measured and placed with its edges'
   // whitespace would print narrower than its box and shifted in it --
   // North after a no-break space measures 22.18359375 points in Roboto at
-  // 8 points, North alone 20.19921875 -- and a word with a tab or a line
-  // break would print otherwise than ECharts laid it out. So each word is
-  // trimmed once, for the words the layout prints and for ECharts alike;
-  // a word empty once trimmed is no word, its slot kept; and a tab or a
-  // line break is refused, naming the chart and quoting nothing.
+  // 8 points, North alone 20.19921875 -- and a word with a tab, a line
+  // break or another control character would print otherwise than it is
+  // written. So each word is trimmed once, for the words the layout prints
+  // and for ECharts alike; a word empty once trimmed is no word, its slot
+  // kept; and every control character, and the line and paragraph
+  // separators, are refused, naming the chart and quoting nothing.
   test(
-    'trims each word of the whitespace pdfmake cuts, drops one empty once trimmed, and refuses a tab or a line break',
+    'trims each word of the whitespace pdfmake cuts, drops one empty once trimmed, and refuses a tab, a line break or another control character',
     async () => {
       const measuredFaces = await facesOf(BARS)
       const { faces, widths } = measuredFaces
@@ -1191,7 +1192,7 @@ describe('the option ECharts is handed', () => {
       expect(sorted(textsOf(drawn(spaced, measuredFaces, DRAWN).svg))).toEqual(sorted(chartWords(spaced, DRAWN).map(({ text }) => text)))
       // A title that is nothing but whitespace is no title.
       expect(at(chartOption({ ...BARS, title: '\u00a0 ' }, faces, DRAWN), 'title')).toBeUndefined()
-      for (const broken of ['\t', '\n', '\r', '\v', '\f', '\u0085', '\u2028', '\u2029']) {
+      for (const broken of ['\t', '\n', '\r', '\v', '\f', '\u0085', '\u2028', '\u2029', '\u0000', '\u0002', '\u001f', '\u007f', '\u009f']) {
         const refusals = [
           () => chartWords({ ...BARS, categories: [`Nord${broken}Ost`, 'Süd', 'Ost'] }),
           () => chartWords({ ...BARS, legend: [{ text: `Plan${broken}`, color: '#1f77b4' }, BARS.legend[1]!] }),
@@ -1209,7 +1210,7 @@ describe('the option ECharts is handed', () => {
           Array.from({ length: 4 }, () => [
             'unsupported',
             'bars',
-            'the chart bars has a word with a tab or a line break in it, which a chart prints on one line',
+            'the chart bars has a word with a tab, a line break or another control character in it, which a chart never prints',
           ]),
         )
       }

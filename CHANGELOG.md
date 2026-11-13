@@ -148,8 +148,10 @@ render, as `unsupported`, naming the chart, until it draws charts.
   no value, a pie of zeros -- holds its title and its empty text alone.
 - **The runtime exports** the block's types (`Chart`, `AxisChart`,
   `PieChart`, `ChartValue`, `ChartLegendEntry`, `ChartSeriesValues`) and
-  `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and `SHARE_PLACES`, so that
-  a host that tells an author a bound reads it rather than a copy.
+  `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and `SHARE_PLACES`, and
+  hands on report-spec's `MAX_CHART_SERIES`, so that a host that tells an
+  author a bound, or a renderer that holds a block to one, reads it rather
+  than a copy.
 
 **A report may hold a bar, line or pie chart of its detail rows, which no
 release prints yet**

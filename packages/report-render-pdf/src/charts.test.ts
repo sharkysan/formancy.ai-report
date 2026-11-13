@@ -1,4 +1,4 @@
-import { MAX_FONT_SIZE, MIN_FONT_SIZE } from '@formancy/report-runtime'
+import { MAX_CHART_CATEGORIES, MAX_CHART_SERIES, MAX_FONT_SIZE, MAX_TICK_INTERVALS, MIN_FONT_SIZE } from '@formancy/report-runtime'
 import type { AxisChart, Block, Chart, ChartValue, PieChart, ResolvedDocument, ResolvedFonts } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { checkChart } from './check-chart.js'
@@ -101,6 +101,13 @@ function refused(chart: Block, fonts?: ResolvedFonts): Promise<unknown> {
 /** The refusal of a chart that passes every check: this release draws none. */
 const notDrawn = (id: string): object => ({ code: 'unsupported', subject: id, message: `the chart ${id} is not drawn by this release of the renderer` })
 
+/** The refusal of a word of the chart `id` that holds a control character. */
+const controlled = (id: string): object => ({
+  code: 'unsupported',
+  subject: id,
+  message: `the chart ${id} has a word with a tab, a line break or another control character in it, which a chart never prints`,
+})
+
 /** A chart built by hand as no runtime types it: a kind, a word or a value of another type. */
 const untyped = (chart: object): Chart => chart as Chart
 
@@ -180,12 +187,11 @@ describe('a chart checked before anything is laid out', () => {
     expect(await refused(chart)).toMatchObject({ code: 'unsupported', subject: 'sales', message: expect.stringContaining(message) as string })
   })
 
-  // zrender breaks a word into lines at a line break, where pdfmake's
-  // noWrap does not, and pdfmake prints a tab four spaces wide: a word
-  // with either would print otherwise than ECharts laid it out. Refused
-  // in every word a chart prints, its empty text too, which ECharts never
-  // lays out, so that a chart's words are one line each wherever they
-  // stand; naming the chart and quoting nothing.
+  // pdfmake prints a tab four spaces wide, and a word laid out by ECharts
+  // with a line break in it would print otherwise than it was measured: a
+  // chart's words are one line each, as written. Every control character
+  // is refused in every word a chart prints, its empty text too, which
+  // ECharts never lays out; naming the chart and quoting nothing.
   test.each([
     ['a line break in a category', { ...BARS, categories: ['North\nEast', 'South'] }],
     ['a tab in the title', { ...BARS, title: 'Sales\t2026' }],
@@ -193,12 +199,26 @@ describe('a chart checked before anything is laid out', () => {
     ['a line separator in a value', { ...BARS, series: [{ ...PLAN, values: [value('10.25', '10\u202825'), null] }, ACTUAL] }],
     ["a paragraph separator in a pie's legend entry", { ...PIE, legend: [PIE.legend[0]!, { text: 'South\u2029', color: '#ff7f0e' }, PIE.legend[2]!] }],
     ['a line break in the empty text', { ...EMPTY, empty: 'No\r\ndata' }],
-  ] as const)('refuses a chart word that holds a tab or a line break: %s', async (_, chart) => {
-    expect(await refused(chart)).toMatchObject({
-      code: 'unsupported',
-      subject: chart.id,
-      message: `the chart ${chart.id} has a word with a tab or a line break in it, which a chart prints on one line`,
-    })
+    ['a delete in a legend entry', { ...BARS, legend: [BARS.legend[0]!, { text: 'Act\u007fual', color: '#ff7f0e' }] }],
+    ["a C1 control in the value axis's title", { ...BARS, valueTitle: 'CHF\u009b' }],
+  ] as const)('refuses a chart word that holds a tab, a line break or another control character: %s', async (_, chart) => {
+    expect(await refused(chart)).toMatchObject(controlled(chart.id))
+  })
+
+  // Roboto maps U+0000 and U+0002 to empty glyphs of no width: a word
+  // holding one passes the face's glyph map, prints as nothing on the
+  // paper, and writes the control character into the PDF's text and into
+  // ECharts' SVG, so the text a reader copies is not the word printed. A
+  // chart's word is refused for a control character whatever its face
+  // maps, so that the glyph map never stands in for the rule.
+  test("refuses a control character Roboto maps to an empty glyph, which the face's map alone would pass", async () => {
+    const roboto = await engine.glyphs()
+    expect([0x00, 0x02].map((point) => roboto.normal.has(point))).toEqual([true, true])
+    for (const categories of [
+      ['North\u0000', 'South'],
+      ['No\u0002rth', 'South'],
+    ])
+      expect(await refused({ ...BARS, categories }), JSON.stringify(categories)).toMatchObject(controlled('sales'))
   })
 
   // A word that is not text -- an array, which pdfmake would read as
@@ -322,6 +342,51 @@ describe('a chart checked before anything is laid out', () => {
       subject: 'sales',
       message: 'the chart sales is 200.00 pt tall; the body is 199.99 pt where it stands',
     })
+  })
+
+  // The runtime groups a chart's rows into at most MAX_CHART_CATEGORIES
+  // categories, a pie's slices among them, before it totals anything, and
+  // writes a value axis of at most MAX_TICK_INTERVALS intervals; report-spec
+  // admits at most MAX_CHART_SERIES series, one colour each from the
+  // palette. A chart built by hand past any of them would be laid out by
+  // ECharts, three times, at a cost no bound holds: refused by the bound
+  // itself, before its words are read, and a chart at each bound passes.
+  test('refuses a chart past a bound the runtime holds it to, and passes one at it', async () => {
+    const categories = (count: number): AxisChart => ({
+      ...BARS,
+      categories: Array.from({ length: count }, (_, index) => `C${String(index)}`),
+      series: [{ ...PLAN, values: Array.from({ length: count }, () => value('1')) }],
+      legend: [],
+    })
+    const slices = (count: number): PieChart => ({ ...PIE, slices: Array.from({ length: count }, () => ({ color: '#1f77b4', value: value('1') })), legend: [] })
+    const ticks = (count: number): AxisChart => ({ ...BARS, ticks: Array.from({ length: count }, (_, index) => value(String(5 * index - 5))) })
+    const series = (count: number): AxisChart => ({
+      ...BARS,
+      series: Array.from({ length: count }, (_, index) => ({ color: `#0000${index.toString(16).padStart(2, '0')}`, values: [value('1'), null] })),
+      legend: [],
+    })
+    expect(await refused(categories(MAX_CHART_CATEGORIES + 1))).toMatchObject({
+      code: 'content-too-large',
+      subject: 'sales',
+      message: `the chart sales has ${String(MAX_CHART_CATEGORIES + 1)} categories; a chart has at most ${String(MAX_CHART_CATEGORIES)}`,
+    })
+    expect(await refused(slices(MAX_CHART_CATEGORIES + 1))).toMatchObject({
+      code: 'content-too-large',
+      subject: 'shares',
+      message: `the chart shares has ${String(MAX_CHART_CATEGORIES + 1)} categories; a chart has at most ${String(MAX_CHART_CATEGORIES)}`,
+    })
+    expect(await refused(ticks(MAX_TICK_INTERVALS + 2))).toMatchObject({
+      code: 'unsupported',
+      subject: 'sales',
+      message: `the value axis of the chart sales has ${String(MAX_TICK_INTERVALS + 2)} ticks; an axis has at most ${String(MAX_TICK_INTERVALS + 1)}`,
+    })
+    expect(await refused(series(MAX_CHART_SERIES + 1))).toMatchObject({
+      code: 'unsupported',
+      subject: 'sales',
+      message: `the chart sales has ${String(MAX_CHART_SERIES + 1)} series; a chart has at most ${String(MAX_CHART_SERIES)}, one colour each from its palette`,
+    })
+    for (const chart of [categories(MAX_CHART_CATEGORIES), slices(MAX_CHART_CATEGORIES), ticks(MAX_TICK_INTERVALS + 1), series(MAX_CHART_SERIES)])
+      expect(await refused(chart)).toMatchObject(notDrawn(chart.id))
   })
 
   // What the renderer does not know is refused, never drawn as something
@@ -477,7 +542,7 @@ describe('a chart checked before anything is laid out', () => {
     [
       'a value held as a number',
       untyped({ ...BARS, series: [{ ...PLAN, values: [{ exact: 10.25, text: '10.25' }, null] }, ACTUAL] }),
-      '10.25 ',
+      '10.25',
       'the chart sales holds a value that is not a decimal',
     ],
     [
@@ -489,7 +554,7 @@ describe('a chart checked before anything is laid out', () => {
     [
       'one tick',
       { ...BARS, series: [{ ...PLAN, values: [value('0'), null] }], legend: [], ticks: [value('0')] },
-      '0 ',
+      '0',
       'the value axis of the chart sales is 1 tick, and not two or more ascending in equal steps',
     ],
     [
@@ -542,8 +607,8 @@ describe('a chart checked before anything is laid out', () => {
     ],
     [
       'a pie of no slice',
-      { ...PIE, slices: [], legend: [] },
-      'North',
+      { ...PIE, title: 'Umsatzanteile', slices: [], legend: [] },
+      'Umsatzanteile',
       'the chart shares is a pie whose slices sum to nothing, and holds no empty text to print in their place',
     ],
   ] as const)('refuses %s, naming the chart and quoting no value', async (_, chart, quoted, message) => {

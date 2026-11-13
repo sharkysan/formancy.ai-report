@@ -342,7 +342,8 @@ of them (0042). The document's types, `RenderRefusal` and `REFUSAL_CODES` are
 the renderer's contract, declared here so that no engine defines them; a
 chart's among them, and `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and
 `SHARE_PLACES`, the runtime's bounds on a chart, which a host that tells an
-author of them reads rather than copies (0055).
+author of them reads rather than copies (0055), with report-spec's
+`MAX_CHART_SERIES` beside them, which the renderer holds a chart's block to.
 What report-spec decides of a QR-bill that an engine needs to draw its
 slip is handed on as report-spec's own objects: `QR_BILL_SIZE` and
 `QR_BILL_TOP`, the slip's size and place; `qrBillPageBreak` and its type
