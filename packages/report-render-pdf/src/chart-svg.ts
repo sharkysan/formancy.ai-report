@@ -29,8 +29,11 @@ import { PDF_A_NESTING } from './svg-pdfa.js'
  *   writes, `&amp; &lt; &gt; &quot; &#39;`, or a character it escapes,
  *   unescaped;
  * - a number that is not finite, or past the box by more than the box's
- *   longer side: every number the converter writes of a chart is then far
- *   under what a PDF/A holds (`svg-pdfa.ts`'s `SVG_INTEGER_BOUND`);
+ *   longer side -- of a path, each point it reaches as the converter takes
+ *   it, a relative step's from the point before it and never the step, and
+ *   an arc's radius, every arc a circle's (`reached`): every number the
+ *   converter writes of a chart is then far under what a PDF/A holds
+ *   (`svg-pdfa.ts`'s `SVG_INTEGER_BOUND`);
  * - groups nested deeper than a PDF/A nests the graphics state;
  * - a `fill` or a `stroke` the option did not name -- the block's, the
  *   grid's, the axis's or the words' -- `none` and `transparent` aside, or
@@ -89,8 +92,10 @@ const VOCABULARY: Readonly<
   rect: { attributes: { width: NUMBER, height: NUMBER, x: NUMBER, y: NUMBER, fill: PAINT }, inside: ['svg', 'g'] },
   path: {
     attributes: {
-      // zrender's path writer moves, draws lines, a rectangle's sides relative, curves and arcs, and closes (svg/SVGPathRebuilder.js).
-      d: `(?:[MLlCQAZ]|${NUMBER}|[ ,])+`,
+      // As zrender's path writer writes one (svg/SVGPathRebuilder.js): a move, then moves, lines, a rectangle's sides relative,
+      // curves, arcs and closes, each its letter and its numbers, a space between them; an arc a circle's, unturned, as ECharts
+      // draws every one (`arc`, its radius twice), its flags 0 or 1.
+      d: String.raw`M${NUMBER} ${NUMBER}(?:[MLl]${NUMBER} ${NUMBER}|C${NUMBER}(?: ${NUMBER}){5}|Q${NUMBER}(?: ${NUMBER}){3}|A(?<radius>${NUMBER}) \k<radius> 0 [01] [01] ${NUMBER} ${NUMBER}|Z)*`,
       // A path moved, or a line's marker scaled and moved.
       transform: String.raw`${TRANSLATE}|matrix\(${NUMBER}(?:,${NUMBER}){5}\)`,
       fill: PAINT,
@@ -160,8 +165,8 @@ const ELEMENTS: ReadonlyMap<string, Vocabulary> = new Map(
  */
 export const CHART_DRAWN: ReadonlyMap<string, ReadonlySet<string>> = new Map([...ELEMENTS].map(([element, { values }]) => [element, new Set(values.keys())]))
 
-/** The attributes whose numbers are coordinates or lengths in the drawing, each held to the box. */
-const MEASURES: ReadonlySet<string> = new Set(['width', 'height', 'x', 'y', 'stroke-width', 'stroke-miterlimit', 'viewBox', 'd', 'transform'])
+/** The attributes whose numbers are coordinates or lengths in the drawing, each held to the box; a path's are the points it reaches (`reached`). */
+const MEASURES: ReadonlySet<string> = new Set(['width', 'height', 'x', 'y', 'stroke-width', 'stroke-miterlimit', 'viewBox', 'transform'])
 
 /** Every number in an attribute's value, each read by `matchAll`, which reads a copy. */
 const NUMBERS = new RegExp(NUMBER, 'g')
@@ -299,7 +304,8 @@ function attributesOf(element: Vocabulary, name: string, written: string, refuse
  */
 function hoverRules(svg: string, at: number, refuse: Refuse): number {
   const end = svg.indexOf('</style>', at)
-  const sheet = /^\s*<!\[CDATA\[((?:\s*[^{}<>;@]+\{[^{}<>]*\})*)\s*\]\]>\s*$/.exec(svg.slice(at, end))
+  // A selector starts at its first character that is not whitespace, so that each rule is read one way only, and a sheet that does not match fails at once.
+  const sheet = /^\s*<!\[CDATA\[((?:\s*[^\s{}<>;@][^{}<>;@]*\{[^{}<>]*\})*)\s*\]\]>\s*$/.exec(svg.slice(at, end))
   if (end < 0 || sheet === null) refuse('holds a style sheet but its one of hover rules')
   const [, rules = ''] = sheet
   for (const [, selectors = ''] of rules.matchAll(/([^{}]+)\{/g))
@@ -318,13 +324,12 @@ function hold(drawing: Element, chart: AxisChart | PieChart, faces: ChartFaces, 
     // The converter saves the graphics state as it starts, and once for each element it draws inside the one before.
     if (depth + 1 > PDF_A_NESTING) refuse(`holds groups nested deeper than the ${String(PDF_A_NESTING)} graphics states a PDF/A holds`)
     for (const [attribute, value] of element.attributes) {
-      if (MEASURES.has(attribute))
-        for (const [number] of value.matchAll(NUMBERS)) {
-          const measure = Number(number)
-          if (!Number.isFinite(measure)) refuse('holds a number that is not finite')
-          if (measure < -reach || measure > 2 * reach)
-            refuse(`holds a number past its box by more than its size, ${String(chart.width)} by ${String(chart.height)} points`)
-        }
+      const measures = attribute === 'd' ? reached(value) : MEASURES.has(attribute) ? [...value.matchAll(NUMBERS)].map(([number]) => Number(number)) : []
+      for (const measure of measures) {
+        if (!Number.isFinite(measure)) refuse('holds a number that is not finite')
+        if (measure < -reach || measure > 2 * reach)
+          refuse(`holds a number past its box by more than its size, ${String(chart.width)} by ${String(chart.height)} points`)
+      }
       if ((attribute === 'fill' || attribute === 'stroke') && !(masked ? masks : painted).has(value))
         refuse(masked ? 'paints a clip path' : 'holds a colour the option did not name')
       if (attribute === 'clip-path') clipped.push(value.slice('url(#'.length, -')'.length))
@@ -336,6 +341,38 @@ function hold(drawing: Element, chart: AxisChart | PieChart, faces: ChartFaces, 
   const box = [String(chart.width), String(chart.height), `0 0 ${String(chart.width)} ${String(chart.height)}`]
   if (['width', 'height', 'viewBox'].some((attribute, index) => drawing.attributes.get(attribute) !== box[index])) refuse('is of another size than its box')
   if (new Set(clips).size !== clips.length || clipped.some((id) => !clips.includes(id))) refuse('clips by a path it does not define once')
+}
+
+/**
+ * The measures of `d`, a path held to `VOCABULARY`, as the converter takes
+ * them (svg-to-pdfkit's `SvgShape`, `source.js`): each point it moves,
+ * draws or curves to -- a relative line's the point before it moved by its
+ * step, and never the step, which ECharts takes back across the whole of a
+ * title's or a legend's background; the point before it, after a close,
+ * the one its path last moved to -- each curve's control points, and an
+ * arc's radius, its turn and its flags no measure. The converter draws an
+ * arc as curves on the circle through its ends, of its radius or of half
+ * the line between them where that is longer, so that every number it
+ * writes of one is within a few of the box's sizes when the radius and the
+ * ends are held to the box.
+ */
+function reached(d: string): number[] {
+  const numbers: number[] = []
+  // Never read: a path starts with a move.
+  let at: readonly [number, number] = [0, 0]
+  let start = at
+  for (const [, command = '', written = ''] of d.matchAll(/([MLlCQAZ])([^MLlCQAZ]*)/g)) {
+    if (command === 'Z') {
+      at = start
+      continue
+    }
+    const given = written.split(' ').map(Number)
+    const [x = 0, y = 0] = given.slice(-2)
+    at = command === 'l' ? [at[0] + x, at[1] + y] : [x, y]
+    if (command === 'M') start = at
+    numbers.push(...(command === 'A' ? given.slice(0, 1) : given.slice(0, -2)), ...at)
+  }
+  return numbers
 }
 
 /** The colours the option names for `chart` in `faces`: each series' or slice's and each legend entry's, the grid's, the axis's and the words'. */

@@ -101,20 +101,23 @@ const PIE: PieChart = {
 /** Liberation Serif's faces, the corpus's host font, mapped as the report's serif. */
 const SERIF = { serif: fixture('host-fonts').document.fonts!.serif! }
 
-/** `MARKUP` with each of its words, in `chartWords`' order, the next of `text`. */
-function retexted(text: (index: number) => string): AxisChart {
+/** `chart` with each of its words, in `chartWords`' order, the next of `text`. */
+function retexted(chart: AxisChart | PieChart, text: (index: number) => string): AxisChart | PieChart {
   let index = 0
   const next = (): string => text(index++)
-  return {
-    ...MARKUP,
-    title: next(),
-    categoryTitle: next(),
-    valueTitle: next(),
-    categories: MARKUP.categories.map(next),
-    ticks: MARKUP.ticks.map(({ exact }) => value(exact, next())),
-    series: MARKUP.series.map((series) => ({ ...series, values: series.values.map((each) => (each === null ? null : value(each.exact, next()))) })),
-    legend: MARKUP.legend.map((entry) => ({ ...entry, text: next() })),
-  }
+  const title = next()
+  const axes =
+    chart.chart === 'pie'
+      ? chart
+      : {
+          ...chart,
+          categoryTitle: next(),
+          valueTitle: next(),
+          categories: chart.categories.map(next),
+          ticks: chart.ticks.map(({ exact }) => value(exact, next())),
+          series: chart.series.map((series) => ({ ...series, values: series.values.map((each) => (each === null ? null : value(each.exact, next()))) })),
+        }
+  return { ...axes, title, legend: chart.legend.map((entry) => ({ ...entry, text: next() })) }
 }
 
 /** A word zrender laid out: its text, and its box as zrender holds it, its transform applied. */
@@ -157,9 +160,16 @@ interface Drawn {
   readonly laid: readonly LaidWord[]
 }
 
-/** `chart` laid out in its plot, or a pie in its square, its words in `fonts`' faces or Roboto. */
-async function drawn(chart: AxisChart | PieChart, fonts?: ResolvedFonts): Promise<Drawn> {
-  const layout: ChartLayout = chart.chart === 'pie' ? { tickEvery: 1, plot: { left: 90, top: 50, width: 120, height: 120 } } : { tickEvery: 1, plot: PLOT }
+/** A pie's square of 120 points in the middle of a box of 300 by 240, above its legend. */
+const SQUARE = { left: 90, top: 50, width: 120, height: 120 } as const
+
+/** `chart` laid out in `plot`, by default its plot or a pie's square, its words in `fonts`' faces or Roboto. */
+async function drawn(
+  chart: AxisChart | PieChart,
+  fonts?: ResolvedFonts,
+  plot: NonNullable<ChartLayout['plot']> = chart.chart === 'pie' ? SQUARE : PLOT,
+): Promise<Drawn> {
+  const layout: ChartLayout = { tickEvery: 1, plot }
   const { faces, widths } = await measured(planned(fonts), chart.style ?? {}, chart.title)
   const option = chartOption(chart, faces, layout)
   const { svg, read } = withMeasurer(faces, widths, () => layOut(option, chart.width, chart.height, laidWords))
@@ -199,7 +209,7 @@ const UNRESOLVED = 'holds a word the runtime did not resolve, one more often tha
 /** What it says of an entity zrender writes none of. */
 const ENTITY = 'holds an entity or a character reference but the five zrender writes'
 
-/** What it says of a number past `MARKUP`'s box by more than its size. */
+/** What it says of a number past the box of `MARKUP`, or of `PIE`, by more than its size. */
 const PAST = 'holds a number past its box by more than its size, 300 by 240 points'
 
 /** What it says of a clip by a path the drawing does not define once. */
@@ -280,10 +290,37 @@ describe('the SVG ECharts writes of a chart', () => {
   // than the box pdfmake gives it, an attribute or a value nobody read,
   // markup that does not close as it opens, a word placed otherwise than
   // its box is read, a clip that clips by nothing the drawing defines.
-  test.each<readonly [string, AxisChart, (svg: string) => string, string]>([
+  test.each<readonly [string, AxisChart | PieChart, (svg: string) => string, string]>([
     ['a number that is not finite', MARKUP, (svg) => svg.replace(/<path d="M[\d.]+ /, '<path d="M1e999 '), 'holds a number that is not finite'],
     ['a number past its box by more than its size', MARKUP, (svg) => svg.replace('translate(150 5)', 'translate(601 5)'), PAST],
     ['a number before its box by more than its size', MARKUP, (svg) => svg.replace('translate(150 5)', 'translate(-301 5)'), PAST],
+    ['a point a relative step takes past its box by more than its size', MARKUP, (svg) => svg.replace(/(<path d="M-5 -5)l[\d.]+ 0/, '$1l606 0'), PAST],
+    [
+      'a point a relative step takes before its box by more than its size',
+      MARKUP,
+      (svg) => svg.replace(/(<path d="M-5 -5l[\d.]+ 0l0 [\d.]+)l-[\d.]+ 0/, '$1l-596 0'),
+      PAST,
+    ],
+    // A curve's control points are drawn through as its ends are: the gridline at the plot's foot, curved.
+    [
+      'a curve through a point past its box by more than its size',
+      MARKUP,
+      (svg) => svg.replace('M48 190.5L268 190.5', 'M48 190.5C48 190.5 601 0 268 190.5'),
+      PAST,
+    ],
+    [
+      'a quadratic curve through a point before its box by more than its size',
+      MARKUP,
+      (svg) => svg.replace('M48 190.5L268 190.5', 'M48 190.5Q-301 0 268 190.5'),
+      PAST,
+    ],
+    // A large arc of a radius that long sweeps round the far side of its circle, as far past the box.
+    ['an arc of a radius longer than its box twice over', PIE, (svg) => svg.replace(/A60 60 /, 'A601 601 '), PAST],
+    // ECharts draws every arc a circle's, unturned. An ellipse's too narrow to reach its end the converter widens as many times over
+    // as it is too narrow, its far side as far past the box as that makes it, whatever its radii: a pie's slice in a box of 300 by
+    // 240, its arc's radii 60 and 0.1, had svg-to-pdfkit write 32,224.74 for it, and at 60 and 60 nothing past 300 (13 November 2026).
+    ['an arc of an ellipse', PIE, (svg) => svg.replace(/A60 60 /, 'A60 0.1 '), VALUE('path')],
+    ['an arc turned', PIE, (svg) => svg.replace(/A60 60 0 /, 'A60 60 30 '), VALUE('path')],
     ['an svg of another width than its box', MARKUP, (svg) => svg.replace('width="300"', 'width="301"'), 'is of another size than its box'],
     ['a viewBox other than its box', MARKUP, (svg) => svg.replace('viewBox="0 0 300 240"', 'viewBox="0 0 300 120"'), 'is of another size than its box'],
     ['an svg without its viewBox', MARKUP, (svg) => svg.replace(' viewBox="0 0 300 240"', ''), 'holds its <svg> without an attribute it is read by'],
@@ -296,6 +333,13 @@ describe('the SVG ECharts writes of a chart', () => {
     ],
     ['a value ECharts was not seen to write', MARKUP, (svg) => svg.replace('stroke-linecap="round"', 'stroke-linecap="inherit"'), VALUE('path')],
     ['a path of commands zrender does not write', MARKUP, (svg) => svg.replace(/<path d="M([\d.]+) /, '<path d="M$1 H'), VALUE('path')],
+    [
+      'a path command with more numbers than zrender writes it with',
+      MARKUP,
+      (svg) => svg.replace(/<path d="M([\d.]+) ([\d.]+)L/, '<path d="M$1 $2 0L'),
+      VALUE('path'),
+    ],
+    ['a path that does not start where it moves', MARKUP, (svg) => svg.replace(/<path d="M([\d.]+) ([\d.]+)L/, '<path d="L$1 $2L'), VALUE('path')],
     ['an end tag that ends another element', MARKUP, (svg) => svg.replace('</path>', '</rect>'), 'holds an end tag that ends no element it opened'],
     ['an element left open', MARKUP, (svg) => svg.replace('</svg>', ''), 'holds an element left open, or no <svg>'],
     ['no drawing at all', MARKUP, () => '', 'holds an element left open, or no <svg>'],
@@ -327,16 +371,84 @@ describe('the SVG ECharts writes of a chart', () => {
 
   // A number past the box by no more than its own size is ECharts' own
   // reach -- a label's box pushed past the edge, a background's padding --
-  // and far under what a PDF/A holds, so it reads.
+  // and far under what a PDF/A holds, so it reads. A relative step after a
+  // close is taken, as the converter takes it, from where its path began:
+  // the gridline from 48 to 268 at the plot's foot, closed, reaches 548
+  // and -282 by steps of 500 and -330, not 768 from its end, nor -330
+  // from the drawing's corner.
   test(
     'reads a number past its box by no more than its size',
     async () => {
       const drawing = await drawn(MARKUP)
-      for (const at of ['600 5', '-300 5', '150 540', '150 -300']) {
-        const edited = drawing.svg.replace('translate(150 5)', `translate(${at})`)
+      const gridline = '<path d="M48 190.5L268 190.5"'
+      expect(drawing.svg).toContain(gridline)
+      for (const edited of [
+        ...['600 5', '-300 5', '150 540', '150 -300'].map((at) => drawing.svg.replace('translate(150 5)', `translate(${at})`)),
+        ...['500', '-330'].map((step) => drawing.svg.replace(gridline, `<path d="M48 190.5L268 190.5Zl${step} 0"`)),
+      ]) {
         expect(edited).not.toBe(drawing.svg)
         expect(readBack(drawing, edited).words).toHaveLength(drawing.printed.length)
       }
+    },
+    TIMEOUT,
+  )
+
+  // ECharts draws a title's and a legend's backgrounds from their corner by
+  // relative steps -- across, down, and back across the whole width, its
+  // padding of 5 points each side and all -- and the converter writes the
+  // points they reach, never the steps. Read as a number of its own, the
+  // step back across a title within 10 points of its box's side, or across
+  // a pie's legend entry wider than its box, is longer than the box, and
+  // would refuse a chart whose every point stands within its reach: the
+  // title, 149.66 points wide in a box of 150 by 100, inside its box, and
+  // the entry, each read whole and its own width.
+  test(
+    "reads a title within its padding of its box's side, and a legend entry wider than its box, by the points their backgrounds reach",
+    async () => {
+      const titled = await drawn(
+        {
+          kind: 'chart',
+          chart: 'bar',
+          id: 'narrow',
+          width: 150,
+          height: 100,
+          title: 'Umsatz nach Region und Quartal 2024/25',
+          categories: ['a', 'b'],
+          series: [{ color: '#1f77b4', values: [value('1', '1.00'), value('2', '2.00')] }],
+          ticks: [value('0', '0.00'), value('2', '2.00')],
+          valueLabels: false,
+          legend: [],
+        },
+        undefined,
+        { left: 24, top: 20, width: 116, height: 60 },
+      )
+      const legended = await drawn(
+        {
+          kind: 'chart',
+          chart: 'pie',
+          id: 'narrow-pie',
+          width: 150,
+          height: 150,
+          slices: PIE.slices.slice(0, 2),
+          legend: [
+            { text: 'Beratung und Projektleitung 50.00 (62.5 %)', color: '#1f77b4' },
+            { text: 'Material 30.00 (37.5 %)', color: '#ff7f0e' },
+          ],
+        },
+        undefined,
+        { left: 45, top: 20, width: 60, height: 60 },
+      )
+      const read = [titled, legended].map((drawing) => {
+        const backgrounds = [...drawing.svg.matchAll(/<path d="M-?[\d.]+ -?[\d.]+l([\d.]+) 0l0 [\d.]+l-\1 0Z"/g)].map(([, across = '']) => Number(across))
+        expect(Math.max(...backgrounds)).toBeGreaterThan(Math.max(drawing.chart.width, drawing.chart.height))
+        const { words } = readBack(drawing)
+        expect(words.map(({ key }) => key)).toEqual(drawing.printed.map(({ key }) => key))
+        for (const { text, face, width } of words) expect(width).toBe(drawing.widths.width(face.family, face.face, face.size, text))
+        return words
+      })
+      const title = read[0]!.find(({ key }) => key === 'title')!
+      expect([title.width, title.x, title.x + title.width]).toEqual([149.66015625, 75 - 149.66015625 / 2, 75 + 149.66015625 / 2])
+      expect(read[1]!.find(({ key }) => key === 'legend/0')!.width).toBeGreaterThan(150)
     },
     TIMEOUT,
   )
@@ -500,21 +612,32 @@ describe('the SVG ECharts writes of a chart', () => {
 
   // Two words of one text in one face print alike, but are not one word:
   // a tick's label and a value's of one text stand apart, and the layout's
-  // rules read which is which -- no word but a value's label in the plot.
-  // They are told apart by the order ECharts 6.1.0 writes a chart's words
-  // in, which this holds: a chart all of whose words are one text places
-  // each where the word of its key stands in a twin whose words are all
-  // different and all as wide.
-  test(
-    'tells words of one text apart by the order ECharts writes them, each where its own stands',
-    async () => {
-      const same = await drawn(retexted(() => '50.00'))
-      const twin = await drawn(retexted((index) => `${String(10 + index)}.00`))
+  // rules read which is which -- no word but a value's label in the plot --
+  // as the bands read where the title went. They are told apart by the
+  // order ECharts 6.1.0 writes a chart's words in, which this holds: a
+  // chart all of whose words are one text places each where the word of
+  // its key stands in a twin whose words are all different and all as
+  // wide -- bars, a line and a pie, each also bold, where the title prints
+  // in the words' own face and stands among them by its order alone.
+  test.each([MARKUP, LINE, PIE].flatMap((chart) => [chart, { ...chart, id: `${chart.id}-bold`, style: { ...chart.style, bold: true } }]))(
+    'tells words of one text apart by the order ECharts writes them, each where its own stands: $id',
+    async (chart) => {
+      const same = await drawn(retexted(chart, () => '50.00'))
+      const twin = await drawn(retexted(chart, (index) => `${String(10 + index)}.00`))
+      // Every word as wide as every other in its face, and the title's face the words' where the style is bold.
       const widthsOf = ({ faces, widths, printed }: Drawn) =>
-        new Set(printed.map(({ text, title }) => widths.width(faces.words.family, (title ? faces.title! : faces.words).face, faces.words.size, text)))
-      expect([widthsOf(same).size, widthsOf(twin)]).toEqual([2, widthsOf(same)])
+        new Set(
+          printed.map(({ text, title }) => {
+            const { family, face, size } = title ? faces.title! : faces.words
+            return widths.width(family, face, size, text)
+          }),
+        )
+      expect(widthsOf(twin)).toEqual(widthsOf(same))
+      expect(widthsOf(same).size).toBe(chart.style?.bold === true ? 1 : 2)
+      // Each word where its twin stands, and no two where one other stands, so that two swapped would be seen.
       const placed = (drawing: Drawn) => readBack(drawing).words.map(({ key, x, top, width, height }) => ({ key, x, top, width, height }))
       expect(placed(same)).toEqual(placed(twin))
+      expect(new Set(placed(same).map(({ x, top }) => `${String(x)} ${String(top)}`)).size).toBe(same.printed.length)
     },
     TIMEOUT,
   )
@@ -554,6 +677,31 @@ describe('the SVG ECharts writes of a chart', () => {
         expect(edited).not.toBe(svg)
         refused(() => readBack(drawing, edited), MARKUP, does)
       }
+    },
+    TIMEOUT,
+  )
+
+  // A sheet one character from ECharts' is refused at once, however many
+  // rules it holds. Read by a pattern that took the whitespace before a
+  // selector two ways, a sheet of 26 rules as ECharts writes them, with an
+  // `@` before its end, took 54 seconds to refuse, about twice as long for
+  // each rule more: a later ECharts writing more rules, or a drawing built
+  // to, would hang a render rather than be refused. Read one way, it is
+  // refused in 0.12 ms, and one of 2,600 rules in 0.9 (the median of 20
+  // runs; Node 22.23 on an Apple M2, 13 November 2026). Without its `@`,
+  // the same sheet reads.
+  test(
+    "refuses a style sheet one character from ECharts' at once",
+    async () => {
+      const drawing = await drawn(MARKUP)
+      const { svg } = drawing
+      const style = svg.slice(svg.indexOf('<style'), svg.indexOf('</style>') + '</style>'.length)
+      const rules = Array.from({ length: 26 }, (_, index) => `\n.zr0-cls-${String(index)}:hover {\nfill:rgba(1,2,3,1);\n}`).join('')
+      const sheet = (end: string) => svg.replace(style, `<style ><![CDATA[${rules}\n${end}]]>\n\n</style>`)
+      expect(readBack(drawing, sheet('')).words).toHaveLength(drawing.printed.length)
+      const started = performance.now()
+      refused(() => readBack(drawing, sheet('@')), MARKUP, 'holds a style sheet but its one of hover rules')
+      expect(performance.now() - started).toBeLessThan(1000)
     },
     TIMEOUT,
   )
