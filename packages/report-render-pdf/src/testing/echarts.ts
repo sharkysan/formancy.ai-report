@@ -3,8 +3,8 @@ import { BarChart, LineChart, PieChart } from 'echarts/charts'
 import { GridComponent, LegendComponent, TitleComponent } from 'echarts/components'
 import { init, use, type EChartsCoreOption, type EChartsType } from 'echarts/core'
 import { SVGRenderer } from 'echarts/renderers'
-import { platformApi } from 'zrender/lib/core/platform.js'
 import { chartFaces, type ChartFace, type ChartFaces } from '../chart-faces.js'
+import { withPlatform } from '../chart-measure.js'
 import type { FaceWidths } from '../engine.js'
 import type { Glyphs } from '../glyphs.js'
 import { planFonts, type RenderFonts } from '../host-fonts.js'
@@ -73,14 +73,6 @@ export function layOut<T = undefined>(
   }
 }
 
-/** zrender's platform as these tests wrap it: three functions that read no `this` (core/platform.js names `platformApi`), as `chart-measure.ts` holds it. */
-export interface Platform {
-  measureText(this: void, text: string, font?: string): { width: number }
-  createCanvas(this: void): unknown
-  loadImage(this: void, src: string, onload: () => void, onerror: () => void): unknown
-}
-export const platform: Platform = platformApi
-
 /** What zrender asked its platform for: each text it measured, and the font string it measured it in; and how many canvases and images it asked for. */
 export interface Asked {
   readonly measures: (readonly [text: string, font: string | undefined])[]
@@ -96,27 +88,25 @@ export interface Asked {
  * loader set runs, so a refusal ECharts swallowed is counted all the same.
  */
 export function asked<T>(lay: () => T): { readonly result: T; readonly asked: Asked } {
-  const saved = { measureText: platform.measureText, createCanvas: platform.createCanvas, loadImage: platform.loadImage }
   const record: Asked = { measures: [], canvases: 0, images: 0 }
-  platform.measureText = (text, font) => {
-    record.measures.push([text, font])
-    return saved.measureText(text, font)
-  }
-  platform.createCanvas = () => {
-    record.canvases += 1
-    return saved.createCanvas()
-  }
-  platform.loadImage = (src, onload, onerror) => {
-    record.images += 1
-    return saved.loadImage(src, onload, onerror)
-  }
-  try {
-    return { result: lay(), asked: record }
-  } finally {
-    platform.measureText = saved.measureText
-    platform.createCanvas = saved.createCanvas
-    platform.loadImage = saved.loadImage
-  }
+  const result = withPlatform(
+    (standing) => ({
+      measureText: (text, font) => {
+        record.measures.push([text, font])
+        return standing.measureText(text, font)
+      },
+      createCanvas: () => {
+        record.canvases += 1
+        return standing.createCanvas()
+      },
+      loadImage: (src, onload, onerror) => {
+        record.images += 1
+        return standing.loadImage(src, onload, onerror)
+      },
+    }),
+    lay,
+  )
+  return { result, asked: record }
 }
 
 /**

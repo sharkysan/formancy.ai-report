@@ -44,12 +44,38 @@ import type { FaceWidths } from './engine.js'
  * `platformApi` (core/platform.js) -- so that each is taken and put back
  * as the function it is.
  */
-interface Platform {
+export interface Platform {
   measureText(this: void, text: string, font?: string): { width: number }
   createCanvas(this: void): unknown
   loadImage(this: void, src: string, onload: () => void, onerror: () => void): unknown
 }
-const platform: Platform = platformApi
+
+/** zrender's platform, the one ECharts measures through, as `Platform` views it. */
+export const platform: Platform = platformApi
+
+/** `to`'s three functions set as zrender's. */
+function set(to: Platform): void {
+  platform.measureText = to.measureText
+  platform.createCanvas = to.createCanvas
+  platform.loadImage = to.loadImage
+}
+
+/**
+ * What `lay` returns, run with the three functions `replace` makes of
+ * those that stand -- which it may call, as a wrapper does -- set as
+ * zrender's, and the three that stood put back after it, also when it
+ * throws: the one place zrender's platform is replaced, for a render's
+ * layout and for the tests that look on.
+ */
+export function withPlatform<T>(replace: (standing: Platform) => Platform, lay: () => T): T {
+  const standing: Platform = { measureText: platform.measureText, createCanvas: platform.createCanvas, loadImage: platform.loadImage }
+  set(replace(standing))
+  try {
+    return lay()
+  } finally {
+    set(standing)
+  }
+}
 
 /** zrender's probe for a font's line: the width of this character, which it takes as a line's height. */
 const LINE_PROBE = '国'
@@ -68,26 +94,20 @@ const fontOf = ({ font }: ChartFace): string => `${font.fontStyle} ${font.fontWe
  */
 export function withMeasurer<T>(faces: ChartFaces, widths: FaceWidths, lay: () => T): T {
   const handed = new Map((faces.title === undefined ? [faces.words] : [faces.words, faces.title]).map((face) => [fontOf(face), face]))
-  const saved = { measureText: platform.measureText, createCanvas: platform.createCanvas, loadImage: platform.loadImage }
-  platform.measureText = (text, font) => {
-    const face = font === undefined ? undefined : handed.get(font)
-    if (face === undefined) throw new Error(`a chart's layout measured text in a font it was not handed: ${font === undefined ? 'none' : `'${font}'`}`)
-    return { width: text === LINE_PROBE ? face.line : widths.width(face.family, face.face, face.size, text) }
+  const measurer: Platform = {
+    measureText: (text, font) => {
+      const face = font === undefined ? undefined : handed.get(font)
+      if (face === undefined) throw new Error(`a chart's layout measured text in a font it was not handed: ${font === undefined ? 'none' : `'${font}'`}`)
+      return { width: text === LINE_PROBE ? face.line : widths.width(face.family, face.face, face.size, text) }
+    },
+    createCanvas: () => {
+      throw new Error("a chart's layout asked for a canvas")
+    },
+    loadImage: () => {
+      throw new Error("a chart's layout asked for an image")
+    },
   }
-  platform.createCanvas = () => {
-    throw new Error("a chart's layout asked for a canvas")
-  }
-  platform.loadImage = () => {
-    throw new Error("a chart's layout asked for an image")
-  }
-  let laid: T
-  try {
-    laid = lay()
-  } finally {
-    platform.measureText = saved.measureText
-    platform.createCanvas = saved.createCanvas
-    platform.loadImage = saved.loadImage
-  }
+  const laid = withPlatform(() => measurer, lay)
   if (isThenable(laid)) {
     laid.then(undefined, () => undefined)
     throw new Error("a chart's layout returned a promise, and would measure after its measurer was put back")

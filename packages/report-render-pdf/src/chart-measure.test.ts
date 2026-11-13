@@ -1,11 +1,11 @@
 import { setFlagsFromString } from 'node:v8'
 import { runInNewContext } from 'node:vm'
-import { afterEach, describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import type { ChartFaces } from './chart-faces.js'
-import { withMeasurer } from './chart-measure.js'
+import { platform, withMeasurer, withPlatform } from './chart-measure.js'
 import type { FaceWidths } from './engine.js'
 import { fixture, TIMEOUT } from './testing/documents.js'
-import { asked, fontString, layOut, measured, planned, platform } from './testing/echarts.js'
+import { asked, fontString, layOut, measured, planned } from './testing/echarts.js'
 
 /**
  * zrender's platform for one layout (`chart-measure.ts`): a chart's words
@@ -22,14 +22,6 @@ import { asked, fontString, layOut, measured, planned, platform } from './testin
 
 /** Liberation Serif's faces, the corpus's host font, mapped as the report's serif. */
 const SERIF = { serif: fixture('host-fonts').document.fonts!.serif! }
-
-/** The platform as the process had it, put back after every case, since one sets a host's own. */
-const ORIGINAL = { measureText: platform.measureText, createCanvas: platform.createCanvas, loadImage: platform.loadImage }
-afterEach(() => {
-  platform.measureText = ORIGINAL.measureText
-  platform.createCanvas = ORIGINAL.createCanvas
-  platform.loadImage = ORIGINAL.loadImage
-})
 
 /** What the platform's measurer answers for `text` in `font`. */
 const widthOf = (text: string, font: string | undefined): number => platform.measureText(text, font).width
@@ -198,39 +190,48 @@ describe("zrender's platform for one layout", () => {
           throw new Error("the host's image")
         },
       }
-      Object.assign(platform, host)
-      /** Which of the three stand as the host set them. */
-      const hosted = (): boolean[] =>
-        [platform.measureText, platform.createCanvas, platform.loadImage].map(
-          (each, index) => each === [host.measureText, host.createCanvas, host.loadImage][index],
-        )
-      const during = withMeasurer(faces, widths, () => {
-        titled(faces)
-        return hosted()
-      })
-      expect(during).toEqual([false, false, false])
-      expect(hosted()).toEqual([true, true, true])
-      const failed = new Error('the layout failed')
-      expect(() =>
-        withMeasurer(faces, widths, () => {
-          titled(faces)
-          throw failed
-        }),
-      ).toThrow(failed)
-      expect(hosted()).toEqual([true, true, true])
-      const measuredByRender = render()
-      expect(measuredByRender).toBeGreaterThan(0)
-      expect(hosts).toBe(0)
-      const after = asked(() =>
-        layOut({ title: { text: 'Host chart', textStyle: { fontFamily: 'host-face', fontStyle: 'normal', fontWeight: 'normal', fontSize: 12 } } }, 300, 100),
+      // The host's platform stands for the rest of the case, and the process's own after it.
+      withPlatform(
+        () => host,
+        () => {
+          /** Which of the three stand as the host set them. */
+          const hosted = (): boolean[] =>
+            [platform.measureText, platform.createCanvas, platform.loadImage].map(
+              (each, index) => each === [host.measureText, host.createCanvas, host.loadImage][index],
+            )
+          const during = withMeasurer(faces, widths, () => {
+            titled(faces)
+            return hosted()
+          })
+          expect(during).toEqual([false, false, false])
+          expect(hosted()).toEqual([true, true, true])
+          const failed = new Error('the layout failed')
+          expect(() =>
+            withMeasurer(faces, widths, () => {
+              titled(faces)
+              throw failed
+            }),
+          ).toThrow(failed)
+          expect(hosted()).toEqual([true, true, true])
+          const measuredByRender = render()
+          expect(measuredByRender).toBeGreaterThan(0)
+          expect(hosts).toBe(0)
+          const after = asked(() =>
+            layOut(
+              { title: { text: 'Host chart', textStyle: { fontFamily: 'host-face', fontStyle: 'normal', fontWeight: 'normal', fontSize: 12 } } },
+              300,
+              100,
+            ),
+          )
+          expect(after.asked.measures).toEqual([
+            ['国', 'normal normal 12px host-face'],
+            ['a', 'normal normal 12px host-face'],
+            ['Host chart', 'normal normal 12px host-face'],
+          ])
+          expect(hosts).toBe(3)
+          expect(render()).toBe(measuredByRender)
+        },
       )
-      expect(after.asked.measures).toEqual([
-        ['国', 'normal normal 12px host-face'],
-        ['a', 'normal normal 12px host-face'],
-        ['Host chart', 'normal normal 12px host-face'],
-      ])
-      expect(hosts).toBe(3)
-      expect(render()).toBe(measuredByRender)
     },
     TIMEOUT,
   )
@@ -281,13 +282,14 @@ describe("zrender's platform for one layout", () => {
     async () => {
       const { faces, widths } = await measured(planned(), {})
       const font = fontString(faces.words)
+      const own = platform.measureText
       const back: boolean[] = []
       const refused = (lay: () => unknown): string => {
         try {
           withMeasurer(faces, widths, lay)
           return 'returned'
         } catch (error) {
-          back.push(platform.measureText === ORIGINAL.measureText)
+          back.push(platform.measureText === own)
           return (error as Error).message
         }
       }
