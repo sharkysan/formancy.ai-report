@@ -1,9 +1,9 @@
-import { setFlagsFromString } from 'node:v8'
 import { runInNewContext } from 'node:vm'
 import { describe, expect, test } from 'vitest'
 import type { ChartFaces } from './chart-faces.js'
 import { platform, withMeasurer, withPlatform } from './chart-measure.js'
 import type { FaceWidths } from './engine.js'
+import { collector, turn } from './testing/collector.js'
 import { fixture, TIMEOUT } from './testing/documents.js'
 import { asked, fontString, layOut, measured, planned } from './testing/echarts.js'
 
@@ -42,23 +42,6 @@ function counted(widths: FaceWidths): { readonly widths: FaceWidths; readonly as
     asked: () => count,
   }
 }
-
-/**
- * V8's collector, which `--expose-gc` lets a script run: the flag set once
- * V8 has started, for the one context made to take `gc` from, and turned
- * off again, so that no other context of the worker's sees it.
- */
-function collector(): () => void {
-  setFlagsFromString('--expose-gc')
-  try {
-    return runInNewContext('gc') as () => void
-  } finally {
-    setFlagsFromString('--no-expose-gc')
-  }
-}
-
-/** The rest of this turn let go, in which a WeakRef keeps what it was made of or dereferenced to. */
-const turn = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
 
 describe("zrender's platform for one layout", () => {
   // ECharts places each word by the width zrender is answered, and pdfmake

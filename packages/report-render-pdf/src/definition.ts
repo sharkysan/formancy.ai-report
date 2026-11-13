@@ -39,6 +39,12 @@ export interface Regions {
   readonly footer: number
 }
 
+/** The document as the checks read it, its charts drawn (`drawCharts`): what the body's builds are made from, the PDF's among them. */
+export type Drawn = Omit<Checked, 'charts'> & { readonly charts: Build['charts'] }
+
+/** The drawn charts of a build made before the charts are drawn: none, since a chart stands in the body alone. */
+const UNDRAWN: Build['charts'] = new Map()
+
 /** What a measuring pass lays out: one item per thing measured, and the build that holds their images and marks. */
 export interface Measurement {
   readonly items: readonly Content[]
@@ -59,12 +65,13 @@ export function regionsMeasurement(
 ): Measurement & { readonly present: readonly (readonly Block[])[] } {
   const fields: Fields = { pageNumber: maxPages, pageCount: maxPages }
   const present = [document.pageHeader, document.pageFooter].filter((blocks) => blocks.length > 0)
-  const build = newBuild('measure', checked, fonts)
+  // The page regions hold no chart: check.ts refuses one there.
+  const build = newBuild('measure', { ...checked, charts: UNDRAWN }, fonts)
   return { present, build, items: present.map((blocks): Content => ({ stack: contentOf(blocks, build, checked.page.width, fields) })) }
 }
 
 /** The body's tables and keep-together blocks, each one item laid out at the width it stands at. */
-export function bodyMeasurement(measured: readonly Measured[], checked: Checked, fonts: RenderFonts): Measurement {
+export function bodyMeasurement(measured: readonly Measured[], checked: Drawn, fonts: RenderFonts): Measurement {
   const build = newBuild('measure', checked, fonts)
   const items = measured.map(({ block, width }): Content => ({ stack: contentOf([block], build, width), margin: [0, 0, checked.page.width - width, 0] }))
   return { items, build }
@@ -106,7 +113,7 @@ export function slipReservation(page: Page, regions: Regions): number {
  */
 export function layoutDefinition(
   document: ResolvedDocument,
-  checked: Checked,
+  checked: Drawn,
   regions: Regions,
   plans: ReadonlyMap<Table, TablePlan>,
   fonts: RenderFonts,

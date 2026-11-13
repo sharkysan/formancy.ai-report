@@ -5,6 +5,7 @@ import { init, setPlatformAPI, use, type EChartsType } from 'echarts/core'
 import { SVGRenderer } from 'echarts/renderers'
 import { setPlatformAPI as setZrenderPlatform } from 'zrender/lib/core/platform.js'
 import type { ChartFaces } from './chart-faces.js'
+import { held, named, points, tooLarge, type Plot } from './chart-held.js'
 import { withMeasurer } from './chart-measure.js'
 import { barWidth, chartOption, chartWords, VALUE_LABEL_DISTANCE, type ChartLayout } from './chart-option.js'
 import { readChartSvg, type PlacedWord } from './chart-svg.js'
@@ -52,7 +53,8 @@ import type { FaceWidths } from './engine.js'
  * (`chart-measure.ts`), disposed after it is read.
  *
  * The drawn layout's words are then held: two that meet, one past the
- * box, or one in the plot that is not a value's label, refuse the chart.
+ * box, or one in the plot that is not a value's label, refuse the chart
+ * (`chart-held.ts`, the rule an empty chart's words are held to as well).
  * Every refusal here is `content-too-large`, naming the chart and its box
  * and the sizes that do not fit, and quoting no word; the drawing's reader
  * refuses what ECharts wrote that it does not hold to as `unsupported`. A
@@ -85,9 +87,6 @@ export interface DrawnChart {
   readonly words: readonly PlacedWord[]
 }
 
-/** A plot, or a pie's square, in points from the chart's top left. */
-type Plot = NonNullable<ChartLayout['plot']>
-
 /** The bands a plot is laid out between, in points from the box's top and from its foot. */
 type Bands = NonNullable<ChartLayout['bands']>
 
@@ -111,17 +110,6 @@ function register(chart: AxisChart | PieChart): void {
   use([BarChart, LineChart, PieSeries, GridComponent, LegendComponent, TitleComponent, SVGRenderer])
   registered = true
 }
-
-/** What a refusal of `chart` starts with: its id and its box. */
-const named = (chart: AxisChart | PieChart): string => `the chart ${chart.id}, ${String(chart.width)} by ${String(chart.height)} points, `
-
-/** A refusal of `chart` whose content does not fit, saying what it `has`. */
-function tooLarge(chart: AxisChart | PieChart, has: string): never {
-  throw new RenderRefusal('content-too-large', `${named(chart)}${has}`, chart.id)
-}
-
-/** `size` points, to the hundredth, as a refusal says it. */
-const points = (size: number): string => String(Math.round(size * 100) / 100)
 
 /**
  * `chart` laid out by ECharts in `layout`, its words measured in `faces`
@@ -167,14 +155,16 @@ export function drawChart(chart: AxisChart | PieChart, faces: ChartFaces, widths
   const bands = bandsOf(chart, layOut(chart, faces, widths, { tickEvery: 1 }).drawing.words, line)
   if (chart.chart === 'pie') {
     const square = squareOf(chart, bands)
-    return held(chart, layOut(chart, faces, widths, { tickEvery: 1, bands, plot: square }).drawing, square)
+    const { svg, words } = layOut(chart, faces, widths, { tickEvery: 1, bands, plot: square }).drawing
+    return { svg, words: held(chart, words, square) }
   }
   if (bands.top + bands.bottom >= chart.height) tooLarge(chart, 'has no room for its plot: its title and its legend would stand in it')
   const fitted = layOut(chart, faces, widths, { tickEvery: 1, bands })
   const plot = snapped(chart, fitted.plot)
   const tickEvery = tickEveryOf(chart, plot, line)
   fitsAcross(chart, plot, fitted.drawing.words, line)
-  return held(chart, layOut(chart, faces, widths, { tickEvery, bands, plot }).drawing, plot)
+  const { svg, words } = layOut(chart, faces, widths, { tickEvery, bands, plot }).drawing
+  return { svg, words: held(chart, words, plot) }
 }
 
 /**
@@ -290,30 +280,4 @@ function thickEnough(chart: AxisChart, plot: Plot): void {
   if (chart.chart !== 'bar') return
   const width = barWidth(plot.width / chart.categories.length, chart.series.length)
   if (width < MIN_BAR_WIDTH) tooLarge(chart, `has bars ${points(width)} points wide, narrower than the ${String(MIN_BAR_WIDTH)} points a bar is drawn at least`)
-}
-
-/** What a box is to the rules: a word's, a plot's or a pie's square, from the chart's top left. */
-interface Box {
-  readonly x: number
-  readonly top: number
-  readonly width: number
-  readonly height: number
-}
-
-/** Whether `a` and `b` overlap: boxes that share an edge do not meet. */
-const meet = (a: Box, b: Box): boolean => a.x < b.x + b.width && b.x < a.x + a.width && a.top < b.top + b.height && b.top < a.top + a.height
-
-/**
- * `drawing`, `chart`'s drawn layout on `plot`, refused where a word
- * stands past the box, a word but a value's label stands in the plot, or
- * two words meet; returned as it is otherwise.
- */
-function held(chart: AxisChart | PieChart, drawing: DrawnChart, plot: Plot): DrawnChart {
-  const { words } = drawing
-  const past = ({ x, top, width, height }: PlacedWord): boolean => x < 0 || top < 0 || x + width > chart.width || top + height > chart.height
-  if (words.some(past)) tooLarge(chart, 'has a word that would leave its box')
-  const area: Box = { x: plot.left, top: plot.top, width: plot.width, height: plot.height }
-  if (words.some((word) => !word.key.startsWith('value/') && meet(word, area))) tooLarge(chart, 'has a word that would stand in its plot')
-  if (words.some((word, index) => words.slice(index + 1).some((other) => meet(word, other)))) tooLarge(chart, 'has two words that would meet')
-  return drawing
 }

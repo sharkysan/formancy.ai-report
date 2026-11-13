@@ -261,7 +261,8 @@ describe('keeping content together', () => {
   // A heading at the foot of a page with what it heads on the next one. The
   // spacer leaves 20pt: room for the 14pt heading, not for what follows.
   // What it heads starts where its first text or image does: past a spacer
-  // at the top of a keep-together block, for one.
+  // at the top of a keep-together block, for one, and at the first text of
+  // one, which moves whole, where an image comes before it.
   test.each([
     ['the table it heads', ledger('lines', details(1, 5))],
     [
@@ -277,6 +278,17 @@ describe('keeping content together', () => {
     [
       'the keep-together block it heads',
       { kind: 'keepTogether', blocks: [{ kind: 'spacer', height: 2 }, paragraph('Kept under the heading'), paragraph('And kept with it')] } as const,
+    ],
+    // pdfmake corrects the page a node of a block it moved records for text with an id alone: kept with the block's image, the heading stayed on the page before.
+    [
+      'the keep-together block it heads, opening with an image',
+      {
+        kind: 'keepTogether',
+        blocks: [
+          { kind: 'image', asset: { id: 'chart', mediaType: 'image/png', bytes: encodePng(16, 8, () => [0, 90, 0]) }, width: 80, height: 40, fit: 'contain' },
+          paragraph('Under the image'),
+        ],
+      } as const,
     ],
     [
       'the columns it heads',
@@ -304,6 +316,33 @@ describe('keeping content together', () => {
       expect(verify(fixtureOf('heading-at-foot', document, { minPagesExpected: 2, maxPagesExpected: 2, noEmptyPages: false }), pdf)).toEqual([])
       expect(pageOf(pdf, 'Lines')).toBe(2)
       expect(pdf.pages[0]!.images.length + pageLines(pdf.pages[0]!).filter((line) => !/^(Formancy Report corpus|Page \d)/.test(line.text)).length).toBe(0)
+    },
+    TIMEOUT,
+  )
+
+  // A keep-together block that prints no text is kept with by its image,
+  // as a block that is not kept together is: kept with what comes after
+  // it, a heading over an image that fits under it at a page's foot would
+  // move to the next page whenever the line after the image does, and
+  // leave the image alone under nothing.
+  test(
+    'keeps a heading on its page with a keep-together block of an image alone that fits there',
+    async () => {
+      const image: Block = {
+        kind: 'image',
+        asset: { id: 'chart', mediaType: 'image/png', bytes: encodePng(16, 8, () => [0, 90, 0]) },
+        width: 80,
+        height: 100,
+        fit: 'contain',
+      }
+      const document = documentOf('Image kept at the foot', [
+        { kind: 'spacer', height: BODY_HEIGHT - 14 * (2400 / 2048) - 100 - 2 },
+        heading('Figure'),
+        { kind: 'keepTogether', blocks: [image] },
+        paragraph('Next page'),
+      ])
+      const pdf = await rendered(document)
+      expect([pageOf(pdf, 'Figure'), pageOf(pdf, 'Next page'), pdf.pages[0]!.images.length]).toEqual([1, 2, 1])
     },
     TIMEOUT,
   )

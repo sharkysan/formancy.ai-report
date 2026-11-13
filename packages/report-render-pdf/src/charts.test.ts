@@ -1,89 +1,24 @@
 import { MAX_CHART_CATEGORIES, MAX_CHART_SERIES, MAX_FONT_SIZE, MAX_TICK_INTERVALS, MIN_FONT_SIZE } from '@formancy/report-runtime'
-import type { AxisChart, Block, Chart, ChartValue, PieChart, ResolvedDocument, ResolvedFonts } from '@formancy/report-runtime'
+import type { AxisChart, Block, Chart, PieChart, ResolvedDocument, ResolvedFonts } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { checkChart } from './check-chart.js'
-import type { Place, Walk } from './check-walk.js'
-import { refuseTall } from './check.js'
+import type { Walk } from './check-walk.js'
 import { planFonts } from './host-fonts.js'
 import { engine, renderPdf } from './node.js'
-import { documentOf, fixture, paragraph, PRINTABLE_WIDTH } from './testing/documents.js'
+import { ACTUAL, BARS, EMPTY, LINE, PIE, PLAN, SERIF, value } from './testing/charts.js'
+import { BODY_HEIGHT, documentOf, paragraph, PRINTABLE_WIDTH } from './testing/documents.js'
 
 /**
  * A chart held to what the renderer draws before anything is laid out
  * (`check-chart.ts`). Each refusal is rendered and read as the
  * `RenderRefusal` it is: it names the chart by its id, and the sizes or
  * the counts that do not hold, and quotes none of its words or values,
- * each of which may be the data's. A chart that passes every check is
- * refused all the same until the renderer draws one, naming it
- * (`refusals.test.ts`), and the three charts every case here changes pass
- * every check, so that each case is refused for its own defect.
+ * each of which may be the data's. The four charts every case here
+ * changes pass every check and are drawn, so that each case is refused
+ * for its own defect, and by the check: the drawing, which would refuse
+ * otherwise or throw an invariant's plain `Error`, never sees it. What a
+ * chart drawn prints, and where, is `chart-content.test.ts`'s.
  */
-
-/** A value the runtime resolved: exactly, and as it prints. */
-const value = (exact: string, text = exact): ChartValue => ({ exact, text })
-
-/** Two series of bars over two regions, one value missing and one at each end of the axis, every value labelled, with a title, axis titles and a legend: every word a bar chart prints. */
-const BARS: AxisChart = {
-  kind: 'chart',
-  chart: 'bar',
-  id: 'sales',
-  width: 300,
-  height: 200,
-  title: 'Sales',
-  categoryTitle: 'Region',
-  valueTitle: 'CHF',
-  categories: ['North', 'South'],
-  series: [
-    { color: '#1f77b4', values: [value('10.25'), null] },
-    { color: '#ff7f0e', values: [value('15'), value('-5')] },
-  ],
-  ticks: ['-5', '0', '5', '10', '15'].map((exact) => value(exact)),
-  valueLabels: true,
-  legend: [
-    { text: 'Plan', color: '#1f77b4' },
-    { text: 'Actual', color: '#ff7f0e' },
-  ],
-}
-const [PLAN, ACTUAL] = BARS.series as [AxisChart['series'][number], AxisChart['series'][number]]
-
-/** A pie of three slices, one of them nothing, its legend its categories with their values and shares. */
-const PIE: PieChart = {
-  kind: 'chart',
-  chart: 'pie',
-  id: 'shares',
-  width: 200,
-  height: 200,
-  title: 'Shares',
-  slices: [
-    { color: '#1f77b4', value: value('3') },
-    { color: '#ff7f0e', value: value('1') },
-    { color: '#2ca02c', value: value('0') },
-  ],
-  legend: [
-    { text: 'North: 3 (75.0 %)', color: '#1f77b4' },
-    { text: 'South: 1 (25.0 %)', color: '#ff7f0e' },
-    { text: 'East: 0 (0.0 %)', color: '#2ca02c' },
-  ],
-}
-
-/** A line chart with nothing to draw: its title and its empty text, and nothing else, as the runtime resolves one. */
-const EMPTY: AxisChart = {
-  kind: 'chart',
-  chart: 'line',
-  id: 'nothing',
-  width: 200,
-  height: 100,
-  title: 'Balance',
-  empty: 'No data',
-  legend: [],
-  categories: [],
-  series: [],
-  ticks: [],
-  valueLabels: false,
-}
-
-/** Liberation Serif 2.1.5's four faces, the corpus's host font, its assets `serif` and `serif-bold` among them. */
-const SERIF = fixture('host-fonts').document.fonts!.serif!
 
 /** What the Node entry refused `document` with, or 'rendered'. */
 function refusal(document: ResolvedDocument): Promise<unknown> {
@@ -98,8 +33,25 @@ function refused(chart: Block, fonts?: ResolvedFonts): Promise<unknown> {
   return refusal({ ...documentOf('Chart', [paragraph('Before'), chart]), ...(fonts === undefined ? {} : { fonts }) })
 }
 
-/** The refusal of a chart that passes every check: this release draws none. */
-const notDrawn = (id: string): object => ({ code: 'unsupported', subject: id, message: `the chart ${id} is not drawn by this release of the renderer` })
+/** What `checkChart` collected of `chart`, standing at the top of the body, or what it threw: what the check makes of a chart the drawing may refuse after it. */
+async function checked(chart: Chart): Promise<unknown> {
+  const walk: Walk = {
+    fonts: planFonts(undefined, await engine.glyphs()),
+    paths: new Map(),
+    images: [],
+    codes: new Map(),
+    captioned: false,
+    tall: [],
+    measured: [],
+    charts: [],
+  }
+  try {
+    checkChart(chart, 'body[0]', { region: false, kept: false, column: false, width: PRINTABLE_WIDTH, inset: 0, depth: 0 }, walk)
+    return walk.charts
+  } catch (error) {
+    return error
+  }
+}
 
 /** The refusal of a word of the chart `id` that holds a control character. */
 const controlled = (id: string): object => ({
@@ -113,12 +65,11 @@ const untyped = (chart: object): Chart => chart as Chart
 
 describe('a chart checked before anything is laid out', () => {
   // A chart refused for a defect of its own fixture would make every case
-  // below pass whatever it changed: each of the three, and a line whose
-  // axis does not reach zero, which only a bar stands on, passes every
-  // check, and is refused only as a chart this release does not draw.
-  test('passes a bar chart, a pie and an empty chart, each refused only as one this release does not draw', async () => {
-    const line: AxisChart = { ...BARS, chart: 'line', series: [PLAN], legend: [], ticks: ['5', '10', '15'].map((exact) => value(exact)) }
-    for (const chart of [BARS, PIE, EMPTY, line]) expect(await refused(chart), chart.id).toMatchObject(notDrawn(chart.id))
+  // below pass whatever it changed: each of the four -- bars, a pie, a
+  // line whose axis does not reach zero, which only a bar stands on, and
+  // a chart with nothing to draw -- passes every check and is drawn.
+  test('draws a bar chart, a pie, a line and an empty chart, each of which the cases below change', async () => {
+    for (const chart of [BARS, PIE, LINE, EMPTY]) expect(await refused(chart), chart.id).toBe('rendered')
   })
 
   // pdfmake draws a character its face has no glyph for as an empty box,
@@ -168,7 +119,7 @@ describe('a chart checked before anything is laid out', () => {
         "the title of the chart sales prints U+2713, which the serif font's bold face, the asset serif-bold, has no glyph for",
       ) as string,
     })
-    expect(await refused(serif, fonts)).toMatchObject(notDrawn('sales'))
+    expect(await refused(serif, fonts)).toBe('rendered')
   })
 
   // The renderer prints Latin, Greek and Cyrillic and lays out no
@@ -240,14 +191,14 @@ describe('a chart checked before anything is laid out', () => {
   // title: it prints nothing, so it asks for no bold face, which a family
   // that maps none would refuse.
   test('judges each word trimmed, so that a title blank once trimmed asks for no bold face', async () => {
-    expect(await refused({ ...BARS, categories: ['\u202fNorth\u202f', 'South'] })).toMatchObject(notDrawn('sales'))
+    expect(await refused({ ...BARS, categories: ['\u202fNorth\u202f', 'South'] })).toBe('rendered')
     expect(await refused({ ...BARS, categories: ['North', 'South 1\u202f000'] })).toMatchObject({
       subject: 'sales',
       message: expect.stringContaining('category 1 of the chart sales prints U+202F') as string,
     })
     const regular: ResolvedFonts = { serif: { normal: SERIF.normal } }
     const serif: AxisChart = { ...BARS, style: { font: 'serif' } }
-    expect(await refused({ ...serif, title: ' \u00a0\u202f' }, regular)).toMatchObject(notDrawn('sales'))
+    expect(await refused({ ...serif, title: ' \u00a0\u202f' }, regular)).toBe('rendered')
     expect(await refused(serif, regular)).toMatchObject({
       code: 'unsupported',
       subject: 'sales',
@@ -277,7 +228,7 @@ describe('a chart checked before anything is laid out', () => {
   // over the column beside it, where a printer cuts it off or it covers
   // what is there. Its box is reserved whole, so it is refused by its
   // width, wherever it stands: in the body, a column, a section whose
-  // frame narrows it.
+  // frame narrows it. One as wide as the body is drawn.
   test('refuses a chart wider than its column', async () => {
     const wide = (width: number): AxisChart => ({ ...BARS, width })
     for (const [blocks, width, room] of [
@@ -303,45 +254,30 @@ describe('a chart checked before anything is laid out', () => {
         message: `the chart sales is ${width} pt wide; it stands ${room.toFixed(2)} pt wide`,
       })
     }
-    expect(await refused(wide(PRINTABLE_WIDTH))).toMatchObject(notDrawn('sales'))
+    expect(await refused(wide(PRINTABLE_WIDTH))).toBe('rendered')
   })
 
-  // A chart taller than the body would be drawn past the foot of every page
-  // it starts on. The body's height is known once the page regions are
-  // measured, after every check, and the render holds each fixed height to
-  // it there (`refuseTall`); until the renderer draws a chart, a render
-  // refuses one before that, so the check's part -- the chart's height,
-  // and the frames around it -- is read where the render reads it. A chart
-  // the check passes and does not collect would be drawn by nothing, and
-  // one collected from a page region, measured by nobody.
-  test('holds a chart to the height of the body, with the frames around it, and collects it where it stands', async () => {
-    const walk: Walk = {
-      fonts: planFonts(undefined, await engine.glyphs()),
-      paths: new Map(),
-      images: [],
-      codes: new Map(),
-      captioned: false,
-      tall: [],
-      measured: [],
-      charts: [],
+  // A chart taller than the body would be drawn past the foot of every
+  // page it starts on, over the page footer and off the paper. The body's
+  // height is known once the page regions are measured, after every
+  // check, and the render holds each fixed height to it there, with the
+  // frames of the sections around it, before ECharts lays a chart out:
+  // refused, naming it, in the body and in a section, and one as tall as
+  // the body where it stands is drawn (`chart-content.test.ts`).
+  test('refuses a chart taller than the body, with the frames around it', async () => {
+    const tall = (height: number): AxisChart => ({ ...BARS, height })
+    const framed = (chart: Chart): Block => ({ kind: 'section', padding: 4, border: { thickness: 1, color: '#000000' }, blocks: [chart] })
+    for (const [block, height, room] of [
+      [tall(BODY_HEIGHT + 0.01), BODY_HEIGHT + 0.01, BODY_HEIGHT],
+      [framed(tall(BODY_HEIGHT - 10 + 0.01)), BODY_HEIGHT - 10 + 0.01, BODY_HEIGHT - 10],
+    ] as const) {
+      expect(await refusal(documentOf('Chart', [block]))).toMatchObject({
+        code: 'content-too-large',
+        subject: 'sales',
+        message: `the chart sales is ${height.toFixed(2)} pt tall; the body is ${room.toFixed(2)} pt where it stands`,
+      })
     }
-    const place: Place = { region: false, kept: true, column: false, width: PRINTABLE_WIDTH - 10, inset: 10, depth: 2 }
-    checkChart(BARS, 'body[0].blocks[0].blocks[1]', place, walk)
-    expect(walk.charts).toEqual([{ block: BARS, at: 'body[0].blocks[0].blocks[1]' }])
-    const held = (body: number): unknown => {
-      try {
-        refuseTall(walk.tall, body)
-        return 'held'
-      } catch (error) {
-        return error
-      }
-    }
-    expect(held(210)).toBe('held')
-    expect(held(209.99)).toMatchObject({
-      code: 'content-too-large',
-      subject: 'sales',
-      message: 'the chart sales is 200.00 pt tall; the body is 199.99 pt where it stands',
-    })
+    expect(await refusal(documentOf('Chart', [framed(tall(BODY_HEIGHT - 10))]))).toBe('rendered')
   })
 
   // The runtime groups a chart's rows into at most MAX_CHART_CATEGORIES
@@ -350,7 +286,9 @@ describe('a chart checked before anything is laid out', () => {
   // admits at most MAX_CHART_SERIES series, one colour each from the
   // palette. A chart built by hand past any of them would be laid out by
   // ECharts, three times, at a cost no bound holds: refused by the bound
-  // itself, before its words are read, and a chart at each bound passes.
+  // itself, before its words are read, and a chart at each bound passes
+  // the check, which is what is held of it here: the drawing then refuses
+  // one of them, 200 bars in a box of 300 points, as too thin to see.
   test('refuses a chart past a bound the runtime holds it to, and passes one at it', async () => {
     const categories = (count: number): AxisChart => ({
       ...BARS,
@@ -386,7 +324,7 @@ describe('a chart checked before anything is laid out', () => {
       message: `the chart sales has ${String(MAX_CHART_SERIES + 1)} series; a chart has at most ${String(MAX_CHART_SERIES)}, one colour each from its palette`,
     })
     for (const chart of [categories(MAX_CHART_CATEGORIES), slices(MAX_CHART_CATEGORIES), ticks(MAX_TICK_INTERVALS + 1), series(MAX_CHART_SERIES)])
-      expect(await refused(chart)).toMatchObject(notDrawn(chart.id))
+      expect(await checked(chart), chart.id).toEqual([{ block: chart, at: 'body[0]' }])
   })
 
   // What the renderer does not know is refused, never drawn as something
@@ -615,5 +553,34 @@ describe('a chart checked before anything is laid out', () => {
     const outcome = await refused(chart)
     expect(outcome).toMatchObject({ code: 'unsupported', subject: chart.id, message })
     expect((outcome as Error).message).not.toContain(quoted)
+  })
+
+  // The option holds each number it is handed as an invariant, and throws
+  // a plain `Error` -- no refusal code, no subject, a bug's message --
+  // where one does not hold (`chart-option.test.ts`): a chart that reached
+  // it with such a number would fail its render as a fault of the
+  // renderer's. Every input the option's own tests throw on is refused by
+  // the check first, as the `RenderRefusal` it is, naming the chart: the
+  // ticks that do not ascend evenly, a single tick, each value that is no
+  // decimal as the runtime writes one, and a pie of nothing.
+  const INVARIANTS: readonly (readonly [string, Chart, string])[] = [
+    ...[['10', '10'], ['10', '0'], ['0', '10', '15'], ['0']].map((exacts): readonly [string, Chart, string] => [
+      `the ticks ${exacts.join(' ')}`,
+      { ...BARS, series: [{ ...PLAN, values: [value(exacts[0]!), null] }], legend: [], ticks: exacts.map((exact) => value(exact)) },
+      `the value axis of the chart sales is ${String(exacts.length)} ${exacts.length === 1 ? 'tick' : 'ticks'}, and not two or more ascending in equal steps`,
+    ]),
+    ...['1e3', '12.', '.5', '+1', '', '1,000.00'].map((exact): readonly [string, Chart, string] => [
+      `the value '${exact}'`,
+      { ...BARS, series: [{ ...PLAN, values: [value(exact, '10'), null] }, ACTUAL] },
+      'the chart sales holds a value that is not a decimal',
+    ]),
+    [
+      'a pie of nothing',
+      { ...PIE, slices: PIE.slices.map(({ color }) => ({ color, value: value('0') })) },
+      'the chart shares is a pie whose slices sum to nothing, and holds no empty text to print in their place',
+    ],
+  ]
+  test.each(INVARIANTS)('refuses what the option holds as an invariant before the option is handed it: %s', async (_, chart, message) => {
+    expect(await refused(chart)).toMatchObject({ code: 'unsupported', subject: chart.id, message })
   })
 })

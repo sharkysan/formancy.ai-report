@@ -6,15 +6,15 @@ import path from 'node:path'
 import { PassThrough } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 import pdfmake from 'pdfmake'
-import type { ContentSvg, TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { readAnnotations, readPdf, readPdfObjects, readXmp } from '@formancy/report-corpus'
+import type { Content, ContentSvg, TDocumentDefinitions } from 'pdfmake/interfaces.js'
+import { readAnnotations, readPdf, readPdfObjects, readXmp, type PdfTextItem } from '@formancy/report-corpus'
 import { describe, expect, test, vi } from 'vitest'
 import { collect, type PdfStream } from './engine.js'
 import { renderPdf } from './node.js'
 import { PDF_A_3B, type PdfKitDocument, type PdfKitFileOptions } from './pdfa.js'
 import { converterOptions } from './svg-content.js'
 import { fixture } from './testing/documents.js'
-import { readDrawing } from './testing/drawing.js'
+import { readDrawing, type DrawnPage } from './testing/drawing.js'
 import { dataUrl, DECODED, imageOrder, SIDE } from './testing/decoding.js'
 import { invoiced } from './testing/e-invoice.js'
 import { encodePng } from './testing/images.js'
@@ -179,6 +179,85 @@ describe("pdfmake's positions, which the table rules read", () => {
       })
       .getBuffer()
     expect(seen).toEqual([2, 2])
+  })
+})
+
+describe("pdfmake's detached nodes, which a chart is drawn as", () => {
+  /** pdfmake's PDF of `content`, on a page 300 by 200 points with margins of 20, as a render leaves pdfmake configured, read; and as drawn. */
+  async function laidOut(content: Content[]): Promise<{ readonly read: Awaited<ReturnType<typeof readPdf>>; readonly drawn: ReturnType<typeof readDrawing> }> {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    const pdf = new Uint8Array(
+      await pdfmake
+        .createPdf({ pageSize: { width: 300, height: 200 }, pageMargins: [20, 20, 20, 20], content, defaultStyle: { font: 'Roboto', fontSize: 10 } })
+        .getBuffer(),
+    )
+    return { read: await readPdf(pdf), drawn: readDrawing(pdf) }
+  }
+  /** Roboto's ascender at 10 points: a line's baseline below its top. */
+  const ASCENT = (1900 / 2048) * 10
+  const baseline = (item: { readonly bottom: number; readonly height: number }): number => item.bottom - 0.2 * item.height
+
+  // A chart is one unbreakable stack (chart-content.ts): its drawing and
+  // each of its words placed by `relativePosition` from the stack's top
+  // left, and a spacer of its box's height after them. pdfmake 0.3.11 lays
+  // a node with a relativePosition out detached (src/LayoutBuilder.js 413,
+  // 506): from where the flow stands, moved by its offset, its margins
+  // unread, and the flow left where it was; and moving it changes where it
+  // stands and not the room it is fitted against (src/DocumentContext.js
+  // 419, `moveToRelative`), so that a word at a chart's foot is fitted
+  // against the room at the chart's top. Here a word 55 points below the
+  // flow, where 60 points are left and 5 below its offset, prints there,
+  // its line past the body's foot, and the next node starts where it did.
+  // Were pdfmake to fit a detached node against the room below its offset,
+  // a chart's lowest words would go to the next page without its marks;
+  // to keep the room one took, a chart would take more than its box; to
+  // read its margins, a word would stand off its place -- this fails first.
+  test('lays a relatively placed node out from where the flow stands, fitted against the room there, and leaves the flow where it was', async () => {
+    const { read } = await laidOut([
+      { stack: [], margin: [0, 100, 0, 0] },
+      { text: 'Low', relativePosition: { x: 30, y: 55 }, margin: [50, 50, 0, 0] },
+      { text: 'Next' },
+    ])
+    expect(read.pages).toHaveLength(1)
+    const at = (text: string): readonly [number, number] => {
+      const item = read.pages[0]!.items.find((each) => each.text === text)!
+      return [item.x, baseline(item)]
+    }
+    expect(at('Low')[0]).toBeCloseTo(20 + 30, 3)
+    expect(at('Low')[1]).toBeCloseTo(20 + 100 + 55 + ASCENT, 3)
+    expect(at('Next')[0]).toBeCloseTo(20, 3)
+    expect(at('Next')[1]).toBeCloseTo(20 + 100 + ASCENT, 3)
+  })
+
+  // The stack moves whole: in an unbreakable stack whose spacer does not
+  // fit where it stands, the detached drawing and word go to the next page
+  // with it, at their offsets from its top, and are painted in the order
+  // the stack holds them, the word after the drawing's paths, over them.
+  // pdfmake records where each node of the stack starts on the page its
+  // layout began on, and corrects that page, once it moves the stack, for
+  // text with an id alone (src/ElementWriter.js 340): a drawing says it
+  // starts on the page the stack left, which is why a heading is kept
+  // with a chart's first word (content.ts's anchorOf).
+  test('moves an unbreakable stack of detached nodes to the next page whole, painted in its order, correcting the page of its text alone', async () => {
+    const drawing = { svg: svg('<rect width="100" height="100" fill="#1f4e79"/>'), width: 40, height: 80, relativePosition: { x: 0, y: 0 } }
+    const word = { text: 'Over', id: 'over', relativePosition: { x: 5, y: 60 } }
+    const { read, drawn } = await laidOut([
+      { stack: [], margin: [0, 100, 0, 0] },
+      { stack: [drawing, word, { stack: [], margin: [0, 80, 0, 0] }], unbreakable: true },
+      { text: 'After' },
+    ])
+    expect(read.pages.map((page) => page.items.map(({ text }) => text))).toEqual([[], ['Over', 'After']])
+    const [over, after] = read.pages[1]!.items as [PdfTextItem, PdfTextItem]
+    expect([over.x, baseline(over)].map((each) => Math.round(each * 1000) / 1000)).toEqual([25, Math.round((20 + 60 + ASCENT) * 1000) / 1000])
+    expect(baseline(after)).toBeCloseTo(20 + 80 + ASCENT, 3)
+    expect(read.pages[1]!.clips).toEqual([expect.objectContaining({ x: 20, top: 20, width: 40 })])
+    const [, page] = drawn as [unknown, DrawnPage]
+    const marks = page.shapes.filter(({ fill }) => fill === '#1f4e79').map(({ paint }) => paint)
+    expect(marks).toHaveLength(1)
+    expect(page.text).toHaveLength(2)
+    expect(Math.min(...page.text.map(({ painted }) => painted))).toBeGreaterThan(Math.max(...marks))
+    const pages = (node: object): number | undefined => (node as { readonly positions?: readonly { readonly pageNumber: number }[] }).positions?.[0]?.pageNumber
+    expect([pages(drawing), pages(word)]).toEqual([1, 2])
   })
 })
 

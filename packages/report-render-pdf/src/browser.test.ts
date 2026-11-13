@@ -399,8 +399,10 @@ describe('the browser entry', () => {
     }
     const browser = reach('browser.ts')
     expect([...browser.external].sort()).toEqual(['@formancy/report-runtime', 'pdfmake/build/pdfmake.js', 'pdfmake/build/vfs_fonts.js', 'uqr'])
-    expect([...browser.dynamic]).toEqual(['./bill-fonts.js'])
+    expect([...browser.dynamic].sort()).toEqual(['./bill-fonts.js', './chart-draw.js'])
     expect(browser.files.has('bill-fonts.ts')).toBe(false)
+    // The drawing, which alone imports ECharts, is the render's import of a document with a chart that is not empty (R23).
+    expect(browser.files.has('chart-draw.ts')).toBe(false)
     const fonts = reach('bill-fonts.ts')
     expect([...fonts.external].sort()).toEqual(['../fonts/LiberationSans-Bold.ttf', '../fonts/LiberationSans-Regular.ttf'])
     expect(fonts.dynamic.size).toBe(0)

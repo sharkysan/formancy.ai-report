@@ -1,11 +1,13 @@
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { RenderRefusal, type Block, type PageSetup, type ResolvedDocument, type Table } from '@formancy/report-runtime'
+import { RenderRefusal, type Block, type Chart, type PageSetup, type ResolvedDocument, type Table } from '@formancy/report-runtime'
 import { checkBill, refusePage, type CheckedBill } from './bill.js'
 import { refuseOversized } from './bound.js'
-import type { TablePlan } from './build.js'
+import type { Build, ChartDrawing, TablePlan } from './build.js'
+import { drawEmpty } from './chart-empty.js'
+import { chartFaces, type ChartFace, type ChartFaces } from './chart-faces.js'
 import { checkDocument, refuseTall, type Checked, type Page } from './check.js'
-import { bodyMeasurement, defaultStyle, layoutDefinition, REGION_GAP, regionsMeasurement, slipReservation, type Regions } from './definition.js'
-import type { Engine } from './engine.js'
+import { bodyMeasurement, defaultStyle, layoutDefinition, REGION_GAP, regionsMeasurement, slipReservation, type Drawn, type Regions } from './definition.js'
+import { loadOnce, type Engine, type MeasuredFace } from './engine.js'
 import { planFonts, type RenderFonts } from './host-fonts.js'
 import { FIT_SLACK, measure, refuseLineUnderHeader, rowPitches, SENTINEL_LINE, SENTINEL_ROOM, tablePlan } from './measure.js'
 import type { RenderOptions } from './options.js'
@@ -25,9 +27,11 @@ import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js
  * each page break a keep-with-next or table rule asks for. Before them the
  * renderer refuses what it cannot draw (`check.ts`, and `bill.ts` for a
  * QR-bill); between them it decides the page margins, refuses what cannot
- * fit on any page or within the page limit (`bound.ts`), and chooses how
- * each table breaks. A document with a QR-bill has two passes more, one for
- * each part of its slip, which measure their information (`measureSlip`).
+ * fit on any page or within the page limit (`bound.ts`), draws the body's
+ * charts (`drawCharts`), which both later passes lay out alike, and
+ * chooses how each table breaks. A document with a QR-bill has two passes
+ * more, one for each part of its slip, which measure their information
+ * (`measureSlip`).
  * A document with a Factur-X e-invoice is drawn as a PDF/A-3b on the third
  * pass, which alone embeds its XML (`pdfa.ts`); one with an XRechnung as a
  * plain PDF, the copy its label says it is (0038).
@@ -51,10 +55,12 @@ export async function render(engine: Engine, document: ResolvedDocument, options
   if (bill !== undefined) await measureSlip(engine, bill, checked.page, document.page, regions, fonts)
   refuseTall(checked.tall, bodyHeight)
   refuseOversized(document.body, bodyHeight, maxPages, fonts, bill === undefined ? 0 : slipReservation(checked.page, regions))
-  const plans = await measureBody(engine, checked, fonts, bodyHeight, maxPages)
+  const drawn: Drawn = { ...checked, charts: await drawCharts(engine, checked.charts, fonts) }
+  await stopIfCancelledSoon(signal)
+  const plans = await measureBody(engine, drawn, fonts, bodyHeight, maxPages)
   await stopIfCancelledSoon(signal)
   const finish = checked.pdfa === undefined ? undefined : embedEInvoice(checked.pdfa, checked.creationDate)
-  const pdf = await engine.run(layoutDefinition(document, checked, regions, plans, fonts, maxPages, bill), fonts.engine, finish)
+  const pdf = await engine.run(layoutDefinition(document, drawn, regions, plans, fonts, maxPages, bill), fonts.engine, finish)
   await stopIfCancelledSoon(signal)
   return pdf
 }
@@ -110,6 +116,35 @@ async function measureRegions(engine: Engine, document: ResolvedDocument, checke
   return { header: space(document.pageHeader), footer: space(document.pageFooter) }
 }
 
+/** The drawing, which alone imports ECharts (`chart-draw.ts`): imported the first time a document holds a chart that is not empty, and kept (`loadOnce`). */
+const chartDraw = loadOnce(() => import('./chart-draw.js'))
+
+/**
+ * The body's charts, as `check.ts` collected them, drawn (0058): each
+ * chart's faces read from the plan (`chartFaces`), every face any of them
+ * prints in opened once for measuring, in the engine's own pdfmake
+ * (`Engine.widths`), and each laid out by ECharts (`drawChart`) -- or,
+ * with nothing to draw, its title and its empty text placed without it
+ * (`drawEmpty`). ECharts is imported where a chart is not empty, and never
+ * otherwise (R23). The widths are the render's alone, dropped with it, as
+ * every face it reads is (0043).
+ */
+async function drawCharts(engine: Engine, charts: Checked['charts'], fonts: RenderFonts): Promise<Build['charts']> {
+  if (charts.length === 0) return new Map()
+  const faces = new Map(charts.map(({ block }): [Chart, ChartFaces] => [block, chartFaces(block, fonts)]))
+  const measured = new Map<string, MeasuredFace>()
+  for (const { words, title } of faces.values())
+    for (const { family, face } of [words, ...(title === undefined ? [] : [title])] satisfies ChartFace[]) measured.set(`${family}/${face}`, { family, face })
+  const widths = await engine.widths(fonts.engine, [...measured.values()])
+  const drawing = charts.some(({ block }) => block.empty === undefined) ? await chartDraw() : undefined
+  return new Map(
+    charts.map(({ block }): [Chart, ChartDrawing] => {
+      const each = faces.get(block)!
+      return [block, drawing === undefined || block.empty !== undefined ? { words: drawEmpty(block, each, widths) } : drawing.drawChart(block, each, widths)]
+    }),
+  )
+}
+
 /**
  * Measures the body's keep-together blocks and tables, refuses a block no
  * page can hold and a table's line no page holds under its repeated header
@@ -121,7 +156,7 @@ async function measureRegions(engine: Engine, document: ResolvedDocument, checke
  * A block inside framed sections has less of each page than the body: their
  * borders and padding above and below it, which is what `inset` holds.
  */
-async function measureBody(engine: Engine, checked: Checked, fonts: RenderFonts, bodyHeight: number, maxPages: number): Promise<ReadonlyMap<Table, TablePlan>> {
+async function measureBody(engine: Engine, checked: Drawn, fonts: RenderFonts, bodyHeight: number, maxPages: number): Promise<ReadonlyMap<Table, TablePlan>> {
   const { measured, page } = checked
   if (measured.length === 0) return new Map()
   const { items, build } = bodyMeasurement(measured, checked, fonts)
