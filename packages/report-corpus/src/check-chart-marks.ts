@@ -1,59 +1,61 @@
+import { decimalOf, described, inPaint, meet, MEET, near, painted, quotient, times, unitsAt, within, type ChartRead, type Decimal } from './check-chart-read.js'
 import { EDGE, plural, points, quoted } from './check-page.js'
 import type { ExpectedChart } from './fixture.js'
-import type { PdfBox, PdfPage, PdfPath, PdfTextItem } from './read-pdf.js'
+import type { PdfBox, PdfPath, PdfTextItem } from './read-pdf.js'
 
 /**
- * A drawn chart's marks held to the renderer's paint (0058) and to its
- * values: a bar or a line chart's gridlines, its category axis's line and
- * its ticks' labels, each bar its value's length and each line's marker at
- * its value, joined where its values are; a pie's slices, one path each,
- * none of a slice of nothing; and nothing painted that the paint names no
- * part of a chart by. The paint is the renderer's (`chart-option.ts`):
- * bars, slices and line markers filled in their colour; lines, gridlines
- * and the category axis's line stroked; legend swatches filled and
- * stroked; nothing else.
+ * A bar or a line chart's axes and marks held to the renderer's paint
+ * (0058) and to its values: its gridlines, its category axis's line and its
+ * ticks' labels; each bar its value's length, and each series' line
+ * through its markers, in a part for each stretch of its values; its
+ * categories' labels under their slots; and nothing painted that the paint
+ * names no part of a chart by. The paint is the renderer's
+ * (`chart-option.ts`): bars and line markers filled in their colour; a
+ * series' line, gridlines and the category axis's line stroked; legend
+ * swatches filled and stroked; nothing else.
  *
  * What it rests on, and what it does not see:
- * - **Boxes.** A path is read by the box of its points (`PdfPath`): a bar
- *   by its ends, a marker by its centre, a line by the box of the points
- *   it joins. A slice is a path in its colour and nothing more, since a
- *   sector's box cannot say its sweep; its share is the runtime's word in
- *   its legend, which the words check holds.
+ * - **Geometry and colour together.** A series may be painted in any
+ *   colour, the grid's and the axis's among them. The gridlines are the
+ *   strokes across the page in the grid's colour as wide as the widest of
+ *   them, the plot, one at each tick; the category axis's line is the
+ *   stroke in the axis's colour along the plot's foot, as wide; every other
+ *   path in a series' colour is that series'. A series' line spans its
+ *   categories' middles, never the plot, so a grey line flat on a tick is
+ *   not taken for its gridline, nor a black one along zero for the axis.
+ * - **Boxes and points.** A bar is read by the box of its points, a marker
+ *   by its box's centre. A series' line is one path, a subpath for each
+ *   stretch of two values or more (measured on ECharts 6.1.0's renders: a
+ *   lone value draws a marker alone), and is read by its subpaths' points
+ *   (`PdfPath.subpaths`): a line drawn across a gap has the box of the
+ *   line drawn either side of it, and other points.
  * - **The exact place.** A value's height is its place among the ticks
  *   -- its distance from the lowest in their interval, worked out from
  *   the runtime's decimals, `Number` applied to the place alone -- set
  *   between the gridlines the PDF draws at the ticks' places. Ticks that
  *   share fifteen digits stand apart only as decimals: their doubles
  *   would put a value up to an interval from its place (Task 19).
- * - **The renderer's colours.** The grid's and the axis's, and the unit a
- *   slice's share is handed over in, are the renderer's constants written
- *   here, since the corpus depends on no renderer; every chart fixture
- *   holds them to it, its axis being found by them.
+ * - **The renderer's colours.** The grid's and the axis's are the
+ *   renderer's constants written here, since the corpus depends on no
+ *   renderer; every chart fixture holds them to it, its axis being found
+ *   by them.
  */
 
 /** The renderer's colours of a chart's gridlines and of its category axis's line, `chart-option.ts`'s GRID and AXIS. */
 export const GRID_PAINT = '#d9d9d9'
 export const AXIS_PAINT = '#000000'
 
-/** The renderer hands ECharts each slice's share of its pie in this many parts (`chart-option.ts`'s QUOTIENT_UNIT): a slice under one part is handed over as a share of nothing. */
-const SHARE_UNIT = 10n ** 17n
-
-/** The parts the check works a quotient out to before `Number` makes it a place. */
-const PLACE_UNIT = 10n ** 17n
-
-/** A drawn chart as its page shows it. */
-export interface ChartRead {
-  readonly expected: ExpectedChart
-  readonly page: PdfPage
-  /** Its clip's box: the chart's box on the page. */
-  readonly box: PdfBox
-  /** The paths painted in its clip and in the clips set inside it. */
-  readonly paths: readonly PdfPath[]
-  /** The runs of text that meet its box. */
-  readonly items: readonly PdfTextItem[]
-  /** A problem of the chart: `what` after its page and its name. */
-  readonly say: (what: string) => string
-}
+/**
+ * Of the font size: how far a tick label's middle, as the reader boxes it,
+ * may stand from its gridline beyond `EDGE`. ECharts sets the middle of the
+ * word's line on the gridline, and the reader's box is centred 0.3 em above
+ * the baseline (`read-pdf.ts`), where a line's middle is (ascent − descent)
+ * / 2 above it: measured on the renderer's ticks at 8 and 14 pt, 0.0418 em
+ * below the gridline in Roboto, 0.0374 in Liberation Serif, and 0.0339
+ * above it in Liberation Mono. A face whose ascent and descent differ by
+ * more than 0.7 em, or by less than 0.5, stands farther off.
+ */
+const LINE_OFFSET = 0.05
 
 /** A plot as its gridlines draw it: its sides, and each tick's gridline down the page, the lowest tick's first. */
 export interface Plot {
@@ -68,55 +70,6 @@ export interface Axes {
   readonly ticks: ReadonlySet<PdfTextItem>
   readonly problems: readonly string[]
 }
-
-const near = (a: number, b: number): boolean => Math.abs(a - b) <= EDGE
-
-/** How many times a word prints, as a problem says it. */
-export const times = (count: number): string => (count === 1 ? 'once' : count === 2 ? 'twice' : `${String(count)} times`)
-
-/** Whether `inner` lies inside `outer`, give or take `EDGE`. */
-export const within = (inner: PdfBox, outer: PdfBox): boolean =>
-  inner.x >= outer.x - EDGE && inner.x + inner.width <= outer.x + outer.width + EDGE && inner.top >= outer.top - EDGE && inner.bottom <= outer.bottom + EDGE
-
-/** Whether `path` is painted `paint` in `colour` alone: a swatch, filled and stroked, in it both ways. */
-function painted(path: PdfPath, paint: PdfPath['paint'], colour: string): boolean {
-  const same = (each: string | undefined): boolean => each?.toLowerCase() === colour.toLowerCase()
-  if (path.paint !== paint) return false
-  if (paint === 'fillStroke') return same(path.fill) && same(path.stroke)
-  return same(paint === 'fill' ? path.fill : path.stroke)
-}
-
-/** A path as a problem names it: how it is painted, in what, and its box. */
-export function described(path: PdfPath): string {
-  const paint = [path.fill === undefined ? [] : [`fill ${path.fill}`], path.stroke === undefined ? [] : [`stroke ${path.stroke}`]].flat().join(' and ')
-  return `${paint} at ${points(path.x)}, ${points(path.top)}, ${points(path.width)} × ${points(path.height)} pt`
-}
-
-/** Each path of `read` that `named` does not name, as a problem. */
-function unnamed(read: ChartRead, named: (path: PdfPath) => boolean): string[] {
-  return read.paths.filter((path) => !named(path)).map((path) => read.say(`paints ${described(path)}, which is no part of a chart`))
-}
-
-/** A decimal as the runtime writes one (`ChartValue.exact`): its units, and how many of its digits are places. */
-interface Decimal {
-  readonly units: bigint
-  readonly scale: number
-}
-
-function decimalOf(exact: string, chart: ExpectedChart): Decimal {
-  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(exact)
-  if (match === null) throw new Error(`the expectation of the chart ${chart.id} holds ${quoted(exact)}, which is no decimal`)
-  const [, sign = '', whole = '', fraction = ''] = match
-  const units = BigInt(whole + fraction)
-  return { units: sign === '-' ? -units : units, scale: fraction.length }
-}
-
-/** `value`'s units at `scale`, as many places as its own or more. */
-const unitsAt = (value: Decimal, scale: number): bigint => value.units * 10n ** BigInt(scale - value.scale)
-
-/** `numerator / denominator`, the denominator above 0, as a double: its whole part exactly and the rest to `PLACE_UNIT`. */
-const quotient = (numerator: bigint, denominator: bigint): number =>
-  Number(numerator / denominator) + Number(((numerator % denominator) * PLACE_UNIT) / denominator) / Number(PLACE_UNIT)
 
 /**
  * Where a value of `chart` stands on its value axis: its distance from the
@@ -151,69 +104,68 @@ const plotBox = ({ left, right, gridlines }: Plot): PdfBox => {
   return { x: left, top, bottom, width: right - left, height: bottom - top }
 }
 
-/** The middle of category `index`'s slot: the plot's width shared among the categories, a line's as a bar's. */
-const middleOf = (plot: Plot, chart: ExpectedChart, index: number): number => plot.left + ((index + 0.5) * (plot.right - plot.left)) / chart.categories.length
-
 /** Category `index`'s slot across the plot: from its left edge to its right. */
 const slotAt = (plot: Plot, chart: ExpectedChart, index: number): readonly [number, number] => {
   const width = (plot.right - plot.left) / chart.categories.length
   return [plot.left + index * width, plot.left + (index + 1) * width]
 }
 
+/** The middle of category `index`'s slot: the plot's width shared among the categories, a line's as a bar's. */
+const middleOf = (plot: Plot, chart: ExpectedChart, index: number): number => plot.left + ((index + 0.5) * (plot.right - plot.left)) / chart.categories.length
+
 /** Which category's slot `x` stands in. */
 const slotOf = (plot: Plot, chart: ExpectedChart, x: number): number =>
   Math.min(Math.max(Math.floor(((x - plot.left) * chart.categories.length) / (plot.right - plot.left)), 0), chart.categories.length - 1)
 
+/** A stroke across the page: a gridline, the axis's line, or a line flat along a value. */
+const across = (path: PdfPath): boolean => path.paint === 'stroke' && path.height <= EDGE
+
 /**
- * A bar or a line chart's axes and marks: its gridlines in the grid's
- * colour, one a tick, as wide as each other and evenly apart; the category
- * axis's line along the lowest; its tick labels; its bars or its lines;
- * and nothing painted that the paint does not name. Without as many
- * gridlines as ticks there is no plot to read the rest on.
+ * A bar or a line chart's axes and marks: its gridlines, one a tick, as
+ * wide as the plot and evenly apart; the category axis's line along the
+ * lowest; its tick labels; its bars or its lines; and nothing painted that
+ * the paint does not name. Without as many gridlines as ticks there is no
+ * plot to read the rest on.
  */
 export function axisProblems(read: ChartRead): Axes {
   const { expected, say } = read
   // The expectation's ticks are held whatever the PDF draws: an axis it cannot place is the fixture's mistake.
   const place = placesOf(expected)
-  const grid = read.paths.filter((path) => painted(path, 'stroke', GRID_PAINT) && path.height <= EDGE).sort((a, b) => b.top - a.top)
+  const greys = read.paths.filter((path) => across(path) && painted(path, 'stroke', GRID_PAINT))
+  const widest = Math.max(0, ...greys.map(({ width }) => width))
+  const grid = greys.filter(({ width }) => near(width, widest)).sort((a, b) => b.top - a.top)
   const [lowest] = grid
   if (lowest === undefined || grid.length !== expected.ticks.length)
-    return { ticks: new Set(), problems: [say(`draws ${plural(grid.length, 'gridline')} in the grid's colour; its ticks are ${expected.ticks.length}`)] }
+    return {
+      ticks: new Set(),
+      problems: [say(`draws ${plural(grid.length, 'gridline')} in the grid's colour across its plot; its ticks are ${expected.ticks.length}`)],
+    }
   const plot: Plot = { left: lowest.x, right: lowest.x + lowest.width, gridlines: grid.map(({ top }) => top) }
   const axis = read.paths.find(
     (path) =>
-      painted(path, 'stroke', AXIS_PAINT) &&
-      path.height <= EDGE &&
-      near(path.top, lowest.top) &&
-      near(path.x, plot.left) &&
-      near(path.x + path.width, plot.right),
+      across(path) && painted(path, 'stroke', AXIS_PAINT) && near(path.top, lowest.top) && near(path.x, plot.left) && near(path.x + path.width, plot.right),
   )
+  const own = (paint: string): PdfPath[] => read.paths.filter((path) => path !== axis && !grid.includes(path) && inPaint(path, paint))
   const labels = tickLabels(read, plot)
-  const paints = expected.marks.map(({ paint }) => paint)
-  const named = (path: PdfPath): boolean =>
-    path === axis ||
-    grid.includes(path) ||
-    paints.some((paint) => painted(path, 'fill', paint) || painted(path, 'fillStroke', paint) || (expected.chart === 'line' && painted(path, 'stroke', paint)))
+  const named = (path: PdfPath): boolean => path === axis || grid.includes(path) || expected.marks.some(({ paint }) => inPaint(path, paint))
   const problems = [
     ...gridProblems(read, grid),
     ...(axis === undefined ? [say(`draws no line in the axis's colour along its plot's foot at ${points(lowest.top)} pt`)] : []),
     ...labels.problems,
-    ...(expected.chart === 'bar' ? barProblems(read, plot, place) : lineProblems(read, plot, place)),
-    ...unnamed(read, named),
+    ...(expected.chart === 'bar' ? barProblems(read, plot, place, own) : lineProblems(read, plot, place, own)),
+    ...read.paths.filter((path) => !named(path)).map((path) => say(`paints ${described(path)}, which is no part of a chart`)),
   ]
   return { plot, ticks: labels.items, problems }
 }
 
-/** The gridlines, lowest first, as wide as the lowest and as far apart as the lowest two. */
+/** The gridlines, lowest first, where the lowest stands across, and as far apart as the lowest two. */
 function gridProblems({ say }: ChartRead, grid: readonly PdfPath[]): string[] {
   const [lowest, next] = grid as [PdfPath, PdfPath]
-  const across = (line: PdfPath): string => `from ${points(line.x)} to ${points(line.x + line.width)}`
+  const span = (line: PdfPath): string => `from ${points(line.x)} to ${points(line.x + line.width)}`
   const step = lowest.top - next.top
   return [
     ...grid.flatMap((line, index) =>
-      near(line.x, lowest.x) && near(line.width, lowest.width)
-        ? []
-        : [say(`draws its gridline of tick ${index + 1} ${across(line)} pt across; its lowest ${across(lowest)}`)],
+      near(line.x, lowest.x) ? [] : [say(`draws its gridline of tick ${index + 1} ${span(line)} pt across; its lowest ${span(lowest)}`)],
     ),
     ...grid.slice(1).flatMap((line, index) => {
       const apart = grid[index]!.top - line.top
@@ -226,8 +178,9 @@ function gridProblems({ say }: ChartRead, grid: readonly PdfPath[]): string[] {
 
 /**
  * Its ticks' labels: each a run of a tick's text wholly left of the plot,
- * across its tick's gridline; the lowest and every k-th above it, at least
- * two, as the renderer thins them; their tops falling as their values rise.
+ * its middle at its tick's gridline (`LINE_OFFSET`); the lowest and every
+ * k-th above it, at least two, as the renderer thins them; their tops
+ * falling as their values rise.
  */
 function tickLabels({ expected, say, items }: ChartRead, plot: Plot): { items: ReadonlySet<PdfTextItem>; problems: string[] } {
   const claimed = new Set<PdfTextItem>()
@@ -240,10 +193,12 @@ function tickLabels({ expected, say, items }: ChartRead, plot: Plot): { items: R
     if (item === undefined) return
     if (found.length > 1) problems.push(say(`prints tick ${quoted(text)} ${times(found.length)} beside its plot`))
     printed.push({ index, item })
-    const gridline = plot.gridlines[index]!
-    if (item.top > gridline + EDGE || item.bottom < gridline - EDGE)
+    const [middle, gridline] = [(item.top + item.bottom) / 2, plot.gridlines[index]!]
+    if (Math.abs(middle - gridline) > EDGE + LINE_OFFSET * item.height)
       problems.push(
-        say(`prints tick ${quoted(text)} from ${points(item.top)} to ${points(item.bottom)} pt down the page, not across its gridline at ${points(gridline)}`),
+        say(
+          `prints tick ${quoted(text)} with its middle at ${points(middle)} pt down the page, ${points(Math.abs(middle - gridline))} from its gridline at ${points(gridline)}`,
+        ),
       )
   })
   const indices = printed.map(({ index }) => index)
@@ -264,8 +219,14 @@ function tickLabels({ expected, say, items }: ChartRead, plot: Plot): { items: R
 }
 
 /** A series' filled paths that stand in the plot by `inPlot`, and a problem of each that does not. */
-function filledIn(read: ChartRead, paint: string, series: number, inPlot: (path: PdfPath) => boolean): { inside: PdfPath[]; problems: string[] } {
-  const filled = read.paths.filter((path) => painted(path, 'fill', paint))
+function filledIn(
+  read: ChartRead,
+  paths: readonly PdfPath[],
+  paint: string,
+  series: number,
+  inPlot: (path: PdfPath) => boolean,
+): { inside: PdfPath[]; problems: string[] } {
+  const filled = paths.filter((path) => painted(path, 'fill', paint))
   return {
     inside: filled.filter(inPlot),
     problems: filled
@@ -278,51 +239,63 @@ function filledIn(read: ChartRead, paint: string, series: number, inPlot: (path:
  * Each series' bars: a filled path in its colour in each category's slot
  * where it has a value and none where it has none, wholly in the slot its
  * middle stands in, spanning zero's height to its value's, every bar of
- * the chart one width. A bar no longer than
- * `EDGE` -- a zero, which ECharts draws along zero -- shows nothing, and
- * may be left out.
+ * the chart one width and no two meeting. A bar no longer than `EDGE` --
+ * a zero, which ECharts draws along zero -- shows nothing, and may be left
+ * out. A series paints its bars and its swatch, and nothing else.
  */
-function barProblems(read: ChartRead, plot: Plot, place: (exact: string) => number): string[] {
+function barProblems(read: ChartRead, plot: Plot, place: (exact: string) => number, own: (paint: string) => PdfPath[]): string[] {
   const { expected, say } = read
   const zero = heightAt(plot, place('0'))
   const area = plotBox(plot)
-  let first: PdfPath | undefined
-  return expected.marks.flatMap(({ paint, values }, series) => {
-    const { inside, problems } = filledIn(read, paint, series, (path) => within(path, area))
+  const drawn: { readonly bar: PdfPath; readonly of: string }[] = []
+  const problems = expected.marks.flatMap(({ paint, values }, series) => {
+    const paths = own(paint)
+    const { inside, problems: outside } = filledIn(read, paths, paint, series, (path) => within(path, area))
     const of = (category: number): string => `series ${series + 1} at category ${category + 1}`
-    values.forEach((value, category) => {
+    const found = values.flatMap((value, category) => {
       const bars = inside.filter((bar) => slotOf(plot, expected, bar.x + bar.width / 2) === category)
-      if (value === null) return bars.forEach(() => problems.push(say(`draws a bar of ${of(category)}, which has no value`)))
+      if (value === null) return bars.map(() => say(`draws a bar of ${of(category)}, which has no value`))
       const height = heightAt(plot, place(value))
       const [top, bottom] = [Math.min(zero, height), Math.max(zero, height)]
       const [bar] = bars
-      if (bars.length > 1) problems.push(say(`draws ${bars.length} bars of ${of(category)}`))
-      else if (bar === undefined) {
-        if (bottom - top > EDGE) problems.push(say(`draws no bar of ${of(category)}`))
-      } else {
-        if (!near(bar.top, top) || !near(bar.bottom, bottom))
-          problems.push(
-            say(
-              `draws the bar of ${of(category)} from ${points(bar.top)} to ${points(bar.bottom)} pt down the page; its value stands from ${points(top)} to ${points(bottom)}`,
-            ),
-          )
-        const [left, right] = slotAt(plot, expected, category)
-        if (bar.x < left - EDGE || bar.x + bar.width > right + EDGE)
-          problems.push(
-            say(
-              `draws the bar of ${of(category)} from ${points(bar.x)} to ${points(bar.x + bar.width)} pt across, past its slot from ${points(left)} to ${points(right)}`,
-            ),
-          )
-        first ??= bar
-        if (!near(bar.width, first.width))
-          problems.push(say(`draws the bar of ${of(category)} ${points(bar.width)} pt wide; its first bar is ${points(first.width)}`))
-      }
+      if (bars.length > 1) return [say(`draws ${bars.length} bars of ${of(category)}`)]
+      if (bar === undefined) return bottom - top > EDGE ? [say(`draws no bar of ${of(category)}`)] : []
+      const [left, right] = slotAt(plot, expected, category)
+      const [first] = drawn
+      drawn.push({ bar, of: of(category) })
+      return [
+        ...(near(bar.top, top) && near(bar.bottom, bottom)
+          ? []
+          : [
+              say(
+                `draws the bar of ${of(category)} from ${points(bar.top)} to ${points(bar.bottom)} pt down the page; its value stands from ${points(top)} to ${points(bottom)}`,
+              ),
+            ]),
+        ...(bar.x >= left - EDGE && bar.x + bar.width <= right + EDGE
+          ? []
+          : [
+              say(
+                `draws the bar of ${of(category)} from ${points(bar.x)} to ${points(bar.x + bar.width)} pt across, past its slot from ${points(left)} to ${points(right)}`,
+              ),
+            ]),
+        ...(first === undefined || near(bar.width, first.bar.width)
+          ? []
+          : [say(`draws the bar of ${of(category)} ${points(bar.width)} pt wide; its first bar is ${points(first.bar.width)}`)]),
+      ]
     })
-    return problems
+    const other = paths.filter((path) => !painted(path, 'fill', paint) && !painted(path, 'fillStroke', paint))
+    return [...outside, ...found, ...other.map((path) => say(`paints ${described(path)}, which is no part of a chart`))]
   })
+  const meeting = drawn.flatMap(({ bar, of }, index) =>
+    drawn
+      .slice(index + 1)
+      .filter((other) => meet(bar, other.bar, MEET))
+      .map((other) => say(`draws the bars of ${of} and ${other.of} over each other`)),
+  )
+  return [...problems, ...meeting]
 }
 
-/** Each run of a series' values with no gap, two or more long: what the renderer joins with a line. */
+/** Each run of a series' values with no gap, two or more long: what the renderer joins with a part of the series' line. */
 function stretchesOf(values: readonly (string | null)[]): { readonly from: number; readonly to: number }[] {
   const stretches: { from: number; to: number }[] = []
   values.forEach((value, index) => {
@@ -334,14 +307,20 @@ function stretchesOf(values: readonly (string | null)[]): { readonly from: numbe
   return stretches.filter(({ from, to }) => to > from)
 }
 
+/** Points as a problem lists them. */
+const listed = (each: readonly (readonly [number, number])[]): string => each.map(([x, y]) => `${points(x)}, ${points(y)}`).join('; ')
+
 /**
  * Each series' line: a filled marker of a square box in its colour at
  * each value, centred at its category's middle and its value's height,
- * none where it has no value; and a stroked line in its colour across
- * each stretch of two or more values, as far as their markers' middles.
- * A series with no value draws neither (Task 20's ruling).
+ * none where it has no value; and, where its values make a stretch of two
+ * or more, one stroked path in its colour -- none where they make none --
+ * whose subpaths are its stretches, in order, each through its markers'
+ * centres, so that none bridges a gap. A series with no value draws
+ * neither (Task 20's ruling). A series paints its markers, its line and
+ * its swatch, and nothing else.
  */
-function lineProblems(read: ChartRead, plot: Plot, place: (exact: string) => number): string[] {
+function lineProblems(read: ChartRead, plot: Plot, place: (exact: string) => number, own: (paint: string) => PdfPath[]): string[] {
   const { expected, say } = read
   const area = plotBox(plot)
   const centre = (path: PdfPath): PdfBox => ({
@@ -351,9 +330,11 @@ function lineProblems(read: ChartRead, plot: Plot, place: (exact: string) => num
     width: 0,
     height: 0,
   })
+  const pointOf = (value: string, category: number): [number, number] => [middleOf(plot, expected, category), heightAt(plot, place(value))]
   return expected.marks.flatMap(({ paint, values }, series) => {
     const name = `series ${series + 1}`
-    const { inside, problems } = filledIn(read, paint, series, (path) => within(centre(path), area))
+    const paths = own(paint)
+    const { inside, problems } = filledIn(read, paths, paint, series, (path) => within(centre(path), area))
     values.forEach((value, category) => {
       const markers = inside.filter((marker) => slotOf(plot, expected, centre(marker).x) === category)
       const at = `${name} at category ${category + 1}`
@@ -361,30 +342,34 @@ function lineProblems(read: ChartRead, plot: Plot, place: (exact: string) => num
       const [marker] = markers
       if (marker === undefined || markers.length > 1)
         return problems.push(say(`draws ${markers.length === 0 ? 'no marker' : plural(markers.length, 'marker')} of ${at}`))
-      const [x, y] = [centre(marker).x, centre(marker).top]
-      const [middle, height] = [middleOf(plot, expected, category), heightAt(plot, place(value))]
+      const [[x, y], [middle, height]] = [[centre(marker).x, centre(marker).top], pointOf(value, category)]
       if (!near(marker.width, marker.height))
         problems.push(say(`draws the marker of ${at} ${points(marker.width)} × ${points(marker.height)} pt, which is no square`))
       if (!near(x, middle) || !near(y, height))
         problems.push(say(`draws the marker of ${at} at ${points(x)}, ${points(y)}; its value stands at ${points(middle)}, ${points(height)}`))
     })
     const stretches = stretchesOf(values)
-    const lines = read.paths.filter((path) => painted(path, 'stroke', paint)).sort((a, b) => a.x - b.x)
-    if (lines.length !== stretches.length)
+    const lines = paths.filter((path) => painted(path, 'stroke', paint))
+    const other = paths.filter((path) => !painted(path, 'fill', paint) && !painted(path, 'stroke', paint) && !painted(path, 'fillStroke', paint))
+    problems.push(...other.map((path) => say(`paints ${described(path)}, which is no part of a chart`)))
+    const [line] = lines
+    const count = stretches.length
+    const stretched = `${count === 0 ? 'no stretch' : `${String(count)} ${count === 1 ? 'stretch' : 'stretches'}`} of two or more`
+    if (lines.length !== (count === 0 ? 0 : 1))
       return [
         ...problems,
-        say(
-          `draws ${plural(lines.length, 'line')} of ${name}; its values make ${stretches.length} ${stretches.length === 1 ? 'stretch' : 'stretches'} of two or more`,
-        ),
+        say(`draws ${plural(lines.length, 'line')} of ${name}; its values make ${stretched}, which ECharts draws as ${count === 0 ? 'none' : 'one line'}`),
       ]
-    lines.forEach((line, index) => {
-      const { from, to } = stretches[index]!
-      const heights = values.slice(from, to + 1).map((value) => heightAt(plot, place(value!)))
-      const [left, right, top, bottom] = [middleOf(plot, expected, from), middleOf(plot, expected, to), Math.min(...heights), Math.max(...heights)]
-      if (!near(line.x, left) || !near(line.x + line.width, right) || !near(line.top, top) || !near(line.bottom, bottom))
+    if (line === undefined) return problems
+    if (line.subpaths.length !== count)
+      return [...problems, say(`draws its line of ${name} in ${plural(line.subpaths.length, 'part')}; its values make ${stretched}`)]
+    stretches.forEach(({ from, to }, part) => {
+      const drawn = line.subpaths[part]!
+      const wanted = values.slice(from, to + 1).map((value, offset) => pointOf(value!, from + offset))
+      if (drawn.length !== wanted.length || drawn.some(([x, y], index) => !near(x, wanted[index]![0]) || !near(y, wanted[index]![1])))
         problems.push(
           say(
-            `draws its line of ${name} from category ${from + 1} to ${to + 1} across ${points(line.x)} to ${points(line.x + line.width)} pt and down ${points(line.top)} to ${points(line.bottom)} pt; its values span ${points(left)} to ${points(right)} across and ${points(top)} to ${points(bottom)} down`,
+            `draws part ${part + 1} of its line of ${name} through ${listed(drawn)}; its values from category ${from + 1} to ${to + 1} stand at ${listed(wanted)}`,
           ),
         )
     })
@@ -405,43 +390,4 @@ export function categoryProblems({ expected, say }: ChartRead, plot: Plot, words
     if (printed.length === 0 || printed.some((item) => near(item.x + item.width / 2, middle) && item.top >= foot - EDGE)) return []
     return [say(`prints category ${index + 1}'s label ${quoted(label)} nowhere under its slot, centred at ${points(middle)} pt`)]
   })
-}
-
-/**
- * A pie's slices: one filled path in each slice's colour where it has a
- * share of the pie as the renderer hands it over, however thin, and none
- * where it has none -- a zero, or a slice under one part of `SHARE_UNIT`
- * -- and together a disc, whose box is a square. Its swatches are filled
- * and stroked; it paints nothing else. ECharts 6.1.0 draws a slice of no
- * share as a sector of no sweep, a path from the pie's centre to its rim
- * (measured on 2026-11-13), which this refuses: the box of a path at a
- * slant cannot prove it has no area, and a rasteriser that paints every
- * pixel a shape touches may print it as a hairline.
- */
-export function pieProblems(read: ChartRead): string[] {
-  const { expected, say } = read
-  const values = expected.marks.map(({ values: [value] }) => {
-    if (value === undefined || value === null) throw new Error(`the expectation of the chart ${expected.id} has a slice with no value`)
-    return decimalOf(value, expected)
-  })
-  const scale = Math.max(...values.map((value) => value.scale))
-  const units = values.map((value) => unitsAt(value, scale))
-  const total = units.reduce((sum, each) => sum + each, 0n)
-  if (total <= 0n) throw new Error(`the expectation of the chart ${expected.id} is a pie of nothing, which is an empty chart`)
-  const slices = expected.marks.map(({ paint }) => read.paths.filter((path) => painted(path, 'fill', paint)))
-  const problems = slices.flatMap((paths, index) => {
-    const slice = `slice ${index + 1}`
-    if (units[index]! * SHARE_UNIT < total) return paths.length === 0 ? [] : [say(`paints ${slice}, which has no share of its pie`)]
-    if (paths.length === 0) return [say(`paints nothing of ${slice}`)]
-    return paths.length === 1 ? [] : [say(`paints ${slice} in ${paths.length} paths`)]
-  })
-  const drawn = slices.flat()
-  const [width, height] = [
-    Math.max(...drawn.map(({ x, width: across }) => x + across)) - Math.min(...drawn.map(({ x }) => x)),
-    Math.max(...drawn.map(({ bottom }) => bottom)) - Math.min(...drawn.map(({ top }) => top)),
-  ]
-  if (drawn.length > 0 && !near(width, height))
-    problems.push(say(`paints its slices together across ${points(width)} × ${points(height)} pt, which is no square`))
-  const paints = expected.marks.map(({ paint }) => paint)
-  return [...problems, ...unnamed(read, (path) => paints.some((paint) => painted(path, 'fill', paint) || painted(path, 'fillStroke', paint)))]
 }

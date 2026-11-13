@@ -60,6 +60,14 @@ export interface PdfPath extends PdfBox {
   readonly stroke?: PdfPaint
   /** The innermost rectangular clip in force when it was painted, by its index among the page's `clips`; none when no rectangle clipped it. */
   readonly clip?: number
+  /**
+   * Each of its subpaths, as the points it runs through on the page, in
+   * order: a move starts one, and a line or a curve ends at its next point
+   * -- a curve's control points are not among them -- and a close draws
+   * back to the first, which is not written again. A line ECharts draws
+   * with a gap is one path, a subpath each side of the gap (0058).
+   */
+  readonly subpaths: readonly (readonly (readonly [number, number])[])[]
 }
 
 export interface PdfPage {

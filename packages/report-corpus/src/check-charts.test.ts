@@ -1,31 +1,35 @@
 import { describe, expect, test } from 'vitest'
 import { chartProblems } from './check-charts.js'
-import type { Page } from './check-page.js'
-import type { ExpectedChart } from './fixture.js'
+import { pagesOf } from './check-page.js'
+import { placeDrawings } from './drawings.js'
+import { expectation, type ExpectedChart, type ExpectedDrawing } from './fixture.js'
 import type { PdfBox, PdfPage, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'
 
 /**
  * A chart proved on the PDF it produced (0003, 0058): `chartProblems` held
  * to reads of charts as the renderer draws them, one right and the others
- * each wrong in the one way a check exists to see.
+ * each wrong in the one way a check exists to see, each placed by
+ * `placeDrawings`, as `verify` places them.
  *
  * The corpus cannot render a chart: report-render-pdf's tests depend on
  * it, so it depends on no renderer. Each read here is built by hand in the
  * shapes `readPdf` gives: those of charts `renderPdf` drew on 2026-11-13
- * (this branch at 7fa9028, ECharts 6.1.0, pdfjs-dist 6.4.299), each after
+ * (this branch at 8818a5a, ECharts 6.1.0, pdfjs-dist 6.4.299), each after
  * a 9 pt paragraph on the corpus's A4 page, read back by `readPdf` and
- * written here to the thousandth of a point. To retake one, render the
- * chart its expectation describes with `renderPdf` from the renderer's
- * `dist/` and print `readPdf(bytes).pages[0]`'s clips, paths and items.
- * Every run of a real render is in its read, the paragraph's included, so
- * that a check reading anything it should not would fail the reads that
- * are right; 23b proves the check against the real renders of every
- * fixture.
+ * written here to the thousandth of a point. A path's subpaths are written
+ * where the check reads them, a series' line's and a slice's, as they were
+ * read; any other path's are its box's corners. To retake one, render the chart its
+ * expectation describes with `renderPdf` from the renderer's `dist/` and
+ * print `readPdf(bytes).pages[0]`'s clips, paths and items. Every run of a
+ * real render is in its read, the paragraph's included, so that a check
+ * reading anything it should not would fail the reads that are right;
+ * 23b proves the check against the real renders of every fixture.
  */
 
 const REGULAR = 'BZZZZZ+Roboto-Regular'
 const MEDIUM = 'CZZZZZ+Roboto-Medium'
 
+type Point = readonly [number, number]
 const box = (x: number, top: number, width: number, height: number): PdfBox => ({ x, top, bottom: top + height, width, height })
 /** A run read across the page, 8 pt as a chart's words print unless told otherwise. */
 const run = (text: string, x: number, top: number, width: number, font = REGULAR, size = 8): PdfTextItem => ({
@@ -34,20 +38,45 @@ const run = (text: string, x: number, top: number, width: number, font = REGULAR
   angle: 0,
   font,
 })
-const filled = (paint: `#${string}`, x: number, top: number, width: number, height: number): PdfPath => ({
+/** The corners of a box, a path's one subpath where its points are none of the check's business. */
+const corners = (x: number, top: number, width: number, height: number): Point[][] => [
+  [
+    [x, top],
+    [x + width, top],
+    [x + width, top + height],
+    [x, top + height],
+  ],
+]
+/** A filled path: its box's corners, unless its subpaths are given, as a slice's are. */
+const filled = (paint: `#${string}`, x: number, top: number, width: number, height: number, subpaths?: Point[][]): PdfPath => ({
   ...box(x, top, width, height),
   paint: 'fill',
   fill: paint,
   clip: 0,
+  subpaths: subpaths ?? corners(x, top, width, height),
 })
-const stroked = (paint: `#${string}`, x: number, top: number, width: number, height: number): PdfPath => ({
+/** A stroked path: a line across the page from its left to its right, unless its subpaths are given, as a series' line's are. */
+const stroked = (paint: `#${string}`, x: number, top: number, width: number, height: number, subpaths?: Point[][]): PdfPath => ({
   ...box(x, top, width, height),
   paint: 'stroke',
   stroke: paint,
   clip: 0,
+  subpaths: subpaths ?? [
+    [
+      [x, top],
+      [x + width, top],
+    ],
+  ],
 })
 /** A legend's swatch: an 8 pt square filled and stroked in its colour. */
-const swatch = (paint: `#${string}`, x: number, top: number): PdfPath => ({ ...box(x, top, 8, 8), paint: 'fillStroke', fill: paint, stroke: paint, clip: 0 })
+const swatch = (paint: `#${string}`, x: number, top: number): PdfPath => ({
+  ...box(x, top, 8, 8),
+  paint: 'fillStroke',
+  fill: paint,
+  stroke: paint,
+  clip: 0,
+  subpaths: corners(x, top, 8, 8),
+})
 /** A gridline, stroked in the renderer's grid colour, `chart-option.ts`'s GRID; and the category axis's line, in its AXIS colour. */
 const gridline = (top: number, x: number, width: number): PdfPath => stroked('#d9d9d9', x, top, width, 0)
 const axisLine = (top: number, x: number, width: number): PdfPath => stroked('#000000', x, top, width, 0)
@@ -56,20 +85,39 @@ const tick = (exact: string, text = exact): ExpectedChart['ticks'][number] => ({
 /** The 9 pt paragraph above every chart here, which is no chart's. */
 const BEFORE = run('Before', 40, 37.15, 26.38, REGULAR, 9)
 
-/** What one page of a read draws, and the SVG images' boxes the checks found on it. */
+/** What one page of a read draws. */
 interface Drawn {
   readonly clips: readonly PdfBox[]
   readonly paths: readonly PdfPath[]
   readonly items: readonly PdfTextItem[]
-  readonly drawings?: readonly PdfBox[]
 }
 
-/** What `chartProblems` finds of `charts` on these pages. */
-function problemsOf(charts: readonly ExpectedChart[], ...drawn: readonly Drawn[]): string[] {
+/** An expectation of no body, laid under the drawings a case places. */
+const NOTHING_ELSE = expectation(
+  {
+    info: { title: 'Charts', creationDate: '2026-01-01T00:00:00Z' },
+    page: { size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 } },
+    pageHeader: [],
+    pageFooter: [],
+    body: [],
+  },
+  { maxPagesExpected: 5 },
+)
+
+/** What `verify` says of `charts` on these pages, `drawings` the body's in document order: where `placeDrawings` places them, and what `chartProblems` finds. */
+function checked(charts: readonly ExpectedChart[], drawings: readonly ExpectedDrawing[], ...drawn: readonly Drawn[]): string[] {
   const read: PdfPage[] = drawn.map(({ clips, paths, items }, index) => ({ number: index + 1, width: 595.28, height: 841.89, items, images: [], paths, clips }))
   const pdf: ReadPdf = { pages: read, fonts: [], attachments: [] }
-  const pages: Page[] = read.map((page, index) => ({ page, lines: [], header: [], footer: [], body: [], drawings: drawn[index]!.drawings ?? [] }))
-  return chartProblems(pdf, pages, charts)
+  const placed = placeDrawings(pdf, { ...NOTHING_ELSE, drawings })
+  return [...placed.problems, ...chartProblems(pdf, pagesOf(pdf, NOTHING_ELSE, placed), charts)]
+}
+
+/** A chart as a drawing, sought by its clip. */
+const drawingOf = ({ id, width, height }: ExpectedChart): ExpectedDrawing => ({ kind: 'chart', id, width, height })
+
+/** What `verify` says of `charts` on these pages, the body's drawings being the charts that draw something, in their order. */
+function problemsOf(charts: readonly ExpectedChart[], ...drawn: readonly Drawn[]): string[] {
+  return checked(charts, charts.filter(({ empty }) => !empty).map(drawingOf), ...drawn)
 }
 
 /** `list` with `old` replaced by each of `now`, or taken out where there is none. */
@@ -164,7 +212,12 @@ const BALANCE: ExpectedChart = {
   faces: [],
   empty: false,
 }
-const PAID_LINE = stroked('#2ca02c', 210, 90.847, 60, 19.8)
+const PAID_LINE = stroked('#2ca02c', 210, 90.847, 60, 19.8, [
+  [
+    [210, 90.847],
+    [270, 110.647],
+  ],
+])
 const PAID_JAN = filled('#2ca02c', 87.996, 128.347, 4, 4)
 const BALANCE_READ: Drawn = {
   clips: [box(40, 46.547, 260, 160)],
@@ -212,9 +265,26 @@ const SHARES: ExpectedChart = {
   faces: [],
   empty: false,
 }
-const NORTH_SLICE = filled('#1f77b4', 67.8, 65.647, 144.601, 144.601)
-const SOUTH_SLICE = filled('#ff7f0e', 67.8, 65.647, 72.2, 72.2)
-/** What ECharts drew of the zero slice: a sector of no sweep, from the pie's centre to its rim at noon, which the read omits and a case adds. */
+const NORTH_SLICE = filled('#1f77b4', 67.8, 65.647, 144.601, 144.601, [
+  [
+    [140, 65.647],
+    [198.557, 95.401],
+    [208.867, 160.27],
+    [162.423, 206.714],
+    [97.555, 196.403],
+    [67.8, 137.847],
+    [140, 137.847],
+  ],
+])
+const SOUTH_SLICE = filled('#ff7f0e', 67.8, 65.647, 72.2, 72.2, [
+  [
+    [67.8, 137.847],
+    [88.976, 86.823],
+    [140, 65.647],
+    [140, 137.847],
+  ],
+])
+/** What the renderer drew of the zero slice until 8818a5a, taken off its render at 7fa9028: a sector of no sweep, from the pie's centre to its rim at noon. */
 const EAST_SLICE = filled('#2ca02c', 140, 65.647, 0, 72.2)
 const SHARES_READ: Drawn = {
   clips: [box(40, 46.547, 200, 200)],
@@ -264,13 +334,16 @@ describe('chartProblems', () => {
     expect(problemsOf([SALES], sales({ clips: [] }))).toEqual(['the chart sales, 300 × 200 pt, is not drawn: no clip of its size holds a painted path'])
   })
 
-  // A clip an SVG image of the chart's size took is the image's, and one
-  // that holds no paint is no drawing: the chart is not found in either.
+  // A clip an SVG image of the chart's size took before it is the
+  // image's, and one that holds no paint is no drawing: the chart is not
+  // found in either.
   test('takes no clip an SVG image took, nor one nothing is painted in', () => {
-    expect(problemsOf([SALES], sales({ drawings: [SALES_BOX] }))).toEqual([
+    expect(checked([SALES], [{ kind: 'image', width: 300, height: 200 }, drawingOf(SALES)], SALES_READ)).toEqual([
       'the chart sales, 300 × 200 pt, is not drawn: no clip of its size holds a painted path',
     ])
-    expect(problemsOf([SALES], sales({ paths: [] }))).toEqual(['the chart sales, 300 × 200 pt, is not drawn: no clip of its size holds a painted path'])
+    expect(problemsOf([SALES], sales({ paths: [] }))).toEqual([
+      'the chart sales, 300 × 200 pt, has its clip at 40, 46.55 on page 1, and nothing painted inside it',
+    ])
   })
 
   // Charts are found in document order, each after the one before: the
@@ -284,8 +357,54 @@ describe('chartProblems', () => {
     ])
   })
 
+  // An SVG image and a chart are found in one walk, in document order: an
+  // image of a chart's size after it, before it or beside it in a column
+  // takes its own clip, never the chart's, and the chart never the
+  // image's. The reads are the renderer's: the pie of 3, 1 and 2 and the
+  // corpus's mark at 200 pt square, a spacer between them or a column
+  // each. Walked out of document order, the image takes the chart's clip.
+  test('places a chart and an SVG image of its size in document order, after, before and beside it', () => {
+    const image: ExpectedDrawing = { kind: 'image', width: 200, height: 200 }
+    const page = (pie: { paths: PdfPath[]; items: PdfTextItem[] }, mark: PdfPath[], clips: PdfBox[]): Drawn => ({
+      clips,
+      paths: [...pie.paths, ...mark].sort((a, b) => a.clip! - b.clip!),
+      items: [BEFORE, ...pie.items],
+    })
+    const after = page(mixAt(40, 46.547, 0), markAt(40, 266.547, 1), [box(40, 46.547, 200, 200), box(40, 266.547, 200, 200)])
+    const before = page(mixAt(40, 266.547, 1), markAt(40, 46.547, 0), [box(40, 46.547, 200, 200), box(40, 266.547, 200, 200)])
+    const beside = page(mixAt(40, 46.547, 0), markAt(297.64, 46.547, 1), [box(40, 46.547, 200, 200), box(297.64, 46.547, 200, 200)])
+    expect(checked([MIX], [drawingOf(MIX), image], after)).toEqual([])
+    expect(checked([MIX], [image, drawingOf(MIX)], before)).toEqual([])
+    expect(checked([MIX], [drawingOf(MIX), image], beside)).toEqual([])
+    expect(checked([MIX], [image, drawingOf(MIX)], after)).toContain('page 1: the chart mix paints nothing of slice 1')
+  })
+
+  // report-render-pdf's tests build their own expectation, which lists no
+  // drawings: its SVG images are then those its images list, and it has
+  // no chart -- the corpus's own derives both, in one walk.
+  test('places the SVG images an expectation without drawings lists among its images', () => {
+    const read: PdfPage = {
+      number: 1,
+      width: 595.28,
+      height: 841.89,
+      items: [BEFORE],
+      images: [],
+      paths: markAt(40, 46.547, 0),
+      clips: [box(40, 46.547, 200, 200)],
+    }
+    const { drawings: listed, ...unlisted } = NOTHING_ELSE
+    expect(listed).toEqual([])
+    const placed = placeDrawings({ pages: [read], fonts: [], attachments: [] }, { ...unlisted, images: [{ kind: 'vector', width: 200, height: 200 }] })
+    expect(placed).toEqual({ boxes: [[box(40, 46.547, 200, 200)]], charts: [[]], problems: [] })
+  })
+
   // ECharts clips a series to its plot, and a path's clip is the innermost
   // (C14): a chart's marks painted in a clip set inside its box are its own.
+  // No render has been seen to set one -- svg-to-pdfkit draws ECharts' clip
+  // of a series as a soft mask, which sets no clip and which the reader
+  // skips (`operators.ts`) -- so this read is doctored: the renderer's bars
+  // moved into a clip of its plot, as a converter that drew the clip as a
+  // clip would paint them.
   test("reads a chart's marks painted in a clip set inside its box", () => {
     const plot = box(60, 105.047, 280, 68)
     const inner = SALES_READ.paths.map((path): PdfPath => (path.paint === 'fill' ? { ...path, clip: 1 } : path))
@@ -431,16 +550,21 @@ describe("a chart's axis", () => {
   // A gridline missing is a tick the axis does not show.
   test('finds a gridline missing', () => {
     expect(problemsOf([SALES], sales({ paths: replaced(SALES_READ.paths, SALES_GRID[2]!) }))).toEqual([
-      "page 1: the chart sales draws 4 gridlines in the grid's colour; its ticks are 5",
+      "page 1: the chart sales draws 4 gridlines in the grid's colour across its plot; its ticks are 5",
     ])
   })
 
-  // The gridlines are the plot: one narrower, or out of step, is an axis
-  // that reads differently at one tick than at the next.
-  test('finds a gridline narrower than the plot, and one out of step', () => {
+  // The gridlines are the plot: one narrower is no gridline, since a
+  // series' line in the grid's colour is narrower too; one beside the rest,
+  // or out of step, is an axis that reads differently at one tick than at
+  // the next.
+  test('finds a gridline narrower than the plot, one beside it, and one out of step', () => {
     expect(problemsOf([SALES], sales({ paths: replaced(SALES_READ.paths, SALES_GRID[3]!, gridline(122.047, 60, 200)) }))).toEqual([
-      'page 1: the chart sales draws its gridline of tick 4 from 60 to 260 pt across; its lowest from 60 to 340',
+      "page 1: the chart sales draws 4 gridlines in the grid's colour across its plot; its ticks are 5",
     ])
+    expect(problemsOf([SALES], sales({ paths: replaced(SALES_READ.paths, SALES_GRID[3]!, gridline(122.047, 70, 280)) }))).toContain(
+      'page 1: the chart sales draws its gridline of tick 4 from 70 to 350 pt across; its lowest from 60 to 340',
+    )
     expect(problemsOf([SALES], sales({ paths: replaced(SALES_READ.paths, SALES_GRID[3]!, gridline(124.047, 60, 280)) }))).toContain(
       'page 1: the chart sales draws its gridlines unevenly: 17 pt apart from its lowest tick, 15 pt from tick 3 to tick 4',
     )
@@ -485,13 +609,26 @@ describe("a chart's axis", () => {
     expect(problemsOf([SALES], sales({ items: unlabelled }))).toEqual(["page 1: the chart sales labels none of its ticks; at least two, from its lowest, '-5'"])
   })
 
+  // A tick's middle as the reader boxes it stands 0.0418 em below its
+  // gridline in Roboto (`LINE_OFFSET`), past EDGE at 14 pt: a check that
+  // held it to EDGE alone would fail the renderer's ticks at that size.
+  test("allows a tick label the reader's offset from its line", () => {
+    const large = { ...TICK_5, ...box(47.496, 139.047 + 0.0418 * 14 - 7, 4.496, 14) }
+    expect(problemsOf([SALES], sales({ items: replaced(SALES_READ.items, TICK_5, large) }))).toEqual([])
+  })
+
   // A tick's label stands at its gridline, its value rising up the page:
   // a label moved off its gridline labels another height.
   test('finds a tick label away from its gridline', () => {
     const moved = { ...TICK_5, ...box(47.496, 110, 4.496, 8) }
     expect(problemsOf([SALES], sales({ items: replaced(SALES_READ.items, TICK_5, moved) }))).toEqual([
-      "page 1: the chart sales prints tick '5' from 110 to 118 pt down the page, not across its gridline at 139.05",
+      "page 1: the chart sales prints tick '5' with its middle at 114 pt down the page, 25.05 from its gridline at 139.05",
       "page 1: the chart sales prints tick '10' no higher than tick '5'",
+    ])
+    // 3 pt off still crosses its gridline, and labels a height 3 pt from its tick's; 0.33 pt is Roboto's own offset at 8 pt (`LINE_OFFSET`).
+    const off = { ...TICK_5, ...box(47.496, 138.381, 4.496, 8) }
+    expect(problemsOf([SALES], sales({ items: replaced(SALES_READ.items, TICK_5, off) }))).toEqual([
+      "page 1: the chart sales prints tick '5' with its middle at 142.38 pt down the page, 3.33 from its gridline at 139.05",
     ])
   })
 })
@@ -549,6 +686,15 @@ describe("a bar chart's bars", () => {
     ])
   })
 
+  // Two series' bars drawn over each other show one value where two
+  // stand, each in its slot and of its length.
+  test('finds two bars over each other', () => {
+    const over = filled('#ff7f0e', 69.3, 105.047, 33.2, 51)
+    expect(problemsOf([SALES], sales({ paths: replaced(SALES_READ.paths, ACTUAL_NORTH, over) }))).toEqual([
+      'page 1: the chart sales draws the bars of series 1 at category 1 and series 2 at category 1 over each other',
+    ])
+  })
+
   // Every bar of a chart is one width: a narrower one reads as another kind.
   test('finds a bar of another width', () => {
     const narrow = filled('#ff7f0e', 204.1, 156.047, 20, 17)
@@ -578,7 +724,7 @@ describe("a line chart's marks", () => {
       'page 1: the chart balance draws a marker of series 2 at category 2, which has no value',
     ])
     expect(problemsOf([BALANCE], balance({ paths: [...BALANCE_READ.paths, stroked('#d62728', 90, 100, 60, 20)] }))).toEqual([
-      'page 1: the chart balance draws 1 line of series 2; its values make 0 stretches of two or more',
+      'page 1: the chart balance draws 1 line of series 2; its values make no stretch of two or more, which ECharts draws as none',
     ])
   })
 
@@ -595,6 +741,15 @@ describe("a line chart's marks", () => {
     ])
   })
 
+  // A line series paints its markers, its line and its swatch: a path in
+  // its colour painted any other way is no part of a chart.
+  test("finds a path of a line's colour that is none of its marks", () => {
+    const outlined: PdfPath = { ...filled('#2ca02c', 150, 120, 4, 4), paint: 'fillStroke', stroke: '#000000' }
+    expect(problemsOf([BALANCE], balance({ paths: [...BALANCE_READ.paths, outlined] }))).toEqual([
+      'page 1: the chart balance paints fill #2ca02c and stroke #000000 at 150, 120, 4 × 4 pt, which is no part of a chart',
+    ])
+  })
+
   // A marker in its category's slot but off its middle stands for another
   // place along the axis, which on a line is another time.
   test("finds a marker off its category's middle", () => {
@@ -603,17 +758,77 @@ describe("a line chart's marks", () => {
     ])
   })
 
-  // A line across the gap would show a value the series does not have;
-  // one that does not reach its points shows others than it has.
-  test('finds a line across a gap, and one that does not join its points', () => {
-    expect(problemsOf([BALANCE], balance({ paths: [...BALANCE_READ.paths, stroked('#2ca02c', 90, 90.847, 120, 39.6)] }))).toEqual([
-      'page 1: the chart balance draws 2 lines of series 1; its values make 1 stretch of two or more',
+  // ECharts draws a series' line as one path, a subpath for each stretch of
+  // two values or more (measured): a line joined across the gap has the
+  // box of the line drawn either side of it, and shows a value the series
+  // does not have. Both reads are the renderer's line of 1, 2, -, 3, 2,
+  // the second with its two parts joined into one.
+  test('passes a line drawn in a part for each stretch, and finds one joined across its gap', () => {
+    const two: ExpectedChart = {
+      id: 'two',
+      chart: 'line',
+      width: 300,
+      height: 160,
+      words: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+      categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+      ticks: ['0', '1', '2', '3'].map((exact) => tick(exact)),
+      marks: [{ paint: '#1f77b4', values: ['1', '2', null, '3', '2'] }],
+      faces: [],
+      empty: false,
+    }
+    const parts: Point[][] = [
+      [
+        [83.9, 142.047],
+        [140.8, 97.047],
+      ],
+      [
+        [254.6, 52.047],
+        [311.5, 97.047],
+      ],
+    ]
+    const line = stroked('#1f77b4', 83.9, 52.047, 227.6, 90, parts)
+    const read: Drawn = {
+      clips: [box(40, 46.547, 300, 160)],
+      paths: [
+        ...[187.047, 142.047, 97.047, 52.047].map((top) => gridline(top, 55.5, 284.5)),
+        axisLine(187.047, 55.5, 284.5),
+        line,
+        filled('#1f77b4', 81.949, 139.947, 4, 4),
+        filled('#1f77b4', 138.85, 94.947, 4, 4),
+        filled('#1f77b4', 252.651, 49.947, 4, 4),
+        filled('#1f77b4', 309.552, 94.947, 4, 4),
+      ],
+      items: [
+        BEFORE,
+        run('Jan', 77.355, 196.069, 13.184),
+        run('Feb', 134.31, 196.069, 13.074),
+        run('Mar', 190.725, 196.069, 14.047),
+        run('Apr', 248.438, 196.069, 12.422),
+        run('May', 304.018, 196.069, 15.063),
+        ...['0', '1', '2', '3'].map((text, index) => run(text, 43, 183.381 - 45 * index, 4.496)),
+      ],
+    }
+    expect(problemsOf([two], read)).toEqual([])
+    const joined = stroked('#1f77b4', 83.9, 52.047, 227.6, 90, [parts.flat()])
+    expect(problemsOf([two], { ...read, paths: replaced(read.paths, line, joined) })).toEqual([
+      'page 1: the chart two draws its line of series 1 in 1 part; its values make 2 stretches of two or more',
     ])
-    expect(problemsOf([BALANCE], balance({ paths: replaced(BALANCE_READ.paths, PAID_LINE, stroked('#2ca02c', 210, 90.847, 60, 25)) }))).toEqual([
-      'page 1: the chart balance draws its line of series 1 from category 3 to 4 across 210 to 270 pt and down 90.85 to 115.85 pt; its values span 210 to 270 across and 90.85 to 110.65 down',
+  })
+
+  // A line that does not run through its points shows other values than
+  // its series has; a series with a stretch of values and no line hides it.
+  test('finds a line off its points, and one missing', () => {
+    const off = stroked('#2ca02c', 210, 90.847, 60, 25, [
+      [
+        [210, 90.847],
+        [270, 115.847],
+      ],
     ])
-    expect(problemsOf([BALANCE], balance({ paths: replaced(BALANCE_READ.paths, PAID_LINE, stroked('#2ca02c', 150, 90.847, 120, 19.8)) }))).toEqual([
-      'page 1: the chart balance draws its line of series 1 from category 3 to 4 across 150 to 270 pt and down 90.85 to 110.65 pt; its values span 210 to 270 across and 90.85 to 110.65 down',
+    expect(problemsOf([BALANCE], balance({ paths: replaced(BALANCE_READ.paths, PAID_LINE, off) }))).toEqual([
+      'page 1: the chart balance draws part 1 of its line of series 1 through 210, 90.85; 270, 115.85; its values from category 3 to 4 stand at 210, 90.85; 270, 110.65',
+    ])
+    expect(problemsOf([BALANCE], balance({ paths: replaced(BALANCE_READ.paths, PAID_LINE) }))).toEqual([
+      'page 1: the chart balance draws 0 lines of series 1; its values make 1 stretch of two or more, which ECharts draws as one line',
     ])
   })
 
@@ -642,7 +857,12 @@ describe("a line chart's marks", () => {
       paths: [
         ...[188.047, 154.047, 120.047, 86.047, 52.047].map((top) => gridline(top, 122.9, 177.1)),
         axisLine(188.047, 122.9, 177.1),
-        stroked('#9467bd', 167.2, 86.047, 88.5, 66),
+        stroked('#9467bd', 167.2, 86.047, 88.5, 66, [
+          [
+            [167.2, 152.047],
+            [255.7, 86.047],
+          ],
+        ]),
         q1,
         filled('#9467bd', 253.737, 83.947, 4, 4),
       ],
@@ -708,7 +928,146 @@ describe("a line chart's marks", () => {
   })
 })
 
+describe('a series in any colour', () => {
+  // The renderer's charts of one series over three months, its values 1, 3
+  // and 2 or 2, 2 and 2 on ticks 0 to 3, drawn in one geometry whatever
+  // their colour: only the series' paths differ between them.
+  const plain = (chart: 'bar' | 'line', paint: string, values: readonly string[]): ExpectedChart => ({
+    id: 'plain',
+    chart,
+    width: 260,
+    height: 160,
+    words: ['Jan', 'Feb', 'Mar'],
+    categories: ['Jan', 'Feb', 'Mar'],
+    ticks: ['0', '1', '2', '3'].map((exact) => tick(exact)),
+    marks: [{ paint, values }],
+    faces: [],
+    empty: false,
+  })
+  const read = (series: readonly PdfPath[]): Drawn => ({
+    clips: [box(40, 46.547, 260, 160)],
+    paths: [...[187.047, 142.047, 97.047, 52.047].map((top) => gridline(top, 55.5, 244.5)), axisLine(187.047, 55.5, 244.5), ...series],
+    items: [
+      BEFORE,
+      run('Jan', 89.655, 196.069, 13.184),
+      run('Feb', 171.211, 196.069, 13.074),
+      run('Mar', 252.226, 196.069, 14.047),
+      ...['0', '1', '2', '3'].map((text, index) => run(text, 43, 183.381 - 45 * index, 4.496)),
+    ],
+  })
+  const line = (paint: `#${string}`, [a, b, c]: readonly number[]): PdfPath[] => [
+    stroked(paint, 96.2, Math.min(a!, b!, c!), 163, Math.max(a!, b!, c!) - Math.min(a!, b!, c!), [
+      [
+        [96.2, a!],
+        [177.7, b!],
+        [259.2, c!],
+      ],
+    ]),
+    filled(paint, 94.249, a! - 2.1, 4, 4),
+    filled(paint, 175.751, b! - 2.1, 4, 4),
+    filled(paint, 257.252, c! - 2.1, 4, 4),
+  ]
+  const bars = (paint: `#${string}`): PdfPath[] => [
+    filled(paint, 63.6, 142.047, 65.2, 45),
+    filled(paint, 145.1, 52.047, 65.2, 135),
+    filled(paint, 226.6, 97.047, 65.2, 90),
+  ]
+
+  // The validator admits any colour for a series, the grid's and the
+  // axis's among them: a black line is the commonest a person picks, and
+  // a check that took its stroke for the axis's line, or a grey line flat
+  // on a tick for its gridline, would fail the renderer's charts of them.
+  test.each([
+    ['a black line', plain('line', '#000000', ['1', '3', '2']), line('#000000', [142.047, 52.047, 97.047])],
+    ['a grey line', plain('line', '#d9d9d9', ['1', '3', '2']), line('#d9d9d9', [142.047, 52.047, 97.047])],
+    ['a grey line flat on a tick', plain('line', '#d9d9d9', ['2', '2', '2']), line('#d9d9d9', [97.047, 97.047, 97.047])],
+    ['black bars', plain('bar', '#000000', ['1', '3', '2']), bars('#000000')],
+    ['grey bars', plain('bar', '#d9d9d9', ['1', '3', '2']), bars('#d9d9d9')],
+  ] as const)('passes %s as the renderer draws it', (_, chart, series) => {
+    expect(problemsOf([chart], read(series))).toEqual([])
+  })
+
+  // The grid and the axis are still known by where they stand: a grey
+  // line of the series' moved off its points is the series' to answer
+  // for, never a gridline gone missing.
+  test("holds a series' line in the grid's colour to its points", () => {
+    expect(problemsOf([plain('line', '#d9d9d9', ['2', '2', '2'])], read(line('#d9d9d9', [97.047, 97.047, 92])))).toEqual([
+      'page 1: the chart plain draws the marker of series 1 at category 3 at 259.25, 91.9; its value stands at 259.25, 97.05',
+      'page 1: the chart plain draws part 1 of its line of series 1 through 96.2, 97.05; 177.7, 97.05; 259.2, 92; its values from category 1 to 3 stand at 96.25, 97.05; 177.75, 97.05; 259.25, 97.05',
+    ])
+  })
+})
+
+/** A pie of three slices, 3, 1 and 2, as the renderer drew it in a box whose clip is at `x`, `top`, its paths in clip `clip`. */
+const MIX: ExpectedChart = {
+  id: 'mix',
+  chart: 'pie',
+  width: 200,
+  height: 200,
+  words: ['Shares', 'S1 3', 'S2 1', 'S3 2'],
+  categories: [],
+  ticks: [],
+  marks: [
+    { paint: '#1f77b4', values: ['3'] },
+    { paint: '#ff7f0e', values: ['1'] },
+    { paint: '#2ca02c', values: ['2'] },
+  ],
+  faces: [],
+  empty: false,
+}
+function mixAt(x: number, top: number, clip = 0): { paths: PdfPath[]; items: PdfTextItem[] } {
+  const at = (path: PdfPath): PdfPath => ({ ...path, clip })
+  const moved = (...points: Point[]): Point[][] => [points.map(([across, down]) => [x - 40 + across, top - 46.547 + down])]
+  return {
+    paths: [
+      filled('#1f77b4', x + 100, top + 19.1, 80.9, 161.8, moved([140, 65.647], [210.061, 106.097], [210.061, 186.997], [140, 227.447], [140, 146.547])),
+      filled('#ff7f0e', x + 29.9, top + 100, 70.1, 80.9, moved([140, 227.447], [99.537, 216.64], [69.9, 187.047], [140, 146.547])),
+      filled('#2ca02c', x + 19.032, top + 19.1, 80.968, 121.4, moved([69.9, 187.047], [60.259, 132.515], [87.951, 84.557], [140, 65.647], [140, 146.547])),
+      swatch('#1f77b4', x + 48.785, top + 186.312),
+      swatch('#ff7f0e', x + 85.762, top + 186.312),
+      swatch('#2ca02c', x + 122.738, top + 186.312),
+    ].map(at),
+    items: [
+      run('Shares', x + 87.621, top + 6.022, 24.758, MEDIUM),
+      run('S1 3', x + 61.785, top + 186.647, 15.727),
+      run('S2 1', x + 98.762, top + 186.647, 15.727),
+      run('S3 2', x + 135.738, top + 186.647, 15.727),
+    ],
+  }
+}
+
+/** The corpus's SVG mark drawn 200 pt square, `contain`, as the renderer drew it in a box whose clip is at `x`, `top`, its paths in clip `clip`. */
+const markAt = (x: number, top: number, clip: number): PdfPath[] =>
+  [
+    filled('#1f4e79', x + 6.667, top + 6.667, 186.667, 186.667),
+    stroked('#ffffff', x + 46.667, top + 53.333, 106.667, 50, [
+      [
+        [x + 46.667, top + 103.333],
+        [x + 100, top + 53.333],
+        [x + 153.333, top + 103.333],
+      ],
+    ]),
+    filled('#ffffff', x + 76.667, top + 90, 46.667, 70),
+  ].map((path) => ({ ...path, clip }))
+
 describe("a pie's slices", () => {
+  // A slice is the sector its share makes, from noon and clockwise: two
+  // slices whose colours are swapped print the legend's words beside the
+  // other's sector, and paint every path once. The read is the renderer's
+  // pie of 3, 1 and 2, the second with its first and third slices'
+  // colours swapped.
+  test("passes each slice in its share's sector, and finds two whose paints are swapped", () => {
+    const { paths, items } = mixAt(40, 46.547)
+    const read: Drawn = { clips: [box(40, 46.547, 200, 200)], paths, items: [BEFORE, ...items] }
+    expect(problemsOf([MIX], read)).toEqual([])
+    const [first, , third] = paths as [PdfPath, PdfPath, PdfPath]
+    const swapped = replaced(replaced(paths, first, { ...first, fill: '#2ca02c' }), third, { ...third, fill: '#1f77b4' })
+    expect(problemsOf([MIX], { ...read, paths: swapped })).toEqual([
+      "page 1: the chart mix paints slice 1 from 69.9, 187.05 to 140, 65.65 round 140, 146.55; its share's sector runs from 140, 65.63 to 140, 227.47 round 140, 146.55",
+      "page 1: the chart mix paints slice 3 from 140, 65.65 to 140, 227.45 round 140, 146.55; its share's sector runs from 69.92, 187.01 to 140, 65.63 round 140, 146.55",
+    ])
+  })
+
   // ECharts draws a zero slice as a sector of no sweep, from the pie's
   // centre to its rim: a path in the zero slice's colour that its box
   // cannot prove has no area, which a rasteriser that paints every pixel a
@@ -742,11 +1101,32 @@ describe("a pie's slices", () => {
       faces: [],
       empty: false,
     }
-    const [least, less] = [filled('#ff7f0e', 120, 46.547, 0, 70.5), filled('#2ca02c', 120, 46.547, 0, 70.5)]
+    // The slice of 999 parts in 10^20 as the renderer drew it until 8818a5a, and the slice of 1000 as it draws it: its arc's ends one point, and the centre.
+    const [least, less] = [
+      filled('#ff7f0e', 120, 46.547, 0, 70.5),
+      filled('#2ca02c', 120, 46.547, 0, 70.5, [
+        [
+          [120, 46.547],
+          [120, 117.047],
+        ],
+      ]),
+    ]
     const read: Drawn = {
       clips: [box(40, 46.547, 160, 160)],
       paths: [
-        filled('#1f77b4', 50.017, 46.545, 141, 141),
+        // All but 10^-17 of the pie: a whole circle, split where zrender rounds a point, and no centre.
+        filled('#1f77b4', 50.017, 46.545, 141, 141, [
+          [
+            [120, 46.547],
+            [180.711, 80.345],
+            [182.949, 149.794],
+            [124.539, 187.43],
+            [62.222, 156.693],
+            [56.534, 87.441],
+            [113, 46.947],
+            [120, 46.547],
+          ],
+        ]),
         less,
         swatch('#1f77b4', 65, 192.859),
         swatch('#ff7f0e', 104.543, 192.859),
@@ -759,13 +1139,32 @@ describe("a pie's slices", () => {
     expect(problemsOf([tiny], { ...read, paths: replaced(read.paths, less) })).toEqual(['page 1: the chart tiny paints nothing of slice 3'])
   })
 
-  // A slice drawn twice is a share drawn twice; the slices together are a
-  // disc, whose box is a square.
-  test('finds a slice drawn twice, and slices that make no disc', () => {
+  // A slice whose apex stands aside of the others' is a wedge with a kink,
+  // whatever its arc: the pie of 3, 1 and 2, its second slice's last point,
+  // the centre, 1.05 pt aside, which moves the slices' mean a third of that.
+  test('finds a slice about another centre than the others', () => {
+    const { paths, items } = mixAt(40, 46.547)
+    const second = paths[1]!
+    const aside = { ...second, subpaths: [[...second.subpaths[0]!.slice(0, -1), [141.05, 146.547] as const]] }
+    expect(problemsOf([MIX], { clips: [box(40, 46.547, 200, 200)], paths: replaced(paths, second, aside), items: [BEFORE, ...items] })).toEqual([
+      "page 1: the chart mix paints slice 2 from 140, 227.45 to 69.9, 187.05 round 141.05, 146.55; its share's sector runs from 140.35, 227.57 to 70.18, 187.06 round 140.35, 146.55",
+    ])
+  })
+
+  // A slice drawn twice is a share drawn twice; a slice whose arc ends
+  // elsewhere, or about another centre, is another share than its own. The
+  // pie's centre is its slices' mean, so of two slices 2 pt apart each is
+  // a point from it, and both are named: two cannot say which is wrong.
+  test('finds a slice drawn twice, one ending elsewhere, and one about another centre', () => {
     expect(problemsOf([SHARES], shares({ paths: [...SHARES_READ.paths, SOUTH_SLICE] }))).toEqual(['page 1: the chart shares paints slice 2 in 2 paths'])
-    const stretched = filled('#1f77b4', 67.8, 65.647, 144.601, 120)
-    expect(problemsOf([SHARES], shares({ paths: replaced(SHARES_READ.paths, NORTH_SLICE, stretched) }))).toEqual([
-      'page 1: the chart shares paints its slices together across 144.6 × 120 pt, which is no square',
+    const short = { ...SOUTH_SLICE, subpaths: [[...SOUTH_SLICE.subpaths[0]!.slice(0, -2), [130, 66.3] as const, [140, 137.847] as const]] }
+    expect(problemsOf([SHARES], shares({ paths: replaced(SHARES_READ.paths, SOUTH_SLICE, short) }))).toEqual([
+      "page 1: the chart shares paints slice 2 from 67.8, 137.85 to 130, 66.3 round 140, 137.85; its share's sector runs from 67.79, 137.85 to 140, 65.64 round 140, 137.85",
+    ])
+    const aside = { ...SOUTH_SLICE, subpaths: [[...SOUTH_SLICE.subpaths[0]!.slice(0, -1), [142, 137.847] as const]] }
+    expect(problemsOf([SHARES], shares({ paths: replaced(SHARES_READ.paths, SOUTH_SLICE, aside) }))).toEqual([
+      "page 1: the chart shares paints slice 1 from 140, 65.65 to 67.8, 137.85 round 140, 137.85; its share's sector runs from 141, 65.14 to 68.3, 137.85 round 141, 137.85",
+      "page 1: the chart shares paints slice 2 from 67.8, 137.85 to 140, 65.65 round 142, 137.85; its share's sector runs from 68.3, 137.85 to 141, 65.14 round 141, 137.85",
     ])
   })
 })
@@ -818,6 +1217,28 @@ describe('a chart with nothing to draw', () => {
     expect(problemsOf([{ ...NOTHING, words: ['No data'] }], NOTHING_READ)).toEqual([])
     const heading = run('Balance', 40, 20, 28.629, MEDIUM, 14)
     expect(problemsOf([NOTHING], { ...NOTHING_READ, items: [heading, ...NOTHING_READ.items] })).toEqual([])
+  })
+
+  // An empty chart stands after the chart drawn before it: its words
+  // printed only before that chart are some other text's, and do not pass
+  // for it.
+  test('seeks an empty chart after the chart drawn before it', () => {
+    expect(problemsOf([NOTHING, SALES], NOTHING_READ, SALES_READ)).toEqual([])
+    expect(problemsOf([SALES, NOTHING], NOTHING_READ, SALES_READ)).toEqual([
+      "the chart nothing does not print its empty text 'No data' after the chart drawn before it",
+    ])
+    // On the drawn chart's page, its words above the drawn chart's box stand before it.
+    const lower = mixAt(40, 266.547)
+    const page: Drawn = { clips: [box(40, 266.547, 200, 200)], paths: lower.paths, items: [BEFORE, NOTHING_TITLE, NO_DATA, ...lower.items] }
+    expect(problemsOf([NOTHING, MIX], page)).toEqual([])
+    expect(problemsOf([MIX, NOTHING], page)).toEqual(["the chart nothing does not print its empty text 'No data' after the chart drawn before it"])
+    // Below the drawn chart on its page, they stand after it.
+    const upper = mixAt(40, 46.547)
+    const below = [
+      { ...NOTHING_TITLE, top: 270, bottom: 278 },
+      { ...NO_DATA, top: 310, bottom: 318 },
+    ]
+    expect(problemsOf([MIX, NOTHING], { clips: [box(40, 46.547, 200, 200)], paths: upper.paths, items: [BEFORE, ...upper.items, ...below] })).toEqual([])
   })
 
   // Two empty charts of the same words are two charts: each is proved by

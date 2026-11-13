@@ -79,10 +79,35 @@ function rectangleBox(ctm: Matrix, viewport: PageViewport, [x0, y0, x1, y1]: rea
   )
 }
 
-/** PDF.js's own codes for a path's parts, in the data a `constructPath` carries (`DrawOPS`). */
+/** PDF.js's own codes for a path's parts, in the data a `constructPath` carries (`DrawOPS`), and how many numbers each carries. */
 const MOVE = 0
 const LINE = 1
+const CURVE = 2
+const QUADRATIC = 3
 const CLOSE = 4
+const NUMBERS: ReadonlyMap<number, number> = new Map([
+  [MOVE, 2],
+  [LINE, 2],
+  [CURVE, 6],
+  [QUADRATIC, 4],
+  [CLOSE, 0],
+])
+
+/** `data`'s subpaths on the page, each the points it runs through: a part's last two numbers are where it ends. */
+function subpathsOf(data: ArrayLike<number> | null, ctm: Matrix, viewport: PageViewport): Point[][] {
+  const subpaths: Point[][] = []
+  for (let index = 0; data !== null && index < data.length;) {
+    const op = data[index++]!
+    const count = NUMBERS.get(op)
+    if (count === undefined) throw new Error(`a path holds a part PDF.js codes ${String(op)}, which the reader does not know`)
+    index += count
+    if (count === 0) continue
+    const point = onPage(ctm, viewport, [data[index - 2]!, data[index - 1]!])
+    if (op === MOVE || subpaths.length === 0) subpaths.push([point])
+    else subpaths.at(-1)!.push(point)
+  }
+  return subpaths
+}
 
 /** How far apart, in points, two corners of a rectangle may be across the side they share: PDF.js hands paths over as 32-bit floats. */
 const SQUARE = 0.01
@@ -235,5 +260,6 @@ function paintPath([op, [data], bounds]: PathArgs, state: State, viewport: PageV
     ...(paint === 'stroke' ? {} : { fill: state.fill }),
     ...(paint === 'fill' ? {} : { stroke: state.stroke }),
     ...(inside === undefined ? {} : { clip: inside }),
+    subpaths: subpathsOf(data ?? null, state.ctm, viewport),
   })
 }

@@ -1,3 +1,4 @@
+import type { PlacedChart, PlacedDrawings } from './drawings.js'
 import { normalise, type Expectation } from './fixture.js'
 import { pageLines, type Line } from './lines.js'
 import type { PdfBox, PdfPage, ReadPdf } from './read-pdf.js'
@@ -20,10 +21,12 @@ export interface Page {
   readonly body: readonly Line[]
   /** The boxes of the SVG images drawn on the page, the page regions' and the body's: the clips their drawings are painted inside (`drawings.ts`). */
   readonly drawings: readonly PdfBox[]
+  /** The charts drawn on the page, each found by its clip in the same walk as the SVG images (`drawings.ts`). */
+  readonly charts: readonly PlacedChart[]
 }
 
-/** `pdf`'s pages as the checks read them, each with the boxes of the SVG images `drawings` found on it, page by page. */
-export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: readonly (readonly PdfBox[])[]): Page[] {
+/** `pdf`'s pages as the checks read them, each with the SVG images' boxes and the charts `drawings` placed on it, page by page. */
+export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: Pick<PlacedDrawings, 'boxes' | 'charts'>): Page[] {
   const header = new Set(expected.pageHeaderLines.map(normalise))
   const footer = new Set(expected.pageFooterLines.map(normalise))
   const numbered = expected.footerEveryPage === undefined ? undefined : once(expected.footerEveryPage)
@@ -39,7 +42,8 @@ export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: readonly 
       header: lines.filter((line) => region(line) === 'header'),
       footer: lines.filter((line) => region(line) === 'footer'),
       body: lines.filter((line) => region(line) === 'body'),
-      drawings: drawings[index] ?? [],
+      drawings: drawings.boxes[index] ?? [],
+      charts: drawings.charts[index] ?? [],
     }
   })
 }

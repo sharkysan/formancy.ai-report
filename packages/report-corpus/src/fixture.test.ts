@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import type { Block, ResolvedDocument } from './document.js'
-import { epcCodes, expectation, footerPattern } from './fixture.js'
+import { drawingsOf, epcCodes, expectation, footerPattern } from './fixture.js'
 
 const page = { size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 } } as const
 const text = (value: string): Block => ({ kind: 'paragraph', runs: [{ text: value }] })
@@ -198,5 +198,54 @@ describe('epcCodes', () => {
     ]
     expect(epcCodes(blocks).map((block) => block.id)).toEqual(['first', 'in-column', 'kept-in-section'])
     expect(epcCodes([text('none')])).toEqual([])
+  })
+})
+
+describe('drawingsOf', () => {
+  const image = (mediaType: 'image/png' | 'image/svg+xml', width: number): Block => ({
+    kind: 'image',
+    asset: { id: `image-${width}`, mediaType, bytes: new Uint8Array() },
+    width,
+    height: width,
+    fit: 'contain',
+  })
+  const chart = (id: string, empty?: string): Block => ({
+    kind: 'chart',
+    chart: 'line',
+    id,
+    width: 200,
+    height: 100,
+    legend: [],
+    categories: [],
+    series: [],
+    ticks: [],
+    valueLabels: false,
+    ...(empty === undefined ? {} : { empty }),
+  })
+
+  // An SVG image and a chart are each found by a clip of their box, in one
+  // walk in document order (`drawings.ts`): a walk that missed a container
+  // would seek a chart in a column after the image below it and take its
+  // clip, and one that listed a PNG, or a chart with nothing to draw, would
+  // seek a clip none of them has.
+  test('lists SVG images and charts that draw something, inside columns, sections and keep-together blocks, in document order', () => {
+    const blocks: Block[] = [
+      image('image/svg+xml', 10),
+      image('image/png', 20),
+      {
+        kind: 'columns',
+        columns: [
+          { width: 'fill', blocks: [chart('in-column')] },
+          { width: 'fill', blocks: [image('image/svg+xml', 30)] },
+        ],
+      },
+      { kind: 'section', blocks: [{ kind: 'keepTogether', blocks: [text('heading'), chart('kept-in-section'), chart('nothing', 'No data')] }] },
+    ]
+    expect(drawingsOf(blocks)).toEqual([
+      { kind: 'image', width: 10, height: 10 },
+      { kind: 'chart', id: 'in-column', width: 200, height: 100 },
+      { kind: 'image', width: 30, height: 30 },
+      { kind: 'chart', id: 'kept-in-section', width: 200, height: 100 },
+    ])
   })
 })

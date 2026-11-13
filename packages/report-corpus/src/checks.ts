@@ -25,7 +25,7 @@ export function verify(fixture: Fixture, pdf: ReadPdf): string[] {
     return [`${fixture.id}: expected a refusal (${expected.refusal?.code ?? 'of any kind'}), but a PDF was produced`]
   }
   const drawings = placeDrawings(pdf, expected)
-  const pages = pagesOf(pdf, expected, drawings.boxes)
+  const pages = pagesOf(pdf, expected, drawings)
   const tables = readTables(pages, expected.tables)
   const { page: setup } = fixture.document
   const problems = [

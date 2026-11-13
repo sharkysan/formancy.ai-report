@@ -57,6 +57,15 @@ export interface ExpectedImage {
   readonly height: number
 }
 
+/**
+ * A drawing in the body: what is painted inside a clip of its box, and
+ * found by that clip (`drawings.ts`) -- an SVG image (0030), or a chart
+ * ECharts drew (0058), known by its id.
+ */
+export type ExpectedDrawing =
+  | { readonly kind: 'image'; readonly width: number; readonly height: number }
+  | { readonly kind: 'chart'; readonly id: string; readonly width: number; readonly height: number }
+
 /** A run of text and the PostScript name of the face it must print in (0043), after any subset prefix. */
 export interface ExpectedFontName {
   readonly text: string
@@ -161,6 +170,15 @@ export interface Expectation {
   readonly fontNames: readonly ExpectedFontName[]
   /** The body's images, in document order, each drawn once at this size. */
   readonly images: readonly ExpectedImage[]
+  /**
+   * The body's drawings in document order through every container -- a
+   * column, a section, a keep-together block -- each found after the one
+   * before (`drawings.ts`): its SVG images, and its charts that have
+   * something to draw. Absent from an expectation built without it, as
+   * report-render-pdf's tests build their own: its SVG images are then
+   * those `images` lists, in its order, and it has no chart.
+   */
+  readonly drawings?: readonly ExpectedDrawing[]
   /** The page header's and footer's images, each drawn on every page at this size. */
   readonly pageRegionImages: readonly ExpectedImage[]
 }
@@ -197,6 +215,7 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     fontNames: [],
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
+    drawings: drawingsOf(document.body),
     ...stated,
   }
 }
@@ -214,6 +233,16 @@ export function flatten(blocks: readonly Block[]): Block[] {
 
 export function tables(blocks: readonly Block[]): Table[] {
   return flatten(blocks).filter((block) => block.kind === 'table')
+}
+
+/** The drawings among `blocks`, in document order through every container, as `epcCodes` walks them: each SVG image, and each chart with something to draw; a chart with nothing to draw is no drawing (R7, R8). */
+export function drawingsOf(blocks: readonly Block[]): ExpectedDrawing[] {
+  return blocks.flatMap((block): ExpectedDrawing[] => {
+    if (block.kind === 'image') return block.asset.mediaType === 'image/svg+xml' ? [{ kind: 'image', width: block.width, height: block.height }] : []
+    if (block.kind === 'chart') return block.empty === undefined ? [{ kind: 'chart', id: block.id, width: block.width, height: block.height }] : []
+    if (block.kind === 'columns') return block.columns.flatMap((column) => drawingsOf(column.blocks))
+    return 'blocks' in block ? drawingsOf(block.blocks) : []
+  })
 }
 
 /** Every EPC QR code among `blocks`, inside every container -- a column, a section, a keep-together block -- in document order. */

@@ -1,6 +1,9 @@
-import { axisProblems, AXIS_PAINT, categoryProblems, described, GRID_PAINT, pieProblems, times, within, type ChartRead } from './check-chart-marks.js'
+import { axisProblems, AXIS_PAINT, categoryProblems, GRID_PAINT } from './check-chart-marks.js'
+import { described, meet, MEET, times, within, type ChartRead } from './check-chart-read.js'
+import { pieProblems } from './check-chart-pie.js'
 import { EDGE, OVERLAP, points, quoted, type Page } from './check-page.js'
 import { SUBSET_PREFIX } from './check-text.js'
+import type { PlacedChart } from './drawings.js'
 import { normalise, type ExpectedChart, type ExpectedFontName } from './fixture.js'
 import type { PdfBox, PdfPage, PdfTextItem, ReadPdf } from './read-pdf.js'
 
@@ -10,12 +13,14 @@ import type { PdfBox, PdfPage, PdfTextItem, ReadPdf } from './read-pdf.js'
  * which is where it is found, and its words are pdfmake's text, which is
  * how they are read.
  *
- * 1. **Its clip.** A rectangular clip of its size holding painted paths,
- *    after the SVG images have taken theirs (`drawings.ts`), each chart
- *    after the one before it in document order; with every clip set
- *    inside it, since ECharts clips a series to its plot and a path's
- *    clip is the innermost (`PdfPath.clip`). No path in them reaches past
- *    the clip it is painted in: nothing of a chart is clipped.
+ * 1. **Its clip.** Found by `drawings.ts`, in the one walk that places the
+ *    SVG images, in document order through every container: a rectangular
+ *    clip of its size holding painted paths, with every clip set inside
+ *    it. No path in them reaches past the rectangular clip it is painted
+ *    in. That is all a clip says: svg-to-pdfkit draws ECharts' clip of a
+ *    series to its plot as a soft mask, which the reader skips, so a mark
+ *    is held to the plot by its own points (checks 4 and 5), not by a
+ *    clip, and what a mask hides is not seen.
  * 2. **Its words.** The runs that meet its box are its own: every word one
  *    run's text, inside the box, as many times as its words hold it, in
  *    its face, across the page, no two meeting. A word is sought as PDF.js
@@ -24,64 +29,64 @@ import type { PdfBox, PdfPage, PdfTextItem, ReadPdf } from './read-pdf.js'
  *    spaces as one (measured on the renderer's legend entries). A label
  *    that prints nothing -- empty once trimmed -- is no word, and is not
  *    proved.
- * 3-6. **Its marks** (`check-chart-marks.ts`): the axes, the bars, the
- *    lines and the slices.
+ * 3-6. **Its marks**: the axes, the bars and the lines
+ *    (`check-chart-marks.ts`), and the slices (`check-chart-pie.ts`).
  * 7. **Nothing to draw.** A chart with nothing to draw is no drawing (R7,
  *    R8): it has no clip, so its box is not proved, which 0058 says. Its
- *    empty text is found, with its title above it no farther than the
- *    box's size, each once there, and nothing painted between them in a
- *    chart's colour.
+ *    empty text is sought after the box of the chart drawn before it, with
+ *    its title above it no farther than the box's size, each once there,
+ *    and nothing painted between them in a chart's colour.
  *
- * What it does not see: a chart beside an SVG image or a QR code of its
- * very size is told apart from it by order alone; a word the reader
- * splits into several runs -- PDF.js splits one at a change of script --
- * is not one run's text, and is said to be missing.
+ * What it rests on, and what it does not see:
+ * - **The reader's box is inside the word's line.** A run's box is as tall
+ *   as its size (`read-pdf.ts`), a word's line as tall as its face's: 1.17
+ *   em in Roboto and about 1.1 in Liberation's faces. That a word stands
+ *   inside the chart's box and meets no other is read on the run's box,
+ *   which holds for a face whose line is about an em or more; a host face
+ *   whose line is shorter, which 0043's least line admits, would be read
+ *   as reaching past the box, or meeting the word beside it.
+ * - **Document order is the pages' too.** Columns that break across pages
+ *   break it: a chart in a column may stand on a later page than the next
+ *   column's, and is then sought after it (`drawings.ts`), as an SVG image
+ *   is.
+ * - **An empty chart is found by its words.** One before any drawn chart
+ *   is sought from the first page, so a title and a sentence of its words
+ *   printed as other text would pass for it.
+ * - **A word is one run.** One the reader splits into several -- PDF.js
+ *   splits a run at a change of script -- is said to be missing.
  */
 
-/** Points two words' boxes may share both ways before they meet: PDF.js reads where a run stands to far less, and the renderer refuses any two that meet (`chart-held.ts`). */
-const MEET = 0.01
-
-/** A rectangular clip on a page, and whether an SVG image took it. */
-interface Clip {
-  readonly page: PdfPage
-  readonly index: number
+/** Where a drawn chart stands: its page and its box, which the next empty chart is sought after. */
+interface Standing {
+  readonly page: number
   readonly box: PdfBox
-  readonly taken: boolean
 }
-
-const same = (a: PdfBox, b: PdfBox): boolean => a.x === b.x && a.top === b.top && a.width === b.width && a.height === b.height
-
-/** Whether `a` and `b` share more than `by` both across and down. */
-const meet = (a: PdfBox, b: PdfBox, by: number): boolean =>
-  Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > by && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > by
 
 /** Whether `a` crosses into `b`, a box of no height or width among them: a gridline through it. */
 const crosses = (a: PdfBox, b: PdfBox): boolean => a.x < b.x + b.width && b.x < a.x + a.width && a.top < b.bottom && b.top < a.bottom
 
 /**
  * What is wrong with each chart `expected` holds, in document order, as
- * `pdf` draws it on `pages`, whose drawings are the SVG images' boxes;
- * none when every chart passes. Each problem names its page and its chart.
+ * `pdf` draws it on `pages`, whose charts `drawings.ts` placed; none when
+ * every chart passes. A chart it did not find is its problem to say, and
+ * no other is said of it here. Each problem names its page and its chart.
  */
 export function chartProblems(pdf: ReadPdf, pages: readonly Page[], expected: readonly ExpectedChart[]): string[] {
-  const clips: Clip[] = pdf.pages.flatMap((page, at) =>
-    page.clips.map((box, index) => ({ page, index, box, taken: pages[at]!.drawings.some((drawing) => same(drawing, box)) })),
-  )
+  const placed = pages.flatMap(({ page, charts }) => charts.map((chart) => ({ page, chart })))
+  const taken = new Set<PlacedChart>()
   const used = new Set<PdfTextItem>()
   const problems: string[] = []
-  let next = 0
+  let before: Standing | undefined
   for (const chart of expected.map(normalised)) {
     if (chart.empty) {
-      problems.push(...emptyProblems(pdf, chart, used))
+      problems.push(...emptyProblems(pdf, chart, used, before))
       continue
     }
-    const found = placed(clips, next, chart)
-    if (found === undefined) {
-      problems.push(`the chart ${chart.id}, ${points(chart.width)} × ${points(chart.height)} pt, is not drawn: no clip of its size holds a painted path`)
-      continue
-    }
-    next = found.next
-    problems.push(...drawnProblems(chart, found.clip, found.inside))
+    const at = placed.find((each) => each.chart.id === chart.id && !taken.has(each.chart))
+    if (at === undefined) continue
+    taken.add(at.chart)
+    before = { page: at.page.number, box: at.chart.box }
+    problems.push(...drawnProblems(chart, at.page, at.chart))
   }
   return problems
 }
@@ -95,27 +100,14 @@ const normalised = (chart: ExpectedChart): ExpectedChart => ({
   faces: chart.faces.map(({ text, postScriptName }) => ({ text: normalise(text), postScriptName })),
 })
 
-/** The first clip from `from` that `chart` is drawn in -- no image's, of its size, painted in it or in a clip set inside it -- the clips set inside it, and where the next chart is sought from. */
-function placed(clips: readonly Clip[], from: number, chart: ExpectedChart): { clip: Clip; inside: ReadonlySet<number>; next: number } | undefined {
-  for (let at = from; at < clips.length; at++) {
-    const clip = clips[at]!
-    if (clip.taken || Math.abs(clip.box.width - chart.width) > EDGE || Math.abs(clip.box.height - chart.height) > EDGE) continue
-    let next = at + 1
-    while (clips[next]?.page === clip.page && within(clips[next]!.box, clip.box)) next++
-    const inside = new Set(clips.slice(at, next).map(({ index }) => index))
-    if (clip.page.paths.some((path) => path.clip !== undefined && inside.has(path.clip))) return { clip, inside, next }
-  }
-  return undefined
-}
-
 /** A drawn chart's clip, its marks and its words. */
-function drawnProblems(chart: ExpectedChart, { page, box }: Clip, inside: ReadonlySet<number>): string[] {
+function drawnProblems(chart: ExpectedChart, page: PdfPage, { box, clips }: PlacedChart): string[] {
   const say = (what: string): string => `page ${String(page.number)}: the chart ${chart.id} ${what}`
   const read: ChartRead = {
     expected: chart,
     page,
     box,
-    paths: page.paths.filter((path) => path.clip !== undefined && inside.has(path.clip)),
+    paths: page.paths.filter((path) => path.clip !== undefined && clips.has(path.clip)),
     items: page.items.filter((item) => meet(item, box, OVERLAP)),
     say,
   }
@@ -178,19 +170,24 @@ function itemProblems(say: (what: string) => string, items: readonly PdfTextItem
 
 /**
  * A chart with nothing to draw: its empty text, the first run of it no
- * empty chart before took; its title, where it prints one, the nearest
- * run of it above, no farther from the empty text than the box's size;
- * each printed once where they stand, nothing painted between them in a
- * chart's colour, and both held as a drawn chart's words are.
+ * empty chart before took, after the box of the chart drawn before it --
+ * on a later page, or on its page no higher than its top -- where there is
+ * one; its title, where it prints one, the nearest run of it above, no
+ * farther from the empty text than the box's size; each printed once where
+ * they stand, nothing painted between them in a chart's colour, and both
+ * held as a drawn chart's words are.
  */
-function emptyProblems(pdf: ReadPdf, chart: ExpectedChart, used: Set<PdfTextItem>): string[] {
+function emptyProblems(pdf: ReadPdf, chart: ExpectedChart, used: Set<PdfTextItem>, before: Standing | undefined): string[] {
   const text = chart.words.at(-1)
   if (text === undefined) return []
   const title = chart.words.length > 1 ? chart.words[0] : undefined
-  const free = (page: PdfPage, sought: string): PdfTextItem[] => page.items.filter((item) => item.text === sought && !used.has(item))
+  const after = (page: PdfPage, item: PdfTextItem): boolean =>
+    before === undefined || page.number > before.page || (page.number === before.page && item.top >= before.box.top - EDGE)
+  const free = (page: PdfPage, sought: string): PdfTextItem[] => page.items.filter((item) => item.text === sought && !used.has(item) && after(page, item))
   const candidates = pdf.pages.flatMap((page) => free(page, text).map((item) => ({ page, item })))
   const [first] = candidates
-  if (first === undefined) return [`the chart ${chart.id} does not print its empty text ${quoted(text)}`]
+  if (first === undefined)
+    return [`the chart ${chart.id} does not print its empty text ${quoted(text)}${before === undefined ? '' : ' after the chart drawn before it'}`]
   const reach = (a: PdfBox, b: PdfBox): boolean =>
     Math.max(a.x + a.width, b.x + b.width) - Math.min(a.x, b.x) <= chart.width + EDGE &&
     Math.max(a.bottom, b.bottom) - Math.min(a.top, b.top) <= chart.height + EDGE
