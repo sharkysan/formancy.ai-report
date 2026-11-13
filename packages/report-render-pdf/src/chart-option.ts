@@ -69,8 +69,14 @@ export const POINT_RADIUS = 2
 export const LINE_WIDTH = 1.5
 export const SWATCH_BORDER = 0.5
 
-/** Points: how far a value's label stands from its bar's end or its line's point, ECharts' own default, stated, since the drawing keeps room for it above the plot and below it (`chart-draw.ts`). */
+/** Points: how far a value's label stands from its bar's end or its line's point, ECharts' own default, stated, since the room kept for a label holds it too. */
 export const VALUE_LABEL_DISTANCE = 5
+
+/** Points: how far the category labels stand under the plot's foot, ECharts' own default, stated, since a bar below zero labelled under its end widens it. */
+export const CATEGORY_LABEL_MARGIN = 8
+
+/** Whether `value` is below zero: a bar of it stands down from zero, labelled under its end. */
+export const belowZero = (value: ChartValue): boolean => value.exact.startsWith('-')
 
 /** The value axis's gridlines, one at every tick, and the category axis's line: the renderer's, as a table's rules are. Chosen. */
 export const GRID = { color: '#d9d9d9', width: 0.5 } as const
@@ -89,7 +95,7 @@ export interface ChartWord {
 export interface ChartLayout {
   /** Every `tickEvery`-th tick from the lowest is labelled, 1 labelling each; every tick is a gridline. */
   readonly tickEvery: number
-  /** Set by the first layout: the title's band at the top, with a value label's line where values are labelled; the legend's rows at the foot, with a label's line where a labelled value is negative. */
+  /** Set by the first layout: the title's band at the top, with a value label's line and its distance from its mark where values are labelled; the legend's rows at the foot. */
   readonly bands?: { readonly top: number; readonly bottom: number }
   /** Set by the second: the plot (axis charts) or the pie's square, in points, snapped. */
   readonly plot?: { readonly left: number; readonly top: number; readonly width: number; readonly height: number }
@@ -310,18 +316,24 @@ function placesOf(chart: AxisChart): (exact: string) => number {
 
 /**
  * A bar or a line chart's plot, axes and series. The category axis stands
- * at the plot's foot, never on zero (ECharts' `onZero: 'auto'` would put a
- * line chart's there, its labels inside the plot), with a slot for each
- * category, a line's as a bar's (`boundaryGap`), its title centred under
- * its labels, where ECharts moves it clear of them; the value axis is the
- * runtime's ticks at their places (`placesOf`), its title at its end,
- * across. Neither axis has a tick, and the value axis no line, which is
- * ECharts' own for a value axis.
+ * at the plot's foot -- which on an axis of places is zero's place for
+ * ECharts, so that its own `onZero` would stand it there too; `onZero` is
+ * off all the same, so that no value axis ever moves it into the plot --
+ * with a slot for each category, a line's as a bar's (`boundaryGap`). Its
+ * labels stand `CATEGORY_LABEL_MARGIN` under the foot, and a value
+ * label's line and its distance further where a labelled bar is below
+ * zero, so that its label stands between them and the foot, and ECharts
+ * fits that room with them; its title is centred under its labels, where
+ * ECharts moves it clear of them. The value axis is the runtime's ticks
+ * at their places (`placesOf`), its title at its end, across. Neither axis
+ * has a tick, and the value axis no line, which is ECharts' own for a
+ * value axis.
  */
 function axesOf(chart: AxisChart, words: ChartFace, layout: ChartLayout): Pick<ChartOption, 'grid' | 'xAxis' | 'yAxis' | 'series'> {
   const place = placesOf(chart)
   const labelled = labelledTicks(chart, layout.tickEvery)
   const [categoryTitle, valueTitle] = [chart.categoryTitle, chart.valueTitle].map((title) => (title === undefined ? '' : chartText(title, chart.id)))
+  const under = chart.chart === 'bar' && chart.valueLabels && chart.series.some(({ values }) => values.some((each) => each !== null && belowZero(each)))
   return {
     grid: gridOf(layout),
     xAxis: {
@@ -333,6 +345,7 @@ function axesOf(chart: AxisChart, words: ChartFace, layout: ChartLayout): Pick<C
       axisLine: { show: true, onZero: false, lineStyle: { color: AXIS.color, width: AXIS.width } },
       axisLabel: {
         interval: 0,
+        margin: CATEGORY_LABEL_MARGIN + (under ? words.line + VALUE_LABEL_DISTANCE : 0),
         ...words.font,
         formatter: (key: string, index: number) => {
           const text = nth(chart.categories, index, 'category', chart.id)
@@ -374,7 +387,7 @@ function barSeries(chart: AxisChart, { color, values }: ChartSeriesValues, index
     data: values.map((each) => {
       if (each === null) return null
       const at = place(each.exact)
-      return chart.valueLabels && each.exact.startsWith('-') ? { value: at, label: { position: 'bottom' } } : at
+      return chart.valueLabels && belowZero(each) ? { value: at, label: { position: 'bottom' } } : at
     }),
     barCategoryGap: `${String(BAR_CATEGORY_GAP * 100)}%`,
     barGap: `${String(BAR_GAP * 100)}%`,

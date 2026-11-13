@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { BAND_GAP, drawChart, MIN_BAR_WIDTH, TICK_CLEARANCE, type DrawnChart } from './chart-draw.js'
 import type { ChartFace, ChartFaces } from './chart-faces.js'
 import { withMeasurer } from './chart-measure.js'
-import { barWidth, chartOption, chartWords, VALUE_LABEL_DISTANCE, type ChartLayout } from './chart-option.js'
+import { barWidth, CATEGORY_LABEL_MARGIN, chartOption, chartWords, VALUE_LABEL_DISTANCE, type ChartLayout } from './chart-option.js'
 import type { PlacedWord } from './chart-svg.js'
 import type { FaceWidths } from './engine.js'
 import { TIMEOUT } from './testing/documents.js'
@@ -230,24 +230,25 @@ describe('a chart drawn', () => {
   // fits above ECharts' foot with every interval a whole number of points.
   // A drawing that drew the second layout would leave gridlines up to 0.7
   // points off their ticks, and one that read no bands would let the
-  // plot's words stand on the title or the legend. The bands keep a value
-  // label's line and its distance from its mark above the plot where
-  // values are labelled, and below it where a bar below zero is labelled
-  // under its end; a line's labels all stand above their points. In a
-  // line of 9.375 points ECharts fits the plot's top at 57.8125, which the
-  // snap moves down to 58.5, never up to 57.5, into the band.
+  // plot's words stand on the title or the legend. The band at the top
+  // keeps a value label's line and its distance from its mark above the
+  // plot where values are labelled; the band at the foot is the legend's
+  // alone, a bar below zero labelled under its end having its room above
+  // the category labels. In a line of 9.375 points ECharts fits the plot's
+  // top at 57.8125, which the snap moves down to 58.5, never up to 57.5,
+  // into the band.
   test.each<readonly [string, AxisChart, ChartFaces, (drawing: DrawnChart, line: number) => NonNullable<ChartLayout['bands']>]>([
     [
       'bars in a line of 10',
       BARS,
       FACES,
-      (drawing, line) => ({ top: below(word(drawing, 'title')) + line / 2 + line + 5, bottom: BARS.height - legendTop(drawing) + line / 2 + line + 5 }),
+      (drawing, line) => ({ top: below(word(drawing, 'title')) + line / 2 + line + 5, bottom: BARS.height - legendTop(drawing) + line / 2 }),
     ],
     [
       'bars in a line of 9.375',
       BARS,
       ROBOTO_LINE,
-      (drawing, line) => ({ top: below(word(drawing, 'title')) + line / 2 + line + 5, bottom: BARS.height - legendTop(drawing) + line / 2 + line + 5 }),
+      (drawing, line) => ({ top: below(word(drawing, 'title')) + line / 2 + line + 5, bottom: BARS.height - legendTop(drawing) + line / 2 }),
     ],
     ['a line', LINE_CHART, FACES, (drawing, line) => ({ top: below(word(drawing, 'title')) + line / 2 + line + 5, bottom: 0 })],
   ])(
@@ -368,7 +369,9 @@ describe('a chart drawn', () => {
               throw error
             },
             chart,
-            /^the chart short-\d+, 300 by \d+ points, has a plot (\d+) points tall, too short to label two of its 3 ticks a line and a quarter apart$/,
+            new RegExp(
+              String.raw`^the chart short-\d+, 300 by \d+ points, has a plot (\d+) points tall, too short to label two of its 3 ticks ${String(TICK_CLEARANCE)} lines apart$`,
+            ),
           )
           const [, plotHeight] = /a plot (\d+) points tall/.exec(refusal.message)!
           expect(Number(plotHeight) / 2, String(height)).toBeLessThan((TICK_CLEARANCE * LINE) / 2)
@@ -434,6 +437,54 @@ describe('a chart drawn', () => {
     TIMEOUT,
   )
 
+  // ECharts widens a bar narrower than 1 point to 1, and a group of bars
+  // so widened overflows its slot: it leaves the outer bars, and their
+  // labels, undrawn. Labelled bars that thin, thirty categories of four
+  // series in 120 points, are refused as bars too thin, naming their
+  // width, before any layout's words are read: read first, the words
+  // ECharts left out would refuse the chart as a drawing it did not hold
+  // to, which tells nobody to widen the chart or show fewer categories.
+  test(
+    'refuses labelled bars too thin for ECharts to draw whole as bars too thin',
+    () => {
+      const categories = Array.from({ length: 30 }, (_, index) => `K${String(index)}`)
+      const thin: AxisChart = {
+        ...bare('thin', 120, 200, ticksAt('0', '1000', '2000'), categories),
+        series: PALETTE.slice(0, 4).map((color, series) => ({ color, values: categories.map((_, index) => value(String(1000 + 4 * index + series))) })),
+        valueLabels: true,
+      }
+      const refusal = refused(() => drawChart(thin, FACES, WIDTHS), thin, /has bars ([\d.]+) points wide, narrower than the 2 points a bar is drawn at least$/)
+      expect(Number(/has bars ([\d.]+) points wide/.exec(refusal.message)![1])).toBeLessThan(1)
+    },
+    TIMEOUT,
+  )
+
+  // Under 1 point ECharts draws a bar at 1, wider than barWidth says, and
+  // drops the bars a group so widened pushes past its slot -- silently,
+  // where no word of them is lost. The least width the drawing allows
+  // stays at or above ECharts' least, so that no bar it draws is ever
+  // widened: bars laid out at 0.4 points are drawn 1 point wide, the two
+  // outermost, widened past the plot's sides, cut to them.
+  test(
+    'keeps MIN_BAR_WIDTH at or above the least width ECharts draws a bar at',
+    () => {
+      const categories = Array.from({ length: 60 }, () => 'Q')
+      const chart: AxisChart = { ...bare('least', 200, 200, ticksAt('0', '50', '100'), categories) }
+      const plot = { left: 40, top: 20.5, width: 30, height: 100 }
+      expect(barWidth(plot.width / categories.length, 1)).toBeCloseTo(0.4, 9)
+      const { svg } = withMeasurer(FACES, WIDTHS, () => layOut(chartOption(chart, FACES, { tickEvery: 1, plot }), chart.width, chart.height))
+      const drawn = [...svg.matchAll(/<path d="M-?[\d.]+ -?[\d.]+l(-?[\d.]+) 0l0 -?[\d.]+l-?[\d.]+ 0Z" fill="#1f77b4"[^>]*ecmeta_ssr_type="chart"/g)].map(
+        ([, width]) => Number(width),
+      )
+      expect(drawn).toHaveLength(categories.length)
+      const widened = drawn.slice(1, -1)
+      expect(new Set(widened)).toEqual(new Set([1]))
+      expect(Math.max(drawn[0]!, drawn.at(-1)!)).toBeLessThan(1)
+      expect(MIN_BAR_WIDTH).toBeGreaterThanOrEqual(widened[0]!)
+    },
+    TIMEOUT,
+  )
+
   // A chart of one category has one middle, which says nothing of its
   // slot: its plot's sides are where ECharts' grid ends, found as the last
   // points it holds. Read from a slot of nothing, the plot would be no
@@ -484,16 +535,17 @@ describe('a chart drawn', () => {
 
   // A word another word stands on, or that stands past the box pdfmake
   // reserves, prints over the other or over what follows the chart: the
-  // label under a bar below zero that reaches the lowest tick, on its
-  // category's label; a title or a pie's legend entry wider than the box.
-  // Each is refused, naming the chart and quoting no word; and a title
-  // that fits, within a point of the box's side, is drawn.
+  // labels of two bars side by side at one height, each wider than the
+  // room between their bars' middles; a title or a pie's legend entry
+  // wider than the box. Each is refused, naming the chart and quoting no
+  // word; and a title that fits, within a point of the box's side, is
+  // drawn.
   test(
     'refuses words that would meet or leave the box, and draws a title that fits',
     () => {
       const labelled: AxisChart = {
-        ...bare('labelled', 300, 240, ticksAt('-500', '0', '500', '1000', '1500'), ['Nord', 'Süd']),
-        series: [{ color: PALETTE[0], values: [value('-500'), value('1000')] }],
+        ...bare('labelled', 300, 240, ticksAt('0', '500', '1000', '1500'), ['Q1', 'Q2', 'Q3']),
+        series: [0, 1].map((series) => ({ color: PALETTE[series]!, values: ['Q1', 'Q2', 'Q3'].map(() => value('1000', '1000.00000')) })),
         valueLabels: true,
       }
       refused(() => drawChart(labelled, FACES, WIDTHS), labelled, /has two words that would meet$/)
@@ -512,15 +564,17 @@ describe('a chart drawn', () => {
   // its category axis stood inside the plot. ECharts stands it on zero by
   // default, which on the runtime's axis of ticks by their places is the
   // lowest tick's, the plot's foot, and the option keeps it there whatever
-  // the values: every label under the foot, a value below zero or not. A
-  // word in the plot that is not a value's label -- a category label
-  // ECharts is asked to print inside the plot -- is refused.
+  // the values: every label under the foot, a value below zero or not,
+  // and by ECharts' own margin, since a line's labels all stand above
+  // their points. A word in the plot that is not a value's label -- a
+  // category label ECharts is asked to print inside the plot -- is
+  // refused.
   test(
     "keeps the category labels at the plot's foot when a value is negative",
     () => {
       const drawing = drawChart(LINE_CHART, FACES, WIDTHS)
       const { top, height } = drawnPlot()
-      for (const index of [0, 1, 2]) expect(word(drawing, `category/${String(index)}`).top).toBeGreaterThan(top + height)
+      for (const index of [0, 1, 2]) expect(word(drawing, `category/${String(index)}`).top).toBe(top + height + CATEGORY_LABEL_MARGIN)
       const actual = vi.mocked(chartOption).getMockImplementation()!
       vi.mocked(chartOption).mockImplementation((chart, faces, layout) => {
         const option = actual(chart, faces, layout)
@@ -537,24 +591,37 @@ describe('a chart drawn', () => {
   )
 
   // The runtime's ticks may end just past the highest value and just
-  // before the lowest: the label above the highest bar stands above the
-  // plot, and the label under the lowest bar below zero under it. The
-  // bands keep a label's line and its distance from its bar for each, so
-  // that neither leaves the box: here the chart's only words.
+  // before the lowest -- 1480 of 1500, -480 of -500 -- so that the label
+  // above the highest bar stands above the plot, and the label under the
+  // lowest bar below zero under it, in the row its own category's label
+  // would stand in. The bands keep the highest's line and its distance
+  // from its bar above the plot; the category labels stand that much
+  // further under the plot's foot where a labelled bar is below zero, its
+  // label between them and the foot, and the category title under them.
+  // Kept anywhere else, the room would be the chart's and the label would
+  // stand on its category's, refused. Where no value is labelled, the
+  // category labels keep ECharts' own margin under the foot.
   test(
     'keeps a value label of the highest bar, and of the lowest negative one, inside the box',
     () => {
       const chart: AxisChart = {
-        ...bare('edges', 300, 240, ticksAt('-500', '0', '500', '1000', '1500'), ['', '']),
-        series: [{ color: PALETTE[0], values: [value('1500'), value('-500')] }],
+        ...bare('edges', 300, 240, ticksAt('-500', '0', '500', '1000', '1500'), ['Nord', 'Süd']),
+        categoryTitle: 'Region',
+        series: [{ color: PALETTE[0], values: [value('1480'), value('-480')] }],
         valueLabels: true,
       }
       const drawing = drawChart(chart, FACES, WIDTHS)
       const { top, height } = drawnPlot()
       const [highest, lowest] = [word(drawing, 'value/0/0'), word(drawing, 'value/0/1')]
-      expect(highest.top + highest.height).toBeLessThanOrEqual(top)
+      expect(below(highest)).toBeLessThanOrEqual(top)
       expect(lowest.top).toBeGreaterThanOrEqual(top + height)
+      expect(below(lowest)).toBeLessThanOrEqual(word(drawing, 'category/1').top)
+      expect(below(word(drawing, 'category/1'))).toBeLessThanOrEqual(word(drawing, 'categoryTitle').top)
       for (const label of [highest, lowest]) expect(inside(label, chart.width, chart.height)).toBe(true)
+      expect(word(drawing, 'category/1').top).toBe(top + height + CATEGORY_LABEL_MARGIN + LINE + VALUE_LABEL_DISTANCE)
+      const unlabelled = drawChart({ ...chart, valueLabels: false }, FACES, WIDTHS)
+      const foot = drawnPlot().top + drawnPlot().height
+      expect(word(unlabelled, 'category/1').top).toBe(foot + CATEGORY_LABEL_MARGIN)
     },
     TIMEOUT,
   )

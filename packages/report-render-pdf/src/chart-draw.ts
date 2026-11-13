@@ -25,8 +25,10 @@ import type { FaceWidths } from './engine.js'
  *    the legend stand, which no plot moves: the band at the top is the
  *    title's line and a gap under it, with a value label's line and its
  *    distance from its mark where values are labelled; the band at the
- *    foot is the legend's rows and a gap above them, with the same where
- *    a bar below zero is labelled, under its end.
+ *    foot is the legend's rows and a gap above them. A bar below zero
+ *    labelled under its end has its room between the plot's foot and the
+ *    category labels, which the option stands that much further down
+ *    (`chart-option.ts`), and ECharts fits with them.
  * 2. **The plot.** ECharts fits the plot, and its axes' words, between the
  *    bands and the box's sides; the plot is read by `convertToPixel` at
  *    the lowest tick's place and the highest's, and half a slot past the
@@ -38,11 +40,14 @@ import type { FaceWidths } from './engine.js'
  *    point); every `tickEvery`-th tick labelled from the lowest, the
  *    fewest that set their labels `TICK_CLEARANCE` lines apart.
  *
- * Between the second and the third, a plot too short for two tick labels
- * that far apart, a category label wider than its slot less half a line,
- * and a bar under `MIN_BAR_WIDTH` are refused: a label is never turned,
- * and a tick, a category or a bar is never dropped. A pie is laid out
- * twice: the bands, then drawn in the largest square centred between
+ * Bars under `MIN_BAR_WIDTH` are refused in whichever layout first lays
+ * them out, before its words are read: ECharts draws a bar under 1 point
+ * at 1, and leaves undrawn the bars, and their labels, a group so widened
+ * pushes past its slot. Between the second layout and the third, a plot
+ * too short for two tick labels that far apart, and a category label
+ * wider than its slot less half a line, are refused: a label is never
+ * turned, and a tick, a category or a bar is never dropped. A pie is laid
+ * out twice: the bands, then drawn in the largest square centred between
  * them. Every layout is ECharts' own under the render's measurer
  * (`chart-measure.ts`), disposed after it is read.
  *
@@ -64,7 +69,11 @@ import type { FaceWidths } from './engine.js'
 /** Lines: printed tick labels stand at least this far apart, middle to middle. Chosen, as a table's padding is. */
 export const TICK_CLEARANCE = 1.25
 
-/** Points: the narrowest a bar is drawn. Provisional: 2 until the corpus's charts measure what still reads as a bar. */
+/**
+ * Points: the narrowest a bar is drawn. Provisional: 2 until the corpus's
+ * charts measure what still reads as a bar; never under ECharts' own
+ * least, 1, at which it would widen the bar and drop its neighbours.
+ */
 export const MIN_BAR_WIDTH = 2
 
 /** Lines: what the bands keep between the title, or the legend, and the plot's words. Chosen. */
@@ -116,25 +125,35 @@ const points = (size: number): string => String(Math.round(size * 100) / 100)
 
 /**
  * `chart` laid out by ECharts in `layout`, its words measured in `faces`
- * by `widths`, and read back; and what `read` reads of the laid chart
- * before it is disposed.
+ * by `widths`; a bar or a line chart's plot read (`plotOf`) and its bars
+ * held to `MIN_BAR_WIDTH`, and then its words read back. A pie has no
+ * plot to read: its square is the layout's own.
  */
-function layOut<T>(chart: AxisChart | PieChart, faces: ChartFaces, widths: FaceWidths, layout: ChartLayout, read: (laid: EChartsType) => T) {
+function layOut(chart: AxisChart, faces: ChartFaces, widths: FaceWidths, layout: ChartLayout): { readonly drawing: DrawnChart; readonly plot: Plot }
+function layOut(chart: AxisChart | PieChart, faces: ChartFaces, widths: FaceWidths, layout: ChartLayout): { readonly drawing: DrawnChart }
+function layOut(
+  chart: AxisChart | PieChart,
+  faces: ChartFaces,
+  widths: FaceWidths,
+  layout: ChartLayout,
+): { readonly drawing: DrawnChart; readonly plot?: Plot } {
   const option = chartOption(chart, faces, layout)
-  const { svg, readings } = withMeasurer(faces, widths, () => {
+  const { svg, plot } = withMeasurer(faces, widths, (): { readonly svg: string; readonly plot?: Plot } => {
     const laid = init(null, null, { renderer: 'svg', ssr: true, width: chart.width, height: chart.height })
     try {
       laid.setOption(option)
-      return { svg: laid.renderToSVGString(), readings: read(laid) }
+      const written = laid.renderToSVGString()
+      if (chart.chart === 'pie') return { svg: written }
+      const read = plotOf(chart, laid)
+      thickEnough(chart, read)
+      return { svg: written, plot: read }
     } finally {
       laid.dispose()
     }
   })
-  return { drawing: readChartSvg(svg, chart, chartWords(chart, layout), faces, widths), readings }
+  const drawing = readChartSvg(svg, chart, chartWords(chart, layout), faces, widths)
+  return plot === undefined ? { drawing } : { drawing, plot }
 }
-
-/** What a layout read for its bands alone reads of the laid chart: nothing. */
-const nothing = (): undefined => undefined
 
 /**
  * `chart` drawn in `faces` by `widths`: laid out by ECharts as the module
@@ -145,39 +164,37 @@ const nothing = (): undefined => undefined
 export function drawChart(chart: AxisChart | PieChart, faces: ChartFaces, widths: FaceWidths): DrawnChart {
   register(chart)
   const { line } = faces.words
-  const bands = bandsOf(chart, layOut(chart, faces, widths, { tickEvery: 1 }, nothing).drawing.words, line)
+  const bands = bandsOf(chart, layOut(chart, faces, widths, { tickEvery: 1 }).drawing.words, line)
   if (chart.chart === 'pie') {
     const square = squareOf(chart, bands)
-    return held(chart, layOut(chart, faces, widths, { tickEvery: 1, bands, plot: square }, nothing).drawing, square)
+    return held(chart, layOut(chart, faces, widths, { tickEvery: 1, bands, plot: square }).drawing, square)
   }
   if (bands.top + bands.bottom >= chart.height) tooLarge(chart, 'has no room for its plot: its title and its legend would stand in it')
-  const fitted = layOut(chart, faces, widths, { tickEvery: 1, bands }, (laid) => plotOf(chart, laid))
-  const plot = snapped(chart, fitted.readings)
+  const fitted = layOut(chart, faces, widths, { tickEvery: 1, bands })
+  const plot = snapped(chart, fitted.plot)
   const tickEvery = tickEveryOf(chart, plot, line)
   fitsAcross(chart, plot, fitted.drawing.words, line)
-  thickEnough(chart, plot)
-  return held(chart, layOut(chart, faces, widths, { tickEvery, bands, plot }, nothing).drawing, plot)
+  return held(chart, layOut(chart, faces, widths, { tickEvery, bands, plot }).drawing, plot)
 }
 
 /**
  * The bands `chart` is laid out between, from `words`, those of a layout
  * across the whole box, in faces whose words' line is `line`: the title's
  * box and a gap under it, and the legend's highest row and a gap above
- * it; and where a value's label stands beyond the plot -- above a bar or
- * a point at the highest tick, under a bar below zero at the lowest --
- * room for its line and its distance from its mark. A line's labels all
- * stand above their points.
+ * it; and where values are labelled, room above the plot for a label of a
+ * bar or a point at the highest tick, its line and its distance from its
+ * mark. The label of a bar below zero at the lowest tick stands between
+ * the plot's foot and the category labels, in room the option keeps
+ * there.
  */
 function bandsOf(chart: AxisChart | PieChart, words: readonly PlacedWord[], line: number): Bands {
   const gap = BAND_GAP * line
-  const label = line + VALUE_LABEL_DISTANCE
   const title = words.find(({ key }) => key === 'title')
   const legend = words.filter(({ key }) => key.startsWith('legend/')).map(({ top }) => top)
   const labelled = chart.chart !== 'pie' && chart.valueLabels
-  const under = labelled && chart.chart === 'bar' && chart.series.some(({ values }) => values.some((each) => each?.exact.startsWith('-') === true))
   return {
-    top: (title === undefined ? 0 : title.top + title.height + gap) + (labelled ? label : 0),
-    bottom: (legend.length === 0 ? 0 : chart.height - Math.min(...legend) + gap) + (under ? label : 0),
+    top: (title === undefined ? 0 : title.top + title.height + gap) + (labelled ? line + VALUE_LABEL_DISTANCE : 0),
+    bottom: legend.length === 0 ? 0 : chart.height - Math.min(...legend) + gap,
   }
 }
 
@@ -250,7 +267,7 @@ function tickEveryOf(chart: AxisChart, plot: Plot, line: number): number {
   if (tickEvery === undefined)
     tooLarge(
       chart,
-      `has a plot ${points(plot.height)} points tall, too short to label two of its ${String(chart.ticks.length)} ticks a line and a quarter apart`,
+      `has a plot ${points(plot.height)} points tall, too short to label two of its ${String(chart.ticks.length)} ticks ${String(TICK_CLEARANCE)} lines apart`,
     )
   return tickEvery
 }
@@ -268,7 +285,7 @@ function fitsAcross(chart: AxisChart, plot: Plot, words: readonly PlacedWord[], 
     tooLarge(chart, `has category labels too wide for their slots of ${points(slot)} points across, and never turned`)
 }
 
-/** `chart`'s bars on `plot`, refused where ECharts would draw them narrower than `MIN_BAR_WIDTH`. */
+/** `chart`'s bars on `plot`, refused where ECharts would lay them out narrower than `MIN_BAR_WIDTH`, by the width it gives a bar in a slot of it (`barWidth`). */
 function thickEnough(chart: AxisChart, plot: Plot): void {
   if (chart.chart !== 'bar') return
   const width = barWidth(plot.width / chart.categories.length, chart.series.length)

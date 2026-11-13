@@ -588,7 +588,7 @@ describe('the SVG ECharts writes of a chart', () => {
             expect(Math.abs(mine - zrender), `${drawing.chart.id} ${word.key}`).toBeLessThan(1e-4)
           const { ascent, descent, line } = word.face
           expect(line).toBeCloseTo(ascent - descent, 12)
-          expect(word.top + ascent).toBeCloseTo(box.y + box.height / 2 + (ascent + descent) / 2, 4)
+          expect(Math.abs(word.top + ascent - (box.y + box.height / 2 + (ascent + descent) / 2))).toBeLessThan(1e-4)
         })
         for (const [anchor] of drawing.svg.matchAll(/text-anchor="(start|middle|end)"/g)) anchors.add(anchor)
         expect(words.every(({ face, title }) => face === (title ? drawing.faces.title : drawing.faces.words))).toBe(true)
@@ -596,14 +596,15 @@ describe('the SVG ECharts writes of a chart', () => {
       expect(anchors.size).toBe(3)
       // Pinned, in Roboto at 8 points, a line of 9.375: the lowest tick's label, 26.80078125 wide, anchored at its end at
       // translate(40 190.5), 8 points left of the plot on the gridline at its foot; a category's, 19.1484375 wide, at its middle at
-      // translate(158 198.5) and half a line below it, the middle of its slot, 8 points below the plot; and a legend entry's,
+      // translate(158 212.875) and half a line below it, the middle of its slot, 8 points below the plot and a value label's line
+      // and its distance further, 14.375, since the chart labels a bar below zero under its end; and a legend entry's,
       // 15.76171875 wide, at its start at translate(120.6582 226.3125) and 13 across and 4 down from it, right of its swatch and
       // centred on it. Its translation taken out, the entry stands at its own x and y alone.
       const [markup] = drawings
       const words = readBack(markup).words
       const of = (key: string, read: readonly PlacedWord[] = words) => boxOf(read.find((word) => word.key === key)!)
       expect(of('tick/0')).toEqual({ text: '-500.00', x: 40 - 26.80078125, top: 190.5 - 9.375 / 2, width: 26.80078125, height: 9.375 })
-      expect(of('category/1')).toEqual({ text: 'A & B', x: 158 - 19.1484375 / 2, top: 198.5, width: 19.1484375, height: 9.375 })
+      expect(of('category/1')).toEqual({ text: 'A & B', x: 158 - 19.1484375 / 2, top: 190.5 + 8 + 9.375 + 5, width: 19.1484375, height: 9.375 })
       expect(of('legend/0')).toEqual({ text: 'Plan', x: 120.6582 + 13, top: 226.3125 + 4 - 9.375 / 2, width: 15.76171875, height: 9.375 })
       const unmoved = markup.svg.replace(' transform="translate(120.6582 226.3125)" fill="#336699">Plan<', ' fill="#336699">Plan<')
       expect(unmoved).not.toBe(markup.svg)
