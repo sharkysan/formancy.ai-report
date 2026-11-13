@@ -19,14 +19,20 @@ import type { ConvertedSvg, ConverterOptions } from './svg-content.js'
  * 3. a spacer of the box's height, the one node that takes the flow's room.
  *
  * pdfmake lays a detached node out from where the flow stands, moved by
- * its offset, and fits it against the room there, not below its offset
- * (`pdfmake.test.ts`): every node of the stack is fitted against the room
- * at the box's top, so that a word at the box's foot is never fitted
- * against what a drawing before it left, and sent to another page than
- * its chart. The words are painted after the marks, over them, in the
- * order pdfmake is handed them. The stack is moved to the next page
- * whole where the box does not fit at the foot of one, and measured, in
- * a keep-together block, as the box. A word stands where ECharts placed
+ * its offset, and takes none of the flow's room, so that the spacer alone
+ * moves the flow (`pdfmake.test.ts`). Inside an unbreakable block pdfmake
+ * 0.3.11 fits no node: the block's room is `NaN` (src/ElementWriter.js
+ * 410 reads a page's `height`, which a page does not have), so every node
+ * of the stack is placed where its offset says, and the stack is fitted
+ * once, as a fragment as tall as the spacer moved the flow
+ * (src/PageElementWriter.js 138) -- moved to the next page whole where
+ * the box does not fit at the foot of one, and measured, in a
+ * keep-together block, as the box. Were pdfmake to read that room, a
+ * detached node would be fitted where it stands, against the room at the
+ * box's top and not below its offset, so that a word at the box's foot
+ * would still never go to another page than its chart. The words are
+ * painted after the marks, over them, in the order pdfmake is handed
+ * them. A word stands where ECharts placed
  * it, which pdfmake prints it at: its box's top half its face's line above
  * the line's centre, `dominant-baseline: central`, and its baseline the
  * face's ascent below its top, where pdfmake sets a line's.
@@ -75,7 +81,7 @@ function converterOptions(chart: Chart): ConverterOptions {
   }
 }
 
-/** `word`, of `chart`, as pdfmake text at its box's top left, recorded for the word check with its box's width as its room. */
+/** `word`, of `chart`, as pdfmake text at its box's top left, recorded for the word check with its box's width as its room, refused, should pdfmake measure it wider, in a chart's words. */
 function wordOf(chart: Chart, word: PlacedWord, build: Build): Content {
   const { family, face, size, font } = word.face
   const node = {
@@ -89,7 +95,8 @@ function wordOf(chart: Chart, word: PlacedWord, build: Build): Content {
     color: font.color,
     relativePosition: { x: word.x, y: word.top },
   } satisfies Content
-  const what = `the chart ${chart.id}`
-  build.words.push({ node, width: word.width, lines: 1, what, subject: chart.id })
+  const refused = (widest: number): string =>
+    `a word of the chart ${chart.id} is ${widest.toFixed(2)} pt wide as pdfmake measures it, and the drawing placed it in ${word.width.toFixed(2)} pt: a chart's word prints in the advance it was laid out by, or not at all`
+  build.words.push({ node, width: word.width, lines: 1, what: `the chart ${chart.id}`, subject: chart.id, refused })
   return node
 }

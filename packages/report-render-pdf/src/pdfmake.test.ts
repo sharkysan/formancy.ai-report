@@ -204,14 +204,19 @@ describe("pdfmake's detached nodes, which a chart is drawn as", () => {
   // 506): from where the flow stands, moved by its offset, its margins
   // unread, and the flow left where it was; and moving it changes where it
   // stands and not the room it is fitted against (src/DocumentContext.js
-  // 419, `moveToRelative`), so that a word at a chart's foot is fitted
-  // against the room at the chart's top. Here a word 55 points below the
-  // flow, where 60 points are left and 5 below its offset, prints there,
-  // its line past the body's foot, and the next node starts where it did.
-  // Were pdfmake to fit a detached node against the room below its offset,
-  // a chart's lowest words would go to the next page without its marks;
-  // to keep the room one took, a chart would take more than its box; to
-  // read its margins, a word would stand off its place -- this fails first.
+  // 419, `moveToRelative`). That is the room a detached node is fitted
+  // against outside an unbreakable block, as here. Inside one, as a
+  // chart's stack is, pdfmake 0.3.11 fits nothing, the block's room being
+  // NaN (the case after the next), and the stack is fitted once, as a
+  // fragment; were pdfmake to read that room, a chart's words would be
+  // fitted as this word is, against the room at the chart's top. Here a
+  // word 55 points below the flow, where 60 points are left and 5 below
+  // its offset, prints there, its line past the body's foot, and the next
+  // node starts where it did. Were pdfmake to fit a detached node against
+  // the room below its offset, a chart's lowest words would go to the
+  // next page without its marks once that room is read; to keep the room
+  // one took, a chart would take more than its box; to read its margins,
+  // a word would stand off its place -- this fails first.
   test('lays a relatively placed node out from where the flow stands, fitted against the room there, and leaves the flow where it was', async () => {
     const { read } = await laidOut([
       { stack: [], margin: [0, 100, 0, 0] },
@@ -258,6 +263,30 @@ describe("pdfmake's detached nodes, which a chart is drawn as", () => {
     expect(Math.min(...page.text.map(({ painted }) => painted))).toBeGreaterThan(Math.max(...marks))
     const pages = (node: object): number | undefined => (node as { readonly positions?: readonly { readonly pageNumber: number }[] }).positions?.[0]?.pageNumber
     expect([pages(drawing), pages(word)]).toEqual([1, 2])
+  })
+
+  // pdfmake 0.3.11 makes an unbreakable block's context with its writer's
+  // `pushContext()`, which reads the current page's `height`
+  // (src/ElementWriter.js 410), a property a page does not have -- its
+  // size is its `pageSize` -- so the block's room is NaN, every fit inside
+  // it passes, and a chart's stack is fitted once, as a fragment as tall
+  // as its spacer (src/PageElementWriter.js 138; chart-content.ts). A
+  // pdfmake that reads the room fails this: a chart's words are then
+  // fitted where they stand, against the room at its top, which the first
+  // case here holds.
+  test('fits nothing inside an unbreakable block, whose room it reads as NaN', () => {
+    const require = createRequire(import.meta.url)
+    const js = path.join(path.dirname(require.resolve('pdfmake/package.json')), 'js')
+    type Context = { addPage(size: object, margins: object): void; readonly availableHeight: number }
+    const DocumentContext = (require(path.join(js, 'DocumentContext.js')) as { default: new () => Context }).default
+    const ElementWriter = (require(path.join(js, 'ElementWriter.js')) as { default: new (context: Context) => { pushContext(): void; context(): Context } })
+      .default
+    const context = new DocumentContext()
+    context.addPage({ width: 300, height: 200 }, { left: 20, right: 20, top: 20, bottom: 20 })
+    const writer = new ElementWriter(context)
+    expect(writer.context().availableHeight).toBe(160)
+    writer.pushContext()
+    expect(writer.context().availableHeight).toBeNaN()
   })
 })
 

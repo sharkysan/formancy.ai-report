@@ -8,6 +8,7 @@ import { readFont, type AxisChart, type Block, type Chart, type FontAsset, type 
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { drawChart, type DrawnChart } from './chart-draw.js'
+import { TITLE_PADDING } from './chart-option.js'
 import type { PlacedWord } from './chart-svg.js'
 import type { Engine, FaceWidths } from './engine.js'
 import { engine, renderPdf } from './node.js'
@@ -270,9 +271,10 @@ describe('a chart in the document', () => {
   // (pdfmake.test.ts), never for a drawing, which is the first thing a
   // chart paints. So the heading is kept with the chart's first word, and
   // moves with it, as it is with a keep-together block's first text
-  // (`flow.test.ts`).
+  // (`flow.test.ts`). A chart that prints no word has none to keep it
+  // with, and leaves it behind (`flow.test.ts` holds that limitation).
   test(
-    "keeps a heading kept with a chart on the chart's page",
+    "keeps a heading kept with a chart that prints a word on the chart's page, by its first word",
     async () => {
       const room = 120
       const filler: Block = { kind: 'spacer', height: BODY_HEIGHT - room }
@@ -367,7 +369,7 @@ describe('a chart in the document', () => {
       expect(outcome).toMatchObject({
         code: 'content-too-large',
         subject: BARS.id,
-        message: `a word of the chart sales is ${(word.width + 1).toFixed(2)} pt wide, and its column holds ${word.width.toFixed(2)} pt; a word is broken only in a paragraph, and across no more than 16 lines`,
+        message: `a word of the chart sales is ${(word.width + 1).toFixed(2)} pt wide as pdfmake measures it, and the drawing placed it in ${word.width.toFixed(2)} pt: a chart's word prints in the advance it was laid out by, or not at all`,
       })
       expect((outcome as Error).message).not.toContain(word.text)
     },
@@ -478,10 +480,10 @@ describe('a chart with nothing to draw', () => {
 
   // R7, R8: a chart with nothing to draw reserves its box and prints its
   // title and its empty text -- the report's words -- and nothing else: no
-  // axis, no mark, never handed to ECharts. The title stands at the box's
-  // top, centred across it, bold; the empty text in the middle of the
-  // box; and what follows the chart, under its box. Without a title, its
-  // empty text alone.
+  // axis, no mark, never handed to ECharts. The title stands at the top,
+  // its padding below the box's, centred across it, bold; the empty text
+  // in the middle of the box; and what follows the chart, under its box.
+  // Without a title, its empty text alone.
   test(
     "prints an empty chart's title and empty text in its box, and draws no mark",
     async () => {
@@ -498,7 +500,7 @@ describe('a chart with nothing to draw', () => {
         const empty = runs.at(-1)!
         expect(Math.abs(baselineOf(empty) - (box.top + (box.height - line) / 2 + ascent))).toBeLessThanOrEqual(EDGE)
         if (chart.title !== undefined) {
-          expect(Math.abs(baselineOf(runs[0]!) - (box.top + ascent))).toBeLessThanOrEqual(EDGE)
+          expect(Math.abs(baselineOf(runs[0]!) - (box.top + TITLE_PADDING + ascent))).toBeLessThanOrEqual(EDGE)
           expect(unprefixed(runs[0]!.font)).toBe('Roboto-Medium')
         }
         expect(unprefixed(empty.font)).toBe('Roboto-Regular')
@@ -528,6 +530,32 @@ describe('a chart with nothing to draw', () => {
     })
   })
 
+  // A chart's title stands where every chart's does: an empty chart
+  // beside a drawn one, its title at another height, reads as a page of
+  // two charts set by two hands. The drawn chart's title is placed by
+  // ECharts, its padding the option's, and the empty chart's by the
+  // renderer, from the same padding: side by side at the body's top, in
+  // one face, their titles' runs stand at one top.
+  test(
+    "sets an empty chart's title where a drawn chart's stands",
+    async () => {
+      const read = await readOf(
+        bareDocument('Titles', [
+          {
+            kind: 'columns',
+            columns: [
+              { width: BARS.width, blocks: [BARS] },
+              { width: 'fill', blocks: [EMPTY] },
+            ],
+          },
+        ]),
+      )
+      const top = (text: string): number => read.pages[0]!.items.find((item) => item.text === text)!.top
+      expect(thousandths(top('Balance'))).toBe(thousandths(top('Sales')))
+    },
+    TIMEOUT,
+  )
+
   // The box's edge is the edge: a box exactly as wide as its empty text
   // holds it, from its left edge to its right, and one a half point
   // narrower, a quarter point past either side, is refused.
@@ -545,20 +573,64 @@ describe('a chart with nothing to draw', () => {
 })
 
 describe('a chart across pages', () => {
-  // A chart that does not fit at the foot of a page is drawn whole on the
-  // next, its words with it: cut, its lower half or its lowest words would
-  // print on another page than the rest, and the page before would hold a
-  // drawing's top and no word of it.
-  test(
-    "moves a chart that does not fit at the page's foot to the next page whole, its words with it",
-    async () => {
-      const read = await readOf(documentOf('Chart', [{ kind: 'spacer', height: BODY_HEIGHT - BARS.height + 1 }, BARS]))
-      const box = expectDrawn(read, BARS)
-      expect(box.page.number).toBe(2)
-      expect(box.top).toBeCloseTo(BODY_TOP, 6)
-      const words = new Set(drawingOf(BARS.id).words.map(({ text }) => text))
-      expect(read.pages[0]!.items.filter(({ text }) => words.has(text))).toEqual([])
-      expect(read.pages[0]!.paths.filter(({ fill }) => BARS.series.some(({ color }) => color === fill))).toEqual([])
+  /** `BARS`, 280 points wide, so that it stands in a column beside one of 220 too. */
+  const chart = sized(BARS, BARS.id, 280, BARS.height)
+  /** A spacer that leaves a page 100 points, less than the chart's 200, then `blocks`, then a paragraph after them. */
+  const footOf = (...blocks: Block[]): Block[] => [{ kind: 'spacer', height: BODY_HEIGHT - 100 }, ...blocks, paragraph('After')]
+
+  // Review Focus 4: a chart that does not fit at the foot of a page is
+  // drawn whole on the next, its words with it, wherever it stands --
+  // cut, its lower half or its lowest words would print on another page
+  // than the rest, and the page before would hold a drawing's top and no
+  // word of it. In the body; in a column, which moves to the next page
+  // while the column beside it stays, its paragraph where it was; in a
+  // framed section, under its paragraph, which stays, the frame drawn
+  // again around the chart on the next page; and in a keep-together
+  // block, which moves whole, its paragraph with it. What follows prints
+  // under the chart.
+  test.each([
+    ['in the body', footOf(chart), [PAGE.margins.left, BODY_TOP], [], []],
+    [
+      'in a column, beside one that stays',
+      footOf({
+        kind: 'columns',
+        columns: [
+          { width: 220, blocks: [paragraph('Left side')] },
+          { width: 'fill', blocks: [chart] },
+        ],
+      }),
+      [PAGE.margins.left + 220, BODY_TOP],
+      ['Left side'],
+      [],
+    ],
+    [
+      'in a framed section, under its paragraph',
+      footOf({ kind: 'section', padding: 6, border: { thickness: 1, color: '#000000' }, blocks: [paragraph('In the frame'), chart] }),
+      [PAGE.margins.left + 7, BODY_TOP + 7],
+      ['In the frame'],
+      [],
+    ],
+    [
+      'in a keep-together block',
+      footOf({ kind: 'keepTogether', blocks: [paragraph('Kept with it'), chart] }),
+      [PAGE.margins.left, BODY_TOP + 9 * ROBOTO_LINE],
+      [],
+      ['Kept with it'],
+    ],
+  ] as const)(
+    "moves a chart that does not fit at the page's foot to the next page whole, its words with it, %s",
+    async (_, body, [x, top], stays, moves) => {
+      const read = await readOf(documentOf('Chart', body))
+      const box = expectDrawn(read, chart)
+      expect([box.page.number, thousandths(box.x), thousandths(box.top)]).toEqual([2, thousandths(x), thousandths(top)])
+      const words = new Set(drawingOf(chart.id).words.map(({ text }) => text))
+      const [first, second] = read.pages as [PdfPage, PdfPage]
+      expect(first.items.filter(({ text }) => words.has(text))).toEqual([])
+      expect(first.paths.filter(({ fill }) => chart.series.some(({ color }) => color === fill))).toEqual([])
+      const on = (page: PdfPage, text: string): PdfTextItem | undefined => page.items.find((item) => item.text === text)
+      expect(stays.filter((text) => on(first, text) === undefined)).toEqual([])
+      expect(moves.filter((text) => on(second, text) === undefined || on(second, text)!.bottom > box.top)).toEqual([])
+      expect(on(second, 'After')!.top).toBeGreaterThanOrEqual(box.top + box.height - EDGE)
     },
     TIMEOUT,
   )

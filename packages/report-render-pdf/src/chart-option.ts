@@ -75,6 +75,9 @@ export const VALUE_LABEL_DISTANCE = 5
 /** Points: how far the category labels stand under the plot's foot, ECharts' own default, stated, since a bar below zero labelled under its end widens it. */
 export const CATEGORY_LABEL_MARGIN = 8
 
+/** Points: how far a chart's title stands below its box's top, ECharts' own default padding, stated, since an empty chart's title, which the renderer places, stands there too (`chart-empty.ts`). */
+export const TITLE_PADDING = 5
+
 /** Whether `value` is below zero, the one test of it the option and the check make: a bar of it stands down from zero, labelled under its end, and a slice of it is refused (`check-chart.ts`). */
 export const belowZero = (value: ChartValue): boolean => value.exact.startsWith('-')
 
@@ -222,7 +225,7 @@ export function chartOption(chart: Chart, faces: ChartFaces, layout: ChartLayout
   return chart.chart === 'pie' ? { ...frame, series: [pieSeries(chart, layout)] } : { ...frame, ...axesOf(chart, faces.words, layout) }
 }
 
-/** The chart's title, at the top, centred, in the title's face, with no border or background; or none where it has none, or one that is empty once trimmed. */
+/** The chart's title, at the top, `TITLE_PADDING` below it, centred, in the title's face, with no border or background; or none where it has none, or one that is empty once trimmed. */
 function titleOf(chart: Chart, faces: ChartFaces): Pick<ChartOption, 'title'> {
   const text = wordOf(chart.title, chart.id)
   if (text === '') return {}
@@ -232,6 +235,7 @@ function titleOf(chart: Chart, faces: ChartFaces): Pick<ChartOption, 'title'> {
       text,
       left: 'center',
       top: 0,
+      padding: TITLE_PADDING,
       textStyle: { ...faces.title.font },
       borderWidth: 0,
       borderColor: 'transparent',
