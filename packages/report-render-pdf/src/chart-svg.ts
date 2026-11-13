@@ -13,7 +13,17 @@ import { PDF_A_NESTING } from './svg-pdfa.js'
  * in, and the one `<style>` ECharts writes, of hover rules that print
  * nothing, is removed.
  *
- * The drawing is ECharts' own, made of the runtime's words, and read as
+ * A pie's arcs alone are not as ECharts wrote them: the drawing writes them
+ * again before they are read (`chart-arcs.ts`). zrender writes a slice's
+ * arc between ends rounded to a tenth of a point, and the converter draws
+ * an arc on the circle through its ends: in the renders measured on
+ * 2026-11-13, up to 5 pt off the pie's near half a turn and 69 pt near a
+ * whole one, or no circle at all, and nothing drawn. Written again, each
+ * is arcs of at most a quarter turn on the pie's own circle, in the
+ * grammar ECharts writes an arc in, so that the reader holds them, and
+ * every number of them the converter is handed, as it holds ECharts' own.
+ *
+ * The drawing is ECharts', made of the runtime's words, and read as
  * untrusted: it is held whole before anything of it is used, and refused
  * as `unsupported`, naming the chart and quoting nothing of the drawing,
  * where it holds
@@ -94,8 +104,9 @@ const VOCABULARY: Readonly<
     attributes: {
       // As zrender's path writer writes one (svg/SVGPathRebuilder.js): a move, then moves, lines, a rectangle's sides relative,
       // curves, arcs and closes, each its letter and its numbers, a space between them; an arc a circle's, unturned, as ECharts
-      // draws every one (`arc`, its radius twice), its flags 0 or 1. Or nothing at all, which ECharts writes for a line series
-      // with no value at any category beside one that has (ECPolyline), and the converter draws as nothing.
+      // draws every one (`arc`, its radius twice) and the drawing writes a pie's again (`chart-arcs.ts`), its flags 0 or 1. Or
+      // nothing at all, which ECharts writes for a line series with no value at any category beside one that has (ECPolyline),
+      // and the converter draws as nothing.
       d: String.raw`(?:M${NUMBER} ${NUMBER}(?:[MLl]${NUMBER} ${NUMBER}|C${NUMBER}(?: ${NUMBER}){5}|Q${NUMBER}(?: ${NUMBER}){3}|A(?<radius>${NUMBER}) \k<radius> 0 [01] [01] ${NUMBER} ${NUMBER}|Z)*)?`,
       // A path moved, or a line's marker scaled and moved.
       transform: String.raw`${TRANSLATE}|matrix\(${NUMBER}(?:,${NUMBER}){5}\)`,
@@ -165,6 +176,9 @@ const ELEMENTS: ReadonlyMap<string, Vocabulary> = new Map(
  * neither borrows the other's.
  */
 export const CHART_DRAWN: ReadonlyMap<string, ReadonlySet<string>> = new Map([...ELEMENTS].map(([element, { values }]) => [element, new Set(values.keys())]))
+
+/** Whether `d` is a path as ECharts writes one, which the reader holds (`VOCABULARY`). */
+export const heldPath = (d: string): boolean => ELEMENTS.get('path')?.values.get('d')?.test(d) === true
 
 /** The attributes whose numbers are coordinates or lengths in the drawing, each held to the box; a path's are the points it reaches (`reached`). */
 const MEASURES: ReadonlySet<string> = new Set(['width', 'height', 'x', 'y', 'stroke-width', 'stroke-miterlimit', 'viewBox', 'transform'])
@@ -346,34 +360,52 @@ function hold(drawing: Element, chart: AxisChart | PieChart, faces: ChartFaces, 
 
 /**
  * The measures of `d`, a path held to `VOCABULARY`, as the converter takes
- * them (svg-to-pdfkit's `SvgShape`, `source.js`): each point it moves,
- * draws or curves to -- a relative line's the point before it moved by its
- * step, and never the step, which ECharts takes back across the whole of a
- * title's or a legend's background; the point before it, after a close,
- * the one its path last moved to -- each curve's control points, and an
- * arc's radius, its turn and its flags no measure. The converter draws an
- * arc as curves on the circle through its ends, of its radius or of half
- * the line between them where that is longer, so that every number it
- * writes of one is within a few of the box's sizes when the radius and the
- * ends are held to the box.
+ * them (`pathParts`): each point it moves, draws or curves to -- a
+ * relative line's, and never its step, which ECharts takes back across the
+ * whole of a title's or a legend's background -- each curve's control
+ * points, and an arc's radius, its turn and its flags no measure. The
+ * converter draws an arc as curves on the circle through its ends, of its
+ * radius or of half the line between them where that is longer, so that
+ * every number it writes of one is within a few of the box's sizes when
+ * the radius and the ends are held to the box.
  */
 function reached(d: string): number[] {
-  const numbers: number[] = []
+  return pathParts(d).flatMap(({ command, numbers, to }) =>
+    command === 'Z' ? [] : [...(command === 'A' ? numbers.slice(0, 1) : numbers.slice(0, -2)).map(Number), ...to],
+  )
+}
+
+/** A part of a path: where it stands in its `d`, as written; its command and its numbers as written; and the points it runs from and to. */
+export interface PathPart {
+  readonly index: number
+  readonly written: string
+  readonly command: string
+  readonly numbers: readonly string[]
+  readonly from: readonly [number, number]
+  readonly to: readonly [number, number]
+}
+
+/**
+ * The parts of `d`, a path in `VOCABULARY`'s grammar, each from the point
+ * the converter takes it from (svg-to-pdfkit's `SvgShape`, `source.js`) to
+ * the point it reaches: a relative line's the point before it moved by its
+ * step; a close's the one its path last moved to, which the part after it
+ * starts from.
+ */
+export function pathParts(d: string): PathPart[] {
+  const parts: PathPart[] = []
   // Never read: a path starts with a move.
   let at: readonly [number, number] = [0, 0]
   let start = at
-  for (const [, command = '', written = ''] of d.matchAll(/([MLlCQAZ])([^MLlCQAZ]*)/g)) {
-    if (command === 'Z') {
-      at = start
-      continue
-    }
-    const given = written.split(' ').map(Number)
-    const [x = 0, y = 0] = given.slice(-2)
-    at = command === 'l' ? [at[0] + x, at[1] + y] : [x, y]
+  for (const { 0: written, 1: command = '', 2: given = '', index } of d.matchAll(/([MLlCQAZ])([^MLlCQAZ]*)/g)) {
+    const from = at
+    const numbers = command === 'Z' ? [] : given.split(' ')
+    const [x = 0, y = 0] = numbers.slice(-2).map(Number)
+    at = command === 'Z' ? start : command === 'l' ? [from[0] + x, from[1] + y] : [x, y]
     if (command === 'M') start = at
-    numbers.push(...(command === 'A' ? given.slice(0, 1) : given.slice(0, -2)), ...at)
+    parts.push({ index, written, command, numbers, from, to: at })
   }
-  return numbers
+  return parts
 }
 
 /** The colours the option names for `chart` in `faces`: each series' or slice's and each legend entry's, the grid's, the axis's and the words'. */

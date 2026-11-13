@@ -25,13 +25,17 @@ import type { PdfPath } from './read-pdf.js'
  * (measured on 2026-11-13).
  *
  * What it does not see:
- * - **The arc between its ends.** svg-to-pdfkit draws an arc through its
- *   two ends at its radius, and an arc of about half a turn between ends
- *   rounded to a tenth bulges: on a pie of 45, 2 and 44 at 300 pt, the
- *   first slice's arc stood 2 pt past the radius its ends stand at, which
- *   pushed its box, and the box of the slices together, as far (measured
- *   on 2026-11-13). A slice's box is no measure of its share, and is not
- *   read.
+ * - **The arc between its ends.** Its points are where its curves end,
+ *   and an arc drawn as nothing leaves its start and its end where its
+ *   sector puts them. svg-to-pdfkit draws an arc on the circle through its
+ *   ends, and through ends zrender rounds to a tenth that circle stood off
+ *   the pie's -- on a pie of 45, 2 and 44 at 300 pt with a title and a
+ *   legend, its first slice 2.2 pt past it -- or was none, and drew
+ *   nothing (measured on 2026-11-13). The renderer writes each arc of a
+ *   slice again on the pie's own circle (render-pdf's `chart-arcs.ts`),
+ *   which its own tests hold on each curve's control points
+ *   (`PdfPath.curves`); this check does not read them. A slice's box is
+ *   no measure of its share, and is not read.
  * - **A whole circle.** zrender draws a slice of all but 10^-4 of a radian
  *   as a whole circle, with no centre (`WHOLE`); the slices beside it,
  *   slivers no point can tell apart, are held to their count alone.
@@ -44,8 +48,7 @@ const SHARE_UNIT = 10n ** 17n
  * Of a turn: the most a slice may sweep and be drawn as a sector. zrender
  * 6.1.0 draws an arc within 10^-4 of a radian of a whole turn as a whole
  * circle (`SVGPathRebuilder.js`, `isCircle`), split at a point it rounds to
- * a tenth, which moved the circle of a pie of one slice 0.517 pt across as
- * svg-to-pdfkit drew it (measured on 2026-11-13).
+ * a tenth, with no line to the pie's centre.
  */
 const WHOLE = 1 - 1e-4 / (2 * Math.PI)
 

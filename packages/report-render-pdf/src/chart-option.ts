@@ -510,6 +510,21 @@ export function sharesOf(chart: PieChart): { readonly color: string; readonly sh
  */
 const NO_SHARE = -1
 
+/** A pie's circle: its centre, in points from the chart's top left, and its radius. */
+export interface PieCircle {
+  readonly centre: readonly [number, number]
+  readonly radius: number
+}
+
+/**
+ * The circle a pie is drawn on in `square`, the drawing's: its middle, and
+ * half its side. ECharts is handed it, and the drawing writes the pie's
+ * arcs again on it (`chart-arcs.ts`).
+ */
+export function pieCircle(square: NonNullable<ChartLayout['plot']>): PieCircle {
+  return { centre: [square.left + square.width / 2, square.top + square.height / 2], radius: Math.min(square.width, square.height) / 2 }
+}
+
 /**
  * A pie: a slice for each category, its share of the pie's total, from
  * noon and clockwise, each filled in its colour with no border and no
@@ -521,9 +536,10 @@ const NO_SHARE = -1
 function pieSeries(chart: PieChart, { plot }: ChartLayout): PieSeries {
   const shares = sharesOf(chart)
   if (shares === undefined) throw new Error(`the chart ${chart.id} has slices that sum to nothing, which its check refuses before it is laid out`)
+  const circle = plot === undefined ? undefined : pieCircle(plot)
   return {
     type: 'pie',
-    ...(plot === undefined ? {} : { center: [plot.left + plot.width / 2, plot.top + plot.height / 2], radius: Math.min(plot.width, plot.height) / 2 }),
+    ...(circle === undefined ? {} : { center: [...circle.centre], radius: circle.radius }),
     startAngle: 90,
     clockwise: true,
     label: { show: false },

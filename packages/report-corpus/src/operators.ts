@@ -1,5 +1,5 @@
 import { OPS, type PageViewport, type PDFPageProxy } from 'pdfjs-dist/legacy/build/pdf.mjs'
-import type { PdfBox, PdfPaint, PdfPath } from './read-pdf.js'
+import type { PdfBox, PdfCurve, PdfPaint, PdfPath } from './read-pdf.js'
 
 /**
  * What a page's operators draw besides its text: each image and where it
@@ -93,20 +93,37 @@ const NUMBERS: ReadonlyMap<number, number> = new Map([
   [CLOSE, 0],
 ])
 
-/** `data`'s subpaths on the page, each the points it runs through: a part's last two numbers are where it ends. */
-function subpathsOf(data: ArrayLike<number> | null, ctm: Matrix, viewport: PageViewport): Point[][] {
+/** The point two thirds of the way from `end` to `control`: a quadratic's control point as one of the cubic's that draws it. */
+const twoThirds = (end: Point, control: Point): Point => [end[0] + (2 * (control[0] - end[0])) / 3, end[1] + (2 * (control[1] - end[1])) / 3]
+
+/**
+ * `data`'s subpaths on the page, each the points it runs through -- a
+ * part's last two numbers are where it ends -- and each curve it draws,
+ * with its control points: a cubic's two, or a quadratic's one taken two
+ * thirds of the way from each end.
+ */
+function outlineOf(data: ArrayLike<number> | null, ctm: Matrix, viewport: PageViewport): Pick<PdfPath, 'subpaths' | 'curves'> {
   const subpaths: Point[][] = []
+  const curves: PdfCurve[] = []
   for (let index = 0; data !== null && index < data.length;) {
     const op = data[index++]!
     const count = NUMBERS.get(op)
     if (count === undefined) throw new Error(`a path holds a part PDF.js codes ${String(op)}, which the reader does not know`)
     index += count
     if (count === 0) continue
-    const point = onPage(ctm, viewport, [data[index - 2]!, data[index - 1]!])
-    if (op === MOVE || subpaths.length === 0) subpaths.push([point])
-    else subpaths.at(-1)!.push(point)
+    const at = (from: number): Point => onPage(ctm, viewport, [data[index - from]!, data[index - from + 1]!])
+    const point = at(2)
+    const subpath = op === MOVE ? undefined : subpaths.at(-1)
+    if (subpath === undefined) {
+      subpaths.push([point])
+      continue
+    }
+    const from = subpath.at(-1)!
+    if (op === CURVE) curves.push({ from, through: [at(6), at(4)], to: point })
+    if (op === QUADRATIC) curves.push({ from, through: [twoThirds(from, at(4)), twoThirds(point, at(4))], to: point })
+    subpath.push(point)
   }
-  return subpaths
+  return { subpaths, curves }
 }
 
 /** How far apart, in points, two corners of a rectangle may be across the side they share: PDF.js hands paths over as 32-bit floats. */
@@ -260,6 +277,6 @@ function paintPath([op, [data], bounds]: PathArgs, state: State, viewport: PageV
     ...(paint === 'stroke' ? {} : { fill: state.fill }),
     ...(paint === 'fill' ? {} : { stroke: state.stroke }),
     ...(inside === undefined ? {} : { clip: inside }),
-    subpaths: subpathsOf(data ?? null, state.ctm, viewport),
+    ...outlineOf(data ?? null, state.ctm, viewport),
   })
 }

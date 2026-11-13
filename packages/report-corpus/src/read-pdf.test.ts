@@ -267,6 +267,72 @@ describe('readPdf', () => {
     ])
   })
 
+  // A curve's ends say nothing of what it draws between them: a pie's
+  // slice drawn on another circle than its own ends where its own would,
+  // and bulges between (0058). Each curve is read with its two control
+  // points, on the page, through a transform, from the point before it to
+  // its end, as `subpaths` holds both; a line is no curve, and a close
+  // draws none.
+  test('reads each curve of a path with its control points, on the page', async () => {
+    const document = await PDFDocument.create()
+    document
+      .addPage([595.28, 841.89])
+      .pushOperators(
+        ...group(
+          concatTransformationMatrix(2, 0, 0, 2, 100, 500),
+          moveTo(0, 0),
+          lineTo(10, 5),
+          moveTo(20, 0),
+          appendBezierCurve(25, 10, 35, 10, 40, 0),
+          lineTo(40, -5),
+          appendBezierCurve(30, -15, 20, -10, 20, -5),
+          closePath(),
+          fill(),
+        ),
+      )
+    const [path] = (await readPdf(await document.save())).pages[0]!.paths
+    const onPage = (point: readonly number[]): number[] => point.map(hundredths)
+    expect(path!.curves.map(({ from, through, to }) => [from, ...through, to].map(onPage))).toEqual([
+      [
+        [140, 341.89],
+        [150, 321.89],
+        [170, 321.89],
+        [180, 341.89],
+      ],
+      [
+        [180, 351.89],
+        [160, 371.89],
+        [140, 361.89],
+        [140, 351.89],
+      ],
+    ])
+    expect(path!.curves.map(({ from, to }) => [from, to])).toEqual([
+      [path!.subpaths[1]![0], path!.subpaths[1]![1]],
+      [path!.subpaths[1]![2], path!.subpaths[1]![3]],
+    ])
+  })
+
+  // PDF.js codes a quadratic curve only in a glyph's outline, never in a
+  // page's path; one read as its end alone would draw as a line. It is
+  // read as the cubic that draws it, its control points two thirds of the
+  // way from each end to its own. The page is a stand-in for PDF.js's.
+  test('reads a quadratic curve as the cubic that draws it', async () => {
+    const viewport = { convertToViewportPoint: (x: number, y: number) => [x, 841.89 - y] } as unknown as PageViewport
+    const page = {
+      getOperatorList: () =>
+        Promise.resolve({ fnArray: [OPS.constructPath], argsArray: [[OPS.fill, [Float32Array.of(0, 0, 0, 3, 3, 6, 9, 0)], Float32Array.of(0, 0, 9, 6)]] }),
+    } as unknown as PDFPageProxy
+    const [path] = (await drawnOn(page, viewport)).paths
+    expect(path!.curves.map(({ from, through, to }) => [from, ...through, to].map((point) => point.map(hundredths)))).toEqual([
+      [
+        [0, 841.89],
+        [2, 837.89],
+        [5, 837.89],
+        [9, 841.89],
+      ],
+    ])
+  })
+
   // PDF.js hands a path over as its parts, each coded with how many
   // numbers follow it: a part the reader does not know would shift every
   // point after it, so it is refused rather than read; a path PDF.js hands

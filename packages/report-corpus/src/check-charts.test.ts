@@ -54,6 +54,7 @@ const filled = (paint: `#${string}`, x: number, top: number, width: number, heig
   fill: paint,
   clip: 0,
   subpaths: subpaths ?? corners(x, top, width, height),
+  curves: [],
 })
 /** A stroked path: a line across the page from its left to its right, unless its subpaths are given, as a series' line's are. */
 const stroked = (paint: `#${string}`, x: number, top: number, width: number, height: number, subpaths?: Point[][]): PdfPath => ({
@@ -67,6 +68,7 @@ const stroked = (paint: `#${string}`, x: number, top: number, width: number, hei
       [x + width, top],
     ],
   ],
+  curves: [],
 })
 /** A legend's swatch: an 8 pt square filled and stroked in its colour. */
 const swatch = (paint: `#${string}`, x: number, top: number): PdfPath => ({
@@ -76,6 +78,7 @@ const swatch = (paint: `#${string}`, x: number, top: number): PdfPath => ({
   stroke: paint,
   clip: 0,
   subpaths: corners(x, top, 8, 8),
+  curves: [],
 })
 /** A gridline, stroked in the renderer's grid colour, `chart-option.ts`'s GRID; and the category axis's line, in its AXIS colour. */
 const gridline = (top: number, x: number, width: number): PdfPath => stroked('#d9d9d9', x, top, width, 0)

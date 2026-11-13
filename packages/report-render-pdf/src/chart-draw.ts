@@ -7,7 +7,8 @@ import { setPlatformAPI as setZrenderPlatform } from 'zrender/lib/core/platform.
 import type { ChartFaces } from './chart-faces.js'
 import { held, named, points, tooLarge, type Plot } from './chart-held.js'
 import { withMeasurer } from './chart-measure.js'
-import { barWidth, chartOption, chartWords, VALUE_LABEL_DISTANCE, type ChartLayout } from './chart-option.js'
+import { pieArcs } from './chart-arcs.js'
+import { barWidth, chartOption, chartWords, pieCircle, VALUE_LABEL_DISTANCE, type ChartLayout } from './chart-option.js'
 import { readChartSvg, type PlacedWord } from './chart-svg.js'
 import type { FaceWidths } from './engine.js'
 
@@ -49,8 +50,9 @@ import type { FaceWidths } from './engine.js'
  * wider than its slot less half a line, are refused: a label is never
  * turned, and a tick, a category or a bar is never dropped. A pie is laid
  * out twice: the bands, then drawn in the largest square centred between
- * them. Every layout is ECharts' own under the render's measurer
- * (`chart-measure.ts`), disposed after it is read.
+ * them, the arcs of its slices written again on its circle before its
+ * drawing is read (`chart-arcs.ts`). Every layout is ECharts' own under
+ * the render's measurer (`chart-measure.ts`), disposed after it is read.
  *
  * The drawn layout's words are then held: two that meet, one past the
  * box, or one in the plot that is not a value's label, refuse the chart
@@ -148,7 +150,8 @@ function register(chart: AxisChart | PieChart): void {
  * `chart` laid out by ECharts in `layout`, its words measured in `faces`
  * by `widths`; a bar or a line chart's plot read (`plotOf`) and its bars
  * held to `MIN_BAR_WIDTH`, and then its words read back. A pie has no
- * plot to read: its square is the layout's own.
+ * plot to read: its square is the layout's own, and once it has one, its
+ * slices' arcs are written again on its circle (`pieArcs`).
  */
 function layOut(chart: AxisChart, faces: ChartFaces, widths: FaceWidths, layout: ChartLayout): { readonly drawing: DrawnChart; readonly plot: Plot }
 function layOut(chart: AxisChart | PieChart, faces: ChartFaces, widths: FaceWidths, layout: ChartLayout): { readonly drawing: DrawnChart }
@@ -164,7 +167,7 @@ function layOut(
     try {
       laid.setOption(option)
       const written = laid.renderToSVGString()
-      if (chart.chart === 'pie') return { svg: written }
+      if (chart.chart === 'pie') return { svg: layout.plot === undefined ? written : pieArcs(written, pieCircle(layout.plot)) }
       const read = plotOf(chart, laid)
       thickEnough(chart, read)
       return { svg: written, plot: read }
