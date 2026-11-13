@@ -119,22 +119,34 @@ export function asked<T>(lay: () => T): { readonly result: T; readonly asked: As
   }
 }
 
-/** A word zrender wrote: its text, the font family its style names, and where its anchor stands -- its translation and its own x and y added -- the y at the middle of its line (`dominant-baseline="central"`). */
+/**
+ * A word zrender wrote: its text, the font family its style names, and
+ * where its anchor stands -- its translation and its own x and y added --
+ * the y at the middle of its line (`dominant-baseline="central"`). zrender
+ * 6.1.0 writes a family for every word, ECharts' own sans-serif where an
+ * option names none, so `family` is absent only from a word it did not
+ * write, which the case comparing it then fails on.
+ */
 export interface SvgWord {
   readonly text: string
-  readonly family: string
+  readonly family: string | undefined
   readonly x: number
   readonly y: number
 }
 
-/** Every `<text>` in `svg`, in the order zrender wrote them, as zrender 6.1.0 writes one unturned: a `translate` and an `x` and `y` of its own, either absent where it is 0. */
+/**
+ * Every `<text>` in `svg`, in the order zrender wrote them, as zrender
+ * 6.1.0 writes one unturned: a `translate` and an `x` and `y` of its own,
+ * either absent where it is 0. A word turned or scaled is refused: zrender
+ * writes a matrix in place of the translation, from which a place read as
+ * a translation's would be wrong (`echarts.test.ts`).
+ */
 export function wordsOf(svg: string): SvgWord[] {
   return [...svg.matchAll(/<text([^>]*)>([^<]*)<\/text>/g)].map(([, attributes = '', text = '']) => {
     const attribute = (name: string): string | undefined => new RegExp(`\\s${name}="([^"]*)"`).exec(attributes)?.[1]
     const translated = /^translate\((-?[\d.]+) (-?[\d.]+)\)$/.exec(attribute('transform') ?? 'translate(0 0)')
     if (translated === null) throw new Error('zrender wrote a word turned or scaled, which these tests do not read')
     const family = /font-family:([^;]*);/.exec(attribute('style') ?? '')?.[1]
-    if (family === undefined) throw new Error('zrender wrote a word with no font family')
     const [, tx, ty] = translated
     return { text, family, x: Number(tx) + Number(attribute('x') ?? 0), y: Number(ty) + Number(attribute('y') ?? 0) }
   })

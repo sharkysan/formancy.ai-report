@@ -51,11 +51,22 @@ function counted(widths: FaceWidths): { readonly widths: FaceWidths; readonly as
   }
 }
 
-/** V8's collector, which `--expose-gc` lets a script run, set once V8 has started. */
+/**
+ * V8's collector, which `--expose-gc` lets a script run: the flag set once
+ * V8 has started, for the one context made to take `gc` from, and turned
+ * off again, so that no other context of the worker's sees it.
+ */
 function collector(): () => void {
   setFlagsFromString('--expose-gc')
-  return runInNewContext('gc') as () => void
+  try {
+    return runInNewContext('gc') as () => void
+  } finally {
+    setFlagsFromString('--no-expose-gc')
+  }
 }
+
+/** The rest of this turn let go, in which a WeakRef keeps what it was made of or dereferenced to. */
+const turn = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
 
 describe("zrender's platform for one layout", () => {
   // ECharts places each word by the width zrender is answered, and pdfmake
@@ -229,23 +240,72 @@ describe("zrender's platform for one layout", () => {
   // zrender's platform or by the measurer past the layout, they would keep
   // a firm's font in the process after its render, against 0043. Once the
   // layout has ended and the render has let its widths go, nothing the
-  // measurer set holds them, and the collector frees them, document and
-  // fonts with them; zrender keeps the numbers it was answered, and
-  // nothing they were measured by.
+  // measurer set holds them, and the collector frees them. That is the
+  // measurer's half: a document or a font the engine kept elsewhere would
+  // pass here, and is the render's to show. What zrender keeps is the
+  // widths it was answered, by the words themselves and their font
+  // strings, and nothing they were measured by. Collected up to three
+  // times, a turn apart, so that an unlucky collection is not a failure
+  // and a widths truly kept still is.
   test(
     'keeps nothing of the widths it measured by once the layout ends',
     async () => {
       const gc = collector()
+      // The flag is off again: a context made after has no collector to call.
+      expect(runInNewContext('typeof gc')).toBe('undefined')
       const laidOut = async (): Promise<WeakRef<FaceWidths>> => {
         const { faces, widths } = await measured(planned(SERIF), { font: 'serif' }, 'Umsatz')
         withMeasurer(faces, widths, () => titled(faces))
         return new WeakRef(widths)
       }
       const widths = await laidOut()
-      // A WeakRef keeps its target for the rest of the turn that made it.
-      await new Promise((resolve) => setTimeout(resolve, 0))
-      gc()
+      for (let collection = 0; collection < 3; collection += 1) {
+        await turn()
+        gc()
+        if (widths.deref() === undefined) break
+      }
       expect(widths.deref()).toBeUndefined()
+    },
+    TIMEOUT,
+  )
+
+  // ECharts' layout is synchronous, and the measurer stands for one call:
+  // a layout that awaited anything would go on measuring once the measurer
+  // was put back -- in zrender's own estimate in Node, in the page's canvas
+  // in a browser -- in no face the report chose, and its words would print
+  // where those widths placed them. A promise returned is refused, with
+  // the platform already as it was, and whether it rejects later is read,
+  // so that the rejection does not surface as one nobody handled.
+  test(
+    'refuses a layout that returns a promise, with the platform put back first',
+    async () => {
+      const { faces, widths } = await measured(planned(), {})
+      const font = fontString(faces.words)
+      const back: boolean[] = []
+      const refused = (lay: () => unknown): string => {
+        try {
+          withMeasurer(faces, widths, lay)
+          return 'returned'
+        } catch (error) {
+          back.push(platform.measureText === ORIGINAL.measureText)
+          return (error as Error).message
+        }
+      }
+      let later: number | undefined
+      const promised = "a chart's layout returned a promise, and would measure after its measurer was put back"
+      expect(
+        refused(async () => {
+          await turn()
+          later = widthOf('Umsatz', font)
+        }),
+      ).toBe(promised)
+      expect(refused(() => Promise.reject(new Error('the layout failed later')))).toBe(promised)
+      expect(back).toEqual([true, true])
+      await turn()
+      await turn()
+      // Measured after the layout was refused, in zrender's own estimate and not in Roboto.
+      expect(later).toBeDefined()
+      expect(later).not.toBe(widths.width(faces.words.family, faces.words.face, faces.words.font.fontSize, 'Umsatz'))
     },
     TIMEOUT,
   )

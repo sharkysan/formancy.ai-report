@@ -352,4 +352,26 @@ describe('ECharts and zrender as the drawing leans on them', () => {
     },
     TIMEOUT,
   )
+
+  // These cases read where a word stands from its translation, as zrender
+  // writes a word across. A word turned -- which the drawing never asks
+  // for, and an option could -- zrender writes with a matrix in place of
+  // the translation, so a reader of translations would place it wrong or
+  // nowhere: the cases' reader refuses it by name, here on the quarter
+  // turn zrender writes as matrix(0,-1,1,0,x,y) (seen 13 November 2026).
+  test(
+    "writes a turned word's place as a matrix, which the cases' reader refuses",
+    async () => {
+      const { faces, widths } = await measured(planned(), {})
+      const option = {
+        xAxis: { type: 'category', data: ['c0'], axisLabel: { interval: 0, rotate: 90, ...faces.words.font, formatter: () => 'Nord' } },
+        yAxis: { type: 'value', show: false },
+        series: [{ type: 'bar', data: [1] }],
+      }
+      const { svg } = withMeasurer(faces, widths, () => layOut(option, 200, 100))
+      expect(svg).toMatch(/<text[^>]*transform="matrix\(0,-1,1,0,[-\d.]+,[-\d.]+\)"[^>]*>Nord<\/text>/)
+      expect(() => wordsOf(svg)).toThrow('zrender wrote a word turned or scaled, which these tests do not read')
+    },
+    TIMEOUT,
+  )
 })

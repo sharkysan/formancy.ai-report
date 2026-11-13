@@ -24,10 +24,15 @@ import type { FaceWidths } from './engine.js'
  * own ECharts measures through as well. ECharts' layout is synchronous, so
  * the measurer, set for one layout and put back after it, whether the
  * layout returned or threw, is never seen by another layout, in Node or in
- * a page; and nothing of it, the render's widths least of all, outlives
- * the layout. zrender keeps the widths it was answered, process-wide and
- * by the whole font string, which names a face by the bytes it embeds
- * (`ChartFace.font`), so a width it kept is the width of those bytes.
+ * a page; a layout that returns a promise, which would measure after its
+ * measurer was put back, is refused. Nothing of the measurer, the render's
+ * widths least of all, outlives the layout. What does is zrender's: it
+ * keeps the widths it was answered, process-wide, by the whole font string,
+ * which names a face by the bytes it embeds (`ChartFace.font`), so a width
+ * it kept is the width of those bytes -- and by the words themselves, up to
+ * 500 words for each of 100 font strings (contain/text.js), so a chart's
+ * categories, legend entries and title stay in the process after its
+ * render, and nothing zrender exports clears them.
  *
  * Imported by the drawing alone, which a document with a chart loads
  * (`chart-draw.ts`), so that it is in the chunk that carries ECharts.
@@ -57,7 +62,9 @@ const fontOf = ({ font }: ChartFace): string => `${font.fontStyle} ${font.fontWe
  * `faces` by `widths` -- 国 with the face's line -- and `createCanvas` and
  * `loadImage` refusing; the three put back as they were after it, also
  * when it throws. `lay` is the whole of one synchronous layout: a measure
- * it left for later would be answered by whatever stands then.
+ * it left for later would be answered by whatever stands then, so a
+ * promise it returns is refused, once the three are back, and its outcome
+ * left unread, so that a rejection of it is not left unhandled.
  */
 export function withMeasurer<T>(faces: ChartFaces, widths: FaceWidths, lay: () => T): T {
   const handed = new Map((faces.title === undefined ? [faces.words] : [faces.words, faces.title]).map((face) => [fontOf(face), face]))
@@ -73,11 +80,22 @@ export function withMeasurer<T>(faces: ChartFaces, widths: FaceWidths, lay: () =
   platform.loadImage = () => {
     throw new Error("a chart's layout asked for an image")
   }
+  let laid: T
   try {
-    return lay()
+    laid = lay()
   } finally {
     platform.measureText = saved.measureText
     platform.createCanvas = saved.createCanvas
     platform.loadImage = saved.loadImage
   }
+  if (isThenable(laid)) {
+    laid.then(undefined, () => undefined)
+    throw new Error("a chart's layout returned a promise, and would measure after its measurer was put back")
+  }
+  return laid
+}
+
+/** Whether `value` is a promise, or anything else that settles later. */
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return (typeof value === 'object' || typeof value === 'function') && value !== null && typeof (value as { then?: unknown }).then === 'function'
 }
