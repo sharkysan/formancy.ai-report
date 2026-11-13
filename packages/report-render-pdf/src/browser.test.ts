@@ -23,7 +23,6 @@ import {
 import { resolveReport, type ResolvedDocument } from '@formancy/report-runtime'
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import type * as billFonts from './bill-fonts.js'
-import type * as chartDraw from './chart-draw.js'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { renderPdf as renderInNode } from './node.js'
 import { converterOptions } from './svg-content.js'
@@ -632,34 +631,45 @@ describe('the slip’s fonts in a browser', () => {
 })
 
 describe('the chart chunk in a browser', () => {
-  /** A browser entry of its own, which has loaded no chunk yet, with `chart-draw.js` as `factory` makes it. */
-  async function freshEntry(factory: () => Pick<typeof chartDraw, 'drawChart'>): Promise<typeof renderInBrowser> {
+  /** How many times a loader `loadOnce` was handed has run and resolved to the drawing, which only `chart-draw.js` exports. */
+  let loads = 0
+  /** A browser entry of its own, whose `loadOnce` counts each run of the loader it is handed that imports the drawing. */
+  async function freshEntry(): Promise<typeof renderInBrowser> {
+    loads = 0
     vi.resetModules()
-    vi.doMock('./chart-draw.js', factory)
+    vi.doMock('./engine.js', async (importOriginal) => {
+      const original = await importOriginal<typeof import('./engine.js')>()
+      return {
+        ...original,
+        loadOnce: <T>(load: () => Promise<T>) =>
+          original.loadOnce(async () => {
+            const loaded = await load()
+            if (typeof loaded === 'object' && loaded !== null && 'drawChart' in loaded) loads += 1
+            return loaded
+          }),
+      }
+    })
     return (await import('./browser.js')).renderPdf
   }
   afterEach(() => {
-    vi.doUnmock('./chart-draw.js')
+    vi.doUnmock('./engine.js')
     vi.resetModules()
   })
 
   // ECharts and zrender are most of a browser bundle's weight; a page that
   // prints no chart, or only a chart with nothing to draw, would fetch them
-  // for nothing, and a host that renders many charts would decode them
-  // again for each. The mock's factory runs once for each import of the
-  // chunk, which it counts, as a getter would count a read of it for each
-  // chart: none for a document without a chart or with an empty
-  // one, one for the first chart that has marks, and no more for the next.
-  // The renders run one after another, as the slip's fonts' do above.
+  // for nothing, and a host that renders many charts would import them
+  // again for each, a browser's module map aside. A `vi.doMock` factory runs
+  // once per registry whatever is imported, so it cannot count that: the
+  // count is of the loader `render.ts` hands `loadOnce`, which runs and
+  // resolves to the drawing once for every load. None for a document without
+  // a chart or with an empty one, one for the first chart that has marks,
+  // and no more for the next charts, which are drawn from the kept one.
+  // The renders run one after another.
   test(
     'never loads ECharts for a document without a chart, or with only an empty one, and loads it once for the first',
     async () => {
-      let loads = 0
-      const { drawChart } = await import('./chart-draw.js')
-      const renderPdf = await freshEntry(() => {
-        loads += 1
-        return { drawChart }
-      })
+      const renderPdf = await freshEntry()
       await renderPdf(documentOf('Text', [paragraph('Invoice 2026-0042')]), { maxPages: 5 })
       await renderPdf(documentOf('Empty', [EMPTY]), { maxPages: 5 })
       expect(loads).toBe(0)
@@ -677,7 +687,7 @@ describe('the chart chunk in a browser', () => {
   // the e-invoice's are: every object, each stream inflated, since the
   // browser build deflates with a zlib of its own.
   test(
-    'renders a document with charts to the same bytes as the Node entry',
+    'renders a document with charts to the same document as the Node entry, every stream inflated',
     async () => {
       const document = documentOf('Charts', [BARS, PIE, LINE, EMPTY])
       const options = { maxPages: 5 }

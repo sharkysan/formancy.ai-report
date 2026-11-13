@@ -45,7 +45,8 @@ export default defineConfig({
     // the licence and notice files it ships; a package with no licence text,
     // or code the plugin cannot place, stops the build (formancy.ai-data
     // 0046). The starters' module is the corpus's synthetic data, this
-    // repository's own; the fonts inside scripts are src/embedded-notices.ts'.
+    // repository's own; the fonts inside scripts, and the d3 code in
+    // echarts that its package keeps no licence beside, are src/embedded-notices.ts'.
     thirdPartyNotices({ ownModules: [STARTERS_MODULE], embedded: EMBEDDED_NOTICES }),
   ],
   // The Angular builder is linked from the workspace, and Vite optimises
@@ -64,18 +65,24 @@ export default defineConfig({
   // refuses.
   server: { port: 4394, strictPort: true },
   preview: { port: 4394, strictPort: true, headers: headersFor('http://localhost:4394/') },
-  // Measured with `vite build` (Vite 8.3.4) on 2026-11-13: the renderer's
-  // chunk is 1,986.7 kB minified, 870.2 kB gzipped -- pdfmake's browser
-  // build, and Roboto's four fonts in it as base64 (1,922.2 kB and 848.8 kB
-  // on 2026-10-17, before the renderer's later work, charts' words among it) -- and loads with the
-  // first preview, as PDF.js's 430.1 kB and the Angular builder's 171.5 kB
-  // load when first needed, and Liberation Sans's chunk, 1,100.3 kB and
-  // 518.7 kB gzipped, with the first preview of a report with a QR-bill, and
-  // ECharts' and zrender's chunk, 549.6 kB and 188.6 kB gzipped, with the
-  // first preview of a report with a chart that has marks to draw (the
-  // Studio's palette offers no chart yet, so it loads for none of its
-  // starters); the page's own chunk, React and the React builder with the
-  // editor model, is 891.5 kB. The limit is the largest with a little room,
-  // so a dependency that grows any of them still warns.
+  // Measured with `vite build` (Vite 8.3.4) on 2026-11-13, each chunk's size
+  // as the build prints it: the renderer's chunk is 1,986.7 kB minified,
+  // 870.2 kB gzipped -- pdfmake's browser build, and Roboto's four fonts in
+  // it as base64 -- and loads with the first preview, as PDF.js's 430.1 kB
+  // and the Angular builder's 171.5 kB load when first needed, and Liberation
+  // Sans's chunk, 1,100.3 kB and 518.7 kB gzipped, with the first preview of
+  // a report with a QR-bill, and ECharts' and zrender's chunk, 549.6 kB and
+  // 188.6 kB gzipped, with the first preview of a report with a chart that
+  // has marks to draw (the Studio's palette offers no chart yet, so it loads
+  // for none of its starters); the page's own chunk, React and the React
+  // builder with the editor model, is 891.5 kB. The limit is the renderer's
+  // chunk with 13 kB of room: that chunk growing past it warns, and no other
+  // chunk is near it, so a growth of theirs is not warned of; nothing fails
+  // on the warning either, and main's build at c4d1a6a already printed it at
+  // the old limit of 1950 (1,965.6 kB). The renderer's chunk was 1,922.2 kB
+  // on 2026-10-17; of the 64.5 kB since, measured with each commit's build
+  // and its source map, 43.4 kB was main's before the charts, 5.7 kB the
+  // runtime's charts and 15.0 kB the renderer's chart code. A budget for
+  // each chunk, which fails, is Task 25's to add.
   build: { chunkSizeWarningLimit: 2000 },
 })
