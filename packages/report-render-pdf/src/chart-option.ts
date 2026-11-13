@@ -10,23 +10,33 @@ import type { ChartFace, ChartFaces } from './chart-faces.js'
  * ECharts placed it, so the option holds everything ECharts could decide
  * otherwise than the report did, and nothing it could round or rewrite.
  *
- * - **Numbers.** The value axis is the runtime's ticks, fixed: its range
- *   their first and last, a gridline at each, a label at every
- *   `tickEvery`-th from the lowest. ECharts places a mark at its value's
- *   `Number(exact)`, a coordinate, and never formats one: every word it
- *   prints is the runtime's, looked up by index. Ticks so close for their
- *   size that two are one double are refused: ECharts would draw one
- *   gridline and one label for them.
+ * - **Numbers.** The value axis is the runtime's ticks, fixed, in places:
+ *   tick i stands at place i, from 0 at the lowest to the last index at
+ *   the highest, each a gridline, and every `tickEvery`-th from the lowest
+ *   labelled. A value stands at its distance from the lowest tick in the
+ *   ticks' interval (`placesOf`), worked out from the runtime's decimal
+ *   strings exactly but for the one division that makes it a coordinate,
+ *   and a bar stands on zero's place. ECharts never sees a value, so it
+ *   neither rounds nor formats one, and places each mark where its value
+ *   stands among the ticks, however close the ticks stand for their size:
+ *   the values' doubles would put ticks that share fifteen leading digits
+ *   up to half an interval from their places, and draw two ticks that
+ *   share seventeen as one. This is what the drawing's fixed value axis
+ *   is: the runtime's ticks by their places, never their doubles, and a
+ *   coordinate ECharts is handed a place, never `Number(exact)` -- a
+ *   pie's slices aside, which ECharts sizes by their share of their sum.
+ *   Every word it prints is the runtime's, looked up by index.
  * - **Words.** ECharts sees a category as its key (`c0`) and a series as
  *   its (`s0`). Every word comes from a formatter -- the chart's title and
  *   its axes' titles from the block itself -- and a formatter asked for an
- *   index, a key or a value the block does not have throws, naming the
- *   chart and counts and quoting no word. Nothing wraps, cuts, hides, turns or reads a word as markup: no
- *   text width, overflow, ellipsis, rich text, string formatter, rotation,
- *   hideOverlap or automatic interval, and no showMinLabel or
- *   showMaxLabel, which set either way hide a label that meets its
- *   neighbour, where unset with a fixed axis and every category labelled
- *   ECharts hides none (AxisBuilder.js `fixMinMaxLabelShow`).
+ *   index, a key or a place the block does not have throws, naming the
+ *   chart and counts and quoting no word. Nothing wraps, cuts, hides,
+ *   turns or reads a word as markup: no text width, overflow, ellipsis,
+ *   rich text, string formatter, rotation, hideOverlap or automatic
+ *   interval, and no showMinLabel or showMaxLabel, which set either way
+ *   hide a label that meets its neighbour, where unset with a fixed axis
+ *   and every category labelled ECharts hides none (AxisBuilder.js
+ *   `fixMinMaxLabelShow`).
  * - **Colours.** Every colour it paints is the block's -- each series' or
  *   slice's and each legend entry's -- the grid's or the axis's, the
  *   words' style's, or transparent; none is left to ECharts' theme.
@@ -100,7 +110,7 @@ export function barWidth(slot: number, series: number): number {
 const categoryKey = (index: number): string => `c${String(index)}`
 const seriesKey = (index: number): string => `s${String(index)}`
 
-/** The ticks a layout labels, every `tickEvery`-th from the lowest, each with its index among all the chart's ticks. */
+/** The ticks a layout labels, every `tickEvery`-th from the lowest, each with its index among all the chart's ticks, which is its place on the axis. */
 function labelledTicks(chart: AxisChart, tickEvery: number): { readonly index: number; readonly tick: ChartValue }[] {
   if (!Number.isInteger(tickEvery) || tickEvery < 1) throw new Error(`the chart ${chart.id} cannot label every ${String(tickEvery)}th tick`)
   return chart.ticks.flatMap((tick, index) => (index % tickEvery === 0 ? [{ index, tick }] : []))
@@ -213,31 +223,70 @@ function gridOf({ bands, plot }: ChartLayout): GridComponentOption {
   return { left: 0, right: 0, top, bottom, outerBoundsMode: 'same', outerBoundsContain: 'all' }
 }
 
+/** A decimal as the runtime writes one (`ChartValue.exact`): its units, and how many of its digits are places. */
+interface Exact {
+  readonly units: bigint
+  readonly scale: number
+}
+
+/** `exact` read as the runtime writes a decimal -- a minus or none, digits, and a point and digits or none -- and anything else refused, naming the chart and quoting nothing. */
+function exactOf(exact: string, id: string): Exact {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(exact)
+  if (match === null) throw new RenderRefusal('unsupported', `the chart ${id} holds a value that is not a decimal`, id)
+  const [, sign = '', whole = '', fraction = ''] = match
+  const units = BigInt(whole + fraction)
+  return { units: sign === '-' ? -units : units, scale: fraction.length }
+}
+
+/** `each`'s units at `scale`, as many places as its own or more. */
+const unitsAt = (each: Exact, scale: number): bigint => each.units * 10n ** BigInt(scale - each.scale)
+
+/**
+ * The digits of a place worked out exactly: seventeen, past a double's
+ * precision at any place an axis of the runtime's few intervals reaches,
+ * so that the one division into a double is a place's only rounding, and
+ * tick i's place is i exactly.
+ */
+const PLACE_UNIT = 10n ** 17n
+
+/**
+ * Where a value of `chart` stands on its value axis: its distance from the
+ * lowest tick, in the ticks' interval, on the decimals' units -- a
+ * quotient scaled to `PLACE_UNIT` in BigInt and made a double at the end.
+ * Never a double less a double: a value of 308 digits at 20 places is 328
+ * digits of units, which as a double is infinite. The runtime's ticks
+ * ascend in equal steps, so tick i stands at i; any others are its error,
+ * never drawn.
+ */
+function placesOf(chart: AxisChart): (exact: string) => number {
+  const [lowest, next] = chart.ticks.map(({ exact }) => exactOf(exact, chart.id))
+  if (lowest === undefined || next === undefined)
+    throw new Error(`the chart ${chart.id} has ${String(chart.ticks.length)} of the two or more ticks an axis needs`)
+  const scale = Math.max(lowest.scale, next.scale)
+  const ascending = unitsAt(next, scale) > unitsAt(lowest, scale)
+  const place = (exact: string): number => {
+    const value = exactOf(exact, chart.id)
+    const common = Math.max(value.scale, scale)
+    const step = unitsAt(next, common) - unitsAt(lowest, common)
+    return Number(((unitsAt(value, common) - unitsAt(lowest, common)) * PLACE_UNIT) / step) / Number(PLACE_UNIT)
+  }
+  if (!ascending || chart.ticks.some(({ exact }, index) => place(exact) !== index)) throw new Error(`the chart ${chart.id} has ticks that do not ascend evenly`)
+  return place
+}
+
 /**
  * A bar or a line chart's plot, axes and series. The category axis stands
  * at the plot's foot, never on zero (ECharts' `onZero: 'auto'` would put a
  * line chart's there, its labels inside the plot), with a slot for each
  * category, a line's as a bar's (`boundaryGap`), its title centred under
- * its labels, where ECharts moves it clear of them; the value axis is
- * fixed at the runtime's ticks, its title at its end, across. Neither
- * axis has a tick, and the value axis no line, which is ECharts' own for
- * a value axis.
+ * its labels, where ECharts moves it clear of them; the value axis is the
+ * runtime's ticks at their places (`placesOf`), its title at its end,
+ * across. Neither axis has a tick, and the value axis no line, which is
+ * ECharts' own for a value axis.
  */
 function axesOf(chart: AxisChart, words: ChartFace, layout: ChartLayout): Pick<ChartOption, 'grid' | 'xAxis' | 'yAxis' | 'series'> {
-  const ticks = chart.ticks.map(({ exact }) => Number(exact))
-  const [lowest] = ticks
-  const highest = ticks.at(-1)
-  if (lowest === undefined || highest === undefined || ticks.length < 2)
-    throw new Error(`the chart ${chart.id} has ${String(ticks.length)} of the two or more ticks an axis needs`)
-  // The ticks ascend exactly, and Number keeps their order, rounding each to its nearest double: two that do not stand apart are one double.
-  const places = new Set(ticks).size
-  if (places < ticks.length)
-    throw new RenderRefusal(
-      'unsupported',
-      `the chart ${chart.id} has ${String(ticks.length)} ticks too close for their size to place apart: as coordinates they stand at ${String(places)}`,
-      chart.id,
-    )
-  const labelled = labelledTicks(chart, layout.tickEvery).map(({ tick }) => tick)
+  const place = placesOf(chart)
+  const labelled = labelledTicks(chart, layout.tickEvery)
   return {
     grid: gridOf(layout),
     xAxis: {
@@ -259,33 +308,37 @@ function axesOf(chart: AxisChart, words: ChartFace, layout: ChartLayout): Pick<C
     },
     yAxis: {
       type: 'value',
-      min: lowest,
-      max: highest,
+      min: 0,
+      max: chart.ticks.length - 1,
+      // ECharts draws a bar from its axis's start value, which unless it is told another is 0, the lowest tick's place: a bar stands on zero's.
+      ...(chart.chart === 'bar' ? { startValue: place('0') } : {}),
       ...(chart.valueTitle === undefined ? {} : { name: chart.valueTitle, nameLocation: 'end', nameTextStyle: { ...words.font } }),
-      axisTick: { show: false, customValues: ticks },
+      axisTick: { show: false, customValues: chart.ticks.map((_, index) => index) },
       splitLine: { show: true, lineStyle: { color: GRID.color, width: GRID.width } },
       axisLabel: {
-        customValues: labelled.map(({ exact }) => Number(exact)),
+        customValues: labelled.map(({ index }) => index),
         ...words.font,
-        formatter: (at: number, index: number) => {
-          const tick = nth(labelled, index, 'labelled tick', chart.id)
-          if (at !== Number(tick.exact)) throw new Error(`the chart ${chart.id} was asked for labelled tick ${String(index)} at another value`)
+        formatter: (placed: number, index: number) => {
+          const { index: tickPlace, tick } = nth(labelled, index, 'labelled tick', chart.id)
+          if (placed !== tickPlace) throw new Error(`the chart ${chart.id} was asked for labelled tick ${String(index)} at another place`)
           return tick.text
         },
       },
     },
-    series: chart.series.map((series, index) => (chart.chart === 'bar' ? barSeries(chart, series, index, words) : lineSeries(chart, series, index, words))),
+    series: chart.series.map((series, index) =>
+      chart.chart === 'bar' ? barSeries(chart, series, index, words, place) : lineSeries(chart, series, index, words, place),
+    ),
   }
 }
 
-/** One series of bars: each filled in its colour with no border, its value's label above its end, below it for a bar below zero. */
-function barSeries(chart: AxisChart, { color, values }: ChartSeriesValues, index: number, words: ChartFace): BarSeriesOption {
+/** One series of bars, each at its value's place: filled in its colour with no border, its value's label above its end, below it for a bar below zero. */
+function barSeries(chart: AxisChart, { color, values }: ChartSeriesValues, index: number, words: ChartFace, place: (exact: string) => number): BarSeriesOption {
   return {
     type: 'bar',
     name: seriesKey(index),
     data: values.map((each) => {
       if (each === null) return null
-      const at = Number(each.exact)
+      const at = place(each.exact)
       return chart.valueLabels && each.exact.startsWith('-') ? { value: at, label: { position: 'bottom' } } : at
     }),
     barCategoryGap: `${String(BAR_CATEGORY_GAP * 100)}%`,
@@ -297,15 +350,21 @@ function barSeries(chart: AxisChart, { color, values }: ChartSeriesValues, index
 
 /**
  * One line: stroked in its colour, broken where it has no value, each
- * value a marker filled in its colour with no border, its label above it.
- * Every category is labelled, so ECharts hides no marker (LineView.js
- * `getIsIgnoreFunc`).
+ * value a marker at its place, filled in its colour with no border, its
+ * label above it. Every category is labelled, so ECharts hides no marker
+ * (LineView.js `getIsIgnoreFunc`).
  */
-function lineSeries(chart: AxisChart, { color, values }: ChartSeriesValues, index: number, words: ChartFace): LineSeriesOption {
+function lineSeries(
+  chart: AxisChart,
+  { color, values }: ChartSeriesValues,
+  index: number,
+  words: ChartFace,
+  place: (exact: string) => number,
+): LineSeriesOption {
   return {
     type: 'line',
     name: seriesKey(index),
-    data: values.map((each) => (each === null ? null : Number(each.exact))),
+    data: values.map((each) => (each === null ? null : place(each.exact))),
     connectNulls: false,
     symbol: 'circle',
     symbolSize: 2 * POINT_RADIUS,

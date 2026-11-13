@@ -52,13 +52,17 @@ const AXIS = {
 
 /**
  * `AXIS` as the drawing hands a bar or a line chart to ECharts, in `faces`:
- * categories and series by key, the axis fixed at the runtime's ticks, and
- * every word looked up by index; a line chart of the first series alone,
- * since two series' value labels on a line would meet.
+ * categories and series by key, the axis fixed at the runtime's ticks in
+ * places -- tick i at i, a value at its distance from the lowest in
+ * intervals, which for these evenly spaced values a double works out --
+ * and every word looked up by index; a line chart of the first series
+ * alone, since two series' value labels on a line would meet.
  */
 function axisOption(kind: 'bar' | 'line', { words, title }: ChartFaces): EChartsCoreOption {
   const series = kind === 'line' ? AXIS.series.slice(0, 1) : AXIS.series
-  const ticks = AXIS.ticks.map(Number)
+  const [lowest, next] = AXIS.ticks.map(Number)
+  const placeOf = (exact: string): number => (Number(exact) - lowest!) / (next! - lowest!)
+  const ticks = AXIS.ticks.map((_, index) => index)
   return {
     title: { text: AXIS.title, left: 'center', top: 0, textStyle: title!.font },
     textStyle: words.font,
@@ -86,8 +90,9 @@ function axisOption(kind: 'bar' | 'line', { words, title }: ChartFaces): ECharts
     },
     yAxis: {
       type: 'value',
-      min: ticks[0],
-      max: ticks.at(-1),
+      min: 0,
+      max: ticks.length - 1,
+      ...(kind === 'bar' ? { startValue: placeOf('0') } : {}),
       name: AXIS.valueTitle,
       nameTextStyle: words.font,
       axisTick: { show: false, customValues: ticks },
@@ -97,7 +102,7 @@ function axisOption(kind: 'bar' | 'line', { words, title }: ChartFaces): ECharts
     series: series.map(({ values }, index) => ({
       type: kind,
       name: `s${String(index)}`,
-      data: values.map(Number),
+      data: values.map(placeOf),
       label: { show: true, position: 'top', ...words.font, formatter: ({ dataIndex }: { dataIndex: number }) => looked(values, dataIndex) },
     })),
   }

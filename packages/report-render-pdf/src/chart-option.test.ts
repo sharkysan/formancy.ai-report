@@ -73,6 +73,19 @@ const LINE: AxisChart = {
   style: { color: INK },
 }
 
+/** Two lines over the same four categories and a legend of both, no value labelled: two series' labels at one category could only meet. */
+const LINES: AxisChart = {
+  ...LINE,
+  id: 'lines',
+  title: 'Saldi',
+  series: [LINE.series[0]!, { color: '#d62728', values: [value('10', '10.00'), value('20', '20.00'), value('40', '40.00'), value('60', '60.00')] }],
+  valueLabels: false,
+  legend: [
+    { text: 'Konto A', color: '#2ca02c' },
+    { text: 'Konto B', color: '#d62728' },
+  ],
+}
+
 /** Three slices, each value printed in its legend entry. */
 const PIE: PieChart = {
   kind: 'chart',
@@ -176,11 +189,30 @@ const gridlines = (svg: string): number[] =>
     ([, y]) => Number(y),
   )
 
-/** The pixel a value stands at, read from the laid-out chart for each of `exacts`. */
-const pixels =
-  (exacts: readonly string[]) =>
+/** The pixel each of `places` stands at on the laid-out chart's value axis, tick i standing at place i. */
+const atPlaces =
+  (places: readonly number[]) =>
   (laid: EChartsType): number[] =>
-    exacts.map((exact) => laid.convertToPixel({ yAxisIndex: 0 }, Number(exact)))
+    places.map((place) => laid.convertToPixel({ yAxisIndex: 0 }, place))
+
+/** Where `exact` stands in `PLOT` on an axis of `ticks`, the lowest at its foot, to the thousandth: by doubles, which the well-spaced values of `BARS` and `LINE` stand at as exactly. */
+const plotY = (exact: string, ticks: readonly ChartValue[]): number => {
+  const [lowest, highest] = [Number(ticks[0]!.exact), Number(ticks.at(-1)!.exact)]
+  return thousandths(PLOT.top + PLOT.height * (1 - (Number(exact) - lowest) / (highest - lowest)))
+}
+
+/** Each line marker's centre in `svg`, filled in `color`: zrender writes a marker as a unit circle scaled and moved by a matrix. */
+const markersOf = (svg: string, color: string): { readonly x: number; readonly y: number }[] =>
+  [...svg.matchAll(new RegExp(`transform="matrix\\([\\d.]+,0,0,[\\d.]+,([\\d.]+),([\\d.]+)\\)" fill="${color}"`, 'g'))].map(([, x, y]) => ({
+    x: Number(x),
+    y: Number(y),
+  }))
+
+/** Each bar in `svg`: where it stands, the base zrender draws it from, and where it ends. */
+const barsOf = (svg: string): { readonly base: number; readonly end: number; readonly fill: string }[] =>
+  [...svg.matchAll(/<path d="M-?[\d.]+ (-?[\d.]+)l-?[\d.]+ 0l0 (-?[\d.]+)l-?[\d.]+ 0Z" fill="(#[0-9a-f]{6})"[^>]*ecmeta_ssr_type="chart"/g)].map(
+    ([, base = '', height = '', fill = '']) => ({ base: Number(base), end: thousandths(Number(base) + Number(height)), fill }),
+  )
 
 /** One element `svg` paints with, as zrender writes it. */
 interface Paint {
@@ -221,11 +253,13 @@ const thousandths = (n: number): number => Math.round(n * 1000) / 1000
 describe('the option ECharts is handed', () => {
   // An axis ECharts chose would be a double's ticks and labels of its
   // own, and the chart could print a number the table does not, or a
-  // gridline no tick stands at. The axis is the runtime's ticks, its range
-  // their first and last, and ECharts draws a gridline at each of them and
-  // at nothing else, each where the axis places its tick -- over the
-  // runtime's table of ranges (`chart-ticks.test.ts`) and a 40-digit total
-  // -- and ticks no double tells apart are refused, never drawn as one.
+  // gridline no tick stands at. The axis is the runtime's ticks, each at
+  // its place -- the lowest at 0, the highest at the last index -- and
+  // ECharts draws a gridline at each of them and at nothing else, evenly
+  // from the plot's foot to its top, over the runtime's table of ranges
+  // (`chart-ticks.test.ts`) and a 40-digit total. An axis of one tick, of
+  // ticks that do not ascend evenly, or of a value that is no decimal, is
+  // the runtime's error, never drawn.
   test(
     "hands ECharts the runtime's ticks as the axis, and no other",
     async () => {
@@ -258,37 +292,150 @@ describe('the option ECharts is handed', () => {
         // The plot's height a whole multiple of the intervals, as the drawing snaps it.
         const plot = { ...PLOT, height: (ticks.length - 1) * 30 }
         const option = chartOption(chart, measuredFaces.faces, { tickEvery: 1, plot })
-        const numbers = exacts.map(Number)
+        const places = exacts.map((_, index) => index)
         expect(at(option, 'yAxis', 'type')).toBe('value')
-        expect([at(option, 'yAxis', 'min'), at(option, 'yAxis', 'max')]).toEqual([numbers[0], numbers.at(-1)])
-        expect(at(option, 'yAxis', 'axisTick', 'customValues')).toEqual(numbers)
-        expect(at(option, 'yAxis', 'axisLabel', 'customValues')).toEqual(numbers)
-        const { svg, read } = drawn(chart, measuredFaces, { tickEvery: 1, plot }, pixels(exacts))
-        expect(gridlines(svg).map(thousandths), exacts.join(' ')).toEqual(read!.map(thousandths))
+        expect([at(option, 'yAxis', 'min'), at(option, 'yAxis', 'max')]).toEqual([0, exacts.length - 1])
+        expect(at(option, 'yAxis', 'axisTick', 'customValues')).toEqual(places)
+        expect(at(option, 'yAxis', 'axisLabel', 'customValues')).toEqual(places)
+        const { svg } = drawn(chart, measuredFaces, { tickEvery: 1, plot })
+        expect(gridlines(svg), exacts.join(' ')).toEqual(places.map((place) => plot.top + (exacts.length - 1 - place) * 30))
         expect(
           textsOf(svg).filter((text) => exacts.includes(text)),
           exacts.join(' '),
         ).toEqual(exacts)
       }
-      // Ticks of seventeen whole digits, a twentieth apart, are one double, at which ECharts draws one gridline and one label for five.
-      const close = ['12345678901234567.1', '12345678901234567.15', '12345678901234567.2', '12345678901234567.25', '12345678901234567.3']
-      const refusal = (() => {
-        try {
-          chartOption({ ...BARS, chart: 'line', ticks: close.map((exact) => value(exact)) }, measuredFaces.faces, DRAWN)
-        } catch (error) {
-          if (error instanceof RenderRefusal) return error
-        }
-        throw new Error('the close ticks were handed to ECharts')
-      })()
-      expect([refusal.code, refusal.subject, refusal.message]).toEqual([
-        'unsupported',
-        'bars',
-        'the chart bars has 5 ticks too close for their size to place apart: as coordinates they stand at 1',
+      // Ticks that do not ascend, or not in equal steps, are no tick's place: the runtime's always do.
+      for (const exacts of [
+        ['10', '10'],
+        ['10', '0'],
+        ['0', '10', '15'],
       ])
+        expect(thrown(() => chartOption({ ...BARS, ticks: exacts.map((exact) => value(exact)) }, measuredFaces.faces, DRAWN))).toBe(
+          'the chart bars has ticks that do not ascend evenly',
+        )
+      // A value that is no decimal as the runtime writes one has no place: refused, quoting nothing of it.
+      for (const exact of ['1e3', '12.', '.5', '+1', '', '1,000.00']) {
+        const refusal = (() => {
+          try {
+            chartOption({ ...BARS, series: [{ color: '#1f77b4', values: [value(exact), null, null] }] }, measuredFaces.faces, DRAWN)
+          } catch (error) {
+            if (error instanceof RenderRefusal) return error
+          }
+          throw new Error(`'${exact}' was placed`)
+        })()
+        expect([refusal.code, refusal.subject, refusal.message], exact).toEqual(['unsupported', 'bars', 'the chart bars holds a value that is not a decimal'])
+      }
       // A single tick is no axis: the runtime never resolves one, and a range of nothing would place every mark at once.
       expect(thrown(() => chartOption({ ...BARS, ticks: ticksAt(['0']) }, measuredFaces.faces, DRAWN))).toBe(
         'the chart bars has 1 of the two or more ticks an axis needs',
       )
+    },
+    TIMEOUT,
+  )
+
+  // The ticks' doubles misplace what stands between ticks that share
+  // their leading digits: a line from 1000000000000000 to 1000000000000001
+  // in fifths drew its gridlines up to 8 points, and its points 3.75
+  // points, from where they stand on a plot 150 points high, and five
+  // ticks of seventeen whole digits a twentieth apart were one double, one
+  // gridline and one label (ECharts 6.1.0, 13 November 2026). On the axis
+  // of places each tick stands at its index and each value at its distance
+  // from the lowest tick in intervals, worked out from the runtime's
+  // decimals exactly but for the one division that makes it a coordinate:
+  // every gridline, label and point stands where it is, below zero as
+  // above; and a value of 308 digits at 20 places, which as a double less
+  // another would be infinite, stands at its place too.
+  test(
+    'places every tick, label and value exactly, however close the ticks stand for their size',
+    async () => {
+      const measuredFaces = await facesOf(LINE)
+      /** A line through `values` over an axis of `ticks`, each printed as it is written, in a plot of `intervals` of 30 points. */
+      const lineOf = (ticks: readonly string[], values: readonly string[]) => {
+        const chart: AxisChart = {
+          ...LINE,
+          categories: values.map((_, index) => `K${String(index)}`),
+          series: [{ color: '#2ca02c', values: values.map((exact) => value(exact)) }],
+          ticks: ticks.map((exact) => value(exact)),
+          valueLabels: false,
+        }
+        const { svg } = drawn(chart, measuredFaces, { tickEvery: 1, plot: { ...PLOT, height: (ticks.length - 1) * 30 } })
+        return {
+          gridlines: gridlines(svg),
+          labels: wordsOf(svg)
+            .filter(({ text }) => ticks.includes(text))
+            .map(({ text, y }) => [text, y]),
+          points: markersOf(svg, '#2ca02c').map(({ y }) => y),
+        }
+      }
+      const fifths = ['1000000000000000', '1000000000000000.2', '1000000000000000.4', '1000000000000000.6', '1000000000000000.8', '1000000000000001']
+      const sixLines = [170.5, 140.5, 110.5, 80.5, 50.5, 20.5]
+      expect(lineOf(fifths, ['1000000000000000.1', '1000000000000000.5', '1000000000000000.9'])).toEqual({
+        gridlines: sixLines,
+        labels: fifths.map((tick, index) => [tick, sixLines[index]]),
+        points: [155.5, 95.5, 35.5],
+      })
+      const twentieths = ['12345678901234567.1', '12345678901234567.15', '12345678901234567.2', '12345678901234567.25', '12345678901234567.3']
+      const fiveLines = [140.5, 110.5, 80.5, 50.5, 20.5]
+      expect(lineOf(twentieths, ['12345678901234567.1', '12345678901234567.3'])).toEqual({
+        gridlines: fiveLines,
+        labels: twentieths.map((tick, index) => [tick, fiveLines[index]]),
+        points: [140.5, 20.5],
+      })
+      const belowZero = ['-1000000000000001', '-1000000000000000.8', '-1000000000000000.6', '-1000000000000000.4', '-1000000000000000.2', '-1000000000000000']
+      expect(lineOf(belowZero, ['-1000000000000000.9', '-1000000000000000.5', '-1000000000000000.1'])).toEqual({
+        gridlines: sixLines,
+        labels: belowZero.map((tick, index) => [tick, sixLines[index]]),
+        points: [155.5, 95.5, 35.5],
+      })
+      // 1.5 times 10 to the 307th and a fraction of twenty places: 328 digits of units, the runtime's ticks for it from zero to 2 times 10 to the 307th in fifths of 10 to the 308th.
+      const huge = `15${'0'.repeat(306)}.12345678901234567890`
+      const tens = ['0', `5${'0'.repeat(306)}`, `1${'0'.repeat(307)}`, `15${'0'.repeat(306)}`, `2${'0'.repeat(307)}`]
+      const bar: AxisChart = {
+        ...BARS,
+        categories: ['A'],
+        series: [{ color: '#1f77b4', values: [value(huge)] }],
+        ticks: tens.map((exact) => value(exact)),
+        valueLabels: false,
+        legend: [],
+      }
+      const { svg } = drawn(bar, measuredFaces, { tickEvery: 1, plot: { ...PLOT, height: 120 } })
+      expect(barsOf(svg)).toEqual([{ base: 140.5, end: 50.5, fill: '#1f77b4' }])
+    },
+    TIMEOUT,
+  )
+
+  // On the axis of places the lowest tick stands at 0, and ECharts draws a
+  // bar from its axis's start value, 0 unless it is told another: on an
+  // axis that reaches below zero every bar would stand on the lowest tick,
+  // each length a lie by the intervals under zero. Each bar stands on the
+  // zero gridline and ends at its value, below zero as above it; on an
+  // axis from zero, on the plot's foot.
+  test(
+    'stands each bar on zero, however far below zero its axis reaches',
+    async () => {
+      const below = drawn(BARS, await facesOf(BARS), DRAWN).svg
+      const zero = plotY('0', BARS.ticks)
+      expect(zero).toBe(120.5)
+      expect(gridlines(below)).toContain(zero)
+      expect(barsOf(below)).toEqual([
+        { base: zero, end: 90.5, fill: '#1f77b4' },
+        { base: zero, end: 150.5, fill: '#1f77b4' },
+        { base: zero, end: 50.5, fill: '#ff7f0e' },
+        { base: zero, end: 75.5, fill: '#ff7f0e' },
+        { base: zero, end: 110.5, fill: '#ff7f0e' },
+      ])
+      const fromZero: AxisChart = {
+        ...BARS,
+        series: [{ color: '#1f77b4', values: [value('120'), value('480'), value('300')] }],
+        ticks: ticksAt(['0', '100', '200', '300', '400', '500']),
+        valueLabels: false,
+        legend: [],
+      }
+      expect(barsOf(drawn(fromZero, await facesOf(fromZero), DRAWN).svg)).toEqual([
+        { base: 170.5, end: 134.5, fill: '#1f77b4' },
+        { base: 170.5, end: 26.5, fill: '#1f77b4' },
+        { base: 170.5, end: 80.5, fill: '#1f77b4' },
+      ])
     },
     TIMEOUT,
   )
@@ -311,9 +458,9 @@ describe('the option ECharts is handed', () => {
       expect(thrown(() => format(bars, category, 'c1', 0.5))).toBe('the chart bars was asked for category 0.5 of 3')
       expect(thrown(() => format(bars, category, 'c1', 0))).toBe("the chart bars was asked for category 0 by another category's key")
       const tick = ['yAxis', 'axisLabel', 'formatter'] as const
-      expect([-50, 0, 50, 100].map((number, index) => format(bars, tick, number, index))).toEqual(['-50.00', '0.00', '50.00', '100.00'])
-      expect(thrown(() => format(bars, tick, 150, 4))).toBe('the chart bars was asked for labelled tick 4 of 4')
-      expect(thrown(() => format(bars, tick, 50, 1))).toBe('the chart bars was asked for labelled tick 1 at another value')
+      expect([0, 1, 2, 3].map((place, index) => format(bars, tick, place, index))).toEqual(['-50.00', '0.00', '50.00', '100.00'])
+      expect(thrown(() => format(bars, tick, 4, 4))).toBe('the chart bars was asked for labelled tick 4 of 4')
+      expect(thrown(() => format(bars, tick, 2, 1))).toBe('the chart bars was asked for labelled tick 1 at another place')
       const legend = ['legend', 'formatter'] as const
       expect([format(bars, legend, 's0'), format(bars, legend, 's1')]).toEqual(['Plan', 'Ist'])
       expect(thrown(() => format(bars, legend, 's2'))).toBe('the chart bars was asked for a legend entry by a key it does not have, of 2')
@@ -347,7 +494,7 @@ describe('the option ECharts is handed', () => {
         'legend/0',
         'legend/1',
       ])
-      for (const chart of [BARS, LINE, PIE]) {
+      for (const chart of [BARS, LINE, LINES, PIE]) {
         const layout = drawnLayout(chart)
         const { svg } = drawn(chart, await facesOf(chart), layout)
         expect(sorted(textsOf(svg)), chart.id).toEqual(sorted(chartWords(chart, layout).map(({ text }) => text)))
@@ -365,7 +512,7 @@ describe('the option ECharts is handed', () => {
   test(
     "names every colour it paints, each the palette's or the renderer's",
     async () => {
-      for (const chart of [BARS, LINE, PIE]) {
+      for (const chart of [BARS, LINE, LINES, PIE]) {
         const measuredFaces = await facesOf(chart)
         const layout = drawnLayout(chart)
         const option = chartOption(chart, measuredFaces.faces, layout)
@@ -475,14 +622,14 @@ describe('the option ECharts is handed', () => {
       for (const [every, indices] of Object.entries(labelled)) {
         const layout = { tickEvery: Number(every), plot: PLOT }
         const option = chartOption(chart, measuredFaces.faces, layout)
-        expect(at(option, 'yAxis', 'axisTick', 'customValues'), every).toEqual(exacts.map(Number))
-        expect(at(option, 'yAxis', 'axisLabel', 'customValues'), every).toEqual(indices.map((index) => Number(exacts[index])))
+        expect(at(option, 'yAxis', 'axisTick', 'customValues'), every).toEqual([0, 1, 2, 3, 4, 5])
+        expect(at(option, 'yAxis', 'axisLabel', 'customValues'), every).toEqual(indices)
         const ticks = chartWords(chart, layout).filter(({ key }) => key.startsWith('tick/'))
         expect(
           ticks.map(({ key }) => key),
           every,
         ).toEqual(indices.map((index) => `tick/${String(index)}`))
-        const { svg, read } = drawn(chart, measuredFaces, layout, pixels(exacts))
+        const { svg, read } = drawn(chart, measuredFaces, layout, atPlaces([0, 1, 2, 3, 4, 5]))
         expect(gridlines(svg).map(thousandths), every).toEqual(read!.map(thousandths))
         const printed = wordsOf(svg).filter(({ text }) => chart.ticks.some((tick) => tick.text === text))
         expect(
@@ -507,7 +654,8 @@ describe('the option ECharts is handed', () => {
     "keeps the category axis at the plot's foot",
     async () => {
       for (const chart of [LINE, BARS]) {
-        const { svg, read } = drawn(chart, await facesOf(chart), DRAWN, pixels(['-50', '0']))
+        // The lowest tick, -50, and zero, the next.
+        const { svg, read } = drawn(chart, await facesOf(chart), DRAWN, atPlaces([0, 1]))
         const [foot, zero] = read!
         const axisLines = [
           ...svg.matchAll(new RegExp(`<path d="M[\\d.]+ ([\\d.]+)L[\\d.]+ ([\\d.]+)"[^>]*stroke="${AXIS.color}" stroke-width="${String(AXIS.width)}"`, 'g')),
@@ -541,8 +689,12 @@ describe('the option ECharts is handed', () => {
   // each bar, slice and marker filled in its colour and stroked not at
   // all, a marker a circle of POINT_RADIUS; each line stroked in its
   // colour at LINE_WIDTH, broken where a value is missing; a swatch for
-  // each legend entry, a square an em on a side; and, but for the words,
-  // nothing else.
+  // each legend entry, a square an em on a side, a line's as a bar's,
+  // which ECharts would otherwise draw as a line through a marker; and,
+  // but for the words, nothing else. The option names the background
+  // transparent and the category axis's ticks off, as the contract does:
+  // ECharts' defaults in 6.1.0, the second only because the axis has a
+  // boundary gap, held where the option names them.
   test(
     'paints its marks, its lines and its swatches, and nothing else',
     async () => {
@@ -561,6 +713,16 @@ describe('the option ECharts is handed', () => {
           [`stroke #2ca02c ${String(LINE_WIDTH)}`]: 1,
           'fill #2ca02c': 3,
         },
+        lines: {
+          [`stroke ${GRID.color} ${String(GRID.width)}`]: 4,
+          [`stroke ${AXIS.color} ${String(AXIS.width)}`]: 1,
+          [`stroke #2ca02c ${String(LINE_WIDTH)}`]: 1,
+          [`stroke #d62728 ${String(LINE_WIDTH)}`]: 1,
+          'fill #2ca02c': 3,
+          'fill #d62728': 4,
+          [`swatch #2ca02c ${String(SWATCH_BORDER)}`]: 1,
+          [`swatch #d62728 ${String(SWATCH_BORDER)}`]: 1,
+        },
         pie: {
           'fill #1f77b4': 1,
           'fill #ff7f0e': 1,
@@ -570,9 +732,12 @@ describe('the option ECharts is handed', () => {
           [`swatch #2ca02c ${String(SWATCH_BORDER)}`]: 1,
         },
       }
-      for (const chart of [BARS, LINE, PIE]) {
+      for (const chart of [BARS, LINE, LINES, PIE]) {
         const layout = drawnLayout(chart)
         const measuredFaces = await facesOf(chart)
+        const option = chartOption(chart, measuredFaces.faces, layout)
+        expect(at(option, 'backgroundColor'), chart.id).toBe('transparent')
+        expect(at(option, 'xAxis', 'axisTick', 'show'), chart.id).toBe(chart.chart === 'pie' ? undefined : false)
         const painted = paintsOf(drawn(chart, measuredFaces, layout).svg).filter(
           ({ element, fill, stroke, strokeWidth }) => element !== 'text' && (paints(fill) || paints(stroke, strokeWidth)),
         )
@@ -618,7 +783,8 @@ describe('the option ECharts is handed', () => {
     async () => {
       for (const chart of [BARS, LINE]) {
         const values = chart.series.flatMap(({ values: each }) => each.flatMap((held) => (held === null ? [] : [held])))
-        const { svg, read } = drawn(chart, await facesOf(chart), DRAWN, pixels(values.map(({ exact }) => exact)))
+        const { svg } = drawn(chart, await facesOf(chart), DRAWN)
+        const read = values.map(({ exact }) => plotY(exact, chart.ticks))
         const words = wordsOf(svg)
         const word = (text: string) => words.find((each) => each.text === text)!
         const foot = PLOT.top + PLOT.height
@@ -630,9 +796,11 @@ describe('the option ECharts is handed', () => {
         const lowestLabel = Math.max(...chart.categories.map((text) => word(text).y))
         expect([thousandths(word(chart.categoryTitle!).x), word(chart.categoryTitle!).y > lowestLabel], chart.id).toEqual([PLOT.left + PLOT.width / 2, true])
         expect([word(chart.valueTitle!).x, word(chart.valueTitle!).y < PLOT.top], chart.id).toEqual([PLOT.left, true])
+        // At its end, ECharts' default for a value axis's title, which the option names.
+        expect(at(chartOption(chart, (await facesOf(chart)).faces, DRAWN), 'yAxis', 'nameLocation'), chart.id).toBe('end')
         const beyond = values.map(({ exact, text }, index) => {
           const below = chart.chart === 'bar' && exact.startsWith('-')
-          return below ? word(text).y > read![index]! : word(text).y < read![index]!
+          return below ? word(text).y > read[index]! : word(text).y < read[index]!
         })
         expect(beyond, chart.id).toEqual(values.map(() => true))
       }
@@ -653,7 +821,7 @@ describe('the option ECharts is handed', () => {
   test(
     'borders nothing it fills, and colours every word',
     async () => {
-      for (const chart of [BARS, LINE, PIE]) {
+      for (const chart of [BARS, LINE, LINES, PIE]) {
         const measuredFaces = await facesOf(chart)
         const layout = drawnLayout(chart)
         const option = chartOption(chart, measuredFaces.faces, layout)
@@ -712,7 +880,7 @@ describe('the option ECharts is handed', () => {
       const probes = new Set(['国', 'a'])
       const asks: Asked[] = []
       const printed = new Set<string>()
-      for (const chart of [BARS, LINE, PIE]) {
+      for (const chart of [BARS, LINE, LINES, PIE]) {
         const measuredFaces = await facesOf(chart, { size: 6.5, color: INK })
         const layout = drawnLayout(chart)
         asks.push(drawn(chart, measuredFaces, layout).asked)
@@ -723,6 +891,7 @@ describe('the option ECharts is handed', () => {
       const measures = asks.flatMap(({ measures: each }) => each.map(([text]) => text))
       expect(new Set(measures.filter((text) => !probes.has(text)))).toEqual(printed)
       expect(asks.map(({ canvases, images }) => [canvases, images])).toEqual([
+        [0, 0],
         [0, 0],
         [0, 0],
         [0, 0],
@@ -742,9 +911,10 @@ describe('the option ECharts is handed', () => {
     'lays the plot out in the bands, or exactly where the layout puts it, and a pie in its square',
     async () => {
       const measuredFaces = await facesOf(BARS)
+      // The lowest tick's place and the highest's, and the first category's.
       const corners = (laid: EChartsType): number[] => [
-        laid.convertToPixel({ yAxisIndex: 0 }, -50),
-        laid.convertToPixel({ yAxisIndex: 0 }, 100),
+        laid.convertToPixel({ yAxisIndex: 0 }, 0),
+        laid.convertToPixel({ yAxisIndex: 0 }, 3),
         laid.convertToPixel({ xAxisIndex: 0 }, 'c0'),
       ]
       const placed = drawn(BARS, measuredFaces, DRAWN, corners).read!
