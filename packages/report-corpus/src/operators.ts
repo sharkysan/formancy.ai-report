@@ -99,17 +99,22 @@ const twoThirds = (end: Point, control: Point): Point => [end[0] + (2 * (control
 /**
  * `data`'s subpaths on the page, each the points it runs through -- a
  * part's last two numbers are where it ends -- and each curve it draws,
- * with its control points: a cubic's two, or a quadratic's one taken two
- * thirds of the way from each end.
+ * from where the path stands, which after a close is its subpath's first
+ * point, with its control points: a cubic's two, or a quadratic's one
+ * taken two thirds of the way from each end.
  */
 function outlineOf(data: ArrayLike<number> | null, ctm: Matrix, viewport: PageViewport): Pick<PdfPath, 'subpaths' | 'curves'> {
   const subpaths: Point[][] = []
   const curves: PdfCurve[] = []
+  // Whether the part before was a close, after which the path stands at its subpath's first point.
+  let closed = false
   for (let index = 0; data !== null && index < data.length;) {
     const op = data[index++]!
     const count = NUMBERS.get(op)
     if (count === undefined) throw new Error(`a path holds a part PDF.js codes ${String(op)}, which the reader does not know`)
     index += count
+    const after = closed
+    closed = op === CLOSE
     if (count === 0) continue
     const at = (from: number): Point => onPage(ctm, viewport, [data[index - from]!, data[index - from + 1]!])
     const point = at(2)
@@ -118,7 +123,7 @@ function outlineOf(data: ArrayLike<number> | null, ctm: Matrix, viewport: PageVi
       subpaths.push([point])
       continue
     }
-    const from = subpath.at(-1)!
+    const from = after ? subpath[0]! : subpath.at(-1)!
     if (op === CURVE) curves.push({ from, through: [at(6), at(4)], to: point })
     if (op === QUADRATIC) curves.push({ from, through: [twoThirds(from, at(4)), twoThirds(point, at(4))], to: point })
     subpath.push(point)

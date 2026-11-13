@@ -15,9 +15,12 @@ import { layOut, measured, planned } from './testing/echarts.js'
  * on the PDF it produced (0003): each slice read back by the corpus, each
  * curve with its control points (`PdfPath.curves`), and every point of
  * its outline held to the sector its exact share makes on the circle the
- * option handed ECharts. The four pies are those the measurement of
+ * option handed ECharts. Four pies are those the measurement of
  * 2026-11-13 found printed worst as zrender writes their arcs: blank, on
- * a circle moved 57 pt, and 5 pt and 2.2 pt off their circles.
+ * a circle moved 57 pt, and 5 pt and 2.2 pt off their circles; two are
+ * built to reach what the rewrite must hold: a quarter whose two ends
+ * round outward, which one arc between them put 0.10003 pt off, and a
+ * sliver whose rounded ends cross.
  *
  * Every option the drawing hands ECharts is recorded, passing through, so
  * that a case reads the circle a pie was laid out on as ECharts was told
@@ -40,17 +43,22 @@ interface Circle {
   readonly radius: number
 }
 
+/** Points: the farthest zrender's rounding to a tenth moves a point, half a tenth's diagonal. */
+const ROUNDING = (0.1 * Math.SQRT2) / 2
+
+/** Of the radius: how far outside its arc the cubic svg-to-pdfkit draws an arc of a sixth of a turn with stands at most, 2.386 · 10^-5 -- the longest arc it draws as one cubic. */
+const CUBIC = 2.4e-5
+
 /**
  * Points: how far every point a slice's outline draws may stand from its
- * share's sector, and every point of the sector from the outline. The
- * measurement of 2026-11-13 found 0.088 at most over 14,381 pies the
- * renderer drew with the arcs written again (`chart-arcs.ts`).
+ * share's sector on a circle of `radius`, and every point of the sector
+ * from the outline -- the bound `chart-arcs.ts` gives, by its reason.
  */
-const ON_CIRCLE = 0.1
+const onCircle = (radius: number): number => ROUNDING + CUBIC * radius
 
-/** Points between two samples of the sector's outline, and parts of a curve sampled: a curve of an eighth of a turn at a radius of 257.5 pt stands 0.005 pt off the lines between its samples. */
+/** Points between two samples of the sector's outline, and parts of a curve sampled: a curve of a sixth of a turn at a radius of 257.64 pt stands 0.00014 pt off the lines between its samples. */
 const STEP = 0.25
-const SAMPLES = 64
+const SAMPLES = 512
 
 const TURN = 2 * Math.PI
 
@@ -189,7 +197,7 @@ function deviation(outline: ReturnType<typeof outlineOf>, { centre, radius }: Ci
  * `chart` rendered alone in a bare document and read back: the page, its
  * slices -- the paths filled in each slice's colour inside the clip of
  * its box, one each -- and the circle the option handed ECharts, on the
- * page; each slice held within `ON_CIRCLE` of its sector, its measures
+ * page; each slice held within `onCircle` of its sector, its measures
  * returned.
  */
 async function drawnOnItsCircle(
@@ -210,7 +218,7 @@ async function drawnOnItsCircle(
   })
   measures.forEach(({ out, back, rim }, index) => {
     expect(
-      [out, back, rim].map((each) => each <= ON_CIRCLE),
+      [out, back, rim].map((each) => each <= onCircle(radius)),
       `slice ${String(index + 1)} of ${chart.id}: out, back and rim ${[out, back, rim].join(', ')}`,
     ).toEqual([true, true, true])
   })
@@ -251,13 +259,12 @@ describe("a pie's slices drawn on its own circle", () => {
   // the larger slice of 9998 and 2, in a square of 250 pt whose top stands
   // 0.049925 pt past a tenth, was drawn on a circle 57 pt from the pie's,
   // cut by the box, the disc left white where it belongs and painted where
-  // it does not. Every point its curves draw stands within `ON_CIRCLE` of
+  // it does not. Every point its curves draw stands within `onCircle` of
   // the circle round the pie's centre.
   test(
     "draws the larger slice of a pie of 9998 and 2 on the pie's circle",
     async () => {
-      const { measures } = await drawnOnItsCircle(pieOf('moved', ['9998', '2'], 250, 300.09985))
-      expect(measures[0]!.rim).toBeLessThanOrEqual(ON_CIRCLE)
+      await drawnOnItsCircle(pieOf('moved', ['9998', '2'], 250, 300.09985))
     },
     TIMEOUT,
   )
@@ -288,6 +295,47 @@ describe("a pie's slices drawn on its own circle", () => {
     },
     TIMEOUT,
   )
+
+  // An arc of a quarter turn or less written as one, between the two ends
+  // zrender rounds, is drawn on the circle through both: rounded outward
+  // by e1 and e2, it stands out by (e1 + e2) / (2 cos(θ/2)) at its middle,
+  // a tenth of a point for a quarter whose ends round half a tenth's
+  // diagonal straight out. The middle slice of 1, 2 and 5 in a box of
+  // 196.99998 by 197.20002 pt, a quarter whose ends zrender writes as
+  // 168.2, 28.9 and 168.2, 168.3, stood 0.10003 pt off its circle. Written
+  // in two pieces, each has an end on the pie's circle.
+  test(
+    'draws a quarter whose two ends round outward on its circle',
+    async () => {
+      const { circle } = await drawnOnItsCircle(pieOf('quarter', ['1', '2', '5'], 196.99998, 197.20002))
+      expect(circle.radius).toBeCloseTo(98.49999, 9)
+    },
+    TIMEOUT,
+  )
+
+  // Rounding crosses a sliver's ends where the pie's square stands just
+  // under half a tenth past a tenth and its centre's x a little past one:
+  // zrender writes the first slice of 30230370076 parts in 10^15, at
+  // 200.06 by 200.159998 pt, from 100, 0 to 100, 0.1, the end turned back
+  // about the pie's centre. Taken the long way round, which its flag
+  // says, the sliver would paint the whole disc in its colour; it is drawn
+  // back the little its ends cross, and the slice after it, whose ends
+  // cross the other way, the whole turn and that little more.
+  test(
+    'draws a sliver whose rounded ends cross as the sliver it is',
+    async () => {
+      const chart = pieOf('crossed', ['30230370076', '999969769629924'], 200.06, 200.159998)
+      await drawnOnItsCircle(chart)
+      // The ends zrender wrote cross about the pie's centre, so that the case holds what it says.
+      const { faces, widths } = await measured(planned(), {})
+      const { svg } = withMeasurer(faces, widths, () => layOut(drawnOption(chart), chart.width, chart.height))
+      const [move, arc] = partsOf(slicesOf(svg).get(PALETTE[0])!)
+      const point = (numbers: readonly string[]): Point => [Number(numbers.at(-2)), Number(numbers.at(-1))]
+      expect([move!.command, arc!.command, arc!.numbers[3]]).toEqual(['M', 'A', '0'])
+      expect(turnOf(point(move!.numbers), point(arc!.numbers), arc!.numbers[4]!, circleOf(chart).centre)).toBeGreaterThan(Math.PI)
+    },
+    TIMEOUT,
+  )
 })
 
 /** Each slice of `svg`, by its fill: the path ECharts writes as the chart's own. */
@@ -307,10 +355,10 @@ function turnOf(from: Point, to: Point, sweep: string, centre: Point): number {
 /**
  * `drawn`, a slice's path as the drawing returned it, held to `written`,
  * the path zrender wrote of it: every part but an arc as written, and each
- * arc as a run of arcs on `circle` -- its radius, never turned, each a
- * small arc of at most a quarter turn about its centre -- the points
- * between them on the circle and the last at the very point zrender
- * wrote.
+ * arc as a run of two arcs or more on `circle` -- its radius, never
+ * turned, each a small arc of at most a quarter turn about its centre --
+ * the points between them on the circle and the last at the very point
+ * zrender wrote.
  */
 function expectQuarters(drawn: string, written: string, { centre, radius }: Circle, what: string): void {
   const parts = partsOf(drawn)
@@ -324,6 +372,7 @@ function expectQuarters(drawn: string, written: string, { centre, radius }: Circ
       continue
     }
     const end = part.numbers.slice(-2).join(' ')
+    const first = next
     for (let reached = false; !reached; next += 1) {
       const arc = parts[next]
       expect(arc?.command, what).toBe('A')
@@ -335,6 +384,7 @@ function expectQuarters(drawn: string, written: string, { centre, radius }: Circ
       if (!reached) expect(Math.abs(apart(to, centre) - radius), what).toBeLessThan(1e-9)
       at = to
     }
+    expect(next - first, `${what}: the pieces of an arc`).toBeGreaterThanOrEqual(2)
   }
   expect(next, what).toBe(parts.length)
 }
@@ -343,15 +393,17 @@ describe("a pie's arcs as the drawing writes them", () => {
   // The converter is handed what the reader held (`chart-svg.ts`), and
   // what it draws of a slice is held to its sector by the PDF above, for
   // four pies; the drawing holds the rule for every pie: each arc ECharts
-  // writes of a slice is a run of arcs of at most a quarter turn about the
-  // pie's centre and of its radius, from and to the very points zrender
-  // wrote, so that two neighbours still meet where zrender put their
-  // common end, and a slice of no share is still no path. A pie of one
-  // slice, which zrender writes as two arcs, a whole turn but a tenth of a
-  // radian and that tenth, and pies near half a turn and near a whole one,
-  // titled and not.
+  // writes of a slice is a run of two arcs or more, each of at most a
+  // quarter turn about the pie's centre and of its radius, from and to the
+  // very points zrender wrote, so that two neighbours still meet where
+  // zrender put their common end, and a slice of no share is still no
+  // path. One arc between two ends zrender rounds can stand a tenth off
+  // its circle; of two, each has an end on it. A pie of one slice, which
+  // zrender writes as two arcs, a whole turn but a tenth of a radian and
+  // that tenth, and pies near half a turn and near a whole one, titled and
+  // not, and a quarter.
   test(
-    'writes every arc of a slice as arcs of at most a quarter turn about the pie’s centre, between the ends zrender wrote',
+    'writes every arc of a slice as two arcs or more of at most a quarter turn about the pie’s centre, between the ends zrender wrote',
     async () => {
       const pies = [
         pieOf('blank', ['9999', '1'], 160.23, 160.23),
@@ -360,6 +412,7 @@ describe("a pie's arcs as the drawing writes them", () => {
         pieOf('titled', ['45', '2', '44'], 300, 300, 'Shares'),
         pieOf('whole', ['7'], 200, 180, 'One'),
         pieOf('no-share', ['3', '0', '1'], 220, 200, 'None'),
+        pieOf('quarter', ['1', '2', '5'], 196.99998, 197.20002),
       ]
       for (const chart of pies) {
         const { faces, widths } = await measured(planned(), {}, chart.title)
@@ -382,16 +435,19 @@ describe("a pie's arcs as the drawing writes them", () => {
   // the sliver's colour. A small arc turns within half a turn, as zrender
   // flags it from the slice's exact sweep, so one whose ends cross is
   // drawn back the little they cross, and a large one whose ends meet or
-  // cross is the whole turn, either way round. Written by hand: no pie was
-  // seen to cross its ends, over 14,375 arcs of slivers all round the
-  // circle at five radii from 36 to 125 pt, nor any of 2,000,000 slivers
-  // modelled, rounded as zrender rounds (measured on 2026-11-13).
+  // cross is the whole turn, either way round. A crossing is rare -- none
+  // in 14,375 arcs of slivers all round the circle at five radii, nor in
+  // 2,000,000 slivers modelled (measured on 2026-11-13) -- but a pie can be
+  // built to make one, which the PDF above holds; here each turn is
+  // written by hand, either way round, and an arc whose ends meet turns
+  // nothing, out to the circle and back.
   test('turns an arc within the half its flag says: a sliver whose ends cross back the little they cross, a large arc whose ends meet the whole way', () => {
     const circle: Circle = { centre: [100, 100], radius: 36 }
     const path = (d: string): string => `<path d="${d}" fill="#1f77b4" ecmeta_ssr_type="chart"></path>`
-    const crossed = slicesOf(pieArcs(path('M136 100.1A36 36 0 0 1 136 100L100 100Z'), circle)).get('#1f77b4')!
-    expect(partsOf(crossed).map(({ command }) => command)).toEqual(['M', 'A', 'L', 'Z'])
-    expect(partsOf(crossed)[1]!.numbers).toEqual(['36', '36', '0', '0', '0', '136', '100'])
+    const crossed = partsOf(slicesOf(pieArcs(path('M136 100.1A36 36 0 0 1 136 100L100 100Z'), circle)).get('#1f77b4')!)
+    expect(crossed.map(({ command }) => command)).toEqual(['M', 'A', 'A', 'L', 'Z'])
+    expect(crossed.slice(1, 3).map(({ numbers }) => numbers.slice(0, 5))).toEqual(Array.from({ length: 2 }, () => ['36', '36', '0', '0', '0']))
+    expect(crossed[2]!.numbers.slice(5)).toEqual(['136', '100'])
     const whole = slicesOf(pieArcs(path('M100 64A36 36 0 1 1 100 64L100 100Z'), circle)).get('#1f77b4')!
     expect(partsOf(whole).map(({ command }) => command)).toEqual(['M', 'A', 'A', 'A', 'A', 'L', 'Z'])
     expect(
@@ -399,8 +455,12 @@ describe("a pie's arcs as the drawing writes them", () => {
         .slice(1, 5)
         .map(({ numbers }) => numbers.slice(2, 5)),
     ).toEqual(Array.from({ length: 4 }, () => ['0', '0', '1']))
-    const nothing = slicesOf(pieArcs(path('M100 64A36 36 0 0 1 100 64L100 100Z'), circle)).get('#1f77b4')!
-    expect(nothing).toBe('M100 64A36 36 0 0 1 100 64L100 100Z')
+    const nothing = partsOf(slicesOf(pieArcs(path('M100 64.05A36 36 0 0 1 100 64.05L100 100Z'), circle)).get('#1f77b4')!)
+    expect(nothing.map(({ command }) => command)).toEqual(['M', 'A', 'A', 'L', 'Z'])
+    expect(nothing.slice(1, 3).map(({ numbers }) => numbers.slice(5).map((each) => Math.round(Number(each) * 1e9) / 1e9))).toEqual([
+      [100, 64],
+      [100, 64.05],
+    ])
     // Anticlockwise, the way a sweep flag of 0 says: from noon, a quarter turn ends at nine o'clock.
     const back = partsOf(slicesOf(pieArcs(path('M100 64A36 36 0 1 0 100 64L100 100Z'), circle)).get('#1f77b4')!)
     expect(back.slice(1, 5).map(({ numbers }) => numbers[4])).toEqual(['0', '0', '0', '0'])
@@ -408,13 +468,23 @@ describe("a pie's arcs as the drawing writes them", () => {
   })
 
   // The reader holds a slice as ECharts wrote it. Written again, a path it
-  // would refuse -- a number too many, an ellipse's arc, a flag of 2 --
-  // would pass as arcs on the pie's circle, and the drawing print what
-  // ECharts never wrote, the number too many dropped. Such a slice is left
-  // as written, for the reader to refuse.
+  // would refuse -- a number too many, an ellipse's arc, a flag of 2, a
+  // radius past the box or no finite number -- would pass as arcs on the
+  // pie's circle, and the drawing print what ECharts never wrote, the
+  // number too many dropped; and an arc on another circle, as a donut's
+  // inner one, would be moved onto the pie's. A slice with an arc of any
+  // radius but the pie's, to zrender's rounding, is left as written, for
+  // the reader to refuse, or to hold as ECharts wrote it.
   test('leaves a slice the reader would refuse as written', () => {
     const circle: Circle = { centre: [100, 100], radius: 36 }
-    for (const d of ['M100 64A36 36 0 1 1 100 64 7L100 100Z', 'M100 64A36 30 0 1 1 100 64L100 100Z', 'M100 64A36 36 0 2 1 100 64L100 100Z']) {
+    for (const d of [
+      'M100 64A36 36 0 1 1 100 64 7L100 100Z',
+      'M100 64A36 30 0 1 1 100 64L100 100Z',
+      'M100 64A36 36 0 2 1 100 64L100 100Z',
+      'M100 64A1e999 1e999 0 1 1 100 64L100 100Z',
+      'M100 64A1e6 1e6 0 0 1 136 100L100 100Z',
+      'M100 64A36 36 0 0 1 136 100L105 100A5 5 0 0 0 100 95Z',
+    ]) {
       const slice = `<path d="${d}" fill="#1f77b4" ecmeta_ssr_type="chart"></path>`
       expect(pieArcs(slice, circle)).toBe(slice)
     }

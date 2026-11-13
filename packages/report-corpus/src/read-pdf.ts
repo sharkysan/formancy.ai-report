@@ -77,7 +77,8 @@ export interface PdfPath extends PdfBox {
 }
 
 /**
- * A curve a path draws, on the page: from the point before it to its end,
+ * A curve a path draws, on the page: from where the path stands -- the
+ * point before it, or after a close its subpath's first -- to its end,
  * each a point of the path's `subpaths`, through its two control points. A
  * quadratic, which PDF.js codes only in a glyph's outline, is read as the
  * cubic that draws it.

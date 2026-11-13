@@ -312,6 +312,25 @@ describe('readPdf', () => {
     ])
   })
 
+  // A close draws back to its subpath's first point, and a curve after it
+  // with no move starts there (PDF 32000-1, 8.5.2.1): read from the point
+  // before the close, it would bend from the wrong place.
+  test('reads a curve after a close from its subpath’s first point', async () => {
+    const document = await PDFDocument.create()
+    document
+      .addPage([595.28, 841.89])
+      .pushOperators(...group(moveTo(100, 500), lineTo(200, 500), lineTo(200, 600), closePath(), appendBezierCurve(150, 650, 120, 650, 100, 600), fill()))
+    const [path] = (await readPdf(await document.save())).pages[0]!.paths
+    expect(path!.curves.map(({ from, through, to }) => [from, ...through, to].map((point) => point.map(hundredths)))).toEqual([
+      [
+        [100, 341.89],
+        [150, 191.89],
+        [120, 191.89],
+        [100, 241.89],
+      ],
+    ])
+  })
+
   // PDF.js codes a quadratic curve only in a glyph's outline, never in a
   // page's path; one read as its end alone would draw as a line. It is
   // read as the cubic that draws it, its control points two thirds of the
