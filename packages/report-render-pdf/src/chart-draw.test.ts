@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { BAND_GAP, drawChart, MIN_BAR_WIDTH, TICK_CLEARANCE, type DrawnChart } from './chart-draw.js'
 import type { ChartFace, ChartFaces } from './chart-faces.js'
 import { withMeasurer } from './chart-measure.js'
-import { barWidth, CATEGORY_LABEL_MARGIN, chartOption, chartWords, VALUE_LABEL_DISTANCE, type ChartLayout } from './chart-option.js'
+import { BAR_CATEGORY_GAP, BAR_GAP, barWidth, CATEGORY_LABEL_MARGIN, chartOption, chartWords, VALUE_LABEL_DISTANCE, type ChartLayout } from './chart-option.js'
 import type { PlacedWord } from './chart-svg.js'
 import type { FaceWidths } from './engine.js'
 import { TIMEOUT } from './testing/documents.js'
@@ -437,15 +437,20 @@ describe('a chart drawn', () => {
       expect(barWidth(width / most, 8)).toBeGreaterThanOrEqual(MIN_BAR_WIDTH)
       expect(barWidth(width / (most + 1), 8)).toBeLessThan(MIN_BAR_WIDTH)
       const over = eight(most + 1)
-      refused(
-        () => drawChart(over, FACES, WIDTHS),
-        over,
-        new RegExp(`has bars [\\d.]+ points wide, narrower than the ${String(MIN_BAR_WIDTH)} points a bar is drawn at least$`),
-      )
+      refused(() => drawChart(over, FACES, WIDTHS), over, `points wide, narrower than the ${String(MIN_BAR_WIDTH)} points a bar is drawn at least`)
       expect(drawChart({ ...over, chart: 'line', id: 'lines-over' }, FACES, WIDTHS).words.length).toBeGreaterThan(0)
     },
     TIMEOUT,
   )
+
+  // MIN_BAR_WIDTH was measured on bars of one series, whose neighbours
+  // stand a category gap apart: 0.2 of a slot, a quarter of the bar. The
+  // bars of a group stand BAR_GAP of a bar apart, so the measure holds for
+  // groups only while the two gaps are one: a change to either constant
+  // would leave a group's bars closer or further than any bar measured.
+  test('keeps the gap between the bars of a group the gap between a bar and the next category', () => {
+    expect(BAR_GAP).toBeCloseTo(BAR_CATEGORY_GAP / (1 - BAR_CATEGORY_GAP), 12)
+  })
 
   // ECharts widens a bar narrower than 1 point to 1, and a group of bars
   // so widened overflows its slot: it leaves the outer bars, and their
@@ -466,7 +471,7 @@ describe('a chart drawn', () => {
       const refusal = refused(
         () => drawChart(thin, FACES, WIDTHS),
         thin,
-        new RegExp(`has bars ([\\d.]+) points wide, narrower than the ${String(MIN_BAR_WIDTH)} points a bar is drawn at least$`),
+        `points wide, narrower than the ${String(MIN_BAR_WIDTH)} points a bar is drawn at least`,
       )
       expect(Number(/has bars ([\d.]+) points wide/.exec(refusal.message)![1])).toBeLessThan(1)
     },

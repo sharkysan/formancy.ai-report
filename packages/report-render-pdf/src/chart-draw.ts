@@ -72,24 +72,44 @@ import type { FaceWidths } from './engine.js'
 export const TICK_CLEARANCE = 1.25
 
 /**
- * Points: the narrowest a bar is drawn: the least width, rounded up to the
- * quarter point, at which every bar of a bar chart is a run of at least
- * one pixel of its colour, each channel within 8, with a white pixel,
- * within 8 of 255, before the next, in the page PDF.js draws at 2 pixels
- * to the point (the Studio's Preview at 100 % on a screen of device pixel
- * ratio 2). Measured on 2026-11-13 on a Mac (Apple M2), Node 22.23.4,
- * pdfjs-dist 6.4.299 and ECharts 6.1.0: one-series bar charts laid out by
- * ECharts at the option's gaps and drawn by `renderPdf`, bars of 0.25 to
- * 4 points in quarter-point steps, each width in ten charts that differ in
- * the width of the value axis' labels and by one category, so that the
- * bars stand at other fractions of a pixel. Every chart kept every bar
- * apart from 3.75 up; at 3.5 eight of ten did not, and under it none did.
- * The gap between two bars is a quarter of a bar, so it is the white pixel
- * that sets the least. A screen of a lower density needs more. Never under
- * ECharts' own least, 1, at which it widens the bar and drops its
- * neighbours.
+ * Points: the narrowest a bar is drawn: the least width, to the quarter
+ * point, at which every bar of a bar chart is a run of at least one pixel
+ * of its colour (each channel within 8) with a white pixel (each channel
+ * at least 247) between it and the next, in the page PDF.js draws at the
+ * Studio's Preview at 100 % on a screen of device pixel ratio 2: 96/72 CSS
+ * pixels to the point times 2, 8/3 device pixels to the point.
+ *
+ * Measured on 2026-11-13 on a Mac (Apple M2), Node 22.23.4, pdfjs-dist
+ * 6.4.299, which draws on @napi-rs/canvas 1.0.11, and ECharts 6.1.0: bar
+ * charts laid out by ECharts at the option's gaps and drawn by `renderPdf`,
+ * 3960 of them: widths of 0.25 to 5 points in quarter points, each with one,
+ * two and eight series, three tick sets (the width of the value axis'
+ * labels, which moves the plot) and 22 left margins, twenty across one
+ * device pixel from 40 points and the starters' 56.69 and 42.52. The pixel
+ * rows judged are those inside the bars, which no gridline or axis line
+ * crosses. 3.25 failed on 17 of 198 charts, 3.5 and every width above it,
+ * to 5, on none.
+ *
+ * Why it holds wherever a chart stands: zrender writes every coordinate to
+ * 0.1 point, so a gap the SVG writes is a multiple of 0.1 point, at least
+ * a quarter of the bar less 0.15 (two edges each off by 0.05, and a width
+ * by 0.05); at 3.5 that is 0.8 point, 2.13 pixels, and two pixels always
+ * hold a whole pixel the bars leave white, wherever they stand. At 3.25 it
+ * is 0.7 point, 1.87 pixels, and the failures above are those. The gap is
+ * what sets the least: a bar is a quarter of a bar from its neighbour in
+ * its slot and BAR_GAP of a bar from the next of its group, the same gap
+ * while BAR_GAP is BAR_CATEGORY_GAP over its complement (held in
+ * `chart-draw.test.ts`).
+ *
+ * Other densities, by the same sweep (132 charts to a width, from 0.25 to
+ * 10, 20 offsets across a device pixel and the starters' margins, one, two
+ * and eight series, two tick sets), the least width at which none failed:
+ * 6.25 at 4/3 pixels to the point (100 % on ratio 1), 4.25 at 2 (75 % on
+ * ratio 2), 8.25 at 1; each is where the gap's least is two pixels, and
+ * one quarter point below it some chart failed. Never under ECharts' own
+ * least, 1, at which it widens the bar and drops its neighbours.
  */
-export const MIN_BAR_WIDTH = 3.75
+export const MIN_BAR_WIDTH = 3.5
 
 /** Lines: what the bands keep between the title, or the legend, and the plot's words. Chosen. */
 export const BAND_GAP = 0.5
