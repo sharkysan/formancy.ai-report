@@ -12,11 +12,15 @@
  * The validator and the compiler judge it, as they judge any edit; the
  * compiler over the expressions such a change can reach, which
  * report-core's `fieldReaders` names, never the whole report once a
- * resolution. A field the payment part or the e-invoice reads is offered
+ * resolution. A report written in several languages is judged in each
+ * (0063): such a change leaves no error in a language its translations
+ * declare that report-core's `languageDiagnostics` did not give before,
+ * since a translated expression may read the field otherwise than its
+ * source. A field the payment part or the e-invoice reads is offered
  * nothing that changes what they print (0039): its removal is refused as
  * `read-by-part`, and that refusal is what says so.
  */
-import { compileReport, fieldReaders, tryEdit } from '@formancy/report-core'
+import { compileReport, fieldReaders, languageDiagnostics, tryEdit } from '@formancy/report-core'
 import type { CommandDescriptor, FieldReaders } from '@formancy/report-core'
 import { validateReport } from '@formancy/report-spec'
 import type { DatasetContract, DatasetRole, FieldContract, FieldFormOverride, FieldType, ReportDefinition } from '@formancy/report-spec'
@@ -49,7 +53,8 @@ export interface Resolution {
  * The report a review offers resolutions of: its hash, what reads each of
  * its fields, and what the compiler refuses of it as it stands, by code
  * and place, of each expression compiled so far -- each compiled once,
- * however many fields read it.
+ * however many fields read it -- and the errors of each language its
+ * translations declare, once asked.
  */
 export interface Offering {
   readonly report: ReportDefinition
@@ -57,11 +62,21 @@ export interface Offering {
   readonly readers: FieldReaders
   readonly refused: Set<string>
   readonly compiled: Set<string>
+  readonly languages: () => ReadonlySet<string>
 }
 
-/** What a review of `report` offers resolutions against: the report walked once, nothing compiled yet. */
+/** Each error of `report` in a language its translations declare, by language, code and place: what refuses a render in that language (0063). */
+const translatedErrors = (report: ReportDefinition): Set<string> =>
+  new Set(
+    (report.translations ?? []).flatMap(({ locale }) =>
+      languageDiagnostics(report, locale).flatMap(({ severity, code, path }) => (severity === 'error' ? [`${locale} ${code} ${path ?? ''}`] : [])),
+    ),
+  )
+
+/** What a review of `report` offers resolutions against: the report walked once, nothing compiled yet, and no language diagnosed. */
 export function offering(report: ReportDefinition, hash: string): Offering {
-  return { report, hash, readers: fieldReaders(report), refused: new Set(), compiled: new Set() }
+  let languages: ReadonlySet<string> | undefined
+  return { report, hash, readers: fieldReaders(report), refused: new Set(), compiled: new Set(), languages: () => (languages ??= translatedErrors(report)) }
 }
 
 /** Each expression diagnostic of `report` among `only`, by code and place. */
@@ -86,7 +101,8 @@ export interface Typed {
  * `descriptor` as a resolution, or undefined where the session would
  * refuse it; or, where it changes the type of the field `typed` names, or
  * whether it may be null, where the compiler refuses an expression that
- * change reaches that it did not refuse before.
+ * change reaches that it did not refuse before, or a language the report
+ * declares gives an error it did not give before.
  */
 export function offered(
   on: Offering,
@@ -102,6 +118,8 @@ export function offered(
     const only = on.readers.expressions(typed.role, typed.id)
     const before = refusedOf(on, only)
     if ([...said(outcome.report, only)].some((diagnostic) => !before.has(diagnostic))) return undefined
+    // None for a report in one language, whose own words the compiler judged above.
+    if ([...translatedErrors(outcome.report)].some((error) => !on.languages().has(error))) return undefined
   }
   return { kind, ...more, message, descriptor, expectedHash: on.hash }
 }

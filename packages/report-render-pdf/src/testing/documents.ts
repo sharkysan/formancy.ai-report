@@ -201,7 +201,12 @@ function expectedTable(table: Table): ExpectedTable {
   return {
     id: table.id,
     header: printed(table.header).map((cell) => cell.text),
-    rows: table.rows.map((row) => ({ kind: row.kind, key: normalise(row.cells[0] ?? ''), cells: printed(row.cells) })),
+    rows: table.rows.map((row) => ({
+      kind: row.kind,
+      key: normalise(row.cells[0] ?? ''),
+      cells: printed(row.cells),
+      ...(row.keepWithRows === undefined ? {} : { keepWithRows: row.keepWithRows }),
+    })),
     emptyText: table.rows.some((row) => row.kind === 'detail') ? '' : normalise(table.emptyText),
   }
 }

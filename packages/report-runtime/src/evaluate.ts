@@ -38,8 +38,10 @@ import { DEFAULT_BUDGET, Decimal, evaluate, fixedCapabilities } from '@formancy/
 import type { Capabilities, ExpressionValue } from '@formancy/expressions'
 import { compileReport, diagnose, expressionValues } from '@formancy/report-core'
 import type { CompiledExpression, Diagnostic, ExpressionValues, ReportCompilation } from '@formancy/report-core'
+import { reportIn } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import type { TypedValue } from './format.js'
+import { refuses } from './languages.js'
 import { canonicalInstant } from './values.js'
 
 /**
@@ -128,7 +130,13 @@ export interface ReportExpressions {
 }
 
 export type ExpressionsPreparation =
-  { readonly ok: true; readonly expressions: ReportExpressions } | { readonly ok: false; readonly diagnostics: readonly Diagnostic[] }
+  | {
+      readonly ok: true
+      /** The report the expressions are of: the one prepared, written in the render's locale (report-spec's `reportIn`, 0063), with no translations. */
+      readonly report: ReportDefinition
+      readonly expressions: ReportExpressions
+    }
+  | { readonly ok: false; readonly diagnostics: readonly Diagnostic[] }
 
 /** The typed value an expression's result is, or why it is not one. Exported for its test alone. */
 export function typed(result: ExpressionValue, resultType: string): TypedValue | null | { readonly code: EvaluationErrorCode; readonly what: string } {
@@ -229,13 +237,17 @@ class Evaluator implements ReportExpressions {
 }
 
 /**
- * `report`'s expressions compiled for one render, or the diagnostics that
- * refuse it: every error `diagnose` gives, which the editor shows too.
- * `report` is one the validator accepts. The evaluations of one render
- * share one budget, so a render prepares its own.
+ * `report`'s expressions compiled for one render in `locale`, or the
+ * diagnostics that refuse it: every error `diagnose` gives, which the
+ * editor shows too, that names no language or names `locale` (0063). What
+ * is compiled is `report` written in `locale`, which the render prints.
+ * `report` is one the validator accepts, and `locale` the report's own or
+ * one it declares, as `printLocale` holds it. The evaluations of one
+ * render share one budget, so a render prepares its own.
  */
-export function prepareExpressions(report: ReportDefinition): ExpressionsPreparation {
-  const errors = diagnose(report).filter(({ severity }) => severity === 'error')
+export function prepareExpressions(report: ReportDefinition, locale: string = report.locale): ExpressionsPreparation {
+  const errors = diagnose(report).filter((diagnostic) => refuses(diagnostic, locale))
   if (errors.length > 0) return { ok: false, diagnostics: errors }
-  return { ok: true, expressions: new Evaluator(report, compileReport(report)) }
+  const printed = reportIn(report, locale)
+  return { ok: true, report: printed, expressions: new Evaluator(printed, compileReport(printed)) }
 }

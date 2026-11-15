@@ -158,6 +158,16 @@ export const REPORT_ERROR_CODES = [
   'format-type-mismatch',
   /** A field or parameter bound where its type does not fit: an image field printed, sorted or grouped by; a field that is not an image drawn as one; a currency that is not a string; a choice of a form read into a field that is not a string (0042). */
   'binding-type-mismatch',
+
+  // Translations (0063).
+  /** A translation in a language the report is written in already: its own, or one translated before. */
+  'duplicate-language',
+  /** A word a translation translates that holds no letter: a separator, a number or a sign prints as written in every language. */
+  'not-a-word',
+  /** A word, or an expression that prints words, translated twice in one language. */
+  'duplicate-word',
+  /** A translation that is empty or only whitespace: a word a language left out would print nothing in its place. */
+  'blank-translation',
 ] as const
 
 export type ReportErrorCode = (typeof REPORT_ERROR_CODES)[number]

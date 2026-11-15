@@ -1,8 +1,8 @@
 import pdfmake from 'pdfmake'
 import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import { readPdf } from '@formancy/report-corpus'
-import { MAX_FONT_SIZE, MIN_FONT_SIZE, XRECHNUNG_COPY_PARAGRAPH } from '@formancy/report-runtime'
-import type { AxisChart, Block, Image, Paragraph, ResolvedDocument, Section, Table, TableColumn, TextStyle } from '@formancy/report-runtime'
+import { MAX_FONT_SIZE, MAX_KEEP_WITH_ROWS, MIN_FONT_SIZE, XRECHNUNG_COPY_PARAGRAPH } from '@formancy/report-runtime'
+import type { AxisChart, Block, Image, Paragraph, ResolvedDocument, Section, Table, TableColumn, TableRow, TextStyle } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { MAX_DEPTH } from './check.js'
@@ -383,6 +383,72 @@ describe('what is malformed', () => {
       code: 'unsupported',
       message: expect.stringContaining(`nested more than ${MAX_DEPTH} blocks deep`),
     })
+  })
+})
+
+describe("a group header's kept rows", () => {
+  /** A group header keeping `keepWithRows`, over `details` detail rows and a subtotal. */
+  const kept = (keepWithRows: unknown, details: number, kind: TableRow['kind'] = 'groupHeader'): Table =>
+    ledger('kept', [
+      { kind, cells: ['Delivery D01', '', ''], keepWithRows: keepWithRows as number },
+      ...Array.from({ length: details }, (_, index): TableRow => ({ kind: 'detail', cells: [`ROW-${index + 1}`, 'An item', '1.00'] })),
+      { kind: 'groupFooter', cells: ['Subtotal D01', '', '1.00'] },
+    ])
+
+  // The count is the runtime's, resolved against the group it made, and
+  // the renderer counts no group (0059). A document the runtime did not
+  // resolve is held to what the runtime writes -- on a group header alone,
+  // a whole number from two, the one row every header keeps being no
+  // member, to the bound, and never past the detail rows under it -- so
+  // that a row which says it keeps rows is never guessed at: a header of
+  // two rows keeping three would take the next group's header with them,
+  // and a total keeping rows would keep what nothing asked for.
+  test.each([
+    ['on a row that is no group header', kept(2, 3, 'detail'), 'row 0 of table kept keeps rows with it, and only a group header does'],
+    [
+      'of one',
+      kept(1, 3),
+      `row 0 of table kept, a group header, keeps 1 rows; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    [
+      'of none',
+      kept(0, 3),
+      `row 0 of table kept, a group header, keeps 0 rows; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    [
+      'past the bound',
+      kept(MAX_KEEP_WITH_ROWS + 1, MAX_KEEP_WITH_ROWS + 1),
+      `row 0 of table kept, a group header, keeps ${MAX_KEEP_WITH_ROWS + 1} rows; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    [
+      'that is not whole',
+      kept(2.5, 3),
+      `row 0 of table kept, a group header, keeps 2.5 rows; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    // Text where the count stands joins a row's place as text: the header at place 1 keeping '3' would have kept rows to place 13.
+    [
+      'that is not a number',
+      kept('3', 3),
+      `row 0 of table kept, a group header, keeps rows by a count of type string; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    [
+      'that is no number at all',
+      kept(Number.NaN, 3),
+      `row 0 of table kept, a group header, keeps NaN rows; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    [
+      'of nothing',
+      kept(null, 3),
+      `row 0 of table kept, a group header, keeps rows by a count of type object; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    ['past the detail rows under it', kept(3, 2), 'row 0 of table kept, a group header, keeps 3 rows, and 2 detail rows follow it'],
+  ] as const)('refuses a count %s, naming the table', async (_, table, message) => {
+    expect(await refusal(documentOf('Kept rows', [table]))).toMatchObject({ code: 'unsupported', subject: 'kept', message })
+  })
+
+  // What the runtime writes prints: two rows, and the bound over as many.
+  test.each([2, MAX_KEEP_WITH_ROWS])('prints a group header keeping %i of its rows', async (count) => {
+    expect(await refusal(documentOf('Kept rows', [kept(count, count)]))).toBe('rendered')
   })
 })
 

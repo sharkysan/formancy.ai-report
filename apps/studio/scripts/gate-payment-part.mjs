@@ -28,7 +28,7 @@
 
 import { readCodes, readPdf } from '@formancy/report-corpus'
 import { describeFocus } from './gate-measure.mjs'
-import { pdfBytes } from './gate-page.mjs'
+import { offeredPdf } from './gate-download.mjs'
 import { designViewOf, editorOf, open, previewInView, previewOf, said, settled, showing, WITHIN } from './gate-steps.mjs'
 
 /** The invoice starter's account, SIX's example QR-IBAN, as its code holds it. */
@@ -50,11 +50,10 @@ async function untilAccount(page, account) {
   let read = null
   for (;;) {
     await previewInView(page)
-    const link = previewOf(page).getByRole('link', { name: 'Download PDF', exact: true })
-    const href = (await link.count()) === 1 ? await link.evaluate((anchor) => anchor.href) : null
-    if (href !== null && href !== read) {
-      read = href
-      const bytes = await pdfBytes(page, href)
+    const pdf = await offeredPdf(page, previewOf(page), { besides: read })
+    if (pdf !== null) {
+      read = pdf.href
+      const { bytes } = pdf
       const pages = (await readPdf(bytes)).pages.length
       const codes = []
       for (let number = 1; number <= pages; number += 1) codes.push(...(await readCodes(bytes, number)))

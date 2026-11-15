@@ -1,20 +1,16 @@
 /**
  * The product page's words, in each language. Every claim is one README.md
- * or a decision record makes, and says no more than it; a fact a file here
- * states -- the release, its date, the licence's terms and version -- is
- * read from that file (scripts/inputs.mjs) and handed in, never typed.
+ * or a decision record makes, and says no more than it, and each card names
+ * the tests it rests on (`EVIDENCE`); a fact a file here states -- the
+ * release, its date, the licence's terms and version -- is read from that
+ * file (scripts/inputs.mjs) and handed in, never typed.
  * Reviewed by a person, not a test, for meaning; the suite holds what can
  * be measured (checks/).
  */
 import type { ReactNode } from 'react'
 import type { Language } from '../languages.js'
 import { FORMANCY_DATA } from '../links.js'
-import type { PageMeta } from '../pages.js'
-
-export interface Card {
-  readonly title: string
-  readonly text: ReactNode
-}
+import type { Card, Evidence, PageMeta } from '../pages.js'
 
 /** The licence's footnote's parts: the version line's, and the two links. */
 export interface Footnote {
@@ -29,15 +25,27 @@ export interface ProductCopy {
   readonly eyebrow: (version: string) => string
   readonly h1: string
   readonly lead: string
+  /**
+   * What the newest release holds, said in the hero: `version` is the
+   * changelog's newest release, and `unreleased` the link to what the
+   * source has gained since, under the changelog's Unreleased, worded
+   * `status.unreleased`. Worded to be true whether Unreleased lists
+   * anything or, right after a release, nothing. Re-read at each release
+   * (START_STATUS).
+   */
+  readonly standing: (version: string, unreleased: ReactNode) => ReactNode
   readonly actions: { readonly studio: string; readonly guide: string; readonly source: string }
-  readonly today: { readonly heading: string; readonly cards: readonly Card[] }
+  readonly topics: { readonly heading: string }
+  readonly behaves: { readonly heading: string; readonly cards: readonly Card[] }
   readonly examples: { readonly heading: string; readonly intro: string; readonly action: string }
   readonly status: {
     readonly heading: (version: string) => string
     readonly released: (date: string) => string
+    /** That the report format is still a draft, true while report-spec reads version 0 (limits.test.ts). Re-read at each release (START_STATUS). */
     readonly format: string
-    readonly missing: string
     readonly changelog: (version: string) => string
+    /** The words of the link to the changelog's Unreleased, here and in the hero's `standing`. */
+    readonly unreleased: string
     readonly npm: (name: string) => string
   }
   readonly licence: {
@@ -55,6 +63,73 @@ export interface ProductCopy {
 
 const data = <a href={FORMANCY_DATA}>Formancy Data</a>
 
+/**
+ * The tests each card of "How it behaves" rests on, one list a card, which
+ * the card shares in every language (checks/evidence.ts). The exact totals'
+ * cards rest on totals-copy.tsx's.
+ */
+const EVIDENCE = {
+  // Neither builder brings in the other: the Angular builder's closure holds
+  // no React, and the React builder's host installs no Angular builder; and
+  // the switch between them keeps the report and its undo history over one
+  // session, in jsdom and in Chromium, and the selection, in jsdom alone
+  // (studio.test.tsx's QR-bill switch; gate-switch.mjs reads no selection).
+  twoEditors: [
+    'packages/report-builder-angular/src/dependencies.test.ts',
+    'scripts/install-hosts.test.mjs',
+    'apps/studio/src/studio.test.tsx',
+    'apps/studio/scripts/gate-switch.mjs',
+  ],
+  // A word wider than its column, a page past the limit and a character
+  // the font has no glyph for, each refused, naming where it is, and no PDF
+  // written of a document refused; a final render refusing incomplete data.
+  refuses: [
+    'packages/report-render-pdf/src/widths.test.ts',
+    'packages/report-render-pdf/src/corpus.test.ts',
+    'packages/report-render-pdf/src/glyphs.test.ts',
+    'packages/report-render-pdf/src/refusals.test.ts',
+    'packages/report-runtime/src/resolve.test.ts',
+  ],
+  // The preview printed by the renderer's browser entry and read back with
+  // PDF.js; Download PDF the very bytes the paper shows; and in Chromium,
+  // every page drawn on white paper with the text it prints, and Download
+  // PDF a PDF.
+  preview: ['apps/studio/src/preview/pipeline.test.ts', 'apps/studio/src/preview/pdf-view.test.tsx', 'apps/studio/scripts/browser-test.mjs'],
+  // Each read of a field the data does not declare, named where it is;
+  // each builder listing the problems and linking each to its component;
+  // a refusal linked to the component it names, and in Chromium Enter on
+  // it putting the keyboard on that component's outline row.
+  problems: [
+    'packages/report-core/src/diagnostics/diagnose.test.ts',
+    'packages/report-builder-react/src/scenarios.test.tsx',
+    'packages/report-builder-angular/src/scenarios.test.ts',
+    'apps/studio/src/preview/problems.test.ts',
+    'apps/studio/scripts/browser-test.mjs',
+  ],
+  // The keys the core maps, the places a drag reaches as a list to choose
+  // from, the keyboard in each builder, and every scenario run in each
+  // builder in each of the editor's languages, with axe over its end.
+  keyboard: [
+    'packages/report-builder-core/src/keys.test.ts',
+    'packages/report-builder-core/src/targets.test.ts',
+    'packages/report-builder-react/src/keyboard.test.tsx',
+    'packages/report-builder-react/src/scenarios.test.tsx',
+    'packages/report-builder-angular/src/keyboard.test.ts',
+    'packages/report-builder-angular/src/scenarios.test.ts',
+  ],
+  // In Chromium, nothing asked of any address outside the built Studio
+  // while it prints, adding and printing an image included; each image
+  // asked of the host by its id and digest, and the bytes handed over
+  // drawn; and Formancy Data read best-effort, with the person's token on
+  // every request.
+  data: [
+    'apps/studio/scripts/browser-test.mjs',
+    'apps/studio/scripts/gate-images.mjs',
+    'packages/report-runtime/src/lower.test.ts',
+    'packages/report-data-provider/src/read.test.ts',
+  ],
+} satisfies Record<string, Evidence>
+
 export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
   de: {
     meta: {
@@ -65,44 +140,54 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     },
     eyebrow: (version) => `Version ${version} · Developer Preview`,
     h1: 'Paginierte PDF-Berichte, gestaltet in Ihrer Angular- oder React-Anwendung',
-    lead: 'Formancy Report ist ein Berichtsdesigner, den Sie selbst betreiben. Wer einen Bericht gestaltet, legt ihn in einem visuellen Editor an, nativ in Angular und in React; Ihre Anwendung übergibt die Daten, und der Renderer erzeugt das PDF, auf Ihrem Server oder im Browser.',
+    lead: 'Formancy Report ist ein Berichtsdesigner, den Sie selbst betreiben. Wer einen Bericht gestaltet, legt ihn in einem visuellen Editor an, den es nativ für Angular und nativ für React gibt; Ihre Anwendung übergibt die Daten, und der Renderer erzeugt das PDF, auf Ihrem Server oder im Browser. Die Summen sind exakt, und eine QR-Rechnung wird nach den Regeln von SIX geprüft, ein EPC-QR-Code nach denen des EPC.',
+    standing: (version, unreleased) => (
+      <>
+        Das neueste Release, {version}, enthält den React- und den Angular-Builder, den PDF-Renderer, exakte Summen, die QR-Rechnung und den EPC-QR-Code. Was
+        seither im Quellcode auf GitHub hinzugekommen ist, steht unter {unreleased}.
+      </>
+    ),
     actions: { studio: 'Im Studio ausprobieren', guide: 'Die Einführung lesen (Englisch)', source: 'Quellcode auf GitHub' },
-    today: {
-      heading: 'Was es heute kann',
+    topics: { heading: 'Die Themen im Einzelnen' },
+    behaves: {
+      heading: 'Wie es sich verhält',
       cards: [
         {
           title: 'Zwei native Editoren, eine Sitzung',
           text: 'Der React-Builder und der Angular-Builder sind je nativ in ihrem Framework und stellen dasselbe Editormodell dar. Wechseln Sie vom einen zum anderen: Bericht, Rückgängig-Verlauf und Auswahl bleiben erhalten. Keiner hängt vom anderen ab.',
-        },
-        {
-          title: 'Exakte Summen',
-          text: 'Beträge werden als Dezimal-Strings weitergegeben, nie als JavaScript-Zahl. Summen werden exakt berechnet und einmal gerundet, wie es der Bericht festlegt, und jeder Wert wird für Sprache und Region des Berichts formatiert.',
+          evidence: EVIDENCE.twoEditors,
         },
         {
           title: 'Lieber ablehnen als abschneiden',
           text: 'Ein Wort, breiter als seine Spalte, eine Seite zu viel, ein Zeichen, das die Schrift nicht darstellen kann: Der Renderer sagt, warum er abbricht, und liefert dann gar kein PDF – nie eines, dem etwas fehlt. Ein endgültiger Druck lehnt unvollständige Daten ab.',
+          evidence: EVIDENCE.refuses,
         },
         {
           title: 'Die Vorschau ist das PDF',
           text: 'Die Vorschau im Studio ist keine Nachbildung in HTML: Sie ist das PDF, das der Renderer erzeugt hat, von PDF.js auf weisses Papier gezeichnet, und «Download PDF» gibt Ihnen genau diese Datei.',
+          evidence: EVIDENCE.preview,
         },
         {
           title: 'Probleme vor dem Druck',
           text: 'Der Builder prüft jeden Ausdruck gegen die Felder, die die Daten des Berichts deklarieren, und sagt, was nicht stimmt, bevor etwas gedruckt wird. Kann die Vorschau nicht drucken, nennt sie die Komponente, die das verhindert – einen Tastendruck entfernt.',
+          evidence: EVIDENCE.problems,
         },
         {
           title: 'Tastatur zuerst',
           text: 'Was sich ziehen lässt, geht auch mit der Tastatur, und beide Builder werden mit axe in den drei Sprachen geprüft, die der Editor heute spricht: Englisch, Deutsch (Schweiz) und Französisch (Schweiz).',
+          evidence: EVIDENCE.keyboard,
         },
         {
-          title: 'Ihre Daten bleiben bei Ihnen',
+          title: 'Ihre Anwendung übergibt die Daten',
           text: (
             <>
-              Laufzeit und Renderer laden nichts nach und folgen keiner Adresse. Ein Bericht nennt seine Datensätze und Bilder, und Ihre Anwendung übergibt
-              beides: als eigenes JSON oder, nach bestem Bemühen (best-effort), aus einem Server von {data}, mit den Rechten der Person, deren Token Ihre
-              Anwendung mitgibt.
+              Ein Bericht nennt seine Datensätze und Bilder, und Ihre Anwendung übergibt beides: die Daten als eigenes JSON oder, nach bestem Bemühen
+              (best-effort), aus einem Server von {data}, mit den Rechten der Person, deren Token Ihre Anwendung mitgibt, und jedes Bild mit seinem Namen und
+              seinem Hashwert. Im Studio entsteht das PDF im Browser, und die Browsertests des Studios schlagen, abgesehen von blob:- und data:-Adressen, bei
+              jeder Anfrage fehl, die nicht an die Adresse geht, unter der das Studio ausgeliefert wird.
             </>
           ),
+          evidence: EVIDENCE.data,
         },
       ],
     },
@@ -117,9 +202,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       released: (date) =>
         `Veröffentlicht am ${date}. Die Pakete sind auf npm, mit Provenance, und das Release auf GitHub enthält die signierte SBOM und den Release-Bericht des Laufs, der sie veröffentlicht hat.`,
       format: 'Das Berichtsformat ist noch ein Entwurf: Dass eine spätere Version einen heute geschriebenen Bericht liest, ist nicht zugesichert.',
-      missing:
-        'Noch nicht dabei: der Server und seine Jobs, Änderungsvorschläge einer KI, die eine Person prüft, bevor sie gelten, ein veröffentlichter PDF-Viewer und konsistentes Lesen aus Formancy Data.',
       changelog: (version) => `Was ${version} enthält, im Changelog (Englisch)`,
+      unreleased: 'Unreleased, im Changelog (Englisch)',
       npm: (name) => `${name} auf npm`,
     },
     licence: {
@@ -159,44 +243,54 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     },
     eyebrow: (version) => `Version ${version} · préversion pour développeurs`,
     h1: 'Des rapports PDF paginés, conçus dans votre application Angular ou React',
-    lead: 'Formancy Report est un concepteur de rapports que vous hébergez vous-même. La personne qui conçoit le rapport le met en page dans un éditeur visuel, natif en Angular et en React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur.',
+    lead: "Formancy Report est un concepteur de rapports que vous hébergez vous-même. La personne qui conçoit le rapport le met en page dans un éditeur visuel qui existe en version native pour Angular et pour React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur. Les totaux sont exacts, et une facture QR est vérifiée selon les règles de SIX, un QR code SEPA selon celles de l'EPC.",
+    standing: (version, unreleased) => (
+      <>
+        La version la plus récente, {version}, contient le builder React et le builder Angular, le moteur de rendu PDF, les totaux exacts, la facture QR et le
+        QR code SEPA. Ce qui s'est ajouté depuis au code source sur GitHub figure sous {unreleased}.
+      </>
+    ),
+    topics: { heading: 'Les sujets en détail' },
     actions: { studio: "L'essayer dans le Studio", guide: 'Lire le guide de démarrage (en anglais)', source: 'Le code source sur GitHub' },
-    today: {
-      heading: "Ce qu'il fait aujourd'hui",
+    behaves: {
+      heading: 'Comment il se comporte',
       cards: [
         {
           title: 'Deux éditeurs natifs, une session',
           text: "Le builder React et le builder Angular sont chacun natifs dans leur framework et reposent sur un même modèle d'éditeur. Passez de l'un à l'autre : le rapport, l'historique d'annulation et la sélection sont conservés. Aucun ne dépend de l'autre.",
-        },
-        {
-          title: 'Des totaux exacts',
-          text: 'Les montants circulent sous forme de chaînes décimales, jamais comme nombre JavaScript. Les totaux sont calculés de manière exacte et arrondis une seule fois, comme le rapport le déclare, et chaque valeur est formatée selon la langue et la région du rapport.',
+          evidence: EVIDENCE.twoEditors,
         },
         {
           title: 'Il refuse plutôt que de tronquer',
           text: "Un mot plus large que sa colonne, une page de trop, un caractère que la police ne peut pas dessiner : le moteur de rendu dit pourquoi il s'arrête et ne livre aucun PDF, jamais un PDF auquel il manque quelque chose. Un rendu final refuse les données incomplètes.",
+          evidence: EVIDENCE.refuses,
         },
         {
           title: "L'aperçu est le PDF",
           text: "L'aperçu du Studio n'est pas une imitation en HTML : c'est le PDF que le moteur de rendu a généré, dessiné par PDF.js sur papier blanc, et « Download PDF » vous remet ce même fichier.",
+          evidence: EVIDENCE.preview,
         },
         {
           title: "Les problèmes avant l'impression",
           text: "Le builder vérifie chaque expression par rapport aux champs que déclarent les données du rapport, et signale ce qui ne va pas avant tout rendu. Si l'aperçu ne peut pas s'imprimer, il nomme le composant en cause, accessible d'une seule touche.",
+          evidence: EVIDENCE.problems,
         },
         {
           title: "Le clavier d'abord",
           text: "Chaque glisser-déposer a son équivalent au clavier, et les deux builders sont testés avec axe dans les trois langues que l'éditeur parle aujourd'hui : l'anglais, l'allemand (Suisse) et le français (Suisse).",
+          evidence: EVIDENCE.keyboard,
         },
         {
-          title: 'Vos données restent chez vous',
+          title: 'Votre application fournit les données',
           text: (
             <>
-              Le runtime et le moteur de rendu ne vont rien chercher et ne suivent aucune adresse. Un rapport nomme ses jeux de données et ses images, et votre
-              application fournit les deux : en JSON, ou, en mode best-effort, depuis un serveur {data}, avec les droits de la personne dont votre application
-              transmet le jeton.
+              Un rapport nomme ses jeux de données et ses images, et votre application fournit les deux : les données en JSON, ou, en mode best-effort, depuis
+              un serveur {data}, avec les droits de la personne dont votre application transmet le jeton, et chaque image par son nom et son empreinte. Dans le
+              Studio, le PDF est produit dans le navigateur, et les tests du Studio dans le navigateur échouent, adresses blob: et data: mises à part, dès
+              qu'une requête vise une autre adresse que celle où le Studio est servi.
             </>
           ),
+          evidence: EVIDENCE.data,
         },
       ],
     },
@@ -211,9 +305,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       released: (date) =>
         `Publiée le ${date}. Ses paquets sont sur npm, avec provenance, et la release sur GitHub contient le SBOM signé et le rapport de release de l'exécution qui les a publiés.`,
       format: "Le format des rapports est encore un brouillon : rien ne garantit qu'une version ultérieure lise un rapport écrit aujourd'hui.",
-      missing:
-        "Pas encore disponible : le serveur et ses tâches, les modifications proposées par une IA et revues par une personne avant de s'appliquer, un visualiseur PDF publié, et une lecture cohérente depuis Formancy Data.",
       changelog: (version) => `Ce que contient ${version}, dans le changelog (en anglais)`,
+      unreleased: 'Unreleased, dans le changelog (en anglais)',
       npm: (name) => `${name} sur npm`,
     },
     licence: {
@@ -252,44 +345,54 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     },
     eyebrow: (version) => `Versione ${version} · anteprima per sviluppatori`,
     h1: 'Report PDF impaginati, progettati nella vostra applicazione Angular o React',
-    lead: 'Formancy Report è un designer di report che ospitate voi stessi. Chi progetta un report lo impagina in un editor visuale, nativo in Angular e in React; la vostra applicazione fornisce i dati, e il renderer genera il PDF, sul vostro server o nel browser.',
+    topics: { heading: 'Gli argomenti in dettaglio' },
+    lead: "Formancy Report è un designer di report che ospitate voi stessi. Chi progetta un report lo impagina in un editor visuale che esiste in versione nativa per Angular e per React; la vostra applicazione fornisce i dati, e il renderer genera il PDF, sul vostro server o nel browser. I totali sono esatti, e una fattura QR viene verificata secondo le regole di SIX, un QR code SEPA secondo quelle dell'EPC.",
+    standing: (version, unreleased) => (
+      <>
+        La versione più recente, {version}, contiene il builder React e il builder Angular, il renderer PDF, i totali esatti, la fattura QR e il QR code SEPA.
+        Ciò che si è aggiunto da allora al codice sorgente su GitHub è elencato sotto {unreleased}.
+      </>
+    ),
     actions: { studio: 'Provarlo nello Studio', guide: 'Leggere la guida introduttiva (in inglese)', source: 'Il codice sorgente su GitHub' },
-    today: {
-      heading: 'Che cosa fa oggi',
+    behaves: {
+      heading: 'Come si comporta',
       cards: [
         {
           title: 'Due editor nativi, una sessione',
           text: "Il builder React e il builder Angular sono ciascuno nativo nel proprio framework e si basano su un unico modello di editor. Passando dall'uno all'altro, il report, la cronologia degli annullamenti e la selezione restano invariati. Nessuno dei due dipende dall'altro.",
-        },
-        {
-          title: 'Totali esatti',
-          text: 'Gli importi circolano come stringhe decimali, mai come numero JavaScript. I totali sono calcolati in modo esatto e arrotondati una sola volta, come il report dichiara, e ogni valore è formattato per la lingua e la regione del report.',
+          evidence: EVIDENCE.twoEditors,
         },
         {
           title: 'Rifiuta invece di troncare',
           text: 'Una parola più larga della sua colonna, una pagina di troppo, un carattere che il font non sa disegnare: il renderer dice perché si è fermato e non restituisce alcun PDF, mai uno a cui manchi qualcosa. Una stampa definitiva rifiuta dati incompleti.',
+          evidence: EVIDENCE.refuses,
         },
         {
           title: "L'anteprima è il PDF",
           text: "L'anteprima dello Studio non è un'imitazione in HTML: è il PDF che il renderer ha generato, disegnato da PDF.js su carta bianca, e «Download PDF» vi consegna proprio quel file.",
+          evidence: EVIDENCE.preview,
         },
         {
           title: 'I problemi prima della stampa',
           text: "Il builder verifica ogni espressione rispetto ai campi che i dati del report dichiarano, e segnala che cosa non va prima di qualsiasi stampa. Se l'anteprima non si può stampare, indica il componente che l'ha bloccata, raggiungibile con un tasto.",
+          evidence: EVIDENCE.problems,
         },
         {
           title: 'Prima la tastiera',
           text: "Ogni trascinamento ha un equivalente da tastiera, ed entrambi i builder sono verificati con axe nelle tre lingue che l'editor parla oggi: inglese, tedesco (Svizzera) e francese (Svizzera). L'italiano non ancora.",
+          evidence: EVIDENCE.keyboard,
         },
         {
-          title: 'I vostri dati restano da voi',
+          title: 'La vostra applicazione fornisce i dati',
           text: (
             <>
-              Il runtime e il renderer non caricano nulla e non seguono alcun indirizzo. Un report nomina i suoi set di dati e le sue immagini, e la vostra
-              applicazione fornisce entrambi: come JSON proprio o, in modalità best-effort, da un server {data}, con i permessi della persona di cui la vostra
-              applicazione fornisce il token.
+              Un report nomina i suoi set di dati e le sue immagini, e la vostra applicazione fornisce entrambi: i dati come JSON proprio o, in modalità
+              best-effort, da un server {data}, con i permessi della persona di cui la vostra applicazione fornisce il token, e ogni immagine con il suo nome e
+              il suo hash. Nello Studio il PDF viene prodotto nel browser, e i test dello Studio nel browser falliscono, a parte gli indirizzi blob: e data:, a
+              qualsiasi richiesta verso un indirizzo diverso da quello da cui lo Studio è servito.
             </>
           ),
+          evidence: EVIDENCE.data,
         },
       ],
     },
@@ -303,9 +406,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       released: (date) =>
         `Pubblicata il ${date}. I suoi pacchetti sono su npm, con provenance, e la release su GitHub contiene lo SBOM firmato e il rapporto di release dell'esecuzione che li ha pubblicati.`,
       format: 'Il formato dei report è ancora una bozza: non è garantito che una versione successiva legga un report scritto oggi.',
-      missing:
-        "Non ancora disponibili: il server e i suoi job, le modifiche proposte da un'IA e verificate da una persona prima di essere applicate, un visualizzatore PDF pubblicato e una lettura coerente da Formancy Data.",
       changelog: (version) => `Che cosa contiene ${version}, nel changelog (in inglese)`,
+      unreleased: 'Unreleased, nel changelog (in inglese)',
       npm: (name) => `${name} su npm`,
     },
     licence: {
@@ -344,44 +446,54 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       name: 'Formancy Report',
     },
     eyebrow: (version) => `Version ${version} · developer preview`,
+    topics: { heading: 'The topics in detail' },
     h1: 'Paginated PDF reports, designed inside your Angular or React application',
-    lead: 'Formancy Report is a report designer you host yourself. An author lays out a report in a visual editor, native in Angular and in React; your application hands over the data, and the renderer prints the PDF, on your server or in the browser.',
+    lead: "Formancy Report is a report designer you host yourself. An author lays out a report in a visual editor built natively for Angular and again for React; your application hands over the data, and the renderer prints the PDF, on your server or in the browser. Totals are exact, and a QR-bill is checked against SIX's rules and an EPC QR code against the EPC's.",
+    standing: (version, unreleased) => (
+      <>
+        The newest release, {version}, holds the React builder and the Angular builder, the PDF renderer, exact totals, the QR-bill and the EPC QR code.
+        Anything the source on GitHub has gained since is listed under {unreleased}.
+      </>
+    ),
     actions: { studio: 'Try it in the Studio', guide: 'Read the getting-started guide', source: 'Source code on GitHub' },
-    today: {
-      heading: 'What it does today',
+    behaves: {
+      heading: 'How it behaves',
       cards: [
         {
           title: 'Two native editors, one session',
           text: 'The React builder and the Angular builder are each native to their framework and render one editor model. Switch from one to the other and the report, its undo history and the selection stay. Neither depends on the other.',
-        },
-        {
-          title: 'Totals that are exact',
-          text: "Amounts travel as decimal strings, never through a JavaScript number. Totals are computed exactly and rounded once, as the report declares, and each value is formatted for the report's language and region.",
+          evidence: EVIDENCE.twoEditors,
         },
         {
           title: 'It refuses rather than truncates',
           text: 'A word wider than its column, a page too many, a character the font cannot draw: the renderer says why it stopped and returns no PDF, never one with something missing. A final render refuses incomplete data.',
+          evidence: EVIDENCE.refuses,
         },
         {
           title: 'The preview is the PDF',
           text: "The Studio's preview is no imitation in HTML: it is the PDF the renderer printed, drawn by PDF.js on white paper, and “Download PDF” hands you that same file.",
+          evidence: EVIDENCE.preview,
         },
         {
           title: 'Problems before printing',
           text: "The builder checks every expression against the fields the report's data declares, and says what is wrong before anything is rendered. A preview that cannot print names the component that stopped it, one key press away.",
+          evidence: EVIDENCE.problems,
         },
         {
           title: 'Keyboard first',
           text: 'Every drag has a keyboard path, and both builders are tested with axe in the three languages the editor speaks today: English, German (Switzerland) and French (Switzerland).',
+          evidence: EVIDENCE.keyboard,
         },
         {
-          title: 'Your data stays with you',
+          title: 'Your application hands over the data',
           text: (
             <>
-              The runtime and the renderer fetch nothing and follow no address. A report names its datasets and its images, and your application hands over
-              both: as JSON of its own or, best-effort, from a {data} server, read as the person whose token your application supplies.
+              A report names its datasets and its images, and your application hands over both: the data as JSON of its own or, best-effort, from a {data}{' '}
+              server, read as the person whose token your application supplies, and each image by its name and digest. In the Studio, the PDF is printed in the
+              browser, and the Studio's browser tests fail, blob: and data: addresses aside, on any request outside the address the Studio is served at.
             </>
           ),
+          evidence: EVIDENCE.data,
         },
       ],
     },
@@ -395,9 +507,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
       released: (date) =>
         `Released on ${date}. Its packages are on npm, with provenance, and the GitHub release carries the signed SBOM and the release report of the run that published them.`,
       format: 'The report format is still a draft: a report written now is not promised to be read by a later release.',
-      missing:
-        'Not here yet: the server and its jobs, changes an AI proposes and a person reviews before they apply, a published PDF viewer, and a consistent read from Formancy Data.',
       changelog: (version) => `What ${version} holds, in the changelog`,
+      unreleased: 'Unreleased, in the changelog',
       npm: (name) => `${name} on npm`,
     },
     licence: {

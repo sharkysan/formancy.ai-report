@@ -46,6 +46,10 @@ export const DIAGNOSTIC_SEVERITIES = {
   'e-invoice-total-unprinted': 'error',
   /** A format that prints what an e-invoice's XML holds otherwise: a total or a line's net amount at fewer than two places, or in another currency than the e-invoice's; a line's net price in another currency; a line's name in another case. The page would show another invoice than the one it carries. */
   'e-invoice-format-differs': 'error',
+  /** A word of the report, or an expression that prints words, that a language it declares does not translate: a render in that language is refused, and never prints it in another (0063). */
+  'word-missing': 'error',
+  /** A translated expression that would print another thing than the expression it translates: another type, other reads, or a value where the expression prints no words (0063). */
+  'translation-differs': 'error',
   /** A print style nothing uses. */
   'unused-style': 'warning',
   /** An asset nothing draws. */
@@ -60,6 +64,8 @@ export const DIAGNOSTIC_SEVERITIES = {
   'empty-body': 'warning',
   /** A text that prints nothing: no runs, or only empty literal ones. */
   'empty-text': 'warning',
+  /** A translation of a word, or of an expression, the report no longer prints: kept for nothing, and never printed (0063). */
+  'unused-translation': 'warning',
   /** A payment part that holds, written in the report, one of SIX's example accounts, or the creditor, the debtor or the QR reference a builder puts in from SIX's examples, which are no one's (0039). */
   'example-payment-part': 'warning',
 } as const satisfies Readonly<Record<string, 'error' | 'warning'>>
@@ -85,6 +91,8 @@ export interface Diagnostic {
   readonly position?: SourceSpan
   /** For an expression, what `@formancy/expressions` suggests writing instead, when it suggests something. */
   readonly hint?: string
+  /** The language it is about, where it is one a translation declares: an error that names one refuses a render in that language alone (0063). */
+  readonly language?: string
 }
 
 /** Where a diagnostic points, besides its path. */
@@ -94,6 +102,7 @@ export interface Where {
   readonly columnId?: string | undefined
   readonly position?: SourceSpan | undefined
   readonly hint?: string | undefined
+  readonly language?: string | undefined
 }
 
 export function diagnostic(code: DiagnosticCode, message: string, where: Where): Diagnostic {
@@ -106,5 +115,6 @@ export function diagnostic(code: DiagnosticCode, message: string, where: Where):
     ...(where.columnId === undefined ? {} : { columnId: where.columnId }),
     ...(where.position === undefined ? {} : { position: where.position }),
     ...(where.hint === undefined ? {} : { hint: where.hint }),
+    ...(where.language === undefined ? {} : { language: where.language }),
   }
 }

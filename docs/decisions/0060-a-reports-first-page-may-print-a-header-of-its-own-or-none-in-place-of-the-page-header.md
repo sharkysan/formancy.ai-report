@@ -21,7 +21,11 @@
     through `REGION_NAMES`, its page counters refused there by the
     expectation the case already derives; `src/walk.test.ts` finds its
     components between the report header's and the page header's, and
-    none for a report without it.
+    none for a report without it; `src/words.test.ts` finds its words
+    there as the report's own, which a translation writes as it writes
+    every region's
+    ([0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)),
+    and its guard reads a fixture that holds it.
   - **The editing core.** report-core's
     `src/commands/first-page-header.test.ts`: `putFirstPageHeader` adds
     the region and replaces one the report has, `removeFirstPageHeader`
@@ -43,7 +47,9 @@
     header, its own or none, with the preview's label, the e-invoice
     preview's and an XRechnung's copy paragraph, as it heads the page
     header, each header with a paragraph of its own, and a Factur-X
-    invoice's final render with neither.
+    invoice's final render with neither. Its `src/languages.test.ts`
+    prints it in a translation's words in a render in that language, as
+    it prints the page header (0063).
   - **The PDF.** report-render-pdf's `src/first-page-header.test.ts`,
     on the PDF the engine produced, read back with PDF.js through the
     corpus's checks (0003):

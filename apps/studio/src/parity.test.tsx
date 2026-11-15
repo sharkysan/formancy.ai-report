@@ -226,7 +226,9 @@ const select = (node: OutlineNode | null): EditorAction =>
  * e-invoice, where the starter has one, selected, its seller's name typed,
  * a rate refused on its field, a VAT category taken away, added, moved and
  * the three undone, its IBAN typed once for every payment code and undone,
- * and the e-invoice deleted and brought back (0044); an
+ * and the e-invoice deleted and brought back (0044); a language added at
+ * the report's level, chosen in the bar, a row of each kind selected in
+ * it, a word written in it, and the language removed (0063); an
  * image being added, Add image… pressed while it is, and the image listed,
  * then removed; undo and redo; each pane; the zoom; and the Preview shown in
  * the middle again, a pane hidden and shown beside it, the Preview placed
@@ -314,6 +316,18 @@ async function walk({ editor, react, angular, app, release }: Mounted): Promise<
     await dispatch({ type: 'delete' }, 'the e-invoice deleted')
     await dispatch({ type: 'undo' }, 'the e-invoice brought back')
   }
+  // A language added and chosen: the switch in the bar, the boxes marked
+  // missing and described so, and the fields at words with their notes,
+  // in a form of each kind (0063).
+  await dispatch(select(null), 'the report selected for its languages')
+  await dispatch({ type: 'setProperty', key: '/translations/-', value: 'fr-CH' }, 'a language added')
+  await dispatch({ type: 'setLanguage', locale: 'fr-CH' }, 'the language added shown')
+  for (const node of kinds.values()) await dispatch(select(node), `${node.label} selected in the language added`)
+  await dispatch(select(text), 'a text selected in the language added')
+  const word = editor.state().properties.fields.find((field) => field.missing === true)
+  if (word === undefined) throw new Error('a text in the language added shows no word to write')
+  await dispatch({ type: 'setProperty', key: word.key, value: 'Mot' }, 'a word written in the language added')
+  await dispatch({ type: 'removeLanguage', locale: 'fr-CH' }, 'the language removed')
   await dispatch(select(null), 'the report selected again')
   const file = { name: 'logo.png', size: SCENARIO_PNG.length, arrayBuffer: async () => Uint8Array.from(SCENARIO_PNG).buffer }
   let adding: Promise<unknown> = Promise.resolve()
@@ -361,6 +375,8 @@ describe('the two builders, side by side over one editor', () => {
             'a margin the page cannot hold, refused',
             'the QR-bill selected',
             'the QR-bill deleted',
+            'the language added shown',
+            'a word written in the language added',
             'an image being added',
             'the image removed',
             'zoomed in',

@@ -56,6 +56,13 @@ export interface TableGroup {
   /** One line across the table, read once per group. */
   readonly header: readonly Inline[]
   readonly headerStyle?: string
+  /**
+   * How many of the group's first rows its header is kept on its page
+   * with, from 1 to `MAX_KEEP_WITH_ROWS`; absent, one, the rule every group
+   * header has had. The group's own, so that each level of a later nesting
+   * states its own (0059).
+   */
+  readonly keepWithRows?: number
   readonly footer: readonly TableFooterRow[]
 }
 

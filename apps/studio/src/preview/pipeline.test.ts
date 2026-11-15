@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
+import { INVOICE_EDITIONS, INVOICE_LANGUAGES, invoiceLanguagesData, STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
 import { drawingsOn, epcCodes, readCodes, readPdf } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import { afterAll, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
@@ -142,6 +142,34 @@ describe('the preview pipeline', () => {
     const sample = await preview({ ...quotation, starter: lacking, mode: 'preview' }, new AbortController().signal)
     expect(sample.kind).toBe('printed')
     if (sample.kind === 'printed') expect(sample.warnings.length).toBeGreaterThan(0)
+  })
+
+  // The Preview prints in the language the builder shows (0063): the
+  // invoice written in four languages, previewed in French, prints its
+  // French words and names French in its manifest; one word taken out of
+  // the French, it comes back refused for it, where the German prints. A
+  // pipeline that dropped the locale would print the German invoice for
+  // a person writing the French.
+  test('prints in the language asked for, and returns the refusal of one that lacks a word', async () => {
+    const french = INVOICE_EDITIONS[1]
+    if (french === undefined) throw new Error('the invoice has no French edition')
+    const invoice = request('invoice')
+    const starter = { ...invoice.starter, data: invoiceLanguagesData(french) }
+    const printed = await preview({ ...invoice, report: INVOICE_LANGUAGES, starter, locale: 'fr-CH' }, new AbortController().signal)
+    if (printed.kind !== 'printed') throw new Error(`the French invoice was not printed: ${JSON.stringify(printed)}`)
+    expect(printed.manifest.locale).toBe('fr-CH')
+    const pdf = await readPdf(printed.pdf)
+    expect(pdf.pages.flatMap((page) => page.items.map((item) => item.text)).join(' ')).toContain('Facture')
+    const lacking = {
+      ...INVOICE_LANGUAGES,
+      translations: (INVOICE_LANGUAGES.translations ?? []).map((translation) =>
+        translation.locale === 'fr-CH' ? { ...translation, words: translation.words.slice(1) } : translation,
+      ),
+    }
+    const refused = await preview({ ...invoice, report: lacking, starter, locale: 'fr-CH' }, new AbortController().signal)
+    expect(refused.kind === 'refused' ? refused.errors.map((error) => error.code) : refused.kind).toContain('word-missing')
+    const own = await preview({ ...invoice, report: lacking, locale: 'de-CH' }, new AbortController().signal)
+    expect(own.kind).toBe('printed')
   })
 
   // What the renderer refuses -- here, the inspection's two pages against a

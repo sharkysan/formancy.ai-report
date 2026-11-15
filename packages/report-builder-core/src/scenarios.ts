@@ -21,7 +21,9 @@
  * report's QR-bill selected and edited (`scenario-payment-part.ts`), its
  * e-invoice selected and edited (`scenario-e-invoice.ts`), what page 1
  * prints at its top (`scenario-first-page.ts`), a host's view
- * (`scenario-host-view.ts`) and images (`scenario-images.ts`).
+ * (`scenario-host-view.ts`), images (`scenario-images.ts`), the rows a
+ * table's group header is kept with (`scenario-table-group.ts`) and a
+ * report's languages (`scenario-languages.ts`).
  */
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
@@ -29,10 +31,12 @@ import { PROPERTY_ROLES } from './model-properties.js'
 import { firstPageScenarios } from './scenario-first-page.js'
 import { hostViewScenarios } from './scenario-host-view.js'
 import { imageScenarios } from './scenario-images.js'
+import { languageScenarios } from './scenario-languages.js'
 import { eInvoiceScenarios } from './scenario-e-invoice.js'
 import { paymentPartScenarios } from './scenario-payment-part.js'
 import { paymentScenarios } from './scenario-payments.js'
 import { body, scenarioReport } from './scenario-report.js'
+import { tableGroupScenarios } from './scenario-table-group.js'
 import type { BuilderScenario, ScenarioQuery, ScenarioStep } from './scenario-steps.js'
 import { contentLocale, editorText, formatZoom } from './text.js'
 import type { EditorLocale } from './text.js'
@@ -296,6 +300,8 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
     ]),
     ...hostViewScenarios(locale),
     ...imageScenarios(locale),
+    ...tableGroupScenarios(locale),
+    ...languageScenarios(locale),
   ]
 }
 

@@ -240,7 +240,7 @@ describe('the outline', () => {
             return {
               ...component,
               columns: component.columns.map((column) =>
-                column.id === 'sku' ? { ...column, value: { kind: 'expression', expression: { cel: 'params.nope' } } } : column,
+                column.id === 'sku' ? { ...column, value: { kind: 'expression' as const, expression: { cel: 'params.nope' } } } : column,
               ),
             }
           return component.id === 'gap' ? { id: 'blank', kind: 'text', content: [{ kind: 'text', text: '' }] } : component

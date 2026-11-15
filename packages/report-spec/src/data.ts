@@ -11,9 +11,10 @@ export type FieldType = (typeof FIELD_TYPES)[number]
 /**
  * How a choice's answer prints, where it does not print its label (0042):
  * the value the submission stores. Its label -- the one its option has in
- * the form version that collected it, in the report's locale -- is what it
- * prints when `read` is left out, and has no spelling of its own, so that
- * one binding has one hash.
+ * the form version that collected it, in the locale the render names, the
+ * report's own when it names none (0063) -- is what it prints when `read`
+ * is left out, and has no spelling of its own, so that one binding has
+ * one hash.
  */
 export const FORM_READS = ['value'] as const
 export type FormRead = (typeof FORM_READS)[number]

@@ -27,7 +27,8 @@
  *   where the data came from -- a formancy form's submissions and their
  *   versions, or Formancy Data's forms -- it is held to `source.ts`'s
  *   rules, no more submissions than the rows given, and the render's
- *   manifest carries it (0041).
+ *   manifest carries it (0041). A formancy form's labels were read in the
+ *   locale the report prints in, or are refused (0063).
  *
  * What is held afterwards is a frozen copy, read once from the host's
  * objects, which no later change to them reaches.
@@ -38,6 +39,7 @@ import { at, DataFindings, isLongKey, keyAt } from './data-errors.js'
 import type { DataError, DataErrorCode } from './data-errors.js'
 import { readList, readRecord, UNREADABLE } from './input.js'
 import type { ContainerCode } from './input.js'
+import { checkLabels } from './languages.js'
 import { checkSource } from './source.js'
 import type { DataSource } from './source.js'
 import { readValue } from './values.js'
@@ -121,6 +123,14 @@ export type DataCheck =
 
 export interface DataCheckOptions {
   readonly mode: DataMode
+  /**
+   * The locale the report's own words are written in, where `report` is
+   * one written in another of its languages, as a render in a
+   * translation's locale checks the report it prints (0063): form data
+   * that names no locale had its labels read in it. `report.locale` when
+   * absent.
+   */
+  readonly reportLocale?: string
 }
 
 const ENVELOPE: readonly string[] = ['header', 'detail', 'completeness', 'consistency', 'source']
@@ -344,6 +354,7 @@ export function checkData(report: ReportDefinition, data: ReportData, options: D
   const rows = top.entries.has('detail') ? detail.given : 0
   const submissions = rows === undefined ? MAX_DETAIL_ROWS : Math.max(1, rows)
   const source = top.entries.has('source') ? checkSource(c.errors, top.entries.get('source'), report.datasets, submissions) : undefined
+  checkLabels(c.errors, source, options.reportLocale ?? report.locale, report.locale)
   if (!c.errors.empty || completeness === undefined || consistency === undefined) return { ok: false, errors: c.errors.errors() }
   const checked: CheckedData = {
     mode: c.final ? 'final' : 'preview',

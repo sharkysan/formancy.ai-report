@@ -28,7 +28,11 @@
   the report's properties choose what page 1 prints at its top, and the
   outline and the design view hold page 1's own header only where the
   report has one, held by scenarios of their own and by the Studio's
-  parity walk.
+  parity walk. Extended by
+  [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md): the editor keeps the language a person edits as view state, as the
+  zoom is, a switch in the bar while the report declares more than one,
+  and a field at a word writes its translation in the language shown,
+  both builders following the model and `BUILDER_SCENARIOS`.
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** each package's `test:coverage` job in CI, the `verify` job

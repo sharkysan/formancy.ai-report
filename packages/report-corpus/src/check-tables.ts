@@ -215,6 +215,12 @@ export function headers(pages: readonly Page[], read: ReadTables, tables: readon
  * image, no drawing -- is below it there; whatever follows a heading in the
  * document is its table's rows, so a row without a key counts as well as one
  * with.
+ *
+ * A group header that keeps rows (0059) is held to them as well: each of
+ * the rows it keeps that has a key, and is found, starts on the header's
+ * page. A row without a key cannot be found, and is not counted, so a
+ * header whose kept rows have none is held to not ending its page alone;
+ * a row not found is the keys' check's to report.
  */
 export function orphans(pages: readonly Page[], read: ReadTables, tables: readonly ExpectedTable[]): string[] {
   const last = (index: number, heading: Line): boolean => {
@@ -224,8 +230,12 @@ export function orphans(pages: readonly Page[], read: ReadTables, tables: readon
       !pictures(page).some(({ box }) => box.top >= heading.bottom - OVERLAP)
     )
   }
-  const groupHeaders = read.rows.flatMap(({ row, lines: [start] }) => {
-    if (row.kind !== 'groupHeader' || start === undefined || !last(start.page, pages[start.page]!.body[start.line]!)) return []
+  const groupHeaders = read.rows.flatMap((placed) => {
+    const { row } = placed
+    const [start] = placed.lines
+    if (row.kind !== 'groupHeader' || start === undefined) return []
+    const short = row.keepWithRows === undefined ? [] : keptRows(read, placed, row.keepWithRows, start.page)
+    if (short.length > 0 || !last(start.page, pages[start.page]!.body[start.line]!)) return short
     return [`page ${start.page + 1}: the last table row is the group header '${row.key}'`]
   })
   const columnHeaders = tables.flatMap((table) => {
@@ -238,4 +248,13 @@ export function orphans(pages: readonly Page[], read: ReadTables, tables: readon
     )
   })
   return [...groupHeaders, ...columnHeaders]
+}
+
+/** The problem, if any, with the rows after the group header `placed` that it keeps, `count` of them: one found on the pages -- a row without a key never is (`readTables`) -- that starts on another than its own, `page`. */
+function keptRows(read: ReadTables, placed: PlacedRow, count: number, page: number): string[] {
+  const { table, row } = placed
+  const at = table.rows.indexOf(row)
+  const found = table.rows.slice(at + 1, at + 1 + count).flatMap((each) => read.rows.find((other) => other.row === each) ?? [])
+  const under = found.filter(({ lines: [start] }) => start?.page === page).length
+  return under === found.length ? [] : [`page ${page + 1}: the group header '${row.key}' has ${under} of its first ${count} rows under it`]
 }

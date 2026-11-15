@@ -41,6 +41,9 @@ export interface Embedding {
   readonly outputProfiles: readonly string[]
 }
 
+/** The SHA-256 of the ICC's sRGB2014, reviewed in PDFKit 0.19.1 (ICC_PROFILES in scripts/dependency-licences.mjs): another PDFKit's profile would reach a customer unreviewed. */
+export const SRGB2014 = '384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a'
+
 type Ref = string
 
 interface PdfObject {

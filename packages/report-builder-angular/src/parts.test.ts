@@ -13,6 +13,7 @@ import {
   BUILDER_SCENARIOS,
   createReportEditor,
   EDITOR_PANELS,
+  editorText,
   REPORT_ATTRIBUTES,
   REPORT_PARTS,
   scenarioReport,
@@ -21,10 +22,11 @@ import {
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { screen, within } from '@testing-library/angular'
+import { computeAccessibleDescription } from 'dom-accessibility-api'
 import { afterEach, describe, expect, test } from 'vitest'
 import { mountBuilder, mountWithHostView } from './test-mount'
 import { sessionOver } from './test-support'
-import { click, fill } from './test-user'
+import { choose, click, fill } from './test-user'
 
 afterEach(() => {
   TestBed.resetTestingModule()
@@ -98,6 +100,31 @@ async function hostHooks(): Promise<Set<string | null>> {
   return new Set([...root.querySelectorAll('[data-report-part]')].map((element) => element.getAttribute('data-report-part')))
 }
 
+/**
+ * The hooks, and the states, of the builder over a report written in a
+ * second language with none of its words yet, showing that language with
+ * a text selected (0063): the switch in the bar, the boxes marked missing,
+ * and the text's field marked, with its note.
+ */
+async function languageHooks(): Promise<{ readonly parts: Set<string | null>; readonly states: Set<string> }> {
+  TestBed.resetTestingModule()
+  const report: ReportDefinition = { ...scenarioReport(), translations: [{ locale: 'fr-CH', words: [], expressions: [] }] }
+  const mounted = await mountBuilder(createReportEditor(sessionOver(report)))
+  choose(screen.getByRole('combobox', { name: 'Edited language' }), 'French (Switzerland), words missing: 4')
+  await mounted.settle()
+  click(screen.getByRole('treeitem', { name: 'Introduction' }))
+  await mounted.settle()
+  const root = mounted.fixture.nativeElement as HTMLElement
+  // The field and the box of the word not written yet, each marked: the stylesheet dresses both (0063).
+  expect(root.querySelector('[data-report-part="property"][data-missing="true"] textarea')).not.toBeNull()
+  expect(root.querySelector('[data-report-part="box"][data-missing="true"]')).not.toBeNull()
+  const elements = [root, ...root.querySelectorAll('*')]
+  return {
+    parts: new Set(elements.filter((element) => element.hasAttribute('data-report-part')).map((element) => element.getAttribute('data-report-part'))),
+    states: new Set(elements.flatMap((element) => element.getAttributeNames().filter((name) => name.startsWith('data-')))),
+  }
+}
+
 /** The data attributes of the root of a builder whose outline the person hid. */
 async function hiddenRoot(): Promise<string[]> {
   TestBed.resetTestingModule()
@@ -124,6 +151,10 @@ describe('the stylesheet’s hooks', () => {
     expect(host.has('view')).toBe(true)
     expect(host.has('canvas')).toBe(false)
     for (const part of host) rendered.add(part)
+    // The switch between languages, and a field's note, are drawn only for a report written in more than one.
+    const languages = await languageHooks()
+    expect(rendered.has('language')).toBe(false)
+    for (const part of languages.parts) rendered.add(part)
     expect(rendered).toEqual(new Set(REPORT_PARTS))
   })
 
@@ -134,6 +165,8 @@ describe('the stylesheet’s hooks', () => {
     const used = new Set([root, ...root.querySelectorAll('*')].flatMap((element) => element.getAttributeNames().filter((name) => name.startsWith('data-'))))
     // The panes the person hid are on the root, which `everything` has none of.
     for (const name of await hiddenRoot()) used.add(name)
+    // A word missing in the language edited is marked only in a report written in more than one.
+    for (const name of (await languageHooks()).states) used.add(name)
     const listed = REPORT_ATTRIBUTES.filter((name) => name.startsWith('data-'))
     expect(used).toEqual(new Set(listed))
   })
@@ -148,5 +181,36 @@ describe('the stylesheet’s hooks', () => {
     expect(classes).toEqual(new Set(Object.values(WORKBENCH_CLASSES)))
     expect(new Set([...root.querySelectorAll('[data-pane]')].map((pane) => pane.getAttribute('data-pane')))).toEqual(new Set(EDITOR_PANELS))
     expect(root.getAttribute('data-panel')).toBe('outline')
+  })
+})
+
+describe('a payment part’s band in another language', () => {
+  // A QR-bill's message is a word too, printed on the slip: its band is
+  // marked by `data-missing` and described as missing as a box is, and a
+  // builder that left either off would draw the slip in the French view
+  // as though its message were French (0063). The mark read from the DOM,
+  // as the stylesheet reads it; the description as assistive technology
+  // computes it.
+  test('is marked missing, described so, and no longer once its message is written', async () => {
+    const t = editorText('en')
+    const paymentPart = BUILDER_SCENARIOS.map((scenario) => scenario.report().paymentPart).find((bill) => bill !== undefined)
+    if (paymentPart === undefined) throw new Error('no scenario has a report with a payment part')
+    const report: ReportDefinition = { ...scenarioReport(), paymentPart, translations: [{ locale: 'fr-CH', words: [], expressions: [] }] }
+    const mounted = await mountBuilder(createReportEditor(sessionOver(report)))
+    const band = (): HTMLElement => screen.getByRole('img', { name: t('canvas.paymentPart') })
+    expect(band().hasAttribute('data-missing')).toBe(false)
+    expect(computeAccessibleDescription(band())).toBe('')
+    const switcher = screen.getByRole<HTMLSelectElement>('combobox', { name: t('language.label') })
+    const french = [...switcher.options].find((option) => option.value === 'fr-CH')
+    choose(switcher, french?.text ?? 'fr-CH')
+    await mounted.settle()
+    expect(band().getAttribute('data-missing')).toBe('true')
+    expect(computeAccessibleDescription(band())).toBe(t('canvas.missing', { language: 'French (Switzerland)' }))
+    click(band())
+    await mounted.settle()
+    fill(screen.getByRole('textbox', { name: t('field.message') }), 'Visite')
+    await mounted.settle()
+    expect(band().hasAttribute('data-missing')).toBe(false)
+    expect(computeAccessibleDescription(band())).toBe('')
   })
 })

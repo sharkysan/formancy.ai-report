@@ -6,7 +6,6 @@ import {
   type Block,
   type Columns,
   type EpcQrCode,
-  type FacturXFile,
   type Image,
   type ImageAsset,
   type KeepTogether,
@@ -23,9 +22,11 @@ import { cellLine, paragraphLine } from './bound.js'
 import { checkImages, type PlacedImage } from './check-images.js'
 import { frameOf, RULE_GAP, runFace } from './content.js'
 import { epcSymbol } from './epc.js'
-import { checkCopyLabel, checkEInvoice, checkEInvoiceTitle } from './e-invoice.js'
 import { codePoint, missingGlyph } from './glyphs.js'
 import type { FaceWanted, RenderFonts } from './host-fonts.js'
+import { checkKeptRows } from './kept-rows.js'
+import { checkPdfA } from './pdfa-check.js'
+import type { PdfA } from './pdfa.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
 import { COLOR } from './style.js'
 import { cellFace, PADDING_X, PADDING_Y, styledRows, type StyledRow } from './table.js'
@@ -36,11 +37,13 @@ import { fillWidth, fixedWidth } from './widths.js'
  * cannot print, what is malformed, what stands where it cannot be laid out,
  * what is wider than where it stands, text with a character the face it
  * prints in has no glyph for (`glyphs.ts`), an e-invoice the renderer does
- * not know (`e-invoice.ts`), and what an e-invoice's PDF/A-3 cannot hold:
+ * not know (`e-invoice.ts`), and what a PDF/A cannot hold (`pdfa-check.ts`):
  * a title PDFKit cannot write into its XMP, a CMYK JPEG beside its sRGB
- * output intent, and an SVG whose numbers could pass its integers' range
- * or whose nesting its graphics state's (`svg-pdfa.ts`). Every refusal names where the problem is --
- * `body[2].blocks[0]`, a table's id, an asset's id -- and none of them is a
+ * output intent, an SVG whose numbers could pass its integers' range or
+ * whose nesting its graphics state's (`svg-pdfa.ts`), and a Factur-X, an
+ * XRechnung's copy or a labelled preview asked for as a PDF/A-2b. Every
+ * refusal names where the problem is -- `body[2].blocks[0]`, a table's id,
+ * an asset's id -- and none of them is a
  * partial render: a document that is refused has drawn nothing.
  *
  * The walk also collects what can only be judged once the page regions are
@@ -108,8 +111,8 @@ export interface Measured {
 export interface Checked {
   readonly page: Page
   readonly creationDate: Date
-  /** The Factur-X file the document carries, known to the renderer: drawn as a PDF/A-3b that embeds it (`pdfa.ts`). An XRechnung's copy is a plain PDF, and has none. */
-  readonly pdfa: FacturXFile | undefined
+  /** What the document is drawn as, decided once (`pdfa-check.ts`): an e-invoice's PDF/A-3b with the file it embeds, the PDF/A-2b a host asked for, or, undefined, a plain PDF. */
+  readonly pdfa: PdfA | undefined
   /** Every image asset as the checks read it: a PNG's or a JPEG's size in pixels, as it is shown, or an SVG's drawing. */
   readonly assets: ReadonlyMap<ImageAsset, CheckedImage>
   /** Every QR code's and EPC QR code's symbol, encoded once. */
@@ -148,21 +151,14 @@ interface Walk {
   readonly measured: Measured[]
 }
 
-export async function checkDocument(document: ResolvedDocument, fonts: RenderFonts, maxPages: number): Promise<Checked> {
+export async function checkDocument(document: ResolvedDocument, fonts: RenderFonts, maxPages: number, asked: '2b' | undefined): Promise<Checked> {
   const creationDate = new Date(document.info.creationDate)
   if (Number.isNaN(creationDate.getTime()))
     throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not a date`, 'info.creationDate')
   // The title goes into the PDF's metadata, never onto a page, so it is held to being text and not to the font.
   if (typeof document.info.title !== 'string') throw new RenderRefusal('unsupported', 'the title is not text', 'info.title')
-  // An e-invoice it does not know is refused, never embedded as something else or drawn as a plain PDF (`e-invoice.ts`).
-  const eInvoice = document.eInvoice === undefined ? undefined : checkEInvoice(document.eInvoice)
-  // A Factur-X invoice is a PDF/A-3b that embeds its XML; an XRechnung's PDF a plain copy, labelled so on every page (0038).
-  const pdfa = eInvoice?.kind === 'facturX' ? eInvoice : undefined
-  if (pdfa !== undefined) checkEInvoiceTitle(document.info.title)
-  if (eInvoice?.kind === 'xrechnung') {
-    checkCopyLabel(document.pageHeader, 'pageHeader')
-    if (document.firstPageHeader !== undefined) checkCopyLabel(document.firstPageHeader, 'firstPageHeader')
-  }
+  // What it is drawn as -- a Factur-X's PDF/A-3b, an XRechnung's plain copy, the PDF/A-2b asked for -- and what it cannot be, refused (`pdfa-check.ts`).
+  const pdfa = checkPdfA(document, asked)
   const page = pageOf(document.page)
   const walk: Walk = { fonts, paths: new Map(), images: [], codes: new Map(), captioned: false, tall: [], measured: [] }
   const top: Omit<Place, 'region' | 'everyPage'> = { kept: false, column: false, width: page.width, inset: 0, depth: 0 }
@@ -170,7 +166,7 @@ export async function checkDocument(document: ResolvedDocument, fonts: RenderFon
   if (document.firstPageHeader !== undefined) checkBlocks(document.firstPageHeader, 'firstPageHeader', { ...top, region: true, everyPage: false }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true, everyPage: true }, walk)
   checkBlocks(document.body, 'body', { ...top, region: false, everyPage: false }, walk)
-  const assets = await checkImages(walk.images, maxPages, pdfa !== undefined, page)
+  const assets = await checkImages(walk.images, maxPages, pdfa, page)
   return { page, creationDate, pdfa, assets, codes: walk.codes, captioned: walk.captioned, tall: walk.tall, paths: walk.paths, measured: walk.measured }
 }
 
@@ -425,6 +421,7 @@ function checkTable(table: Table, width: number, fonts: RenderFonts): void {
     }
     for (const style of [row.style, ...(row.cellStyles ?? [])]) checkStyle(style ?? undefined, table.id, fonts)
   })
+  checkKeptRows(table)
   checkStyle(table.headerStyle, table.id, fonts)
   const narrow = table.columns.find((column) => column.width !== 'fill' && !(column.width > 2 * PADDING_X && Number.isFinite(column.width)))
   if (narrow !== undefined)

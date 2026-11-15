@@ -58,13 +58,15 @@ builds the report from all of them (`scripts/release-report/report.mjs`).
    tool reported of itself; and in CI the Java, to the one the register
    names, where a machine's is shown and not held; veraPDF, its own and
    the one Mustang bundles, no older than the register's floor -- and every
-   file of its corpus, XML or PDF, a sample or a variant every tool of its
-   format must accept, or a control judged exactly as the corpus expects,
-   at least one tool refusing it and each tool refusing at least one
-   control of its format, with the verdict of each tool that judges its
-   format: Mustang and KoSIT the XML, veraPDF and Mustang the PDF
+   file of its corpus, XML, PDF or PDF/A-2b, a sample or a variant every
+   tool of its format must accept, or a control judged exactly as the
+   corpus expects, at least one tool refusing it and each tool refusing at
+   least one control of its format, with the verdict of each tool that
+   judges its format: Mustang and KoSIT the XML, veraPDF and Mustang the
+   PDF, and veraPDF alone, with its 2b profile, the PDF/A-2b
    ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
-   [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+   [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
+   [0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 6. **Container gate:** the server's image the gate built from the checkout
    -- its id, the Node and the user it runs, as the image said them, its
    size, how long it took to build and to answer -- said to be the gate's
@@ -109,8 +111,8 @@ builder's host that resolved no framework, or at the floor one other than
 its peer range's floor; the e-invoice gate leaving no results, failing, or
 recording a tool at another version or of other bytes than
 [`e-invoice-tools.json`](e-invoice-tools.json) pins, or a veraPDF below its
-floor, its own or Mustang's, judging no sample of a format, XML or PDF,
-that every tool of that format must accept, or making, for a tool, no
+floor, its own or Mustang's, judging no sample of a format, XML, PDF or
+PDF/A-2b, that every tool of that format must accept, or making, for a tool, no
 control of its format that it must refuse, recording a file
 of a format no tool judges, or missing a tool's verdict on a file or
 having one other than its corpus expects; the container gate leaving no

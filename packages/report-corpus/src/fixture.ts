@@ -35,6 +35,13 @@ export interface ExpectedRow {
   readonly key: string
   /** Its cells that print, in column order. */
   readonly cells: readonly ExpectedCell[]
+  /**
+   * A group header's: how many of the rows after it start on its page,
+   * the number its document row keeps (0059); absent where the row keeps
+   * none, and the header is then held only to not ending its page. A
+   * fixture states fewer where a page cannot hold that many.
+   */
+  readonly keepWithRows?: number
 }
 
 export interface ExpectedTable {
@@ -238,7 +245,12 @@ function expectedTable(table: Table): ExpectedTable {
   return {
     id: table.id,
     header: printed(table.header).map((cell) => cell.text),
-    rows: table.rows.map((row) => ({ kind: row.kind, key: normalise(row.cells[0] ?? ''), cells: printed(row.cells) })),
+    rows: table.rows.map((row) => ({
+      kind: row.kind,
+      key: normalise(row.cells[0] ?? ''),
+      cells: printed(row.cells),
+      ...(row.keepWithRows === undefined ? {} : { keepWithRows: row.keepWithRows }),
+    })),
     emptyText: table.rows.some((row) => row.kind === 'detail') ? '' : normalise(table.emptyText),
   }
 }

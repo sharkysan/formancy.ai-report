@@ -13,7 +13,11 @@
   formancy's released `@formancy/themes/room.css` first, then the Studio's
   stylesheets; extended by [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md),
   whose gate measures its pages in a browser, where this record measured
-  them by hand
+  them by hand, and by [0056](0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md),
+  whose start page leads with a card for each topic page and says what
+  Formancy Report does not do yet under a status of its own, and under
+  which every card on the site names the tests it rests on and a word a
+  page takes from the Studio is held to the Studio's recorded pictures
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

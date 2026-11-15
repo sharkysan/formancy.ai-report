@@ -11,7 +11,12 @@
   page, so that the starter's digest pinned here, `27583910…`, is the one
   before the mark; its pages measured in a browser by
   [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)'s
-  gate, where this record measured them by hand
+  gate, where this record measured them by hand; and extended by [0056](0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md),
+  under which this record's `CARD_EVIDENCE` became every card's
+  `evidence`, on every page of the site, held by `checks/evidence.ts`
+  rather than by this page's test, and the Studio's words this record
+  says nothing reads, "Euro invoice", "Starter" and "EPC payment code",
+  are held to the Studio's recorded pictures
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

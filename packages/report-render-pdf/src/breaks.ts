@@ -6,12 +6,14 @@ import type { RowKind } from './build.js'
  * measured (`measure.ts`), which `table.ts` turns into pdfmake's rules.
  *
  * **What is kept together.** A group header with the row it heads, so a
- * group never starts at the foot of a page with nothing under its heading.
- * And a table's closing rows -- a group's footers, the totals under the
- * last row -- with the row before them, and with its group header when that
- * row is the group's first: a quotation's subtotal, VAT and total on one
- * page with the last line item, a subtotal on the page of the rows it adds
- * up, never alone under a repeated column header. Each is a `KeepBlock`.
+ * group never starts at the foot of a page with nothing under its heading,
+ * or with as many of its group's first rows as its row keeps and a page
+ * holds (`keptCounts`, 0059). And a table's closing rows -- a group's
+ * footers, the totals under the last row -- with the row before them, and
+ * with its group header when that row is the group's first: a quotation's
+ * subtotal, VAT and total on one page with the last line item, a subtotal
+ * on the page of the rows it adds up, never alone under a repeated column
+ * header. Each is a `KeepBlock`.
  *
  * **Why plan the breaks.** pdfmake asks the renderer's rule for each marked
  * node once its layout is done, and lays the whole document out again for
@@ -34,22 +36,28 @@ export interface KeepBlock {
 /** Rows that close what is above them: a group's footer, a total. */
 const CLOSING: ReadonlySet<RowKind> = new Set(['groupFooter', 'total'])
 
+/** The last of the closing rows that close the row `row`, a detail row or the empty text, where `closing`; `row` itself where none do. */
+function closedAt(kinds: readonly RowKind[], row: number, closing: boolean): number {
+  let last = row
+  if (closing && (kinds[row] === 'detail' || kinds[row] === 'empty')) while (kinds[last + 1] !== undefined && CLOSING.has(kinds[last + 1]!)) last++
+  return last
+}
+
 /**
  * The blocks of rows of these kinds that stand on one page, overlapping
- * ones merged, in order. Closing rows are kept with the row before them only
- * when `closing`: a table whose rows may split across pages has no row
- * height to keep them by.
+ * ones merged, in order: a group header with as many rows as `counts`
+ * says, one where it says nothing. Closing rows are kept with the row
+ * before them only when `closing`: a table whose rows may split across
+ * pages has no row height to keep them by.
  */
-export function keepBlocks(kinds: readonly RowKind[], closing: boolean): KeepBlock[] {
+export function keepBlocks(kinds: readonly RowKind[], closing: boolean, counts: readonly number[] = []): KeepBlock[] {
   const blocks: KeepBlock[] = []
   kinds.forEach((kind, index) => {
-    if (kind === 'groupHeader' && index + 1 < kinds.length) blocks.push({ first: index, last: index + 1 })
+    if (kind === 'groupHeader' && index + 1 < kinds.length) blocks.push({ first: index, last: index + (counts[index] ?? 1) })
     const before = kinds[index - 1]
     if (!closing || !CLOSING.has(kind) || before === undefined || CLOSING.has(before) || (before !== 'detail' && before !== 'empty')) return
-    let last = index
-    while (kinds[last + 1] !== undefined && CLOSING.has(kinds[last + 1]!)) last++
     const anchor = index - 1
-    blocks.push({ first: kinds[anchor - 1] === 'groupHeader' ? anchor - 1 : anchor, last })
+    blocks.push({ first: kinds[anchor - 1] === 'groupHeader' ? anchor - 1 : anchor, last: closedAt(kinds, anchor, closing) })
   })
   const merged: KeepBlock[] = []
   for (const block of blocks.sort((a, b) => a.first - b.first)) {
@@ -58,6 +66,48 @@ export function keepBlocks(kinds: readonly RowKind[], closing: boolean): KeepBlo
     else merged.push(block)
   }
   return merged
+}
+
+/** A table's row as its plan reads it: its kind, its pitch, how many rows it keeps -- a group header's, one for any other -- and whether any of its cells prints. */
+export interface PlannedRow {
+  readonly kind: RowKind
+  readonly pitch: number
+  readonly keep: number
+  readonly prints: boolean
+}
+
+/**
+ * How many of its first rows each group header is kept with, one for every
+ * other row (0059): the most, up to the number its row keeps, whose block
+ * -- the header, those rows, and the footers and totals that close them
+ * where they reach the group's last row and `closing` -- fits `room`, a
+ * page under the repeated header, and has a row that prints from the last
+ * of those rows on. A rule finds a row on its page by its text alone, and
+ * holds the last of its block's rows that prints to the header's page
+ * (`tableRules`): a block short of its group, whose last row printed
+ * nothing, would be held to an earlier row, and the plan, which counts
+ * every row, would break where the rule does not. A block that runs into
+ * the group's footers is held by the last of them that prints, a footer
+ * row or a total after it that prints nothing standing in the block, as it
+ * stands in the closing rows' own block of the group's last row. Where no
+ * number above one does, one: the block every header has had, which
+ * `keepBlocks` makes, `keptBlocks` drops where it does not fit, and a rule
+ * leaves where it falls where its first row prints nothing. A header that
+ * prints nothing keeps one too: no rule can find it, and the rows that
+ * move with the column header, which read no text, would otherwise take
+ * its count with them.
+ */
+export function keptCounts(rows: readonly PlannedRow[], closing: boolean, room: number): number[] {
+  const kinds = rows.map((row) => row.kind)
+  const pitches = rows.map((row) => row.pitch)
+  return rows.map((row, index) => {
+    for (let count = row.kind === 'groupHeader' && row.prints ? row.keep : 1; count > 1; count--) {
+      const block = { first: index, last: closedAt(kinds, index + count, closing) }
+      const held = rows.slice(index + count, block.last + 1).some((each) => each.prints)
+      if (held && blockHeight(pitches, block) <= room) return count
+    }
+    return 1
+  })
 }
 
 /** The rows' height from `first` to `last`, each row's pitch being its height and the rule under it. */

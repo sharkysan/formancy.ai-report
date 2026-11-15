@@ -31,15 +31,20 @@ import {
 import type { Command, ComponentPatch, Diagnostic, PagePatch, Refusal } from '@formancy/report-core'
 import { printableArea, ptToMm, squareRoom } from '@formancy/report-spec'
 import type { Component, Inline, ReportDefinition } from '@formancy/report-spec'
+import { columnFields, componentFields } from './component-fields.js'
+import { fieldWords } from './field-specs.js'
+import type { FieldSpec } from './field-specs.js'
+import type { Step } from './history.js'
 import { invoiceFields } from './invoice-fields.js'
+import type { Edited } from './languages.js'
 import { columnKey, kindLabel, partLabel } from './labels.js'
 import type { Selection } from './model.js'
 import type { PropertyField, PropertyGroup, PropertyPanel, PropertyRow } from './model-properties.js'
 import { pairedReference } from './payment-part.js'
 import { paymentPartFields } from './payment-part-fields.js'
-import { columnFields, componentFields, fieldWords, flatFields, isGroup } from './property-fields.js'
-import type { FieldSpec, GroupSpec, PanelSpec } from './property-fields.js'
-import { FIRST_PAGE_HEADER, reportFields } from './report-fields.js'
+import { flatFields, isGroup } from './property-fields.js'
+import type { GroupSpec, PanelSpec } from './property-fields.js'
+import { FIRST_PAGE_HEADER, languagesGroup, reportFields } from './report-fields.js'
 import { selected } from './selection.js'
 import type { Selected } from './selection.js'
 import type { EditorLocale, EditorText, MessageId } from './text.js'
@@ -63,25 +68,28 @@ const ADD_PAYMENT_PART: GroupSpec = {
   buttons: [{ words: 'action.addQrBill', action: { type: 'addPart', part: 'paymentPart' }, available: true }],
 }
 
-/** What the panel shows for `target`, in order: its fields, each by itself or in a group. */
-export function specsOf(target: PropertyTarget, report: ReportDefinition, t: EditorText, locale: EditorLocale): PanelSpec[] {
+/**
+ * What the panel shows for `target`, in order: its fields, each by itself
+ * or in a group. In a language besides the report's own, `edited`, a
+ * field at a word writes its translation (0063).
+ */
+export function specsOf(target: PropertyTarget, report: ReportDefinition, t: EditorText, locale: EditorLocale, edited?: Edited): PanelSpec[] {
+  const context = (row: boolean) => ({ report, t, locale, row, ...(edited === undefined ? {} : { edited }) })
   switch (target.kind) {
     case 'report':
-      return [...reportFields(report, t), ...(report.paymentPart === undefined ? [ADD_PAYMENT_PART] : [])]
+      return [...reportFields(report, t, locale, edited), ...(report.paymentPart === undefined ? [ADD_PAYMENT_PART] : []), languagesGroup(report, locale)]
     case 'component':
-      return componentFields(target.component, { report, t, locale, row: false })
+      return componentFields(target.component, context(false))
     case 'column':
-      return columnFields(target.column, { report, t, locale, row: true })
+      return columnFields(target.column, context(true))
     case 'part':
-      return target.part === 'paymentPart'
-        ? paymentPartFields(target.bill, { report, t, locale, row: false })
-        : invoiceFields(target.invoice, { report, t, locale, row: false })
+      return target.part === 'paymentPart' ? paymentPartFields(target.bill, context(false)) : invoiceFields(target.invoice, context(false))
   }
 }
 
 /** Every field the panel shows for `target`, those in a group among them: what a field is found by. */
-export function fieldsOf(target: PropertyTarget, report: ReportDefinition, t: EditorText, locale: EditorLocale): FieldSpec[] {
-  return flatFields(specsOf(target, report, t, locale))
+export function fieldsOf(target: PropertyTarget, report: ReportDefinition, t: EditorText, locale: EditorLocale, edited?: Edited): FieldSpec[] {
+  return flatFields(specsOf(target, report, t, locale, edited))
 }
 
 /** A field's accessible name: its words, and its unit where it has one. */
@@ -104,8 +112,9 @@ function within(path: string, at: string): boolean {
 /**
  * The pane for `target`: each field with its value -- what was typed, after
  * a refusal -- and its error: the refusal's, else the first diagnostic
- * about what the field holds; and the same fields as rows, each by itself
- * or in its group, the group with its button.
+ * about what the field holds, at its key or where what it writes is
+ * diagnosed; and the same fields as rows, each by itself or in its group,
+ * the group with its button.
  */
 export function propertyPanel(
   target: PropertyTarget,
@@ -117,16 +126,26 @@ export function propertyPanel(
 ): PropertyPanel {
   const fieldOf = (spec: FieldSpec): PropertyField => {
     const error = errors.get(spec.key)
-    const about = error?.message ?? diagnostics.find((diagnostic) => within(diagnostic.path, `${target.path}${spec.key}`))?.message
+    const at = [`${target.path}${spec.key}`, ...(spec.diagnosed === undefined ? [] : [spec.diagnosed])]
+    const about = error?.message ?? diagnostics.find((diagnostic) => at.some((path) => within(diagnostic.path, path)))?.message
+    // At a word in another language: empty until written, the report's own word shown in its place.
+    const { translation } = spec
+    const placeholder = translation?.word ?? (spec.placeholder === undefined ? undefined : t(spec.placeholder))
     return {
       key: spec.key,
       label: fieldLabel(spec, t),
       kind: spec.kind,
       value: error?.input ?? spec.read(),
       ...(spec.options === undefined ? {} : { options: spec.options }),
-      ...(spec.placeholder === undefined ? {} : { placeholder: t(spec.placeholder) }),
+      ...(placeholder === undefined ? {} : { placeholder }),
       required: spec.required,
       ...(about === undefined ? {} : { error: about }),
+      ...(translation === undefined
+        ? {}
+        : {
+            note: t(translation.missing ? 'field.wordMissing' : 'field.wordIn', { language: translation.language, count: translation.places }),
+            ...(translation.missing ? { missing: true } : {}),
+          }),
     }
   }
   const groupOf = (spec: GroupSpec): PropertyGroup => ({
@@ -134,7 +153,7 @@ export function propertyPanel(
     label: t(spec.words, spec.item === undefined ? {} : { item: spec.item }),
     fields: spec.fields.map(fieldOf),
     actions: spec.buttons.map((button) => ({
-      label: t(button.words, button.item === undefined ? {} : { item: button.item }),
+      label: t(button.words, { ...(button.item === undefined ? {} : { item: button.item }), ...(button.name === undefined ? {} : { name: button.name }) }),
       action: button.action,
       available: button.available,
       ...(button.then === undefined ? {} : { then: button.then }),
@@ -182,6 +201,10 @@ function patchAt(owner: object, at: string, next: unknown): Record<string, unkno
 export interface PropertyChange {
   readonly command: Command
   readonly said?: MessageId
+  /** What `said` names besides the field: a language added (0063). */
+  readonly values?: Readonly<Record<string, string>>
+  /** The step the history names it by, where it is not a change of its field: a language added. */
+  readonly step?: Step
 }
 
 /**

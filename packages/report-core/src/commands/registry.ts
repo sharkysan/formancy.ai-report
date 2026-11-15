@@ -35,6 +35,7 @@ import { putEInvoice, removeEInvoice, setPaymentAccount, updateEInvoice } from '
 import { putFirstPageHeader, removeFirstPageHeader } from './first-page-header.js'
 import { putPaymentPart, removePaymentPart, updatePaymentPart } from './payment-part.js'
 import { removeFieldWithReaders } from './readers.js'
+import { addLanguage, removeLanguage, translateExpression, translateWord } from './translations.js'
 import {
   insertColumn,
   insertFooterRow,
@@ -97,6 +98,10 @@ const STEPS = Object.freeze({
   removeEInvoice,
   setPaymentAccount,
   removeFieldWithReaders,
+  addLanguage,
+  removeLanguage,
+  translateWord,
+  translateExpression,
 })
 
 export const COMMANDS = Object.freeze({ ...STEPS, batch })
@@ -170,6 +175,7 @@ function isLocation(value: unknown): boolean {
  */
 const SHAPES = {
   text: { is: (value: unknown) => typeof value === 'string', said: 'a string' },
+  textOrNull: { is: (value: unknown) => value === null || typeof value === 'string', said: 'a string, or null to remove it' },
   index: { is: (value: unknown) => typeof value === 'number', said: 'a number' },
   object: { is: isObject, said: 'an object' },
   objectOrNull: { is: (value: unknown) => value === null || isObject(value), said: 'an object, or null to remove it' },
@@ -234,6 +240,10 @@ export const ARGUMENTS: { readonly [N in CommandName]: readonly Shape[] } = {
   removeEInvoice: [],
   setPaymentAccount: ['text'],
   removeFieldWithReaders: ['role', 'text'],
+  addLanguage: ['text'],
+  removeLanguage: ['text'],
+  translateWord: ['text', 'text', 'textOrNull'],
+  translateExpression: ['text', 'text', 'objectOrNull'],
   batch: ['list'],
 }
 

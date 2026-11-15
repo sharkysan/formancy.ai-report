@@ -8,7 +8,9 @@
  * the field, or Enter in a single-line one -- and a value the editor refuses
  * stays as typed, `aria-invalid`, with the reason beside it as its
  * description. Escape gives back what the report holds. Under the
- * report's own fields, its images (`library`, 0033).
+ * report's own fields, its images (`library`, 0033). A field at a word in
+ * a language besides the report's own has its note under it, which
+ * describes it too, and is marked while the word is missing (0063).
  *
  * Fields the editor groups -- a QR-bill's creditor and debtor (0039), an
  * e-invoice's parties, its VAT categories and its payment instructions
@@ -124,14 +126,25 @@ function Row({
 }): ReactElement {
   const id = `${ids}-field-${at}`
   const error = `${id}-error`
-  const validity: Validity = field.error === undefined ? {} : { 'aria-invalid': true, 'aria-describedby': error }
+  const note = `${id}-note`
+  // Described by why it was refused, and by what its note says of the language it writes.
+  const described = [field.error === undefined ? null : error, field.note === undefined ? null : note].filter((part) => part !== null).join(' ')
+  const validity: Validity = {
+    ...(field.error === undefined ? {} : { 'aria-invalid': true }),
+    ...(described === '' ? {} : { 'aria-describedby': described }),
+  }
   return (
-    <div data-report-part="property" data-kind={field.kind}>
+    <div data-report-part="property" data-kind={field.kind} data-missing={field.missing === true ? 'true' : undefined}>
       <label htmlFor={id}>{field.label}</label>
       <Control field={field} id={id} validity={validity} commit={(value) => act({ type: 'setProperty', key: field.key, value })} />
       {field.error === undefined ? null : (
         <p id={error} data-report-part="property-error">
           {field.error}
+        </p>
+      )}
+      {field.note === undefined ? null : (
+        <p id={note} data-report-part="property-note">
+          {field.note}
         </p>
       )}
     </div>

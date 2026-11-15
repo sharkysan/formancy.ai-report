@@ -185,6 +185,7 @@ export function richReport(): ReportDefinition {
               { kind: 'field', field: detail('site') },
             ],
             headerStyle: 'strong',
+            keepWithRows: 3,
             footer: [
               {
                 cells: [

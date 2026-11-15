@@ -1,6 +1,8 @@
 import { MAX_SVG_GROUPS, MAX_SVG_SEGMENTS, RenderRefusal, type Image, type ImageAsset } from '@formancy/report-runtime'
 import { checkImageAsset, MAX_IMAGE_DATA, MAX_SVG_DRAWING, type CheckedImage, type Vector } from './assets.js'
-import { checkSvgInEInvoice, type Paper } from './svg-pdfa.js'
+import { refuseCmyk } from './pdfa-check.js'
+import type { PdfA } from './pdfa.js'
+import { checkSvgInPdfA, type Paper } from './svg-pdfa.js'
 
 /**
  * What a render's images cost together, judged once the walk (`check.ts`)
@@ -22,14 +24,15 @@ export interface PlacedImage {
  *
  * - the image data the PNGs and JPEGs hold, once for each asset, against
  *   `MAX_IMAGE_DATA`, as `content-too-large`: each is embedded once;
- * - in an e-invoice, a JPEG PDFKit draws in DeviceCMYK, refused as
- *   `unsupported`: the PDF/A-3 it is drawn as has an sRGB output intent,
- *   beside which no image may be CMYK (veraPDF 6.2.4.3-3), and a second
- *   intent would have to share its profile (6.2.3-2);
- * - in an e-invoice, an image of an SVG whose numbers, at its box and on
- *   its page, could pass the integers a PDF/A-3 holds, or whose drawing
- *   nests the graphics state deeper than one may, refused as
- *   `unsupported` (`svg-pdfa.ts`): each image, since its box decides;
+ * - in a PDF/A, an e-invoice's PDF/A-3b or a PDF/A-2b (`pdfa-check.ts`),
+ *   a JPEG PDFKit draws in DeviceCMYK, refused as `unsupported`: the
+ *   PDF/A has an sRGB output intent, beside which no image may be CMYK
+ *   (veraPDF 6.2.4.3-3), and a second intent would have to share its
+ *   profile (6.2.3-2);
+ * - in a PDF/A, an image of an SVG whose numbers, at its box and on its
+ *   page, could pass the integers a PDF/A holds, or whose drawing nests
+ *   the graphics state deeper than one may, refused as `unsupported`
+ *   (`svg-pdfa.ts`): each image, since its box decides;
  * - what drawing the SVGs costs the renderer, for every image of one,
  *   against `MAX_SVG_DRAWING`, as `content-too-large`: the converter draws an SVG wherever it
  *   stands, and one in the page header or footer on every page, counted as `maxPages`,
@@ -45,7 +48,7 @@ export interface PlacedImage {
 export async function checkImages(
   images: readonly PlacedImage[],
   maxPages: number,
-  eInvoice: boolean,
+  pdfa: PdfA | undefined,
   paper: Paper,
 ): Promise<ReadonlyMap<ImageAsset, CheckedImage>> {
   const assets = new Map<ImageAsset, CheckedImage>()
@@ -55,19 +58,13 @@ export async function checkImages(
     let read = assets.get(image.asset)
     if (read === undefined) {
       read = await checkImageAsset(image.asset)
-      if (eInvoice && read.kind === 'raster' && read.cmyk) {
-        throw new RenderRefusal(
-          'unsupported',
-          `the image ${id} is a CMYK JPEG, which an e-invoice cannot hold: it is drawn as a PDF/A-3 whose output intent is sRGB, beside which no image may be CMYK`,
-          id,
-        )
-      }
+      if (pdfa !== undefined && read.kind === 'raster' && read.cmyk) refuseCmyk(id, pdfa)
       assets.set(image.asset, read)
       total.data += read.kind === 'raster' ? read.data : 0
       if (total.data > MAX_IMAGE_DATA)
         throw new RenderRefusal('content-too-large', `the images up to ${id} hold ${total.data} bytes of image data; a render may hold ${MAX_IMAGE_DATA}`, id)
     }
-    if (eInvoice && read.kind === 'vector') checkSvgInEInvoice(read, image, paper)
+    if (pdfa !== undefined && read.kind === 'vector') checkSvgInPdfA(read, image, paper, pdfa)
     if (read.kind === 'vector') addVector(total, read, everyPage ? maxPages : 1, id)
   }
   return assets

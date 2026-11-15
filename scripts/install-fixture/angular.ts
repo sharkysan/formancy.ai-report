@@ -32,7 +32,16 @@ import type { FocusAfter } from '@formancy/report-builder-angular'
 import type { EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { elementsIn, readMarkup } from './markup.js'
 import type { MarkupElement } from './markup.js'
-import { editorToDraw, editorWithBill, editorWithEInvoice, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
+import {
+  editorToDraw,
+  editorWithBill,
+  editorWithEInvoice,
+  editorWithHostView,
+  editorWithImages,
+  editorWithLanguages,
+  HOST_VIEW,
+  structureProblems,
+} from './structure.js'
 
 /** What could be wrong, collected, so one run names every difference rather than the first. */
 const wrong: string[] = []
@@ -112,6 +121,7 @@ const imaging: ReportEditor = editorWithImages()
 const billing: ReportEditor = editorWithBill()
 /** And a fifth, with an e-invoice selected and a VAT category added (0044). */
 const invoicing: ReportEditor = editorWithEInvoice()
+const translating: ReportEditor = editorWithLanguages()
 
 /**
  * A host's component, as a host writes it. ngc compiles its template with
@@ -151,6 +161,12 @@ class Billing {
 @Component({ selector: 'app-root', imports: [ReportBuilder], template: '<report-builder [editor]="editor" />' })
 class Invoicing {
   protected readonly editor: ReportEditor = invoicing
+}
+
+/** A host's component whose report is written in a second language, that one shown: the builder draws the switch, the marks and the notes (0063). */
+@Component({ selector: 'app-root', imports: [ReportBuilder], template: '<report-builder [editor]="editor" />' })
+class Translating {
+  protected readonly editor: ReportEditor = translating
 }
 
 /**
@@ -208,6 +224,9 @@ billing.dispose()
 // Drawn a fifth time with an e-invoice selected and a VAT category added (0044): its row after the bill's, its groups and their buttons.
 wrong.push(...structureProblems(await serverDraw(Invoicing), invoicing.state()).map((problem) => `with an e-invoice: ${problem}`))
 invoicing.dispose()
+// Drawn a sixth time written in a second language, that one shown (0063): the switch in the bar, the boxes marked missing, the field's note.
+wrong.push(...structureProblems(await serverDraw(Translating), translating.state()).map((problem) => `in two languages: ${problem}`))
+translating.dispose()
 
 // Drawing changed nothing. The editor's state reached the root through
 // [editor] -- an input the root requires, so a page drawn without it fails
@@ -226,5 +245,5 @@ editor.dispose()
 if (wrong.length > 0) throw new Error(`the Angular builder, compiled ahead of time and drawn on the server:\n- ${wrong.join('\n- ')}`)
 
 console.log(
-  `ok: Angular ${VERSION.full} drew the packed builder on the server, compiled ahead of time and linked without the JIT compiler, in Swiss German, as report-builder-core's README sets out: one region named by the catalogue, a toolbar that is one tab stop with a button per pane, a Hide in each side pane, a palette of ${String(state.palette.length)}, a tree with a group per region and a row per node, a design view of named pictures, a form named by its heading, the report's problems listed and counted, and the live region, and with a host's view its template stamped into the region it stands in instead of the design view, and with a host's store Add image… and its hidden input, and the report's images, each with its Remove; every data-report-part one REPORT_PARTS names; nothing said by Angular's development mode and nothing changed; one listener while the page was alive and none once it was destroyed; ${String(components.size)} standalone components with a factory, ReportEditorRoot a directive, and each of the ${String(parts.length)} parts an attribute on an element`,
+  `ok: Angular ${VERSION.full} drew the packed builder on the server, compiled ahead of time and linked without the JIT compiler, in Swiss German, as report-builder-core's README sets out: one region named by the catalogue, a toolbar that is one tab stop with a button per pane, a Hide in each side pane, a palette of ${String(state.palette.length)}, a tree with a group per region and a row per node, a design view of named pictures, a form named by its heading, the report's problems listed and counted, and the live region, and with a host's view its template stamped into the region it stands in instead of the design view, and with a host's store Add image… and its hidden input, and the report's images, each with its Remove, and in two languages the switch between them, the boxes marked missing and a field's note; every data-report-part one REPORT_PARTS names; nothing said by Angular's development mode and nothing changed; one listener while the page was alive and none once it was destroyed; ${String(components.size)} standalone components with a factory, ReportEditorRoot a directive, and each of the ${String(parts.length)} parts an attribute on an element`,
 )

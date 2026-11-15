@@ -120,6 +120,12 @@ document and sends it, and the renderer draws its PDF as a plain copy,
 refused unless its header leads with the runtime's
 `XRECHNUNG_COPY_PARAGRAPH`
 ([0038](docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+A report that is no e-invoice is drawn as a PDF/A-2b where the host asks,
+`pdfa: '2b'`, what a document is drawn as decided once in the renderer's
+`pdfa-check.ts`, which refuses a Factur-X, an XRechnung's copy and a
+labelled preview as one, and holds the PDF/A-3b's refusals of a title and
+a CMYK JPEG, and 0030's bound on an SVG, for it
+([0057](docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 Both builders select a report's e-invoice, from its outline row after the
 bill's, and edit it field by field -- report-builder-core's
 `invoice-fields.ts` is a table over every term of either kind, its VAT
@@ -226,6 +232,55 @@ shorter, and `check-images.ts` counting its drawings once; the corpus's
 reads page 1 by its own header; and builder-core's `report-fields.ts`,
 the report's properties choosing it, and `scenario-first-page.ts`
 ([0060](docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+A report may be written in several languages: its own `locale` and the
+`translations` beside it, each a language's words keyed by their exact
+text in the report's own and the expressions that print words keyed by
+their source. Report-spec's `translation.ts` is the one walk of the words
+a report prints, `NOT_WORDS` every other string with its reason,
+`validate-translations.ts` holds each language to the rules every report
+is held to, and `report-in.ts`'s `reportIn` writes the report in a
+declared locale; report-core diagnoses each language as a report
+(`diagnostics/words.ts`'s `languageDiagnostics`), a word missing being
+`word-missing`, an error of that language alone, and edits one through
+`addLanguage`, `removeLanguage`, `translateWord` and
+`translateExpression`; the runtime prints in the locale a render names,
+the report's own or a declared one exactly, refusing a render only for
+its own language's errors (`languages.ts`), every word, value, row
+order, a form's labels and the slip's headings in that locale and never
+another's; and both builders edit one language at a time (builder-core's
+`languages.ts`)
+([0063](docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+`@formancy/report-documents` is the one reader of PDFs, beside report-spec,
+which holds no PDF engine, and nothing calls it yet: `readDocument`, in
+`read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
+of its own (`model.ts`) that no pdf-lib type leaves, which
+`scripts/documents-declarations.test.mjs` holds of its built declarations,
+or refuses them with
+one of `DOCUMENT_REFUSAL_CODES` in its own words, a page and an annotation
+by its own count and never a byte of the file, and never throws. It drives
+`@pdfme/pdf-lib` 6.2.4's object grammar with a strict loop of its own
+(`parse.ts`, `xref.ts`), every token but the keywords, both containers and
+a cross-reference stream's rows read by its own code (`grammar.ts`,
+`reading.ts`), and inflates with `pako` 3.0.2 from one budget a document
+(`inflate.ts`); every bound is `limits.ts`'s, held before the work it
+bounds and measured at it and one past it in Node, the costliest in
+Chromium too, one count of values a document, on which each decoder, each
+annotation a page lists, the encryption peek and each walk the closure
+makes again are counted. The pages are read
+as a viewer shows them (`page-tree.ts`, `pages.ts`), their annotations
+flattened by the print rule (`annotations.ts`), every object they draw
+with collected (`closure.ts`), an image held to its pixels and passed on
+undecoded (`images.ts`), an inline image ended only where the PDF.js the
+corpus pins ends it (`inline-images.ts`, `inline-end.ts`, `MIRRORED_PDFJS`,
+which `scripts/mirrored-pdfjs.test.mjs` holds), and what does not survive
+printing counted and never named (`notices.ts`); an encrypted, damaged,
+shadowed or layered file, XFA, NeedAppearances, an annotation that would
+print otherwise than a viewer shows it, a filter it does not decode (LZW,
+Crypt, a TIFF predictor), a stream in another file, and a form or an image
+that names one to print in its place (`/Ref`, `/OPI`) are refused;
+pdf-lib's own name pool is never fed a file's names, and its PNG decoder,
+UPNG, never called (`read.test.ts`)
+([0054](docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
@@ -262,7 +317,8 @@ scopes indexed once and held to formancy's `modelDataPaths`
 (`version.test.ts`), every field the report reads checked against each
 version before an answer is read, formancy's kinds mapped once in
 `kinds.ts`, a number by its digits or refused (`numbers.ts`), labels from
-that version in the report's locale, and the data host-captured, its
+that version in the locale the render names (0063), and the data
+host-captured, its
 source naming each submission and its version; the binding is
 report-spec's, on the dataset contract (`validate-form-binding.ts`)
 ([0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
@@ -324,7 +380,8 @@ Liberation Serif and Mono 2.1.5 as a host's fonts (`fixtures/host-fonts/`)
 and the face each run is drawn in, read from the PDF (`PdfTextItem.font`,
 held by `fontNames`), `expectation`, which derives
 what a document's PDF must show, `readPdfObjects` and `readXmp`, which read what a PDF embeds
-and says of itself with pdf-lib and saxes, `readPdfNumbers`, every number
+and says of itself with pdf-lib and saxes, its catalog's keys and its name
+tree's among it (`catalogKeys`, `nameTreeKeys`), `readPdfNumbers`, every number
 a PDF writes, content streams included, `inflatedDigest`, a PDF's
 objects hashed with every stream inflated, `IMAGE_KINDS`, an image of each
 kind PDFKit embeds, and the renderer trial that chose pdfmake. `apps/studio` is the
@@ -337,13 +394,23 @@ the product's pages, prerendered to static HTML in German, French, Italian
 and English, never published as a package and served beside the Studio at
 formancy.ai/report/<lang>/
 ([0021](docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)):
-the facts they state about the release and the licence are read from
-`CHANGELOG.md` and `LICENSE.md` when they are built, and `src/groups.ts`
-is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
+the release's number and date and the licence's terms are read from
+`CHANGELOG.md` and `LICENSE.md` when they are built; what a release
+holds, and what Formancy Report does not do yet, is said under a page's
+status, which stops the build once the changelog names a later release;
+every card names the tests it rests on; every absence on the start page
+but one detail table and one level of grouping, which review holds, is
+held by `limits.test.ts` to report-spec's built `dist`, a devDependency
+no page imports, and to the published packages' manifests
+([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md));
+and `src/groups.ts` is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
 before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical
    hashing and migrations. No framework, no driver, no PDF engine, no Node.
+   Beside it, `report-documents` -- the one PDF reader, on the parser and
+   pako alone, depending on no package of this repository; no framework,
+   no Node, no DOM, no network (0054).
 2. `report-core` -- pure document commands, atomic history, diagnostics.
 3. `report-builder-core` -- selection, palette, properties, geometry, review
    state, the images a person adds, a report's QR-bill and e-invoice edited
@@ -483,8 +550,8 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
 - **Nothing in a package reads configuration.** The composition root reads it,
   once. A connection string, a token or a row of customer data in a log line,
   an error message or a test fixture is a defect.
-- **Templates, expressions, datasets, fonts, images, and a formancy form's
-  versions and their submissions are untrusted**, even when an
+- **Templates, expressions, datasets, fonts, images, PDFs, and a formancy
+  form's versions and their submissions are untrusted**, even when an
   administrator wrote them or the host kept them. Expressions are typed, bounded and run no
   code. Assets are referenced by approved identifier and never fetched by
   address. Nothing in a package reaches the network.
@@ -616,7 +683,9 @@ What holds this section:
   only the Studio's stylesheets besides, and declares no colour and no
   variable of its own. The pages' checks,
   `apps/pages/src/checks/`, hold each page's head, links, words and
-  sitemap (0021).
+  sitemap (0021), every card's evidence to the checkout and to a test or
+  a gate's entry, one list in every language, and every word a page takes
+  from the Studio to `docs/images/readme/captured.json` (0056).
 - **The README's pictures**, `scripts/pictures/readme.test.mjs` in
   `pnpm test:repo` and the Studio's `pictures.mjs --check` as
   `test:pictures` in the same CI job: every picture is whole parts of a
@@ -738,7 +807,12 @@ pnpm --filter @formancy/report-spec exec vitest run src/version.test.ts    # one
 pnpm --filter @formancy/report-spec exec vitest run -t "a test's name"     # one case
 pnpm lint                                                                  # every file, after pnpm build: the typed rules read dist/
 pnpm format                                                                # Prettier writes every file, before a commit
+pnpm test:repo                                                             # the repository's guards, after pnpm build
 ```
+
+`pnpm test:repo` needs `pnpm build` first, as CI's `verify` runs it:
+`scripts/documents-declarations.test.mjs` reads report-documents' built
+`dist/index.d.mts`, and without a build it fails and says so (0054).
 
 `verify` fails a TypeScript or JavaScript file that breaks a lint rule or
 that Prettier would write otherwise (0050). A finding is fixed, not
@@ -793,10 +867,13 @@ exactly what CI does:
   of every image kind PDFKit embeds, a page of SVGs in every way
   svg-to-pdfkit paints one, and one of an SVG at every bound an e-invoice
   holds one to -- Mustang by its PDF part too,
-  never its exit status alone; each control is judged exactly as the
-  corpus expects, at least one tool refusing it and each tool refusing at
-  least one control of its format; and report-spec's code lists and rule
-  ids are held to the schematrons they run. A warning fails it unless
+  never its exit status alone; veraPDF alone, with its PDF/A-2b profile
+  and `--flavour 2b`, the PDF/A-2b of every starter that is no e-invoice
+  and of the corpus's image, SVG and font pages, and two controls (0057);
+  each control is judged exactly as the corpus expects, at least one tool
+  refusing it and each tool refusing at least one control of its format;
+  and report-spec's code lists and rule ids are held to the schematrons
+  they run. A warning fails it unless
   `scripts/e-invoice/accepted.json` accepts it, with its reason, in that
   file. Locally it needs a Java at least as new as each JAR's `java` in
   the register.
@@ -829,7 +906,8 @@ exactly what CI does:
     than its register pins, ran a veraPDF below the register's floor, its
     own or Mustang's, ran in CI on a Java of another major version than
     the register names, judged no sample or made no control of a format,
-    XML or PDF, or judged a file otherwise than its corpus expects;
+    XML, PDF or PDF/A-2b, or judged a file otherwise than its corpus
+    expects;
   - two builds of one package differ, or a tarball's built files are not
     every job's;
   - the container gate left no record, failed or failed a check, did not
@@ -892,7 +970,7 @@ Locally, run the same commands for what you changed.
   alone and type-checks `client.ts` against them (0049);
 - runs it: `consume.ts` under Node, which also draws an e-invoice, in
   `e-invoice.ts`, and reads the PDF/A-3b's bytes with `embedding.ts` and
-  Node alone (0031);
+  Node alone (0031), and a PDF/A-2b, in `pdfa.ts` (0057);
   `server.ts`, the server made in its host's process and asked over a
   socket, a draft saved through the packed client, read back and a stale
   save refused `draft-changed`;

@@ -3,10 +3,10 @@
  * sort and footer rows, and the references each makes into the detail
  * dataset and into the table's own columns.
  */
-import { all, identifier, oneOf, optional, quote, readArray, readList, reference, shape, text, width } from './check.js'
+import { all, identifier, integer, oneOf, optional, quote, readArray, readList, reference, shape, text, width } from './check.js'
 import type { ComponentBase, Width } from './components.js'
 import type { RegionName } from './definition.js'
-import { MAX_FOOTER_ROWS, MAX_LABEL_LENGTH, MAX_SORT_KEYS, MAX_TABLE_COLUMNS } from './limits.js'
+import { MAX_FOOTER_ROWS, MAX_KEEP_WITH_ROWS, MAX_LABEL_LENGTH, MAX_SORT_KEYS, MAX_TABLE_COLUMNS } from './limits.js'
 import { at } from './pointer.js'
 import { ALIGNMENTS } from './styles.js'
 import { SORT_DIRECTIONS } from './table.js'
@@ -102,7 +102,7 @@ function readGroup(
   region: RegionName,
   columns: Declarations<true>,
 ): { group: TableGroup | undefined; by: string | undefined } {
-  const o = shape(c.f, value, path, ['by', 'direction', 'header', 'footer'], ['headerStyle'])
+  const o = shape(c.f, value, path, ['by', 'direction', 'header', 'footer'], ['headerStyle', 'keepWithRows'])
   const by = readFieldRef(c, o?.by, at(path, 'by'), 'detail')
   orderable(c, by, at(path, 'by'))
   // Only a field the dataset declares can be checked against: with an
@@ -111,9 +111,13 @@ function readGroup(
   const direction = oneOf(c.f, o?.direction, at(path, 'direction'), SORT_DIRECTIONS)
   const header = readInlines(c, o?.header, at(path, 'header'), scope)
   const headerStyle = readStyleRef(c, o?.headerStyle, at(path, 'headerStyle'))
+  const keepWithRows = integer(c.f, o?.keepWithRows, at(path, 'keepWithRows'), 1, MAX_KEEP_WITH_ROWS)
   const footer = readFooterRows(c, o?.footer, at(path, 'footer'), scope, columns)
   if (by === undefined || direction === undefined || header === undefined || footer === undefined) return { group: undefined, by: by?.ref.field }
-  return { group: { by: by.ref, direction, header, ...optional('headerStyle', headerStyle), footer }, by: by.ref.field }
+  return {
+    group: { by: by.ref, direction, header, ...optional('headerStyle', headerStyle), ...optional('keepWithRows', keepWithRows), footer },
+    by: by.ref.field,
+  }
 }
 
 /** Sort keys, after the group's key: rows are ordered by the group's key first, so a key on that field, or on one already sorted by, orders nothing. */

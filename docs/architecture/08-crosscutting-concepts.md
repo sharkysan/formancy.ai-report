@@ -30,7 +30,7 @@ half done behind it. Each layer has its own kind:
 |---|---|---|
 | Format | A validation error: a stable code, a JSON Pointer, the component it is inside | No hash for an invalid report ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
 | Editing core | A command's `Refusal`, with a stable code | The session as it was, its listeners unnotified ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)) |
-| Diagnostics | An error or a warning on a valid report, at the component and the column it is about | An error is what the runtime would refuse; a warning renders as written ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) |
+| Diagnostics | An error or a warning on a valid report, at the component and the column it is about, and the language it is about where it is one of a translation's | An error is what the runtime would refuse, one that names a language a render in that language alone; a warning renders as written ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), 0063) |
 | Runtime | Every reason, each with the stage that found it, a stable code and a JSON Pointer | No document ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | Renderer | A `RenderRefusal`: `too-many-pages`, `content-too-large`, `invalid-asset`, `cancelled` or `unsupported`, naming the block, table or asset | No PDF ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
 | Provider | Every reason, each with a JSON Pointer | No data ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
@@ -52,17 +52,24 @@ version
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
 [0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)),
 and 0.2.0 one with a chart
-([0052](../decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+([0052](../decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md))
+or with translations (0063).
 An SVG construct the cleaner's tables do not name is refused, named, never
 dropped: a construct nobody decided about is one a browser may draw and
 the converter not (0030).
 And the renderer refuses an e-invoice whose file it does not know, whole,
 rather than embed it as something else or draw it as a plain PDF without
-the XML that, in Germany, is the invoice (0027), and a Factur-X invoice
-that its PDF/A-3b cannot hold, a CMYK JPEG or a title its XMP cannot
-write, rather than draw a PDF that says it is a PDF/A and is not one
-([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md));
-an XRechnung's plain PDF it draws only as its copy, labelled so (0038).
+the XML that, in Germany, is the invoice (0027), and what any PDF/A
+cannot hold, a Factur-X's PDF/A-3b or the PDF/A-2b a host asks for -- a
+CMYK JPEG, an SVG past its integers or its nesting, a title its XMP
+cannot write -- rather than draw a PDF that says it is a PDF/A and is not
+one
+([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
+0030 for the SVG's bound,
+[0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md));
+an XRechnung's plain PDF it draws only as its copy, labelled so (0038),
+and refuses it, a Factur-X and a labelled preview as a PDF/A-2b, which
+none of them may be.
 
 **A stage that does not handle something yet refuses it.** A chart arrives
 a stage at a time, and each stage merges on its own. The format holds a
@@ -168,10 +175,17 @@ and the renderer draws a final render as the PDF/A-3b that embeds it, and
 a preview as a plain PDF that embeds nothing
 ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
 
+A preview is never an archive. The renderer has no mode, so it reads the
+runtime's label: a document whose page header opens with a preview's
+label is refused as a PDF/A-2b, since it would be kept as the report. A
+preview that lacks nothing and is of no e-invoice carries no label, is
+the same document as its final render, as the tests show for the
+quotation, and is drawn as a PDF/A-2b as that is (0057).
+
 ## 8.4 Untrusted input
 
-Templates, expressions, datasets, fonts and images are untrusted even when an
-administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
+Templates, expressions, datasets, fonts, images and PDFs are untrusted even
+when an administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
 
 | Input | How it is read |
 |---|---|
@@ -189,6 +203,7 @@ administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
 | A draft a host saves to the server | Its body no byte past report-spec's `MAX_REPORT_BYTES`, refused by the length it declares before it is read, and none before the token is verified; JSON alone, parsed by Fastify's own parser; then, after `can`, held to report-spec's identifier for the template's id, to a precondition naming a revision by `isRevision`, to `validateReport`, to the report's own `id`, and to every image it declares kept for the tenant as the kind it declares, and no font; stored as the report the validator returned, and `savedBy` the verified token's subject, never anything the body says of who wrote it. A refusal's errors, the revision that stands and the assets not kept go to the requester alone, never to a log or the trail ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)) |
 | An image a host keeps on the server | Its bytes no more than `MAX_ASSET_BYTES`, refused by the length declared before they are read; recognised by `sniffImage`, the media type claimed held to what the bytes are, a PNG's or a JPEG's header read by `imageHeader`, an SVG held to `MAX_SVG_BYTES` and to the form `cleanSvg` writes by `checkSvg`, and the bytes' SHA-256 held to the digest in the path, all before the store sees them; read back checked against that digest (0049) |
 | A file in the server's store | Read only under the names the store writes; a draft's record held to its `format`, to JSON and to the SHA-256 of its report's text, and never validated again, so a later report-spec meets it where it is opened; a template id, a digest and a tenant claim checked again before any file operation, a tenant named by the SHA-256 of its claim; a record that fails a check never served, and logged by its path inside the tenant's directory and the tenant's keyed reference, never its absolute path, whose tenant directory is the claim's unkeyed hash (0049) |
+| A PDF | Read by one reader, report-documents' `readDocument`, and by no other code, though nothing calls it yet: a Uint8Array of the host's own realm, anything else refused before a property of it is read, and copied before a byte is; then held to its byte bound, its header, its end and its last trailer's `/Encrypt` before a byte is parsed; every object, table and stream read in order by a strict loop of the reader's own, nothing between them skipped and no `endstream` searched for, every token measured before it is copied and every cross-reference claim before a row is read, nesting held to its bound and the page tree and the objects the pages draw with walked without recursion; one count of values a document, a decoder counted as it is built, every stage of every stream decoded from one budget, chunk by chunk, an image never decoded and held to its pixels instead; what prints held to what a viewer shows -- a shadowed revision, optional content, XFA, NeedAppearances, an annotation that would print otherwise and an inline image PDF.js would end elsewhere refused; a stream in another file refused unread; and a refusal in the reader's own words, naming a page and an annotation by its own count, never a byte the file wrote. What does not survive printing is counted and never named. Each bound was measured at it and one past it, within a second and 256 MiB of heap on one machine, which nothing gates ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)) |
 | A font file | Read from its own name table by the licence guard, and refused when it cannot be read; a font inside a script the guard does not see ([§8.7](#87-licences), [0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
 | A font's bytes | Read once, by report-spec's reader, which the renderer reads its own faces' character maps through today, and a builder and a host's approval will read a host's font through (`readFont`): every table's offset and length held to the bytes, its recorded length read as fontkit reads it, every read checked against them, every count against the bytes it counts before anything is read by it, every loop bounded by them and nothing recursing; the character map read as fontkit, which PDFKit prints with, reads it, its segments sorted and apart; the PostScript name, which PDFKit writes into the PDF unescaped, held to characters that write no PDF syntax and to encodings fontkit decodes alike; the name strings fontkit decodes, a glyph's points times its contours and the characters mapped bounded; the line the horizontal header makes, by which pdfmake lays every line out and the renderer counts the page limit, held above nothing and within a measured range; and an fsType that forbids embedding a subset of the outlines refused, with no override. The licence the font states is handed back for a person to read and judged by nothing. The layout tables fontkit runs at print, GSUB, GPOS, kern and morx, are not read, and a crafted one can make a render throw or never end ([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)); the renderer strips those records from a host face before it embeds it, so fontkit builds no engine to run them, and prints Latin, Greek and Cyrillic alone, refusing every other script, which would need them; it refuses a host face PDFKit would draw as another, of another face's PostScript name with other bytes or of a name PDFKit's font table holds already, by every name the reader hands back; and the reader bounds a font's outlines together, since a subset holds every glyph a printed character reaches ([0043](../decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)) |
 | An ICC profile | PDFKit's own file, which an e-invoice's render reads and embeds as its output intent: admitted by the licence guard by the SHA-256 of its bytes, which a review read, and refused under any other; a profile inside a script the guard does not see, and the renderer's browser test holds pdfmake's copy to the reviewed digest ([§8.7](#87-licences), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
@@ -335,8 +350,8 @@ anything:
 - **A font or a profile inside a script.** pdfmake's vfs_fonts.js carries
   Roboto as base64, and the renderer's browser build carries Liberation
   Sans so, for the slip and for an EPC QR code's caption; pdfmake's browser
-  build carries the sRGB profile an e-invoice's PDF/A embeds as base64
-  too. The renderer's `browser.test.ts` holds the fonts to the bytes of
+  build carries the sRGB profile a PDF/A embeds, an e-invoice's or a
+  PDF/A-2b, as base64 too. The renderer's `browser.test.ts` holds the fonts to the bytes of
   the font files the guard does read, and the profile to the digest the
   guard reviewed in PDFKit's file
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
@@ -348,6 +363,28 @@ anything:
   review read its MIT licence on 17 October 2026, and the guard judges it
   by pdfmake's field alone
   ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
+- **Code a package ports.** pdf-lib's stream decoders are ports under
+  Apache-2.0, as their headers in the source map pdf-lib 6.2.4 publishes
+  say, read on 11 November 2026: ASCIIHex, ASCII85, RunLength and LZW, and
+  the `Stream` and `DecodeStream` they extend, of PDF.js's, Copyright 2012
+  Mozilla Foundation, and Flate of XPDF's through PDF.js, its header both
+  Copyright 1996-2003 Glyph & Cog and Copyright 2012 Mozilla Foundation.
+  The one PDF reader runs the first three and the two they extend; the
+  Flate and LZW ports come with the function it calls, and it never runs
+  them. `@pdfme/pdf-lib/dist/index.js` keeps none of the headers and
+  pdf-lib's `LICENSE.md` is MIT alone, so the guard judges them by
+  pdf-lib's MIT field, and `scripts/third-party-notices.mjs` would list
+  pdf-lib under MIT alone. `pdfjs-dist` 6.4.299 ships no NOTICE, so as far
+  as pdfjs-dist shows section 4(d) asks nothing; section 4(a) asks that the
+  licence go with a bundle that holds them, and section 4(c) that the
+  headers' attribution be kept: an entry of
+  `apps/studio/src/embedded-notices.ts` for
+  `@pdfme/pdf-lib/dist/index.js`, which nothing fails without, and which
+  lands with the pull request that first bundles the reader. Nothing
+  bundles it yet. Unchecked: a NOTICE in
+  PDF.js's own repository, which of the modules a bundler keeps, and
+  whether pdf-lib's MIT label over ported files is sound, a lawyer's
+  question ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 - **What the e-invoice gate runs, and what was copied from it.** Its
   downloads carry works under their own licences -- Saxon in both, veraPDF
   under the GPL or the MPL in Mustang's, CEN/TC 434's EUPL-1.2 schematron
@@ -387,9 +424,25 @@ The SBOM describes what a consumer installs, not the workspace
 
 Several sets of words, and they are kept apart:
 
-- **The report's own words** are the author's, in the report's locale. Its
-  values are formatted for that locale by Intl
-  ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).
+- **The report's own words** are the author's, in the report's locale,
+  and in each language its `translations` declare: each word written in
+  that language, looked up by its exact text in the report's own, and
+  each expression that prints words written as an expression of that
+  language. Which strings are words is report-spec's one walk,
+  `reportWords`; a string the walk does not yield prints as written in
+  every language, and its reason is named beside the walk. A render names
+  the locale it prints in, the report's own or a declared one exactly,
+  and that locale writes every word, formats every value by Intl and
+  orders the rows, through report-spec's `reportIn`, so that no stage of
+  the runtime has a language step of its own; a form's labels are read
+  in it, and refused when they were read in another. A word
+  missing in it refuses the render, an error of that language alone; it
+  is never printed in another, and no locale falls back to another, nor
+  de-CH to de-DE
+  ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md),
+  [0063](../decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+  The builders edit one language at a time, the one their bar's switch
+  shows, and every language's missing words are problems named by it.
 - **The builders' words** are report-builder-core's one catalogue, in
   English, Swiss German and Swiss French; both builders read it, and the
   scenarios run in all three. A session's undo labels are English sentences
@@ -403,6 +456,11 @@ Several sets of words, and they are kept apart:
 - **A QR-bill's headings** are in the slip's own language, one of SIX's
   five, which may differ from the report's
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).
+  A render in a translation's locale prints them in that locale's
+  language where SIX has headings in it, and in the slip's own where it
+  has none, so no such render keeps the slip's own language; the bill's
+  message is a word, and its account, parties, reference and billing
+  information print as written in every language (0063).
 - **An EPC QR code's caption** is Austria's words, "Zahlen mit Code", as the
   PSA prints them, whatever the report's language. The builders call the
   code "EPC payment code", "EPC-Zahlcode" or "Code de paiement EPC"; the
@@ -412,7 +470,8 @@ Several sets of words, and they are kept apart:
 - **The product's pages** are German, French, Italian and English, every
   page in each ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)),
   and so is the invoice, as the corpus's samples
-  ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)).
+  ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)),
+  and as one report written in the four, beside them (0063).
   The euro invoice's samples are in German for Austria, French, Italian,
   Spanish, Dutch and English for Ireland, each in its locale; Spanish and
   Dutch are seen only as pictures, since no page is in either. The German
@@ -618,3 +677,36 @@ that breaks either
 with a reason review reads; an `async` that awaits nothing passes, and so
 does an `any` a test reads; and nothing compares the merge driver with
 Formancy Data's, which it copies ([§11](11-risks-and-debt.md#113-known-technical-debt)).
+
+## 8.14 What the pages claim
+
+The product's pages say what Formancy Report does, and every claim a card
+makes rests on named tests
+([0056](../decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md)):
+
+- **A card names its evidence.** Each card is a title, its words and one
+  list of files, written once in its page's copy and shared by every
+  language's card. `apps/pages/src/checks/evidence.ts` holds each file to
+  the checkout and to a test or a gate's entry, and the cards a page shows
+  to the ones its group declares. A test the release report did not see
+  run and pass, or a gate whose job did not succeed, fails the run
+  ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)),
+  so a card rests on what a passing run ran. Whether it still tests what
+  the card says, and every sentence outside a card, is review's.
+- **A claim no test holds is cut,** not reworded until it sounds safe.
+- **An absence is held to the code where a predicate reads it.** The
+  start page's list of what Formancy Report does not do yet is held by
+  `apps/pages/src/limits.test.ts` to report-spec's component kinds and
+  printed blocks and to the published packages' manifests, but for one
+  detail table grouped by one field at most.
+- **What a release can make false stands under a status.** A page whose
+  words a release outdates names the release it was written against, and
+  the site refuses to render once the changelog names another, every such
+  page in one error
+  ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
+  [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+- **The Studio's words are the Studio's pictures'.** A word a page takes
+  from the Studio is one `docs/images/readme/captured.json` records it
+  saying, held by `apps/pages/src/checks/studio-words.ts`.
+- **No page compares.** No page names a competing product or compares
+  Report with one, which review alone holds: a check would list the names.

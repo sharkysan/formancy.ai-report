@@ -1,7 +1,7 @@
 import { inflateSync } from 'node:zlib'
 import { checkSvg, cleanSvg } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
-import type { Block, ResolvedDocument } from '../document.js'
+import type { Block, ResolvedDocument, TableRow } from '../document.js'
 import { flatten, normalise, plainText, tables } from '../fixture.js'
 import { ALL_FIXTURES } from './all.js'
 import { decimals } from './decimals.js'
@@ -9,6 +9,7 @@ import { FIRST_PAGE_FIXTURES } from './first-page-header.js'
 import { fonts } from './fonts.js'
 import { BODY_HEIGHT, bodyHeight, BODY_SIZE, CHAR_EM_RANGE, LINE_FACTOR_RANGE, lineHeight, PRINTABLE_WIDTH, ROWS_PER_PAGE_RANGE } from './geometry.js'
 import { groupBoundary } from './group-boundary.js'
+import { groupKeepWith, KEEP_WITH_FIXTURES, KEPT } from './group-keep-with.js'
 import { imageInvalid, images } from './images.js'
 import { IDENTIFIER, longParagraph, PARAGRAPH_WORDS } from './long-paragraph.js'
 import { longTable } from './long-table.js'
@@ -58,8 +59,8 @@ function documentLines(document: ResolvedDocument): string[] {
   })
 }
 
-/** Section 20's fixtures, the SVG ones and the first page header's: every fixture an engine answers to. */
-const EVERY = [...ALL_FIXTURES, ...SVG_FIXTURES, ...FIRST_PAGE_FIXTURES]
+/** Section 20's fixtures, the SVG ones, the kept rows' one and the first page header's: every fixture an engine answers to. */
+const EVERY = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES]
 
 describe('the corpus', () => {
   // Section 20's list, spelled out once here: a fixture dropped from the
@@ -89,6 +90,13 @@ describe('the corpus', () => {
   // ran on (0005): one dropped would leave an SVG unproved on the PDF.
   test('has the SVG fixtures beside them, each once', () => {
     expect(SVG_FIXTURES.map((fixture) => fixture.id)).toEqual(['svg-mark', 'svg-window', 'svg-as-saved'])
+  })
+
+  // The kept rows' fixture stands beside them too (0059), and apart from
+  // section 20's: dropped, a renderer that kept a group header with fewer
+  // rows than its document says would pass every fixture there is.
+  test('has the keep-with fixture beside them, each once', () => {
+    expect(KEEP_WITH_FIXTURES.map((fixture) => fixture.id)).toEqual(['group-keep-with'])
   })
 
   // So do page 1's own headers (0060): one dropped would leave a letterhead,
@@ -171,6 +179,36 @@ describe('the corpus', () => {
   })
 })
 
+/** The detail rows after the row at `index`, up to the next row of another kind. */
+function detailsAfter(rows: readonly TableRow[], index: number): number {
+  let count = 0
+  while (rows[index + 1 + count]?.kind === 'detail') count++
+  return count
+}
+
+/**
+ * The page each of `rows` starts on, from 0, with `perPage` single-line
+ * rows a page under the repeated column header, laid out as an engine
+ * that keeps a group header with `keep` of its first rows lays it out --
+ * or with all of them where its group has fewer -- and a group's footers
+ * and the totals with the row before them: each such block moves to the
+ * next page whole where it does not fit what is left of one.
+ */
+function laidOut(rows: readonly TableRow[], perPage: number, keep: number): number[] {
+  const pages: number[] = []
+  const closing = (kind: TableRow['kind'] | undefined): boolean => kind === 'groupFooter' || kind === 'total'
+  let [page, used] = [0, 0]
+  for (let first = 0; first < rows.length;) {
+    let last = rows[first]!.kind === 'groupHeader' ? first + Math.min(keep, detailsAfter(rows, first)) : first
+    while (closing(rows[last + 1]?.kind)) last++
+    if (used + last - first + 1 > perPage) [page, used] = [page + 1, 0]
+    for (let row = first; row <= last; row++) pages[row] = page
+    used += last - first + 1
+    first = last + 1
+  }
+  return pages
+}
+
 describe('the boundary arithmetic', () => {
   // The header repeat is only tested if the table spans pages, under the
   // densest row any plausible engine draws.
@@ -209,6 +247,69 @@ describe('the boundary arithmetic', () => {
       if (row.kind === 'total') expect(cents(row.cells[2]!)).toBe(total)
     }
     expect(groupBoundary.expect.exactText.length).toBeGreaterThan(1)
+  })
+
+  // A header placed where its rows have no room for the count is the
+  // fixture's whole point: for every plausible number of rows a page, some
+  // header would have one of its rows under it on its page, and some two,
+  // if nothing moved it. Positions count every row of the table, under the
+  // repeated header, from the top of the first page's body.
+  test('group-keep-with leaves a group header one row and two rows of room on its page, for every plausible number of rows a page', () => {
+    const rows = tables(groupKeepWith.document.body)[0]!.rows
+    for (let perPage = ROWS_PER_PAGE_RANGE.min; perPage <= ROWS_PER_PAGE_RANGE.max; perPage++) {
+      const rooms = new Set(rows.flatMap((row, index) => (row.kind === 'groupHeader' ? [perPage - 1 - (index % perPage)] : [])))
+      expect([rooms.has(1), rooms.has(2)], `${perPage} rows a page`).toEqual([true, true])
+    }
+  })
+
+  // Placed so, the fixture tells an engine that keeps the count from one
+  // that keeps fewer: laid out as each would lay it out -- a header moved
+  // with the rows it keeps, a footer with the row before it -- an engine
+  // of one row or two leaves a header with fewer of its rows under it than
+  // it keeps, for every plausible number of rows a page, and an engine of
+  // the count never does. A header moved earlier shifts every row after
+  // it, which a count of positions alone would not see.
+  test('group-keep-with is failed by an engine that keeps one or two rows, and passed by one that keeps what each header says, wherever its pages end', () => {
+    const rows = tables(groupKeepWith.document.body)[0]!.rows
+    for (let perPage = ROWS_PER_PAGE_RANGE.min; perPage <= ROWS_PER_PAGE_RANGE.max; perPage++) {
+      const short = (keep: number): number => {
+        const pages = laidOut(rows, perPage, keep)
+        return rows.filter(
+          (row, index) =>
+            row.kind === 'groupHeader' && rows.slice(index + 1, index + 1 + row.keepWithRows!).some((_, at) => pages[index + 1 + at] !== pages[index]),
+        ).length
+      }
+      expect([short(1) > 0, short(2) > 0, short(KEPT)], `${perPage} rows a page`).toEqual([true, true, 0])
+    }
+  })
+
+  // The header of a group of two keeps both, and the group stands whole
+  // with its subtotal and the total; every other keeps three, which a group
+  // of fewer rows could never hold.
+  test('group-keep-with keeps three rows under every header but the last, which keeps its two', () => {
+    const rows = tables(groupKeepWith.document.body)[0]!.rows
+    const groups = rows.flatMap((row, index) => (row.kind === 'groupHeader' ? [{ keeps: row.keepWithRows, rows: detailsAfter(rows, index) }] : []))
+    expect(groups.slice(0, -1).every((group) => group.keeps === KEPT && group.rows >= KEPT)).toBe(true)
+    expect(groups.at(-1)).toEqual({ keeps: 2, rows: 2 })
+    // Two digits name every group, so that no header's key begins another's.
+    expect(groups.length).toBeLessThan(100)
+    expect(groupKeepWith.expect.tables[0]!.rows.filter((row) => row.kind === 'groupHeader').map((row) => row.keepWithRows)).toEqual(
+      groups.map((group) => group.keeps),
+    )
+  })
+
+  // Subtotals and the total are the exact sums of their rows, as
+  // group-boundary's are: a wrong one would fail a correct engine.
+  test('group-keep-with subtotals and total are the exact sums of their rows', () => {
+    const cents = (value: string): bigint => BigInt(value.replace('.', ''))
+    let [group, total] = [0n, 0n]
+    for (const row of tables(groupKeepWith.document.body)[0]!.rows) {
+      if (row.kind === 'groupHeader') group = 0n
+      if (row.kind === 'detail') [group, total] = [group + cents(row.cells[2]!), total + cents(row.cells[2]!)]
+      if (row.kind === 'groupFooter') expect(cents(row.cells[2]!), row.cells[0]).toBe(group)
+      if (row.kind === 'total') expect(cents(row.cells[2]!)).toBe(total)
+    }
+    expect(groupKeepWith.expect.exactText.length).toBeGreaterThan(1)
   })
 
   // The tall row must be taller than a page even at the narrowest character

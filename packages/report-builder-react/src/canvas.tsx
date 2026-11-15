@@ -14,7 +14,9 @@
  * box is not a tab stop, because the outline is the keyboard's way to every
  * box and two ways to the same place would double the tabbing. The payment
  * part's band is the same for the bill (0039). The view itself is one
- * stop, so a keyboard can scroll it.
+ * stop, so a keyboard can scroll it. A box, or the band, that prints a
+ * word not written yet in the language edited is marked, and described by
+ * the sentence that says so (0063).
  */
 import type { CSSProperties, ReactElement, Ref } from 'react'
 import type { Box, CanvasBox, EditorAction, EditorState, EditorText, RulerTick } from '@formancy/report-builder-core'
@@ -58,6 +60,12 @@ function Ruler({
   )
 }
 
+/** What a box says beyond its name, as its description: that it runs over, and that a word it prints is missing in the language edited. */
+function described(box: CanvasBox, t: EditorText): string | undefined {
+  const said = [box.overflows ? t('canvas.overflow') : undefined, box.missing].filter((sentence) => sentence !== undefined)
+  return said.length === 0 ? undefined : said.join('. ')
+}
+
 function selection(box: CanvasBox): EditorAction {
   return box.column === undefined ? { type: 'select', id: box.id } : { type: 'select', id: box.id, column: box.column }
 }
@@ -85,8 +93,9 @@ export function Canvas({ state, t, canvas: canvasRef, sheet: sheetRef, drag, sel
             data-kind={box.kind}
             data-selected={box.selected ? 'true' : undefined}
             data-overflows={box.overflows ? 'true' : undefined}
+            data-missing={box.missing === undefined ? undefined : 'true'}
             data-dragging={box.column === undefined && box.id === moving ? 'true' : undefined}
-            title={box.overflows ? t('canvas.overflow') : undefined}
+            title={described(box, t)}
             style={placed(box.px)}
             onPointerDown={(event) => {
               if (box.column === undefined) drag.press(event, { id: box.id })
@@ -113,6 +122,8 @@ export function Canvas({ state, t, canvas: canvasRef, sheet: sheetRef, drag, sel
             aria-label={canvas.paymentPart.label}
             data-report-part="payment-part"
             data-selected={canvas.paymentPart.selected ? 'true' : undefined}
+            data-missing={canvas.paymentPart.missing === undefined ? undefined : 'true'}
+            title={canvas.paymentPart.missing}
             style={placed(canvas.paymentPart.px)}
             onClick={() => select({ type: 'select', part: 'paymentPart' })}
           >

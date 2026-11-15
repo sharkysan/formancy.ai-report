@@ -36,6 +36,7 @@ import type { FontMap } from './font-map.js'
 import type { PageSettings } from './page.js'
 import type { PaymentPart } from './payment-part.js'
 import type { PrintStyle } from './styles.js'
+import type { Translation } from './translation.js'
 import type { REPORT_SPEC_VERSION } from './version.js'
 
 /**
@@ -85,7 +86,7 @@ export interface ReportDefinition {
   readonly reportSpecVersion: typeof REPORT_SPEC_VERSION
   readonly id: string
   readonly title: string
-  /** A BCP 47 tag: language, optional script, optional region. */
+  /** A BCP 47 tag: language, optional script, optional region. The report's own language: the one its words are written in, and the one a render that names none prints in (0063). */
   readonly locale: string
   readonly page: PageSettings
   readonly styles: readonly PrintStyle[]
@@ -101,4 +102,11 @@ export interface ReportDefinition {
   /** The EN 16931 invoice the report is, written as Factur-X from what its page prints. Absent, the report is none. */
   readonly eInvoice?: EInvoice
   readonly provenance?: Provenance
+  /**
+   * The report's words in each language besides its own, one translation
+   * a language, each word looked up by its exact text in the report's own
+   * (0063). Absent, the report is written in its own language alone; never
+   * an empty list.
+   */
+  readonly translations?: readonly Translation[]
 }

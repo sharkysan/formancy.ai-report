@@ -41,7 +41,7 @@ const CHF = { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 
 const text = (value: string) => [{ kind: 'text', text: value }] as const
 
 /** The line at the head of the invoice: the firm, its address, and its UID as the VAT number it is. */
-const sender = (firm: Party, vatNumber: string): string =>
+export const sender = (firm: Party, vatNumber: string): string =>
   `${firm.name} · ${firm.street} ${firm.buildingNumber} · ${firm.postalCode} ${firm.town} · CHE-123.456.789 ${vatNumber}`
 
 /** The invoice's report in the edition's words, its slip in the edition's language. */
@@ -303,6 +303,11 @@ const invoice = (edition: Edition): Starter => ({
   data: data(edition),
   parameters: {},
 })
+
+/** The invoice's report and data in `edition`'s words, parties and lines, as each sample is made: what the invoice in several languages is held to (`invoice-languages.ts`). */
+export function invoiceOf(edition: Edition): { readonly report: ReportDefinition; readonly data: ReportData } {
+  return { report: report(edition), data: data(edition) }
+}
 
 /** The invoice's line items, `R-2001` up, given in the reverse of the order the report prints them in. */
 export function invoiceLines(): Record<string, string>[] {
