@@ -127,28 +127,48 @@ report's own faces. ECharts decides nothing a reader reads.
   `content-too-large`, naming the chart and its box and the sizes: words
   that would meet, leave the box or stand in the plot; category labels too
   wide for their slots, which never turn, so a chart of long labels is
-  widened or given shorter ones; a plot too short for two tick labels; and
+  widened or given shorter ones; a plot too short for two tick labels;
   bars narrower than `MIN_BAR_WIDTH`, 3.5 pt, the least the Studio's
   Preview draws apart at 100 % on a screen of device pixel ratio 2,
-  measured, so that **bar charts denser than that are refused**.
-- **What the renderer cannot draw as written is refused** as `unsupported`,
-  before anything is laid out: a chart in a page region, one past the
-  runtime's bounds, a word with a tab, a line break or any other control
-  character, its empty text's included, and a drawing ECharts writes
-  otherwise than it was read to write. The runtime now hands on
-  report-spec's `MAX_CHART_SERIES` beside its own bounds, so that a
-  renderer that holds a block to one reads it rather than a copy.
+  measured, so that **bar charts denser than that are refused**; and a
+  chart of more than `MAX_CHART_CATEGORIES` categories or slices, built by
+  hand past the runtime's own refusal.
+- **A render's charts are bounded together**, by `MAX_CHART_DRAWING`, and
+  a render past it is refused as `content-too-large` before any chart is
+  laid out, naming the chart that crossed it. ECharts lays out every chart
+  of a render three times before the body is paginated, and a reader draws
+  every one, and nothing bounded how many a document packs onto its pages:
+  32 line charts of 8 series and 200 categories, in four columns, printed
+  on one page in 17.2 s on a machine at a load average of 8 to 10. Each
+  chart now weighs its kind's weight, a unit for each series at each
+  category or each slice, and each word it places by what the word is,
+  measured on the render and on PDF.js; the bound, 5,000 units, keeps the
+  costliest render and page tried under 2 s on the quiet machine it was
+  measured on. **A document of many dense charts is refused**, to be split
+  across renders: two line charts of 8 series and 200 categories fit in
+  one, and three do not. A heading kept with a chart makes pdfmake lay the
+  document out again for each page it moves the heading to, which the
+  bound does not count.
+- **What the renderer cannot draw as written is refused** as
+  `unsupported`, before anything is laid out: a chart in a page region,
+  one past the runtime's bounds on its ticks or its series, a word with a
+  tab, a line break or any other control character, its empty text's
+  included, and a drawing ECharts writes otherwise than it was read to
+  write. The runtime now hands on report-spec's `MAX_CHART_SERIES` beside
+  its own bounds, so that a renderer that holds a block to one reads it
+  rather than a copy.
 - **ECharts and zrender are new dependencies of report-render-pdf**, at
   exactly 6.1.0, under Apache-2.0, whose `NOTICE` a host that bundles them
   carries, and BSD-3-Clause, with the tslib 2.3.0 they pin under 0BSD;
   ECharts holds code of d3's under d3's BSD-3-Clause, which the Studio's
   notices now carry. The licence guard admits them for the renderer alone,
   at those versions, by the digests of the licence files a review read, so
-  no other package, a builder above all, depends on them. A browser loads
-  them, as a chunk of their own, only with the first document that holds a
-  chart with something to draw. A host whose bundle gives ECharts another
-  copy of zrender than the renderer's has every chart refused: the
-  renderer measures a chart's words through zrender's platform.
+  no other published package, a builder above all, depends on them. A
+  browser loads them, as a chunk of their own, only with the first
+  document that holds a chart with something to draw. A host whose bundle
+  gives ECharts another copy of zrender than the renderer's has every
+  chart with something to draw refused: the renderer measures a chart's
+  words through zrender's platform.
 - **A chart's words stay in the process after its render**, in zrender's
   width cache, up to 500 words for each of 100 fonts, which nothing
   zrender exports clears.
@@ -273,8 +293,7 @@ without it: **neither builder offers one yet**.
   of an integer -- a count, or a sum, a least or a greatest of integers --
   which the runtime refuses too. A chart changes through
   `updateComponent`, with no command of its own.
-- **A chart its condition hides prints nothing**, so its report is not
-  refused.
+- **A chart its condition hides prints nothing.**
 - **Neither builder's palette offers Chart yet**, and an insert or a drag
   of one is refused as `unavailable`: until the builders edit a chart's
   own properties, a chart inserted from the palette would be a box nobody

@@ -333,8 +333,8 @@ Data's packages:
   section on the code it took from d3.js, and beside it its `NOTICE` and
   `licenses/LICENSE-d3`, d3's BSD-3-Clause; zrender's `LICENSE`, the BSD
   3-Clause License, Copyright (c) 2017, Baidu Inc.;
-- for `@formancy/report-render-pdf` alone: any other package that
-  depends on either itself, but ECharts on zrender, is refused, each
+- for `@formancy/report-render-pdf` alone: any other published package
+  that depends on either itself, but ECharts on zrender, is refused, each
   dependent judged and not the first route the walk finds, while a
   package that depends on the renderer reaches them through it, which is
   allowed;

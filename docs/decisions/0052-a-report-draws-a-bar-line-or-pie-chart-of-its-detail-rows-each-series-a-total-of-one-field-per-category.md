@@ -398,15 +398,15 @@ has colours is refused as `chart-too-many-categories`, never cycled.
 decides how: Apache ECharts lays it out, handed the runtime's axis and
 words and measuring in the report's faces, pdfmake's converter draws its
 marks, and its words print as pdfmake's text where ECharts placed them.
-Two things this record left to the renderer are decided there. A
-category label that does not fit across its slot refuses the chart,
-naming it and its box, and no label is turned, wrapped or cut, so a long
-label is the author's to shorten or the box's to widen. And whether a box
-holds a chart legibly is held, so far as the renderer can read it, by its
-refusals: words that would meet, leave the box or stand in the plot, two
-tick labels closer than a line and a quarter, and bars narrower than
-`MIN_BAR_WIDTH`, measured. The interim refusal 0055 left in the renderer,
-`unsupported`, is gone.
+Two things this record left to the renderer are decided there. A category
+label that does not fit across its slot refuses the chart, naming it and
+its box, and no label is turned, wrapped or cut, so a long label is the
+author's to shorten or the box's to widen. And whether a box holds a chart
+legibly is held, so far as the renderer can read it, by its refusals:
+words that would meet, leave the box or stand in the plot, a plot too
+short for two tick labels a line and a quarter apart, and bars narrower
+than `MIN_BAR_WIDTH`, measured. The interim refusal 0055 left in the
+renderer, `unsupported`, is gone.
 
 ## Alternatives considered
 

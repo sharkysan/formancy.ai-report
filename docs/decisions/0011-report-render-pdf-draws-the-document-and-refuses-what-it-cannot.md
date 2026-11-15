@@ -318,9 +318,8 @@ the ten written before the refusal among them. Every corpus fixture's and
 starter's PDF, each invoice sample's final and preview among them, is
 byte for byte what it was before (22 October 2026).
 
-**Added 2026-11-15: charts.** The resolved document's `chart` block,
-which 0055 had the renderer refuse as `unsupported` until it drew one, is
-drawn
+**Added 2026-11-15: charts.** The resolved document's `chart` block, which
+0055 had the renderer refuse as `unsupported` until it drew one, is drawn
 ([0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)).
 `check-chart.ts` holds a chart, before anything is laid out, to where it
 stands, its kind, its box, the runtime's bounds, its colours, its style,
@@ -329,23 +328,25 @@ words measured in the widths pdfmake prints them in; the drawing reads
 back where every word went, and the chart is refused as
 `content-too-large`, naming it and its box, where two words would meet, a
 word would leave its box or stand in its plot but a value's label, a
-category label would not fit across its slot, two tick labels would stand
-closer than a line and a quarter, or a bar would be narrower than
-`MIN_BAR_WIDTH`. A label is never turned, wrapped or cut, and a tick, a
-category or a bar is never dropped. What ECharts wrote that the reader
-does not hold to is refused as `unsupported`. The chart prints as one
-unbreakable stack, its marks through the converter and its words as
+category label would not fit across its slot, a plot would be too short
+for two tick labels a line and a quarter apart, or a bar would be narrower
+than `MIN_BAR_WIDTH`. A label is never turned, wrapped or cut, and a tick,
+a category or a bar is never dropped. A render whose charts together weigh
+more than `MAX_CHART_DRAWING`, by what each costs to lay out and to draw,
+is refused as `content-too-large` before any is laid out, a refusal of the
+whole render, as `MAX_SVG_DRAWING`'s is. What ECharts wrote that the
+reader does not hold to is refused as `unsupported`. The chart prints as
+one unbreakable stack, its marks through the converter and its words as
 pdfmake's text, moved whole to the next page where it does not fit, and
-held as *Nothing is taller than the body* holds an image. *Every
-character is held to its face* holds of its words, a chart's title in its
-token's bold among them, and so does *Every word fits where it stands*:
-once pdfmake has measured a chart's word, it is held to the advance it
-was placed by (`words.ts`). A chart with nothing to draw prints its title
-and its empty text without ECharts.
-`check-chart.ts` and the drawing are held by `charts.test.ts`,
-`chart-draw.test.ts` and `chart-content.test.ts`, and on the corpus's
-chart fixtures by `corpus.test.ts`; `refusals.test.ts`'s case of the
-interim refusal is gone with it.
+held as *Nothing is taller than the body* holds an image. *Every character
+is held to its face* holds of its words, a chart's title in its token's
+bold among them, and so does *Every word fits where it stands*: once
+pdfmake has measured a chart's word, it is held to the advance it was
+placed by (`words.ts`). A chart with nothing to draw prints its title and
+its empty text without ECharts. `check-chart.ts` and the drawing are held
+by `charts.test.ts`, `chart-draw.test.ts` and `chart-content.test.ts`, and
+on the corpus's chart fixtures by `corpus.test.ts`; `refusals.test.ts`'s
+case of the interim refusal is gone with it.
 
 ## Alternatives considered
 

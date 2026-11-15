@@ -8,34 +8,36 @@
     `echarts` 6.1.0 and `zrender` 6.1.0 for report-render-pdf alone, by the
     digests of ECharts' `LICENSE`, `NOTICE` and `licenses/LICENSE-d3` and of
     zrender's `LICENSE`. It refuses another version of either, a licence
-    file of other bytes, and any other package that depends on either
-    itself, ECharts on zrender aside, one whose route the walk first finds
-    through the renderer among them. It passes a published package's own
-    tslib 2.8.1 beside the tslib 2.3.0 both libraries pin, each judged by
-    the policy, and the real tree. The Studio's `src/notices.test.ts` builds
-    the renderer's browser entry with the Studio's notices plugin, and holds
-    it to carrying d3's licence for the code ECharts copied from d3, and to
-    one ECharts and one zrender, at the releases the renderer pins, in the
-    chunk the entry imports dynamically and in none it imports statically.
+    file of other bytes, and any other published package that depends on
+    either itself, ECharts on zrender aside, one whose route the walk first
+    finds through the renderer among them. It passes a published package's
+    own tslib 2.8.1 beside the tslib 2.3.0 both libraries pin, each judged
+    by the policy, and the real tree. The Studio's `src/notices.test.ts`
+    builds the renderer's browser entry with the Studio's notices plugin,
+    and holds it to carrying d3's licence for the code ECharts copied from
+    d3, and to one ECharts and one zrender, at the releases the renderer
+    pins, in the chunk the entry imports dynamically and in none it imports
+    statically.
   - **The measurer.** report-render-pdf's `src/engine.test.ts` measures a
-    word as pdfmake measures it, in both entries, a host's face opened
-    from the render's virtual files and none left behind, and pins how a
-    word with whitespace at its edges or a tab is measured otherwise.
+    word as pdfmake measures it, in both entries, a host's face opened from
+    the render's virtual files and none left behind, and pins how a word
+    with whitespace at its edges or a tab is measured otherwise.
     `src/fonts.test.ts` holds Roboto's ascent and descent, which a word's
     baseline is placed by, to its file. `src/chart-faces.test.ts` takes a
-    chart's style's token, size, weight, slant and colour, the title bold
-    in the same token, and names two faces handed under one digest apart,
-    by their bytes. `src/chart-measure.test.ts` answers a word in the
-    width pdfmake measures it in and 国 in its face's line; refuses a font
-    it was not handed, a canvas and an image; puts zrender's platform back
-    when the layout throws too; keeps nothing of a render's widths once
+    chart's style's token, size, weight, slant and colour, the title bold in
+    the same token, reads no alignment, a style that aligns right getting
+    the faces it gets without one, and names two faces handed under one
+    digest apart, by their bytes. `src/chart-measure.test.ts` answers a word
+    in the width pdfmake measures it in and 国 in its face's line; refuses a
+    font it was not handed, a canvas and an image; puts zrender's platform
+    back when the layout throws too; keeps nothing of a render's widths once
     the layout ends; and refuses a layout that returns a promise.
     `src/echarts.test.ts` pins what the drawing leans on in ECharts 6.1.0
-    and zrender 6.1.0: the 国 probe; the width cache, keyed by the whole
-    font string and kept; no single character asked for but the probes;
-    no canvas or image asked for; a pie measured in the fonts handed over
-    alone, with `labelLayout` null; every gridline on its tick only on a
-    snapped plot; and a turned word written as a matrix.
+    and zrender 6.1.0: the 国 probe; the width cache, keyed by the whole font
+    string and kept; no single character asked for but the probes; no canvas
+    or image asked for; a pie measured in the fonts handed over alone, with
+    `labelLayout` null; every gridline on its tick only on a snapped plot;
+    and a turned word written as a matrix.
   - **The option.** `src/chart-option.test.ts` hands ECharts the runtime's
     ticks as the axis and no other; places every tick, label and value
     exactly however close the ticks stand for their size, and to the
@@ -81,6 +83,17 @@
     control character Roboto maps to an empty glyph, one of a kind, a box,
     a colour or a style the renderer does not know, and each invariant the
     option holds; and judges each word trimmed, in the face it prints in.
+  - **The bound.** `src/charts.test.ts`, "a render's charts, bounded in
+    all", pins `MAX_CHART_DRAWING`, `CHART_WEIGHT`, `WORD_WEIGHT` and
+    `MAX_CHART_SERIES` to the numbers its comment measured; refuses, before
+    any chart is laid out, a render whose charts cost one unit past the
+    bound, naming the count, its first chart one the drawing would refuse;
+    renders one at the bound; weighs nothing of a chart with nothing to
+    draw; counts a pie by its slices and a series' missing values among
+    its points; admits as many charts of one value as their weight fits,
+    and refuses one more; and counts the layouts pdfmake makes, four for
+    four charts behind kept headings that each move, one behind plain
+    headings.
   - **The chart in the document.** `src/chart-content.test.ts` paints a
     chart's words after its marks; draws a chart as tall as the body;
     keeps a heading kept with a chart on the chart's page; measures a
@@ -125,7 +138,7 @@
       with ECharts' `NOTICE` and d3's licence unread; the Studio's notice
       case with d3's licence left out, and its chunk cases with every
       dynamic import inlined;
-    - the pins' and the measurer's cases against a stub that measured
+    - the pins' and the measurer's cases against a stub that replaced
       nothing, eight of eleven, and under thirteen mutations;
     - the option's cases against a value axis of doubles, six of them,
       and its precision case at a unit of 10^3;
@@ -133,8 +146,9 @@
       two adjacent words of `WRITTEN` swapped, and with a style sheet
       matched by an expression that backtracked, at 54.1 s;
     - the layout's against a missing module and a stub of one layout,
-      fourteen of nineteen, and seven of 95 with the room for a negative
-      bar's label kept at the box's foot;
+      fourteen of nineteen, and seven of 95 against the layout before its
+      first fix round, the two cases of a negative bar's label room at the
+      box's foot among them;
     - the check's against a stub, 61 of 62, and eleven more with only
       line breaks refused and no bound held;
     - the document's 21 cases before the stack existed; its page-foot
@@ -152,7 +166,15 @@
       value label moved off its bar, once the legend and the labels were
       tied to their marks;
     - `MIN_BAR_WIDTH`'s gap case at a `BAR_GAP` of 0.3, and the e-invoice
-      variant's two cases before the variant was listed.
+      variant's two cases before the variant was listed;
+    - the bound's cases with each chart weighed by its kind and its points
+      alone, four of seven; then with its words unweighed, five, its
+      missing values uncounted, one, the title's and the legend's weights
+      swapped, five, the bound let through at `>=`, four, and an empty
+      chart weighed, one; and the count of kept headings' layouts with the
+      renderer's rule for kept headings switched off, and the alignment
+      case with the alignment read into the size, each in the working
+      tree on 15 November 2026.
 
 ## Context
 
@@ -218,8 +240,9 @@ A spike, on a branch never merged, answered nine questions on
   disk: a host's face was
   not found and the render refused, and where pdfmake had opened no face
   yet the converter read Roboto from disk itself, past pdfmake's access
-  policy. Handing the bytes instead fails inside pdfmake, which replaces
-  the callback with its own.
+  policy. Handing pdfmake the bytes instead of a name fails in its URL
+  resolver, and pdfmake replaces the converter's font callback with its
+  own.
 - **Q5, a quarter turn: held.** Labels turned 90° read back at 90°, in
   their face, their boxes exact.
 - **Q6, deterministic: held.** One document rendered twice in a process,
@@ -256,7 +279,9 @@ the report's faces. ECharts is handed nothing it could decide otherwise
 than the runtime did; what it writes is held before anything of it is
 used; and a chart whose words would meet, leave its box or stand in its
 plot, or whose ticks, categories or bars would stand too close or be too
-thin to read, is refused, never cut, hidden or turned.** In order:
+thin to read, is refused, never cut, hidden or turned; and a render's
+charts are weighed together, and refused past a bound measured on the
+render and on a reader.** In order:
 
 1. **ECharts is the renderer's alone.** report-render-pdf depends on
    `echarts` and `zrender` at exactly 6.1.0, zrender directly because the
@@ -268,14 +293,14 @@ thin to read, is refused, never cut, hidden or turned.** In order:
    `licenses/LICENSE-d3`, d3's BSD-3-Clause; zrender's BSD-3-Clause -- and
    for report-render-pdf alone. The policy judges them as any package. They
    are further refused at another version, with another licence file, and
-   wherever any package but the renderer depends on either itself, ECharts
-   on zrender aside, every dependent judged and not the first route the walk
-   finds; a package reaches them through the renderer, which loads them for
-   a chart alone. The tslib 2.3.0 both pin is not confined: it is a helper
-   under 0BSD, and the Angular builder and rxjs depend on a tslib of their
-   own, so the policy judges it as any package. The Studio's notices carry
-   d3's licence, which ECharts keeps in a directory the notices plugin does
-   not read (`apps/studio/src/embedded-notices.ts`).
+   wherever any published package but the renderer depends on either itself,
+   ECharts on zrender aside, every dependent judged and not the first route
+   the walk finds; a package reaches them through the renderer, which loads
+   them for a chart alone. The tslib 2.3.0 both pin is not confined: it is a
+   helper under 0BSD, and the Angular builder and rxjs depend on a tslib of
+   their own, so the policy judges it as any package. The Studio's notices
+   carry d3's licence, which ECharts keeps in a directory the notices plugin
+   does not read (`apps/studio/src/embedded-notices.ts`).
 2. **Loaded with the first chart that has marks.** `chart-draw.ts` is the
    one module that imports ECharts' code, and `chart-measure.ts`, which
    imports zrender's platform, is imported by it alone. `render.ts`
@@ -506,24 +531,86 @@ thin to read, is refused, never cut, hidden or turned.** In order:
     empty text centred in the box, each measured as pdfmake prints it and
     held by the words' rule. It draws no axis and no mark, and a document
     whose only charts are empty loads no ECharts.
-12. **A chart counts against no SVG budget.** An SVG asset's paths are
-    held to `MAX_SVG_SEGMENTS` and `MAX_SVG_DRAWING`, since it is an
-    untrusted file; a chart is the renderer's drawing of a block, bounded
-    by the block -- its categories, series and ticks -- and on a page by
-    the bars' least width and the labels' slots. The costliest chart the
-    bounds admit is a line chart of eight series and 200 categories whose
-    labels are empty, which no slot bounds. Three of them on an A4
-    landscape page, measured on 15 November 2026 on an Apple M2 under
-    Node 22.23.4: 586 ms a render, the median of seven (549 to 849),
-    against 4.6 ms for the page without them, with the machine at a load
-    average of about 5; 4,869 paths, read back by PDF.js as 43,338
-    segments -- 4,869 moves, 4,869 lines and 33,600 curves, a close not
-    counted -- which weigh 115,572 as report-spec's `svg-cost.ts` weighs
-    an SVG asset's for `MAX_SVG_SEGMENTS`, a curve three lines and a
-    stroke twice a fill: more than eleven times what the body's SVG images
-    may cost together. The segments were counted on the same page the same
-    day.
-13. **Proved on the PDF**, by report-corpus's `check-charts.ts` and the
+12. **A render's charts are weighed together, and bounded**
+    (`check-chart.ts`'s `checkChartDrawing`). ECharts lays out every chart
+    of a render, three times, before the body is paginated, and a reader
+    draws every one, and nothing else bounded how many a document packs
+    onto its pages. So before any chart is laid out, a render whose charts
+    together weigh more than `MAX_CHART_DRAWING`, 5,000 units, is refused
+    as `content-too-large` at the chart that crossed it, naming the count
+    and the bound and quoting none of its words.
+    - **The unit** is what one more point of a line chart of 8 series and
+      200 categories costs a render.
+    - **A chart weighs** its kind's weight (`CHART_WEIGHT`: a bar 40, a
+      line 490, a pie 10); a unit for each series at each category, a null
+      among them, or for each of a pie's slices, one of no share among
+      them; and each word it places by what the word is (`WORD_WEIGHT`: a
+      title, the chart's or an axis's, 3, a legend entry 5, a tick, a
+      category and a value 1). A chart with nothing to draw weighs nothing:
+      ECharts never lays it out.
+    - **How the weights were measured.** On 15 November 2026 on an Apple
+      M2 (8 cores) under Node 22.23.4, with pdfmake 0.3.11 and pdfjs-dist
+      6.4.299, in one run at a load average of 12 to 20: every document
+      rendered and its page drawn by PDF.js at scale 1 in the same seven
+      rounds, each difference read against its own round's unit, 0.15 to
+      0.50 ms as the load fell, and the median of the seven taken; each
+      weight the larger of the render's and the reader's, rounded up, a
+      kind's to ten and a word's to a whole unit. A word is the difference
+      between one-page documents of the same charts with and without words
+      of its kind: a value label 0.85 units on a bar and 0.67 on a line, a
+      category label 0.48, a legend entry 2.36 on a pie and 4.02 on an axis
+      chart, a title 2.74, each the render's, and a tick 0.35, the
+      reader's. A kind is its barest chart of one category, N against 2N,
+      less its points and its words: a bar of 8 series 34 to the render, a
+      pie of one slice 8, and a line of 8 series 482 to a reader, the eight
+      soft-masked groups its series' clips are drawn as.
+    - **How the bound was set**: by the slowest of seven interleaved runs
+      of the costliest of the forms tried, each render timed and each page
+      drawn by PDF.js at scale 1, at a load average of 3.3 to 5.6, to keep
+      a render and a page under 2 s. The forms were charts of one category
+      of each kind, of 1 and 8 series, bare, dressed and value-labelled;
+      the largest of each kind the earlier cost run tried; bars of 120 and
+      186 categories and lines of 8 × 200, every value labelled at 4 pt,
+      report-spec's least size; pies of 200 slices, bare and with every
+      slice in the legend; charts with legends of eight entries; and a
+      page of one 8 × 200 line beside lines of 8 series and one category.
+      Each was packed as many to a render as the bound holds, in the
+      densest grid it draws in on A4 landscape pages without margins,
+      across pages, and as many as one page holds.
+    - **What it admits.** At 5,000 the costliest render, 263 dressed pies
+      of one slice on 3 pages, took 878 ms at its slowest and 859 at its
+      median; the costliest page, one 8 × 200 line beside five 8 × 1
+      lines, cost PDF.js 1,614 ms at its slowest and 723 at its median.
+      That slowest run is one spike: the page's other six stood at 0.66
+      to 1.10 times the reference render's in their rounds. At 0.332 ms a
+      unit it reaches 2 s at about 6,017 units, and 6,000 would leave about
+      10 ms, so the bound is 5,000, which the same run confirmed.
+    - **It holds one layout pass.** pdfmake lays the whole document out
+      again for each page where a kept heading moves to the next, which no
+      bound before the layout can count. Behind a keep-with-next heading
+      each, 17 bar charts of 123 one-letter categories, 290 pt tall, which
+      the bound admits, took a median of 1,475 ms where behind plain
+      headings they took 574, at a load average of 3.2 to 3.7; and 20 of
+      them, past the bound, 1,887 ms against 637 at about 4.
+13. **A chart counts against no SVG budget.** An SVG asset's paths are
+    held to `MAX_SVG_SEGMENTS` and `MAX_SVG_DRAWING`, as an untrusted
+    file's; a chart is the renderer's drawing of a block, held to the
+    block's bounds and to the render's chart bound above. The costliest of
+    eight chart forms the cost run tried, three to an A4 landscape page,
+    each as wide as the page and a third of its height, was a line chart
+    of 8 series and 200 categories whose labels are empty, which no slot
+    bounds. That page, measured on 15 November 2026 on the Apple M2 under
+    Node 22.23.4, took a median of 586 ms to render (549 to 849), against
+    4.6 ms without its charts, at a load average of about 5; it draws
+    4,869 paths, read back by PDF.js as 43,338 segments -- 4,869 moves,
+    4,869 lines and 33,600 curves, a close not counted -- which weigh
+    115,572 as report-spec's `svg-cost.ts` weighs an SVG asset's for
+    `MAX_SVG_SEGMENTS`, a curve three lines and a stroke twice a fill. The
+    chart bound now refuses that page at its third chart, which brings
+    its charts to 6,408 units, and admits two. One of them alone draws
+    1,623 paths, 14,446 segments, which weigh 38,524, nearly four times
+    what the body's SVG images may cost together.
+14. **Proved on the PDF**, by report-corpus's `check-charts.ts` and the
     modules beside it, which 0003's addition describes.
 
 **A refusal names the chart and says sizes.** Every refusal here names
@@ -560,8 +647,9 @@ to `check-chart.ts` and draws it.
   twice and in another process, though zrender's ids advance.
 - **Fail closed.** A word that would meet another, a label that does not
   fit, a bar too thin to see, a drawing ECharts writes otherwise than it
-  was read to write, and a second zrender are refused, naming the chart;
-  none is drawn partly.
+  was read to write, a second zrender, and a render whose charts together
+  cost past the bound are refused, naming the chart; none is drawn
+  partly.
 
 **What it costs.**
 - **A second library, and its internals.** The drawing leans on ECharts
@@ -597,9 +685,10 @@ to `check-chart.ts` and draws it.
 - **The least bar is a screen's.** `MIN_BAR_WIDTH` was measured at the
   Studio's Preview at 100 % on a screen of device pixel ratio 2; at 75 %,
   or on a screen of ratio 1, the bars of the densest chart drawn may run
-  together in the Preview, though never in the PDF. And a bar chart whose
-  bars would be narrower is refused, though a reader zoomed further in
-  would draw them apart.
+  together in the Preview, or in any reader that draws the PDF as
+  coarsely; the PDF keeps a gap between them. And a bar chart whose bars
+  would be narrower is refused, though a reader zoomed further in would
+  draw them apart.
 - **Installed with every renderer.** ECharts and zrender are installed
   with report-render-pdf, for a host that never draws a chart too; a
   browser loads them only with the first document that holds a chart
@@ -615,15 +704,47 @@ to `check-chart.ts` and draws it.
   page, and a host's own ECharts measures through it too. The measurer
   stands for one synchronous layout and is put back, so a host's charts
   measure as they did between the renderer's; but a host whose bundle
-  gives ECharts another zrender than the renderer's has every chart
-  refused.
-- **A chart's paint is not bounded as an SVG's.** The costliest page the
-  bounds admit weighs 115,572 segments as report-spec weighs an SVG
-  asset's, more than eleven times what the body's SVG images may cost
-  together (`MAX_SVG_SEGMENTS`); what painting it costs a reader was not
-  measured. Rendering it took a median of 586 ms on a machine at a load
-  average of about 5, and medians of 1.0 to 1.7 s, a single run 3.0 s, at
-  a load average of about 23.
+  gives ECharts another zrender than the renderer's has every chart with
+  something to draw refused.
+- **A render's charts are bounded on one quiet machine.** The weights and
+  the bound were measured on one Apple M2, and the 2 s the bound keeps
+  holds at the load it was confirmed at, 3.3 to 5.6. At a load of 10 to
+  18.6 the documents it admits ran far slower at their slowest: a page of
+  nine line charts of 8 series and one category 5.5 s, the page that set
+  the bound 9.45 s, and a render of 53 bar charts of 8 series and one
+  category, with legend entries of 100 characters, 9.1 s.
+- **The bound rests on one run.** The slowest of seven runs set it, and that
+  run was a spike, 1,614 ms against the page's median of 723: without it the
+  same rule would have set the bound at about 9,000 to 9,600. And the
+  weights are medians, not upper bounds: over the seven rounds a title cost
+  1.2 to 5.9 units, and an axis chart's legend entry 2.7 to 20.4.
+- **A document of many charts is refused.** A render whose charts weigh
+  more than 5,000 units is refused, at the chart that crossed it, though
+  each chart would draw: two line charts of 8 series and 200 categories
+  fit, and three do not. It is the host's to split across renders.
+- **A kept heading multiplies the cost the bound holds.** The bound holds
+  one layout pass, and pdfmake lays the whole document out again for each
+  page where it moves a kept heading to the next, the charts' share of a
+  layout with it: 17 admitted bar charts behind kept headings took two and
+  a half times as long as behind plain ones. `charts.test.ts` counts the
+  extra layouts.
+- **A line chart's clip costs a reader, once for each series.**
+  svg-to-pdfkit draws every clip path as a page-sized group under a
+  luminosity soft mask, and ECharts clips every line series to the plot:
+  a line of 8 series paints eight such groups, 482 of its weight's 490
+  units, all a reader's. `clip: false` on the line series would stop
+  ECharts writing the clip, and the check already refuses every value the
+  ticks do not hold, so the clip cuts nothing; it is untried, and what it
+  would save unmeasured.
+- **A chart's paint is not bounded as an SVG's.** One line chart of 8
+  series and 200 categories, as wide as an A4 landscape page and a third
+  of its height, weighs 38,524 segments as report-spec weighs an SVG
+  asset's, nearly four times what the body's SVG images may cost together
+  (`MAX_SVG_SEGMENTS`), and the chart bound admits two of them on a page;
+  what painting them costs a reader was not measured beyond the pages the
+  bound was confirmed on. Three of them, before the bound, took a median
+  of 586 ms to render at a load average of about 5, and medians of 1.25
+  and 1.67 s, a single run 3.0 s, at about 23.
 - **A pie has no least size.** Its square is the largest that its title
   and its legend leave room for, and a review drew one 0.24 pt across,
   where a bar is held to `MIN_BAR_WIDTH`; nothing yet refuses a pie too
@@ -715,3 +836,20 @@ upright box on the page that holds it, exact at 0° and 90° alone, so two
 diagonal labels that do not touch could not be proved apart on the PDF;
 and on this path the words are pdfmake's text, which the renderer turns
 at no angle.
+
+**A chart counted against the SVG budget, as an SVG asset is.** One bound
+for every drawing. But `MAX_SVG_SEGMENTS` weighs what a reader paints of
+a file's segments, and nothing of the layouts ECharts makes of every
+chart before the body is paginated, which the chart bound's weights
+measure on the render; and one line chart of 8 series and 200 categories
+weighs nearly four times that bound, so it would refuse one such chart,
+where the chart bound admits two to a page, rendered in 627 ms at their
+slowest.
+
+**A chart weighed by its kind and its points alone, or one weight for
+every word.** The first form of the chart bound weighed a unit a point
+and nothing for a word, and under it value-labelled bars and lines cost
+1.4 to 1.65 times its costliest render, and pies of 200 slices with every
+slice in the legend 2.3 to 2.44 times. One weight for every word would
+have to be a legend entry's, at least 5, five times a category label's,
+and would refuse a labelled 8 × 200 line on its own, at 10,120 units.

@@ -80,7 +80,8 @@ categories than `MAX_CHART_CATEGORIES` and a pie of more slices than its
 palette has colours, before anything is totalled; the renderer refuses,
 as `content-too-large`, a chart whose words would meet, leave its box or
 stand in its plot, whose category labels do not fit across their slots,
-or whose bars would be narrower than `MIN_BAR_WIDTH`, and never cuts,
+or whose bars would be narrower than `MIN_BAR_WIDTH`, and a render whose
+charts together weigh more than `MAX_CHART_DRAWING`, and never cuts,
 hides or turns a word to make it fit [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 
 **A code is read from a closed list.** An e-invoice's units, countries, VAT
@@ -400,8 +401,8 @@ permissive, and the policy judges them as any package. `CONFINED`, in
 `scripts/dependency-licences/reviews.mjs`, further admits each at exactly
 6.1.0, by the digests of the licence files a review read, for
 `@formancy/report-render-pdf` alone: another version, a licence file of
-other bytes, and any other package that depends on either itself,
-ECharts on zrender aside, are refused, so that no builder depends on a
+other bytes, and any other published package that depends on either
+itself, ECharts on zrender aside, are refused, so that no builder depends on a
 charting library. The tslib 2.3.0
 both pin is judged by the policy alone, since the Angular builder and
 rxjs depend on a tslib of their own [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).

@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:6956a7926f57112772670c98b2ddf22ec582a6e1cb544f188ad8f1fffacfd577",
+      "reviewed": "sha256:773005c3284c19ba1109472b93f9c781f15a7583057a8ee1c46cc3672f1a3b0f",
       "limitations": [
         {
           "area": "licence",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:0a6995a62cb1d87427ec023f81451a7381853fbfb0d131c4a409c40cfbccbff0",
+      "reviewed": "sha256:e8b947be61c2be4f68bc21185e69ff3401fd57620e92d1754ac532a6717f504d",
       "limitations": [
         {
           "area": "rendering",
@@ -2267,7 +2267,7 @@
       ]
     },
     "0052": {
-      "reviewed": "sha256:d5c273cbc34b79de11df768d2634b0fc457fac2b42660d26663598e2e2c2fe7e",
+      "reviewed": "sha256:f46b65547424a5a944ec70e71ca639c74e7b1c99b644cc23472db92422bf0437",
       "limitations": [
         {
           "area": "format",
@@ -2340,7 +2340,7 @@
       ]
     },
     "0058": {
-      "reviewed": "sha256:6c1f7a5f82fb8ad2f8e6d750b1eb07ef7c2eeb65761d65691ab34f54edf3ff90",
+      "reviewed": "sha256:2999883b7b4195b4c20ad5e80e9025ed45e10bd81509e1ac25ebe05642928bbd",
       "limitations": [
         {
           "area": "rendering",
@@ -2359,7 +2359,7 @@
         },
         {
           "area": "rendering",
-          "says": "A bar chart whose bars would be narrower than 3.5 pt, the least the Studio's Preview draws apart at 100 % on a screen of device pixel ratio 2, is refused; at 75 %, or on a screen of ratio 1, the narrowest bars drawn may run together in the Preview, though never in the PDF.",
+          "says": "A bar chart whose bars would be narrower than 3.5 pt, the least the Studio's Preview draws apart at 100 % on a screen of device pixel ratio 2, is refused; at 75 %, or on a screen of ratio 1, the narrowest bars drawn may run together in the Preview, or in any reader that draws the PDF as coarsely, though the PDF keeps a gap between them.",
           "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
         },
         {
@@ -2374,12 +2374,27 @@
         },
         {
           "area": "rendering",
-          "says": "Every chart is refused where a host's bundle gives ECharts another copy of zrender than the renderer's.",
+          "says": "Every chart with something to draw is refused where a host's bundle gives ECharts another copy of zrender than the renderer's.",
           "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
         },
         {
           "area": "rendering",
-          "says": "A page of charts is bounded by the runtime's bounds and the chart's own refusals, not by what an SVG may cost a reader: three line charts of 8 series and 200 categories, the costliest the bounds admit, paint more than eleven times the segments the body's SVG images may."
+          "says": "A render whose charts together weigh more than 5,000 units -- each chart its kind's weight (a bar 40, a line 490, a pie 10), a unit for each series at each category or each slice, and each word it places by what the word is (a title 3, a legend entry 5, a tick, a category or a value 1) -- is refused as `content-too-large` at the chart that crossed it, so a document of many dense charts, three line charts of 8 series and 200 categories among them, is split across renders.",
+          "heldBy": "packages/report-render-pdf/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The chart bound was measured on one Apple M2, the weights on the render and on PDF.js at scale 1 at a load average of 12 to 20 and the bound by the slowest of seven runs of the costliest form tried at 3.3 to 5.6, where the costliest render it admits took 878 ms and the costliest page 1,614 ms at their slowest; at a load of 10 to 18.6 documents it admits took up to 9.45 s.",
+          "heldBy": "packages/report-render-pdf/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A heading kept with the next block makes pdfmake lay the whole document out again for each page it moves a heading to, charts and all, which the chart bound does not count: 17 bar charts the bound admits took two and a half times as long behind kept headings as behind plain ones.",
+          "heldBy": "packages/report-render-pdf/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart's paint counts against no SVG budget: one line chart of 8 series and 200 categories, as wide as an A4 landscape page and a third of its height, weighs nearly four times the segments the body's SVG images may cost together, and the chart bound admits two of them on a page."
         },
         {
           "area": "licence",

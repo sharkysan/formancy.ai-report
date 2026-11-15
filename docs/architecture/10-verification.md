@@ -132,7 +132,7 @@ what the renderer drew is held where it reads it [0058](../decisions/0058-the-re
 | The option: the ticks' places, exact; each bar on zero; each slice its exact share; every word by index; every colour named; nothing wrapped, cut, hidden or turned | `report-render-pdf/src/chart-option.test.ts` |
 | The SVG ECharts writes, held, its words read back, and a pie's arcs on its own circle | `report-render-pdf/src/chart-svg.test.ts`, `chart-arcs.test.ts` |
 | The layout and its refusals, over fixed charts and seeded ones; a second zrender refused | `report-render-pdf/src/chart-draw.test.ts`, `chart-held.test.ts` |
-| What is refused before anything is laid out | `report-render-pdf/src/charts.test.ts` |
+| What is refused before anything is laid out; a render's charts weighed together and refused past `MAX_CHART_DRAWING`, at the bound and one unit past it; and pdfmake's extra layouts for kept headings, which the bound does not count | `report-render-pdf/src/charts.test.ts` |
 | The chart in the document: its words after its marks, at a page's foot, in a column, a section and a keep-together block, the same bytes twice and in another process; pdfmake's detached nodes; a heading left behind by a block that prints no text | `report-render-pdf/src/chart-content.test.ts`, `pdfmake.test.ts`, `flow.test.ts` |
 | The browser entry: ECharts loaded for the first chart with marks and for no other document, and the Node entry's objects drawn | `report-render-pdf/src/browser.test.ts` |
 | The browser entry bundled: one ECharts and one zrender, in the chunk it imports dynamically alone, and d3's licence among its notices | `apps/studio/src/notices.test.ts` |

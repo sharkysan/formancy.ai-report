@@ -101,8 +101,10 @@ renderPdf(document, { maxPages, signal })
    │ its XMP cannot hold, a CMYK JPEG, an SVG whose numbers or
    │ nesting its PDF/A cannot hold (6.9) ────────────────────▶ unsupported
    │ a chart in a page region, of a kind it does not know, past
-   │ the runtime's bounds, or with a word its face cannot
-   │ draw (6.18) ────────────────────────────────────────────▶ unsupported
+   │ MAX_TICK_INTERVALS or MAX_CHART_SERIES, or with a word its
+   │ face cannot draw (6.18) ────────────────────────────────▶ unsupported
+   │ a chart of more than MAX_CHART_CATEGORIES, and a render's
+   │ charts past MAX_CHART_DRAWING together (6.18) ──────────▶ content-too-large
    ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
    │ browser its chunk imported
    ├─ measure the page regions; the body's margins follow
@@ -957,10 +959,15 @@ its ticks, its colours by place ──▶ the ResolvedDocument (6.2)
    ▼
 renderPdf (6.2): checkChart, before pdfmake sees it      report-render-pdf's check-chart.ts
    ├─ in a page region; a kind, a box, a colour or a style it does not know;
-   │  past MAX_CHART_CATEGORIES, MAX_TICK_INTERVALS or MAX_CHART_SERIES;
-   │  its parts unmatched; a word with a control character, or one its face
-   │  has no glyph for; a value no decimal, uneven ticks, a slice below zero ─▶ unsupported
-   ├─ wider than where it stands, taller than the body ──────▶ content-too-large
+   │  past MAX_TICK_INTERVALS or MAX_CHART_SERIES; its parts unmatched; a
+   │  word with a control character, or one its face has no glyph for; a
+   │  value no decimal, uneven ticks, a slice below zero ───▶ unsupported
+   ├─ more than MAX_CHART_CATEGORIES categories or slices; wider than
+   │  where it stands; taller than the body ──────────────▶ content-too-large
+   ▼
+checkChartDrawing: the render's charts weighed together, each its kind's
+weight, a unit a point and each word's weight, before any is laid out
+   ├─ past MAX_CHART_DRAWING, at the chart that crossed it ─▶ content-too-large
    ▼
 drawCharts: each chart's faces from the render's plan, opened by Engine.widths
    ├─ nothing to draw ──▶ drawEmpty: its title and empty text placed, no ECharts
@@ -1007,4 +1014,6 @@ refused. ECharts lays the chart out, and the renderer only snaps the plot
 it chose and reads back where every word went: a chart whose words would
 meet or leave its box, whose labels do not fit across, or whose bars are
 too thin to see, is refused, naming it and its box and saying sizes,
-never moved, cut or turned to fit [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
+never moved, cut or turned to fit; and a render whose charts together
+weigh more than `MAX_CHART_DRAWING` is refused before any of them is laid
+out [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
