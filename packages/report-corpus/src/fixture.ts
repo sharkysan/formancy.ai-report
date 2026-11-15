@@ -194,8 +194,8 @@ export interface Expectation {
   readonly pageRegionImages: readonly ExpectedImage[]
 }
 
-/** What a fixture states about itself; everything else in its expectation is derived. */
-export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expectation, 'maxPagesExpected'>>
+/** What a fixture states about itself; everything else in its expectation is derived, and the drawings it seeks and the charts it proves always are. */
+export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expectation, 'maxPagesExpected' | 'drawings' | 'charts'>>
 
 /**
  * The expectation a document implies, with what the fixture states laid over
@@ -226,9 +226,10 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     fontNames: [],
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
+    ...stated,
+    // Derived together and never stated, so that a drawing is never sought apart from the chart it proves (N3).
     drawings: drawingsOf(document.body),
     charts: chartsOf(document),
-    ...stated,
   }
 }
 

@@ -120,8 +120,8 @@ export function totalRow(rows: readonly TableRow[], label = 'Total'): TableRow {
   return { kind: 'total', cells: [label, '', amount(sum)] }
 }
 
-/** What a test states about a document; everything else in its expectation is derived. */
-export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expectation, 'maxPagesExpected'>>
+/** What a test states about a document; everything else in its expectation is derived, and the drawings it seeks and the charts it proves always are. */
+export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expectation, 'maxPagesExpected' | 'drawings' | 'charts'>>
 
 /** A fixture of `document`, its expectation derived, with a page limit of 20. */
 export function fixtureOf(id: string, document: ResolvedDocument, stated: Stated): Fixture {
@@ -162,9 +162,10 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     fontNames: [],
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
+    ...stated,
+    // Derived together and never stated, so that a drawing is never sought apart from the chart it proves (N3).
     drawings: drawingsOf(document.body),
     charts: chartsOf(document),
-    ...stated,
   }
 }
 

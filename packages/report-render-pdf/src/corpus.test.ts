@@ -22,7 +22,7 @@ import { AXIS, GRID, QUOTIENT_UNIT } from './chart-option.js'
 import { renderPdf } from './node.js'
 import type { RenderOptions } from './options.js'
 import { BARS } from './testing/charts.js'
-import { documentOf, fixture, fixtureOf, paragraph, TIMEOUT } from './testing/documents.js'
+import { documentOf, fixture, fixtureOf, paragraph, TIMEOUT, type Stated } from './testing/documents.js'
 
 /**
  * The renderer on the corpus: every fixture rendered and proved on the PDF
@@ -153,11 +153,15 @@ describe("the corpus's checks on a chart the renderer drew", () => {
         ...pdf,
         pages: pdf.pages.map((page) => ({ ...page, paths: page.paths.filter((path) => path.paint !== 'fill' || !colours.has(path.fill ?? '')) })),
       }
-      expect(verify(each, barless)).toEqual([
+      const lacking = [
         'bars: page 1: the chart sales draws no bar of series 1 at category 1',
         'bars: page 1: the chart sales draws no bar of series 2 at category 1',
         'bars: page 1: the chart sales draws no bar of series 2 at category 2',
-      ])
+      ]
+      expect(verify(each, barless)).toEqual(lacking)
+      // Stated away, the drawings it seeks are derived all the same: a fixture cannot seek no drawing for its chart.
+      const stated = { maxPagesExpected: 1, drawings: [], charts: [] } as unknown as Stated
+      expect(verify(fixtureOf('bars', each.document, stated), barless)).toEqual(lacking)
     },
     TIMEOUT,
   )

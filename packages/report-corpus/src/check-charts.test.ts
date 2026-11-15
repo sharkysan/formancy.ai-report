@@ -388,7 +388,19 @@ describe('chartProblems', () => {
   // A chart is found by its clip, as an SVG image is: a chart that is not
   // drawn at all is one problem, and its words are not then read for it.
   test('finds a chart that is not drawn', () => {
-    expect(problemsOf([SALES], sales({ clips: [] }))).toEqual(['the chart sales, 300 × 200 pt, is not drawn: no clip of its size holds a painted path'])
+    expect(problemsOf([SALES], sales({ clips: [] }))).toEqual([
+      'the chart sales, 300 × 200 pt, is not drawn: no clip of its size holds a painted path',
+      'the chart sales is proved by nothing: no clip of it was placed',
+    ])
+  })
+
+  // A chart is proved where the walk that places drawings found it, and
+  // a chart the walk was never asked to seek was found nowhere: skipped,
+  // it was proved by nothing and said nothing, as an expectation that
+  // sought no drawing for it once did (N3). It is said, whatever placed
+  // it or did not.
+  test('says of a chart nothing placed that it is proved by nothing', () => {
+    expect(checked([SALES], [], SALES_READ)).toEqual(['the chart sales is proved by nothing: no clip of it was placed'])
   })
 
   // A clip an SVG image of the chart's size took before it is the
@@ -397,9 +409,11 @@ describe('chartProblems', () => {
   test('takes no clip an SVG image took, nor one nothing is painted in', () => {
     expect(checked([SALES], [{ kind: 'image', width: 300, height: 200 }, drawingOf(SALES)], SALES_READ)).toEqual([
       'the chart sales, 300 × 200 pt, is not drawn: no clip of its size holds a painted path',
+      'the chart sales is proved by nothing: no clip of it was placed',
     ])
     expect(problemsOf([SALES], sales({ paths: [] }))).toEqual([
       'the chart sales, 300 × 200 pt, has its clip at 40, 46.55 on page 1, and nothing painted inside it',
+      'the chart sales is proved by nothing: no clip of it was placed',
     ])
   })
 
@@ -411,6 +425,7 @@ describe('chartProblems', () => {
     expect(problemsOf([SALES, { ...SALES, id: 'again' }], SALES_READ, SALES_READ)).toEqual([])
     expect(problemsOf([SALES, { ...SALES, id: 'again' }, { ...SALES, id: 'third' }], SALES_READ, SALES_READ)).toEqual([
       'the chart third, 300 × 200 pt, is not drawn: no clip of its size holds a painted path',
+      'the chart third is proved by nothing: no clip of it was placed',
     ])
   })
 

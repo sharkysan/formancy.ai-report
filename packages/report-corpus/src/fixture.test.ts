@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import type { Block, ResolvedDocument } from './document.js'
-import { chartsOf, drawingsOf, epcCodes, expectation, footerPattern } from './fixture.js'
+import type { ReadPdf } from './read-pdf.js'
+import { verify } from './checks.js'
+import { chartsOf, drawingsOf, epcCodes, expectation, footerPattern, type Expectation, type Fixture, type Stated } from './fixture.js'
 import { hostFonts } from './fixtures/host-fonts.js'
 
 const page = { size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 } } as const
@@ -415,6 +417,29 @@ describe('chartsOf', () => {
       { id: 'in-column', after: 'last', breaks: undefined },
     ])
     expect(chartsOf(documentOf([empty('first')]))[0]).toMatchObject({ breaks: 0 })
+  })
+
+  // The drawings an expectation seeks and the charts it proves are derived
+  // together, and never stated: a fixture that stated its drawings away
+  // sought no drawing for its chart, and a chart drawn with no bar passed
+  // every check (N3). What is stated of either is the derived list again;
+  // and an expectation built by hand whose two lists name other charts,
+  // in order, is refused by `verify` as the expectation's mistake, before
+  // a page is read.
+  test('derives its drawings and its charts whatever is stated, and verify refuses two that disagree', () => {
+    const document = documentOf([bars, empty('nothing'), pie])
+    const derived = expectation(document, { maxPagesExpected: 1 })
+    const stated = { maxPagesExpected: 1, drawings: [], charts: [] } as unknown as Stated
+    expect(expectation(document, stated)).toEqual(derived)
+    const fixture = (expect: Expectation): Fixture => ({ id: 'charts', title: 'Charts', document, maxPages: 1, expect })
+    const pdf: ReadPdf = { pages: [], fonts: [], attachments: [] }
+    expect(() => verify(fixture({ ...derived, drawings: [] }), pdf)).toThrow(
+      'the expectation of charts seeks the charts none and proves the charts sales, shares that draw something: the two are derived together, in document order (`drawingsOf`, `chartsOf`)',
+    )
+    expect(() => verify(fixture({ ...derived, charts: derived.charts.slice(0, 1) }), pdf)).toThrow(
+      'the expectation of charts seeks the charts sales, shares and proves the charts sales that draw something',
+    )
+    expect(() => verify(fixture({ ...derived, drawings: [...derived.drawings].reverse() }), pdf)).toThrow('seeks the charts shares, sales and proves')
   })
 
   // The expectation proves every chart it holds, and the drawings it seeks

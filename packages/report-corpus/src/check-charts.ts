@@ -71,8 +71,10 @@ const crosses = (a: PdfBox, b: PdfBox): boolean => a.x < b.x + b.width && b.x < 
 /**
  * What is wrong with each chart `expected` holds, in document order, as
  * `pdf` draws it on `pages`, whose charts `drawings.ts` placed; none when
- * every chart passes. A chart it did not find is its problem to say, and
- * no other is said of it here. Each problem names its page and its chart.
+ * every chart passes. A chart with something to draw that nothing placed
+ * is said to be proved by nothing, and no more is said of it: why it was
+ * not found is `drawings.ts`'s to say. Each problem names its chart, and
+ * the page where it is drawn.
  */
 export function chartProblems(pdf: ReadPdf, pages: readonly Page[], expected: readonly ExpectedChart[]): string[] {
   const placed = pages.flatMap(({ page, charts }) => charts.map((chart) => ({ page, chart })))
@@ -86,7 +88,10 @@ export function chartProblems(pdf: ReadPdf, pages: readonly Page[], expected: re
       continue
     }
     const at = placed.find((each) => each.chart.id === chart.id && !taken.has(each.chart))
-    if (at === undefined) continue
+    if (at === undefined) {
+      problems.push(`the chart ${chart.id} is proved by nothing: no clip of it was placed`)
+      continue
+    }
     taken.add(at.chart)
     problems.push(...drawnProblems(chart, at.page, at.chart))
   }

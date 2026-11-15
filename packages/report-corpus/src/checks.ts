@@ -25,6 +25,7 @@ export function verify(fixture: Fixture, pdf: ReadPdf): string[] {
   if (expected.outcome === 'refuse') {
     return [`${fixture.id}: expected a refusal (${expected.refusal?.code ?? 'of any kind'}), but a PDF was produced`]
   }
+  heldTogether(fixture)
   const drawings = placeDrawings(pdf, expected)
   const pages = pagesOf(pdf, expected, drawings)
   const tables = readTables(pages, expected.tables)
@@ -53,6 +54,24 @@ export function verify(fixture: Fixture, pdf: ReadPdf): string[] {
     ...capped(chartProblems(pdf, pages, expected.charts)),
   ]
   return problems.map((problem) => `${fixture.id}: ${problem}`)
+}
+
+/**
+ * The charts `fixture`'s expectation seeks as drawings, by id, are the
+ * charts it proves that draw something, in order, or the expectation is
+ * the fixture's mistake, thrown before a page is read: both are derived
+ * together (`drawingsOf`, `chartsOf`), and two that disagree would seek a
+ * chart nothing proves, or prove one nothing sought, and nobody would
+ * find out (N3).
+ */
+function heldTogether({ id, expect }: Fixture): void {
+  const listed = (ids: readonly string[]): string => (ids.length === 0 ? 'none' : ids.join(', '))
+  const sought = expect.drawings.flatMap((drawing) => (drawing.kind === 'chart' ? [drawing.id] : []))
+  const proved = expect.charts.flatMap((chart) => (chart.empty ? [] : [chart.id]))
+  if (sought.length !== proved.length || sought.some((each, index) => each !== proved[index]))
+    throw new Error(
+      `the expectation of ${id} seeks the charts ${listed(sought)} and proves the charts ${listed(proved)} that draw something: the two are derived together, in document order (\`drawingsOf\`, \`chartsOf\`)`,
+    )
 }
 
 /**
