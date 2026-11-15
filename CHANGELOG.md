@@ -10,14 +10,6 @@ later.
 
 ## Unreleased
 
-**The getting-started guide's quotation prints a bar chart of its lines, and the install gate
-draws it.** The guide's report gains the chart in its summary, so a reader's first PDF shows one,
-and the gate that compiles and runs the guide does it from the packed tarballs, in Node and in a
-browser bundle that carries the renderer's chart code. It caught that the Node entry's `engine`,
-exported for the renderer's own tests, made the published `index.d.mts` import
-`pdfmake/interfaces.js`, whose types a consumer does not install, so a host type-checking with
-`skipLibCheck` off failed. The engine now lives in `node-engine.ts`, which no entry exports from.
-
 **The demo at `/report/` is served under a content security policy that admits its own files
 alone**
 ([0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)).

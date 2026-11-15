@@ -275,9 +275,7 @@ totals the detail rows by a category, here each line's description, and
 prints a bar for each. Every number on it -- each bar's value, each tick of
 its axis, each label -- is the runtime's, computed exactly from the strings
 and formatted once for the locale; the renderer places the words and marks
-and rounds, converts and prints no number of its own. The chart's code is a
-separate part of the renderer: a browser that prints a document without a
-chart never loads it, and one that prints a chart fetches it then.
+and rounds, converts and prints no number of its own.
 
 `resolveReport` holds every value to its field's contract, evaluates the
 report's expressions, computes the totals and formats each value for the
