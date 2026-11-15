@@ -53,9 +53,24 @@ import type { RowGroup } from './sort-group.js'
 import { asDecimal, totalOf, totalsInDecimals } from './totals.js'
 
 /**
- * The most categories a chart groups its rows into: 200, chosen, not
- * measured, as a bound on the work of totalling every series at every
- * category. How many a box draws legibly is the renderer's to say.
+ * The most categories a chart groups its rows into: 200, chosen as a bound
+ * on the work of totalling every series at every category. How many a box
+ * draws legibly is the renderer's to say.
+ *
+ * What the costliest chart the bounds admit costs a render, measured on
+ * 2026-11-15 on a Mac (Apple M2) under Node 22.23.4, ECharts 6.1.0, with
+ * the machine at a load average of about 5 from other work: three charts
+ * to an A4 landscape page, zero margins, each as wide as the page and a
+ * third of its height, eight series where it has them, value labels off,
+ * and `renderPdf` run seven times to each page after a warm-up. Each form
+ * is the largest `drawChart` does not refuse: a line chart of 8 series
+ * and the full 200 categories, whose empty labels are no word, took a
+ * median of 586 ms (549 to 849) against 4.6 ms for the same page without
+ * charts; the same chart with one-letter labels, refused past 123
+ * categories, 430 ms; the most categories a bar chart draws, 186 of one
+ * series, 77 ms. That page is the costliest of eight forms tried, so the
+ * bound stays: it is under the 2 s a page may cost. The renderer's word
+ * checks took under 1 ms of any page.
  */
 export const MAX_CHART_CATEGORIES = 200
 
