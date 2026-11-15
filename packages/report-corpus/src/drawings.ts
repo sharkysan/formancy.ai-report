@@ -20,7 +20,10 @@ import type { PdfBox, PdfPage, PdfPath, ReadPdf } from './read-pdf.js'
  * - **A drawing is known by its size and its paint.** Another drawing of
  *   the same size -- a QR code, which the renderer draws as an SVG too --
  *   could stand in for one. Clips nothing matches are not problems: a QR
- *   code's is one.
+ *   code's is one. But a chart's clip is claimed once: a clip of a placed
+ *   chart's size that no drawing took and that holds a path in one of its
+ *   series' or slices' paints is the chart drawn twice, and is said. An
+ *   SVG image drawn twice is not seen.
  * - **The order is the document's.** A page region's SVG images are found
  *   on each page first; then the body's SVG images and charts, in one walk
  *   in document order through every container, each after the one before,
@@ -94,9 +97,36 @@ export function placeDrawings(pdf: ReadPdf, expected: Expectation): PlacedDrawin
     const own = after.slice(at, at + painted(drawing, found, after.slice(at + 1)))
     next += at + own.length
     if (drawing.kind === 'image') take(found)
-    else charts[found.page - 1]!.push({ id: drawing.id, box: found.box, clips: new Set(own.map(({ index }) => index)) })
+    else {
+      for (const clip of own) clip.used = true
+      charts[found.page - 1]!.push({ id: drawing.id, box: found.box, clips: new Set(own.map(({ index }) => index)) })
+    }
   }
-  return { boxes, charts, problems }
+  return { boxes, charts, problems: [...problems, ...drawnTwice(pdf, expected, charts, clips)] }
+}
+
+/**
+ * A chart drawn a second time: a clip of a placed chart's size that no
+ * drawing took, holding a path in one of that chart's marks' paints. A
+ * chart's clip is claimed once, and its copy prints its data twice where
+ * the document draws it once. A clip of its size in another paint is no
+ * chart's -- a QR code's is one -- unless a series is painted in it.
+ */
+function drawnTwice(pdf: ReadPdf, expected: Expectation, charts: readonly (readonly PlacedChart[])[], clips: readonly Clip[]): string[] {
+  const left = clips.filter((clip) => !clip.used && clip.painted)
+  return charts.flat().flatMap(({ id, box }) => {
+    const paints = new Set(expected.charts.find((chart) => chart.id === id)?.marks.map(({ paint }) => paint.toLowerCase()))
+    const copy = left.find(
+      (clip) =>
+        sized(clip.box, box) &&
+        pdf.pages[clip.page - 1]!.paths.some(
+          (path) => path.clip === clip.index && [path.fill, path.stroke].some((paint) => paint !== undefined && paints.has(paint.toLowerCase())),
+        ),
+    )
+    if (copy === undefined) return []
+    copy.used = true
+    return [`page ${copy.page}: the chart ${id} is drawn twice: a second clip of its size, at ${points(copy.box.x)}, ${points(copy.box.top)}, holds its paint`]
+  })
 }
 
 /**

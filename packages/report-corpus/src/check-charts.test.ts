@@ -160,7 +160,7 @@ function pdfOf(...drawn: readonly Drawn[]): ReadPdf {
 /** What `verify` says of `charts` on these pages, `drawings` the body's in document order: where `placeDrawings` places them, and what `chartProblems` finds. */
 function checked(charts: readonly ExpectedChart[], drawings: readonly ExpectedDrawing[], ...drawn: readonly Drawn[]): string[] {
   const pdf = pdfOf(...drawn)
-  const placed = placeDrawings(pdf, { ...NOTHING_ELSE, drawings })
+  const placed = placeDrawings(pdf, { ...NOTHING_ELSE, drawings, charts })
   return [...placed.problems, ...chartProblems(pdf, pagesOf(pdf, NOTHING_ELSE, placed), charts)]
 }
 
@@ -431,6 +431,33 @@ describe('chartProblems', () => {
     ])
   })
 
+  // A chart's clip is claimed once: a copy of the chart drawn again on its
+  // page, its clip, its paths and its words 300 pt lower, is a second
+  // drawing of it, which no expectation holds and nothing else would say
+  // -- a clip nothing matches is no problem, a QR code's being one.
+  test('finds a chart drawn twice', () => {
+    const lower = (path: PdfPath): PdfPath => ({ ...shifted(path, 0, 300), clip: 1 })
+    const twice: Drawn = {
+      clips: [SALES_BOX, box(40, 346.547, 300, 200)],
+      paths: [...SALES_READ.paths, ...SALES_READ.paths.map(lower)],
+      items: [
+        ...SALES_READ.items,
+        ...SALES_READ.items.filter((item) => item !== BEFORE).map((item) => ({ ...item, top: item.top + 300, bottom: item.bottom + 300 })),
+      ],
+    }
+    expect(problemsOf([SALES], twice)).toEqual(['page 1: the chart sales is drawn twice: a second clip of its size, at 40, 346.55, holds its paint'])
+    // A clip of its size painted in no series' colour -- a QR code's black -- is another drawing, and no chart's.
+    const code: Drawn = { ...SALES_READ, clips: twice.clips, paths: [...SALES_READ.paths, { ...filled('#000000', 40, 346.547, 300, 200), clip: 1 }] }
+    expect(problemsOf([SALES], code)).toEqual([])
+    // Nor is a clip of another size, though it holds the chart's blue.
+    const other: Drawn = {
+      ...SALES_READ,
+      clips: [SALES_BOX, box(40, 346.547, 120, 80)],
+      paths: [...SALES_READ.paths, { ...filled('#1f77b4', 40, 346.547, 120, 80), clip: 1 }],
+    }
+    expect(problemsOf([SALES], other)).toEqual([])
+  })
+
   // Charts are found in document order, each after the one before: the
   // second of two charts of one size takes the second clip, on the next
   // page, and a chart not found leaves the next to be sought from where
@@ -516,7 +543,7 @@ describe('a chart among what else its page prints', () => {
   /** The pages `verify` reads of these, `charts` the body's drawings where they draw something. */
   const pagesFor = (charts: readonly ExpectedChart[], ...drawn: readonly Drawn[]): Page[] => {
     const pdf = pdfOf(...drawn)
-    const expected = { ...NOTHING_ELSE, drawings: charts.filter(({ empty }) => !empty).map(drawingOf) }
+    const expected = { ...NOTHING_ELSE, drawings: charts.filter(({ empty }) => !empty).map(drawingOf), charts }
     return pagesOf(pdf, expected, placeDrawings(pdf, expected))
   }
   /** `drawn` moved `across` the page, its clips, paths and runs with it. */

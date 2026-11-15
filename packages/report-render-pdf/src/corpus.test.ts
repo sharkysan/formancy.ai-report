@@ -287,6 +287,47 @@ describe("the corpus's checks on a chart's legend and labels, on the renderer's 
   )
 })
 
+describe('a chart drawn twice', () => {
+  // A chart drawn a second time on its page prints its data twice, and
+  // passed: a clip nothing matches is no problem. The renderer's bar
+  // chart, its clip, its paths and its words copied 300 pt lower.
+  test(
+    'is found by the clip of its size that holds its paint, which no drawing took',
+    async () => {
+      const bars = CHART_FIXTURES.find(({ id }) => id === 'chart-bars')!
+      const pdf = await readPdf(await renderPdf(bars.document, { maxPages: bars.maxPages }))
+      const [page] = pdf.pages as [PdfPage]
+      const down = 300
+      const own = page.paths.filter((path) => path.clip !== undefined)
+      const indices = [...new Set(own.map((path) => path.clip!))]
+      const lower = <T extends { readonly top: number; readonly bottom: number }>(box: T): T => ({ ...box, top: box.top + down, bottom: box.bottom + down })
+      const point = ([x, y]: readonly [number, number]): readonly [number, number] => [x, y + down]
+      const copies = own.map((path) => ({
+        ...lower(path),
+        clip: page.clips.length + indices.indexOf(path.clip!),
+        subpaths: path.subpaths.map((points) => points.map(point)),
+        curves: path.curves.map(({ from, through: [a, b], to }) => ({ from: point(from), through: [point(a), point(b)] as const, to: point(to) })),
+      }))
+      const words = page.items.filter(({ top, text }) => top > 60 && top < 320 && !text.startsWith('Formancy'))
+      const doubled: ReadPdf = {
+        ...pdf,
+        pages: [
+          {
+            ...page,
+            clips: [...page.clips, ...indices.map((index) => lower(page.clips[index]!))],
+            paths: [...page.paths, ...copies],
+            items: [...page.items, ...words.map(lower)],
+          },
+        ],
+      }
+      expect(verify(bars, doubled)).toEqual([
+        expect.stringMatching(/^chart-bars: page 1: the chart sales is drawn twice: a second clip of its size, at 40, [\d.]+, holds its paint$/),
+      ])
+    },
+    TIMEOUT,
+  )
+})
+
 describe("the faces the corpus holds a chart's words to", () => {
   // A chart's words print in its style's face and its title bold in it
   // (0058), Roboto's where its token maps no host font: the corpus names
