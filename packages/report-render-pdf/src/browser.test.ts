@@ -9,6 +9,7 @@ import vfs from 'pdfmake/build/vfs_fonts.js'
 import type { ContentSvg, TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import {
   ALL_FIXTURES,
+  CHART_FIXTURES,
   E_INVOICE,
   inflatedDigest,
   readAnnotations,
@@ -110,14 +111,27 @@ describe('the browser entry', () => {
   // Two entries that built their definitions apart could disagree about a
   // page break and nobody would find out until a browser preview and a
   // server's PDF differed. Every pass of every fixture: the measuring passes
-  // and the PDF, refusals included.
+  // and the PDF, refusals included. A chart's drawing names its classes
+  // and its clip paths by the zrender instance that laid it out and a
+  // count of each (`zr2-cls-8`, `zr8-c0`), numbers zrender advances with
+  // every chart laid out in the process: nothing is drawn by a class, the
+  // reader having removed the one style that read them (`chart-svg.ts`),
+  // and a clip path's name only ties it to where it is used. Each name is
+  // read as the order it first stands in its pass, so that which marks
+  // share a class or a clip is compared, and not what zrender numbered
+  // them; the PDFs' bytes are held equal besides.
   test(
     'hands pdfmake the definitions the Node entry does, for every fixture',
     async () => {
-      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES]) {
+      const unnumbered = (passes: readonly string[]): string[] =>
+        passes.map((pass) => {
+          const order = new Map<string, number>()
+          return pass.replace(/\bzr\d+-[a-z]+(?:-\d+|\d+)\b/g, (name) => `zr-${String(order.get(name) ?? order.set(name, order.size).size - 1)}`)
+        })
+      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...CHART_FIXTURES]) {
         const options = { maxPages: each.maxPages }
-        const inNode = await definitions(nodePdfmake, () => renderInNode(each.document, options))
-        const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(each.document, options))
+        const inNode = unnumbered(await definitions(nodePdfmake, () => renderInNode(each.document, options)))
+        const inBrowser = unnumbered(await definitions(browserPdfmake, () => renderInBrowser(each.document, options)))
         expect(inBrowser.length, each.id).toBe(inNode.length)
         expect(inBrowser, each.id).toEqual(inNode)
       }
@@ -131,7 +145,7 @@ describe('the browser entry', () => {
   test(
     'renders every fixture of the corpus as its checks expect, or refuses it as they allow',
     async () => {
-      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES]) {
+      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...CHART_FIXTURES]) {
         const rendered = await renderInBrowser(each.document, { maxPages: each.maxPages }).then(
           (bytes) => ({ bytes }),
           (error: unknown) => ({ error }),
