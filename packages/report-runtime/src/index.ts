@@ -31,6 +31,7 @@ export type {
   TextStyle,
   XRechnungFile,
 } from './document.js'
+export type { AxisChart, Chart, ChartLegendEntry, ChartSeriesValues, ChartValue, PieChart } from './chart-document.js'
 
 export { checkData, CONSISTENCY_MODES, DATA_MODES, MAX_DETAIL_ROWS } from './data.js'
 export type { CheckedData, CheckedRecord, Completeness, Consistency, DataCheck, DataCheckOptions, DataMode, ReportData } from './data.js'
@@ -48,6 +49,8 @@ export { createFormatter, FORMAT_ERROR_CODES, MAX_FORMATTED_DIGITS, plainText, s
 export type { CurrencyScope, FormatContext, Formatted, FormatErrorCode, Formatter, PrintableType, TypedValue } from './format.js'
 export { groupRows, orderKeys, orderRows, orderTable } from './sort-group.js'
 export type { OrderedRow, OrderedTable, OrderKey, RowGroup } from './sort-group.js'
+export { MAX_CHART_CATEGORIES, SHARE_PLACES } from './lower-chart.js'
+export { MAX_TICK_INTERVALS } from './chart-ticks.js'
 export { CAPABILITIES, EVALUATION_ERROR_CODES, EXPRESSION_STEP_BUDGET, prepareExpressions, RENDER_STEP_BUDGET } from './evaluate.js'
 export type { ConditionEvaluation, Evaluation, EvaluationError, EvaluationErrorCode, ExpressionsPreparation, ReportExpressions } from './evaluate.js'
 

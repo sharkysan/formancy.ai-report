@@ -33,8 +33,11 @@ export function read(page: BuiltPage): Read {
   return { ...page, document }
 }
 
+/** `text` with its whitespace collapsed, a no-break space a space, as the French pages set theirs: how every check compares words. */
+export const collapsed = (text: string | null | undefined): string => (text ?? '').replaceAll(/\s+/g, ' ').trim()
+
 /** An element's text, its whitespace collapsed. */
-export const textOf = (element: Element | null | undefined): string => (element?.textContent ?? '').replaceAll(/\s+/g, ' ').trim()
+export const textOf = (element: Element | null | undefined): string => collapsed(element?.textContent)
 
 /** The `content` of each `<meta>` whose `attribute` is `value`. */
 export const metaOf = (document: Document, attribute: 'name' | 'property', value: string): string[] =>

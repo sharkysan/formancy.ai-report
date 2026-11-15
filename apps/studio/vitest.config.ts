@@ -18,11 +18,15 @@ export default mergeConfig(
         ...coverage,
         // `.tsx` counts. `main.tsx` is the composition root the shared
         // policy excludes as `main.ts`; the `test-` files are the suite's own
-        // support, which is test code.
-        include: ['src/**/*.{ts,tsx}'],
+        // support, which is test code. Of the browser gate, the module the
+        // suite tests counts; the rest drive Chromium, which the suite does
+        // not, and the gate in CI's browser job runs them.
+        include: ['src/**/*.{ts,tsx}', 'scripts/gate-download.mjs'],
         exclude: ['src/**/*.test.{ts,tsx}', 'src/**/*.d.ts', 'src/main.tsx', 'src/test-*.{ts,tsx}'],
       },
-      include: ['src/**/*.test.{ts,tsx}'],
+      // The browser gate's own unit tests too: what it reads is held in
+      // jsdom wherever a stub can stand in for the page it drives.
+      include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
       environment: 'jsdom',
       setupFiles: ['src/test-setup.ts'],
       // A timeout catches a hang; it does not time anything. The journey
