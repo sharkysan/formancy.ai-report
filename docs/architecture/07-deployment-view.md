@@ -253,12 +253,13 @@ serve the Studio under the same function of their own address
   holds the bundle, which is where the bundle looks
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
   [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
-  And for an e-invoice, PDFKit's ICC profile, `sRGB_IEC61966_2_1.icc` in
+  And for a PDF/A, an e-invoice's or the PDF/A-2b a host asks for,
+  PDFKit's ICC profile, `sRGB_IEC61966_2_1.icc` in
   its `data` directory, which PDFKit reads with `fs` from beside its own
   code, at `${__dirname}/data/`, past
   pdfmake's access policy: a host that bundles the Node entry puts it where
-  the bundled PDFKit's `__dirname` points, or every e-invoice render
-  fails; nobody here has bundled one ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+  the bundled PDFKit's `__dirname` points, or every PDF/A render
+  fails; nobody here has bundled one ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
   PDFKit is pinned at 0.19.1 by report-render-pdf, which imports nothing
   of it, so that npm places that release where pdfmake finds it; a host
   on another package manager, or with a PDFKit of its own, may resolve
@@ -315,6 +316,14 @@ serve the Studio under the same function of their own address
   report-runtime carries the e-invoice's rules and writer whether its
   reports have one or not, which 0027 measures
   ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+- **For a PDF/A-2b:** `renderPdf(document, { maxPages, pdfa: '2b' })` on
+  a final render of a report that is no e-invoice, in either entry, and
+  the profile above in Node. A Factur-X, an XRechnung's copy and a preview
+  the runtime labels so are refused as one, so a host renders them
+  without `pdfa`; a CMYK JPEG, an SVG past a PDF/A's integers or its
+  graphics states, and a title holding `&`, `<` or `>` are refused by
+  that render alone, which no builder warns of. The Studio offers none
+  (0057).
 - **For the provider:** a Formancy Data 0.1.0 server and a data client
   carrying the person's token
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).

@@ -1,9 +1,10 @@
-// The e-invoice gate (0027, 0031, 0038): Mustang, KoSIT's validator and
-// veraPDF, at the releases docs/release/e-invoice-tools.json pins, over the
-// CII XML the runtime writes of every e-invoice sample of the corpus -- the
-// Factur-X samples' and the XRechnung sample's, each in its kind's KoSIT
-// scenario -- and the PDF/A-3b the renderer draws of each Factur-X sample,
-// and over controls broken one named way
+// The e-invoice gate (0027, 0031, 0038, 0057): Mustang, KoSIT's validator
+// and veraPDF, at the releases docs/release/e-invoice-tools.json pins, over
+// the CII XML the runtime writes of every e-invoice sample of the corpus --
+// the Factur-X samples' and the XRechnung sample's, each in its kind's
+// KoSIT scenario -- the PDF/A-3b the renderer draws of each Factur-X
+// sample, and the PDF/A-2b it draws of every starter that is no e-invoice,
+// which veraPDF alone judges; and over controls broken one named way
 // each, with Java's HTTP and HTTPS proxies at a dead port (a raw socket is
 // not caught); and the closed code lists and rule ids of report-spec held
 // to the schematrons those tools run.
@@ -23,12 +24,17 @@
 // 3. Makes the corpus -- the samples' XML, resolved in a final render, and
 //    its controls (scripts/e-invoice/corpus.mjs); each sample's PDF, drawn
 //    from that very document, its variants and its controls
-//    (scripts/e-invoice/pdf-corpus.mjs) -- checks it, each PDF's embedded
-//    file read back by pdf-lib and what a sample's XMP states of it among
-//    it, refusing to run on a wrong one, and writes it.
-// 4. Runs Mustang once per file, KoSIT once over the XML and veraPDF once
-//    over the PDFs, every proxy a dead port (scripts/e-invoice/java.mjs),
-//    stdin an empty pipe.
+//    (scripts/e-invoice/pdf-corpus.mjs); every starter that is no
+//    e-invoice drawn as a PDF/A-2b, its variants and its controls
+//    (scripts/e-invoice/pdfa-2b.mjs), each PDF drawn by
+//    scripts/e-invoice/draw.mjs -- checks it, each PDF's embedded file read
+//    back by pdf-lib, and what a sample's XMP states of it and of the PDF/A
+//    it is, among it, refusing to run on a wrong one, and writes it.
+// 4. Runs Mustang once per file of the XML and the PDF/A-3b, KoSIT once
+//    over the XML, and veraPDF once over the PDF/A-3b with `--flavour 3b`
+//    and once over the PDF/A-2b with `--flavour 2b`, each flavour the one
+//    registers.mjs's VERAPDF_FLAVOURS gives its format, every proxy a dead
+//    port (scripts/e-invoice/java.mjs), stdin an empty pipe.
 // 5. Judges what each said (mustang.mjs, kosit.mjs, verapdf.mjs) and holds
 //    report-spec's lists and rule ids to the schematrons the runs name, and
 //    its XRechnung rules and shapes to the XRechnung schematron of the same
@@ -57,23 +63,16 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { fetchVerified, layout, readVerified, sha256File } from './e-invoice/cache.mjs'
 import { corpus as buildCorpus, corpusProblems, KINDS, strayAccepted } from './e-invoice/corpus.mjs'
+import { samplesOf } from './e-invoice/draw.mjs'
 import { javaMajor, javaVersion } from './e-invoice/java.mjs'
 import { judgeKosit, kositArguments, readKositConsole, reportName } from './e-invoice/kosit.mjs'
 import { judgeMustang, mustangArguments, mustangOutputs } from './e-invoice/mustang.mjs'
 import { CODE_LISTS, oracleProblems, readCodedb, readSchematron, readVariables, scenarioSchematrons } from './e-invoice/oracle.mjs'
-import {
-  blocksDocument,
-  boundDocument,
-  embeddingProblems,
-  PDF_BASE,
-  pdfCorpus,
-  svgDocument,
-  TRANSLUCENT_SVG,
-  variantProblems,
-} from './e-invoice/pdf-corpus.mjs'
+import { embeddingProblems, PDF_BASE, pdfCorpus, variantProblems } from './e-invoice/pdf-corpus.mjs'
+import { identificationProblems, PDF_A_2B_FORMAT, pdfa2bCorpus, pdfa2bPlan } from './e-invoice/pdfa-2b.mjs'
 import { recordedConsole, recordedText, staleRecorded } from './e-invoice/record.mjs'
-import { acceptedProblems, readRegisters, toolOf, toolProblems } from './e-invoice/registers.mjs'
-import { bundledProblems, bundledVeraPdf, judgeVeraPdf, veraPdfArguments } from './e-invoice/verapdf.mjs'
+import { acceptedProblems, judgedBy, PDF_FORMATS, readRegisters, toolOf, toolProblems, VERAPDF_FLAVOURS } from './e-invoice/registers.mjs'
+import { bundledProblems, bundledVeraPdf, judgeVeraPdf, veraPdfArguments, veraPdfOutputs } from './e-invoice/verapdf.mjs'
 import { entryNamed, unzip } from './e-invoice/zip.mjs'
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -91,16 +90,10 @@ const BUILT = {
 /** What each tool's outputs are kept in, under the run's directory and the record's. */
 const OUTPUTS = ['mustang', 'kosit', 'verapdf']
 
-/** The instant every sample is resolved at: the XML reads no clock, and a final render needs one. */
-const CREATED = '2026-10-17T08:00:00Z'
 /** The scenario of KoSIT's configuration every Factur-X sample must match: the CII D16B schema and CEN's schematron, nothing of XRechnung's; the oracle reads CEN's schematron where it runs. */
 const SCENARIO = KINDS.facturX.scenario
 /** The scenario an XRechnung sample must match, whose schematron beside CEN's is XRechnung's, which the oracle holds report-spec's XRechnung rules and shapes to (0037, 0038). */
 const XRECHNUNG_SCENARIO = KINDS.xrechnung.scenario
-/** The most pages a PDF of the corpus may have: every sample prints on one (the renderer's e-invoice-samples.test.ts reads each as one), and one that grows is refused rather than judged unread. */
-const MAX_PAGES = 1
-/** The most pages a variant may have: a bound on the work, since nothing reads a variant's pages; the longest printed two on 18 October 2026. */
-const VARIANT_MAX_PAGES = 10
 
 /** The options of the command line. */
 function options(argv) {
@@ -208,15 +201,16 @@ function runKosit({ java, major, tools, entries, work }) {
   return { reports, others, status: ran.status, error: ran.error, console: console_, seconds: took }
 }
 
-/** veraPDF once over every PDF, run in the corpus's directory: its report and what it wrote on stderr, kept beside the others'. */
-function runVeraPdf({ java, tools, entries, work }) {
+/** veraPDF once over every PDF of `entries`, as `flavour`, run in the corpus's directory: its report and what it wrote on stderr, kept beside the others'. */
+function runVeraPdf({ java, tools, entries, work, flavour }) {
   const started = performance.now()
-  const ran = spawnSync(java, veraPdfArguments({ jar: tools.where.file(tools.verapdf), files: entries.map((entry) => entry.file) }), {
+  const ran = spawnSync(java, veraPdfArguments({ jar: tools.where.file(tools.verapdf), files: entries.map((entry) => entry.file), flavour }), {
     ...RUN,
     cwd: join(work, 'corpus'),
   })
-  writeFileSync(join(work, 'verapdf', 'report.json'), ran.stdout ?? '')
-  writeFileSync(join(work, 'verapdf', 'verapdf.log'), ran.stderr ?? '')
+  const outputs = veraPdfOutputs(flavour)
+  writeFileSync(join(work, 'verapdf', outputs.report), ran.stdout ?? '')
+  writeFileSync(join(work, 'verapdf', outputs.log), ran.stderr ?? '')
   return { status: ran.status, stdout: ran.stdout ?? '', stderr: ran.stderr ?? '', error: ran.error, seconds: seconds(started) }
 }
 
@@ -276,7 +270,7 @@ function recordedCorpus() {
  * PDF's inflated digest. The PDFs themselves are not recorded: their bytes
  * are the zlib's they were drawn with, and the outputs are what the tests read.
  */
-function record({ work, entries, java, mustangRuns, kosit, verapdf, tools }) {
+function record({ work, entries, java, mustangRuns, kosit, verapdf, verapdf2b, tools }) {
   const into = join(repo, RECORDED)
   for (const part of ['corpus', ...OUTPUTS]) {
     rmSync(join(into, part), { recursive: true, force: true })
@@ -299,79 +293,15 @@ function record({ work, entries, java, mustangRuns, kosit, verapdf, tools }) {
         .filter((entry) => entry.format === 'xml' && entry.sample !== undefined)
         .map((entry) => [entry.sample, { kind: entry.kind, guideline: entry.guideline }]),
     ),
-    mustang: Object.fromEntries(entries.map((entry) => [entry.file, mustangRuns.get(entry.file).status])),
+    mustang: Object.fromEntries(judgedBy('mustang', entries).map((entry) => [entry.file, mustangRuns.get(entry.file).status])),
     kosit: { status: kosit.status },
     verapdf: { status: verapdf.status },
-    pdfs: Object.fromEntries(entries.filter((entry) => entry.format === 'pdf').map((entry) => [entry.file, entry.digest])),
+    verapdf2b: { status: verapdf2b.status },
+    pdfs: Object.fromEntries(entries.filter((entry) => PDF_FORMATS.includes(entry.format)).map((entry) => [entry.file, entry.digest])),
     research: run.research,
   }
   writeFileSync(join(into, 'run.json'), `${JSON.stringify(recorded, null, 2)}\n`)
   console.log(`e-invoice: recorded the run into ${RECORDED}`)
-}
-
-/**
- * Every sample resolved once, in a final render, as a host resolves it,
- * with the firm's mark it prints at its head (0032), and drawn from the very
- * document whose XML the corpus holds; and each variant drawn with the base
- * sample's e-invoice, a starter resolved as a host resolves it, and an SVG
- * as an approved asset holds it, in the form report-spec's `cleanSvg`
- * writes.
- */
-function samplesOf({ spec, runtime, renderer, corpus }) {
-  const { starterImages: images } = corpus
-  const documents = new Map()
-  const documentOf = (sample) => {
-    if (!documents.has(sample.id)) {
-      const outcome = runtime.resolveReport(sample.report, sample.data, { mode: 'final', parameters: sample.parameters, images, creationDate: CREATED })
-      if (!outcome.ok)
-        throw new Error(`the sample ${sample.id} does not resolve: ${outcome.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
-      documents.set(sample.id, outcome.document)
-    }
-    return documents.get(sample.id)
-  }
-  // `undefined` draws the e-invoice the runtime resolved, `null` none, and `{ xml }` that one with another XML.
-  const draw = (id, eInvoice) => {
-    const { eInvoice: own, ...plain } = documents.get(id)
-    const document = eInvoice === undefined ? { ...plain, eInvoice: own } : eInvoice === null ? plain : { ...plain, eInvoice: { ...own, ...eInvoice } }
-    return renderer.renderPdf(document, { maxPages: MAX_PAGES })
-  }
-  const starterDocument = (id) => {
-    const starter = corpus.STARTERS.find((each) => each.id === id)
-    if (starter === undefined) throw new Error(`a PDF variant draws the starter ${id}, which report-corpus does not have`)
-    const outcome = runtime.resolveReport(starter.report, starter.data, { mode: 'final', parameters: starter.parameters, images, creationDate: CREATED })
-    if (!outcome.ok) throw new Error(`the starter ${id} does not resolve: ${outcome.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
-    return outcome.document
-  }
-  const fixtureDocument = (id) => {
-    const fixture = corpus.ALL_FIXTURES.find((each) => each.id === id)
-    if (fixture === undefined) throw new Error(`a PDF variant draws the fixture ${id}, which report-corpus does not have`)
-    return fixture.document
-  }
-  // The gate's own drawing is held to being cleanSvg's form as written, so that what veraPDF judges is the drawing a reviewer reads.
-  const svgAssets = () => {
-    const translucent = new TextEncoder().encode(TRANSLUCENT_SVG)
-    const cleaned = spec.cleanSvg(translucent)
-    if (!cleaned.ok || Buffer.compare(Buffer.from(cleaned.bytes), Buffer.from(translucent)) !== 0)
-      throw new Error(`variant-svg.pdf’s translucent drawing is not in the form cleanSvg writes: ${cleaned.ok ? 'cleaning changes it' : cleaned.message}`)
-    const svg = (id, bytes) => ({ id, mediaType: 'image/svg+xml', bytes })
-    return [svg('svg-mark', corpus.SVG_MARK), svg('svg-window', corpus.SVG_WINDOW), svg('svg-translucent', translucent)]
-  }
-  const bound = () => boundDocument(documents.get(PDF_BASE), { id: 'svg-bound', mediaType: 'image/svg+xml', bytes: corpus.SVG_BOUND }, corpus.SVG_BOUND_SIDE)
-  const drawVariant = (draws) => {
-    const base = documents.get(PDF_BASE)
-    const page =
-      draws.blocks === true
-        ? blocksDocument(base, corpus.IMAGE_KINDS)
-        : draws.svg === true
-          ? svgDocument(base, svgAssets())
-          : draws.bound === true
-            ? bound()
-            : draws.fixture !== undefined
-              ? fixtureDocument(draws.fixture)
-              : starterDocument(draws.starter)
-    return renderer.renderPdf({ ...page, eInvoice: base.eInvoice }, { maxPages: VARIANT_MAX_PAGES })
-  }
-  return { documentOf, draw, drawVariant }
 }
 
 async function main(argv) {
@@ -388,7 +318,7 @@ async function main(argv) {
 
   const spec = await built(BUILT.spec)
   const corpusPackage = await built(BUILT.corpus)
-  const { documentOf, draw, drawVariant } = samplesOf({
+  const { documentOf, draw, drawVariant, drawStarter2b, drawVariant2b, drawPlain2bBase } = samplesOf({
     spec,
     runtime: await built(BUILT.runtime),
     renderer: await built(BUILT.renderer),
@@ -407,14 +337,34 @@ async function main(argv) {
     guidelineOf: (sample) => GUIDELINES[sample.report.eInvoice.kind](sample.report.eInvoice),
   })
   const pdfEntries = await pdfCorpus({ entries: xmlEntries, draw, drawVariant })
-  for (const entry of pdfEntries) entry.digest = await corpusPackage.inflatedDigest(entry.pdf)
+  // The 2b corpus's starters as they are, and its 3b control the very PDF/A-3b the 3b corpus drew of its base sample.
+  const base3b = pdfEntries.find((entry) => entry.file === `${PDF_BASE}.pdf`)
+  const pdfa2bEntries = await pdfa2bCorpus({
+    plan: pdfa2bPlan(
+      corpusPackage.STARTERS.map((starter) => ({ id: starter.id, eInvoice: starter.report.eInvoice !== undefined })),
+      { base3bXml: base3b.embeds },
+    ),
+    drawStarter: drawStarter2b,
+    drawVariant: drawVariant2b,
+    drawPlain: drawPlain2bBase,
+    sample3b: base3b.pdf,
+  })
+  const pdfs = [...pdfEntries, ...pdfa2bEntries]
+  for (const entry of pdfs) entry.digest = await corpusPackage.inflatedDigest(entry.pdf)
   const drawn = seconds(drawing)
-  const entries = [...xmlEntries, ...pdfEntries]
-  // The fx properties read by their namespace, and BT-24 by its path, with the corpus's readers.
-  const fx = (xmp) => {
+  const entries = [...xmlEntries, ...pdfs]
+  // The fx and pdfaid properties read by their namespace, and BT-24 by its path, with the corpus's readers.
+  const texts = (xmp, namespace, ...locals) => {
     const read = corpusPackage.readXmp(xmp)
-    const texts = (local) => corpusPackage.propertiesOf(read, spec.FACTUR_X.xmpNamespace, local).map((property) => property.text)
-    return { documentFileName: texts('DocumentFileName'), conformanceLevel: texts('ConformanceLevel') }
+    return locals.map((local) => corpusPackage.propertiesOf(read, namespace, local).map((property) => property.text))
+  }
+  const fx = (xmp) => {
+    const [documentFileName, conformanceLevel] = texts(xmp, spec.FACTUR_X.xmpNamespace, 'DocumentFileName', 'ConformanceLevel')
+    return { documentFileName, conformanceLevel }
+  }
+  const pdfaid = (xmp) => {
+    const [part, conformance] = texts(xmp, corpusPackage.XMP_NAMESPACES.pdfaid, 'part', 'conformance')
+    return { part, conformance }
   }
   const guidelineOf = (xml) =>
     corpusPackage.textAt(corpusPackage.readCii(xml), 'rsm:ExchangedDocumentContext/ram:GuidelineSpecifiedDocumentContextParameter/ram:ID')
@@ -422,36 +372,47 @@ async function main(argv) {
     ...corpusProblems(entries),
     ...strayAccepted(accepted.accepted, entries),
     ...variantProblems(corpusPackage.STARTERS.map((starter) => starter.id)),
-    ...(await embeddingProblems(pdfEntries, {
+    ...(await embeddingProblems(pdfs, {
       readObjects: corpusPackage.readPdfObjects,
       fileName: spec.FACTUR_X.fileName,
       fx,
       guidelineOf,
       profiles: spec.FACTUR_X_PROFILES,
     })),
+    ...(await identificationProblems(pdfs, { readObjects: corpusPackage.readPdfObjects, pdfaid })),
   ]
   if (corpusWrong.length > 0) throw new Error(`the corpus does not hold:\n  - ${corpusWrong.join('\n  - ')}`)
   const work = join(repo, WORK)
   rmSync(work, { recursive: true, force: true })
   for (const part of ['corpus', ...OUTPUTS]) mkdirSync(join(work, part), { recursive: true })
-  for (const entry of entries) writeFileSync(join(work, 'corpus', entry.file), entry.format === 'pdf' ? entry.pdf : entry.xml)
+  for (const entry of entries) writeFileSync(join(work, 'corpus', entry.file), PDF_FORMATS.includes(entry.format) ? entry.pdf : entry.xml)
 
-  const mustang = runMustang({ java, jar: tools.where.file(tools.mustang), entries, work })
+  // Mustang validates an e-invoice: handed a PDF/A-2b, which embeds no XML, it would refuse it for that.
+  const mustangEntries = judgedBy('mustang', entries)
+  const mustang = runMustang({ java, jar: tools.where.file(tools.mustang), entries: mustangEntries, work })
   const kosit = runKosit({ java, major: jvm.major, tools, entries: xmlEntries, work })
-  const verapdf = runVeraPdf({ java, tools, entries: pdfEntries, work })
+  const verapdf = runVeraPdf({ java, tools, entries: pdfEntries, work, flavour: VERAPDF_FLAVOURS.pdf })
+  const verapdf2b = runVeraPdf({ java, tools, entries: pdfa2bEntries, work, flavour: VERAPDF_FLAVOURS[PDF_A_2B_FORMAT] })
   const profile = spec.FACTUR_X_PROFILES.en16931
-  const mustangVerdict = judgeMustang({ entries, runs: mustang.runs, accepted: accepted.accepted, pinned: tools.mustang.version, profile: profile.guideline })
+  const mustangVerdict = judgeMustang({
+    entries: mustangEntries,
+    runs: mustang.runs,
+    accepted: accepted.accepted,
+    pinned: tools.mustang.version,
+    profile: profile.guideline,
+  })
   const hashes = new Map(xmlEntries.map((entry) => [entry.file, base64Sha256(entry.xml)]))
   const kositVerdict = judgeKosit({ entries: xmlEntries, ...kosit, accepted: accepted.accepted, pinned: tools.kosit.version, hashes, scenario: SCENARIO })
   const file = { fileName: spec.FACTUR_X.fileName, relationship: profile.relationship, mediaType: spec.FACTUR_X.mediaType, md5 }
-  const veraVerdict = judgeVeraPdf({ entries: pdfEntries, ...verapdf, pinned: tools.verapdf.version, file })
+  const veraVerdict = judgeVeraPdf({ entries: pdfEntries, ...verapdf, pinned: tools.verapdf.version, file, flavour: VERAPDF_FLAVOURS.pdf })
+  const vera2bVerdict = judgeVeraPdf({ entries: pdfa2bEntries, ...verapdf2b, pinned: tools.verapdf.version, file, flavour: VERAPDF_FLAVOURS[PDF_A_2B_FORMAT] })
   const schematrons = pinnedSchematrons({ tools, mustangVerdict, kositVerdict, profile: profile.guideline })
   const oracle =
     schematrons.problems.length > 0
       ? { checked: null, problems: schematrons.problems }
       : oracleProblems({ spec, lists: CODE_LISTS, cen: schematrons.cen, ferd: schematrons.ferd, xrechnung: schematrons.xrechnung })
   const stale = recording ? [] : staleRecorded(entries, recordedCorpus(), new Map(Object.entries(recordedRun().pdfs ?? {})))
-  const problems = [...mustangVerdict.problems, ...kositVerdict.problems, ...veraVerdict.problems, ...oracle.problems, ...stale]
+  const problems = [...mustangVerdict.problems, ...kositVerdict.problems, ...veraVerdict.problems, ...vera2bVerdict.problems, ...oracle.problems, ...stale]
   // The bytes each tool ran from, hashed once the runs are over: what the
   // release report holds to the register, with the version each tool
   // reported of itself, rather than the register's own word.
@@ -470,20 +431,27 @@ async function main(argv) {
       },
       { ...(await ran(tools.kosit)), reported: readKositConsole(kosit.console).version ?? null },
       await ran(tools.configuration),
-      { ...(await ran(tools.verapdf)), reported: veraVerdict.reported },
+      { ...(await ran(tools.verapdf)), reported: [...new Set([...veraVerdict.reported, ...vera2bVerdict.reported])] },
     ],
-    corpus: entries.map(({ file: name, format, sample, variant, from, why, expect }) => ({
+    corpus: entries.map(({ file: name, format, sample, starter, variant, from, why, expect }) => ({
       file: name,
       format,
-      ...(sample !== undefined ? { sample } : variant !== undefined ? { variant, why } : { from, why }),
+      ...(sample !== undefined ? { sample } : starter !== undefined ? { starter } : variant !== undefined ? { variant, why } : { from, why }),
       expect,
     })),
     mustang: mustangVerdict.rows,
     kosit: kositVerdict.rows,
-    verapdf: veraVerdict.rows,
+    verapdf: [...veraVerdict.rows, ...vera2bVerdict.rows],
     oracle: oracle.checked,
     outputs: local(work),
-    seconds: { draw: drawn, mustang: mustang.seconds, kosit: kosit.seconds, verapdf: verapdf.seconds, total: seconds(started) },
+    seconds: {
+      draw: drawn,
+      mustang: mustang.seconds,
+      kosit: kosit.seconds,
+      verapdf: verapdf.seconds,
+      verapdf2b: verapdf2b.seconds,
+      total: seconds(started),
+    },
     problems,
     passed: problems.length === 0,
   }
@@ -492,7 +460,7 @@ async function main(argv) {
 
   const count = (format, kind) => String(entries.filter((entry) => entry.format === format && entry[kind] !== undefined).length)
   console.log(
-    `e-invoice: ${count('xml', 'sample')} samples and ${count('xml', 'from')} controls as XML, ${count('pdf', 'sample')} samples, ${count('pdf', 'variant')} variants and ${count('pdf', 'from')} controls as PDF, judged on Java ${String(jvm.version)}: drawn in ${String(drawn)} s, Mustang in ${String(mustang.seconds)} s, KoSIT in ${String(kosit.seconds)} s, veraPDF in ${String(verapdf.seconds)} s, ${String(report.seconds.total)} s in all; results in ${local(results)}`,
+    `e-invoice: ${count('xml', 'sample')} samples and ${count('xml', 'from')} controls as XML, ${count('pdf', 'sample')} samples, ${count('pdf', 'variant')} variants and ${count('pdf', 'from')} controls as PDF, ${count('pdfa-2b', 'starter')} samples, ${count('pdfa-2b', 'variant')} variants and ${count('pdfa-2b', 'from')} controls as PDF/A-2b, judged on Java ${String(jvm.version)}: drawn in ${String(drawn)} s, Mustang in ${String(mustang.seconds)} s, KoSIT in ${String(kosit.seconds)} s, veraPDF in ${String(verapdf.seconds)} s as PDF/A-3b and ${String(verapdf2b.seconds)} s as PDF/A-2b, ${String(report.seconds.total)} s in all; results in ${local(results)}`,
   )
   if (problems.length > 0) {
     console.error('E-invoice gate failed:')
@@ -500,7 +468,7 @@ async function main(argv) {
     return 1
   }
   console.log('e-invoice: every file judged as the corpus expects, and every list, rule and shape held to the pinned schematrons')
-  if (recording) record({ work, entries, java: jvm, mustangRuns: mustang.runs, kosit, verapdf, tools })
+  if (recording) record({ work, entries, java: jvm, mustangRuns: mustang.runs, kosit, verapdf, verapdf2b, tools })
   return 0
 }
 

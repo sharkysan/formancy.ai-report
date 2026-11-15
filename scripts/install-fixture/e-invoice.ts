@@ -30,8 +30,8 @@ import {
   XRECHNUNG_COPY_PARAGRAPH,
 } from '@formancy/report-runtime'
 import type { EInvoiceFile, Paragraph, ReportData, Resolution } from '@formancy/report-runtime'
-import { renderPdf } from '@formancy/report-render-pdf'
-import { readEmbedding } from './embedding.js'
+import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
+import { readEmbedding, SRGB2014 } from './embedding.js'
 import type { Embedding } from './embedding.js'
 
 const text = (value: string): [{ kind: 'text'; text: string }] => [{ kind: 'text', text: value }]
@@ -338,15 +338,20 @@ export async function drawnEInvoice(page: ReportDefinition['page']): Promise<str
       xmp.includes(`xmlns:${fx}="${FACTUR_X.xmpNamespace}"`) &&
       xmp.includes(`<${fx}:DocumentFileName>${file.fileName}</${fx}:DocumentFileName>`) &&
       xmp.includes(`<${fx}:ConformanceLevel>${file.conformanceLevel}</${fx}:ConformanceLevel>`),
-    // The ICC's sRGB2014, reviewed in PDFKit 0.19.1 (ICC_PROFILES in scripts/dependency-licences.mjs): another PDFKit's profile would reach a customer unreviewed.
-    'the reviewed sRGB2014 output intent':
-      JSON.stringify(embedding.outputProfiles) === JSON.stringify(['384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a']),
+    'the reviewed sRGB2014 output intent': JSON.stringify(embedding.outputProfiles) === JSON.stringify([SRGB2014]),
   }
   const missed = Object.keys(held).filter((check) => held[check] !== true)
   if (missed.length > 0) {
     const seen = { ...embedding, associated: embedding.associated.map(({ bytes, ...rest }) => ({ ...rest, bytes: bytes?.length })), xmp: embedding.xmp?.length }
     throw new Error(`the e-invoice was not drawn as a PDF/A-3b that embeds its XML; it lacks ${missed.join('; ')}: ${JSON.stringify(seen)}`)
   }
+  // A Factur-X is the 3b that embeds its XML, so it is refused as a PDF/A-2b, which may embed none.
+  const asArchive = await renderPdf(invoicedResolution.document, { maxPages: 50, pdfa: '2b' }).then(
+    () => undefined,
+    (refusal: unknown) => refusal,
+  )
+  if (!(asArchive instanceof RenderRefusal) || asArchive.code !== 'unsupported' || asArchive.subject !== 'eInvoice')
+    throw new Error('the Factur-X was not refused as a PDF/A-2b, as unsupported, naming its eInvoice')
   // A preview writes no XML, warns, and is labelled as not the invoice on every page; that, the renderer draws, embedding nothing.
   const previewed: Resolution = resolveReport(invoiced, invoiceData, { mode: 'preview', creationDate: '2026-10-16T08:00:00Z' })
   if (!previewed.ok || previewed.document.eInvoice !== undefined || !previewed.warnings.some((warning) => warning.code === 'e-invoice-preview'))
@@ -367,7 +372,7 @@ export async function drawnEInvoice(page: ReportDefinition['page']): Promise<str
     )
   }
   const xrechnung = await drawnXRechnung(invoiced, addressedBlock, invoiceData, addressedXml)
-  return `an e-invoice validated, a country outside its list was refused by its rule, its business process, electronic addresses and seller's contact were written where given and a telephone number of no digits refused by XRechnung's rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing; ${xrechnung}`
+  return `an e-invoice validated, a country outside its list was refused by its rule, its business process, electronic addresses and seller's contact were written where given and a telephone number of no digits refused by XRechnung's rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing, and refused the Factur-X as a PDF/A-2b; ${xrechnung}`
 }
 
 /**

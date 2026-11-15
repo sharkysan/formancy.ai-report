@@ -8,9 +8,11 @@ import { fileURLToPath } from 'node:url'
 import pdfmake from 'pdfmake'
 import type { ContentSvg, TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { readAnnotations, readPdf, readPdfObjects, readXmp } from '@formancy/report-corpus'
+import { RenderRefusal } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { collect, type PdfStream } from './engine.js'
 import { renderPdf } from './node.js'
+import type { RenderOptions } from './options.js'
 import { PDF_A_3B, type PdfKitDocument, type PdfKitFileOptions } from './pdfa.js'
 import { converterOptions } from './svg-content.js'
 import { fixture } from './testing/documents.js'
@@ -71,21 +73,27 @@ describe('pdfmake as the renderer configures it', () => {
     expect(virtualfs.existsSync(name)).toBe(false)
   })
 
+  /** The ICC profile PDFKit reads for a PDF/A's output intent, from its own `data` folder (pdfkit.js 5265). */
+  const profile = path.resolve(
+    path.dirname(createRequire(createRequire(import.meta.url).resolve('pdfmake')).resolve('pdfkit')),
+    'data',
+    'sRGB_IEC61966_2_1.icc',
+  )
+
   // A PDF/A's output intent is the ICC profile PDFKit reads from its own
   // `data` folder with `fs`, past pdfmake's policy, as it ends the
   // document (pdfkit.js 5265): the one file beside the fonts a render
-  // reads (0031, amending 0005), and only an e-invoice's. A host that
+  // reads (0031, amending 0005), and only a PDF/A's -- an e-invoice's
+  // PDF/A-3b, or the PDF/A-2b a host asked for (0057). A host that
   // bundles the Node entry must copy it there, as it does the fonts. Were
   // PDFKit to read anything else -- its standard fonts' metrics, a second
   // profile -- or a plain report to read the profile, this fails first.
-  test('reads, for an e-invoice alone, the ICC profile PDFKit ships besides the fonts, and nothing else', async () => {
-    const pdfkit = path.dirname(createRequire(createRequire(import.meta.url).resolve('pdfmake')).resolve('pdfkit'))
-    const profile = path.join(pdfkit, 'data', 'sRGB_IEC61966_2_1.icc')
+  test('reads, for a PDF/A alone -- an e-invoice’s or a PDF/A-2b -- the ICC profile PDFKit ships besides the fonts, and nothing else', async () => {
     const fonts = path.join(path.dirname(createRequire(import.meta.url).resolve('pdfmake/package.json')), 'fonts', 'Roboto')
-    const reads = async (document: Parameters<typeof renderPdf>[0]): Promise<string[]> => {
+    const reads = async (document: Parameters<typeof renderPdf>[0], options: RenderOptions = { maxPages: 5 }): Promise<string[]> => {
       const spy = vi.spyOn(fs, 'readFileSync')
       try {
-        await renderPdf(document, { maxPages: 5 })
+        await renderPdf(document, options)
         return [...new Set(spy.mock.calls.map(([file]) => path.resolve(String(file))))].sort()
       } finally {
         spy.mockRestore()
@@ -95,7 +103,34 @@ describe('pdfmake as the renderer configures it', () => {
     const plain = await reads(document)
     expect(plain.length).toBeGreaterThan(0)
     expect(plain.filter((file) => path.dirname(file) !== fonts)).toEqual([])
-    expect(await reads(invoiced(document))).toEqual([...plain, path.resolve(profile)].sort())
+    expect(await reads(invoiced(document))).toEqual([...plain, profile].sort())
+    expect(await reads(document, { maxPages: 5, pdfa: '2b' })).toEqual([...plain, profile].sort())
+  })
+
+  // A host whose bundle of the Node entry left PDFKit's profile behind has
+  // no output intent to give a PDF/A-2b, and a 2b without one is no PDF/A.
+  // The render rejects with the file system's own error -- the profile
+  // read here from a folder that is not there, as such a bundle reads it
+  // -- which is no refusal of the document, and returns no PDF at all:
+  // neither a 2b without its intent nor a plain PDF a host would file as
+  // one.
+  test('rejects a PDF/A-2b whose profile PDFKit cannot read with the file system’s error, and returns no PDF', async () => {
+    const readFileSync = fs.readFileSync.bind(fs)
+    const missing = path.join(path.dirname(profile), 'missing', path.basename(profile))
+    const spy = vi
+      .spyOn(fs, 'readFileSync')
+      .mockImplementation((file, options) => readFileSync(path.resolve(String(file)) === profile ? missing : file, options))
+    try {
+      const outcome = await renderPdf(fixture('one-row').document, { maxPages: 5, pdfa: '2b' }).then(
+        (bytes) => bytes,
+        (error: unknown) => error,
+      )
+      expect(outcome).toMatchObject({ code: 'ENOENT' })
+      expect(outcome).toBeInstanceOf(Error)
+      expect(outcome).not.toBeInstanceOf(RenderRefusal)
+    } finally {
+      spy.mockRestore()
+    }
   })
 })
 
