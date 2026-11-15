@@ -90,17 +90,31 @@
     `src/corpus.test.ts`, `src/starters.test.ts`, `src/samples.test.ts`
     and `src/e-invoice-samples.test.ts`, which pass with every table's
     total rows read in the `table` scope.
-  - **A form review.** report-forms' `src/review.test.ts` blocks a version
-    that removes a field a table's condition reads, and the removal it
-    offers takes that table and keeps the other.
+  - **A form review.** report-forms' `src/review-tables.test.ts` blocks a
+    version that removes a field two tables' conditions read, and the
+    removal it offers takes both tables whole and keeps a third that only
+    prints the field, without its column. Once nothing of the field is
+    printed from that version, it proves on the PDF each render produced
+    that the version's rows leave the table that selects by the field's
+    value and go into the one that selects by any other, while the first
+    version's print where their value puts them.
   - **The builders.** report-builder-core's `src/palette.test.ts` offers
     Table where a report already holds one, and finds it no place in a
-    report that is an e-invoice; `src/properties.test.ts` gives a table
-    its condition's field; and `BUILDER_SCENARIOS`
-    (`src/scenario-tables.ts`) inserts a second table from the keyboard,
-    gives it a condition and undoes both, which React's
-    `src/scenarios.test.tsx` and Angular's `src/scenarios.test.ts` run,
-    with axe over the end of it.
+    report that is an e-invoice, where `src/targets.test.ts`'s place
+    chooser says that nowhere takes it. `src/properties.test.ts` gives a
+    table its condition's field, "Show rows only when", after its empty
+    text, shows the compiler's reason on it for a condition that reads
+    `group`, takes the condition away when it is emptied, and refuses one
+    on an e-invoice's lines with the validator's reason on the field.
+    `BUILDER_SCENARIOS` (`src/scenario-tables.ts`) inserts a second table
+    into the summary from the keyboard, gives it a condition and undoes
+    both, and duplicates a table whose copy, once given a condition, the
+    problems warn of. React's `src/scenarios.test.tsx` and Angular's
+    `src/scenarios.test.ts` run both scenarios in three languages, with
+    axe over the end of each. The Studio's `src/parity.test.tsx` now
+    places a table in every starter with detail rows but the e-invoice's,
+    where it used to find none, and compares the two builders' trees at
+    each state.
   - **The install gate.** `scripts/install-fixture/consume.ts` holds the
     packed validator to refusing a table past `MAX_TABLES`, where it held
     it to refusing a second.
@@ -277,9 +291,14 @@ is offered wherever the validator accepts one, which is now wherever a
 table may stand but in a report that is an e-invoice, where the chooser
 finds no place. A table's properties gain one field, the condition, an
 expression edited as a component's condition is (builder-core's
-`KIND_FIELDS.table`), named "Print rows only when" in English and in the
-editor's other languages, so neither builder holds a line of its own for
-it. A scenario of `BUILDER_SCENARIOS` holds both builders to it.
+`KIND_FIELDS.table`), so neither builder holds a line of its own for it.
+It is named as the component's condition is, "Show rows only when",
+"Zeilen nur anzeigen, wenn" and "Afficher les lignes seulement si". Every
+table has it, an e-invoice's lines' table among them, where every
+condition typed is refused with the validator's reason on the field, as
+the table's own `visibleWhen` is: whether a table may select is the
+validator's to say, in one place. Two scenarios of `BUILDER_SCENARIOS`
+hold both builders to it.
 
 **What does not change.** One detail dataset, one level of grouping per
 table, and the renderer, which already draws any number of tables, each
@@ -345,6 +364,23 @@ and a total over a table as `not-one-of`.
   eight each selecting every row in 12.2, a condition of one read charged
   two steps a row, so that eight spend 1,600,000 of the runtime's
   `RENDER_STEP_BUDGET`.
+- **In a builder, a further table is its columns and its condition.**
+  Neither builder edits a table's sort keys, group or total rows yet
+  (builder-core's README). A table inserted from the palette has none; one
+  duplicated keeps its table's, and given a condition, a total of every
+  row among them prints under some of them. `total-of-every-row` warns of
+  it, and a builder can act on the warning only by undoing the condition.
+  A table's own order, group and totals, `over: 'table'` among them, are
+  written in the report's JSON or by a host.
+- **The condition is offered where it is refused.** An e-invoice's lines'
+  table has the field as every table has, and nothing typed there is
+  accepted.
+- **A field printed as nothing moves rows between tables.** A form review's
+  print-nothing (0048) makes a field null in one version's rows. A
+  condition reads that null, so those rows leave a table that selects by a
+  value of the field, and go into one that selects by any other. The
+  review says the field prints nothing from that version. It does not say
+  which rows change table.
 - **A preview may print fewer rows.** Where a preview's data lacks a field
   a condition reads, the condition does not hold, as a component's does
   not, and those rows are left out of that table, said once in a warning.

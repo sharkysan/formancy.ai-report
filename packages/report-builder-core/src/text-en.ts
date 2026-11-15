@@ -214,6 +214,7 @@ export const EN = {
   'field.borderColor': 'Border colour',
   'field.columnWidth': 'Column {n} width',
   'field.emptyText': 'Text when there are no rows',
+  'field.rowsWhen': 'Show rows only when',
   'field.headerStyle': 'Heading style',
   'field.header': 'Heading',
   'field.align': 'Alignment',

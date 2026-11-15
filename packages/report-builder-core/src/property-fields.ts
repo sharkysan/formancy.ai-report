@@ -546,6 +546,7 @@ const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { 
   },
   table: (component, { report, t }) => [
     textField('/emptyText', { id: 'field.emptyText' }, 'text', () => component.emptyText),
+    expressionField('/rowsWhen', { id: 'field.rowsWhen' }, component.rowsWhen?.cel, false), // the rows it prints, orders, groups and totals (0062)
     styleField('/headerStyle', { id: 'field.headerStyle' }, report.styles, component.headerStyle, t),
   ],
   chart: () => [], // R10: only the fields every component has, until the builders edit a chart's own

@@ -2,6 +2,7 @@ import { locationOf, validLocations } from '@formancy/report-core'
 import { componentAt } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
+import { eInvoiceReport } from './image-test-support.js'
 import type { DropTarget } from './model.js'
 import type { EditorOutcome } from './model-actions.js'
 import type { Box } from './model-canvas.js'
@@ -235,10 +236,11 @@ describe('dragging', () => {
     expect(editor.dispatch({ type: 'updateDrag', over: 0.5 })).toMatchObject({ ok: false, code: 'not-found' })
   })
 
-  // A kind with nowhere to go -- a second detail table -- opens a list that
+  // A kind with nowhere to go -- a second table in a report that is an
+  // e-invoice, whose one table is its lines (0062) -- opens a list that
   // says so, instead of an empty one.
   test('says when nowhere takes the subject', () => {
-    const { editor } = editorOver()
+    const { editor } = editorOver(eInvoiceReport())
     ok(editor.dispatch({ type: 'startDrag', subject: { kind: 'table' }, via: 'keyboard' }))
     expect(editor.state().dropTargets).toEqual([])
     expect(editor.state().drag).toMatchObject({ via: 'keyboard', nowhere: 'Nowhere in this report can take Table.' })

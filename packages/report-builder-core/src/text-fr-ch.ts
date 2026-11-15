@@ -192,6 +192,7 @@ export const FR_CH: Catalogue = {
   'field.borderColor': 'Couleur de la bordure',
   'field.columnWidth': 'Largeur de la colonne {n}',
   'field.emptyText': 'Texte sans lignes',
+  'field.rowsWhen': 'Afficher les lignes seulement si',
   'field.headerStyle': 'Style de l’en-tête',
   'field.header': 'Titre de colonne',
   'field.align': 'Alignement',
