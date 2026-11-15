@@ -18,6 +18,7 @@ passes through a JavaScript number, as in Formancy Data
 | Printing | Intl is handed the exact digits, already rounded half away from zero to the places shown. A format that would round a rounded total again is a diagnostic ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) |
 | A payment code's amount | A QR-bill's and an EPC QR code's alike: written from its own digits and never rounded; a third decimal is refused, so rounding stays where the total is computed. An EPC QR code's is written as short as it can be, as Austria's PSA asks ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | An e-invoice's totals | Computed once, in `Decimal`, from the very values the table prints: each VAT category's tax is its basis times its rate over 100, rounded once, half away from zero, and never per line; a line's net amount and a paid amount are whole cents, refused rather than rounded, and a net amount other than its quantity times its net price rounded once is refused; a rate is compared by value, so `19` and `19.00` are one rate. The XML writes each amount from its own digits at two places, and the page reads the totals by name, so that it prints what the XML holds ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
+| A chart | Each series totalled by the function every aggregate is, `totalOf`, in the decimals the compiler types it in, so a bar and the table's subtotal of one definition, over the same rows, are one value; its value axis one, two or five times a power of ten, found by BigInt division on a decimal's units; a pie's share the exact ratio of its value to the sum of its slices, rounded once, half away from zero, and printed by `percent`, which refuses a fraction Intl would round again. The block holds each value twice, its exact digits and its text: a renderer is handed strings to print and makes a coordinate of the digits, never a number to print ([0055](../decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)) |
 | Lengths | Points, on the hundredth of a point; a finer one is refused, not rounded, so one layout has one stored value and one hash ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
 
 ## 8.2 Refusals
@@ -70,14 +71,16 @@ text, a date or a number with a label for its rows without one, series
 that total numbers or count rows, a pie the shares of one sum or count --
 and refuses the rest as `invalid-chart`, or by the code every component's
 fields are refused by; the editing core names what it reads, so a removed
-field takes its series. The runtime does not resolve one yet, and refuses
-a report that would print one as `chart-not-resolved`, naming it, in a
-preview as in a final render, rather than resolve the report without it;
-and the builders' palettes do not offer one until the builders edit a
-chart's own properties (0052).
-What only the data can say -- whether the categories fit the box, how
-many slices a pie has -- is left to the stages that resolve and draw a
-chart, to be refused there, never cut to fit.
+field takes its series. The runtime resolves one (0055), and the renderer
+does not draw one yet: it refuses a report that would print one as
+`unsupported`, naming it, in a preview as in a final render, rather than
+print the report without it; and the builders' palettes do not offer one
+until the builders edit a chart's own properties (0052).
+What only the data can say is left to the stages that resolve and draw a
+chart, to be refused there, never cut to fit: the runtime refuses more
+categories than `MAX_CHART_CATEGORIES` and a pie of more slices than its
+palette has colours, before anything is totalled, and whether the
+categories fit the box is the renderer's to say.
 
 **A code is read from a closed list.** An e-invoice's units, countries, VAT
 prefixes and schemes are lists someone chose (`UNIT_CODES`,
@@ -121,7 +124,7 @@ An e-invoice holds names, addresses, accounts and VAT identifiers, so
 and the renderer's refusals of an e-invoice never quote its XML (0027).
 The validator's refusals of a chart are located by their path, and say
 "this chart" where they name it at all; the core's diagnostics and the
-runtime's refusal name the chart, and a series, by id. Each says what is
+runtime's refusals name the chart, and a series, by id. Each says what is
 wrong by a count, a size, a type, a function or a colour, never quoting a
 label, a title or the empty text, which may be a customer's words (0052).
 An SVG's refusal names the element path and the construct, and what

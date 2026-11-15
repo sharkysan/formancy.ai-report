@@ -2,7 +2,7 @@ import { Decimal, decimalFromString, decimalToString, roundDecimal } from '@form
 import type { Rounding, RoundingMode } from '@formancy/report-spec'
 import { ROUNDING_MODES } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import { averageDecimals, maxDecimal, minDecimal, roundDecimalAs, sumDecimals } from './decimal.js'
+import { averageDecimals, maxDecimal, minDecimal, ratioRounded, roundDecimalAs, sumDecimals } from './decimal.js'
 import { below, seeded } from './test-support.js'
 
 const dec = (text: string): Decimal => decimalFromString(text)
@@ -239,5 +239,26 @@ describe('averageDecimals', () => {
       const expected = reference(units, BigInt(values.length) * 10n ** BigInt(scale), declared)
       expect({ values, declared, average: text(averageDecimals(values.map(dec), declared)) }).toEqual({ values, declared, average: expected })
     }
+  })
+})
+
+describe('ratioRounded', () => {
+  // 0.29 / 2 is exactly 0.145, which rounds half away from zero to 0.15; a
+  // double holds 0.29 a little under, and its toFixed(2) gives 0.14.
+  test('rounds an exact ratio once, where a double rounds the wrong way', () => {
+    expect(decimalToString(ratioRounded(dec('0.29'), dec('2'), { scale: 2, mode: 'half-away-from-zero' }))).toBe('0.15')
+  })
+
+  // A ratio of decimals of different scales divided as their units would be
+  // off by a power of ten.
+  test('divides decimals of different scales by their values, not their units', () => {
+    expect(decimalToString(ratioRounded(dec('0.5'), dec('2.00'), { scale: 4, mode: 'half-even' }))).toBe('0.2500')
+  })
+
+  // roundQuotient takes a denominator above 0: a negative one would round
+  // 1/-3 to -0.332 without a word, and a zero throw BigInt's own error.
+  test.each([['0'], ['-3']])('refuses a denominator of %s, which a share never has', (denominator) => {
+    expect(() => ratioRounded(dec('1'), dec(denominator), { scale: 3, mode: 'half-even' })).toThrow(RangeError)
+    expect(() => ratioRounded(dec('1'), dec(denominator), { scale: 3, mode: 'half-even' })).toThrow(/more than 0/)
   })
 })

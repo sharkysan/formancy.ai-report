@@ -7,20 +7,17 @@
  * value format shows a rounded total rounding half away from zero to the
  * places it shows, so where those are fewer than the rounding keeps, the
  * number is rounded again by a rule nobody declared. What a series computes
- * is typed as an aggregate over the same field is, by `COMPUTES`.
+ * is typed as an aggregate over the same field is, by `seriesType`, which
+ * the runtime asks too. An integer is never rounded, so one refusal says it
+ * and the format's places are not judged against a rounding that never happens.
  */
 import { walkComponents } from '@formancy/report-spec'
-import type { ChartSeries, ReportDefinition } from '@formancy/report-spec'
-import { COMPUTES, readAs } from '../expressions/members.js'
+import type { ReportDefinition } from '@formancy/report-spec'
+import { seriesType } from '../expressions/members.js'
 import { quote } from '../outcome.js'
 import { diagnostic } from './codes.js'
 import type { Diagnostic } from './codes.js'
 import { unrounded } from './rounding.js'
-
-/** What `series` computes, typed as the compiler types an aggregate of its function over its field. */
-function computed(report: ReportDefinition, series: ChartSeries): string {
-  return COMPUTES[series.fn](readAs(report.datasets.detail?.fields.find(({ id }) => id === series.of?.field)?.type)).type
-}
 
 export function chartDiagnostics(report: ReportDefinition): Diagnostic[] {
   const found: Diagnostic[] = []
@@ -30,7 +27,7 @@ export function chartDiagnostics(report: ReportDefinition): Diagnostic[] {
     for (const [index, series] of component.series.entries()) {
       if (series.rounding === undefined) continue
       const named = `series ${quote(series.id)} of chart ${quote(component.id)}`
-      const what = unrounded(computed(report, series))
+      const what = unrounded(seriesType(report, series).type)
       if (what !== undefined) {
         const said = `${named} declares a rounding, and computes ${what}, which has no places to round`
         found.push(diagnostic('rounding-not-decimal', said, { path: `${path}/series/${index}/rounding`, componentId: component.id }))
