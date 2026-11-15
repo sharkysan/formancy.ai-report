@@ -120,6 +120,12 @@ document and sends it, and the renderer draws its PDF as a plain copy,
 refused unless its header leads with the runtime's
 `XRECHNUNG_COPY_PARAGRAPH`
 ([0038](docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+A report that is no e-invoice is drawn as a PDF/A-2b where the host asks,
+`pdfa: '2b'`, what a document is drawn as decided once in the renderer's
+`pdfa-check.ts`, which refuses a Factur-X, an XRechnung's copy and a
+labelled preview as one, and holds the PDF/A-3b's refusals of a title and
+a CMYK JPEG, and 0030's bound on an SVG, for it
+([0057](docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 Both builders select a report's e-invoice, from its outline row after the
 bill's, and edit it field by field -- report-builder-core's
 `invoice-fields.ts` is a table over every term of either kind, its VAT
@@ -287,7 +293,8 @@ Liberation Serif and Mono 2.1.5 as a host's fonts (`fixtures/host-fonts/`)
 and the face each run is drawn in, read from the PDF (`PdfTextItem.font`,
 held by `fontNames`), `expectation`, which derives
 what a document's PDF must show, `readPdfObjects` and `readXmp`, which read what a PDF embeds
-and says of itself with pdf-lib and saxes, `readPdfNumbers`, every number
+and says of itself with pdf-lib and saxes, its catalog's keys and its name
+tree's among it (`catalogKeys`, `nameTreeKeys`), `readPdfNumbers`, every number
 a PDF writes, content streams included, `inflatedDigest`, a PDF's
 objects hashed with every stream inflated, `IMAGE_KINDS`, an image of each
 kind PDFKit embeds, and the renderer trial that chose pdfmake. `apps/studio` is the
@@ -741,10 +748,13 @@ exactly what CI does:
   of every image kind PDFKit embeds, a page of SVGs in every way
   svg-to-pdfkit paints one, and one of an SVG at every bound an e-invoice
   holds one to -- Mustang by its PDF part too,
-  never its exit status alone; each control is judged exactly as the
-  corpus expects, at least one tool refusing it and each tool refusing at
-  least one control of its format; and report-spec's code lists and rule
-  ids are held to the schematrons they run. A warning fails it unless
+  never its exit status alone; veraPDF alone, with its PDF/A-2b profile
+  and `--flavour 2b`, the PDF/A-2b of every starter that is no e-invoice
+  and of the corpus's image, SVG and font pages, and two controls (0057);
+  each control is judged exactly as the corpus expects, at least one tool
+  refusing it and each tool refusing at least one control of its format;
+  and report-spec's code lists and rule ids are held to the schematrons
+  they run. A warning fails it unless
   `scripts/e-invoice/accepted.json` accepts it, with its reason, in that
   file. Locally it needs a Java at least as new as each JAR's `java` in
   the register.
@@ -777,7 +787,8 @@ exactly what CI does:
     than its register pins, ran a veraPDF below the register's floor, its
     own or Mustang's, ran in CI on a Java of another major version than
     the register names, judged no sample or made no control of a format,
-    XML or PDF, or judged a file otherwise than its corpus expects;
+    XML, PDF or PDF/A-2b, or judged a file otherwise than its corpus
+    expects;
   - two builds of one package differ, or a tarball's built files are not
     every job's;
   - the container gate left no record, failed or failed a check, did not
@@ -840,7 +851,7 @@ Locally, run the same commands for what you changed.
   alone and type-checks `client.ts` against them (0049);
 - runs it: `consume.ts` under Node, which also draws an e-invoice, in
   `e-invoice.ts`, and reads the PDF/A-3b's bytes with `embedding.ts` and
-  Node alone (0031);
+  Node alone (0031), and a PDF/A-2b, in `pdfa.ts` (0057);
   `server.ts`, the server made in its host's process and asked over a
   socket, a draft saved through the packed client, read back and a stale
   save refused `draft-changed`;
