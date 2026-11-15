@@ -1,6 +1,6 @@
 // The PDF/A-2b the e-invoice gate judges (0057): every starter of
 // report-corpus that is no e-invoice, drawn by the renderer as built with
-// `pdfa: '2b'` in a final render; five variants, three drawn on the
+// `pdfa: '2b'` in a final render; six variants, four drawn on the
 // quotation's page as scripts/e-invoice/pdf-corpus.mjs's are on the
 // e-invoice sample's and two of the corpus's fixtures, as its are; and
 // two controls. veraPDF judges them alone, in a run of their own with
@@ -14,8 +14,9 @@
 // - **The variants** are what a template may draw beyond the starters'
 //   pages -- an image of every kind PDFKit embeds, an SVG in every way the
 //   converter paints one and one at every bound the renderer holds an SVG
-//   to in a PDF/A, text outside ASCII in the corpus's faces and a host's --
-//   each of which veraPDF must accept as a sample.
+//   to in a PDF/A, a bar, a line and a pie chart laid out by ECharts (0058),
+//   text outside ASCII in the corpus's faces and a host's -- each of which
+//   veraPDF must accept as a sample.
 // - **The controls**: the quotation drawn without `pdfa`, which the
 //   renderer draws as a plain PDF; and the 3b corpus's e-invoice.pdf,
 //   unchanged, judged by the 2b profile. The second shows the flavour is
@@ -39,11 +40,11 @@ export const PDF_A_2B_FORMAT = 'pdfa-2b'
 export const PDF_A_2B_BASE = 'quotation'
 
 /**
- * Each variant: its file, what it draws, and how -- `blocks`, `svg` and
- * `bound`, the quotation's page followed by what pdf-corpus.mjs's
- * `blocksDocument`, `svgDocument` and `boundDocument` add to the e-invoice
- * sample's; `fixture`, a document of report-corpus's `ALL_FIXTURES` -- each
- * with no e-invoice.
+ * Each variant: its file, what it draws, and how -- `blocks`, `svg`,
+ * `bound` and `charts`, the quotation's page followed by what
+ * pdf-corpus.mjs's `blocksDocument`, `svgDocument`, `boundDocument` and
+ * `chartsDocument` add to the e-invoice sample's; `fixture`, a document of
+ * report-corpus's `ALL_FIXTURES` -- each with no e-invoice.
  */
 export const PDF_A_2B_VARIANTS = [
   {
@@ -60,6 +61,11 @@ export const PDF_A_2B_VARIANTS = [
     file: 'pdfa-2b-svg-bound.pdf',
     why: 'the quotation’s page, a page break, and report-corpus’s SVG_BOUND in the smallest box the renderer draws it in a PDF/A, SVG_BOUND_SIDE square: its numbers come within the renderer’s margin of the largest integer a PDF/A-2 holds, and it nests the graphics state as deep as one may: drawn on the quotation’s page as variant-svg-bound.pdf is on the e-invoice sample’s',
     draws: { bound: true },
+  },
+  {
+    file: 'pdfa-2b-charts.pdf',
+    why: 'the quotation’s page, a page break, and report-corpus’s CHART_FIXTURES’ charts -- a bar, a line and a pie, laid out by ECharts, their marks drawn by the SVG converter, a line’s plot clipped through a soft mask, and their words as pdfmake’s text, in Roboto and in a host’s Liberation Serif, which the document’s font map also gives the quotation’s page: drawn on the quotation’s page as variant-charts.pdf is on the e-invoice sample’s (0058)',
+    draws: { charts: true },
   },
   {
     file: 'pdfa-2b-fonts.pdf',

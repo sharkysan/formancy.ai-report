@@ -225,6 +225,7 @@ describe('veraPDF’s verdict', () => {
       ['pdfa-2b-blocks.pdf', 'as expected', []],
       ['pdfa-2b-svg.pdf', 'as expected', []],
       ['pdfa-2b-svg-bound.pdf', 'as expected', []],
+      ['pdfa-2b-charts.pdf', 'as expected', []],
       ['pdfa-2b-fonts.pdf', 'as expected', []],
       ['pdfa-2b-host-fonts.pdf', 'as expected', []],
       ['pdfa-2b-control-plain.pdf', 'as expected', ['6.2.4.3-2', '6.6.2.1-1']],

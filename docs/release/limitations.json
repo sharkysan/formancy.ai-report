@@ -2502,7 +2502,7 @@
         },
         {
           "area": "testing",
-          "says": "veraPDF judges as PDF/A-2b the starters that are no e-invoice, three variant pages on the quotation's and the corpus's two fonts fixtures, so a customer's template is held by the renderer's refusals and not by a validator.",
+          "says": "veraPDF judges as PDF/A-2b the starters that are no e-invoice, four variant pages on the quotation's, a page of charts among them, and the corpus's two fonts fixtures, so a customer's template is held by the renderer's refusals and not by a validator.",
           "heldBy": "scripts/e-invoice/pdfa-2b.test.mjs"
         },
         {
@@ -2513,7 +2513,7 @@
       ]
     },
     "0058": {
-      "reviewed": "sha256:d5f496072415010a591d0de353bc9cc844da6f8dbdebf5305f04002aecd77b13",
+      "reviewed": "sha256:b34256a39f41821e36e1b6a6f8e6c59fdea93690364b05ac1bab22ad641568c4",
       "limitations": [
         {
           "area": "rendering",

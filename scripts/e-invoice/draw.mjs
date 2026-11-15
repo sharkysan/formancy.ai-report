@@ -27,9 +27,9 @@ const AS_2B = { maxPages: VARIANT_MAX_PAGES, pdfa: '2b' }
  * sample's e-invoice, a starter resolved as a host resolves it, and an SVG
  * as an approved asset holds it, in the form report-spec's `cleanSvg`
  * writes. And the PDF/A-2b: each starter as a 2b (`drawStarter2b`), each
- * variant of the 2b corpus as a 2b with no e-invoice, its blocks and SVGs
- * on the quotation's page and its fixtures as they are (`drawVariant2b`),
- * and the quotation without `pdfa` (`drawPlain2bBase`).
+ * variant of the 2b corpus as a 2b with no e-invoice, its blocks, SVGs and
+ * charts on the quotation's page and its fixtures as they are
+ * (`drawVariant2b`), and the quotation without `pdfa` (`drawPlain2bBase`).
  */
 export function samplesOf({ spec, runtime, renderer, corpus }) {
   const { starterImages: images } = corpus
@@ -75,8 +75,9 @@ export function samplesOf({ spec, runtime, renderer, corpus }) {
       base,
       CHART_VARIANT_FIXTURES.map((id) => {
         const fixture = corpus.CHART_FIXTURES.find((each) => each.id === id)
-        if (fixture === undefined) throw new Error(`variant-charts.pdf draws the chart fixture ${id}, which report-corpus does not have`)
-        if (fixture.expect.outcome !== 'render') throw new Error(`variant-charts.pdf draws the chart fixture ${id}, which the renderer is not to draw whole`)
+        if (fixture === undefined) throw new Error(`variant-charts.pdf and pdfa-2b-charts.pdf draw the chart fixture ${id}, which report-corpus does not have`)
+        if (fixture.expect.outcome !== 'render')
+          throw new Error(`variant-charts.pdf and pdfa-2b-charts.pdf draw the chart fixture ${id}, which the renderer is not to draw whole`)
         return fixture
       }),
     )

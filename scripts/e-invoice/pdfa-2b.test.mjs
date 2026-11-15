@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'vitest'
+import { PDF_VARIANTS } from './pdf-corpus.mjs'
 import { identificationProblems, PDF_A_2B_CONTROLS, PDF_A_2B_VARIANTS, pdfa2bCorpus, pdfa2bPlan } from './pdfa-2b.mjs'
 
 /**
  * The PDF/A-2b the e-invoice gate judges (0057): every starter that is no
- * e-invoice, drawn as a 2b, five variants -- three on the quotation's page
+ * e-invoice, drawn as a 2b, six variants -- four on the quotation's page
  * and two of the corpus's fixtures -- and two controls. Planned here from stand-ins for report-corpus's starters, drawn
  * by a stand-in for the renderer and read back by stand-ins for pdf-lib and
  * the XMP reader, as pdf-corpus.test.mjs reads the PDF/A-3b: what veraPDF
@@ -47,6 +48,7 @@ describe('the PDF/A-2b corpus as planned', () => {
       ['pdfa-2b-blocks.pdf', { blocks: true }],
       ['pdfa-2b-svg.pdf', { svg: true }],
       ['pdfa-2b-svg-bound.pdf', { bound: true }],
+      ['pdfa-2b-charts.pdf', { charts: true }],
       ['pdfa-2b-fonts.pdf', { fixture: 'fonts' }],
       ['pdfa-2b-host-fonts.pdf', { fixture: 'host-fonts' }],
       ['pdfa-2b-control-plain.pdf', 'pdfa-2b-quotation.pdf'],
@@ -66,7 +68,21 @@ describe('the PDF/A-2b corpus as planned', () => {
     expect(controls.every((entry) => entry.why.length > 0)).toBe(true)
   })
 
-  // Three of the variants and the plain control are drawn on the
+  // A chart is a page ECharts laid out, its marks through the SVG
+  // converter -- a line's plot clipped through a soft mask -- and its
+  // words pdfmake's text in the report's faces and a host's: a report
+  // drawn as a PDF/A-2b may print one (0058), and without a variant of
+  // its own no veraPDF judges a chart in a 2b. It draws what the 3b
+  // corpus's variant-charts.pdf draws, on the quotation's page, so that
+  // both profiles judge the same charts.
+  test('plans a page of the corpus’s charts on the quotation’s, as the 3b corpus’s variant-charts.pdf draws them on the e-invoice sample’s', () => {
+    const charts = PDF_A_2B_VARIANTS.find((variant) => variant.file === 'pdfa-2b-charts.pdf')
+    expect(charts?.draws).toEqual({ charts: true })
+    expect(charts?.draws).toEqual(PDF_VARIANTS.find((variant) => variant.file === 'variant-charts.pdf')?.draws)
+    expect(charts?.why).toMatch(/^the quotation’s page, a page break, and report-corpus’s CHART_FIXTURES’ charts .* \(0058\)$/)
+  })
+
+  // Four of the variants and the plain control are drawn on the
   // quotation's page: without it they would stop the gate halfway through
   // drawing, and an e-invoice's page would be refused as a 2b, so neither
   // is planned.
@@ -115,6 +131,7 @@ describe('the PDF/A-2b corpus as drawn', () => {
       ['variant', { blocks: true }],
       ['variant', { svg: true }],
       ['variant', { bound: true }],
+      ['variant', { charts: true }],
       ['variant', { fixture: 'fonts' }],
       ['variant', { fixture: 'host-fonts' }],
       ['plain'],

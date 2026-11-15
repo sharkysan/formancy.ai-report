@@ -500,8 +500,9 @@ byte PDFKit's profile, nothing embedded, no action, form or annotation,
 and the plain render's pages, faces and fonts; and the same bytes twice.
 `src/browser.test.ts` holds the browser entry's to the Node entry's.
 Whether a validator takes the PDF is the e-invoice gate's: veraPDF judges
-every starter so drawn, three variant pages on the quotation's and the
-corpus's two fonts fixtures, with its PDF/A-2b profile, and nothing here.
+every starter so drawn, four variant pages on the quotation's, a page of
+charts among them, and the corpus's two fonts fixtures, with its PDF/A-2b
+profile, and nothing here.
 A customer's template is judged by nothing.
 
 ## E-invoices

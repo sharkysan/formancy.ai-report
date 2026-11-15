@@ -284,7 +284,9 @@ report's own faces. ECharts decides nothing a reader reads.
   through its markers, each slice its share's sector, each legend entry
   beside its swatch and each value's label at its mark. The e-invoice gate
   draws a bar, a line, a pie and a bar in a host's serif face inside a
-  PDF/A-3b, for veraPDF and Mustang to judge.
+  PDF/A-3b, for veraPDF and Mustang to judge, and the same charts inside a
+  PDF/A-2b, for veraPDF's PDF/A-2b profile, since a report drawn as one
+  may print a chart.
 
 **The runtime resolves a chart exactly**
 ([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).

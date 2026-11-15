@@ -123,12 +123,17 @@
     from its mark, a chart drawn twice, and a Roboto chart's title printed
     regular. report-corpus's `src/check-charts.test.ts` holds the check,
     on real renders and on reads doctored to show each fault.
-  - **As an e-invoice.** The e-invoice gate draws `variant-charts.pdf`
-    (`scripts/e-invoice/pdf-corpus.mjs`), the first sample's page and a
-    bar, a line, a pie and a bar in a host's serif face, one to a page, for
-    veraPDF and Mustang to judge inside a PDF/A-3b once the gate's record
-    holds it; `scripts/e-invoice/pdf-corpus.test.mjs` holds the variant
-    to those fixtures.
+  - **As an e-invoice, and as a PDF/A-2b.** The e-invoice gate draws
+    `variant-charts.pdf` (`scripts/e-invoice/pdf-corpus.mjs`), the first
+    sample's page and a bar, a line, a pie and a bar in a host's serif
+    face, one to a page, for veraPDF and Mustang to judge inside a
+    PDF/A-3b once the gate's record holds it; `scripts/e-invoice/pdf-corpus.test.mjs`
+    holds the variant to those fixtures. It draws the same charts on the
+    quotation's page as `pdfa-2b-charts.pdf` (`scripts/e-invoice/pdfa-2b.mjs`),
+    for veraPDF's PDF/A-2b profile to judge
+    ([0057](0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md))
+    once the record holds it too; `scripts/e-invoice/pdfa-2b.test.mjs`
+    holds it to drawing what `variant-charts.pdf` draws.
   - **Seen failing, from 12 to 15 November 2026.** Each case was run
     before its code existed, or with its code broken alone and restored,
     by the implementer of each change in the working tree or by its
@@ -165,8 +170,9 @@
       them, and the other two, a legend whose entries are shifted and a
       value label moved off its bar, once the legend and the labels were
       tied to their marks;
-    - `MIN_BAR_WIDTH`'s gap case at a `BAR_GAP` of 0.3, and the e-invoice
-      variant's two cases before the variant was listed;
+    - `MIN_BAR_WIDTH`'s gap case at a `BAR_GAP` of 0.3, the e-invoice
+      variant's two cases before the variant was listed, and the PDF/A-2b
+      variant's three before it was;
     - the bound's cases with each chart weighed by its points alone, four of
       seven; then with its words unweighed, five, its missing values
       uncounted, one, the title's and the legend's weights swapped, five,
