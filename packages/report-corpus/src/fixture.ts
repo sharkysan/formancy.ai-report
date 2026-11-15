@@ -100,7 +100,7 @@ export interface ExpectedChart {
   readonly ticks: readonly ChartValue[]
   /** A bar or a line chart's series, each its colour and its values exactly (`ChartValue.exact`), one per category, null where it has none; a pie's slices, each its colour and its one value. */
   readonly marks: readonly { readonly paint: string; readonly values: readonly (string | null)[] }[]
-  /** The face each of its words prints in, ticks included, by the face's PostScript name; empty where the document maps no host font. */
+  /** The face each of its words prints in, ticks included, by the face's PostScript name after any subset prefix: its token's host face, or Roboto's where the sans token maps none. */
   readonly faces: readonly ExpectedFontName[]
   /** Whether it has nothing to draw: its words are then all it prints. */
   readonly empty: boolean
@@ -329,16 +329,33 @@ function expectedChart(chart: Chart, fonts: ResolvedFonts | undefined): Expected
 }
 
 /**
- * The PostScript name of the face a word of `chart` prints in, read from
- * the bytes `fonts` maps its token to, as the renderer reads them: its
- * title bold, every other word its style's weight, each its style's slant
- * (`chart-faces.ts`). None where its token maps no host font -- the sans
- * token then prints in Roboto -- or no such face, or one that is no font,
- * which the renderer refuses.
+ * The PostScript names of Roboto 3.014's four faces, which the renderer
+ * prints the sans token in where a report maps it no host font, as the
+ * PDF names them: its own `face-identity.ts` holds each to its file, and
+ * report-render-pdf's `corpus.test.ts` holds these to a chart it draws in
+ * each face.
+ */
+const ROBOTO: { readonly [Key in ReturnType<typeof faceKey>]: string } = {
+  normal: 'Roboto-Regular',
+  bold: 'Roboto-Medium',
+  italic: 'Roboto-Italic',
+  boldItalic: 'Roboto-MediumItalic',
+}
+
+/**
+ * The PostScript name of the face a word of `chart` prints in: its title
+ * bold, every other word its style's weight, each its style's slant
+ * (`chart-faces.ts`), in the face `fonts` maps its token to, read from its
+ * bytes as the renderer reads them, or in Roboto's where the sans token
+ * maps none. None where another token maps none, or no such face, or one
+ * that is no font, each of which the renderer refuses.
  */
 function faceName(chart: Chart, fonts: ResolvedFonts | undefined, title: boolean): string | undefined {
   const style = chart.style ?? {}
-  const asset = fonts?.[style.font ?? 'sans']?.[faceKey(title || (style.bold ?? false), style.italic ?? false)]
+  const [token, key] = [style.font ?? 'sans', faceKey(title || (style.bold ?? false), style.italic ?? false)]
+  const faces = fonts?.[token]
+  if (faces === undefined) return token === 'sans' ? ROBOTO[key] : undefined
+  const asset = faces[key]
   const read = asset === undefined ? undefined : readFont(asset.bytes)
   return read?.ok === true ? read.names.postScriptName : undefined
 }

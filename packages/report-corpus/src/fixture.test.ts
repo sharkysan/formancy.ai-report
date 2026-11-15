@@ -337,7 +337,10 @@ describe('chartsOf', () => {
         { paint: '#1f77b4', values: ['10.25', null, '0'] },
         { paint: '#ff7f0e', values: ['-5', '15', null] },
       ],
-      faces: [],
+      faces: [
+        { text: 'Sales', postScriptName: 'Roboto-Medium' },
+        ...['Region', 'North', 'A B', '10.25', '0', '−5', '15', 'Plan', '-5', '0', '5', '10', '15'].map((text) => ({ text, postScriptName: 'Roboto-Regular' })),
+      ],
       empty: false,
     })
     expect(shares).toEqual({
@@ -352,19 +355,21 @@ describe('chartsOf', () => {
         { paint: '#1f77b4', values: ['3'] },
         { paint: '#ff7f0e', values: ['0'] },
       ],
-      faces: [],
+      faces: ['North: 3 (100.0 %)', 'East: 0 (0.0 %)'].map((text) => ({ text, postScriptName: 'Roboto-Regular' })),
       empty: false,
     })
     expect(chartsOf(documentOf([{ ...bars, valueLabels: false }]))[0]!.words).toEqual(['Sales', 'Region', 'North', 'A B', 'Plan'])
     expect(chartsOf(documentOf([empty('nothing')]))[0]).toMatchObject({ words: ['Balance', 'No data'], categories: [], ticks: [], marks: [], empty: true })
   })
 
-  // A chart prints in its style's token, its title bold in it (0058): where
-  // the token maps a host font, each word, its ticks' labels among them,
-  // is held to the face it prints in, so that a chart printed in Roboto,
-  // or its title in the regular face, is seen. A token the report maps no
-  // host font for prints in Roboto, and is held to no face.
-  test('holds each word to the face it prints in where its token maps a host font', () => {
+  // A chart prints in its style's token, its title bold in it (0058):
+  // each word, its ticks' labels among them, is held to the face it
+  // prints in, its token's host face, or Roboto's where the sans token
+  // maps none, so that a chart printed in Roboto where a host's face was
+  // mapped, or its title in the regular face, is seen. A serif or mono
+  // token the report maps no face for is refused by the renderer, and
+  // names no face here.
+  test('holds each word to the face it prints in, a host face or Roboto', () => {
     const fonts = hostFonts.document.fonts
     const [serif] = chartsOf(documentOf([{ ...bars, style: { font: 'serif' } }], fonts))
     expect(serif!.faces).toEqual([
@@ -377,7 +382,12 @@ describe('chartsOf', () => {
       { text: 'North: 3 (100.0 %)', postScriptName: 'LiberationSerif-Italic' },
       { text: 'East: 0 (0.0 %)', postScriptName: 'LiberationSerif-Italic' },
     ])
-    expect(chartsOf(documentOf([bars], fonts))[0]!.faces).toEqual([])
+    const [sans] = chartsOf(documentOf([{ ...bars, style: { italic: true } }], fonts))
+    expect(sans!.faces.slice(0, 2)).toEqual([
+      { text: 'Sales', postScriptName: 'Roboto-MediumItalic' },
+      { text: 'Region', postScriptName: 'Roboto-Italic' },
+    ])
+    expect(chartsOf(documentOf([{ ...bars, style: { font: 'mono' } }]))[0]!.faces).toEqual([])
   })
 
   // A chart with nothing to draw has no box to be found by: its words are

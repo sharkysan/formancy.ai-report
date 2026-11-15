@@ -167,6 +167,34 @@ describe("the corpus's checks on a chart the renderer drew", () => {
   )
 })
 
+describe("the faces the corpus holds a chart's words to", () => {
+  // A chart's words print in its style's face and its title bold in it
+  // (0058), Roboto's where its token maps no host font: the corpus names
+  // Roboto's four faces as the PDF does, and a name it had wrong would
+  // fail a chart drawn in that face. Each style's chart is drawn and
+  // passes; the bar chart's title printed in Roboto's regular face, as a
+  // renderer that dropped the title's weight would print it, is seen.
+  test(
+    "holds a Roboto chart's every word to its face, its title bold",
+    async () => {
+      for (const style of [{}, { bold: true }, { italic: true }, { bold: true, italic: true }]) {
+        const each = fixtureOf('styled', documentOf('Styled', [paragraph('Before'), { ...BARS, style }]), { maxPagesExpected: 1 })
+        expect(verify(each, await readPdf(await renderPdf(each.document, { maxPages: 5 }))), JSON.stringify(style)).toEqual([])
+      }
+      const chartBars = CHART_FIXTURES.find(({ id }) => id === 'chart-bars')!
+      const pdf = await readPdf(await renderPdf(chartBars.document, { maxPages: chartBars.maxPages }))
+      const [page] = pdf.pages
+      const regular = page!.items.find(({ text }) => text === 'Region')!.font
+      const light: ReadPdf = {
+        ...pdf,
+        pages: [{ ...page!, items: page!.items.map((item) => (item.text === 'Sales by region' ? { ...item, font: regular } : item)) }],
+      }
+      expect(verify(chartBars, light)).toEqual(["chart-bars: page 1: the chart sales prints 'Sales by region' in Roboto-Regular; its face is Roboto-Medium"])
+    },
+    TIMEOUT,
+  )
+})
+
 describe("the corpus's copies of the renderer's constants", () => {
   // The corpus depends on no renderer, so it reads a chart by copies of
   // three of the renderer's constants: its gridlines and its category
