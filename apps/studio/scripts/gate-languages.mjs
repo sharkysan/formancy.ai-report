@@ -47,9 +47,15 @@ export async function languageChecks(gate, page, framework) {
 
   // The report's own properties, and Add language typed into and left as
   // a keyboard leaves it: the switch appears in the bar with the language.
+  // The Properties pane is shown first, since a narrow builder draws one
+  // pane at a time and a pane it hides is in no accessibility tree; then,
+  // where what the checks before left selected is shown there, the
+  // report's own, as a person goes back to it.
+  const add = editor.getByRole('textbox', { name: said('field.addLanguage'), exact: true })
   const toReport = editor.getByRole('button', { name: said('properties.report'), exact: true })
+  await showing(editor, 'Properties', add.or(toReport).first())
   if ((await toReport.count()) === 1) await toReport.click()
-  const add = await showing(editor, 'Properties', editor.getByRole('textbox', { name: said('field.addLanguage'), exact: true }))
+  await add.waitFor()
   await add.focus()
   await page.keyboard.type(ADDED)
   await page.keyboard.press('Tab')

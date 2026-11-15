@@ -35,14 +35,15 @@ later release: a report written now may need re-authoring or migrating when
 the format freezes. 0.2.0's additions — the QR code, the payment
 part, the EPC QR code, the e-invoice and the SVG asset — went into the same
 draft version, and 0.1.0 refuses a report that uses any of them, whole;
-0.3.0's binding of a dataset to a formancy form went in too, and 0.2.0
-refuses a report that carries one
+0.3.0's binding of a dataset to a formancy form and a report's
+translations went in too, and 0.2.0 refuses a report that carries either
 ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md),
 [0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md),
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
 [0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md),
-[0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+[0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md),
+0063).
 
 ### The renderer leans on pdfmake's defaults and internals
 
@@ -340,6 +341,26 @@ quotes until they are taken again
 [0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
 [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 
+### A report's languages rest on its own words, and on a quote
+
+A translation is looked up by its word's exact text in the report's own
+language, so a word fixed there is missing again in every other, a form
+review's relabel among them, and nothing carries its old translation
+across. An expression counts as words only where it prints text and its
+source holds a quote, since upstream's parser shows none of its
+literals: one that only compares a quoted value is asked for in every
+language, and one that builds words without a quote never is, and
+prints the report's own in every language. A form's label in a locale
+its version has no catalogue for is the form's default locale's,
+formancy's fallback, in a translated render as in the report's own
+(0042). The runtime's own words -- a preview's label, an XRechnung
+copy's, a boolean's `true` and `false` -- are English in every language,
+and data prints in whatever language the host chose. Whether a
+translation says what the report's own word says is held by review
+alone, and no external judge of the e-invoice gate reads a translated
+e-invoice
+([0063](../decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+
 ### Tax and invoicing law nobody here checks
 
 The euro invoice's samples print each country's standard VAT rate as one
@@ -507,7 +528,7 @@ findings in its suite among it, meets the rules in that merge ([0050](../decisio
 | **Revisions never pruned** | The compare-and-swap needs the numbered files, and retention is a decision of its own (0049) | A template's directory grows by a file a save, and nothing measured how fast a tenant's store grows; an operator removes files by hand, never a draft's newest, whose number the next save would issue again, and nothing removes them for it |
 | **The list reads every newest draft** | No index until one is measured slow, since an index is a second write a crash can separate from the first (0049) | Listing a tenant's templates opens a file per template, unmeasured, and one record the store did not write fails the whole list |
 | **Two `@formancy/spec` under the Data provider** | report-spec takes 0.12.0, and Formancy Data 0.1.0's packages pin 0.5.0 exactly ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) | A consumer of the provider installs both until Data releases against a newer one; nothing of one reaches the other |
-| **English where a person reads it** | The session's undo labels, the validator's and the diagnostics' sentences, and the preview's label are English ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) | A German or French builder shows an English sentence for a refusal the validator words, and an EPC payment code's square too small for its frame is refused in points, in a field edited in millimetres ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
+| **English where a person reads it** | The session's undo labels, the validator's and the diagnostics' sentences, and the preview's label are English, the label in a translated render too ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md), 0063) | A German or French builder shows an English sentence for a refusal the validator words, and an EPC payment code's square too small for its frame is refused in points, in a field edited in millimetres ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | **Properties without an editor** | A table's sort, its group and total rows and its footer cells, conditional styles, value formats, a run added to or removed from a text, a QR code's content or an EPC QR code's text (only an optional text that is absent, or one literal run, is typed in and emptied out), a column added to or removed from a columns block or added to a table, and the declarations, but for an image a person adds and the removal of one nothing draws (0033), have commands and no property kind to edit them ([`report-builder-core`'s README](../../packages/report-builder-core/README.md#what-it-does-not-do)) | Written in the definition instead |
 | **A QR-bill's texts are edited run by run** | Its fields are a payment code's: a run added or removed, a literal made a binding or a binding a literal, have no field ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)) | A bill's bound debtor removed comes back as SIX's example in literal text, and is bound again only by undo or in the definition |
 | **An e-invoice's long pane** | Its properties are every term of either kind, a field each, in groups, one pane that scrolls ([0044](../decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)) | No gate measures how a person finds a field in it, nor the pane's scrolling; the browser gate fills fields by their names |

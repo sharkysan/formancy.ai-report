@@ -43,19 +43,54 @@ way to the same commands, its targets the places `validLocations` found by
 trying each ([formancy.ai 0046](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0046-keyboard-before-drag.md),
 [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)).
 
+An edit in another language than the report's own takes the same path.
+The language shown is the editor's view state, chosen in the bar's
+switch, which stands there only while the report declares a
+translation:
+
+```
+a person types "Commande" into the Title field, French shown
+   │
+   ▼
+the field stands at a word ──▶ report-core's translateWord('fr-CH', 'Bestellung', 'Commande');
+   │                           an expression that prints words, translateExpression;
+   │                           any other field, the command it always dispatches
+   ▼
+session.apply, validateReport and commit, as above: one undo step
+   │
+   ▼
+the editor derives its state again: the words it shows from report-spec's
+writtenIn(report, 'fr-CH'), a word French lacks the report's own, marked
+missing; and diagnose(), which lists every language's, a word missing an
+error that names its language
+```
+
+So the field, the design view and the problems read the report in the
+language shown by the walk the runtime prints it by, and a word still
+missing is shown as missing, never as written
+([0063](../decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+
 ## 6.2 A render, from data to bytes
 
 ```
-host: resolveReport(report, data, { mode, parameters, images, creationDate, timeZone })
+host: resolveReport(report, data, { mode, locale, parameters, images, creationDate, timeZone })
    │
    ▼
 validate the report again, compile every expression     it arrives as untrusted input
-   ├─ an error the editor's diagnostics would give ──▶ refused
+   ├─ a locale neither the report's own nor a translation's ──▶ undeclared-locale
+   ├─ an error the editor's diagnostics would give, of no language or of the
+   │  render's: a word missing in it among them ──▶ refused
+   ▼
+the report written in the render's locale: reportIn, its words and the
+expressions that print words that locale's, its locale and its slip's
+language the render's, no translations (languages.ts); every stage below
+reads it, as it read a report in one language
    ▼
 check the data: one header record and one detail list, each value held to its
 field's type, a field the report does not declare refused, MAX_DETAIL_ROWS;
 where it names its source, the syntax of identifiers and its shape's keys (0041)
    ├─ a source past either, more submissions than rows, or a provider unknown ──▶ refused
+   ├─ a form's labels read in another locale than the render's ──▶ labels-locale-differs
    ├─ final, and a field missing or the data incomplete ──▶ refused
    ├─ preview ──▶ go on: nothing printed for it, one warning per field
    ▼
@@ -88,7 +123,8 @@ rules; the EPC QR code's payload written (6.7)
 in a final render, an e-invoice's CII XML, written from those values (6.8)
    │
    ▼
-ResolvedDocument + manifest, naming the data's source where it has one
+ResolvedDocument + manifest, naming the template's hash, the render's locale
+and the data's source where it has one
 (+ a preview's warnings)                                     every reason, or none
    │
    ▼
@@ -131,6 +167,10 @@ and the images PDFKit is still decoding when pdfmake hands the document
 over are written in the order pdfmake opened them, however their decodes
 finish
 ([0035](../decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)).
+A render that names a locale is that report printed in it: a report
+without translations, rendered with no locale or its own named, takes
+the path it took before the option, and one whose French lacks a word
+prints in its own language and in every other that is whole (0063).
 
 ## 6.3 A read from Formancy Data
 
@@ -196,7 +236,8 @@ latest(): the request waits a moment for the next one; a newer one aborts the
           render under way, whose result is then delivered to nobody
    │
    ▼
-preview(): resolveReport, in the mode the Preview is in ──▶ renderPdf from
+preview(): resolveReport, in the mode the Preview is in and the language the
+           builder shows ──▶ renderPdf from
            '@formancy/report-render-pdf/browser', up to PREVIEW_PAGE_LIMIT pages
    ├─ refused by the runtime ──▶ every reason, each with a button that selects
    │                             the component it is about
@@ -208,6 +249,10 @@ the bytes those pages were drawn from
 
 The Preview makes the same two calls a host makes, with nothing decided in
 the Studio ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
+It prints in the language the builder shows, the editor's
+`languages.edited`, which a framework switch keeps, so a language whose
+words are not all written is refused there as the runtime refuses it,
+`word-missing` by word, until the last one is (0063).
 A render the renderer cannot stop mid-pass finishes into nothing rather
 than replacing a newer one.
 
@@ -600,8 +645,9 @@ Download PDF draws from its pixels (`apps/studio/scripts/gate-payment-part.mjs`)
 host: a form version it kept, and a submission of it, as formancy stored them
    │
    ▼
-readSubmission(report, { form, formHash?, submission: { id, data } }, { labels })
+readSubmission(report, { form, formHash?, submission: { id, data } }, { labels, locale? })
    ├─ the report valid, its datasets read from a form, not one row per submission?
+   ├─ the locale it names, if any, the report's own or one its translations declare?
    ├─ the input { form, formHash?, submission: { id, data } }, and nothing else?
    ├─ the submission's id one a source names (the runtime's isSubmissionId)?
    ├─ the form copied as data, its specVersion one the pinned @formancy/spec reads?
@@ -613,10 +659,12 @@ the submission walked by the version's model
    │       an answer under no data path of the version ──▶ refused, by its path
    ▼
 each field's answer: absent or null is null; a choice's label from this version,
-in the report's locale; a number by the number rule; held to its type by readValue
+in the locale read, the report's own unless a translation's is named; a number
+by the number rule; held to its type by readValue
    ▼
-ReportData, 'host-captured', its source the submission, the form's id and the
-version's hash ──▶ resolveReport, as in 6.2
+ReportData, 'host-captured', its source the submission, the form's id, the
+version's hash and, where it is not the report's own, the locale read
+──▶ resolveReport, as in 6.2, which refuses it in another locale
 ```
 
 `readSubmissions(report, { forms, submissions, complete })` is the same

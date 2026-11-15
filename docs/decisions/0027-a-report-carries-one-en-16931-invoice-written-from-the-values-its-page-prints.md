@@ -23,7 +23,12 @@
   under which either builder edits an e-invoice field by field through
   report-core's commands, its account changed with its payment codes' in
   one edit, and the e-invoice sample is a starter of the Studio's, which
-  this record kept out of its picker
+  this record kept out of its picker; and extended by
+  [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md),
+  under which a line's name follows a translated render into the XML
+  where the column it is read from prints a word, every other text the
+  XML holds is the report's own, and no external judge sees a translated
+  e-invoice
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

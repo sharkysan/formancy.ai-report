@@ -23,7 +23,11 @@
   is such a part too, a group of fields carries a list of buttons, each
   saying whether it has somewhere to go and where the keyboard goes once
   it is done, and a list of groups is edited item by item, both builders
-  following the model.
+  following the model. Extended by
+  [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md): the editor keeps the language a person edits as view state, as the
+  zoom is, a switch in the bar while the report declares more than one,
+  and a field at a word writes its translation in the language shown,
+  both builders following the model and `BUILDER_SCENARIOS`.
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** each package's `test:coverage` job in CI, the `verify` job

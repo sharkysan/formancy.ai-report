@@ -10,7 +10,11 @@
   mark, and the samples differ still in nothing but their words and whom
   they bill; narrowed by [0039](0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md), under which each sample opens with one
   warning, that its bill pays SIX's example QR-IBAN, where this record
-  holds it to none
+  holds it to none; extended by
+  [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md),
+  under which the corpus holds, beside these four samples, which stay
+  four reports, the German starter's invoice once in four languages, its
+  PDF in each held to the same invoice written in that language alone
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

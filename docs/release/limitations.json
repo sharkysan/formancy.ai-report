@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:6e36b3e78c78f8e66734806c1fbfce16c2be1286dd782b547dfa8c0a37174931",
+      "reviewed": "sha256:7506a1c6d10b1d97304640047fb6e1c191ec343e4b9be35b1bb55c47388a413c",
       "limitations": [
         {
           "area": "format",
@@ -177,7 +177,7 @@
       ]
     },
     "0009": {
-      "reviewed": "sha256:8898dc29a5dc084076257f87b26d50700da475d294d066dad99f1f4dd1c13604",
+      "reviewed": "sha256:6e7967e54d8017ea6afd2f48ab91aa386cf2d1562228993cbcc034222270a048",
       "limitations": [
         {
           "area": "runtime",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:d2262b528a9832011368ca08c8a3b2581e9f146152a6c0760dc1c366812f758f",
+      "reviewed": "sha256:72814974a8b34b20c50697a006ed8f0b784da4ac82aac5d936bf51e2ef9a669c",
       "limitations": [
         {
           "area": "runtime",
@@ -296,7 +296,7 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:f3a9d8ddfbcc523d096dbc4c69c2ed58613a3942e8c54ee4ab59d63f28638e31",
+      "reviewed": "sha256:b1b2259749a08acb8bed21d7cdc166405ac60ab095bb58bb9d1691cdd03099ef",
       "limitations": [
         {
           "area": "builders",
@@ -499,7 +499,7 @@
       ]
     },
     "0022": {
-      "reviewed": "sha256:2be7cd0a270c9ee7c9ee7cefe355364a4402302e96a0fafaa80220f1deadd776",
+      "reviewed": "sha256:0c7b395f3740fcd4365fc58fd0b3676feb6643b40be1f905ab3d95fe893b0eae",
       "limitations": [
         {
           "area": "format",
@@ -596,7 +596,7 @@
       ]
     },
     "0024": {
-      "reviewed": "sha256:fb9a7489e44db6db5f6f3b9c50363c14f5a794ca2cb4d2e18c60e5f297e40c66",
+      "reviewed": "sha256:439b5d45d170ad4a31ba758ec523d1f47096cb49934a9624c4bd0995394af1f9",
       "limitations": [
         {
           "area": "release",
@@ -738,7 +738,7 @@
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     },
     "0027": {
-      "reviewed": "sha256:401bb8ae7d99c77d20742444ba961a6d2883540438944bf2e2b5eeeb52e70f5f",
+      "reviewed": "sha256:f389e7d2e899d679159d57fd5521495bfed4e99047bc7a1e3c75a7012e1c221e",
       "limitations": [
         {
           "area": "format",
@@ -1581,7 +1581,7 @@
       ]
     },
     "0041": {
-      "reviewed": "sha256:04928d4a2a1d91c56800adef42ea4c54f6594e1bdddfaec1de21aac5785176ca",
+      "reviewed": "sha256:fd9d2465dd2072023ce3fc4523103235b863564890d6eb809741f973b1e59709",
       "limitations": [
         {
           "area": "data",
@@ -1627,7 +1627,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:ceb2357d0b57c15c26f56e1d35e94d30c6af8c318fb58dafa3962afa87d78271",
+      "reviewed": "sha256:c0464289531480835eb82268415fb2610c988f51597e4d1c1e2b503d8c4471cd",
       "limitations": [
         {
           "area": "format",
@@ -1682,7 +1682,7 @@
         },
         {
           "area": "data",
-          "says": "Labels print from the version's catalogue for the report's locale, or from its default catalogue where it has none for that locale, formancy's own fallback, so a report in de-CH of a form with only German and English catalogues prints its default's labels.",
+          "says": "Labels print from the version's catalogue for the locale a render prints in, the report's own unless the render names a translation's (0063), or from its default catalogue where it has none for that locale, formancy's own fallback, so a report in de-CH of a form with only German and English catalogues prints its default's labels.",
           "heldBy": "packages/report-forms/src/kinds.test.ts"
         },
         {
@@ -1930,7 +1930,7 @@
       ]
     },
     "0048": {
-      "reviewed": "sha256:a2b622b1842d1ecfc1a3ee6a96f8fc22379482ce113a6312d51c466f849867eb",
+      "reviewed": "sha256:e3a49ba324f7f0fc1e4d95f8d491e32062419b1f17f00aa54b80d3ba393a46e2",
       "limitations": [
         {
           "area": "data",
@@ -2267,7 +2267,7 @@
       ]
     },
     "0052": {
-      "reviewed": "sha256:f6d9a17cf3e61f5718fa61fd297820d0797ba0a7e364630e8f57a760c86912f2",
+      "reviewed": "sha256:4de5a780be26666f87fc9d589ac2c323fc88b24b030b9d9eae4fd28b815a74dd",
       "limitations": [
         {
           "area": "format",
@@ -2300,7 +2300,7 @@
       ]
     },
     "0055": {
-      "reviewed": "sha256:79068db0b7e10a6ee8dba6fe1f41c9a87c641fe9a150416bbe8a3044c1b426e8",
+      "reviewed": "sha256:c541e2e34faf49a1736bf0bed0d087a45b1a2b23c6976720e5958d66935c5cfe",
       "limitations": [
         {
           "area": "runtime",
@@ -2341,6 +2341,127 @@
           "area": "rendering",
           "says": "Until the renderer draws charts, a report that would print one is refused when it renders.",
           "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        }
+      ]
+    },
+    "0063": {
+      "reviewed": "sha256:6a97eb3b15f3717ca34a1c52cd8441275d0c7b5aecc6a406d86d2f763d72f9b2",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A word is translated once in each language, whatever its place, so two places that need two words in one language need two different words in the report's own.",
+          "heldBy": "packages/report-spec/src/report-in.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A translation is keyed by its word's exact text, so a word changed in the report's own language -- a typo fixed, or a form review's relabel -- is missing again in every other, and its old translation is left unused.",
+          "heldBy": "packages/report-core/src/diagnostics/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A text's runs keep their order in every language, so a language that puts a value elsewhere in a sentence writes that sentence as an expression."
+        },
+        {
+          "area": "format",
+          "says": "A translation is never blank, so a word cannot print as nothing in one language.",
+          "heldBy": "packages/report-spec/src/validate-translations.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Every literal that holds a letter is a word, so a firm's name or an address written into a paragraph is written again, the same, in each language.",
+          "heldBy": "packages/report-spec/src/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An expression is taken to print words where it prints text and its source holds a quote, so one that only compares a quoted value is translated too, one that prints words without a quote never is, and its translation is written in CEL, reading exactly the members its source reads.",
+          "heldBy": "packages/report-core/src/diagnostics/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A QR code's content, an EPC QR code's texts, a QR-bill's account, parties, reference and billing information, a parameter's default and an e-invoice's texts print as written in every language; a host that wants them in each hands them over as data.",
+          "heldBy": "packages/report-spec/src/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A render names a locale the report declares exactly, or prints in the report's own: de-CH and de-DE are two languages, each written whole, and nothing falls back from one to the other or to the report's own.",
+          "heldBy": "packages/report-spec/src/report-in.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A report that holds more words than `MAX_WORDS` validates, and cannot be translated whole: each word past the bound stays missing in every language."
+        },
+        {
+          "area": "format",
+          "says": "A report is validated and diagnosed once for each language it declares, at most `MAX_LANGUAGES` times, and a report in many languages is a larger draft, nearer `MAX_REPORT_BYTES`."
+        },
+        {
+          "area": "format",
+          "says": "A report that holds translations is refused whole by 0.2.0, which does not know the property, so a report saved with them opens only in a release that has them."
+        },
+        {
+          "area": "format",
+          "says": "The report's own language is the key of every translation and is not swapped for another, so making a translation's language the report's own is writing the report again."
+        },
+        {
+          "area": "editing",
+          "says": "A word missing in a language is an error of that language, which refuses a render in it alone, so a report being translated shows an error for each word until it is written.",
+          "heldBy": "packages/report-core/src/diagnostics/words.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Every report's own properties end with a Languages group, a report in one language among them.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The builders edit one language at a time: a word's field writes its translation in the language shown, the report's own word its placeholder, and every other field, the Language field among them, edits the report's own.",
+          "heldBy": "packages/report-builder-core/src/languages.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Every language's problems are counted on the outline's rows whichever language is shown, so a report whose French is unfinished shows its errors in its own language's view too.",
+          "heldBy": "packages/report-builder-core/src/languages.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A translator sees no PDF of a language until it is whole: the Studio's Preview refuses a render in it, a preview among them, while a word is missing, and the builders show the words it lacks instead.",
+          "heldBy": "apps/studio/src/studio.test.tsx"
+        },
+        {
+          "area": "runtime",
+          "says": "A render in a translation's locale prints the QR-bill's headings in that locale's language where SIX has headings in it, so no such render keeps the bill's own language.",
+          "heldBy": "packages/report-runtime/src/languages.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "The runtime's own words -- a preview's and a copy's labels, and a boolean's true and false -- are English in every language a report prints in."
+        },
+        {
+          "area": "runtime",
+          "says": "Data prints as the host hands it over, in whatever language the host chose: nothing holds a field's or a parameter's value to the render's language but a form's labels."
+        },
+        {
+          "area": "runtime",
+          "says": "A translated e-invoice's XML names each line in the render's language where its column prints a word, beside terms in the report's own, and no external judge of the e-invoice gate sees a translated e-invoice."
+        },
+        {
+          "area": "rendering",
+          "says": "The PDF names no language of its own, in whichever language a report prints, and a character a translation needs that the faces lack is refused when it prints, not when it is written."
+        },
+        {
+          "area": "data",
+          "says": "Form data read without a locale holds the report's own language's labels and is refused in a render in a translation's locale, so a host reads the submissions again for each language it prints.",
+          "heldBy": "packages/report-runtime/src/languages.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A report generated from a form version is written in one language, and its translations are written by a person afterwards.",
+          "heldBy": "packages/report-forms/src/generate.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A form review judges a field's new type in every language a report declares, so a resolution one language's expression could not take is withheld for every language.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
         }
       ]
     }

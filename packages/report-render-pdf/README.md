@@ -631,6 +631,15 @@ them. `samples.test.ts` does the same for the corpus's invoice samples,
 the invoice in German, French, Italian and English: one page each, its
 totals in its locale's format, its slip's headings in its language and in
 no other's, and its code asking for the total it prints.
+`languages.test.ts` prints the corpus's invoice written in the same four
+languages as one report, in each of them: that language's words and none
+of the report's own in another, its total in that locale's format, its
+slip's headings in its language and its code carrying the message in it,
+each PDF equal by `inflatedDigest` to the invoice written in that language
+alone; and every starter and sample prints the same bytes with its own
+locale named as with none. The renderer draws a translated report's
+document as it draws any other, and the PDF names no language of its own
+([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 `euro-samples.test.ts` does it for the euro invoice's samples, the
 starter and the invoice from Austria, France, Italy, Spain, the
 Netherlands and Ireland: one page each, its totals as `Intl` formats its

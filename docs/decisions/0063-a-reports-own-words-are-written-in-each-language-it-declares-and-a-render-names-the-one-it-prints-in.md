@@ -180,6 +180,15 @@
     `gate-languages.mjs` adds a language to the invoice in each builder
     from the keyboard, sees the Preview refuse it while its words are
     missing, writes its title, prints the report's own, and undoes.
+  - **The packed packages.** The install gate's
+    `scripts/install-fixture/languages.ts`, which `consume.ts` runs: a
+    German order to which a session of the packed report-core adds French
+    by command descriptors, each word report-spec's walk finds said
+    missing in French alone until it is written; a French render refused
+    while one is missing, and `fr-FR` as undeclared, while the German
+    prints; then the French render's words, its amount as fr-CH writes it
+    and no German word of the report's, its manifest naming fr-CH and the
+    template's hash, and its PDF titled in French.
   - **Seen failing.** On 2026-11-15, the format and the core: each new
     test file refused to load before the module it tests existed; the
     words guard failed on `/regions/summary/4/valueTitle` with the
@@ -229,7 +238,12 @@
     parity test failed at "the language added shown" with React's note
     left out; and the Studio's preview test failed with the language left
     out of the request and with the pipeline dropping it, and its
-    pipeline test with the runtime given no locale.
+    pipeline test with the runtime given no locale. On 2026-11-15 too, the
+    packed packages: the install gate's `languages.ts`, run against the
+    built packages of the workspace through a copy, failed with the
+    French render naming `fr-FR`, with its amount expected as de-CH
+    writes it, and with a German word left in its French, each put back;
+    the install gate then passed with it, every host it plans checked.
 
 ## Context
 
