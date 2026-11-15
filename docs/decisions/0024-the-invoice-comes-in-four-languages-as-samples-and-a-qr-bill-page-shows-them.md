@@ -12,7 +12,11 @@
   warning, that its bill pays SIX's example QR-IBAN, where this record
   holds it to none; its pages measured in a browser by
   [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)'s
-  gate, where this record measured them by hand
+  gate, where this record measured them by hand; extended by [0056](0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md),
+  under which the start page carries a status too, named first in the
+  site's one error, each of the QR-bill page's cards names the tests it
+  rests on, and the Studio's words this record says nothing reads,
+  "Starter" and "Invoice", are held to the Studio's recorded pictures
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

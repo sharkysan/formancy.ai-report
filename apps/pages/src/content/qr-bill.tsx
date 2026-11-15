@@ -39,7 +39,7 @@ export const QR_BILL_STATUS: PageStatus = {
 /** What the product page says of the QR-bill page in `language`: its teaser, and where it stands, as the hero says it. */
 const teaserOf = (language: Language): Teaser => ({
   ...QR_BILL_COPY[language].teaser,
-  text: `${QR_BILL_COPY[language].teaser.text} ${QR_BILL_COPY[language].standing}`,
+  standing: QR_BILL_COPY[language].standing,
 })
 
 /** The decision record that says what a QR-bill is and what it costs, which the page links for the reasons it gives. */
@@ -145,8 +145,10 @@ function QrBillBody({ page }: { readonly page: PageContext }): ReactElement {
 
 export const QR_BILL_GROUP: PageGroup = {
   id: 'qr-bill',
+  studioWords: ['Starter', 'Invoice'],
   slug: { de: 'qr-rechnung', fr: 'facture-qr', it: 'fattura-qr', en: 'swiss-qr-bill' },
   meta: { de: QR_BILL_COPY.de.meta, fr: QR_BILL_COPY.fr.meta, it: QR_BILL_COPY.it.meta, en: QR_BILL_COPY.en.meta },
+  cards: { de: QR_BILL_COPY.de.does.cards, fr: QR_BILL_COPY.fr.does.cards, it: QR_BILL_COPY.it.does.cards, en: QR_BILL_COPY.en.does.cards },
   teaser: { de: teaserOf('de'), fr: teaserOf('fr'), it: teaserOf('it'), en: teaserOf('en') },
   image: { de: INVOICES.de.picture, fr: INVOICES.fr.picture, it: INVOICES.it.picture, en: INVOICES.en.picture },
   status: QR_BILL_STATUS,

@@ -77,6 +77,30 @@ intent as it does an e-invoice's.
   veraPDF left to detect the flavour accepts as a 3b. That shows the
   starters are PDF/A-2b, not that a customer's template is.
 
+**The start page leads with a card for each topic page, and every card on the site names the
+tests it rests on**
+([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md)).
+The topics stood in bands at the start page's foot, where a reader who came for the product has
+already left, and only the EPC QR code page's cards named their tests. Now the hero says what
+0.2.0 holds and links what has come since, and a card for each topic page follows, with its
+page's standing where the page has one. Then come exact totals, a section of their own, how it
+behaves, the starters, and what Formancy Report does not do yet, dated, with the roadmap linked:
+one detail table grouped by one field at most, no consistent read from Formancy Data, no print
+format but PDF, no codes but QR codes, Latin, Greek and Cyrillic only, no published PDF viewer,
+no render jobs, and no changes proposed by an AI. Every card on every page names its tests,
+which the pages' suite holds to the checkout, one list in every language. Claims no test held
+are gone, not softened: the healthcare page's forms card, which claimed formancy's facts, is
+cut, and the data cards now say only what the Studio's browser gate fails on. Every absence but
+one is held to the code, so a pull request that adds a component kind, a block report-spec
+prints, or a `report-render-*`, viewer or `report-ai` package, moves the data provider's client
+off Formancy Data 0.1.0's, gives the server the runtime or the renderer, or freezes the report
+format fails the pages' suite until the sentence is read again; one detail table grouped by one
+field at most rests on review. A word a page takes from the Studio is held to the Studio's
+recorded pictures. The start page has a status of its own, so a release commit rewrites its
+sentences beside the two payment code pages', and opens a new, empty Unreleased, which the start
+page links. No page compares Report with another product. The French and Italian are no native
+speaker's.
+
 **The demo at `/report/` is served under a content security policy that admits its own files
 alone**
 ([0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)).

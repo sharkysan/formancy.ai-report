@@ -477,7 +477,7 @@
       ]
     },
     "0021": {
-      "reviewed": "sha256:5411d2907df970202d4bb9f598d28680d3013d345fe25e06691c7d331a4370dc",
+      "reviewed": "sha256:852ea6de826aea9284caff3bd56cff1696b427b600a93c1f4e9e49a7802da321",
       "limitations": [
         {
           "area": "release",
@@ -596,7 +596,7 @@
       ]
     },
     "0024": {
-      "reviewed": "sha256:334f70fff4d20f21c43ced6d8b9917e7b955b7fd1194d9c31dbb2eb6f7856293",
+      "reviewed": "sha256:995c59f638e12d2ea5098d6c759948e6de8dd5c558d256d5011c1309dfa971f6",
       "limitations": [
         {
           "area": "release",
@@ -886,7 +886,7 @@
       ]
     },
     "0028": {
-      "reviewed": "sha256:a86e98e4e19caa22de089e1a478cc85dd1b84f4e8498d9e52c0ed2fced1efdde",
+      "reviewed": "sha256:56bc6a6ac2a3a24a6a194f372cc4d69f96e8598afc07cda5a133c713944ea50e",
       "limitations": [
         {
           "area": "release",
@@ -918,7 +918,8 @@
         },
         {
           "area": "release",
-          "says": "The EPC QR code page names the Studio's starter \"Euro invoice\", its picker's \"Starter\" and its palette's \"EPC payment code\" as words nothing here reads, and its hero opens the Studio at its first starter, not at the euro invoice."
+          "says": "The EPC QR code page names the Studio's starter \"Euro invoice\", its picker's \"Starter\" and its palette's \"EPC payment code\" as the Studio's recorded pictures say them, not as the Studio says them as it runs, and its hero opens the Studio at its first starter, not at the euro invoice.",
+          "heldBy": "apps/pages/src/studio-words.test.ts"
         },
         {
           "area": "testing",
@@ -2440,6 +2441,35 @@
           "area": "rendering",
           "says": "Until the renderer draws charts, a report that would print one is refused when it renders.",
           "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        }
+      ]
+    },
+    "0056": {
+      "reviewed": "sha256:75982876d3032b721818ddb05fabbda9e7184b5f07d4bc9f5ca7ebe965486c8b",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "A release commit fails the pages' suite until the start page's status is written again beside the QR-bill and EPC QR code pages': what the release holds, said in the start page's hero, what Formancy Report does not do yet, what its totals do not do and that the report format is still a draft, each true of the release and of main, in four languages; and the release commit opens a new, empty Unreleased in CHANGELOG.md, whose heading the start page links, or the pages' link check refuses the site.",
+          "heldBy": "apps/pages/src/product.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "What the start page says Formancy Report does not do yet fails the pages' suite in the pull request that changes the code it rests on, but for one detail table grouped by one field at most; that sentence, the hero's standing and the totals' limits are read again only by a release commit, so between releases the start page at formancy.ai/report/, which is main's, can still say one of them after main has made it false. The other absences match packages by name and report-spec's lists, so a renderer, a viewer or a server published under another name passes them, and so do a barcode added as a property of an existing component kind and a new output format inside report-render-pdf.",
+          "heldBy": "apps/pages/src/limits.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The start page's topic cards, its exact totals and what it says Formancy Report does not do yet are no native speaker's words in French or Italian, and no review of them is recorded."
+        },
+        {
+          "area": "testing",
+          "says": "Every card on the product pages names the tests it rests on, each a test file or a gate's entry of the checkout, which the pages' suite holds; whether each still tests what its card says, whether a card's list holds every test its claim needs, and every sentence outside a card, the healthcare page's title, h1, description and lead among them, are held by review.",
+          "heldBy": "apps/pages/src/evidence.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "A word the product pages name as the Studio's, a starter's, the picker's or a button's, is held to the Studio's recorded pictures in docs/images/readme/captured.json, which the README pictures' check compares with the Studio's own text, and not to the Studio as it runs: the pages pass a starter renamed in the Studio until its pictures are taken again.",
+          "heldBy": "apps/pages/src/studio-words.test.ts"
         }
       ]
     },

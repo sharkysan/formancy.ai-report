@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readInputs } from '../scripts/inputs.mjs'
+import { readInputs, releaseOf } from '../scripts/inputs.mjs'
 import type { Built } from './checks/index.js'
 import type { SiteInputs } from './inputs.js'
 import { PICTURES, renderSite } from './site.js'
@@ -17,6 +17,27 @@ export const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.
 export const inputs: SiteInputs = readInputs(repo, { pictures: PICTURES })
 
 export const site: Site = renderSite(inputs)
+
+/**
+ * The release after the newest one CHANGELOG.md names, as the changelog's
+ * heading for it would be read: the next minor, its anchor made as the
+ * build makes one. A test of what a release commit meets names no version,
+ * so the commit that writes each page's status again for the release it
+ * names edits no test: the suite fails on that commit only until the
+ * statuses are written.
+ */
+export const nextRelease: SiteInputs['release'] = (() => {
+  const [major, minor] = inputs.release.version.split('.').map(Number)
+  if (major === undefined || minor === undefined) throw new Error(`${inputs.release.version} is no version`)
+  const read = releaseOf(`## ${String(major)}.${String(minor + 1)}.0 — ${inputs.release.date}`)
+  const anchor: unknown = read.anchor
+  if (read.version === undefined || read.date === undefined || typeof anchor !== 'string')
+    throw new Error('the next release has no heading the changelog would read')
+  return { version: read.version, date: read.date, anchor }
+})()
+
+/** `inputs` as they would be read once CHANGELOG.md names `nextRelease`. */
+export const atNextRelease: SiteInputs = { ...inputs, release: nextRelease }
 
 /** `site` as the checks see it, with this checkout's files. */
 export const builtOf = (each: Site, using: SiteInputs = inputs): Built => ({

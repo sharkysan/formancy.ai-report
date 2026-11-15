@@ -233,6 +233,24 @@ signature on the CLA as it stands (`scripts/check-cla.mjs`), and
 review. None of these is required to merge: `main`'s ruleset requires no
 status check ([`GOVERNANCE.md`](../../GOVERNANCE.md)).
 
+**The product pages' suite**, one of the `test` job's, reads the pages the
+build writes back with the DOM, as a crawler reads them, and holds them
+to these rules
+([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)):
+
+| What | What holds it |
+|---|---|
+| Every page's head, links and their headings, words and sitemap, each check broken once and watched naming its subject | `apps/pages/src/site.test.ts`, `checks.test.ts` |
+| Every card's evidence: each file of the checkout, a test or a gate's entry, one list for the card in every language, and the cards a page shows its group's ([0056](../decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md)) | `apps/pages/src/evidence.test.ts` |
+| Every word a page takes from the Studio, in quotes in a scene of `docs/images/readme/captured.json`, and said on every page of its group (0056) | `apps/pages/src/studio-words.test.ts` |
+| What the start page says Formancy Report does not do yet, each absence but one detail table held to report-spec's component kinds and printed blocks, or to the published packages' manifests, the report format said to be a draft while report-spec reads version 0, and every absence listed in every language with the roadmap linked (0056) | `apps/pages/src/limits.test.ts` |
+| Every page's status: the site refusing to render, in one error, once the changelog names another release, the start page's line first; the start page's topic cards, totals, hero and dated absences, and its link to the changelog's Unreleased refused once that heading is gone ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md), [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md), 0056) | `apps/pages/src/site.test.ts`, `product.test.ts`, `qr-bill.test.ts`, `epc-qr-code.test.ts` |
+
+What it does not see: whether a sentence claims more than its tests show,
+whether a card's list holds every test its claim needs, and the
+translations, which review holds; what a page looks like in a browser,
+which no test of the suite opens.
+
 ## 10.3 The repository's guards
 
 `pnpm test:repo` runs every `scripts/**/*.test.mjs`. They hold the files
@@ -360,6 +378,12 @@ later releases and say why, and the legal gate waits for a lawyer
   largest 1.27 MB ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 - **Automated accessibility is a floor.** axe finds what a machine can, and
   no manual audit is recorded.
+- **A page's claims, by their tests' names.** Every card on the product
+  pages names files the checkout holds, tests or gates a passing run ran;
+  that each still tests what its card says, that a card names every
+  test its claim needs, and every sentence outside a card are held by
+  review, as is the rule that no page compares Report with another product
+  ([0056](../decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md)).
 - **The middle layout, in part.** The README's pictures are taken past
   2052 pixels and at 390, so none shows the Preview in the builder's middle
   at a laptop's width; the camera takes no width between the Studio's

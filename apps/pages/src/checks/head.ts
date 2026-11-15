@@ -8,7 +8,7 @@ import { DEFAULT_LANGUAGE, LANGUAGE, LANGUAGES } from '../languages.js'
 import type { PageGroup } from '../pages.js'
 import { pathOf } from '../pages.js'
 import type { Built } from './read.js'
-import { alternatesIn, metaOf, read, textOf } from './read.js'
+import { alternatesIn, collapsed, metaOf, read, textOf } from './read.js'
 
 /** Google shows about 60 characters of a title, and a description of 70 to 160 is neither thin nor cut. */
 export const TITLE = { max: 60 } as const
@@ -74,7 +74,6 @@ export function headProblems(built: Built): string[] {
 
     const og = (property: string): string[] => metaOf(document, 'property', property)
     // Compared as textOf reads the title: whitespace collapsed, a no-break space a space.
-    const collapsed = (value: string | undefined): string => (value ?? '').replaceAll(/\s+/g, ' ').trim()
     if (og('og:url')[0] !== page.url) say(`og:url is ${String(og('og:url')[0])}, not its address`)
     if (collapsed(og('og:title')[0]) !== title) say('og:title is not its title')
     if (og('og:description')[0] !== description) say('og:description is not its description')

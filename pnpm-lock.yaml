@@ -260,6 +260,9 @@ importers:
         specifier: ^19.3.0
         version: 19.3.1(react@19.3.1)
     devDependencies:
+      '@formancy/report-spec':
+        specifier: workspace:*
+        version: link:../../packages/report-spec
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.5

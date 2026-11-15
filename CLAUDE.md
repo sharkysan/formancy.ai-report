@@ -355,9 +355,16 @@ the product's pages, prerendered to static HTML in German, French, Italian
 and English, never published as a package and served beside the Studio at
 formancy.ai/report/<lang>/
 ([0021](docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)):
-the facts they state about the release and the licence are read from
-`CHANGELOG.md` and `LICENSE.md` when they are built, and `src/groups.ts`
-is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
+the release's number and date and the licence's terms are read from
+`CHANGELOG.md` and `LICENSE.md` when they are built; what a release
+holds, and what Formancy Report does not do yet, is said under a page's
+status, which stops the build once the changelog names a later release;
+every card names the tests it rests on; every absence on the start page
+but one detail table and one level of grouping, which review holds, is
+held by `limits.test.ts` to report-spec's built `dist`, a devDependency
+no page imports, and to the published packages' manifests
+([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md));
+and `src/groups.ts` is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
 before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical
@@ -637,7 +644,9 @@ What holds this section:
   only the Studio's stylesheets besides, and declares no colour and no
   variable of its own. The pages' checks,
   `apps/pages/src/checks/`, hold each page's head, links, words and
-  sitemap (0021).
+  sitemap (0021), every card's evidence to the checkout and to a test or
+  a gate's entry, one list in every language, and every word a page takes
+  from the Studio to `docs/images/readme/captured.json` (0056).
 - **The README's pictures**, `scripts/pictures/readme.test.mjs` in
   `pnpm test:repo` and the Studio's `pictures.mjs --check` as
   `test:pictures` in the same CI job: every picture is whole parts of a
