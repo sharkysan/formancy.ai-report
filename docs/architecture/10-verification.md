@@ -165,6 +165,26 @@ collected the answers -- on the PDF
 | On the PDF: a version-3 visit refused, its review's declared renames applied, and the same visit printing the technician's name and licence from their new paths | `report-forms/src/review-pdf.test.ts`, over the corpus's version 3, held to differing from version 2 in the rename alone by `report-corpus/src/forms/site-visit.test.ts` |
 | The packed packages | The install gate's `consume.ts`, through `scripts/install-fixture/forms.ts`: a form validated by the `@formancy/spec` the bridge brings, a submission read and rendered, two read one a row, a moved field and a wrong hash refused; a renamed group refused naming the review, reviewed, its declared rename applied through the packed report-core's session, the visit then read and the resolution stale |
 
+**A group header and the rows it keeps, at every layer that reads the
+count.** The count is the format's, resolved against its group once, by
+the runtime, and kept by the blocks, rules and planned breaks that keep
+every group header with its first row; where its rows do not fit, a case
+states the count it expects from the heights it computes, since the
+corpus's fixture is built of rows that fit
+([0059](../decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)):
+
+| Where | What holds it |
+|---|---|
+| The member in the format, its bound and its place in the hash | `report-spec/src/validate-table.test.ts` |
+| An edit of it, a count out of range refused with nothing changed, undone | `report-core/src/commands/table.test.ts` |
+| The count on the group header row, at most the group's rows, written only above one, and a report that states none resolved as before | `report-runtime/src/lower-table.test.ts` |
+| The blocks a count makes and the count that fits, a whole group merged with its footers, a block ended on a row that prints | `report-render-pdf/src/breaks.test.ts` |
+| On the PDF: headers swept across page ends, a small group whole, fewer kept where the stated rows do not fit, rows with no text, a table in a framed section and one whose rows split | `report-render-pdf/src/group-rows.test.ts` |
+| A long table planned in a few layouts, to the bytes the rules alone make | `report-render-pdf/src/tables.test.ts` |
+| A count the runtime would not write, refused naming the table | `report-render-pdf/src/refusals.test.ts` |
+| The orphan check holding a header to its count, and every other header as before; the fixture placed for every plausible number of rows a page | `report-corpus/src/checks.test.ts`, `report-corpus/src/fixtures/fixtures.test.ts`, rendered by `report-render-pdf/src/corpus.test.ts` and `browser.test.ts` |
+| The field in both builders, typed, refused, written as none and undone; given back as it reads, no edit; absent without a group | `report-builder-core/src/scenarios.test.ts` and `properties.test.ts`, React's `scenarios.test.tsx`, Angular's `scenarios.test.ts`, and the Studio's `parity.test.tsx` |
+
 **What it does not see.** A rule or a border through a row, a shape over a
 line, a clipped glyph, white text on white: none is text or an image to
 PDF.js, and the paths it reads are an SVG drawing's alone. A drawing is

@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:6e36b3e78c78f8e66734806c1fbfce16c2be1286dd782b547dfa8c0a37174931",
+      "reviewed": "sha256:6d90eb84bc59661b1f03da6a9b607ba5ccb2d3557647c3d71eee786e8c26766f",
       "limitations": [
         {
           "area": "format",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:216ccb336389de622adf0260112e3429125700607627916fb63a31f63348fff6",
+      "reviewed": "sha256:1643b91b0eb00269876127baef9d52782fe20374c46f0f142be0430edd38ccf3",
       "limitations": [
         {
           "area": "runtime",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:358a559280561418d1bafe9fe9f0cc201f522ceeb621729c28bc67651f7069a2",
+      "reviewed": "sha256:8270322eea332a80fe841bc3e2ca0d52d5082e560f9f34401ac159e2e8f7a539",
       "limitations": [
         {
           "area": "rendering",
@@ -2305,6 +2305,55 @@
           "area": "data",
           "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
           "heldBy": "packages/report-forms/src/review.test.ts"
+        }
+      ]
+    },
+    "0059": {
+      "reviewed": "sha256:84d4899c9e40ac3c4a590c465b0a29807b1e763f1f95326ade1061d0dbd63be7",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A group header that states how many of its rows it is kept with moves to the next page with them where fewer would fit at the foot of one, leaving that room blank, so a report that states a count can need more pages than without, and is refused as too-many-pages where that passes the host's limit, once it is measured whole.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group header's count is a most: where its stated rows do not fit on a page under the table's repeated column header, it is kept with as many as fit, or with its first row alone, and nothing says that fewer were kept.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A count of one and no count print alike and hash differently: the builders write the absence, and a host or a proposal may write either.",
+          "heldBy": "packages/report-spec/src/validate-table.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A group header is kept with at most 32 of its rows, MAX_KEEP_WITH_ROWS, a bound chosen, not measured.",
+          "heldBy": "packages/report-spec/src/validate-table.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A row with no text ends no count: a group header whose last stated rows print nothing is kept with the rows before them that do, and those that print nothing may stand on the next page.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group header that prints nothing keeps none of its rows, whatever its count, and the builders still show the count's field for its group.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "In a table whose rows may split across pages, the last row a group header keeps starts on the header's page and may continue on the next.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "A report that states a count is refused whole by 0.2.0 as an unknown property, and a 0.2.0 renderer handed a document this release's runtime resolved keeps each group header with its first row alone, reading no member of a row it does not know."
+        },
+        {
+          "area": "testing",
+          "says": "The corpus's fixture for kept rows is built of rows that fit, so a header kept with fewer rows than its count, where they do not, is proved by the renderer's own cases alone, each stating the count it expects from the heights it computes.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
         }
       ]
     }

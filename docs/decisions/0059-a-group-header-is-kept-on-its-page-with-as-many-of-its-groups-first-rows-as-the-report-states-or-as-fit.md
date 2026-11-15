@@ -96,10 +96,56 @@
     `parity.test.tsx` holds both builders' accessible trees alike over the
     grouped equipment starter's table, the one starter whose table has a
     group, in each of the editor's languages.
-  - **Seen failing.** Each stage records here, with the date, each case
-    run before its code or with that code disabled and restored, and the
-    byte comparison above with what it compared. Until it has, this line
-    claims nothing.
+  - **Seen failing, on 15 November 2026**, on Windows 11 and Node 24.21.0.
+    Each case was run before the code it holds, or with that code disabled
+    in the working tree and restored:
+    - the format's, before `readGroup` read the member: twelve failed as
+      `unknown-property`, and the three that passed were the member's
+      absence, the member on the table, refused as it always was, and the
+      bound, which passed for the wrong reason, `MAX_KEEP_WITH_ROWS` not
+      yet existing; the read-back and hash case with the member not copied
+      into the group, and the case that keeps one as written with the
+      validator writing one as absent. The editing core's six cases
+      failed against `main`'s report-spec, each refused as
+      `unknown-property`;
+    - the runtime's: the member never written failed one of
+      `lower-table.test.ts`'s cases, the count not held to the group's
+      rows two, and the member written at one two;
+    - the renderer's: `keptCounts` keeping one row under every header
+      failed fourteen cases -- eight of `group-rows.test.ts`'s eleven, the
+      three that passed being those that expect the placement a header
+      had before, five of `breaks.test.ts`'s, and `corpus.test.ts`'s
+      `group-keep-with`; a block not held to end on a row that prints
+      failed three, its end judged before the footers were merged two, a
+      header that prints nothing not passed over two, and `keepBlocks`
+      ignoring the counts two; and `checkKeptRows`'s call removed failed
+      all nine of `refusals.test.ts`'s new cases that expect a refusal;
+    - the corpus's: its orphan check as `main` has it failed "a group
+      header with fewer of its rows under it than it keeps", and the count
+      checked in place of the old check rather than beside it "an orphaned
+      group header that keeps rows without keys"; the fixture built for one
+      room alone failed both its coverage cases, and with its placement's
+      guard removed, the case that an engine keeping one or two rows fails
+      it failed;
+    - the builders': before the field existed, eleven of builder-core's
+      cases -- the grouped table's keys in `properties.test.ts`, its four
+      new cases there, and both group scenarios in each language -- the
+      scenario of a table without a group passing, as it should; each
+      framework's six group scenarios against a builder-core without the
+      field, Angular's finding no `spinbutton`; Angular's property row as
+      `main` has it, the given-back scenario in each language, its input
+      left empty where it should read 1; and the field writing a count
+      given back as it reads as an edit failed one case, writing one as one
+      eight, and the field on every table four.
+
+    The byte comparison, on the same day and machine: with the work
+    stashed, the branch's format commit, whose runtime, renderer and corpus
+    are `main`'s, built, and the eighteen fixtures of `ALL_FIXTURES` and
+    the SVG fixtures, and the forty renders of every starter and every
+    invoice, e-invoice, euro and XRechnung sample, final and preview, made;
+    then the work restored, built and the same made again: 55 PDFs and 3
+    refusals, the resolved documents' and the PDFs' SHA-256 equal, entry by
+    entry.
 
 ## Context
 
