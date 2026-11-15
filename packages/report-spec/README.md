@@ -106,6 +106,41 @@ It checks structure, and what a payment code's literal texts say: whether
 an expression compiles, what a code's data resolves to, and whether the
 rendered output fits, are the runtime's and the renderer's questions.
 
+## A table's group
+
+The table over the detail dataset groups its rows by one detail field, one
+level in version 0: its `group` names the field (`by`) and its order, a
+header of runs read once per group, its style, and the footer rows that
+total the group. A group header is kept on its page with the group's first
+row; `keepWithRows` states how many of its first rows instead
+([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+
+```ts
+import { MAX_KEEP_WITH_ROWS } from '@formancy/report-spec'
+
+// An order's lines, grouped by delivery:
+const group = {
+  by: { dataset: 'detail', field: 'delivery' },
+  direction: 'asc',
+  header: [{ kind: 'field', field: { dataset: 'detail', field: 'delivery' } }],
+  keepWithRows: 3,
+  footer: [],
+} as const
+// keepWithRows 0 or 33: out-of-range at /group/keepWithRows. 2.5: not-an-integer. '3': wrong-type.
+MAX_KEEP_WITH_ROWS // 32: chosen, not measured
+```
+
+- **A whole number from 1 to `MAX_KEEP_WITH_ROWS`**; absent, it is one,
+  the rule every group header has had. One written out is accepted, as a
+  flag's default is, and hashes apart from the member's absence.
+- **The group's own**, so that each level of a later nesting states its
+  own; on the table it is `unknown-property`.
+
+What it does not check: whether that many rows fit on a page under the
+table's column header, which only the data says. 0059 has the runtime
+resolve the count against the group it made, and the renderer keep as many
+of them as fit.
+
 ## A QR-bill
 
 A report may carry one payment part, `paymentPart`: a Swiss QR-bill, printed
@@ -759,6 +794,7 @@ to be read by a later release. Nor by an earlier one: a kind the draft gains
 is refused as `unknown-kind` by a release that predates it, never skipped. A
 report with a `qrCode` or an `epcQrCode` is refused so by 0.1.0, and one
 with a `paymentPart` or an `eInvoice` as `unknown-property`; a report with
-a `chart` is refused so by 0.2.0.
+a `chart` is refused so by 0.2.0, and one whose table's group states
+`keepWithRows` as `unknown-property`.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).
