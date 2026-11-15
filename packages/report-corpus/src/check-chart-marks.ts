@@ -37,11 +37,11 @@ import type { PdfBox, PdfPath, PdfTextItem } from './read-pdf.js'
  *   would put a value up to an interval from its place (Task 19).
  * - **The renderer's colours.** The grid's and the axis's are the
  *   renderer's constants written here, since the corpus depends on no
- *   renderer; every chart fixture holds them to it, its axis being found
- *   by them.
+ *   renderer; report-render-pdf's `corpus.test.ts` holds them to its own,
+ *   and every chart fixture's axis is found by them.
  */
 
-/** The renderer's colours of a chart's gridlines and of its category axis's line, `chart-option.ts`'s GRID and AXIS. */
+/** The renderer's colours of a chart's gridlines and of its category axis's line, `chart-option.ts`'s GRID and AXIS, which report-render-pdf's `corpus.test.ts` holds them to. */
 export const GRID_PAINT = '#d9d9d9'
 export const AXIS_PAINT = '#000000'
 

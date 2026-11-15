@@ -320,7 +320,7 @@ const unitsAt = (each: Exact, scale: number): bigint => each.units * 10n ** BigI
  * a plot as tall as an A4 page 0.76 points from its place
  * (`chart-option.test.ts`).
  */
-const QUOTIENT_UNIT = 10n ** 17n
+export const QUOTIENT_UNIT = 10n ** 17n
 
 /** `numerator / denominator`, the denominator more than 0, worked out in BigInt to `QUOTIENT_UNIT` and made a double at the end. */
 const quotient = (numerator: bigint, denominator: bigint): number => Number((numerator * QUOTIENT_UNIT) / denominator) / Number(QUOTIENT_UNIT)

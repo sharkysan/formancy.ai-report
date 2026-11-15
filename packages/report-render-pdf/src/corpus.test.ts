@@ -1,9 +1,12 @@
 import pdfmake from 'pdfmake'
 import {
   ALL_FIXTURES,
+  AXIS_PAINT,
   E_INVOICE,
+  GRID_PAINT,
   pageDimensions,
   readPdf,
+  SHARE_UNIT,
   starterImages,
   SVG_FIXTURES,
   verify,
@@ -14,6 +17,7 @@ import {
 } from '@formancy/report-corpus'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
+import { AXIS, GRID, QUOTIENT_UNIT } from './chart-option.js'
 import { renderPdf } from './node.js'
 import type { RenderOptions } from './options.js'
 import { BARS } from './testing/charts.js'
@@ -114,6 +118,18 @@ describe("the corpus's checks on a chart the renderer drew", () => {
     },
     TIMEOUT,
   )
+})
+
+describe("the corpus's copies of the renderer's constants", () => {
+  // The corpus depends on no renderer, so it reads a chart by copies of
+  // three of the renderer's constants: its gridlines and its category
+  // axis's line are found by their colours, and a pie's slice of no share
+  // by the parts the renderer hands ECharts a share in. A copy that drifted
+  // would find no axis on any chart, or expect a sliver drawn that the
+  // renderer draws nothing of, or none of one it draws.
+  test("are the renderer's grid and axis colours and its share unit", () => {
+    expect([GRID_PAINT, AXIS_PAINT, SHARE_UNIT]).toEqual([GRID.color, AXIS.color, QUOTIENT_UNIT])
+  })
 })
 
 describe('a render', () => {

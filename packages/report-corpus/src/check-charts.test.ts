@@ -1308,7 +1308,7 @@ describe("a pie's slices", () => {
       curves: first.curves.map(({ from, through: [a, b], to }) => ({ from: keep(from), through: [flip(a), flip(b)], to: keep(to) })),
     }
     expect(problemsOf([MIX], read(0, mirrored))).toEqual([
-      "page 1: the chart mix paints slice 1 through 82.78, 203.75, 57.22 pt outside its share's sector from 140, 65.63 to 140, 227.47 round 140, 146.55",
+      "page 1: the chart mix paints slice 1 through 59.06, 146.55, 80.94 pt outside its share's sector from 140, 65.63 to 140, 227.47 round 140, 146.55",
     ])
     const wedged: PdfPath = {
       ...second,
@@ -1347,7 +1347,74 @@ describe("a pie's slices", () => {
       curves: first.curves.map(({ from, through, to }) => ({ from: pushed(from), through, to: pushed(to) })),
     }
     expect(problemsOf([MIX], { clips: [box(40, 46.547, 200, 200)], paths: replaced(paths, first, bulging), items: [BEFORE, ...items] })).toEqual([
-      "page 1: the chart mix paints slice 1's arc to 198.63, 87.93, 82.91 pt from the pie's centre at 140, 146.55; its radius is 80.92",
+      "page 1: the chart mix paints slice 1's arc through 198.63, 87.93, 82.91 pt from the pie's centre at 140, 146.55; its radius is 80.92",
+    ])
+  })
+
+  // An arc may leave its circle between its curves' ends, which stand on
+  // it: a curve whose control points are pushed out bulges past the
+  // circle into the page beside the pie, one swung across noon paints
+  // into its neighbour's sector, and one whose control points lie on its
+  // chord cuts the slice short by a flat edge (M-A). Each curve is held
+  // at points a quarter of a point apart along it. A notch of straight
+  // lines between a slice's ends, one through a point at half the radius,
+  // is held at that point (M-B). Each is the renderer's pie of 3, 1 and
+  // 2, one of its slices doctored, its ends and its centre kept.
+  test("finds a slice's arc that leaves its circle or its sector between its curves' ends", () => {
+    const { paths, items } = mixAt(40, 46.547)
+    const read = (slice: number, path: PdfPath): Drawn => ({
+      clips: [box(40, 46.547, 200, 200)],
+      paths: replaced(paths, paths[slice]!, path),
+      items: [BEFORE, ...items],
+    })
+    const [first, second, third] = paths as [PdfPath, PdfPath, PdfPath]
+    const centre: Point = [140, 146.547]
+    /** `point` moved `by` out from the pie's centre. */
+    const out =
+      (by: number) =>
+      ([x, y]: Point): Point => {
+        const away = Math.hypot(x - centre[0], y - centre[1])
+        return [centre[0] + ((x - centre[0]) * (away + by)) / away, centre[1] + ((y - centre[1]) * (away + by)) / away]
+      }
+    const bulged: PdfPath = { ...second, curves: second.curves.map(({ from, through: [a, b], to }) => ({ from, through: [out(4)(a), out(4)(b)], to })) }
+    expect(problemsOf([MIX], read(1, bulged))).toEqual([
+      "page 1: the chart mix paints slice 2's arc through 80.58, 205.83, 83.94 pt from the pie's centre at 140, 146.55; its radius is 80.92",
+    ])
+    // The curve of the third slice that ends at noon, its control points pulled across noon into the first slice's sweep.
+    const last = third.curves.at(-1)!
+    const swung: PdfPath = {
+      ...third,
+      curves: [
+        ...third.curves.slice(0, -1),
+        {
+          ...last,
+          through: [
+            [last.through[0][0] + 40, last.through[0][1] - 10],
+            [last.through[1][0] + 40, last.through[1][1]],
+          ],
+        },
+      ],
+    }
+    expect(problemsOf([MIX], read(2, swung))).toEqual([
+      "page 1: the chart mix paints slice 3 through 142.47, 66.09, 2.47 pt outside its share's sector from 69.92, 187.01 to 140, 65.63 round 140, 146.55",
+    ])
+    // Its second curve's control points on the line between that curve's ends.
+    const [, chord] = first.curves as [PdfCurve, PdfCurve]
+    const along = (t: number): Point => [chord.from[0] + (chord.to[0] - chord.from[0]) * t, chord.from[1] + (chord.to[1] - chord.from[1]) * t]
+    const flattened: PdfPath = {
+      ...first,
+      curves: first.curves.map((curve) => (curve === chord ? { ...curve, through: [along(1 / 3), along(2 / 3)] } : curve)),
+    }
+    expect(problemsOf([MIX], read(0, flattened))).toEqual([
+      "page 1: the chart mix paints slice 1's arc through 209.08, 117.94, 74.77 pt from the pie's centre at 140, 146.55; its radius is 80.92",
+    ])
+    // Its two middle curves taken out for two lines through a point at half its radius, its outer two kept.
+    const outline = first.subpaths[0]!
+    const [c0, c1, c2, c3] = first.curves as [PdfCurve, PdfCurve, PdfCurve, PdfCurve]
+    const inner: Point = [centre[0] + (c1.to[0] - centre[0]) / 2, centre[1] + (c1.to[1] - centre[1]) / 2]
+    const notched: PdfPath = { ...first, subpaths: [[outline[0]!, c0.to, inner, c2.to, c3.to, outline.at(-1)!]], curves: [c0, c3] }
+    expect(problemsOf([MIX], read(0, notched))).toEqual([
+      "page 1: the chart mix paints slice 1's arc through 180.47, 146.55, 40.47 pt from the pie's centre at 140, 146.55; its radius is 80.92",
     ])
   })
 

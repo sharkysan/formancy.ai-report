@@ -1,4 +1,4 @@
-import { rasterPixels, readPdf, type PdfPage, type PdfPath } from '@formancy/report-corpus'
+import { curvePoints, rasterPixels, readPdf, type PdfPage, type PdfPath } from '@formancy/report-corpus'
 import type { PieChart } from '@formancy/report-runtime'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { pieArcs } from './chart-arcs.js'
@@ -122,17 +122,11 @@ function fromSegment(point: Point, a: Point, b: Point): number {
   return apart(point, [a[0] + along * dx, a[1] + along * dy])
 }
 
-/** A cubic's point at `t`. */
-function onCurve(from: Point, [c1, c2]: readonly [Point, Point], to: Point, t: number): Point {
-  const u = 1 - t
-  const at = (axis: 0 | 1): number => u * u * u * from[axis] + 3 * u * u * t * c1[axis] + 3 * u * t * t * c2[axis] + t * t * t * to[axis]
-  return [at(0), at(1)]
-}
-
 /**
  * `path`'s outline on the page as segments: each line between its
- * points, each curve sampled, and each subpath closed, as a fill closes
- * it; and every point a curve draws.
+ * points, each curve sampled in `SAMPLES` parts by the corpus's sampler,
+ * which its pie check reads the same curves by (`curvePoints`), and each
+ * subpath closed, as a fill closes it; and every point a curve draws.
  */
 function outlineOf(path: PdfPath): { readonly segments: readonly (readonly [Point, Point])[]; readonly curved: readonly Point[] } {
   const segments: [Point, Point][] = []
@@ -144,7 +138,7 @@ function outlineOf(path: PdfPath): { readonly segments: readonly (readonly [Poin
       const curve = path.curves[next]
       if (index + 1 < subpath.length && curve !== undefined && same(curve.from, point) && same(curve.to, to)) {
         next += 1
-        const drawn = Array.from({ length: SAMPLES + 1 }, (_, step) => onCurve(point, curve.through, to, step / SAMPLES))
+        const drawn = curvePoints(curve, SAMPLES)
         curved.push(...drawn)
         drawn.slice(1).forEach((each, step) => segments.push([drawn[step]!, each]))
       } else segments.push([point, to])
