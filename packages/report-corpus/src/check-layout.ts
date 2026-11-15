@@ -1,6 +1,6 @@
-import { EDGE, imageLabel, once, OVERLAP, pictures, plural, points, quoted, TOP_EDGE_PER_POINT, type Page } from './check-page.js'
+import { EDGE, imageLabel, once, OVERLAP, pictures, plural, points, quoted, TOP_EDGE_PER_POINT, type Page, type Picture } from './check-page.js'
 import { pageDimensions, type PageSetup } from './document.js'
-import { normalise, type Expectation, type ExpectedImage } from './fixture.js'
+import { normalise, type Expectation, type ExpectedChart, type ExpectedImage } from './fixture.js'
 import { lineHas, type Line } from './lines.js'
 import type { PdfBox } from './read-pdf.js'
 
@@ -20,6 +20,9 @@ import type { PdfBox } from './read-pdf.js'
  * vector drawing read here, by the box of the clip it is painted inside
  * (`drawings.ts`), where an image is read by its own.
  */
+
+/** A run of text or a picture on a page, a run by its text as the checks compare it. */
+type Shown = Picture & { readonly text?: string }
 
 export function pageCount(pages: readonly Page[], expected: Expectation): string[] {
   if (pages.length < expected.minPagesExpected) return [`${plural(pages.length, 'page')}; at least ${expected.minPagesExpected} expected`]
@@ -159,15 +162,28 @@ export function outsidePrintable(pages: readonly Page[], setup: PageSetup): stri
   })
 }
 
-/** Every pair of text runs, images and drawings on a page that share more than `OVERLAP` both ways. */
-export function overlaps(pages: readonly Page[]): string[] {
+/**
+ * Every pair of text runs, images, drawings and charts on a page that
+ * share more than `OVERLAP` both ways, but a chart and a run of one of its
+ * own words -- its words and its ticks' labels, as `charts` holds them --
+ * which print inside its box, and are the chart's check's to hold
+ * (`check-charts.ts`): a run of any other text over a chart is text its
+ * marks hide.
+ */
+export function overlaps(pages: readonly Page[], charts: readonly ExpectedChart[]): string[] {
+  const own = new Map(charts.map((chart) => [chart.id, new Set([...chart.words, ...chart.ticks.map(({ text }) => text)].map(normalise))]))
+  /** Whether `chart` is a chart and `run` a run of one of its own words. */
+  const ownWord = (chart: Shown, run: Shown): boolean => chart.chart !== undefined && run.text !== undefined && own.get(chart.chart)?.has(run.text) === true
   return pages.flatMap((each) => {
     const { page } = each
-    const boxes = [...page.items.map((item) => ({ label: quoted(item.text), box: item })), ...pictures(each)].sort((a, b) => a.box.top - b.box.top)
+    const runs = page.items.map((item): Shown => ({ label: quoted(item.text), box: item, text: normalise(item.text) }))
+    const boxes = [...runs, ...pictures(each)].sort((a, b) => a.box.top - b.box.top)
     const found: string[] = []
-    boxes.forEach(({ label, box }, index) => {
+    boxes.forEach((shown, index) => {
+      const { label, box } = shown
       for (const other of boxes.slice(index + 1)) {
         if (other.box.top >= box.bottom - OVERLAP) break
+        if (ownWord(shown, other) || ownWord(other, shown)) continue
         const across = Math.min(box.x + box.width, other.box.x + other.box.width) - Math.max(box.x, other.box.x)
         const down = Math.min(box.bottom, other.box.bottom) - Math.max(box.top, other.box.top)
         if (across > OVERLAP && down > OVERLAP) found.push(`page ${page.number}: ${label} overlaps ${other.label} by ${points(across)} × ${points(down)} pt`)

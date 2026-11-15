@@ -46,7 +46,7 @@ export function verify(fixture: Fixture, pdf: ReadPdf): string[] {
     ...capped(headers(pages, tables, expected.tables)),
     ...capped(expected.noOrphanedHeaders ? orphans(pages, tables, expected.tables) : []),
     ...capped(expected.allTextInsidePrintable ? outsidePrintable(pages, setup) : []),
-    ...capped(expected.noOverlaps ? overlaps(pages) : []),
+    ...capped(expected.noOverlaps ? overlaps(pages, expected.charts) : []),
     ...(expected.fontsEmbedded ? pdf.fonts.filter((font) => !font.embedded).map((font) => `the font ${font.name} is not embedded`) : []),
     ...capped(images(pages, expected)),
     ...capped([...drawings.problems]),

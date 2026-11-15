@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { chartProblems } from './check-charts.js'
-import { pagesOf } from './check-page.js'
+import { outsidePrintable, overlaps } from './check-layout.js'
+import { pagesOf, type Page } from './check-page.js'
 import { placeDrawings } from './drawings.js'
 import { expectation, type ExpectedChart, type ExpectedDrawing } from './fixture.js'
 import type { PdfBox, PdfCurve, PdfPage, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'
@@ -478,6 +479,47 @@ describe('chartProblems', () => {
     const past = filled('#ff7f0e', 110.8, 40, 33.2, 116.047)
     expect(problemsOf([SALES], sales({ paths: replaced(SALES_READ.paths, ACTUAL_NORTH, past) }))).toContain(
       'page 1: the chart sales paints a path its clip cuts: fill #ff7f0e at 110.8, 40, 33.2 × 116.05 pt',
+    )
+  })
+})
+
+describe('a chart among what else its page prints', () => {
+  /** The pages `verify` reads of these, `charts` the body's drawings where they draw something. */
+  const pagesFor = (charts: readonly ExpectedChart[], ...drawn: readonly Drawn[]): Page[] => {
+    const pdf = pdfOf(...drawn)
+    const expected = { ...NOTHING_ELSE, drawings: charts.filter(({ empty }) => !empty).map(drawingOf) }
+    return pagesOf(pdf, expected, placeDrawings(pdf, expected))
+  }
+  /** `drawn` moved `across` the page, its clips, paths and runs with it. */
+  const movedAcross = ({ clips, paths, items }: Drawn, across: number): Drawn => ({
+    clips: clips.map((clip) => box(clip.x + across, clip.top, clip.width, clip.height)),
+    paths: paths.map((path) => shifted(path, across, 0)),
+    items: items.map((item) => ({ ...item, x: item.x + across })),
+  })
+
+  // A chart's box is a picture's to the page's checks: text printed over
+  // its marks is hidden by them, and a box past a margin a printer cuts.
+  // Its own words print inside it, and are the chart's check's to hold
+  // (check 2): taken as text over the chart, every chart would fail.
+  test('takes its box as a picture, which text other than its words overlaps', () => {
+    expect(overlaps(pagesFor([SALES], SALES_READ), [SALES])).toEqual([])
+    const over = run('Footnote', 120, 100, 40, REGULAR, 9)
+    expect(overlaps(pagesFor([SALES], sales({ items: [...SALES_READ.items, over] })), [SALES])).toEqual([
+      "page 1: the chart sales at 40, 46.55 overlaps 'Footnote' by 40 × 9 pt",
+    ])
+    // Its words are its own and no other chart's: one of them printed over another chart is text over that one.
+    const other = { ...SALES, id: 'other', words: [] }
+    expect(overlaps(pagesFor([other], SALES_READ), [other])).toContain("page 1: the chart other at 40, 46.55 overlaps 'Sales' by 19.6 × 8 pt")
+  })
+
+  // A chart drawn past the right margin is cut by a printer, though a
+  // viewer shows it whole, and one at the page's foot over the footer
+  // hides it: its box is held to the margins and the regions as an
+  // image's is.
+  test('holds its box inside the margins', () => {
+    const past = movedAcross(SALES_READ, 260)
+    expect(outsidePrintable(pagesFor([SALES], past), NOTHING_ELSE_PAGE)).toContain(
+      'page 1: the chart sales at 300, 46.55 extends past the right margin (to 600 pt; the margin is at 555.28)',
     )
   })
 })

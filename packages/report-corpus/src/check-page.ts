@@ -103,7 +103,22 @@ export function drawingLabel(drawing: PdfBox): string {
   return `a drawing at ${points(drawing.x)}, ${points(drawing.top)}`
 }
 
-/** What a page shows that is not text: its images and its SVG images' drawings, each with the words a problem names it by. */
-export function pictures(page: Page): { readonly label: string; readonly box: PdfBox }[] {
-  return [...page.page.images.map((box) => ({ label: imageLabel(box), box })), ...page.drawings.map((box) => ({ label: drawingLabel(box), box }))]
+export function chartLabel({ id, box }: PlacedChart): string {
+  return `the chart ${id} at ${points(box.x)}, ${points(box.top)}`
+}
+
+/** Something a page shows that is not text, by the words a problem names it by; a chart's by its id too. */
+export interface Picture {
+  readonly label: string
+  readonly box: PdfBox
+  readonly chart?: string
+}
+
+/** What a page shows that is not text: its images, its SVG images' drawings and its charts, each by their boxes, which the layout's checks hold as they hold an image's. */
+export function pictures(page: Page): Picture[] {
+  return [
+    ...page.page.images.map((box) => ({ label: imageLabel(box), box })),
+    ...page.drawings.map((box) => ({ label: drawingLabel(box), box })),
+    ...page.charts.map((chart) => ({ label: chartLabel(chart), box: chart.box, chart: chart.id })),
+  ]
 }
