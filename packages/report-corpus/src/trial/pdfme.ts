@@ -331,6 +331,7 @@ async function flowingBox(
     case 'rectangle':
     case 'qrCode':
     case 'epcQrCode':
+    case 'chart':
       throw new Error(`a ${block.kind} block reached the pdfme template`)
   }
 }

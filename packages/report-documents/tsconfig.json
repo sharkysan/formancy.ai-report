@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // No Node and no browser: the one PDF reader runs in the runtime, the
+    // renderer, the server and both builders. No @types/node and no DOM, so a
+    // `node:` import, a `fetch` or a `DecompressionStream` in src is a
+    // compile error rather than a review finding.
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"]
+}

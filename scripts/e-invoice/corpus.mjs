@@ -33,7 +33,7 @@
 // KoSIT's `<level> <step> <code>` (scripts/e-invoice/kosit.mjs), veraPDF's
 // `<clause>-<test>` (scripts/e-invoice/verapdf.mjs).
 
-import { JUDGES } from './registers.mjs'
+import { JUDGES, PDF_FORMATS } from './registers.mjs'
 
 /** The sample a control is made from unless it names another: the de-DE e-invoice, at 19 % and 7 % with a delivery date. */
 export const CONTROL_BASE = 'e-invoice'
@@ -329,11 +329,15 @@ export function strayAccepted(accepted, entries) {
 }
 
 /** Each format as a sentence names a file of it. */
-const AS = { xml: 'an XML file', pdf: 'a PDF' }
+const AS = { xml: 'an XML file', pdf: 'a PDF', 'pdfa-2b': 'a PDF/A-2b' }
+
+/** The extension a file of `format` is named with: a PDF/A-2b is a PDF, which veraPDF reads by its .pdf name. */
+const extensionOf = (format) => (PDF_FORMATS.includes(format) ? 'pdf' : format)
 
 /** Whether two entries' files hold the same bytes: the XML's text, or a PDF's bytes where they were drawn. */
 function sameFile(entry, other) {
-  if (entry.format === 'pdf') return entry.pdf !== undefined && other?.pdf !== undefined && Buffer.compare(Buffer.from(entry.pdf), Buffer.from(other.pdf)) === 0
+  if (PDF_FORMATS.includes(entry.format))
+    return entry.pdf !== undefined && other?.pdf !== undefined && Buffer.compare(Buffer.from(entry.pdf), Buffer.from(other.pdf)) === 0
   return entry.xml === other?.xml
 }
 
@@ -343,10 +347,12 @@ function sameFile(entry, other) {
  * name says, an expectation of a tool that does not judge its format or
  * none of one that does, an expectation that is neither acceptance nor a
  * list of keys, a control that does not say what it breaks, is its sample
- * unbroken or that every tool accepts, and, of each format, a corpus
- * without a sample every judge accepts or without a control each judge
- * refuses: the gate judges the XML and the PDF, and a corpus that lost
- * either judges one of them no more.
+ * unbroken -- of its own format, since a file judged as another format is
+ * broken by being judged so, as the PDF/A-2b control that is the
+ * e-invoice sample's PDF/A-3b is (0057) -- or that every tool accepts,
+ * and, of each format, a corpus without a sample every judge accepts or
+ * without a control each judge refuses: the gate judges the XML, the PDF
+ * and the PDF/A-2b, and a corpus that lost one judges it no more.
  */
 export function corpusProblems(entries) {
   const problems = []
@@ -355,7 +361,7 @@ export function corpusProblems(entries) {
     const judges = JUDGES[entry.format] ?? []
     if (typeof entry.file !== 'string' || !/^[a-z0-9-]+\.(xml|pdf)$/.test(entry.file))
       problems.push(`${String(entry.file)} is not a lowercase .xml or .pdf file name`)
-    else if (!entry.file.endsWith(`.${String(entry.format)}`))
+    else if (!entry.file.endsWith(`.${String(extensionOf(entry.format))}`))
       problems.push(`${entry.file} is ${AS[entry.format] ?? `of the format ${String(entry.format)}`}, which its name does not say`)
     if (seen.has(entry.file)) problems.push(`${entry.file} is in the corpus twice`)
     seen.add(entry.file)
@@ -368,20 +374,15 @@ export function corpusProblems(entries) {
       if (!judges.includes(tool)) problems.push(`${entry.file} expects something of ${tool}, which does not judge ${AS[entry.format] ?? 'its format'}`)
     if (entry.from === undefined) continue
     if (typeof entry.why !== 'string' || entry.why === '') problems.push(`${entry.file} is broken and does not say for what`)
-    if (
-      sameFile(
-        entry,
-        entries.find((other) => other.file === entry.from),
-      )
-    )
-      problems.push(`${entry.file} is the sample it is made from, unbroken`)
+    const from = entries.find((other) => other.file === entry.from)
+    if (from?.format === entry.format && sameFile(entry, from)) problems.push(`${entry.file} is the sample it is made from, unbroken`)
     if (judges.length > 0 && judges.every((tool) => entry.expect?.[tool] === 'accepted'))
       problems.push(`${entry.file} is broken for ${entry.why}, and no tool is to refuse it`)
   }
   for (const [format, judges] of Object.entries(JUDGES)) {
     const ofFormat = entries.filter((entry) => entry.format === format)
     if (!ofFormat.some((entry) => entry.from === undefined && judges.every((tool) => entry.expect?.[tool] === 'accepted')))
-      problems.push(`the corpus has no ${format} sample both tools must accept`)
+      problems.push(`the corpus has no ${format} sample every tool must accept`)
     for (const tool of judges)
       if (!ofFormat.some((entry) => Array.isArray(entry.expect?.[tool]))) problems.push(`the corpus has no ${format} control ${tool} must refuse`)
   }

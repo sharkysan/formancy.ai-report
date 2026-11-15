@@ -28,7 +28,7 @@ builds the report from all of them (`scripts/release-report/report.mjs`).
    declared, as its suites ran them, and as each install host resolved
    them, at the newest and the oldest release the range admits; upstream
    `@formancy/*`; Node as each job ran it and the install gate's npm; pnpm;
-   the Chromium the browser gate and the pictures launched, beside the
+   the Chromium the browser gates and the pictures launched, beside the
    build the Playwright they ran pins; and the tools, TypeScript and PDF.js
    among them.
 3. **Results:** a row per package with a suite -- files, tests, what did not
@@ -58,13 +58,15 @@ builds the report from all of them (`scripts/release-report/report.mjs`).
    tool reported of itself; and in CI the Java, to the one the register
    names, where a machine's is shown and not held; veraPDF, its own and
    the one Mustang bundles, no older than the register's floor -- and every
-   file of its corpus, XML or PDF, a sample or a variant every tool of its
-   format must accept, or a control judged exactly as the corpus expects,
-   at least one tool refusing it and each tool refusing at least one
-   control of its format, with the verdict of each tool that judges its
-   format: Mustang and KoSIT the XML, veraPDF and Mustang the PDF
+   file of its corpus, XML, PDF or PDF/A-2b, a sample or a variant every
+   tool of its format must accept, or a control judged exactly as the
+   corpus expects, at least one tool refusing it and each tool refusing at
+   least one control of its format, with the verdict of each tool that
+   judges its format: Mustang and KoSIT the XML, veraPDF and Mustang the
+   PDF, and veraPDF alone, with its 2b profile, the PDF/A-2b
    ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
-   [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+   [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
+   [0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 6. **Container gate:** the server's image the gate built from the checkout
    -- its id, the Node and the user it runs, as the image said them, its
    size, how long it took to build and to answer -- said to be the gate's
@@ -109,8 +111,8 @@ builder's host that resolved no framework, or at the floor one other than
 its peer range's floor; the e-invoice gate leaving no results, failing, or
 recording a tool at another version or of other bytes than
 [`e-invoice-tools.json`](e-invoice-tools.json) pins, or a veraPDF below its
-floor, its own or Mustang's, judging no sample of a format, XML or PDF,
-that every tool of that format must accept, or making, for a tool, no
+floor, its own or Mustang's, judging no sample of a format, XML, PDF or
+PDF/A-2b, that every tool of that format must accept, or making, for a tool, no
 control of its format that it must refuse, recording a file
 of a format no tool judges, or missing a tool's verdict on a file or
 having one other than its corpus expects; the container gate leaving no
@@ -211,7 +213,7 @@ A `vitest.json` of one file, run after the whole suite, fails the report
 for every other test file of its package, which did not run in it. The
 results directory is held to one commit and one run, each key once: a
 collect of another commit, or a CI run's artefacts left beside this
-machine's, fails the report. The browser gate's file and the pictures'
+machine's, fails the report. The browser gates' files and the pictures'
 check's are read on a machine as in CI and held to `--since` like the rest,
 and a gate that rests on a browser gate is judged from that machine's run
 of it. A gate that rests on a job -- G1 rests on `install` -- has no result

@@ -473,9 +473,11 @@ What they do not check:
 
 - whether a chart's categories fit its box, or how many a pie has, and
   so whether a pie's own palette has a colour for each slice, which only
-  the data says;
-- what a chart prints. No release resolves one yet: the runtime refuses a
-  report that would print one.
+  the data says: the runtime refuses a pie of more categories than its
+  palette has colours when it renders
+  ([0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md));
+- what a chart prints, which the runtime resolves. No release draws one
+  yet: the renderer refuses a report that would print one.
 
 ## An SVG asset
 
@@ -560,8 +562,9 @@ What a cleaned SVG holds, in `svg-allow.ts`'s tables:
   a shape's, and the points the converter draws its outlines with, an
   arc's grown to reach its ends among them -- and how deep it nests the
   graphics state. Nothing is refused by it here; the renderer holds an
-  image in an e-invoice to it, whose PDF/A-3 holds an integer to
-  2,147,483,647 and the nesting to 28.
+  image in a PDF/A to it, an e-invoice's PDF/A-3b or the PDF/A-2b a host
+  asks for, which holds an integer to 2,147,483,647 and the nesting to 28
+  ([0057](../../docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 
 Cleaning is a fixed point: `cleanSvg` of what it wrote gives the same bytes
 with nothing removed, which is what `checkSvg` tests for.
