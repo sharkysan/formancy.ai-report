@@ -8,7 +8,7 @@ import { withPlatform } from '../chart-measure.js'
 import type { FaceWidths } from '../engine.js'
 import type { Glyphs } from '../glyphs.js'
 import { planFonts, type RenderFonts } from '../host-fonts.js'
-import { engine } from '../node.js'
+import { engine } from '../node-engine.js'
 
 /**
  * ECharts 6.1.0 for the renderer's tests, laid out as the drawing lays a

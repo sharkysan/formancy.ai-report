@@ -7,7 +7,7 @@ import { engine as browserEngine } from './browser-engine.js'
 import { glyphsOnce, type Engine, type VirtualFs } from './engine.js'
 import { characterMap, type Face, type Glyphs } from './glyphs.js'
 import { planFonts } from './host-fonts.js'
-import { engine as nodeEngine } from './node.js'
+import { engine as nodeEngine } from './node-engine.js'
 import { fixture, TIMEOUT } from './testing/documents.js'
 
 /**

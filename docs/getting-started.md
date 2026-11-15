@@ -142,7 +142,8 @@ A report is a JSON document: what it prints, from which data, laid out how.
 It names the data it reads -- one header record and one list of detail rows
 -- as contracts with typed fields, and never says where the data comes
 from. This one is a short quotation: a heading, a table of lines, a total
-the runtime computes, and a footer with the page count. In `quotation.ts`:
+the runtime computes, a bar chart of the lines' amounts, and a footer with
+the page count. In `quotation.ts`:
 
 ```ts guide=node
 import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
@@ -211,7 +212,21 @@ const quotation: ReportDefinition = {
         repeatHeader: true,
       },
     ],
-    summary: [],
+    summary: [
+      {
+        id: 'amounts',
+        kind: 'chart',
+        chart: 'bar',
+        dataset: 'detail',
+        width: 480,
+        height: 160,
+        category: { field: { dataset: 'detail', field: 'description' }, order: 'data' },
+        series: [{ id: 'amount', label: 'Amount', fn: 'sum', of: { dataset: 'detail', field: 'amount' } }],
+        valueFormat: chf,
+        valueLabels: true,
+        emptyText: 'No lines.',
+      },
+    ],
     pageFooter: [
       { id: 'page', kind: 'text', style: 'footer', content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }] },
     ],
@@ -254,6 +269,15 @@ if (!resolution.ok) throw new Error(resolution.errors.map((error) => `${error.co
 const pdf = await renderPdf(resolution.document, { maxPages: 50 })
 await writeFile('quotation.pdf', pdf)
 ```
+
+The chart in the summary is a component of the report like the table: it
+totals the detail rows by a category, here each line's description, and
+prints a bar for each. Every number on it -- each bar's value, each tick of
+its axis, each label -- is the runtime's, computed exactly from the strings
+and formatted once for the locale; the renderer places the words and marks
+and rounds, converts and prints no number of its own. The chart's code is a
+separate part of the renderer: a browser that prints a document without a
+chart never loads it, and one that prints a chart fetches it then.
 
 `resolveReport` holds every value to its field's contract, evaluates the
 report's expressions, computes the totals and formats each value for the
