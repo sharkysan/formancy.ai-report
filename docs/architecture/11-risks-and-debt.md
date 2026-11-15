@@ -103,8 +103,10 @@ null, which ECharts reads and its types do not admit; a slice of no share
 rests on ECharts' filter of a pie's negative values, and its legend entry
 on the legend reading the data before that filter; two words of one text
 are told apart by the order ECharts writes a chart's words in; the SVG it
-writes is held, element by element, to what 6.1.0 was seen to write; and
-the plot is snapped where zrender moves a thin line. `echarts.test.ts`,
+writes is held, element by element, to what 6.1.0 was seen to write, and
+a line's clip, which 6.1.0 writes whatever the series' `clip` says, is
+taken out, cutting nothing by the line's bevelled joins and butt ends;
+and the plot is snapped where zrender moves a thin line. `echarts.test.ts`,
 `chart-svg.test.ts` and `chart-draw.test.ts` pin each, and
 `scripts/dependency-licences.mjs` admits both at one exact version, so an
 upgrade is a diff somebody reads, a second vendor's release notes with
@@ -113,16 +115,30 @@ differently, if nothing pinned sees it, prints. The renderer refuses a
 chart rather than measure it through another copy of zrender than its
 own, which a host's bundle may give ECharts.
 
+ECharts' registries are the process's, and a host's. A preprocessor, a
+processor, a visual, a layout or an update a host registers on the
+`echarts` it shares with the renderer -- the one module a Node install or
+a bundler dedupes every importer of ECharts 6.1.0 to -- runs on the
+renderer's charts too: a review's preprocessor that halved a bar series'
+data halved every bar printed, beside the runtime's words, and nothing
+was refused, so that a Preview can differ from the server's PDF and a
+chart's marks from its words. The host's code is trusted, and this is a
+stated limit, which `chart-registry.test.ts` pins as it stands. Holding
+each bar's ends and each marker's centre to its place in the drawing's
+reader would turn it into a refusal, and an ECharts release that moved a
+mark with it; it is not built.
+
 What a render's charts may cost together is bounded by
 `MAX_CHART_DRAWING`, and the bound is a measurement on one machine: its
 weights are the medians of seven rounds, at a load of 12 to 20, that
-spread widely; its value the slowest of seven runs of one page, a spike,
-at a quiet load of 3.3 to 5.6; and the 2 s it keeps holds at that load,
-where at a load of 10 to 18.6 the
-documents it admits took up to 9.45 s. A heading kept with a chart makes
-pdfmake lay the whole document out again for each page it moves, which
-the bound does not count, and a line chart's eight clips cost a reader
-most of its weight, which `clip: false` might remove, untried.
+spread widely, and a line's measured again at 3.0 to 3.2, a run that put
+a title and a tick above their weights; its value the slowest of seven
+runs of one page, a spike, at a quiet load of 3.3 to 5.6, confirmed
+again at 3.0 to 3.9 once a line weighed 60; and the 2 s it keeps holds at
+such a load, where at a load of 10 to 18.6 the documents it admitted took
+up to 9.45 s. A heading kept with a chart makes pdfmake lay the whole
+document out again for each page it moves, which the bound does not
+count.
 
 pdfmake is leant on further for it. A chart's words are detached nodes
 inside one unbreakable stack, and pdfmake 0.3.11 lays a detached node out

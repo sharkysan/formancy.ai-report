@@ -990,9 +990,10 @@ snapped: its top on a half point, each interval whole points; tickEvery
    │  a category label wider than its slot less half a line ─▶ content-too-large
    ▼
 layout 3, drawn; a pie, laid out in its square, its arcs written again on its circle
+   ├─ a pie's square narrower than MIN_PIE_DIAMETER ──────▶ content-too-large
    ▼
 readChartSvg: the SVG held to what ECharts 6.1.0 writes, each <text> taken out
-and read back as the box pdfmake prints its word in
+and read back as the box pdfmake prints its word in, its clips taken out
    ├─ anything else, or a word the block does not hold ───▶ unsupported
    ▼
 held: words that would meet, leave the box or stand in the plot ──▶ content-too-large

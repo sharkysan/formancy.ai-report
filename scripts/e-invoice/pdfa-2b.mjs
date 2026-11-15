@@ -64,7 +64,7 @@ export const PDF_A_2B_VARIANTS = [
   },
   {
     file: 'pdfa-2b-charts.pdf',
-    why: 'the quotation’s page, a page break, and report-corpus’s CHART_FIXTURES’ charts -- a bar, a line and a pie, laid out by ECharts, their marks drawn by the SVG converter, a line’s plot clipped through a soft mask, and their words as pdfmake’s text, in Roboto and in a host’s Liberation Serif, which the document’s font map also gives the quotation’s page: drawn on the quotation’s page as variant-charts.pdf is on the e-invoice sample’s (0058)',
+    why: 'the quotation’s page, a page break, and report-corpus’s CHART_FIXTURES’ charts -- a bar, a line and a pie, laid out by ECharts, their marks drawn by the SVG converter with no clip, and their words as pdfmake’s text, in Roboto and in a host’s Liberation Serif, which the document’s font map also gives the quotation’s page: drawn on the quotation’s page as variant-charts.pdf is on the e-invoice sample’s (0058)',
     draws: { charts: true },
   },
   {

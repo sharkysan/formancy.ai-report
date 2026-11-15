@@ -86,7 +86,8 @@ categories than `MAX_CHART_CATEGORIES` and a pie of more slices than its
 palette has colours, before anything is totalled; the renderer refuses,
 as `content-too-large`, a chart whose words would meet, leave its box or
 stand in its plot, whose category labels do not fit across their slots,
-or whose bars would be narrower than `MIN_BAR_WIDTH`, and a render whose
+whose bars would be narrower than `MIN_BAR_WIDTH` or whose pie narrower
+than `MIN_PIE_DIAMETER`, and a render whose
 charts together weigh more than `MAX_CHART_DRAWING`, and never cuts,
 hides or turns a word to make it fit [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 

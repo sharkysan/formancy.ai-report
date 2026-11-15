@@ -435,7 +435,10 @@ function barSeries(chart: AxisChart, { color, values }: ChartSeriesValues, index
  * One line: stroked in its colour, broken where it has no value, each
  * value a marker at its place, filled in its colour with no border, its
  * label above it. Every category is labelled, so ECharts hides no marker
- * (LineView.js `getIsIgnoreFunc`).
+ * (LineView.js `getIsIgnoreFunc`); and no clip, so it hides none past the
+ * plot either (SymbolDraw.js `clipShape`), where no value the check admits
+ * stands. ECharts still draws the line inside a clip, of the plot widened
+ * by its longer side, which the drawing's reader takes out (`chart-svg.ts`).
  */
 function lineSeries(
   chart: AxisChart,
@@ -448,6 +451,7 @@ function lineSeries(
     type: 'line',
     name: seriesKey(index),
     data: values.map((each) => (each === null ? null : place(each.exact))),
+    clip: false,
     connectNulls: false,
     symbol: 'circle',
     symbolSize: 2 * POINT_RADIUS,
@@ -499,8 +503,9 @@ export function sharesOf(chart: PieChart): { readonly color: string; readonly sh
  * so that it draws nothing of the slice; while the legend names each entry
  * the series' data holds before any is left out
  * (visual/LegendVisualProvider.js `containName`, of the raw data), so that
- * the slice's entry prints, its swatch in its colour. Of a share of 0,
- * ECharts draws a sector of no sweep, a path in the slice's colour from
+ * the slice's entry prints, its swatch in the colour `legendOf` names for
+ * it, without which ECharts paints it in the first slice's. Of a share of
+ * 0, ECharts draws a sector of no sweep, a path in the slice's colour from
  * the pie's centre to its rim, which may print as a hairline; of a value
  * it reads as missing, '-' or null, a path with no outline in zrender's
  * default black, a colour the drawing refuses as one the option did not

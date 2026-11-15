@@ -50,8 +50,9 @@ import type { FaceWidths } from './engine.js'
  * wider than its slot less half a line, are refused: a label is never
  * turned, and a tick, a category or a bar is never dropped. A pie is laid
  * out twice: the bands, then drawn in the largest square centred between
- * them, the arcs of its slices written again on its circle before its
- * drawing is read (`chart-arcs.ts`). Every layout is ECharts' own under
+ * them, refused where that square is narrower than `MIN_PIE_DIAMETER`, the
+ * arcs of its slices written again on its circle before its drawing is
+ * read (`chart-arcs.ts`). Every layout is ECharts' own under
  * the render's measurer (`chart-measure.ts`), disposed after it is read.
  *
  * The drawn layout's words are then held: two that meet, one past the
@@ -78,8 +79,9 @@ export const TICK_CLEARANCE = 1.25
  * point, at which every bar of a bar chart is a run of at least one pixel
  * of its colour (each channel within 8) with a white pixel (each channel
  * at least 247) between it and the next, in the page PDF.js draws at the
- * Studio's Preview at 100 % on a screen of device pixel ratio 2: 96/72 CSS
- * pixels to the point times 2, 8/3 device pixels to the point.
+ * density of the Studio's Preview at 100 % on a screen of device pixel
+ * ratio 2: 96/72 CSS pixels to the point times 2, 8/3 device pixels to the
+ * point.
  *
  * Measured on 2026-11-13 on a Mac (Apple M2), Node 22.23.4, pdfjs-dist
  * 6.4.299, which draws on @napi-rs/canvas 1.0.11, and ECharts 6.1.0: bar
@@ -98,10 +100,11 @@ export const TICK_CLEARANCE = 1.25
  * by 0.05); at 3.5 that is 0.8 point, 2.13 pixels, and two pixels always
  * hold a whole pixel the bars leave white, wherever they stand. At 3.25 it
  * is 0.7 point, 1.87 pixels, and the failures above are those. The gap is
- * what sets the least: a bar is a quarter of a bar from its neighbour in
- * its slot and BAR_GAP of a bar from the next of its group, the same gap
+ * what sets the least: a bar of one series stands a category gap, a
+ * quarter of a bar, from the next, in the next slot; a bar of a group
+ * stands BAR_GAP of a bar from the next in its own slot, the same gap
  * while BAR_GAP is BAR_CATEGORY_GAP over its complement (held in
- * `chart-draw.test.ts`).
+ * `chart-draw.test.ts`), and a group's category gap is wider.
  *
  * Other densities, by the same sweep (132 charts to a width, from 0.25 to
  * 10, 20 offsets across a device pixel and the starters' margins, one, two
@@ -112,6 +115,39 @@ export const TICK_CLEARANCE = 1.25
  * least, 1, at which it widens the bar and drops its neighbours.
  */
 export const MIN_BAR_WIDTH = 3.5
+
+/**
+ * Points: the narrowest a pie is drawn, its square's side: the least
+ * diameter, to the quarter point, at which a pie of eight equal slices,
+ * report-spec's palette, shows each slice along its rim as a run of at
+ * least one pixel of its own colour (each channel within 8), and its
+ * neighbours told apart, in the page PDF.js draws at the density of the
+ * Studio's Preview at 100 % on a screen of device pixel ratio 2, 8/3
+ * device pixels to the point, as `MIN_BAR_WIDTH`. The rim is the band one
+ * pixel wide of the outermost pixels wholly inside the pie's circle;
+ * taken in turn from noon, clockwise, its pixels of a palette colour make
+ * eight runs, each of its own slice's colour and inside that slice's
+ * sector, so that no slice is missing, split by another's colour or run
+ * into its neighbour's. A pixel of no palette colour, a blend of two
+ * slices, breaks no run and makes none.
+ *
+ * Measured on 2026-11-15 on a Mac (Apple M2), Node 22.23.4, pdfjs-dist
+ * 6.4.299 on @napi-rs/canvas 1.0.11, and ECharts 6.1.0, at a load of 2.6
+ * to 3.1: pies drawn by `renderPdf` in a box of their diameter, with no
+ * title and no legend, of 0.25 to 12 points in quarter points and of
+ * every whole point to 40, each at 22 places: twenty across one device
+ * pixel from 40 points, its left and its top each at every twentieth of
+ * one, and the starters' margins, 56.69 and 42.52 points in from the
+ * left and 56.69 down. 3 points failed at 2 of the 22, 3.25 and every
+ * diameter above it at none; at 400 places, every pair of twentieths of
+ * a pixel, 3 failed at 26 and 3.25 to 4 at none. Other densities, by the
+ * same sweep, the least at which none failed: 6.25 at 4/3 pixels to the
+ * point (100 % on ratio 1), 4.25 at 2 (75 % on ratio 2), 8.5 at 1. Eight
+ * is the most slices a pie has (`check-chart.ts`), and fewer equal ones are
+ * wider; a smaller share is a thinner slice at any size, as a smaller
+ * value is a shorter bar, and is held to nothing.
+ */
+export const MIN_PIE_DIAMETER = 3.25
 
 /** Lines: what the bands keep between the title, or the legend, and the plot's words. Chosen. */
 export const BAND_GAP = 0.5
@@ -224,11 +260,13 @@ function bandsOf(chart: AxisChart | PieChart, words: readonly PlacedWord[], line
   }
 }
 
-/** A pie's square: the largest centred between `bands`, refused where they leave none. */
+/** A pie's square: the largest centred between `bands`, refused where they leave none, or one narrower than `MIN_PIE_DIAMETER`. */
 function squareOf(chart: PieChart, bands: Bands): Plot {
   const room = chart.height - bands.top - bands.bottom
   if (room <= 0) tooLarge(chart, 'has no room for its pie: its title and its legend would stand in it')
   const side = Math.min(chart.width, room)
+  if (side < MIN_PIE_DIAMETER)
+    tooLarge(chart, `has a pie ${points(side)} points across, narrower than the ${String(MIN_PIE_DIAMETER)} points a pie is drawn at least`)
   return { left: (chart.width - side) / 2, top: bands.top + (room - side) / 2, width: side, height: side }
 }
 

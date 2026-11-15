@@ -516,13 +516,14 @@ describe('chartProblems', () => {
     })
   })
 
-  // ECharts clips a series to its plot, and a path's clip is the innermost
-  // (C14): a chart's marks painted in a clip set inside its box are its own.
-  // No render has been seen to set one -- svg-to-pdfkit draws ECharts' clip
-  // of a series as a soft mask, which sets no clip and which the reader
-  // skips (`operators.ts`) -- so this read is doctored: the renderer's bars
-  // moved into a clip of its plot, as a converter that drew the clip as a
-  // clip would paint them.
+  // ECharts clips a line series to its plot, and a path's clip is the
+  // innermost (C14): a chart's marks painted in a clip set inside its box
+  // are its own. No render has been seen to set one -- the renderer hands
+  // the converter no clip of ECharts' (0058), and svg-to-pdfkit draws a
+  // clip as a soft mask, which sets no clip and which the reader skips
+  // (`operators.ts`) -- so this read is doctored: the renderer's bars moved
+  // into a clip of its plot, as a converter that drew a clip as a clip
+  // would paint them.
   test("reads a chart's marks painted in a clip set inside its box", () => {
     const plot = box(60, 105.047, 280, 68)
     const inner = SALES_READ.paths.map((path): PdfPath => (path.paint === 'fill' ? { ...path, clip: 1 } : path))

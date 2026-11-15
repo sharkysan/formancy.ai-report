@@ -198,7 +198,8 @@ clear of every other -- which a charting library does and the renderer
 would otherwise write and keep for every kind, so ECharts 6.1.0 lays it
 out, and pdfmake draws it: its marks through pdfmake's SVG converter, as
 vectors, and each word as pdfmake's text where ECharts placed it, in the
-report's own faces. ECharts decides nothing a reader reads.
+report's own faces. ECharts decides nothing a reader reads, unless a host
+registers on it (below).
 - **What prints.** A bar, line or pie chart in its box: its title, its axes'
   titles, its category labels across, its ticks, every tick a gridline and
   every k-th labelled from the lowest, k the least that sets the labels a
@@ -226,9 +227,12 @@ report's own faces. ECharts decides nothing a reader reads.
   widened or given shorter ones; a plot too short for two tick labels;
   bars narrower than `MIN_BAR_WIDTH`, 3.5 pt, the least the Studio's
   Preview draws apart at 100 % on a screen of device pixel ratio 2,
-  measured, so that **bar charts denser than that are refused**; and a
-  chart of more than `MAX_CHART_CATEGORIES` categories or slices, built by
-  hand past the runtime's own refusal.
+  measured, so that **bar charts denser than that are refused**; **a pie
+  narrower than `MIN_PIE_DIAMETER`**, 3.25 pt, the least at which the
+  Preview tells eight equal slices apart at that density, measured, so
+  that a pie whose title and legend leave it a dot is refused rather than
+  printed; and a bar or a line chart of more than `MAX_CHART_CATEGORIES`
+  categories, built by hand past the runtime's own refusal.
 - **A render's charts are bounded together**, by `MAX_CHART_DRAWING`, and
   a render past it is refused as `content-too-large` before any chart is
   laid out, naming the chart that crossed it. ECharts lays out every chart
@@ -239,16 +243,19 @@ report's own faces. ECharts decides nothing a reader reads.
   page in 17.2 s on a machine at a load average of 8 to 10. Each chart now
   weighs its kind's weight, a unit for each series at each category or
   each slice, and each word it places by what the word is, measured on the
-  render and on PDF.js at a load of 12 to 20; and the bound, 5,000 units,
-  was confirmed at a quiet load of 3.3 to 5.6, where every render and page
-  of the forms tried stayed under 2 s at its slowest. **A document of many
-  dense charts is refused**, to be split across renders: two line charts
-  of 8 series and 200 categories fit in one, and three do not. A heading
+  render and on PDF.js at a load of 12 to 20, and a line's again at 3.0 to
+  3.2; and the bound, 5,000 units, was confirmed at quiet loads of 3.3 to
+  5.6 and 3.0 to 3.9, where every render and page of the forms tried
+  stayed under 2 s at its slowest. **A document of many dense charts is
+  refused**, to be split across renders: three line charts of 8 series and
+  200 categories fit in one, and four do not; 53 small titled line charts
+  of one series and twelve months fit, and 54 do not. A heading
   kept with a chart makes pdfmake lay the document out again for each page
   it moves the heading to, which the bound does not count.
 - **What the renderer cannot draw as written is refused** as
   `unsupported`, before anything is laid out: a chart in a page region,
-  one past the runtime's bounds on its ticks or its series, a word with a
+  one past the runtime's bounds on its ticks or its series, a pie of more
+  slices than a palette has colours, which the runtime never resolves, a word with a
   tab, a line break or any other control character, its empty text's
   included, and a drawing ECharts writes otherwise than it was read to
   write. The runtime now hands on report-spec's `MAX_CHART_SERIES` beside
@@ -266,6 +273,21 @@ report's own faces. ECharts decides nothing a reader reads.
   gives ECharts another copy of zrender than the renderer's has every
   chart with something to draw refused: the renderer measures a chart's
   words through zrender's platform.
+- **A line is drawn with no clip.** ECharts 6.1.0 clips every line series
+  to its plot, whatever the series says, and the PDF converter draws a
+  clip as a group the size of the page under a soft mask, which every
+  reader composites once for each series: a page of eight one-series line
+  charts cost PDF.js 76 ms with it and 11 without. Every value stands
+  inside the ticks, so the clip cuts nothing, and the renderer takes it
+  out of ECharts' drawing before the converter draws it; a line weighs 60
+  units against the bound, beside a bar's 40.
+- **A host's own registrations on ECharts reach the renderer's charts.** A
+  preprocessor, processor, visual, layout or update a host registers on
+  the ECharts it shares with the renderer, the one copy a Node install or
+  a bundler dedupes ECharts 6.1.0 to, runs on every chart the renderer
+  lays out, and changes its marks with nothing refused: the renderer holds
+  a chart's words to the runtime's and its paths to its box, not each mark
+  to its place.
 - **A chart's words stay in the process after its render**, in zrender's
   width cache, up to 500 words for each of 100 fonts, which nothing
   zrender exports clears.

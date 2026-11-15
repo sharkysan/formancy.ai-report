@@ -12,9 +12,10 @@ import type { PdfBox, PdfPage, PdfPath, ReadPdf } from './read-pdf.js'
  * clip's, and the margin and overlap checks read an SVG image's as they
  * read an image's. A chart's clip holds the clips set inside it as well:
  * a path's clip is the innermost, and a clip of the plot would hold its
- * marks (C14), though svg-to-pdfkit, the SVG converter pdfmake 0.3.11
- * vendors, draws ECharts' clip of a series as a soft mask, which sets no
- * clip (`operators.ts`).
+ * marks (C14), though the renderer hands the converter no clip of
+ * ECharts' (0058), and svg-to-pdfkit, the SVG converter pdfmake 0.3.11
+ * vendors, would draw one as a soft mask, which sets no clip
+ * (`operators.ts`).
  *
  * What it rests on, and what it does not see:
  * - **A drawing is known by its size and its paint.** Another drawing of

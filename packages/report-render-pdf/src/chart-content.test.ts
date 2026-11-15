@@ -453,6 +453,31 @@ describe('a chart of each kind, in the report’s faces', () => {
     TIMEOUT,
   )
 
+  // svg-to-pdfkit draws a clip path as a group the size of the page under
+  // a luminosity soft mask, which a reader composites for each one, and
+  // ECharts clips every line series to its plot: a page of line charts
+  // cost a reader a mask for each series, about 8 ms each to PDF.js at
+  // scale 1 (the final review's probe, 2026-11-15). The clip cuts nothing
+  // (`chart-svg.ts`), and the drawing hands the converter none: the PDF of
+  // a line chart beside a bar chart and a pie holds no soft mask and no
+  // group of the page's size, and each line is still drawn, its markers
+  // and its words where they stand (`corpus.test.ts` holds each through
+  // its markers, inside its plot).
+  test(
+    'draws a line chart, a bar chart and a pie under no soft mask',
+    async () => {
+      const pdf = await renderPdf(bareDocument('Charts', [LINE, BARS, PIE]), OPTIONS)
+      const written = Buffer.from(pdf).toString('latin1')
+      expect([written.match(/\/SMask/g) ?? [], written.match(/\/Subtype \/Form/g) ?? []]).toEqual([[], []])
+      const read = await readPdf(pdf)
+      for (const chart of [LINE, BARS, PIE]) expectDrawn(read, chart)
+      const box = placedOf(read, LINE)
+      const stroked = box.page.paths.filter((path) => inside(path, box) && path.paint === 'stroke' && path.stroke === LINE.series[0]!.color)
+      expect(stroked).toHaveLength(1)
+    },
+    TIMEOUT,
+  )
+
   // A chart's words take its style's colour, as a paragraph's do, and
   // print black where it names none: none is left to ECharts' theme,
   // whose words are a grey. Every run of a chart in a colour is shown in
@@ -636,10 +661,11 @@ describe('a chart across pages', () => {
   // than the rest, and the page before would hold a drawing's top and no
   // word of it. In the body; in a column, which moves to the next page
   // while the column beside it stays, its paragraph where it was; in a
-  // framed section, under its paragraph, which stays, the frame drawn
-  // again around the chart on the next page; and in a keep-together
-  // block, which moves whole, its paragraph with it. What follows prints
-  // under the chart.
+  // framed section, under its paragraph, which stays, the chart inset on
+  // the next page by the frame's padding and its border, as a frame drawn
+  // again around it there would inset it (the frame itself is not read);
+  // and in a keep-together block, which moves whole, its paragraph with
+  // it. What follows prints under the chart.
   test.each([
     ['in the body', footOf(chart), [PAGE.margins.left, BODY_TOP], [], []],
     [

@@ -283,14 +283,18 @@ describe('a chart checked before anything is laid out', () => {
   })
 
   // The runtime groups a chart's rows into at most MAX_CHART_CATEGORIES
-  // categories, a pie's slices among them, before it totals anything, and
-  // writes a value axis of at most MAX_TICK_INTERVALS intervals; report-spec
-  // admits at most MAX_CHART_SERIES series, one colour each from the
-  // palette. A chart built by hand past any of them would be laid out by
-  // ECharts, three times, at a cost no bound holds: refused by the bound
-  // itself, before its words are read, and a chart at each bound passes
-  // the check, which is what is held of it here: the drawing then refuses
-  // one of them, 200 bars in a box of 300 points, as too thin to see.
+  // categories, and a pie's into no more slices than its palette has
+  // colours, before it totals anything, and writes a value axis of at most
+  // MAX_TICK_INTERVALS intervals; report-spec admits at most
+  // MAX_CHART_SERIES series, one colour each from the palette, which holds
+  // at most as many colours. A chart built by hand past any of them would
+  // be laid out by ECharts, three times or twice, at a cost no bound holds,
+  // a chart no runtime resolves: refused by the bound itself, before its
+  // words are read, a pie's slices by the palette's bound, so that one
+  // built by hand costs no more than one the runtime resolves,
+  // and a chart at each bound passes the check, which is what is held of it
+  // here: the drawing then refuses one of them, 200 bars in a box of 300
+  // points, as too thin to see.
   test('refuses a chart past a bound the runtime holds it to, and passes one at it', async () => {
     const categories = (count: number): AxisChart => ({
       ...BARS,
@@ -310,10 +314,10 @@ describe('a chart checked before anything is laid out', () => {
       subject: 'sales',
       message: `the chart sales has ${String(MAX_CHART_CATEGORIES + 1)} categories; a chart has at most ${String(MAX_CHART_CATEGORIES)}`,
     })
-    expect(await refused(slices(MAX_CHART_CATEGORIES + 1))).toMatchObject({
-      code: 'content-too-large',
+    expect(await refused(slices(MAX_CHART_SERIES + 1))).toMatchObject({
+      code: 'unsupported',
       subject: 'shares',
-      message: `the chart shares has ${String(MAX_CHART_CATEGORIES + 1)} categories; a chart has at most ${String(MAX_CHART_CATEGORIES)}`,
+      message: `the chart shares has ${String(MAX_CHART_SERIES + 1)} slices; a pie has at most ${String(MAX_CHART_SERIES)}, one colour each from its palette`,
     })
     expect(await refused(ticks(MAX_TICK_INTERVALS + 2))).toMatchObject({
       code: 'unsupported',
@@ -325,7 +329,7 @@ describe('a chart checked before anything is laid out', () => {
       subject: 'sales',
       message: `the chart sales has ${String(MAX_CHART_SERIES + 1)} series; a chart has at most ${String(MAX_CHART_SERIES)}, one colour each from its palette`,
     })
-    for (const chart of [categories(MAX_CHART_CATEGORIES), slices(MAX_CHART_CATEGORIES), ticks(MAX_TICK_INTERVALS + 1), series(MAX_CHART_SERIES)])
+    for (const chart of [categories(MAX_CHART_CATEGORIES), slices(MAX_CHART_SERIES), ticks(MAX_TICK_INTERVALS + 1), series(MAX_CHART_SERIES)])
       expect(await checked(chart), chart.id).toEqual([{ block: chart, at: 'body[0]' }])
   })
 
@@ -690,13 +694,13 @@ function tinies(count: number): Block[] {
 describe("a render's charts, bounded in all", { timeout: TIMEOUT }, () => {
   // The weights and the bound are what the comment on MAX_CHART_DRAWING
   // measured: a change to one is a change to the measurement, which the
-  // comment has to say. The line's weight is what a reader pays for each
-  // series' clip, eight of them, as many as the palette has colours: a
-  // longer palette is a heavier line, measured again.
+  // comment has to say. A kind's weight is what its barest chart of eight
+  // series costs, as many as the palette has colours: a longer palette is
+  // a heavier chart, measured again.
   test('weighs each kind of chart and word, and bounds a render, by the numbers its comment measured', () => {
     expect({ MAX_CHART_DRAWING, CHART_WEIGHT, WORD_WEIGHT, MAX_CHART_SERIES }).toEqual({
       MAX_CHART_DRAWING: 5000,
-      CHART_WEIGHT: { bar: 40, line: 490, pie: 10 },
+      CHART_WEIGHT: { bar: 40, line: 60, pie: 10 },
       WORD_WEIGHT: { title: 3, legend: 5, tick: 1, category: 1, value: 1 },
       MAX_CHART_SERIES: 8,
     })

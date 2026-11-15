@@ -10,7 +10,9 @@
     zrender's `LICENSE`. It refuses another version of either, a licence
     file of other bytes, and any other published package that depends on
     either itself, ECharts on zrender aside, one whose route the walk first
-    finds through the renderer among them. It passes a published package's
+    finds through the renderer among them, the walk recording every package
+    that depends on either, its second edge to it as well as its first. It
+    passes a published package's
     own tslib 2.8.1 beside the tslib 2.3.0 both libraries pin, each judged
     by the policy, and the real tree. The Studio's `src/notices.test.ts`
     builds the renderer's browser entry with the Studio's notices plugin,
@@ -46,28 +48,36 @@
     large its values; looks every printed string up by index; names every
     colour it paints; asks ECharts to wrap, cut, hide or template no word;
     labels every k-th tick from the lowest and draws every gridline; keeps
-    the category axis at the plot's foot; paints its marks, its lines and
+    the category axis at the plot's foot; hands each line series no clip,
+    and each bar series ECharts' own; paints its marks, its lines and
     its swatches and nothing else, bordering nothing it fills; and trims
     every word as pdfmake trims it, refusing a control character.
   - **The drawing ECharts writes.** `src/chart-svg.test.ts` holds each
-    kind's SVG to the elements and attributes ECharts 6.1.0 writes, its
-    numbers to its box, its nesting to a PDF/A's, its words to the
+    kind's SVG to the elements and attributes ECharts 6.1.0 writes, each
+    shape to its fill, its numbers to its box, its nesting to a PDF/A's,
+    its words to the
     runtime's, told apart by the order ECharts writes them, for each kind
     and in bold, read back through the entities zrender writes, each boxed
-    where pdfmake prints it; and returns the drawing with no `<text>` and
-    no `<style>`. `src/chart-arcs.test.ts` draws on the pie's own circle
+    where pdfmake prints it; and returns the drawing with no `<text>`, no
+    `<style>` and no clip. `src/chart-arcs.test.ts` draws on the pie's own circle
     the pies that printed off it, or blank, as zrender wrote them -- 9999
     and 1, 9998 and 2, a slice of 0.4938 of a pie 257.5 pt in radius, 45,
     2 and 44 -- writes every arc of a slice as two arcs or more of at most
     a quarter turn about the pie's centre, and leaves a slice the reader
-    would refuse as it was written.
+    would refuse as it was written; draws a sliver zrender writes with no
+    arc within half a tenth's diagonal and its own arc of its sector, and
+    not within the first alone; and writes again the arcs of a pie 130.95
+    pt in radius, which zrender writes as 131, half a tenth away as
+    doubles count it.
   - **The layout.** `src/chart-draw.test.ts` lays a pie out twice, in the
     largest square centred between its bands, draws nothing of a slice of
     no share and prints its legend entry; draws every gridline at its
     tick; labels every k-th tick, k the least that keeps them a line and a
     quarter apart; refuses a plot too short for two tick labels, category
     labels too wide for their slots, bars narrower than `MIN_BAR_WIDTH`,
-    labelled bars too thin for ECharts to draw whole, a legend or a title
+    a pie narrower than `MIN_PIE_DIAMETER`, whether its box or its words
+    leave it that little, labelled bars too thin for ECharts to draw
+    whole, a legend or a title
     in the plot, and words that would meet or leave the box; keeps the
     category labels at the plot's foot where a value is negative, and the
     value labels of the highest bar and the lowest negative one inside
@@ -79,7 +89,8 @@
     `src/chart-held.test.ts` holds the words' rule at the box's edges.
   - **The check.** `src/charts.test.ts` refuses, before anything is laid
     out, a chart in a page region, one wider than its column or taller
-    than the body, one past a bound the runtime holds it to, one with a
+    than the body, one past a bound the runtime holds it to, a pie of more
+    slices than a palette has colours among them, one with a
     control character Roboto maps to an empty glyph, one of a kind, a box,
     a colour or a style the renderer does not know, and each invariant the
     option holds; and judges each word trimmed, in the face it prints in.
@@ -95,7 +106,8 @@
     four charts behind kept headings that each move, one behind plain
     headings.
   - **The chart in the document.** `src/chart-content.test.ts` paints a
-    chart's words after its marks; draws a chart as tall as the body;
+    chart's words after its marks; draws a line chart, a bar chart and a
+    pie under no soft mask; draws a chart as tall as the body;
     keeps a heading kept with a chart on the chart's page; measures a
     keep-together block holding a chart as its box; hands the converter
     no `<text>` and opens no file for it in Node; holds each word to the
@@ -111,9 +123,14 @@
     text.
   - **Both entries.** `src/browser.test.ts` loads ECharts for no document
     without a chart or with an empty one alone, and once for the first,
-    counted at the loader; and draws a document of charts to the Node
-    entry's document, every stream inflated, and every chart fixture as
-    the Node entry does.
+    counted at the loader; and renders a document of charts, and every
+    fixture of the corpus, its charts' among them, to the PDF the Node
+    entry renders, every stream inflated.
+  - **The registries.** `src/chart-registry.test.ts` draws a chart's bars
+    as a host's preprocessor, registered on the ECharts the renderer lays
+    out with, changed them, its words as the runtime resolved them and
+    nothing refused: it pins the exposure the costs state, and fails if
+    the drawing comes to hold a mark to its place.
   - **On the PDF.** `src/corpus.test.ts` renders report-corpus's
     `CHART_FIXTURES` and judges each with the corpus's checks, each
     refused one by its own message; holds the corpus's copies of the
@@ -179,7 +196,19 @@
       the bound let through at `>=`, four, and an empty chart weighed, one;
       and the count of kept headings' layouts with the renderer's rule for
       kept headings switched off, and the alignment case with the alignment
-      read into the size, each in the working tree on 15 November 2026.
+      read into the size, each in the working tree on 15 November 2026;
+    - in the final review's fix wave, on 15 November 2026: the check's
+      bound with a pie of nine slices rendered; the least pie's case before
+      `squareOf` held its diameter; the clip's three cases, the option's,
+      the reader's and the document's, before the option set `clip: false`
+      and the reader took the clip out; the bound's pins at a line of 490;
+      the registries' case with the host's preprocessor never armed; the
+      radius's case at a `RADIUS_ROUNDING` of 0.05, and the sliver's with
+      its bound taken as 0.0707 pt alone; the browser entry's loop held to
+      the PDF of the fixture retitled; the reader's cases of a path and a
+      rectangle with no fill, before it required one; and the guard's case
+      with the walk recording a dependent only where it first found a
+      package.
 
 ## Context
 
@@ -287,8 +316,8 @@ marks, and each word prints as pdfmake text where ECharts placed it, in
 the report's faces. ECharts is handed nothing it could decide otherwise
 than the runtime did; what it writes is held before anything of it is
 used; and a chart whose words would meet, leave its box or stand in its
-plot, or whose ticks, categories or bars would stand too close or be too
-thin to read, is refused, never cut, hidden or turned; and a render's
+plot, or whose ticks, categories, bars or pie would stand too close or be
+too thin or too small to read, is refused, never cut, hidden or turned; and a render's
 charts are weighed together, and refused past a bound measured on the
 render and on a reader.** In order:
 
@@ -326,11 +355,13 @@ render and on a reader.** In order:
      keep-together block, never in a page region.
    - **What it is**: a kind the renderer knows, a box of a size, its
      colours and its style held as a paragraph's are, and no more than the
-     runtime's bounds -- `MAX_CHART_CATEGORIES` categories or slices,
-     `MAX_TICK_INTERVALS` intervals and `MAX_CHART_SERIES` series, each
-     read from the runtime, which hands on report-spec's
-     `MAX_CHART_SERIES` for it -- so that a block built by hand costs no
-     more to lay out than one the runtime resolves.
+     runtime's bounds -- `MAX_CHART_CATEGORIES` categories,
+     `MAX_TICK_INTERVALS` intervals, and `MAX_CHART_SERIES` series or
+     slices of a pie, as many as a palette has colours, as the runtime
+     holds a pie's categories to its palette, each read from the runtime,
+     which hands on report-spec's `MAX_CHART_SERIES` for it -- so that a
+     block built by hand costs no more to lay out than one the runtime
+     resolves.
    - **Its parts, matched**: a value or null for each series at each
      category, a legend that names each series, or a pie's every slice,
      in its colour, or none; an empty chart its title and empty text
@@ -422,10 +453,19 @@ render and on a reader.** In order:
      swatches filled and stroked; nothing else. The category axis stands
      at the plot's foot (`onZero: false`), with a slot for each category,
      a line's as a bar's.
+   - **No clip of a line's.** A line series is handed `clip: false`, so
+     that ECharts hides none of its markers past the plot, where no value
+     the check admits stands; ECharts 6.1.0 still draws the line inside a
+     clip, of the plot widened by its longer side (`LineView.js`
+     `createLineClipPath`), which the drawing takes out (6). A bar series
+     keeps ECharts' own: ECharts clips a bar by working out each one
+     inside the plot, which writes no clip, and the same bars with `clip:
+     false` were written the same.
 6. **What ECharts wrote is held before it is used** (`chart-svg.ts`), and
    refused as `unsupported`, naming the chart and quoting nothing of the
    drawing, where it holds an element, an attribute or a value ECharts 6.1.0
-   was not seen to write; a comment, a DOCTYPE or a processing instruction;
+   was not seen to write, or a shape without the fill zrender always
+   writes, which SVG would paint black; a comment, a DOCTYPE or a processing instruction;
    CDATA or a `<style>` but the one style sheet of `:hover` rules, which is
    removed; an entity or a character reference but zrender's five; a number
    not finite, or past the box by more than its longer side, each point a
@@ -439,8 +479,18 @@ render and on a reader.** In order:
    one text in one face are told apart by the order ECharts writes a chart's
    words in. An empty path, `d=""`, which ECharts writes for a line series
    with no value beside one with values, is admitted: the converter draws
-   nothing for it. The converter is handed the drawing with no `<text>` and
-   no `<style>`.
+   nothing for it. The converter is handed the drawing with no `<text>`, no
+   `<style>` and no clip. ECharts clips every line series to its plot,
+   whatever the series' `clip` says, and svg-to-pdfkit draws a clip path as
+   a group the size of the page under a luminosity soft mask, which a
+   reader composites for each series: a page of eight one-series line
+   charts cost PDF.js at scale 1 a median of 76 ms with the clip and 11
+   without it, eight of eight series 547 and 21 (the final review's probe
+   and its rerun, 15 November 2026). The clip cuts nothing: every value
+   stands inside the ticks, and a line's joins, bevelled, and its ends,
+   butt, stand no farther from its points than half its width. So each
+   clip is held as written, a path the drawing defines once in zrender's
+   black, and then taken out with every `clip-path` that names it.
 7. **A pie is drawn on its own circle** (`chart-arcs.ts`). zrender writes
    a slice's arc between ends rounded to a tenth of a point, and the
    converter draws an arc on the circle through its two ends. As zrender
@@ -486,7 +536,8 @@ render and on a reader.** In order:
      `TICK_CLEARANCE`, a line and a quarter, apart.
 
    A pie is laid out twice: the bands, then drawn in the largest square
-   centred between them. Every layout is ECharts' own, under the render's
+   centred between them, refused where that square is narrower than
+   `MIN_PIE_DIAMETER` (9). Every layout is ECharts' own, under the render's
    measurer, disposed once it is read.
 9. **Refused, never cut, hidden or turned**, as `content-too-large`,
    naming the chart and its box and the sizes that do not fit:
@@ -499,8 +550,9 @@ render and on a reader.** In order:
      layout that first lays them out, before its words are read. It is
      the least width, to the quarter point, at which every bar of a bar
      chart printed as a run of its colour with a white pixel before the
-     next, in the page PDF.js draws at the Studio's Preview at 100 % on a
-     screen of device pixel ratio 2, 8/3 device pixels to the point:
+     next, in the page PDF.js draws at the density of the Studio's Preview
+     at 100 % on a screen of device pixel ratio 2, 8/3 device pixels to the
+     point:
      measured on 13 November 2026 on an Apple M2 under Node 22.23.4 over
      3,960 bar charts of 0.25 to 5 pt, of one, two and eight series, three
      tick sets and 22 left margins, 3.25 failing on 17 of 198 charts and
@@ -508,6 +560,23 @@ render and on a reader.** In order:
      sets it, and lower densities need more: 4.25 pt at 75 % on a ratio of
      2, 6.25 at 100 % on a ratio of 1, 8.25 at one pixel to the point. It
      rose from a provisional 2.
+   - **A pie narrower than `MIN_PIE_DIAMETER`**, 3.25 pt, its square's
+     side, whether its box or its title and its legend leave it that
+     little. It is the least diameter, to the quarter point, at which a
+     pie of eight equal slices, report-spec's palette, showed every slice
+     along its rim -- the band one pixel wide of the outermost pixels
+     wholly inside its circle -- as a run of its own colour, each inside
+     its own sector, and its neighbours told apart, at the density
+     `MIN_BAR_WIDTH` was measured at: measured on 15 November 2026 on the
+     Apple M2 under Node 22.23.4 at a load of 2.6 to 3.1, at 22 places --
+     twenty across one device pixel, its left and its top at every
+     twentieth, and the starters' margins -- of pies of 0.25 to 12 pt in
+     quarter points and every point to 40, 3 pt failing at 2 of the 22 and
+     3.25 at none; and at 400 places, every pair of twentieths, 3 at 26
+     and 3.25 to 4 at none. Lower densities need more: 4.25 pt at 75 % on
+     a ratio of 2, 6.25 at 100 % on a ratio of 1, 8.5 at one pixel to the
+     point. A valid pie of eight slices that a review drew 9.75 pt across
+     is drawn, and one it drew 0.24 pt across is refused.
    - **Words that would meet, leave the box, or stand in the plot** but
      a value's label (`chart-held.ts`), the one rule a drawn chart's and
      an empty chart's words are held to.
@@ -551,7 +620,7 @@ render and on a reader.** In order:
     - **The unit** is what one more point of a line chart of 8 series and
       200 categories costs a render.
     - **A chart weighs** its kind's weight (`CHART_WEIGHT`: a bar 40, a
-      line 490, a pie 10); a unit for each series at each category, a null
+      line 60, a pie 10); a unit for each series at each category, a null
       among them, or for each of a pie's slices, one of no share among
       them; and each word it places by what the word is (`WORD_WEIGHT`: a
       title, the chart's or an axis's, 3, a legend entry 5, a tick, a
@@ -570,9 +639,17 @@ render and on a reader.** In order:
       category label 0.48, a legend entry 2.36 on a pie and 4.02 on an axis
       chart, a title 2.74, each the render's, and a tick 0.35, the
       reader's. A kind is its barest chart of one category, N against 2N,
-      less its points and its words: a bar of 8 series 34 to the render, a
-      pie of one slice 8, and a line of 8 series 482 to a reader, the eight
-      soft-masked groups its series' clips are drawn as.
+      less its points and its words: a bar of 8 series 34 to the render,
+      and a pie of one slice 8. A line's was measured again the same day,
+      once the drawing took ECharts' clip of its series out, by the same
+      run at a load of 3.0 to 3.2: a line of 8 series 59 to the render and
+      to a reader no more than its points and its words, where its eight
+      soft-masked groups had cost a reader 482, and a line of one series 27
+      to the render. A reader's cost no longer goes by series, and the
+      render's by about 4.5 units a series, which one weight, the eight
+      series', holds, as a bar's does. That run put a title at 5.3 units
+      and a tick at 1.6, above their weights, and a bar of 8 series at 36
+      and a pie of one slice at 7, within theirs.
     - **How the bound was set**: by the slowest of seven interleaved runs
       of the costliest of the forms tried, each render timed and each page
       drawn by PDF.js at scale 1, at a load average of 3.3 to 5.6, to keep
@@ -585,7 +662,13 @@ render and on a reader.** In order:
       page of one 8 × 200 line beside lines of 8 series and one category.
       Each was packed as many to a render as the bound holds, in the
       densest grid it draws in on A4 landscape pages without margins,
-      across pages, and as many as one page holds.
+      across pages, and as many as one page holds. Once a line weighed 60
+      and a pie held eight slices at most, the forms were run again at a
+      load of 3.0 to 3.9, pies of eight slices in place of 200, bare and
+      with every slice in the legend, and among them 53 titled line charts
+      of one series and twelve months, the final review's, and three
+      8 × 200 lines on one page, which the bound now admits at 4,998
+      units.
     - **What the runs found.** At 5,000, in the run that set the bound, the
       slowest render of the forms tried was 263 dressed pies of one slice on
       3 pages, 878 ms at its slowest and 859 at its median, and the slowest
@@ -594,8 +677,11 @@ render and on a reader.** In order:
       a load of 4.2 to 5.5, ordered them otherwise: 17 value-labelled bars
       of 120 categories took 1,258 ms at their slowest against the pies'
       1,235, and a page of nine 8 × 1 lines 1,255 against that page's 962.
-      Neither run's slowest is the slowest the bound admits, which nothing
-      measured. The 1,614 ms is one spike: the page's other six stood at
+      The third run, at a line of 60, found the 53 line charts slowest,
+      1,202 ms in one round's spike against a median of 338, the next 18
+      dressed bar charts of 8 × 19 at 551 ms; and the slowest page the
+      three 8 × 200 lines, 142 ms to PDF.js. No run's slowest is the
+      slowest the bound admits, which nothing measured. The 1,614 ms is one spike: the page's other six stood at
       0.66 to 1.10 times the reference render's in their rounds. At 0.332 ms
       a unit it reaches 2 s at about 6,017 units, and 6,000 would leave
       about 10 ms, so the bound is 5,000, which the same run confirmed.
@@ -620,8 +706,9 @@ render and on a reader.** In order:
     4,869 lines and 33,600 curves, a close not counted -- which weigh
     115,572 as report-spec's `svg-cost.ts` weighs an SVG asset's for
     `MAX_SVG_SEGMENTS`, a curve three lines and a stroke twice a fill. The
-    chart bound now refuses that page at its third chart, which brings
-    its charts to 6,408 units, and admits two. One of them alone draws
+    chart bound admits that page, its three charts 4,998 units once a line
+    weighs 60, and refuses a fourth chart; PDF.js drew it in 142 ms at its
+    slowest at a load of 3.0 to 3.9. One of them alone draws
     1,623 paths, 14,446 segments, which weigh 38,524, nearly four times
     what the body's SVG images may cost together.
 14. **Proved on the PDF**, by report-corpus's `check-charts.ts` and the
@@ -660,7 +747,8 @@ to `check-chart.ts` and draws it.
 - **The same bytes.** One document of charts renders to the same bytes
   twice and in another process, though zrender's ids advance.
 - **Fail closed.** A word that would meet another, a label that does not
-  fit, a bar too thin to see, a drawing ECharts writes otherwise than it
+  fit, a bar too thin to see, a pie too small to tell its slices apart, a
+  drawing ECharts writes otherwise than it
   was read to write, a second zrender, and a render whose charts together
   cost past the bound are refused, naming the chart; none is drawn
   partly.
@@ -697,7 +785,8 @@ to `check-chart.ts` and draws it.
   or given shorter labels. A quarter turn, which the spike read back
   exact, needs words the converter draws, the path not taken.
 - **The least bar is a screen's.** `MIN_BAR_WIDTH` was measured at the
-  Studio's Preview at 100 % on a screen of device pixel ratio 2; at 75 %,
+  density of the Studio's Preview at 100 % on a screen of device pixel
+  ratio 2; at 75 %,
   or on a screen of ratio 1, the bars of the densest chart drawn may run
   together in the Preview, or in any reader that draws the PDF as
   coarsely; the PDF keeps a gap between them. And a bar chart whose bars
@@ -729,50 +818,75 @@ to `check-chart.ts` and draws it.
   measure as they did between the renderer's; but a host whose bundle
   gives ECharts another zrender than the renderer's has every chart with
   something to draw refused.
+- **ECharts' registries are shared too.** A preprocessor, a processor, a
+  visual, a layout or an update a host registers on the `echarts` it
+  shares with the renderer -- the one module a Node install or a bundler
+  dedupes every importer of ECharts 6.1.0 to -- runs on every chart the
+  renderer lays out. A review's preprocessor that halved a bar series'
+  data halved every bar the renderer printed, 78 pt to 39, its ticks'
+  words the runtime's and nothing refused: a chart whose marks disagree
+  with its words, and a Preview that differs from the server's PDF. The
+  host's code is trusted, so this is a stated limit and no defence: the
+  renderer holds every word to the runtime's and every path to the box,
+  not a mark to its place. `chart-registry.test.ts` pins it as it stands.
+  Holding each bar's ends and each marker's centre to the place the option
+  handed ECharts, as the corpus does in tests, would refuse such a chart,
+  and an ECharts release that moved a mark; it is not built.
 - **A render's charts are bounded by one machine's measure, confirmed at
   a quiet load.** The weights and the bound were measured on one Apple
-  M2, the weights at a load of 12 to 20, and the 2 s the bound keeps
-  holds at the load it was confirmed at, 3.3 to 5.6. At a load of 10 to
+  M2, the weights at a load of 12 to 20 and the line's again at 3.0 to
+  3.2, and the 2 s the bound keeps holds at the loads it was confirmed
+  at, 3.3 to 5.6 and, once a line weighed 60, 3.0 to 3.9. At a load of 10 to
   18.6 the documents it admits ran far slower at their slowest: a page of
   nine line charts of 8 series and one category 5.5 s, the page that set
   the bound 9.45 s, and a render of 53 bar charts of 8 series and one
   category, with legend entries of 100 characters, 9.1 s.
 - **The bound rests on one run.** The slowest of seven runs set it, and that
   run was a spike, 1,614 ms against the page's median of 723: without it the
-  same rule would have set the bound at about 9,000 to 9,600. And the
-  weights are medians, not upper bounds: over the seven rounds a title cost
-  1.2 to 5.9 units, and an axis chart's legend entry 2.7 to 20.4.
+  same rule would have set the bound at about 9,000 to 9,600. A later run,
+  once a line weighed 60, kept every form under 1.3 s at a load of 3.0 to
+  3.9, and the bound stayed. And the weights are medians, not upper
+  bounds: over the seven rounds a title cost 1.2 to 5.9 units, and an axis
+  chart's legend entry 2.7 to 20.4; the line's run put a title at 5.3 and
+  a tick at 1.6 units, above their weights of 3 and 1.
 - **A document of many charts is refused.** A render whose charts weigh
   more than 5,000 units is refused, at the chart that crossed it, though
-  each chart would draw: two line charts of 8 series and 200 categories
-  fit, and three do not. It is the host's to split across renders.
+  each chart would draw: three line charts of 8 series and 200 categories
+  fit, and four do not; 53 titled line charts of one series and twelve
+  months fit, and 54 do not. It is the host's to split across renders.
 - **A kept heading multiplies the cost the bound holds.** The bound holds
   one layout pass, and pdfmake lays the whole document out again for each
   page where it moves a kept heading to the next, the charts' share of a
   layout with it: 17 admitted bar charts behind kept headings took two and
   a half times as long as behind plain ones. `charts.test.ts` counts the
   extra layouts.
-- **A line chart's clip costs a reader, once for each series.**
-  svg-to-pdfkit draws every clip path as a page-sized group under a
-  luminosity soft mask, and ECharts clips every line series to the plot:
-  a line of 8 series paints eight such groups, 482 of its weight's 490
-  units, all a reader's. `clip: false` on the line series would stop
-  ECharts writing the clip, and the check already refuses every value the
-  ticks do not hold, so the clip cuts nothing; it is untried, and what it
-  would save unmeasured.
+- **A line's clip is taken out of ECharts' drawing.** ECharts 6.1.0
+  clips every line series to its plot whatever its `clip` says, and the
+  renderer takes the clip out before the converter is handed the
+  drawing, as it takes the words and the style sheet out, where a reader
+  composited a soft mask for each series. The line is drawn as ECharts
+  wrote it, inside the chart's box, and the clip cut nothing the check
+  admits by the line's bevelled joins and butt ends, which an ECharts
+  release could change, the corpus's points check with it; the reader
+  still holds the clip as written.
 - **A chart's paint is not bounded as an SVG's.** One line chart of 8
   series and 200 categories, as wide as an A4 landscape page and a third
   of its height, weighs 38,524 segments as report-spec weighs an SVG
   asset's, nearly four times what the body's SVG images may cost together
-  (`MAX_SVG_SEGMENTS`), and the chart bound admits two of them on a page;
-  what painting them costs a reader was not measured beyond the pages the
-  bound was confirmed on. Three of them, before the bound, took a median
+  (`MAX_SVG_SEGMENTS`), and the chart bound admits three of them on a
+  page, which PDF.js drew in 142 ms at its slowest; what painting them
+  costs another reader was not measured. Three of them, before the bound, took a median
   of 586 ms to render at a load average of about 5, and medians of 1.25
   and 1.67 s, a single run 3.0 s, at about 23.
-- **A pie has no least size.** Its square is the largest that its title
-  and its legend leave room for, and a review drew one 0.24 pt across,
-  where a bar is held to `MIN_BAR_WIDTH`; nothing yet refuses a pie too
-  small to read.
+- **The least pie is a screen's.** `MIN_PIE_DIAMETER` was measured, as
+  `MIN_BAR_WIDTH` was, at the density of the Studio's Preview at 100 % on
+  a screen of device pixel ratio 2, on a pie of eight equal slices: at
+  75 %, or on a ratio of 1, the slices of the smallest pies drawn may run
+  together in the Preview, and a slice of a small share is thin at any
+  size. A pie whose square its box or its words leave narrower is
+  refused, where it printed before; it refused no starter or fixture of
+  the corpus. 3.25 pt tells eight slices apart, and holds no word: a pie
+  that small is legible as marks, its words all in its legend.
 - **A pie's arcs are within a bound, not exact.** Within 0.0707 pt plus
   10^-4 of the radius of their sectors, at most 0.0965 pt; a sliver
   shorter than 0.141 pt may draw no curve; and the renderer writes those
@@ -877,3 +991,30 @@ times the slowest render its own run had found, and pies of 200 slices with
 every slice in the legend 2.3 to 2.44 times. One weight for every word would
 have to be a legend entry's, at least 5, five times a category label's, and
 would refuse a labelled 8 × 200 line on its own, at 10,120 units.
+
+**`clip: false` alone.** The final review proposed it, reading that
+ECharts writes no clip for a line series told not to clip. ECharts 6.1.0
+does: `LineView.js` sets the line group's clip whatever `clip` says, and
+widens it by the plot's longer side, so the soft mask stayed (a probe on
+15 November 2026). The option sets it for the markers, which ECharts would
+otherwise hide past the plot, and the reader takes the clip out.
+
+**A line weighed by its series.** A base and a weight for each series, as
+the final review proposed while each series' clip cost a reader a mask:
+with the clip out, a reader's cost no longer goes by series, and the
+render's 4.5 units a series sit inside one weight, the eight series', as
+a bar's do. A line of one series is charged 60 for the 27 it cost.
+
+**The least pie at `MIN_CHART_SIDE`.** A pie refused whose square is under
+72 pt, report-spec's least side, as the ruling before the final review
+proposed: it would refuse every titled pie in a box under about 91 pt
+tall, and refused a readable pie of two slices 33.9 pt across in a box of
+200 by 72 (the final review's probe). Measured as `MIN_BAR_WIDTH` was, the
+least is a reader's, not a box's.
+
+**Each mark held to its place.** The drawing's reader could hold each
+bar's ends and each marker's centre to the place the option handed
+ECharts, as the corpus's checks do in tests: a host's registration that
+moved a mark, and an ECharts release that did, would be refused rather
+than printed. It is not built; the registries' cost states what it would
+close.

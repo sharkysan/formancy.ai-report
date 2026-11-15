@@ -69,7 +69,7 @@ describe('the PDF/A-2b corpus as planned', () => {
   })
 
   // A chart is a page ECharts laid out, its marks through the SVG
-  // converter -- a line's plot clipped through a soft mask -- and its
+  // converter -- ECharts' clip of a line taken out first -- and its
   // words pdfmake's text in the report's faces and a host's: a report
   // drawn as a PDF/A-2b may print one (0058), and without a variant of
   // its own no veraPDF judges a chart in a 2b. It draws what the 3b

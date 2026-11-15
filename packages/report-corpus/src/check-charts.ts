@@ -18,10 +18,11 @@ import type { PdfBox, PdfPage, PdfTextItem, ReadPdf } from './read-pdf.js'
  *    SVG images, in document order through every container: a rectangular
  *    clip of its size holding painted paths, with every clip set inside
  *    it. No path in them reaches past the rectangular clip it is painted
- *    in. That is all a clip says: svg-to-pdfkit draws ECharts' clip of a
- *    series to its plot as a soft mask, which the reader skips, so a mark
- *    is held to the plot by its own points (checks 4 and 5), not by a
- *    clip, and what a mask hides is not seen.
+ *    in. That is all a clip says: the renderer hands the converter no clip
+ *    of ECharts' (0058), and svg-to-pdfkit would draw one as a soft mask,
+ *    which the reader skips, so a mark is held to the plot by its own
+ *    points (checks 4 and 5), not by a clip, and what a mask hides is not
+ *    seen.
  * 2. **Its words.** The runs that meet its box are its own: every word one
  *    run's text, inside the box, as many times as its words hold it, in
  *    its face -- its token's host face, or Roboto's -- across the page, no

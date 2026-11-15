@@ -1,7 +1,7 @@
 import { RenderRefusal, type AxisChart, type ChartValue, type PieChart } from '@formancy/report-runtime'
 import type { EChartsType } from 'echarts/core'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { BAND_GAP, drawChart, MIN_BAR_WIDTH, TICK_CLEARANCE, type DrawnChart } from './chart-draw.js'
+import { BAND_GAP, drawChart, MIN_BAR_WIDTH, MIN_PIE_DIAMETER, TICK_CLEARANCE, type DrawnChart } from './chart-draw.js'
 import type { ChartFace, ChartFaces } from './chart-faces.js'
 import { withMeasurer } from './chart-measure.js'
 import { BAR_CATEGORY_GAP, BAR_GAP, barWidth, CATEGORY_LABEL_MARGIN, chartOption, chartWords, VALUE_LABEL_DISTANCE, type ChartLayout } from './chart-option.js'
@@ -406,7 +406,7 @@ describe('a chart drawn', () => {
             },
             chart,
             new RegExp(
-              String.raw`^the chart short-\d+, 300 by \d+ points, has a plot (\d+) points tall, too short to label two of its 3 ticks ${String(TICK_CLEARANCE)} lines apart$`,
+              String.raw`^the chart short-\d+, 300 by \d+ points, has a plot (\d+) points tall, too short to label two of its 3 ticks ${String(TICK_CLEARANCE).replace('.', String.raw`\.`)} lines apart$`,
             ),
           )
           const [, plotHeight] = /a plot (\d+) points tall/.exec(refusal.message)!
@@ -584,6 +584,44 @@ describe('a chart drawn', () => {
       refused(() => drawChart(flush, FACES, WIDTHS), flush, /has no room for its plot: its title and its legend would stand in it$/)
       const pie: PieChart = { ...PIE, id: 'tiny-pie', height: 40 }
       refused(() => drawChart(pie, FACES, WIDTHS), pie, /has no room for its pie: its title and its legend would stand in it$/)
+    },
+    TIMEOUT,
+  )
+
+  // A pie's square is the largest its title and its legend leave, and a
+  // box of report-spec's least height with both left a valid pie of eight
+  // slices 9.75 points across (the final review's probe), one of 0.24: a
+  // pie whose slices nobody can tell apart, drawn with nothing said. A pie
+  // whose square is narrower than MIN_PIE_DIAMETER is refused, naming the
+  // chart and the diameter, whether its box or its words leave it that
+  // little; one exactly that wide is drawn, its eight slices each a path.
+  test(
+    'refuses a pie narrower than MIN_PIE_DIAMETER, and draws one that wide',
+    () => {
+      const eight = (id: string, width: number, height: number, title?: string): PieChart => ({
+        kind: 'chart',
+        chart: 'pie',
+        id,
+        width,
+        height,
+        ...(title === undefined ? {} : { title }),
+        slices: PALETTE.map((color) => ({ color, value: value('1') })),
+        legend: [],
+      })
+      const least = drawChart(eight('least', MIN_PIE_DIAMETER, MIN_PIE_DIAMETER), FACES, WIDTHS)
+      expect([...least.svg.matchAll(/<path d="[^"]*A[^"]*" fill="#[0-9a-f]{6}"/g)]).toHaveLength(PALETTE.length)
+      const narrow = eight('narrow', MIN_PIE_DIAMETER - 0.25, 100)
+      refused(
+        () => drawChart(narrow, FACES, WIDTHS),
+        narrow,
+        `has a pie ${String(MIN_PIE_DIAMETER - 0.25)} points across, narrower than the ${String(MIN_PIE_DIAMETER)} points a pie is drawn at least`,
+      )
+      // The title's band, a line and a gap under it, leaves the pie the rest of the box's height.
+      const band = word(drawChart(eight('band', 200, 100, 'Anteile'), FACES, WIDTHS), 'title')
+      const top = band.top + band.height + BAND_GAP * LINE
+      expect(drawChart(eight('titled', 200, top + MIN_PIE_DIAMETER, 'Anteile'), FACES, WIDTHS).words).toHaveLength(1)
+      const short = eight('short', 200, top + MIN_PIE_DIAMETER - 0.01, 'Anteile')
+      refused(() => drawChart(short, FACES, WIDTHS), short, /has a pie [\d.]+ points across, narrower than the [\d.]+ points a pie is drawn at least$/)
     },
     TIMEOUT,
   )

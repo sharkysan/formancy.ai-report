@@ -8,10 +8,23 @@ import { PDF_A_NESTING } from './svg-pdfa.js'
  * The SVG ECharts writes of a chart, held to what ECharts 6.1.0 was seen to
  * write and read back (0058). ECharts lays a chart out and draws its marks,
  * and pdfmake prints each of its words where ECharts placed it: the drawing
- * pdfmake's SVG converter is handed holds no word and no style sheet. Each
- * `<text>` is taken out and read back as the box pdfmake prints its word
- * in, and the one `<style>` ECharts writes, of hover rules that print
- * nothing, is removed.
+ * pdfmake's SVG converter is handed holds no word, no style sheet and no
+ * clip. Each `<text>` is taken out and read back as the box pdfmake prints
+ * its word in, and the one `<style>` ECharts writes, of hover rules that
+ * print nothing, is removed.
+ *
+ * So is a line's clip. ECharts 6.1.0 clips every line series to its plot,
+ * whatever its `clip` says: to the plot widened by half the line's width,
+ * or, with `clip: false`, as the option sets it, by the plot's longer side
+ * (LineView.js `createLineClipPath`); and svg-to-pdfkit draws a clip path
+ * as a group the size of the page under a luminosity soft mask, which a
+ * reader composites for each series. It cuts nothing: every value stands
+ * inside the ticks (`check-chart.ts`), and a line's joins, bevelled, and
+ * its ends, butt, stand no farther from its points than half its width.
+ * Each clip is still held as it is written, a path it defines once in
+ * zrender's black, before it is taken out with every `clip-path` that
+ * names it; the line is drawn as ECharts wrote it, inside the chart's box,
+ * which the converter clips it to.
  *
  * A pie's arcs alone are not as ECharts wrote them: the drawing writes them
  * again before they are read (`chart-arcs.ts`). zrender writes a slice's
@@ -31,7 +44,8 @@ import { PDF_A_NESTING } from './svg-pdfa.js'
  * - an element or an attribute `CHART_DRAWN` does not list, an element
  *   inside one ECharts does not write it in, a value ECharts does not
  *   write an attribute with, or a `<text>` or the `<svg>` without what
- *   reading it needs;
+ *   reading it needs, or a shape without its fill, which zrender always
+ *   writes and SVG paints black where it is left out;
  * - a comment, a DOCTYPE or a processing instruction; or CDATA but in the
  *   one style sheet, a child of the `<svg>`, every selector of whose rules
  *   ends in `:hover`;
@@ -99,7 +113,8 @@ const VOCABULARY: Readonly<
     required: ['width', 'height', 'viewBox'],
     inside: [],
   },
-  rect: { attributes: { width: NUMBER, height: NUMBER, x: NUMBER, y: NUMBER, fill: PAINT }, inside: ['svg', 'g'] },
+  // A shape zrender always writes with its fill, `none` where it fills nothing (svg/mapStyleToAttrs.js): one without paints black.
+  rect: { attributes: { width: NUMBER, height: NUMBER, x: NUMBER, y: NUMBER, fill: PAINT }, required: ['fill'], inside: ['svg', 'g'] },
   path: {
     attributes: {
       // As zrender's path writer writes one (svg/SVGPathRebuilder.js): a move, then moves, lines, a rectangle's sides relative,
@@ -123,6 +138,7 @@ const VOCABULARY: Readonly<
       ecmeta_ssr_type: 'chart|legend',
       ecmeta_silent: 'true',
     },
+    required: ['fill'],
     inside: ['svg', 'g', 'clipPath'],
   },
   text: {
@@ -415,11 +431,14 @@ function namedColours(chart: AxisChart | PieChart, faces: ChartFaces): string[] 
   return [...marks, ...chart.legend.map(({ color }) => color), GRID.color, AXIS.color, ...words.map(({ font }) => font.color)]
 }
 
-/** `drawing` as the converter is handed it: every element, attribute and value as read, but its words. */
+/** `drawing` as the converter is handed it: every element, attribute and value as read, but its words and its clips. */
 function serialised({ name, attributes, children }: Element): string {
-  const written = [...attributes].map(([attribute, value]) => ` ${attribute}="${value}"`).join('')
+  const written = [...attributes]
+    .filter(([attribute]) => attribute !== 'clip-path')
+    .map(([attribute, value]) => ` ${attribute}="${value}"`)
+    .join('')
   return `<${name}${written}>${children
-    .filter((child) => child.name !== 'text')
+    .filter((child) => child.name !== 'text' && child.name !== 'clipPath')
     .map(serialised)
     .join('')}</${name}>`
 }

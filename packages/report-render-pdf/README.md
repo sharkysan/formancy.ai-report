@@ -162,7 +162,7 @@ Every block of the resolved document:
 | Code | When |
 |---|---|
 | `too-many-pages` | The report needs more pages than `maxPages`, a QR-bill's page included. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more, the room a bill's slip keeps included, is refused before pdfmake measures it. |
-| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below); a chart whose words would meet, leave its box or stand in its plot, whose category labels do not fit across their slots, whose plot is too short for two tick labels, or whose bars would be narrower than 3.5 pt, and a chart of more than `MAX_CHART_CATEGORIES` categories or slices; a render whose charts together weigh more than `MAX_CHART_DRAWING`, at the chart that crossed it (below). |
+| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below); a chart whose words would meet, leave its box or stand in its plot, whose category labels do not fit across their slots, whose plot is too short for two tick labels, whose bars would be narrower than 3.5 pt, or whose pie would be narrower than 3.25 pt, and a bar or a line chart of more than `MAX_CHART_CATEGORIES` categories; a render whose charts together weigh more than `MAX_CHART_DRAWING`, at the chart that crossed it (below). |
 | `invalid-asset` | An image's bytes are not the PNG, JPEG or SVG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side, and for an SVG a mebibyte; a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031); an SVG is not exactly the drawing report-spec's `cleanSvg` writes (below). A PNG's or a JPEG's structure is read by report-spec's `imageHeader`, which a builder refuses an image a person adds by too, in the same words (0033); whether a PNG's image data inflates to the scanlines its header promises is read here alone, since it needs the platform's decompressor. A host's font `readFont` refuses, one PDFKit would draw as another face, or one asset id handed in two byte strings, naming the asset (0043). |
 | `cancelled` | The signal was aborted. |
 | `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or what a PDF/A cannot hold, an e-invoice's PDF/A-3b or a PDF/A-2b, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them; as a PDF/A-2b, a Factur-X, an XRechnung's copy and a labelled preview (below); and a chart it cannot draw as written: in a page region, past `MAX_TICK_INTERVALS` or `MAX_CHART_SERIES`, with a control character in any of its words, or whose drawing ECharts writes otherwise than it was read to write, or that ECharts lays out through another copy of zrender than the renderer's (below). |
@@ -250,8 +250,11 @@ faces.
   where two words would meet, a word would leave the box or stand in the
   plot but a value's label, a category label would not fit across its
   slot, a plot would be too short for two tick labels a line and a
-  quarter apart, or a bar would be narrower than `MIN_BAR_WIDTH`, 3.5 pt.
-  A label is never turned, wrapped or cut, and nothing is dropped.
+  quarter apart, a bar would be narrower than `MIN_BAR_WIDTH`, 3.5 pt, or
+  a pie than `MIN_PIE_DIAMETER`, 3.25 pt, each the least the Studio's
+  Preview draws apart at 100 % on a screen of device pixel ratio 2,
+  measured. A label is never turned, wrapped or cut, and nothing is
+  dropped.
 - **On the page** it is one unbreakable stack, moved whole to the next
   page where it does not fit. A chart with nothing to draw prints its
   title and its empty text, without ECharts.
@@ -262,9 +265,10 @@ render past `MAX_CHART_DRAWING`, 5,000 units, is refused as
 kind's weight, a unit for each series at each category or each slice of a
 pie, and each word it places by what the word is; one with nothing to
 draw weighs nothing. The weights were measured on the render and on
-PDF.js at a load of 12 to 20, and the bound confirmed at a quiet load of
-3.3 to 5.6, on one machine, as the constant's comment says: two line
-charts of 8 series and 200 categories fit in a render, and three do not.
+PDF.js at a load of 12 to 20, a line's again at 3.0 to 3.2, and the
+bound confirmed at quiet loads of 3.3 to 5.6 and 3.0 to 3.9, on one
+machine, as the constant's comment says: three line charts of 8 series
+and 200 categories fit in a render, and four do not.
 The bound holds one layout pass, and a heading kept with a chart makes
 pdfmake lay the document out again for each page it moves the heading
 to, which it does not count.
@@ -272,11 +276,19 @@ to, which it does not count.
 What ECharts writes is held, before anything of it is used, to what
 6.1.0 was seen to write, and refused otherwise as `unsupported`: the
 SVG's elements, attributes, entities, numbers and colours, and every word
-one the block holds. ECharts and zrender are dependencies at exactly
-6.1.0, which the repository's licence guard admits for this package
-alone. zrender's platform is one for the process or the page, and a host's
-own ECharts measures through it too; the renderer replaces it for one
-synchronous layout and puts it back. zrender keeps the widths it measured,
+one the block holds. The converter is handed it with no word, no style
+sheet and no clip: ECharts clips every line series to its plot whatever
+the series says, which the converter would draw as a soft mask a reader
+composites for each series, and every value stands inside the ticks, so
+the clip cuts nothing and is taken out. ECharts and zrender are
+dependencies at exactly 6.1.0, which the repository's licence guard
+admits for this package alone. zrender's platform is one for the process
+or the page, and a host's own ECharts measures through it too; the
+renderer replaces it for one synchronous layout and puts it back.
+ECharts' registries are one for the process or the page too: a
+preprocessor, a processor, a visual, a layout or an update a host
+registers on the ECharts it shares with the renderer runs on the
+renderer's charts, and changes their marks with nothing refused. zrender keeps the widths it measured,
 up to 500 words for each of 100 fonts, after the render, and nothing it
 exports clears them, so a chart's words stay in the process.
 

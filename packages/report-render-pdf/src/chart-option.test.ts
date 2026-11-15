@@ -769,6 +769,33 @@ describe('the option ECharts is handed', () => {
     TIMEOUT,
   )
 
+  // ECharts hides a line's marker that stands past its series' clip
+  // (SymbolDraw's `clipShape`), a value lost and nothing said; and it
+  // draws the line inside a clip of the plot whatever the series says,
+  // which the drawing's reader takes out (`chart-svg.ts`). Every value
+  // stands inside the ticks (`check-chart.ts`), so that nothing stands
+  // past the plot: a line's series is handed `clip: false`, and ECharts
+  // hides none of its markers. ECharts clips a bar by working out each
+  // bar inside the plot, which writes no clip, and the same bars with
+  // `clip: false` are written the same: a bar's series keeps ECharts' own.
+  test(
+    "hands each line series no clip, and each bar series ECharts' own",
+    async () => {
+      for (const [chart, clip] of [
+        [LINE, false],
+        [LINES, false],
+        [BARS, undefined],
+      ] as const) {
+        const option = chartOption(chart, (await facesOf(chart)).faces, drawnLayout(chart))
+        expect(
+          (option.series as readonly { readonly clip?: boolean }[]).map((series) => series.clip),
+          chart.id,
+        ).toEqual(chart.series.map(() => clip))
+      }
+    },
+    TIMEOUT,
+  )
+
   // The paint contract, which 0058 states and the corpus reads: a paint
   // the corpus does not expect -- a tick, the value axis's line, a
   // marker drawn hollow, a line joined across a missing value, a

@@ -268,11 +268,11 @@ describe('the SVG ECharts writes of a chart', () => {
     ['stray', 'holds text outside a word'],
     ['<svg width="300" height="240" viewBox="0 0 300 240"></svg>', 'holds an element inside its <svg>'],
     ['<use href="#zr0-c0"/>', 'holds an element ECharts writes none of'],
-    ['<g><path d="M0 0"><path d="M0 0"></path></path></g>', 'holds an element inside its <path>'],
-    ['<path d="M0 0"></path></path>', 'holds an end tag that ends no element it opened'],
+    ['<g><path d="M0 0" fill="none"><path d="M0 0" fill="none"></path></path></g>', 'holds an element inside its <path>'],
+    ['<path d="M0 0" fill="none"></path></path>', 'holds an end tag that ends no element it opened'],
     ['<g></g >', 'holds markup that is no end tag'],
     ['<path d=M0></path>', 'holds markup that is no element'],
-    ['<path d="M0 0"/>', 'holds an element closed as it opens'],
+    ['<path d="M0 0" fill="none"/>', 'holds an element closed as it opens'],
   ])(
     'refuses %s',
     async (fragment, does) => {
@@ -342,10 +342,13 @@ describe('the SVG ECharts writes of a chart', () => {
     ['a path that does not start where it moves', MARKUP, (svg) => svg.replace(/<path d="M([\d.]+) ([\d.]+)L/, '<path d="L$1 $2L'), VALUE('path')],
     // An empty path is what ECharts writes for a line with no value, and reads; a path of a space is none of its.
     ['a path of a space', MARKUP, (svg) => svg.replace(/<path d="[^"]+"/, '<path d=" "'), VALUE('path')],
+    // zrender writes every shape's fill, `none` where it fills nothing (svg/mapStyleToAttrs.js); SVG paints a shape with none black.
+    ['a path with no fill', MARKUP, (svg) => svg.replace(/(<path d="[^"]*") fill="[^"]*"/, '$1'), 'holds its <path> without an attribute it is read by'],
+    ['a rectangle with no fill', MARKUP, (svg) => svg.replace(/(<rect [^>]*?) fill="[^"]*"/, '$1'), 'holds its <rect> without an attribute it is read by'],
     ['an end tag that ends another element', MARKUP, (svg) => svg.replace('</path>', '</rect>'), 'holds an end tag that ends no element it opened'],
     ['an element left open', MARKUP, (svg) => svg.replace('</svg>', ''), 'holds an element left open, or no <svg>'],
     ['no drawing at all', MARKUP, () => '', 'holds an element left open, or no <svg>'],
-    ['an element after its svg', MARKUP, (svg) => `${svg}<path d="M0 0"></path>`, 'holds an element outside its <svg>'],
+    ['an element after its svg', MARKUP, (svg) => `${svg}<path d="M0 0" fill="none"></path>`, 'holds an element outside its <svg>'],
     ['text after its svg', MARKUP, (svg) => `${svg}stray`, 'holds text outside a word'],
     ['a word not centred on its line', MARKUP, (svg) => svg.replace('dominant-baseline="central"', 'dominant-baseline="alphabetic"'), VALUE('text')],
     ['a word with no anchor', MARKUP, (svg) => svg.replace(' text-anchor="end"', ''), 'holds its <text> without an attribute it is read by'],
@@ -648,18 +651,39 @@ describe('the SVG ECharts writes of a chart', () => {
   // The converter draws the marks and no word, and reads no style sheet:
   // the drawing it is handed holds no `<text>`, no `<style>` and no CDATA,
   // and everything else as ECharts wrote it, itself held to what ECharts
-  // writes. ECharts' one style sheet of hover rules is removed; a style
-  // sheet anywhere else, a second, or one with a rule of anything but
-  // hovering, is no sheet ECharts writes and refused.
+  // writes, but for a line's clip. ECharts' one style sheet of hover rules
+  // is removed; a style sheet anywhere else, a second, or one with a rule
+  // of anything but hovering, is no sheet ECharts writes and refused.
+  //
+  // ECharts 6.1.0 clips every line series whatever the series' `clip`
+  // says -- to its plot widened by half the line's width, or, with `clip:
+  // false`, as the option sets it, by the plot's longer side
+  // (LineView.js `createLineClipPath`) -- and svg-to-pdfkit draws a clip
+  // path as a page-sized group under a luminosity soft mask, which a
+  // reader pays for once for each series. The clip cuts nothing: every
+  // value stands inside the ticks (`check-chart.ts`), and a line's bevelled
+  // joins and butt ends stand no farther from its points than half its
+  // width. So the converter is handed no clip: no `clip-path` and no
+  // `<clipPath>`, the line itself as ECharts wrote it.
   test(
-    'returns the drawing with no <text> and no <style>, and refuses any other <style>',
+    'returns the drawing with no <text>, no <style> and no clip, and refuses any other <style>',
     async () => {
+      const unclipped = (tags: (readonly [string, string])[]): (readonly [string, string])[] => {
+        const kept = tags.map(([name, attributes]) => [name, attributes.replace(/\s*clip-path="[^"]*"/, '')] as const)
+        const mask = kept.findIndex(([name]) => name === 'clipPath')
+        // A clip ECharts writes is one `<clipPath>` holding one `<path>`.
+        return mask < 0 ? kept : [...kept.slice(0, mask), ...kept.slice(mask + 2)]
+      }
       for (const drawing of await Promise.all([MARKUP, LINE, PIE].map((chart) => drawn(chart)))) {
         const { svg } = readBack(drawing)
-        expect(svg).not.toMatch(/<text|<style|CDATA|:hover/)
-        expect(tagsOf(svg)).toEqual(tagsOf(drawing.svg).filter(([name]) => name !== 'text' && name !== 'style'))
+        expect(svg).not.toMatch(/<text|<style|CDATA|:hover|clip/i)
+        expect(tagsOf(svg)).toEqual(unclipped(tagsOf(drawing.svg).filter(([name]) => name !== 'text' && name !== 'style')))
         expect(readChartSvg(svg, drawing.chart, [], drawing.faces, drawing.widths)).toEqual({ svg, words: [] })
       }
+      const line = await drawn(LINE)
+      expect(line.svg).toMatch(/<g clip-path="url\(#[^)]+\)">/)
+      expect([...line.svg.matchAll(/<clipPath /g)]).toHaveLength(1)
+      expect(readBack(line).svg).toContain('stroke="#2ca02c"')
       const drawing = await drawn(MARKUP)
       const { svg } = drawing
       const style = svg.slice(svg.indexOf('<style'), svg.indexOf('</style>') + '</style>'.length)
