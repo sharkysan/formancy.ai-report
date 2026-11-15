@@ -173,22 +173,39 @@ the one walk that lays them out (`styledRows`), and refuses a face the
 family does not map and a character the face lacks, a page field's digits
 included; the QR-bill's slip and the EPC caption keep Liberation Sans
 ([0043](docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
-A chart, a component, is known to report-spec and report-core, refused by
-the runtime, and not offered by the builders yet: its rules are
-report-spec's `chart.ts`, the palette `CHART_PALETTE` and the lists beside
-it, and `validate-chart.ts`, which holds its category and each series to
-the detail fields' types and the kinds' own rules, a bar's or a line's
-palette to its series among them, as `invalid-chart`, its bounds
-`MAX_CHART_SERIES`, derived from the palette, and `MIN_CHART_SIDE` in
-`limits.ts`; the core names what it reads in `parts.ts`'s `READERS.chart`,
-takes a series alone where a removed field is what it totals
-(`readers.ts`), and says of a series rounded with no places, or twice, as
-of an aggregate (`diagnostics/chart.ts`); the runtime refuses a report
-that would print one as `chart-not-resolved` until it resolves charts; and
-builder-core's palette withholds it (`NOT_OFFERED`) until the builders
-edit a chart's own properties, its default, which labels the rows without
-a category, held to the validator meanwhile
+A chart, a component, is known to report-spec, report-core and the
+runtime, refused by the renderer, and not offered by the builders yet: its
+rules are report-spec's `chart.ts`, the palette `CHART_PALETTE` and the
+lists beside it, and `validate-chart.ts`, which holds its category and
+each series to the detail fields' types and the kinds' own rules, a bar's
+or a line's palette to its series among them, as `invalid-chart`, its
+bounds `MAX_CHART_SERIES`, derived from the palette, and `MIN_CHART_SIDE`
+in `limits.ts`; the core names what it reads in `parts.ts`'s
+`READERS.chart`, takes a series alone where a removed field is what it
+totals (`readers.ts`), and says of a series rounded with no places, or
+twice, as of an aggregate (`diagnostics/chart.ts`), typing it by
+`seriesType`, the compiler's `fieldTotalType`; and builder-core's palette
+withholds it (`NOT_OFFERED`) until the builders edit a chart's own
+properties, its default, which labels the rows without a category, held to
+the validator meanwhile
 ([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+The runtime resolves a chart into the `chart` block of
+`chart-document.ts`, which holds every word it prints and each value's
+exact digits beside its text (`lower-chart.ts`): its categories grouped
+where a table's rows are (`sort-group.ts`'s `categoryGroups`), at most
+`MAX_CHART_CATEGORIES` and a pie no more than its palette's colours, both
+refused as `chart-too-many-categories` before anything is totalled; each
+series totalled by `totals.ts`'s `totalOf`, the function every aggregate
+and group is, in the decimals `seriesType` gives it, so rounded and
+refused as an aggregate is; its value axis one, two or five times a power
+of ten, exactly, at most `MAX_TICK_INTERVALS` intervals
+(`chart-ticks.ts`); a pie's negative value refused as
+`chart-negative-share`, and its shares ratios rounded once to
+`SHARE_PLACES` (`decimal.ts`'s `ratioRounded`) and printed by
+`format.ts`'s `percent`, which refuses rather than rounds again; and the
+renderer's `check.ts` refuses the block as `unsupported` until it draws
+charts
+([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
