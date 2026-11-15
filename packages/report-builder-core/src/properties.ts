@@ -4,28 +4,42 @@
  *
  * A change is a typed command through report-core -- `updateComponent`,
  * `updateColumn`, `updatePaymentPart`, `updateEInvoice`, `setTitle`,
- * `setLocale`, `setPage` -- so a property edit is validated, undone and
- * refused like any other edit, and a refused one shows the validator's own
- * message on the field it came from. A bill's IBAN of the other kind takes
- * its reference with it, in the same command (`payment-part.ts`). In a
- * report with an e-invoice, the account it shares with every payment code
- * printed with it -- its own, the bill's, each EPC QR code's -- is written
- * by `setPaymentAccount`, wherever it is typed, so that one edit keeps all
- * of them agreeing, where every one of them is written in the report; where
- * one reads its account from the data, each field writes its own (0044).
+ * `setLocale`, `setPage`, and `putFirstPageHeader` and
+ * `removeFirstPageHeader` for what page 1 prints at its top (0060) -- so a
+ * property edit is validated, undone and refused like any other edit, and a
+ * refused one shows the validator's own message on the field it came from.
+ * A bill's IBAN of the other kind takes its reference with it, in the same
+ * command (`payment-part.ts`). In a report with an e-invoice, the account
+ * it shares with every payment code printed with it -- its own, the
+ * bill's, each EPC QR code's -- is written by `setPaymentAccount`, wherever
+ * it is typed, so that one edit keeps all of them agreeing, where every one
+ * of them is written in the report; where one reads its account from the
+ * data, each field writes its own (0044).
  */
-import { setLocale, setPage, setPaymentAccount, setTitle, updateColumn, updateComponent, updateEInvoice, updatePaymentPart } from '@formancy/report-core'
+import {
+  putFirstPageHeader,
+  removeFirstPageHeader,
+  setLocale,
+  setPage,
+  setPaymentAccount,
+  setTitle,
+  updateColumn,
+  updateComponent,
+  updateEInvoice,
+  updatePaymentPart,
+} from '@formancy/report-core'
 import type { Command, ComponentPatch, Diagnostic, PagePatch, Refusal } from '@formancy/report-core'
 import { printableArea, ptToMm, squareRoom } from '@formancy/report-spec'
-import type { Inline, ReportDefinition } from '@formancy/report-spec'
+import type { Component, Inline, ReportDefinition } from '@formancy/report-spec'
 import { invoiceFields } from './invoice-fields.js'
 import { columnKey, kindLabel, partLabel } from './labels.js'
 import type { Selection } from './model.js'
 import type { PropertyField, PropertyGroup, PropertyPanel, PropertyRow } from './model-properties.js'
 import { pairedReference } from './payment-part.js'
 import { paymentPartFields } from './payment-part-fields.js'
-import { columnFields, componentFields, fieldWords, flatFields, isGroup, reportFields } from './property-fields.js'
+import { columnFields, componentFields, fieldWords, flatFields, isGroup } from './property-fields.js'
 import type { FieldSpec, GroupSpec, PanelSpec } from './property-fields.js'
+import { FIRST_PAGE_HEADER, reportFields } from './report-fields.js'
 import { selected } from './selection.js'
 import type { Selected } from './selection.js'
 import type { EditorLocale, EditorText, MessageId } from './text.js'
@@ -200,6 +214,13 @@ export function propertyChange(report: ReportDefinition, target: PropertyTarget,
       const [top, ...rest] = at.split('/').slice(1)
       if (top === 'title') return { command: (r) => setTitle(r, next as string) }
       if (top === 'locale') return { command: (r) => setLocale(r, next as string) }
+      // What page 1 prints at its top is a region's presence, never a page
+      // setting: a header of its own put in, or taken away with what it
+      // holds, and the live region says which (0060).
+      if (at === FIRST_PAGE_HEADER)
+        return next === null
+          ? { command: (r) => removeFirstPageHeader(r), said: 'status.pageHeaderChosen' }
+          : { command: (r) => putFirstPageHeader(r, next as readonly Component[]), said: 'status.ownHeaderChosen' }
       return { command: (r) => setPage(r, withValue({}, rest, next) as PagePatch) }
     }
     case 'component': {

@@ -72,17 +72,29 @@
     PDF whose page 1 prints the page header where the document gives it
     one of its own, whose page 2 prints page 1's, and whose page 1 body
     starts above the foot of page 1's own header.
-  - **Both builders.** report-builder-core's `scenario-first-page.ts`,
-    in `BUILDER_SCENARIOS`, which the core runs against the model and
-    React and Angular each run with axe over the end of every scenario,
-    in three languages: page 1 given a header of its own from the
-    report's properties, its group in the outline and its band in the
-    design view before the page header's, a text put in it from the
-    keyboard, undone and redone, and page 1 given the page header back,
-    the group and the text gone, and undone. `src/properties.test.ts`
-    holds the choice to the region; `src/outline.test.ts` and
-    `src/geometry.test.ts` show the region only where the report has
-    it.
+  - **Both builders.** report-builder-core's `src/scenario-first-page.ts`,
+    in `BUILDER_SCENARIOS`, which the core runs against the model
+    (`src/scenarios.test.ts`) and React and Angular each run with axe
+    over the end of every scenario, in three languages: page 1 given a
+    header of its own from the report's properties, its group in the
+    outline once it is there, a text put in it by the place chooser from
+    the keyboard and drawn in the design view, undone and redone, and
+    page 1 given the page header back, the group and the text gone, and
+    undone; and a page number moved by keyboard, offered the page header
+    and never page 1's own. `src/properties.test.ts`, "the choice of what
+    page 1 prints at its top (0060)": the choice puts the region in and
+    takes it away, one undo step each, the page as it was, never through
+    `setPage`; the option shown, chosen again, changes nothing; an option
+    it does not offer is refused as `invalid-value`; and its options are
+    named in three languages, a header of its own printing none while it
+    is empty. `src/targets.test.ts` reaches the region only where the
+    report has it, its place drawn in its band, and never for a page
+    field; `src/outline.test.ts` and `src/geometry.test.ts` show the
+    region only where the report has it, before the page header. The
+    Studio's `src/parity.test.tsx` gives page 1 a header of its own in its
+    walk, over every starter in three languages, and compares both
+    builders' trees as it is chosen, as a text is placed in it and as it
+    is taken away again.
   - **Nothing else moved.** Every suite passes as it did; the corpus's
     starters and samples render as they did; the e-invoice gate judges
     its recorded corpus, which digests the PDF the renderer draws of
@@ -287,11 +299,14 @@ the document the runtime resolved before.
 
 **The builders.**
 - **The report's properties choose.** With nothing selected, after the
-  page's margins, a choice says what page 1 prints at its top: the page
-  header, or a header of its own. Choosing its own puts an empty one, one
-  undo step; choosing the page header removes it with what it holds, one
-  undo step. Its words, in each of the editor's languages, say that a
-  header of its own with nothing in it prints none.
+  page's margins, a choice, "Header on page 1", says what page 1 prints at
+  its top: the page header, or a header of its own. Choosing its own puts
+  an empty one in, one undo step; choosing the page header removes it with
+  what it holds, one undo step; the option shown, chosen again, changes
+  nothing. Its words, in each of the editor's languages, say that a header
+  of its own with nothing in it prints none, and the live region says
+  what each choice made page 1 print, a removal that undo brings back
+  what it took.
 - **Shown only where it is.** The outline's group, the design view's band
   and every list the editor's state makes of the regions hold the first
   page header only where the report has one, before the page header's;
@@ -463,6 +478,16 @@ foot, but a different engine problem: where page 1's flow ends, which
 every break the renderer plans and the slip's place depend on. Deciding
 it here would have tied a header pdfmake can draw to a footer it cannot
 yet, so it waits for a record of its own.
+
+**An Add button in the report's properties, and Delete, as a QR-bill's.**
+The report's own parts are added by a button the pane shows while the
+report lacks one, and removed by Delete on the part selected (0039). A
+region is no selection: Delete acts on what an outline row or a box of
+the design view selects, and a region is neither, so its removal would
+need a button of its own beside the Add, and the two would say only what
+the report lacks or has. A choice says what page 1 prints either way, in
+the words a person decides by, and both its changes are one undo step the
+live region names, the removal saying that undo brings back what it took.
 
 **Headers by page selector: first, last, odd, even.** A general list of
 headers each for a set of pages would hold this case and others nobody

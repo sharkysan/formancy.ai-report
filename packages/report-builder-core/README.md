@@ -209,8 +209,18 @@ const editor = createReportEditor(opening.session, {
   somewhere to go, `available`, and, where the keyboard goes elsewhere
   than the button once it is done, `then`: a button of a group by its key,
   or that group's first field); a builder draws `rows` and finds a field
-  in `fields`. Where the report has no bill, its own properties end with a
-  group "Payment part" whose button is Add QR-bill.
+  in `fields`. The report's own properties are its title, its language and
+  its page (`report-fields.ts`), then "Header on page 1", a choice of what
+  page 1 prints at its top: the page header, while the report has no header
+  of page 1's own, or "A header of its own (none while empty)". Choosing
+  its own puts an empty one in, by report-core's `putFirstPageHeader`, and
+  choosing the page header again takes it away with what it holds, by
+  `removeFirstPageHeader`, each one step, "Change Header on page 1", and
+  the live region says which page prints what; the option shown, chosen
+  again, changes nothing
+  ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+  Where the report has no bill, its own properties end with a group
+  "Payment part" whose button is Add QR-bill.
   An e-invoice's fields are every term of report-spec's `EInvoice`, of
   either kind, tables over each part (`invoice-fields.ts`): the invoice's
   own terms -- in an XRechnung its version, the buyer's reference and the
@@ -636,7 +646,13 @@ from either code, an account the bill cannot pay refused, delete the
 e-invoice and bring it back, refuse an XRechnung's Leitweg-ID and its
 buyer's reference where they are typed, and insert an EPC payment code by keyboard, its IBAN refused on its field
 when its check digits are wrong, and its BIC added by typing it and
-removed by emptying it. Six are about a host's view: it takes the design view's place with
+removed by emptying it. Two are about what page 1 prints at its top
+(0060): page 1 given a header of its own from the report's properties,
+its group in the outline once it is there, a text put in it by the place
+chooser and drawn in the design view, undone and redone, and the page
+header chosen again, the group and the text going with it, and undone;
+and a page number moved by keyboard, offered the page header and never
+page 1's own. Six are about a host's view: it takes the design view's place with
 the outline and the properties beside it, and the toolbar's Design view
 gives the place back; a key pressed in it is the host's; a side pane
 hidden beside it gives it the room and the keyboard; placed beside the
@@ -677,7 +693,8 @@ Where the scenarios stop, the two builders' whole accessible trees are
 compared with each other, in the Studio
 ([0012](../../docs/decisions/0012-the-builders-are-native-and-share-one-session.md)):
 side by side over one editor in jsdom, in all three languages, at each
-state of a walk by the editor's own actions (`apps/studio/src/parity.test.tsx`);
+state of a walk by the editor's own actions, page 1 given a header of its
+own among them, which no starter has (`apps/studio/src/parity.test.tsx`);
 and in Chromium, in the Studio's browser gate, for every starter at each
 state the same steps bring each builder to, as Playwright's snapshot and
 as Chromium's own tree read them (`apps/studio/scripts/gate-parity.mjs`).

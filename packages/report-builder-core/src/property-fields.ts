@@ -196,7 +196,7 @@ export function textField(
  * refused where it is neither. Given back as it was shown, it is left alone,
  * so leaving a field never moves a length by the conversion's hundredth.
  */
-function lengthField(key: string, words: FieldWords, stored: number | 'fill' | undefined, use: 'required' | 'optional' | 'fill'): FieldSpec {
+export function lengthField(key: string, words: FieldWords, stored: number | 'fill' | undefined, use: 'required' | 'optional' | 'fill'): FieldSpec {
   const shown = typeof stored === 'number' ? String(ptToMm(stored)) : ''
   return {
     key,
@@ -573,27 +573,5 @@ export function columnFields(column: TableColumn, context: FieldContext): FieldS
     ...(valueField === undefined ? [] : [valueField]),
     styleField('/style', { id: 'field.style' }, context.report.styles, column.style, context.t),
     expressionField('/visibleWhen', { id: 'field.visibleWhen' }, column.visibleWhen?.cel, false),
-  ]
-}
-
-/** The report's own fields: its title, language and page. */
-export function reportFields(report: ReportDefinition, t: EditorText): FieldSpec[] {
-  const sizes = (['A4', 'Letter'] as const).map((size) => ({ value: size, label: size, stored: size }))
-  const orientations = (['portrait', 'landscape'] as const).map((orientation) => ({
-    value: orientation,
-    label: t(`option.${orientation}`),
-    stored: orientation,
-  }))
-  const margin = (side: 'top' | 'right' | 'bottom' | 'left', id: MessageId) =>
-    lengthField(`/page/margins/${side}`, { id }, report.page.margins[side], 'required')
-  return [
-    textField('/title', { id: 'field.title' }, 'text', () => report.title),
-    textField('/locale', { id: 'field.locale' }, 'text', () => report.locale),
-    choiceField('/page/size', { id: 'field.pageSize' }, 'select', sizes, report.page.size),
-    choiceField('/page/orientation', { id: 'field.orientation' }, 'select', orientations, report.page.orientation),
-    margin('top', 'field.marginTop'),
-    margin('right', 'field.marginRight'),
-    margin('bottom', 'field.marginBottom'),
-    margin('left', 'field.marginLeft'),
   ]
 }
