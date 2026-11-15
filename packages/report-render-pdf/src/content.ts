@@ -166,6 +166,9 @@ function blockContent(block: Block, build: Build, scope: Scope): Content {
       return columnsContent(block, build, scope)
     case 'section':
       return sectionContent(block, build, scope)
+    case 'chart':
+      // check.ts refuses every chart before anything is built.
+      throw new Error(`the chart ${block.id} reached the pdfmake content`)
   }
 }
 

@@ -21,7 +21,7 @@ import { aggregateOrder, aggregateReads, cycleDiagnostic } from './aggregates.js
 import { compileSite } from './compile-site.js'
 import type { CompiledExpression, Images, SiteOutcome } from './compile-site.js'
 import { invoiceMembers, paidMember } from './e-invoice.js'
-import { COMPUTES, fieldsOf, groupKeyOf, imagesOf, parametersOf, readAs, TOTALS } from './members.js'
+import { COMPUTES, fieldsOf, fieldTotalType, groupKeyOf, imagesOf, parametersOf, TOTALS } from './members.js'
 import type { ExpressionMember, Members } from './members.js'
 
 export interface ReportCompilation {
@@ -78,8 +78,7 @@ export function compiledSites(report: ReportDefinition, sites: readonly Expressi
   /** What `aggregate` computes, its expression compiled against the totals before it; and why it cannot be computed, when it cannot. */
   const computed = (aggregate: AggregateDef, index: number): ExpressionMember => {
     if (aggregate.of?.kind !== 'expression') {
-      const read = aggregate.of?.field.field
-      return COMPUTES[aggregate.fn](readAs(report.datasets.detail?.fields.find(({ id }) => id === read)?.type))
+      return fieldTotalType(report, aggregate.fn, aggregate.of?.field.field)
     }
     const site = siteOf(index)
     const outcome = compileSite(site, { ...base, totals: known, group: known }, images, invoiced)

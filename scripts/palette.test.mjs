@@ -44,7 +44,7 @@ import { afterAll, describe, expect, test } from 'vitest'
  * their strength, white at an alpha above all, which admin.css's rules
  * type for tints of their own; and what a build does that its sources do
  * not say. The browser gate reads the room's variables on the built page
- * for that (apps/studio/scripts/gate-page.mjs, paletteProblem).
+ * for that (apps/studio/scripts/gate-measure.mjs, paletteProblem).
  *
  * Which stylesheets are read is derived: every file the Studio's Vite
  * bundles as CSS and every page the repository holds outside what is

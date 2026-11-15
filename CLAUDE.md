@@ -173,22 +173,39 @@ the one walk that lays them out (`styledRows`), and refuses a face the
 family does not map and a character the face lacks, a page field's digits
 included; the QR-bill's slip and the EPC caption keep Liberation Sans
 ([0043](docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
-A chart, a component, is known to report-spec and report-core, refused by
-the runtime, and not offered by the builders yet: its rules are
-report-spec's `chart.ts`, the palette `CHART_PALETTE` and the lists beside
-it, and `validate-chart.ts`, which holds its category and each series to
-the detail fields' types and the kinds' own rules, a bar's or a line's
-palette to its series among them, as `invalid-chart`, its bounds
-`MAX_CHART_SERIES`, derived from the palette, and `MIN_CHART_SIDE` in
-`limits.ts`; the core names what it reads in `parts.ts`'s `READERS.chart`,
-takes a series alone where a removed field is what it totals
-(`readers.ts`), and says of a series rounded with no places, or twice, as
-of an aggregate (`diagnostics/chart.ts`); the runtime refuses a report
-that would print one as `chart-not-resolved` until it resolves charts; and
-builder-core's palette withholds it (`NOT_OFFERED`) until the builders
-edit a chart's own properties, its default, which labels the rows without
-a category, held to the validator meanwhile
+A chart, a component, is known to report-spec, report-core and the
+runtime, refused by the renderer, and not offered by the builders yet: its
+rules are report-spec's `chart.ts`, the palette `CHART_PALETTE` and the
+lists beside it, and `validate-chart.ts`, which holds its category and
+each series to the detail fields' types and the kinds' own rules, a bar's
+or a line's palette to its series among them, as `invalid-chart`, its
+bounds `MAX_CHART_SERIES`, derived from the palette, and `MIN_CHART_SIDE`
+in `limits.ts`; the core names what it reads in `parts.ts`'s
+`READERS.chart`, takes a series alone where a removed field is what it
+totals (`readers.ts`), and says of a series rounded with no places, or
+twice, as of an aggregate (`diagnostics/chart.ts`), typing it by
+`seriesType`, the compiler's `fieldTotalType`; and builder-core's palette
+withholds it (`NOT_OFFERED`) until the builders edit a chart's own
+properties, its default, which labels the rows without a category, held to
+the validator meanwhile
 ([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+The runtime resolves a chart into the `chart` block of
+`chart-document.ts`, which holds every word it prints and each value's
+exact digits beside its text (`lower-chart.ts`): its categories grouped
+where a table's rows are (`sort-group.ts`'s `categoryGroups`), at most
+`MAX_CHART_CATEGORIES` and a pie no more than its palette's colours, both
+refused as `chart-too-many-categories` before anything is totalled; each
+series totalled by `totals.ts`'s `totalOf`, the function every aggregate
+and group is, in the decimals `seriesType` gives it, so rounded and
+refused as an aggregate is; its value axis one, two or five times a power
+of ten, exactly, at most `MAX_TICK_INTERVALS` intervals
+(`chart-ticks.ts`); a pie's negative value refused as
+`chart-negative-share`, and its shares ratios rounded once to
+`SHARE_PLACES` (`decimal.ts`'s `ratioRounded`) and printed by
+`format.ts`'s `percent`, which refuses rather than rounds again; and the
+renderer's `check.ts` refuses the block as `unsupported` until it draws
+charts
+([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
 `@formancy/report-documents` is the one reader of PDFs, beside report-spec,
 which holds no PDF engine, and nothing calls it yet: `readDocument`, in
 `read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
@@ -596,6 +613,18 @@ What holds this section:
   wrote, no WebSocket (`gate-images.mjs`, 0033), and no request or
   connection hint to any origin but the built Studio's, its faces included
   ([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
+- **The pages' browser gate**, `apps/pages/scripts/browser-test.mjs`, run
+  as `pnpm --filter @formancy/report-pages test:browser` in the same job,
+  with the pages served under `/report/` and the demo's headers and the
+  Studio's reads from `gate-measure.mjs`: in Chromium, every page of the
+  built sitemap answering as itself, at 320 pixels with and without the
+  web fonts, a phone, one pixel past each breakpoint the built stylesheet
+  writes in rem, a laptop and a screen, with no sideways scroll and
+  nothing past either edge, axe finding nothing, the first Tab from the
+  load on the skip link and Enter on it putting the keyboard on `<main>`,
+  the room's variables, every face loaded, nothing fetched or hinted
+  outside the built pages and nothing the policy refused
+  ([0053](docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 - **The pages' stylesheet**, `apps/pages/src/stylesheet.test.ts`: it
   imports formancy's `room.css` first, the Studio's `room.css` second and
   only the Studio's stylesheets besides, and declares no colour and no
@@ -614,12 +643,11 @@ What holds this section:
 
 What nothing holds yet, said: `builder.css`'s geometry, and the colours
 admin.css's rules type that the room does not carry, are copied from
-`admin.css` by hand, and nothing fails when upstream's move; the gate runs
-Chromium alone, where Formancy Data's runs Firefox and WebKit too; no gate
-measures the product's pages in a browser, whose reflow and contrast were
-measured by hand when each page arrived (0021, 0024, 0028); and what
-a README picture looks like, and whether a caption's quote is painted in it
-rather than scrolled out of its part, which review alone holds.
+`admin.css` by hand, and nothing fails when upstream's move; the gates run
+Chromium alone, where Formancy Data's run Firefox and WebKit too; and what
+a product page or a README picture looks like, and whether a caption's
+quote is painted in its picture rather than scrolled out of its part,
+which review alone holds.
 
 ## Branch names
 
@@ -751,9 +779,13 @@ exactly what CI does:
 - **`browser`** runs the Studio's browser gate and its README pictures'
   check in Chromium, as `pnpm exec turbo run test:browser` and
   `test:pictures` for `@formancy/report-studio`, which build what they
-  measure first. Locally, `pnpm build`, `pnpm --filter
+  measure first, then the product pages' browser gate, `test:browser` for
+  `@formancy/report-pages`, even when the steps before it failed (0053).
+  Locally, `pnpm build`, `pnpm --filter
   @formancy/report-studio exec playwright install chromium` once, then
-  `pnpm --filter @formancy/report-studio test:browser` and `test:pictures`.
+  `pnpm --filter @formancy/report-studio test:browser` and `test:pictures`,
+  and `pnpm --filter @formancy/report-pages test:browser`, which needs the
+  Studio's install but not its build.
   A change to what a picture shows is retaken with `node
   scripts/pictures.mjs`, never by hand.
 - **`install`** runs `pnpm test:e2e:install`.

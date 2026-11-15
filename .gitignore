@@ -43,3 +43,4 @@ packages/*/NOTICE
 # The delivery plan this repository started from. Kept locally for reference,
 # never committed: it is a working document, not a record.
 docs/plan.md
+/.playwright-mcp
