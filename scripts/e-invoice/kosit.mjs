@@ -31,8 +31,11 @@
 // - **The exit status** is the number of controls, since KoSIT rejects
 //   each control and no sample.
 // - **Every accepted message** was raised in one of its files.
+// - **A file of a format KoSIT does not judge** (registers.mjs's JUDGES),
+//   handed to it past `judgedBy`, is named, as Mustang's judge names one.
 
 import { JVM_OPTIONS } from './java.mjs'
+import { judgedBy } from './registers.mjs'
 import { attribute, childOf, descendants, readXml, textOf } from './xml.mjs'
 
 const REP = 'http://www.xoev.de/de/validator/varl/1'
@@ -135,7 +138,8 @@ function reportProblems(entry, report, { pinned, hashes, scenario }) {
  * schematron each scenario the samples matched ran first, by the
  * scenario, as its reports name it, which the oracle reads.
  *
- * - `entries`: the corpus;
+ * - `entries`: the corpus's XML; a file of any other format, a PDF/A-2b
+ *   (0057), is named and nothing KoSIT said of it read, and is no control;
  * - `reports`: file to the text of its report, or undefined where there is none;
  * - `others`: the names of reports in the output directory that are no file's;
  * - `status`, `error`: how the one run ended;
@@ -151,7 +155,7 @@ export function judgeKosit({ entries, reports, others, status, error, console, a
   const problems = []
   const said = readKositConsole(console)
   if (said.version !== pinned) problems.push(`KoSIT says it is ${String(said.version)}, not ${pinned}, which docs/release/e-invoice-tools.json pins`)
-  const controls = entries.filter((entry) => entry.expect.kosit !== 'accepted').length
+  const controls = judgedBy('kosit', entries).filter((entry) => entry.expect.kosit !== 'accepted').length
   if (status !== controls) problems.push(`KoSIT exited ${String(status)}, where it rejects one file per control and the corpus has ${String(controls)}`)
   for (const name of others) problems.push(`KoSIT wrote ${name}, which is the report of no file of the corpus`)
   const raised = new Set()
@@ -159,6 +163,10 @@ export function judgeKosit({ entries, reports, others, status, error, console, a
   const rows = entries.map((entry) => {
     const { file, expect } = entry
     const row = { file, expect: expect.kosit, verdict: 'not as expected', scenario: null, assessment: null, refusals: [], accepted: [] }
+    if (judgedBy('kosit', [entry]).length === 0) {
+      problems.push(`KoSIT was handed ${file}, a file of the format ${String(entry.format)}, which JUDGES gives it none of`)
+      return row
+    }
     const text = reports.get(file)
     if (text === undefined) {
       problems.push(`KoSIT wrote no report on ${file}`)

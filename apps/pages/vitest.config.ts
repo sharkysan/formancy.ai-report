@@ -20,10 +20,22 @@ export default mergeConfig(
         // excludes as `index.ts`, the renderer's entry that only re-exports;
         // prerender.mjs is the composition root it excludes as `main.ts`: it
         // reads the inputs, runs the compiled renderer and hands the site to
-        // write-site.mjs. The `test-` files are the suite's own support,
-        // which is test code, as the Studio counts it.
+        // write-site.mjs. browser-test.mjs is the browser gate's
+        // composition root, for the same reason: it serves the build and
+        // drives Chromium, which the suite does not, and the widths and
+        // pages it measures are gate-site.mjs's, which counts. The `test-`
+        // files are the suite's own support, which is test code, as the
+        // Studio counts it.
         include: ['src/**/*.{ts,tsx}', 'scripts/**/*.mjs'],
-        exclude: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs', 'src/**/*.d.ts', 'src/test-*.ts', 'src/render.tsx', 'scripts/prerender.mjs'],
+        exclude: [
+          'src/**/*.test.{ts,tsx}',
+          'scripts/**/*.test.mjs',
+          'src/**/*.d.ts',
+          'src/test-*.ts',
+          'src/render.tsx',
+          'scripts/prerender.mjs',
+          'scripts/browser-test.mjs',
+        ],
       },
       include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
       environment: 'jsdom',

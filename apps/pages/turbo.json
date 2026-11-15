@@ -22,6 +22,13 @@
         "$TURBO_ROOT$/packages/*/package.json",
         "$TURBO_ROOT$/scripts/*.mjs"
       ]
-    }
+    },
+    // The suite reads files outside this package too: every file a card
+    // names as its evidence, docs/images/readme/captured.json and the
+    // packages' manifests (0056). A cached pass replayed after one of them
+    // is renamed elsewhere would say a card rests on a test that is gone,
+    // so the suite always runs, as CI's --force runs it.
+    "test": { "cache": false },
+    "test:coverage": { "cache": false }
   }
 }

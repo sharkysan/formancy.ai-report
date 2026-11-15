@@ -23,16 +23,27 @@ node scripts/bump.mjs 0.1.0
 # 2. Rename "## Unreleased" in CHANGELOG.md to the version's heading, and say
 #    what is knowingly missing. What the release was tested with is the
 #    release report's, from the run that gates it; the body carries it.
-#    Two pages say where their payment code stands, the QR-bill page and
-#    the EPC QR code page -- since 0.2.0, in the newest release -- and the
-#    pages refuse to render until each one's status names the new version,
-#    naming every such page in one error. For each, say whether the
-#    release has its code in the three sentences of its copy that say
-#    where it stands -- `standing`, `tryIt.text` and `status.text` --
-#    and set its status beside them:
-#    apps/pages/src/content/qr-bill-copy.tsx and QR_BILL_STATUS in
-#    qr-bill.tsx (0024); epc-qr-code-copy.tsx and EPC_QR_CODE_STATUS in
-#    epc-qr-code.tsx (0028).
+#    Each page with a status says where it stands, and the pages refuse
+#    to render until each one's status names the new version, naming every
+#    such page in one error; no test names a version, so the pages' suite
+#    passes again once the statuses are written. The start page says what
+#    the newest release holds and what Formancy Report does not do yet:
+#    say both again, as true of the new release and of main, in
+#    `standing`, which the hero says, and `status.format`, that the report
+#    format is still a draft, in apps/pages/src/content/product-copy.tsx,
+#    `items` in limits-copy.tsx and `limits.items` in totals-copy.tsx, and
+#    set START_STATUS in product.tsx beside them, its `asOf` the day they
+#    were read (0056). The QR-bill page and the EPC QR code page say where
+#    their payment code stands -- since 0.2.0, in the newest release: say
+#    whether the release has it in the three sentences of each one's copy
+#    that say where it stands -- `standing`, `tryIt.text` and
+#    `status.text` -- and set its status beside them: qr-bill-copy.tsx and
+#    QR_BILL_STATUS in qr-bill.tsx (0024); epc-qr-code-copy.tsx and
+#    EPC_QR_CODE_STATUS in epc-qr-code.tsx (0028).
+#    The start page links "## Unreleased" from its hero and its status, so
+#    open a new, empty "## Unreleased" above the release's heading: the
+#    pages' link check refuses the site while CHANGELOG.md has no heading
+#    for #unreleased to land on.
 #    The heading's date is the day the tag is pushed: the product page
 #    reads it from the heading and prints it as the day of the release.
 #    If the tag slips past it, date the heading again, with the README's
@@ -156,11 +167,12 @@ holds and what fails it). In short:
   builder's React or Angular as declared, as its suites ran it, and as each
   install host resolved it at both ends of its peer range; upstream
   `@formancy/*`; Node, pnpm, TypeScript and PDF.js; the Chromium the browser
-  gate launched and the Playwright that pins it;
+  gates launched and the Playwright that pins it;
 - each package's results, held to every test file the checkout holds for
   it;
-- the Studio's browser gate, held to every pass it planned and a check in
-  each, and its README pictures' check, held to every scene
+- each app's browser gate, the Studio's and the product pages', held to
+  every pass it planned and a check in each, and the Studio's README
+  pictures' check, held to every scene
   `scripts/pictures/scenes.json` gives the Studio, each launched as
   `scripts/browsers.mjs` launches the build Playwright pins;
 - the install gate host by host, held to the hosts it plans;
@@ -179,7 +191,7 @@ To build one on a machine, from that machine's own runs:
 since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 pnpm build && pnpm test:repo
 pnpm exec turbo run test:coverage --force --summarize   # every package, fresh, with its wall time
-pnpm test:browser && pnpm test:pictures                  # the Studio in Chromium, and its README pictures
+pnpm test:browser && pnpm test:pictures                  # the Studio and the product pages in Chromium, and the Studio's README pictures
 node scripts/install-test.mjs
 node scripts/e-invoice.mjs --java "$JAVA_HOME/bin/java"   # Mustang and KoSIT over the samples' XML, veraPDF and Mustang over their PDFs
 node scripts/release-report/collect.mjs --local --since "$since"
@@ -192,10 +204,15 @@ run that wrote its suite's results, and every test file of a package must
 have run: a report after one file run alone fails, by design. `--allow-missing
 install` is for G1, which rests on the install job, and a job's result exists
 only in a gates run; the install gate's own record is read whatever it
-allows. The browser gate needs Chromium once on the machine (`pnpm --filter
-@formancy/report-studio exec playwright install chromium`); its file and the
-pictures' check's are read as in CI, and G3, which rests on the browser gate,
-is judged from them. The e-invoice gate needs a Java at least as new as
+allows. The browser gates need Chromium once on the machine (`pnpm --filter
+@formancy/report-studio exec playwright install chromium`); their files and
+the pictures' check's are read as in CI, and G3, which rests on the Studio's,
+is judged from them. The root's `pnpm test:browser` runs the two gates
+through turbo at once, where CI's `browser` job runs them one after the
+other. On a busy machine the Studio's gate can fail with "Failed to fetch":
+the Preview may revoke a Download PDF's address between the gate reading
+it and fetching it. Such a run is worth repeating with the Studio's gate
+alone, `pnpm --filter @formancy/report-studio test:browser`. The e-invoice gate needs a Java at least as new as
 each JAR's `java` in `docs/release/e-invoice-tools.json`, and fetches its
 tools into `.e-invoice-cache/` the first time. On a machine that did not
 run them, `--allow-missing install,browser,e-invoice` (or `verify`)

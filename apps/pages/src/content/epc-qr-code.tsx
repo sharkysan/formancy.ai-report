@@ -1,7 +1,7 @@
 /**
  * The EPC QR code page, `/report/<lang>/<epc-qr-code|qr-code-sepa>/`
  * (0028): what an EPC QR code printed by Formancy Report is, as 0025
- * decides it and its tests hold it, each card beside the tests it rests on;
+ * decides it and its tests hold it, each card naming the tests it rests on;
  * the euro invoice from each country, as the corpus's samples print it,
  * the page's own language's first, and shared with its own language's;
  * how to try it; what it does not do, from 0025's costs and 0028's, and
@@ -48,70 +48,13 @@ export const EPC_QR_CODE_STATUS: PageStatus = {
  */
 export const EURO_SAMPLES_READ = '2026-10-17'
 
-/**
- * The tests each card of the page's "does" section rests on, card by card,
- * in the cards' order: each claim is one 0025 makes and these hold, or one
- * the euro invoice's samples make (0028). epc-qr-code.test.ts holds every
- * file to the checkout, and the list to as many cards as each language has.
- */
-export const CARD_EVIDENCE: readonly (readonly string[])[] = [
-  // The EPC's rules: the IBAN and its country's length, the QR-IBAN, the BIC
-  // and its country, the creditor reference, each text, the bytes; and the
-  // same functions for what the report writes and what the data brings.
-  [
-    'packages/report-spec/src/epc-payload.test.ts',
-    'packages/report-spec/src/sepa.test.ts',
-    'packages/report-spec/src/payment-reference.test.ts',
-    'packages/report-spec/src/validate-epc-qr-code.test.ts',
-    'packages/report-runtime/src/lower-epc-qr-code.test.ts',
-  ],
-  // Refused before the PDF, on its field: the IBAN's rules the validator
-  // applies -- its check digits, its country's length, a country of SEPA --
-  // and its refusal when the report is validated, on its field, unquoted;
-  // shown there by both builders, which run the core's scenario "insert an
-  // EPC payment code, and type its account"; the data held to the same
-  // rules by the runtime, never quoting a value. That a typo which still
-  // fits the check digits, or another account's valid IBAN, passes is
-  // what the payload's test shows of any valid IBAN: every country's
-  // example account is taken.
-  [
-    'packages/report-spec/src/epc-payload.test.ts',
-    'packages/report-spec/src/validate-epc-qr-code.test.ts',
-    'packages/report-builder-core/src/epc-qr-code.test.ts',
-    'packages/report-builder-react/src/scenarios.test.tsx',
-    'packages/report-builder-angular/src/scenarios.test.ts',
-    'packages/report-runtime/src/lower-epc-qr-code.test.ts',
-  ],
-  // The amount: the PSA's spellings, more than two decimals refused rather
-  // than rounded, null left to the payer, and each invoice's total computed
-  // in BigInt against the code's.
-  [
-    'packages/report-spec/src/epc-payload.test.ts',
-    'packages/report-runtime/src/lower-epc-qr-code.test.ts',
-    'packages/report-corpus/src/starters/starters.test.ts',
-    'packages/report-corpus/src/starters/euro-samples.test.ts',
-  ],
-  // The details beside the code: decoded, and each read back beside it.
-  ['packages/report-render-pdf/src/starters.test.ts', 'packages/report-render-pdf/src/euro-samples.test.ts'],
-  // Austria's frame: the PSA's frame, caption and modules' widths, and the
-  // Austrian sample alone wearing it.
-  ['packages/report-spec/src/epc-print.test.ts', 'packages/report-render-pdf/src/epc-qr-code.test.ts', 'packages/report-render-pdf/src/euro-samples.test.ts'],
-  // Proved on the PDF: the EPC's examples byte for byte at level M, and
-  // every invoice down to the amount it prints, decoded by ZXing.
-  [
-    'packages/report-render-pdf/src/epc-qr-code.test.ts',
-    'packages/report-render-pdf/src/starters.test.ts',
-    'packages/report-render-pdf/src/euro-samples.test.ts',
-  ],
-]
-
 /** The sample each language's page leads with and is shared with: German's is the starter, English's the Irish, the sample in English. */
 const OWN: Readonly<Record<Language, EuroCountry>> = { de: 'DE', fr: 'FR', it: 'IT', en: 'IE' }
 
 /** What the product page says of the EPC QR code page in `language`: its teaser, and where it stands, as the hero says it. */
 const teaserOf = (language: Language): Teaser => ({
   ...EPC_QR_CODE_COPY[language].teaser,
-  text: `${EPC_QR_CODE_COPY[language].teaser.text} ${EPC_QR_CODE_COPY[language].standing}`,
+  standing: EPC_QR_CODE_COPY[language].standing,
 })
 
 /** The decision record that says what an EPC QR code is and what it costs, which the page links for the reasons it gives. */
@@ -225,8 +168,10 @@ function EpcQrCodeBody({ page }: { readonly page: PageContext }): ReactElement {
 
 export const EPC_QR_CODE_GROUP: PageGroup = {
   id: 'epc-qr-code',
+  studioWords: ['Starter', 'Euro invoice', 'EPC payment code'],
   slug: { de: 'epc-qr-code', fr: 'qr-code-sepa', it: 'qr-code-sepa', en: 'epc-qr-code' },
   meta: { de: EPC_QR_CODE_COPY.de.meta, fr: EPC_QR_CODE_COPY.fr.meta, it: EPC_QR_CODE_COPY.it.meta, en: EPC_QR_CODE_COPY.en.meta },
+  cards: { de: EPC_QR_CODE_COPY.de.does.cards, fr: EPC_QR_CODE_COPY.fr.does.cards, it: EPC_QR_CODE_COPY.it.does.cards, en: EPC_QR_CODE_COPY.en.does.cards },
   teaser: { de: teaserOf('de'), fr: teaserOf('fr'), it: teaserOf('it'), en: teaserOf('en') },
   image: { de: EUROS[OWN.de].picture, fr: EUROS[OWN.fr].picture, it: EUROS[OWN.it].picture, en: EUROS[OWN.en].picture },
   status: EPC_QR_CODE_STATUS,

@@ -2,8 +2,11 @@
 // (0027, 0031), which the judges' tests read: each text as the run wrote
 // it, with the line ends the repository keeps and without the machine's
 // path to the repository; and the recorded corpus held to the one the
-// runtime writes now, its XML byte for byte and its PDFs by their inflated
-// objects (report-corpus's `inflatedDigest`), which no zlib changes.
+// runtime writes now, its XML byte for byte and its PDFs, PDF/A-3b and
+// PDF/A-2b alike, by their inflated objects (report-corpus's
+// `inflatedDigest`), which no zlib changes.
+
+import { PDF_FORMATS } from './registers.mjs'
 
 /** The repository's root, as what is recorded writes it: no angle brackets, since an XML report holds it in its text. */
 export const ROOT = '{repository}'
@@ -71,7 +74,7 @@ export function staleRecorded(entries, recorded, pdfs = new Map()) {
   const problems = []
   for (const entry of entries) {
     const { file } = entry
-    if (entry.format === 'pdf') {
+    if (PDF_FORMATS.includes(entry.format)) {
       if (!pdfs.has(file)) problems.push(`scripts/e-invoice/recorded/run.json records no ${file}, which this run judged: ${RECORD}`)
       else if (pdfs.get(file) !== entry.digest)
         problems.push(`scripts/e-invoice/recorded/run.json records ${file} as another PDF than this run drew, its objects inflated: ${RECORD}`)

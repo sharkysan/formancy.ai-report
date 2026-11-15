@@ -1,6 +1,9 @@
 # 0051 — The demo is served under a content security policy that admits its own files alone, refuses every connection and requires Trusted Types, its one policy the default one that lets PDF.js's worker through; the deploy writes it, and `pnpm demo` and the browser gate serve the Studio under the same function of their own address
 
-- **Status:** accepted; extends [0018](0018-the-studio-demo-is-served-at-formancy-ai-report.md)
+- **Status:** accepted; extends [0018](0018-the-studio-demo-is-served-at-formancy-ai-report.md);
+  extended by [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md),
+  whose gate measures the product pages in a browser under its headers,
+  where this record opened them under its policy once, by hand
 - **Date:** 2026-11-05
 - **Deciders:** Daniel Bacher
 - **Verified by:** guards in `pnpm test:repo` and the Studio's suite, which
