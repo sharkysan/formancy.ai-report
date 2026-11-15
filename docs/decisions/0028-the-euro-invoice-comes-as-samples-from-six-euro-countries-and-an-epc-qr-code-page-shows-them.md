@@ -9,7 +9,9 @@
   [0032](0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md),
   under which every sample prints the firm's mark at the head of its
   page, so that the starter's digest pinned here, `27583910…`, is the one
-  before the mark
+  before the mark; its pages measured in a browser by
+  [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)'s
+  gate, where this record measured them by hand
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -155,7 +157,8 @@
     sixteen of the sitemap, served under `/report/` by a script outside the
     repository on a port of its own, in Chromium 156.0.8078.4 of
     Playwright 1.64.1, measured by the Studio's browser gate's own
-    `measureWidth` and `audit` (`apps/studio/scripts/gate-page.mjs`), as
+    `measureWidth` and `audit`, then in `gate-page.mjs` and now in
+    `apps/studio/scripts/gate-measure.mjs`, as
     0024 measured its pages: at 320, 360, 641, 1280 and 1920 pixels none
     scrolled sideways or had anything past either edge, axe 4.14.0 found
     no violation, colour contrast and target size were measured and no
