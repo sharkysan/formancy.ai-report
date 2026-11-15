@@ -24,8 +24,10 @@
 import { QR_BILL_ADDRESS_RULES, QR_BILL_CURRENCIES, QR_BILL_LANGUAGES } from '@formancy/report-spec'
 import type { QrBillAddress, SwissQrBill } from '@formancy/report-spec'
 import { EXAMPLE_DEBTOR } from './payment-part.js'
-import { choiceField, codeTextFields, expressionField, optionalCodeTextFields, optionalGroup } from './property-fields.js'
-import type { FieldContext, FieldSpec, GroupSpec, PanelSpec } from './property-fields.js'
+import { choiceField, codeTextFields, expressionField, optionalCodeTextFields } from './property-fields.js'
+import type { FieldContext, FieldSpec } from './property-fields.js'
+import { optionalGroup } from './property-groups.js'
+import type { GroupSpec, PanelSpec } from './property-groups.js'
 import type { MessageId } from './text.js'
 
 type Party = 'creditor' | 'debtor'

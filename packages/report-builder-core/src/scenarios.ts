@@ -20,11 +20,13 @@
  * own stands beside them: the payment codes (`scenario-payments.ts`), a
  * report's QR-bill selected and edited (`scenario-payment-part.ts`), its
  * e-invoice selected and edited (`scenario-e-invoice.ts`), a host's view
- * (`scenario-host-view.ts`) and images (`scenario-images.ts`).
+ * (`scenario-host-view.ts`), images (`scenario-images.ts`) and a run set
+ * below or above the line (`scenario-baselines.ts`).
  */
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { PROPERTY_ROLES } from './model-properties.js'
+import { baselineScenarios } from './scenario-baselines.js'
 import { hostViewScenarios } from './scenario-host-view.js'
 import { imageScenarios } from './scenario-images.js'
 import { eInvoiceScenarios } from './scenario-e-invoice.js'
@@ -293,6 +295,7 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
     ]),
     ...hostViewScenarios(locale),
     ...imageScenarios(locale),
+    ...baselineScenarios(locale),
   ]
 }
 

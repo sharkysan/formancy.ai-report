@@ -14,7 +14,9 @@
  * the state's `view` is the host's, a region named by the host's view in
  * the design view's place, holding the host's one button, taking none of
  * the builder's keys, and taking the keyboard from the middle pane it
- * swapped.
+ * swapped. A run's button is pressed as its action says, and sends the
+ * characters a `selectText` step selected in its group's field, while that
+ * field still shows the text they were selected in (0061).
  *
  * It is the third reading of that contract, on purpose and only here: it
  * shows that every name a scenario looks for is one the state gives, and that
@@ -71,6 +73,13 @@ function rows(state: EditorState): { readonly label: string; readonly selected: 
 /** The groups the properties draw. */
 function propertyGroups(state: EditorState): PropertyGroup[] {
   return state.properties.rows.flatMap((row) => ('group' in row ? [row.group] : []))
+}
+
+/** Whether the group's button named `name` is pressed, as `aria-pressed` says: undefined for a button that is neither. */
+function pressedOf(state: EditorState, name: string): boolean | undefined {
+  return propertyGroups(state)
+    .flatMap((group) => group.actions)
+    .find((action) => action.label === name)?.pressed
 }
 
 /** The toolbar's buttons, by name, and what each dispatches. */
@@ -150,6 +159,8 @@ class Driver {
   private where: { readonly role: string; readonly name: string } | null = null
   /** The group whose button the keyboard is on, and which of its buttons: the button stays where it is as its words change, Add to Remove and back. */
   private onGroup: { readonly key: string; readonly button: number } | null = null
+  /** The characters a `selectText` step selected in a field, by its name, and what the field showed: a browser keeps them until the field's value changes. */
+  private selections = new Map<string, { readonly start: number; readonly end: number; readonly value: string | boolean }>()
   constructor(scenario: BuilderScenario) {
     this.session = sessionOver(scenario.report())
     this.host = scenario.host
@@ -235,7 +246,8 @@ class Driver {
    * -- else on the button, whatever it says now.
    */
   private afterGroupButton({ group, index }: { readonly group: PropertyGroup; readonly index: number }, outcome: EditorOutcome): void {
-    const then = outcome.ok ? group.actions[index]?.then : undefined
+    // Where the action itself decided it once done -- a run's button, whose run a split moved -- the outcome says.
+    const then = outcome.ok ? (outcome.then ?? group.actions[index]?.then) : undefined
     if (then === undefined) this.onGroup = { key: group.key, button: index }
     else if (then.button !== undefined) this.onGroup = { key: then.group, button: then.button }
     else {
@@ -250,8 +262,8 @@ class Driver {
     if (query.role !== 'button') throw new Error(`nothing to activate in a ${query.role}`)
     const shown = buttons(this.t, this.state)
     if (!shown.has(query.name)) throw new Error(`no button ${query.name} among ${[...shown.keys()].join(' | ')}`)
-    const action = shown.get(query.name)
     const fromGroup = this.groupButton(query.name)
+    const action = this.withSelection(shown.get(query.name), fromGroup?.group)
     const choosing = this.state.drag?.via === 'keyboard'
     const outcome = this.dispatch(action, query.name)
     const selects = action?.type === 'insert' || action?.type === 'move' || action?.type === 'select'
@@ -268,6 +280,25 @@ class Driver {
     else if (fromGroup !== undefined) this.afterGroupButton(fromGroup, outcome)
     else this.focused = { role: 'button', name: query.name }
     return outcome
+  }
+
+  /**
+   * A run's button's action with what its group's field has selected, as a
+   * builder reads it from the field when the button is pressed (0061): the
+   * selection a `selectText` step made, while the field shows the text it
+   * was made in. Any other action as it is.
+   */
+  private withSelection(action: EditorAction | undefined, group: PropertyGroup | undefined): EditorAction | undefined {
+    const field = group?.fields[0]
+    const selection = field === undefined ? undefined : this.selections.get(field.label)
+    if (action?.type !== 'setBaseline' || field === undefined || selection === undefined || typeof field.value !== 'string') return action
+    return { ...action, selected: { start: selection.start, end: selection.end, text: field.value } }
+  }
+
+  /** Forgets each selection whose field shows other text now: a browser collapses a field's selection when its value is set. */
+  private forgetChangedSelections(): void {
+    const fields = this.state.properties.fields
+    for (const [name, selection] of this.selections) if (fields.find((field) => field.label === name)?.value !== selection.value) this.selections.delete(name)
   }
 
   /** The report's first field, where the way back to its properties leaves the keyboard. */
@@ -317,7 +348,10 @@ class Driver {
       case 'dialog':
         return state.drag?.via === 'keyboard' && state.drag.title === query.name
       case 'button':
-        return buttons(this.t, state).has(query.name) || this.hostControl(query.name)
+        return (
+          (buttons(this.t, state).has(query.name) && (query.pressed === undefined || pressedOf(state, query.name) === query.pressed)) ||
+          this.hostControl(query.name)
+        )
       case 'status':
         return statusText(this.t, state, query.name) !== undefined
       default:
@@ -327,61 +361,75 @@ class Driver {
 
   async step(step: ScenarioStep): Promise<void> {
     if ('do' in step) {
-      switch (step.do) {
-        case 'click':
-          return void this.activate(step)
-        case 'focus':
-          if (!this.present(step)) throw new Error(`nothing to focus: ${step.role} ${step.name}`)
-          if (step.role === 'treeitem') return this.selectRow(step.name)
-          this.focused = { role: step.role, name: step.name }
-          return
-        case 'press': {
-          const modifiers = new Set(step.modifiers ?? [])
-          // The host's view keeps its keys: the builder passes none of them on.
-          if (this.focused !== null && this.focused.role === 'button' && this.hostControl(this.focused.name)) return
-          if (step.key === 'Enter' && this.focused !== null) return void this.activate(this.focused)
-          const where = this.focused?.role === 'treeitem' || this.focused?.role === 'tree' ? 'outline' : 'editor'
-          const press = {
-            key: step.key,
-            altKey: modifiers.has('Alt'),
-            ctrlKey: modifiers.has('Control'),
-            metaKey: modifiers.has('Meta'),
-            shiftKey: modifiers.has('Shift'),
-          }
-          const onRemove = this.focused?.role === 'button' && this.state.images.assets.some((image) => image.removeLabel === this.focused?.name)
-          this.dispatch(actionForKey(press, where, this.state.drag !== null), `the key ${step.key}`)
-          if (where === 'outline') this.focusSelection()
-          // A key that took away the image row the keyboard stood on -- an undo of the add, a redo of the remove -- leaves it on the first field, as a Remove that worked does.
-          else if (onRemove && this.focused !== null && !this.present(this.focused)) this.focusFirstField()
-          return
-        }
-        case 'fill':
-          this.editor.dispatch({ type: 'setProperty', key: this.field(step).key, value: step.text })
-          return
-        case 'choose': {
-          const field = this.field(step)
-          const option = field.options?.find((candidate) => candidate.label === step.option)
-          if (option === undefined) throw new Error(`no option ${step.option} in ${step.name}`)
-          this.editor.dispatch({ type: 'setProperty', key: field.key, value: option.value })
-          return
-        }
-        case 'host': {
-          const was = this.state.view
-          const focused = this.focused
-          const inTheMiddle =
-            focused !== null && ((focused.role === 'region' && focused.name === this.middle()) || (focused.role === 'button' && this.hostControl(focused.name)))
-          // What the host asks of its own view is meant to be done: one refused is a scenario that says what never happened.
-          const outcome = this.editor.dispatch(step.action)
-          if (!outcome.ok) throw new Error(`the host's ${step.action.type} was refused: ${outcome.message}`)
-          // The middle pane swapped under the keyboard hands it to what stands there now.
-          if (inTheMiddle && this.state.view !== was) this.focused = { role: 'region', name: this.middle() }
-          return
-        }
-        case 'upload':
-          return this.upload(step, step.file)
-      }
+      await this.act(step)
+      return this.forgetChangedSelections()
     }
-    const expectation = step
+    this.check(step)
+  }
+
+  private async act(step: Extract<ScenarioStep, { readonly do: string }>): Promise<void> {
+    switch (step.do) {
+      case 'click':
+        return void this.activate(step)
+      case 'focus':
+        if (!this.present(step)) throw new Error(`nothing to focus: ${step.role} ${step.name}`)
+        if (step.role === 'treeitem') return this.selectRow(step.name)
+        this.focused = { role: step.role, name: step.name }
+        return
+      case 'press': {
+        const modifiers = new Set(step.modifiers ?? [])
+        // The host's view keeps its keys: the builder passes none of them on.
+        if (this.focused !== null && this.focused.role === 'button' && this.hostControl(this.focused.name)) return
+        if (step.key === 'Enter' && this.focused !== null) return void this.activate(this.focused)
+        const where = this.focused?.role === 'treeitem' || this.focused?.role === 'tree' ? 'outline' : 'editor'
+        const press = {
+          key: step.key,
+          altKey: modifiers.has('Alt'),
+          ctrlKey: modifiers.has('Control'),
+          metaKey: modifiers.has('Meta'),
+          shiftKey: modifiers.has('Shift'),
+        }
+        const onRemove = this.focused?.role === 'button' && this.state.images.assets.some((image) => image.removeLabel === this.focused?.name)
+        this.dispatch(actionForKey(press, where, this.state.drag !== null), `the key ${step.key}`)
+        if (where === 'outline') this.focusSelection()
+        // A key that took away the image row the keyboard stood on -- an undo of the add, a redo of the remove -- leaves it on the first field, as a Remove that worked does.
+        else if (onRemove && this.focused !== null && !this.present(this.focused)) this.focusFirstField()
+        return
+      }
+      case 'fill':
+        this.editor.dispatch({ type: 'setProperty', key: this.field(step).key, value: step.text })
+        return
+      case 'selectText': {
+        const field = this.field(step)
+        this.selections.set(field.label, { start: step.start, end: step.end, value: field.value })
+        this.focused = { role: step.role, name: step.name }
+        return
+      }
+      case 'choose': {
+        const field = this.field(step)
+        const option = field.options?.find((candidate) => candidate.label === step.option)
+        if (option === undefined) throw new Error(`no option ${step.option} in ${step.name}`)
+        this.editor.dispatch({ type: 'setProperty', key: field.key, value: option.value })
+        return
+      }
+      case 'host': {
+        const was = this.state.view
+        const focused = this.focused
+        const inTheMiddle =
+          focused !== null && ((focused.role === 'region' && focused.name === this.middle()) || (focused.role === 'button' && this.hostControl(focused.name)))
+        // What the host asks of its own view is meant to be done: one refused is a scenario that says what never happened.
+        const outcome = this.editor.dispatch(step.action)
+        if (!outcome.ok) throw new Error(`the host's ${step.action.type} was refused: ${outcome.message}`)
+        // The middle pane swapped under the keyboard hands it to what stands there now.
+        if (inTheMiddle && this.state.view !== was) this.focused = { role: 'region', name: this.middle() }
+        return
+      }
+      case 'upload':
+        return this.upload(step, step.file)
+    }
+  }
+
+  private check(expectation: Extract<ScenarioStep, { readonly expect: string }>): void {
     switch (expectation.expect) {
       case 'present':
         return void expect(this.present(expectation), `${expectation.role} ${expectation.name}`).toBe(true)

@@ -9,10 +9,10 @@
  * the message a refused value shows is the validator's (0008). Only what
  * cannot become a value at all -- "tall" for a number -- is refused here.
  */
-import { EPC_CAPTIONS, mmToPt, ptToMm, QR_ERROR_CORRECTION } from '@formancy/report-spec'
+import { BASELINE_SHIFTS, EPC_CAPTIONS, mmToPt, ptToMm, QR_ERROR_CORRECTION } from '@formancy/report-spec'
 import type { Component, ComponentKind, FieldRef, Inline, PrintStyle, QrErrorCorrection, ReportDefinition, TableColumn } from '@formancy/report-spec'
-import type { EditorAction } from './model-actions.js'
 import type { PropertyKind, PropertyOption } from './model-properties.js'
+import type { GroupButton, GroupSpec, PanelSpec } from './property-groups.js'
 import { formatPercent } from './text.js'
 import type { EditorLocale, EditorText, MessageId } from './text.js'
 
@@ -48,99 +48,6 @@ export interface FieldSpec {
   readonly options?: readonly PropertyOption[]
   readonly read: () => string | boolean
   readonly write: (input: string | boolean) => Written
-}
-
-/** A group's button: its words -- with the item's number, for an item of a list -- the action it sends, whether it has somewhere to go, and where the keyboard goes once it is done (`PropertyAction`'s `then`). */
-export interface GroupButton {
-  readonly words: MessageId
-  readonly item?: number
-  readonly action: EditorAction
-  readonly available: boolean
-  readonly then?: { readonly group: string; readonly button?: number }
-}
-
-/**
- * A list of groups the properties edit item by item -- an e-invoice's VAT
- * categories (0044) -- as its own group says it: where it is, the items
- * it holds, what Add puts at its end, the words each item is named by, and
- * how the history names adding, removing and moving one. Where the list
- * could take nothing more, `full` says why, and its Add is unavailable.
- */
-export interface ListSpec {
-  readonly key: string
-  readonly items: readonly unknown[]
-  readonly value: unknown
-  readonly full?: MessageId
-  readonly item: MessageId
-  readonly added: MessageId
-  readonly removed: MessageId
-  readonly moved: MessageId
-}
-
-/**
- * Fields drawn together under one name, and the buttons the group has. An
- * optional group -- a bill's debtor -- also says what adding it puts at
- * its key and how the history names adding and removing it; its button is
- * Add while it is absent, when it has no fields, and Remove while it is
- * there. A list's own group has no fields and its Add, and says what its
- * list is (`list`); each item of it is a group of its own, numbered `n`
- * from 1, with Move up, Move down and Remove.
- */
-export interface GroupSpec {
-  readonly key: string
-  readonly words: MessageId
-  readonly item?: number
-  readonly fields: readonly FieldSpec[]
-  readonly buttons: readonly GroupButton[]
-  readonly optional?: {
-    readonly present: boolean
-    readonly value: unknown
-    readonly added: MessageId
-    readonly removed: MessageId
-    readonly announced?: { readonly added: MessageId; readonly removed: MessageId }
-  }
-  readonly list?: ListSpec
-}
-
-/** What a panel shows, in order: a field by itself, or a group of fields. */
-export type PanelSpec = FieldSpec | GroupSpec
-
-export function isGroup(spec: PanelSpec): spec is GroupSpec {
-  return 'fields' in spec
-}
-
-/** Every field of `specs`, those in a group among them, in the order shown. */
-export function flatFields(specs: readonly PanelSpec[]): FieldSpec[] {
-  return specs.flatMap((spec) => (isGroup(spec) ? spec.fields : [spec]))
-}
-
-/** The words an optional group's button and its history steps say, and, where "Added {name}." would not agree with its name, what the live region says. */
-export interface OptionalWords {
-  readonly add: MessageId
-  readonly remove: MessageId
-  readonly added: MessageId
-  readonly removed: MessageId
-  readonly announced?: { readonly added: MessageId; readonly removed: MessageId }
-}
-
-/**
- * The optional group at `key`: its fields and a Remove while it is there,
- * `fields` given; an Add and no fields while it is not, which puts `value`
- * at its key.
- */
-export function optionalGroup(key: string, words: MessageId, fields: readonly FieldSpec[] | undefined, value: unknown, said: OptionalWords): GroupSpec {
-  const present = fields !== undefined
-  return {
-    key,
-    words,
-    fields: fields ?? [],
-    buttons: [
-      present
-        ? { words: said.remove, action: { type: 'removeGroup', key }, available: true }
-        : { words: said.add, action: { type: 'addGroup', key }, available: true },
-    ],
-    optional: { present, value, added: said.added, removed: said.removed, ...(said.announced === undefined ? {} : { announced: said.announced }) },
-  }
 }
 
 /** The words of a field, filled in a language: "Part 2: Field". */
@@ -351,8 +258,9 @@ function runField(run: Inline, key: string, words: FieldWords, context: FieldCon
       return textField(`${key}/text`, words, lines, () => run.text)
     case 'field':
     case 'parameter': {
-      const format = 'format' in run && run.format !== undefined ? { format: run.format } : {}
-      const options = bindings(context).map((option) => ({ ...option, stored: { ...option.stored, ...format } }))
+      // Rebound, a run keeps how it is displayed and where it stands against its line (0061).
+      const kept = { ...(run.format === undefined ? {} : { format: run.format }), ...(run.baseline === undefined ? {} : { baseline: run.baseline }) }
+      const options = bindings(context).map((option) => ({ ...option, stored: { ...option.stored, ...kept } }))
       return choiceField(key, words, 'binding', options, run.kind === 'field' ? refToken(run.field) : `parameter:${run.parameter}`)
     }
     case 'expression':
@@ -368,28 +276,62 @@ function runField(run: Inline, key: string, words: FieldWords, context: FieldCon
 }
 
 /**
- * The runs of a text at `key`, a field each. A lone run is named by what
- * it is, or by `name`, the text's own where it has one; one of several by
- * its place and kind, after the text's name.
+ * The runs of a text at `key`, the field of each at its place, none for a
+ * page counter. A lone run is named by what it is, or by `name`, the
+ * text's own where it has one; one of several by its place and kind, after
+ * the text's name.
  */
-function runsFields(runs: readonly Inline[], key: string, context: FieldContext, name?: TextName, lines?: 'text' | 'multiline'): FieldSpec[] {
+function runsFields(runs: readonly Inline[], key: string, context: FieldContext, name?: TextName, lines?: 'text' | 'multiline'): (FieldSpec | undefined)[] {
   const single = runs.length === 1
   const id = typeof name === 'object' ? name.id : name
   const item = typeof name === 'object' ? { item: name.item } : {}
-  return runs.flatMap((run, index) => {
+  return runs.map((run, index) => {
     const part = { n: index + 1, run: run.kind }
     const words: FieldWords = single
       ? { id: id ?? (run.kind === 'text' ? 'field.text' : `run.${run.kind}`), ...item }
       : id === undefined
         ? { id: 'field.part', ...part }
         : { id: 'field.textPart', of: id, ...part, ...item }
-    return runField(run, `${key}/${index}`, words, context, lines) ?? []
+    return runField(run, `${key}/${index}`, words, context, lines)
   })
 }
 
+/** The fields of the runs that have one. */
+const edited = (fields: readonly (FieldSpec | undefined)[]): FieldSpec[] => fields.filter((field): field is FieldSpec => field !== undefined)
+
 /** A content's runs: a lone run named by what it is, one of several by its place and kind. */
 function contentFields(content: readonly Inline[], context: FieldContext): FieldSpec[] {
-  return runsFields(content, '/content', context)
+  return edited(runsFields(content, '/content', context))
+}
+
+/** What each of a run's two buttons is named by, and shows. */
+const SHIFT_WORDS = {
+  subscript: { name: 'action.subscriptOf', text: 'action.subscript' },
+  superscript: { name: 'action.superscriptOf', text: 'action.superscript' },
+} as const
+
+/**
+ * A paragraph's runs, each a group of its own named as its field is,
+ * holding that field and its two buttons, Subscript and Superscript, each
+ * named after the run and pressed while the run is set so: pressed, it
+ * sets the run back on the line (0061). A page counter, which has nothing
+ * to edit and takes no baseline, has none.
+ */
+function paragraphRuns(content: readonly Inline[], context: FieldContext): GroupSpec[] {
+  return runsFields(content, '/content', context).flatMap((field, index): GroupSpec[] => {
+    const run = content[index]
+    if (field === undefined || run === undefined || run.kind === 'pageNumber' || run.kind === 'pageCount') return []
+    const key = `/content/${String(index)}`
+    const buttons = BASELINE_SHIFTS.map((shift): GroupButton => ({
+      words: SHIFT_WORDS[shift].name,
+      of: field.words,
+      text: SHIFT_WORDS[shift].text,
+      action: { type: 'setBaseline', key, baseline: run.baseline === shift ? null : shift },
+      available: true,
+      pressed: run.baseline === shift,
+    }))
+    return [{ key, words: field.words, fields: [field], buttons }]
+  })
 }
 
 /**
@@ -399,7 +341,7 @@ function contentFields(content: readonly Inline[], context: FieldContext): Field
  * line break stands (BT-20), are `multiline`.
  */
 export function codeTextFields(runs: readonly Inline[], key: string, name: TextName, context: FieldContext, lines: 'text' | 'multiline' = 'text'): FieldSpec[] {
-  return runsFields(runs, key, context, name, lines)
+  return edited(runsFields(runs, key, context, name, lines))
 }
 
 /**
@@ -459,12 +401,12 @@ const CAPTION_OPTIONS = (t: EditorText) => [
   ...EPC_CAPTIONS.map((caption) => ({ value: caption, label: t(`option.${caption}`), stored: caption })),
 ]
 
-type Fields<C> = (component: C, context: FieldContext) => FieldSpec[]
+type Fields<C> = (component: C, context: FieldContext) => PanelSpec[]
 
 /** Each kind's own fields, in the order the panel shows them; the ones every component has follow. */
 const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { kind: K }>> } = {
   text: (component, context) => [
-    ...contentFields(component.content, context),
+    ...paragraphRuns(component.content, context),
     booleanField('/keepWithNext', { id: 'field.keepWithNext' }, component.keepWithNext),
   ],
   image: (component, { report, t }) => {
@@ -553,8 +495,8 @@ const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { 
   keepTogether: () => [],
 }
 
-/** A component's fields: its kind's own, then its style and its condition. */
-export function componentFields(component: Component, context: FieldContext): FieldSpec[] {
+/** A component's fields: its kind's own, a paragraph's runs in groups, then its style and its condition. */
+export function componentFields(component: Component, context: FieldContext): PanelSpec[] {
   const own = (KIND_FIELDS[component.kind] as Fields<Component>)(component, context)
   return [
     ...own,

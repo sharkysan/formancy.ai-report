@@ -25,11 +25,13 @@
   it is done, and a list of groups is edited item by item, both builders
   following the model. Extended by
   [0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md):
-  each run of a paragraph is a group of its own, whose two buttons say
-  whether they are pressed and set the text selected in its field, or the
-  whole run, below or above the line; a builder adds that selection, read
-  from the field, to the action, and the scenarios select text from the
-  keyboard.
+  each run of a paragraph is a group of its own, whose two buttons, named
+  after the run, say whether they are pressed and set the text selected in
+  its field, or the whole run, below or above the line; a builder adds that
+  selection, read from the field, to the action, and follows the action's
+  outcome to the run that holds the text, and the scenarios select the
+  text with the field's own `setSelectionRange`, as neither jsdom runner's
+  keyboard selects with Shift.
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** each package's `test:coverage` job in CI, the `verify` job

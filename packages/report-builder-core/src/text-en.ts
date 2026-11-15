@@ -436,6 +436,21 @@ export const EN = {
   'status.notOptionalInvoice': '{name}: part of every {kind} invoice, never added or removed.',
   'status.notOptionalItem': '{name} belongs to a list: its own buttons add and remove its items.',
   'status.vatCategoriesFull': 'The e-invoice declares every VAT breakdown a category added could be: change one of its categories instead.',
+
+  // A run of a paragraph set below or above the line, or back on it (0061).
+  'action.subscript': 'Subscript',
+  'action.superscript': 'Superscript',
+  'action.subscriptOf': '{name}, subscript',
+  'action.superscriptOf': '{name}, superscript',
+  'history.subscript': 'Set below the line',
+  'history.superscript': 'Set above the line',
+  'history.onTheLine': 'Set back on the line',
+  'status.subscript': 'Set {name} below the line.',
+  'status.superscript': 'Set {name} above the line.',
+  'status.onTheLine': 'Set {name} back on the line.',
+  'status.selectionStale':
+    '{name} shows what was typed, not what the report holds: commit it, or press Escape, before setting part of it below or above the line.',
+  'status.baselineUnchanged': '{name} is set so already.',
 } as const
 
 export type MessageId = keyof typeof EN

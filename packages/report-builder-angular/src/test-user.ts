@@ -14,7 +14,10 @@
  *   that nothing prevented clicks it, as browsers do;
  * - filling a field focuses it, replaces its value with an input event, and
  *   leaves it, which fires the change event a commit listens for;
- * - choosing an option sets the select and fires its change.
+ * - choosing an option sets the select and fires its change;
+ * - selecting characters of a text field focuses it and selects them with
+ *   its own `setSelectionRange`, which is what a person's Shift and arrows
+ *   leave behind and what a run's button reads (0061).
  *
  * - a file chosen in the chooser a file input opened sets the input's
  *   files and fires its input and change events, as a browser does once
@@ -75,6 +78,13 @@ export function fileInputOf(button: HTMLElement): HTMLInputElement {
 export function pick(input: HTMLInputElement, file: File): void {
   fireEvent.input(input, { target: { files: [file] } })
   fireEvent.change(input, { target: { files: [file] } })
+}
+
+/** The characters from `start` to `end` of `field`'s text selected, the field focused, as Shift with the arrows leaves it. */
+export function selectText(field: HTMLElement, start: number, end: number): void {
+  if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) throw new Error(`a ${field.tagName} holds no text to select`)
+  field.focus()
+  field.setSelectionRange(start, end)
 }
 
 export function choose(field: HTMLElement, label: string): void {

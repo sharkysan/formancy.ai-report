@@ -24,8 +24,10 @@ import type { Selection } from './model.js'
 import type { PropertyField, PropertyGroup, PropertyPanel, PropertyRow } from './model-properties.js'
 import { pairedReference } from './payment-part.js'
 import { paymentPartFields } from './payment-part-fields.js'
-import { columnFields, componentFields, fieldWords, flatFields, isGroup, reportFields } from './property-fields.js'
-import type { FieldSpec, GroupSpec, PanelSpec } from './property-fields.js'
+import { columnFields, componentFields, fieldWords, reportFields } from './property-fields.js'
+import type { FieldSpec } from './property-fields.js'
+import { buttonName, flatFields, groupName, isGroup } from './property-groups.js'
+import type { GroupSpec, PanelSpec } from './property-groups.js'
 import { selected } from './selection.js'
 import type { Selected } from './selection.js'
 import type { EditorLocale, EditorText, MessageId } from './text.js'
@@ -117,12 +119,14 @@ export function propertyPanel(
   }
   const groupOf = (spec: GroupSpec): PropertyGroup => ({
     key: spec.key,
-    label: t(spec.words, spec.item === undefined ? {} : { item: spec.item }),
+    label: groupName(spec, t),
     fields: spec.fields.map(fieldOf),
     actions: spec.buttons.map((button) => ({
-      label: t(button.words, button.item === undefined ? {} : { item: button.item }),
+      label: buttonName(button, t),
+      ...(button.text === undefined ? {} : { text: t(button.text) }),
       action: button.action,
       available: button.available,
+      ...(button.pressed === undefined ? {} : { pressed: button.pressed }),
       ...(button.then === undefined ? {} : { then: button.then }),
     })),
   })

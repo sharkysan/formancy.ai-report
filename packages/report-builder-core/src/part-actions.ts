@@ -23,8 +23,8 @@ import type { EditorOutcome, EditorRefusalCode } from './model-actions.js'
 import { newPaymentPart } from './payment-part.js'
 import { propertyChange, propertyTarget, specsOf } from './properties.js'
 import type { PropertyTarget } from './properties.js'
-import type { GroupSpec, ListSpec } from './property-fields.js'
-import { isGroup } from './property-fields.js'
+import { groupName, isGroup } from './property-groups.js'
+import type { GroupSpec, ListSpec } from './property-groups.js'
 import { isReportLevelPart } from './selection.js'
 import type { Derived, Local } from './state.js'
 import type { EditorLocale, EditorText } from './text.js'
@@ -78,11 +78,6 @@ export function partActions(lent: PartLent, t: EditorText, locale: EditorLocale)
     return { target, groups: specsOf(target, report, t, locale).filter(isGroup), report }
   }
 
-  /** A group's name, its item's number filled in: "VAT category 2". */
-  function nameOf(group: GroupSpec): string {
-    return t(group.words, group.item === undefined ? {} : { item: group.item })
-  }
-
   /**
    * A key from a caller tsc never saw -- a builder in plain JavaScript --
    * may be no string: it names nothing, and is refused as a part or a
@@ -100,7 +95,7 @@ export function partActions(lent: PartLent, t: EditorText, locale: EditorLocale)
    * (0044).
    */
   function notOptional(group: GroupSpec, target: PropertyTarget): string {
-    const name = nameOf(group)
+    const name = groupName(group, t)
     if (target.kind !== 'part' || target.part !== 'eInvoice') return t('status.notOptional', { name })
     if (group.item !== undefined) return t('status.notOptionalItem', { name })
     return t('status.notOptionalInvoice', { name, kind: t(target.invoice.kind === 'xrechnung' ? 'kind.xrechnung' : 'kind.facturX') })
@@ -120,7 +115,7 @@ export function partActions(lent: PartLent, t: EditorText, locale: EditorLocale)
     const found = optionalGroup(key)
     if ('ok' in found) return found
     const { group, target, report } = found
-    const name = nameOf(group)
+    const name = groupName(group, t)
     if (group.optional.present === add) return lent.refuse('unavailable', t(add ? 'status.alreadyThere' : 'status.notThere', { name }))
     // The selection stays what it was: the group is a part of it.
     const selection = lent.local().selection

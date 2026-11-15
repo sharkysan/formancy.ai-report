@@ -401,4 +401,17 @@ export const DE_CH: Catalogue = {
   'status.notOptionalItem': '{name} gehört zu einer Liste: Deren eigene Schaltflächen fügen Einträge hinzu und entfernen sie.',
   'status.vatCategoriesFull':
     'Die E-Rechnung führt schon jede Aufschlüsselung, die eine hinzugefügte Umsatzsteuerkategorie sein könnte: Ändern Sie stattdessen eine ihrer Kategorien.',
+  'action.subscript': 'Tiefgestellt',
+  'action.superscript': 'Hochgestellt',
+  'action.subscriptOf': '{name}, tiefgestellt',
+  'action.superscriptOf': '{name}, hochgestellt',
+  'history.subscript': 'Tiefstellen',
+  'history.superscript': 'Hochstellen',
+  'history.onTheLine': 'Auf die Zeile zurücksetzen',
+  'status.subscript': '{name} tiefgestellt.',
+  'status.superscript': '{name} hochgestellt.',
+  'status.onTheLine': '{name} auf die Zeile zurückgesetzt.',
+  'status.selectionStale':
+    'In {name} steht, was eingegeben wurde, nicht was der Bericht enthält: Übernehmen Sie es oder drücken Sie Escape, bevor Sie einen Teil davon tief- oder hochstellen.',
+  'status.baselineUnchanged': '{name} ist schon so gesetzt.',
 }

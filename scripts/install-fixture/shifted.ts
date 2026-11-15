@@ -9,8 +9,15 @@
  *   carry it, and none on a run that sets none;
  * - the packed renderer draws it to a PDF, and refuses a word of nothing
  *   but such runs, naming the paragraph, as it would be drawn into the
- *   line before.
+ *   line before;
+ * - the packed editor sets the characters a builder says were selected in
+ *   a run's field below the line, in one step, its outcome saying where the
+ *   keyboard goes, and the run's button pressed, its public types naming
+ *   what a builder sends and is told.
  */
+import { createReportEditor } from '@formancy/report-builder-core'
+import type { FieldSelection, GroupFocus } from '@formancy/report-builder-core'
+import { openReportSession } from '@formancy/report-core'
 import { BASELINE_SHIFTS } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { BASELINE_SHIFTS as RUNTIME_BASELINE_SHIFTS, resolveReport, SHIFTED_RISE, SHIFTED_SIZE } from '@formancy/report-runtime'
@@ -67,5 +74,31 @@ export async function shiftedRendered(): Promise<string> {
   )
   if (!(alone instanceof RenderRefusal) || alone.code !== 'unsupported' || alone.subject !== 'body[0]')
     throw new Error(`a word of nothing but a run set below the line was not refused, naming its paragraph: ${String(alone)}`)
-  return `a formula's digit set below the line and a unit's power above it resolved with their baselines and rendered to a ${pdf.length}-byte PDF, at the runtime's ${SHIFTED_SIZE} of the paragraph's size, and a word of nothing but such a run was refused, naming its paragraph`
+  // The packed editor: the digit of H2O, selected in its field, set below the line as a builder sends it.
+  const opening = openReportSession({
+    ...report,
+    regions: { ...report.regions, reportHeader: [{ id: 'water', kind: 'text', content: [{ kind: 'text', text: 'H2O' }] }] },
+  })
+  if (!opening.ok) throw new Error('the formula did not open a session')
+  const editor = createReportEditor(opening.session)
+  const selected: FieldSelection = { start: 1, end: 2, text: 'H2O' }
+  const pressed = editor.dispatch({ type: 'select', id: 'water' }).ok
+    ? editor.dispatch({ type: 'setBaseline', key: '/content/0', baseline: 'subscript', selected })
+    : undefined
+  const then: GroupFocus | undefined = pressed?.ok === true ? pressed.then : undefined
+  const on = editor
+    .state()
+    .properties.rows.flatMap((row) => ('group' in row ? row.group.actions : []))
+    .filter((action) => action.pressed === true)
+    .map((action) => action.label)
+  const written = JSON.stringify(opening.session.document().regions.reportHeader[0])
+  editor.dispose()
+  if (
+    then?.group !== '/content/1' ||
+    then.button !== 0 ||
+    JSON.stringify(on) !== JSON.stringify(['Part 2: Text, subscript']) ||
+    opening.session.undoLabel() !== 'Set below the line'
+  )
+    throw new Error(`the editor did not set the selected digit below the line in one step: ${written}, the keyboard sent to ${JSON.stringify(then)}`)
+  return `a formula's digit set below the line and a unit's power above it resolved with their baselines and rendered to a ${pdf.length}-byte PDF, at the runtime's ${SHIFTED_SIZE} of the paragraph's size, and a word of nothing but such a run was refused, naming its paragraph; the editor set a digit selected in its field below the line in one step, its button pressed and the keyboard sent to it`
 }

@@ -62,8 +62,10 @@ import type {
 } from '@formancy/report-spec'
 import type { PropertyOption } from './model-properties.js'
 import { NO_ACCOUNT } from './palette.js'
-import { choiceField, codeTextFields, expressionField, isGroup, optionalCodeTextFields, optionalGroup, textField } from './property-fields.js'
-import type { FieldContext, FieldSpec, GroupButton, GroupSpec, PanelSpec, Written } from './property-fields.js'
+import { choiceField, codeTextFields, expressionField, optionalCodeTextFields, textField } from './property-fields.js'
+import type { FieldContext, FieldSpec, Written } from './property-fields.js'
+import { isGroup, optionalGroup } from './property-groups.js'
+import type { GroupButton, GroupSpec, PanelSpec } from './property-groups.js'
 import { contentLocale, editorText } from './text.js'
 import type { MessageId } from './text.js'
 

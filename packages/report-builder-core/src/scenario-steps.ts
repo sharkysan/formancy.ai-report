@@ -15,6 +15,11 @@
  *   outline that selects the row: focus and selection are one.
  * - `press`: user-event's keyboard, the modifiers held around the key.
  * - `fill`: clears the field, types the text, and tabs away, which commits.
+ * - `selectText`: focuses the text field and selects the characters from
+ *   `start` to `end`, in UTF-16 code units, with the field's own
+ *   `setSelectionRange`: a DOM write, since jsdom's keyboard selects
+ *   nothing with Shift and an arrow, and what a builder reads from the
+ *   field when a run's button is pressed is that selection (0061).
  * - `choose`: selects the option with that label in the combobox.
  * - `host`: dispatches the action to the editor, as the host's own control
  *   for its view does -- the Studio's Preview, in its bar.
@@ -24,6 +29,7 @@
  *   editor has said what became of the file, and fails when the editor
  *   never took it -- a chooser that never reached the editor.
  * - `present`, `absent`, `focused`: the element is there, is not, has focus.
+ *   A query that says `pressed` finds a button only in that state.
  * - `value`: the control's value. `text`: the element's text content holds
  *   it. The live region is the status with no name; the problems' count is
  *   the status named by the problems pane.
@@ -42,9 +48,11 @@ export interface ScenarioQuery {
   readonly role: string
   readonly name: string
   readonly selected?: boolean
+  /** A toggle button's `aria-pressed`: a run's Subscript while the run is set below the line (0061). */
+  readonly pressed?: boolean
 }
 
-export const SCENARIO_ACTIONS = ['click', 'focus', 'press', 'fill', 'choose', 'host', 'upload'] as const
+export const SCENARIO_ACTIONS = ['click', 'focus', 'press', 'fill', 'selectText', 'choose', 'host', 'upload'] as const
 export const SCENARIO_EXPECTATIONS = ['present', 'absent', 'focused', 'value', 'text', 'invalid', 'document', 'kept'] as const
 
 /** A file an `upload` step hands the file input: what a runner makes a `File` of. */
@@ -69,6 +77,7 @@ export type ScenarioStep =
   | ({ readonly do: 'click' | 'focus' } & ScenarioQuery)
   | { readonly do: 'press'; readonly key: string; readonly modifiers?: readonly KeyModifier[] }
   | ({ readonly do: 'fill'; readonly text: string } & ScenarioQuery)
+  | ({ readonly do: 'selectText'; readonly start: number; readonly end: number } & ScenarioQuery)
   | ({ readonly do: 'choose'; readonly option: string } & ScenarioQuery)
   | { readonly do: 'host'; readonly action: HostViewAction }
   | ({ readonly do: 'upload'; readonly file: ScenarioFile } & ScenarioQuery)

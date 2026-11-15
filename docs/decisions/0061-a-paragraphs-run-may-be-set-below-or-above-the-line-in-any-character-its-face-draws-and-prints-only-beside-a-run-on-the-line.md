@@ -54,17 +54,38 @@
     `src/check-text.test.ts`: `shiftedRuns` fails a run expected below
     or above the line that is drawn on it, at another size, or moved
     otherwise.
-  - **The builders.** report-builder-core's `src/baselines.test.ts`: the
-    selected text split from its run and set, snapped to whole
-    characters, its neighbours on the same baseline joined again; a
-    bound run set whole; a split past `MAX_INLINES` refused, the report
-    unchanged. `src/properties.test.ts`: each run of a paragraph a group
-    of its own with its two buttons, pressed as the run is set, and none
-    for a QR code's content, a payment part's or an e-invoice's texts or
-    a table's values. `BUILDER_SCENARIOS`' scenario that sets a run
-    below the line from the keyboard and undoes it, run by the core
-    against the model, by React's `src/scenarios.test.tsx` and Angular's
-    `src/scenarios.test.ts`, with axe at its end, in three languages; the
+  - **The builders.** report-builder-core's `src/baselines.test.ts`:
+    - the selected text split from its run and set, snapped to whole
+      graphemes -- an accent with its letter, an emoji's surrogate pair
+      whole -- a bound run set whole, a run set back on the line joined to
+      the literal runs beside it there, runs the press did not set left as
+      they were, and no run of nothing;
+    - the editor's action: one undo step, whose outcome sends the keyboard
+      to the pressed button of the run that holds the text; refused, the
+      report unchanged, for a selection of other text than the report
+      holds or none a field could give, a key that names no run with a
+      baseline -- a page counter's among them -- a baseline the format
+      lacks, a press that would change nothing, and, by the validator, a
+      split past `MAX_INLINES`.
+
+    `src/properties.test.ts`: each run of a paragraph a group of its own
+    with its two buttons, named after the run in the editor's three
+    languages, pressed as the run is set, none for a page counter, a QR
+    code's content, an EPC code's, a QR-bill's or an e-invoice's texts or
+    a table's values, and a bound run rebound keeping its baseline.
+    `src/css.test.ts` admits `aria-pressed`. `BUILDER_SCENARIOS`' two
+    scenarios (`src/scenario-baselines.ts`) -- the digit of H2O selected in
+    its field and set below the line from the keyboard, the keyboard
+    following it to the run that holds it, undone and redone, and set back
+    on the line by its pressed button; and a bound run raised whole -- run
+    by the core against the model, by React's `src/scenarios.test.tsx` and
+    Angular's `src/scenarios.test.ts`, with axe at their end, in three
+    languages. Each builder's accessibility test (React's
+    `src/accessibility.test.tsx`, Angular's `src/accessibility.test.ts`)
+    holds what a run's button shows beside the name it is given, and its
+    `aria-pressed`; the install gate's
+    `scripts/install-fixture/structure.ts` holds both builders'
+    server-drawn buttons to the state's words, name and pressed state; the
     Studio's `parity.test.tsx` and the browser gate's `gate-parity.mjs`
     compare the two builders' trees, which hold the buttons.
 
@@ -203,22 +224,36 @@ chose an engine against.
 - **Two buttons on each run.** In a paragraph's properties, each run is a
   group of its own, named as its field is now ("Text", "Part 2: Text"),
   holding its field and two toggle buttons, Subscript and Superscript, in
-  the editor's three languages, each pressed while the run is set so.
-  From the keyboard: Tab into the run's field, select the characters with
-  Shift and the arrows, Tab to a button and press it.
+  the editor's three languages, each pressed while the run is set so. A
+  button shows its word and is named after its run ("Part 2: Text,
+  subscript"), so that two runs' buttons are never one name, which a
+  screen reader would read alike and a test by role and name could not
+  tell apart. From the keyboard: Tab into the run's field, select the
+  characters with Shift and the arrows, Tab to a button and press it.
 - **On the selection, or the whole run.** Pressed on a literal run with
   text selected in its field, a button splits the selection from its run
   and sets it, snapped to whole characters (`Intl.Segmenter`'s
   graphemes); with nothing selected, or on a bound run, it sets the whole
-  run. A pressed button sets its text back on the line. Literal runs left
-  side by side on one baseline are joined again, so the content stays in
-  as few runs as it can. Each press is one `updateComponent`, one undo
-  step; a split past `MAX_INLINES` is the validator's to refuse, and
-  changes nothing (0008).
+  run. A pressed button sets its text back on the line. The run a press
+  set is joined to the literal runs beside it on the same baseline, so
+  the content stays in as few runs as it can, and no other run is
+  touched: runs a host or a paste wrote apart stay apart. Each press is
+  one `updateComponent`, one undo step; a split past `MAX_INLINES` is the
+  validator's to refuse, and changes nothing (0008).
 - **Decided once.** builder-core holds the split, the join and the
-  buttons (`baselines.ts`); a builder adds only the selection, which only
-  the DOM knows, read from the group's own field when its button is
-  pressed. A binding changed in a run's field keeps its baseline.
+  action (`baselines.ts`) and the groups and their buttons
+  (`property-fields.ts`, `property-groups.ts`); a builder adds only the
+  selection, which only the DOM knows, read from the group's own field
+  when its button is pressed, with the text it is of. builder-core
+  applies it only to the text the report holds: a value the session
+  refused stays typed in the field, and offsets into it would set the
+  wrong characters, so the press is refused, saying to commit the field
+  or press Escape. It says where the keyboard goes once the press is
+  done, the pressed button of the run that now holds the text, which a
+  split or a join moved and which only the press knows: the action's
+  outcome carries it (`then`), as a button's own `then` says it where it
+  is known before. A binding changed in a run's field keeps its
+  baseline.
 - **Not drawn in the design view.** The design view labels a box with its
   text, "H2O", as it labels every text; the Preview is the PDF and shows
   the run where it prints.
@@ -301,10 +336,24 @@ roadmap item 8's other half, and another record's.
 - **No formula read from a field.** As said above, C6H12O6 from the data
   prints on the line unless the data carries Unicode's lowered digits.
 - **Each text's properties are longer.** Every run of a paragraph is a
-  group with two buttons, so the panel of every text grows, the builders'
-  tests that list a text's controls list them, report-builder-core's
+  group with two buttons, its name drawn above its field's label, which
+  says it again, so the panel of every text grows, report-builder-core's
   README describes the group, and the README picture that shows a text's
   properties is retaken with `node scripts/pictures.mjs`.
+- **No test presses Shift with the arrows.** Neither jsdom runner's
+  keyboard extends a selection -- user-event 14.6.8 leaves Shift
+  unimplemented, and the Angular runner fires keys alone -- so the
+  scenarios select the characters with the field's own
+  `setSelectionRange`, a step of their own, `selectText`, which the
+  core's driver records. That a browser's Shift and arrows leave the
+  selection a builder reads is the platform's, and no gate presses them.
+- **A refused value blocks a part's press.** While a field shows a value
+  the session refused, a press of its run's button is refused until the
+  field is committed or given back with Escape, even with nothing
+  selected in it.
+- **A builder follows an outcome.** The editor's outcome may say where
+  the keyboard goes, and both builders follow it over a button's own; a
+  host that drew the properties itself would have to as well.
 - **A selection is cut at characters, not at runs.** A split adds up to
   two runs, bounded by `MAX_INLINES`; a paragraph near it refuses a split
   that would pass it.

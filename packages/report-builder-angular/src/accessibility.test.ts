@@ -19,11 +19,12 @@
  * e-invoice's (0044) -- that a group's name is its own and not
  * `aria-labelledby`'s, that the drawn name is hidden from the tree, found
  * by its `aria-hidden` ancestor, the row's level, place and the role of
- * what holds it, and which of a group's buttons is unavailable -- none of
+ * what holds it, and which of a group's buttons is unavailable -- and the
+ * word a run's button shows beside the name it is given (0061), none of
  * which a query by role and name returns.
  */
 import { TestBed } from '@angular/core/testing'
-import { BUILDER_SCENARIOS, createReportEditor, scenarioReport } from '@formancy/report-builder-core'
+import { BUILDER_SCENARIOS, createReportEditor, editorText, scenarioReport } from '@formancy/report-builder-core'
 import { screen, within } from '@testing-library/angular'
 import axe from 'axe-core'
 import { computeAccessibleName } from 'dom-accessibility-api'
@@ -230,6 +231,48 @@ describe('the accessible tree', () => {
 
   // Every row of a report holding every kind, named and audited with a
   // landmark around it, in one walk: the states the scenarios never reach.
+  // A run's two buttons show only the word they set, and are named after
+  // the run, so that two runs' are never one name and a screen reader
+  // hears which text a button sets; each says whether it is on (0061). A
+  // button that showed its whole name would crowd the pane, and one named
+  // only by its word would be one of two of that name.
+  test('names each run’s buttons after the run, shows each its own word, and says whether it is pressed', async () => {
+    const t = editorText('en')
+    const report = scenarioReport()
+    const formula = {
+      id: 'intro',
+      kind: 'text',
+      content: [
+        { kind: 'text', text: 'H' },
+        { kind: 'text', text: '2', baseline: 'subscript' },
+        { kind: 'text', text: 'O' },
+      ],
+    } as const
+    const body = report.regions.body.map((component) => (component.id === 'intro' ? formula : component))
+    const { settle } = await mountBuilder(createReportEditor(sessionOver({ ...report, regions: { ...report.regions, body } })))
+    click(screen.getByRole('treeitem', { name: 'H2O' }))
+    await settle()
+    for (const [n, lowered] of [
+      [1, false],
+      [2, true],
+      [3, false],
+    ] as const) {
+      const name = t('field.part', { n, kind: t('run.text') })
+      const drawn = screen.getByRole('group', { name })
+      expect(within(drawn).getByRole('textbox', { name })).toBeTruthy()
+      expect(
+        within(drawn)
+          .getAllByRole('button')
+          .map((button) => [button.textContent, computeAccessibleName(button), button.getAttribute('aria-pressed')]),
+        name,
+      ).toEqual([
+        [t('action.subscript'), t('action.subscriptOf', { name }), String(lowered)],
+        [t('action.superscript'), t('action.superscriptOf', { name }), 'false'],
+      ])
+    }
+    expect(await audit()).toEqual([])
+  })
+
   test('names every part with each row of every kind selected', async () => {
     const { settle } = await mountBuilder(createReportEditor(richSession()))
     for (const row of screen.getAllByRole('treeitem')) {
