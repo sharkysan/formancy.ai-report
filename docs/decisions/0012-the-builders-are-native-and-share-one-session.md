@@ -23,7 +23,12 @@
   is such a part too, a group of fields carries a list of buttons, each
   saying whether it has somewhere to go and where the keyboard goes once
   it is done, and a list of groups is edited item by item, both builders
-  following the model.
+  following the model. Extended by
+  [0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md):
+  the report's properties choose what page 1 prints at its top, and the
+  outline and the design view hold page 1's own header only where the
+  report has one, held by scenarios of their own and by the Studio's
+  parity walk.
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** each package's `test:coverage` job in CI, the `verify` job

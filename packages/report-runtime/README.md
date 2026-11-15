@@ -202,7 +202,8 @@ document's `eInvoice`, an `EInvoiceFile` of its kind:
   since a PDF drawn of it is a copy, in the paragraph the runtime exports
   frozen as `XRECHNUNG_COPY_PARAGRAPH`, small, bold and red; the renderer
   draws the document as a plain PDF that embeds nothing, and refuses one
-  whose page header does not open with that paragraph, style and all.
+  whose page header, or page 1's own header where it has one, does not
+  open with that paragraph, style and all.
 
 ```ts
 const resolution = resolveReport(xrechnung, data, { mode: 'final', creationDate })
@@ -328,6 +329,30 @@ A renderer prints the block's strings and no others, a pie's values only
 in its legend, makes a coordinate of a value's `exact`, and formats no
 number. This release's renderer does not
 draw a chart yet, and refuses one.
+
+## Page 1's own header
+
+A report whose regions hold `firstPageHeader` gives page 1 a header of its
+own, which page 1 prints in place of the page header
+([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+The document carries it as `firstPageHeader`, beside `pageHeader`, present
+exactly when the report's is:
+
+- **Lowered as the page header is**, each component to the block it
+  prints, a component whose condition does not hold left out; one whose
+  every component is hidden is an empty list, page 1 with no header, never
+  the page header's blocks: the choice is the report's, not the data's.
+- **An empty list is none.** Page 1 prints no header, and its body starts
+  at the top margin. A report without the region resolves to a document
+  without the key, as it always did.
+- **Labelled as the page header is.** A preview's label, an e-invoice
+  preview's and an XRechnung's `XRECHNUNG_COPY_PARAGRAPH` head it too,
+  each header with a paragraph of its own, so that page 1 says it as every
+  page does; page 1's header that is none is the label alone.
+- **No page field.** report-spec refuses a page number or count in it,
+  since the renderer draws it before the pages are counted; which page
+  prints which header is the renderer's to decide, and nothing here
+  evaluates anything per page.
 
 ## What else is exported
 

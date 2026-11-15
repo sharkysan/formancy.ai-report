@@ -1,6 +1,6 @@
 # 0060 — A report's first page may print a header of its own, or none, in place of the page header, which then prints from the second page on
 
-- **Status:** accepted; numbered while 0054 and 0056 to 0058 were held by branches not yet merged, after 0053 and 0055 had merged; extends [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose five regions gain an optional sixth, [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), whose resolved document carries page 1's header and heads it with every label the page header carries, [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), whose page header is drawn on every page but the first where a report has a first page header of its own, and whose page regions' drawings, counted on every page, are joined by that header's, counted once, and [0012](0012-the-builders-are-native-and-share-one-session.md), whose scenarios edit it in both builders
+- **Status:** accepted; numbered while 0054 and 0056 to 0059 were held by branches not yet merged, after 0053 and 0055 had merged; extends [0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md), whose checks read page 1 by its own header and every later page by the page header, [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose five regions gain an optional sixth, [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), whose resolved document carries page 1's header and heads it with every label the page header carries, [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), whose page header is drawn on every page but the first where a report has a first page header of its own, [0012](0012-the-builders-are-native-and-share-one-session.md), whose scenarios edit it in both builders, [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), whose slip is held below the taller of the two headers, [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), whose page regions' drawings, counted on every page, are joined by page 1's own header's, counted once, and [0038](0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md), whose copy label opens page 1's own header too
 - **Date:** 2026-11-15
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -33,45 +33,70 @@
     `fieldReaders` and `removeFieldWithReaders` reach a field only its
     components read. `src/commands/registry.test.ts` holds both
     commands' argument shapes, as it holds every command's.
-  - **The runtime.** report-runtime's `src/lower.test.ts` resolves a
-    report without the region to a document without `firstPageHeader`,
-    deep-equal to the one it resolved before the region existed; one with
-    it to the blocks its components lower to, a component its condition
-    hides left out; and one whose every component is hidden to an empty
-    list, never to the page header's blocks. `src/resolve.test.ts` heads
-    page 1's header, its own or none, with the preview's label, the
-    e-invoice preview's and an XRechnung's copy label, as it heads the
-    page header.
+  - **The runtime.** report-runtime's `src/first-page-header.test.ts`
+    resolves a report without the region to a document without the key
+    `firstPageHeader`, its regions as before, in a final render and a
+    preview; one with it to the blocks its components lower to, a
+    component its condition hides left out, the page header beside it
+    lowered as it was; none, and one whose every component is hidden, to
+    an empty list, never to the page header's blocks; and heads page 1's
+    header, its own or none, with the preview's label, the e-invoice
+    preview's and an XRechnung's copy paragraph, as it heads the page
+    header, each header with a paragraph of its own, and a Factur-X
+    invoice's final render with neither.
   - **The PDF.** report-render-pdf's `src/first-page-header.test.ts`,
     on the PDF the engine produced, read back with PDF.js through the
     corpus's checks (0003):
-    - page 1 prints its own header's lines and none of the page
-      header's, and every later page the page header's and none of page
-      1's;
-    - page 1's first body line stands below the foot of its own header
-      and the gap, within `OVERLAP`, for a header taller than the page
-      header and one shorter; at the top margin for none; and page 2's
-      below the page header, where it stood before;
+    - each of the corpus's `FIRST_PAGE_FIXTURES` -- a letterhead taller
+      than the page header over a long grouped table, one shorter, and
+      none --
+      passes `verify`, and reads on page 1, line by line and drawing by
+      drawing, exactly as the same document under a page header like its
+      own, its body from the same top, and on every later page exactly as
+      under the page header alone, with none of page 1's drawings;
+    - the renderer's copy of the corpus's `expectation` derives page 1
+      as the corpus's does;
     - a one-page report prints its own header and the page header on no
-      page; a one-page report with a QR-bill draws its slip under it;
-    - a keep-with-next heading first on page 1 stays there;
-    - an SVG in it drawn on page 1 alone, as vectors in the clip of its
-      box.
+      page; a one-page report with a QR-bill draws its slip under it, its
+      code decoded from the page's pixels; and the slip is held below the
+      taller header, page 1's own among them;
+    - a keep-with-next heading first on page 1 stays there, its block on
+      the next page; a block page 1 cannot hold under its taller header
+      starts page 2, whole; and a table that fits the page limit only in
+      page 1's taller body is drawn;
+    - an SVG in it counts once toward `MAX_SVG_DRAWING`; and a heading
+      in it is kept with nothing and names no destination in the PDF.
 
-    `src/pdfmake.test.ts` holds the three behaviours of pdfmake 0.3.11
-    the drawing rests on: page 1's background laid out in a box as tall
-    as the page, whatever its top margin; an empty node with a negative
-    top margin moving the next line up by that margin; a page whose
-    header function returns nothing drawn without a header.
-    `src/refusals.test.ts` refuses, as `content-too-large` naming
-    `firstPageHeader`, a first page header that with the page footer
-    leaves page 1 no body, and a page field in a document's first page
-    header as `unsupported`; `src/xrechnung.test.ts` an XRechnung's
-    document whose first page header does not open with the copy label.
-  - **The corpus's checks.** report-corpus's `src/checks.test.ts` fails a
-    PDF whose page 1 prints the page header where the document gives it
-    one of its own, whose page 2 prints page 1's, and whose page 1 body
-    starts above the foot of page 1's own header.
+    `src/pdfmake.test.ts`, "pdfmake's page top", holds the behaviours of
+    pdfmake 0.3.11 the drawing rests on: page 1's background laid out in
+    a box as large as the page, whatever its top margin; an empty node's
+    top margin moving the next line by that margin, up for a negative
+    one; a page whose header function returns nothing drawn without a
+    header; and a filled table first on page 1 painting its fill under its
+    own text, beneath a background of text, a rule and an image.
+    `src/refusals.test.ts`, "page 1's own header (0060)", refuses a page
+    number or count in it, at its top level and in a column, as
+    `unsupported`, saying the page footer prints page 1's; a page break in
+    it; as `content-too-large` naming `firstPageHeader`, one that with the
+    page footer leaves page 1 no body and one taller than the printable
+    area; still refuses a page header that leaves the later pages no body;
+    and refuses an image page 1's shorter body cannot hold, drawing one it
+    can. Beside them, an XRechnung's document whose first page header does
+    not open with the copy paragraph, or is none, is refused naming
+    `firstPageHeader`, and `src/xrechnung.test.ts` draws the copy label at
+    the head of page 1 under a header of its own, and of every later page.
+  - **The corpus's checks.** report-corpus's `src/checks.test.ts`, "verify
+    holds page 1's own header to page 1 (0060)", finds nothing wrong with
+    page 1 under its own header, or none, and page 2 under the page header,
+    and fails a PDF whose page 1 prints the page header in place of its own
+    or of none, whose page 2 prints page 1's own header, and whose page 1
+    body starts above the foot of page 1's own header.
+    `src/fixtures/fixtures.test.ts` holds `FIRST_PAGE_FIXTURES` apart from
+    `ALL_FIXTURES`, each once, each holding page 1 to its own header; and
+    the renderer trial's adapters, which draw no such header, refuse a
+    document with one, its none among them, as `unsupported` naming
+    `firstPageHeader` (`src/trial/undrawn.test.ts`), rather than print the
+    page header on page 1.
   - **Both builders.** report-builder-core's `src/scenario-first-page.ts`,
     in `BUILDER_SCENARIOS`, which the core runs against the model
     (`src/scenarios.test.ts`) and React and Angular each run with axe
@@ -102,9 +127,50 @@
     the install gate and the Studio's parity of both builders' trees
     over every starter pass. A report without a first page header of its
     own is the report it was, resolved and printed as before.
-  - **Seen failing.** Not yet: each case above is run before its code,
-    or with that code disabled in the working tree and restored, and
-    recorded here with its date by the change that adds it.
+  - **Seen failing, on 2026-11-15**, each case before its code, or with
+    one piece of the code taken out of the working tree and put back:
+    - **the format and the core:** report-spec's six format cases and the
+      walk's order failed before the code, and the walk over a report
+      without the region threw while `REGION_NAMES` named it and the walk
+      did not yet skip it; report-core's ten failed against commands that
+      did nothing; with the builders' outline, state and geometry
+      iterating `REGION_NAMES` as before, their suites failed, the
+      geometry throwing on the region a report lacks;
+    - **the runtime:** four of `src/first-page-header.test.ts`'s five
+      cases failed with the `lower.ts` and `resolve.ts` before the change,
+      the fifth holding a report without the region;
+    - **the PDF:** twenty of the renderer's new cases failed against the
+      renderer before the change, the two that passed holding the two
+      derivations to each other and the page header still held; and each
+      failed its case with one piece taken out: the rule that asks for
+      page 1's top on page 1, the page region's scope, which names no
+      destination, the bound of a block of fixed height by the shorter
+      body, the least height held to page 1's body, the measuring sheet,
+      the slip's taller header and the SVG counted once;
+    - **the corpus:** the four cases of `src/checks.test.ts` failed with
+      the `check-layout.ts`, `check-page.ts` and `drawings.ts` before the
+      change, and the trial's four, both adapters for each of its two
+      documents, with the `undrawn.ts` before it;
+    - **the builders:** eight cases failed before the code, the choice's
+      four, the report pane's fields and the first scenario in three
+      languages;
+      and each failed its case with one piece taken out: the choice's own
+      branch in `propertyChange`, the guard on the option already shown,
+      the region's list box in the geometry, report-spec's built rule
+      that keeps a page field out of the region, and the Angular builder's
+      built outline naming the region otherwise, which the Studio's parity
+      walk found;
+    - **the paperwork:** `scripts/architecture.test.mjs` and
+      `scripts/release-report/limitations.test.mjs` failed on this record
+      until a section linked it and the register read it.
+
+    Every PDF the e-invoice gate records -- each sample, each starter's
+    layout as a variant, the image, SVG and font variants and the controls
+    -- was drawn again by the changed renderer, through a script that is
+    not kept, and each of the 23 has the `inflatedDigest`
+    `scripts/e-invoice/recorded/run.json` records: a report without the
+    region draws, object by object, what it drew. No Java tool judged them
+    here.
 
 ## Context
 
@@ -356,7 +422,8 @@ over the five it knows.
   header's but for page fields, held by the validator every layer asks.
 - **Every report that was is the same report.** A report without the
   region validates, hashes, resolves and prints as it did, and every
-  builder shows it as it did.
+  builder shows its outline and its design view as it did; its properties
+  gain the choice.
 
 **What it costs.**
 - **No page number or count on page 1's own header.** "Page 1 of 3" on
@@ -420,6 +487,9 @@ over the five it knows.
   `REGION_NAMES` lists six names and a report may hold five of them, so
   `report.regions[name]` over the list is `undefined` for a report
   without a first page header, which TypeScript says where it is read.
+  report-spec exports `OPTIONAL_REGIONS`, which names the region a report
+  may leave out, and `heldRegions`, which lists the regions a report holds
+  with their components, the walk's own list.
 - **The report's properties gain a choice.** Every report's pane shows it,
   so the README's pictures that show that pane are retaken with
   `node scripts/pictures.mjs`, as any change to what a picture shows is.

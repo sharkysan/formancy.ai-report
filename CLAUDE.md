@@ -141,7 +141,8 @@ renderer draws, and `checkSvg`, which accepts only that form; the runtime
 hands both on and refuses an answer past `MAX_SVG_BYTES`; and the renderer
 draws only what `checkSvg` accepts, as vectors, behind its own list of
 elements in `svg-content.ts` and converter callbacks that refuse, a logo
-in a page region counted on every page against `MAX_SVG_DRAWING`
+in the page header or footer counted on every page against
+`MAX_SVG_DRAWING`, and one in page 1's own header once
 ([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 A font is read once, by report-spec's own reader: `readFont`, in
 `font.ts` and the `font-*.ts` beside it, reads a static TrueType font
@@ -206,6 +207,25 @@ of ten, exactly, at most `MAX_TICK_INTERVALS` intervals
 renderer's `check.ts` refuses the block as `unsupported` until it draws
 charts
 ([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
+A report's first page may print a header of its own, or none, in place
+of the page header, through all four and both builders: report-spec's
+optional sixth region, `firstPageHeader`, between the report header and
+the page header in `REGION_NAMES`, named by `OPTIONAL_REGIONS`, read by
+name in `validate.ts` and walked only where a report holds it
+(`heldRegions`), its presence the choice and its empty list none, a page
+field refused in it by `validate-inline.ts`; report-core's
+`putFirstPageHeader` and `removeFirstPageHeader`
+(`commands/first-page-header.ts`); the runtime's
+`ResolvedDocument.firstPageHeader`, headed with every label the page
+header carries; the renderer's `definition.ts` drawing it in page 1's
+background, page 1's body moved by the difference between the two
+headers' rooms, `render.ts` measuring it in a pass of its own, a kept
+block held to the later pages' body and a block of fixed height to the
+shorter, and `check-images.ts` counting its drawings once; the corpus's
+`FIRST_PAGE_FIXTURES`, apart from `ALL_FIXTURES`, and `regionsOn`, which
+reads page 1 by its own header; and builder-core's `report-fields.ts`,
+the report's properties choosing it, and `scenario-first-page.ts`
+([0060](docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort

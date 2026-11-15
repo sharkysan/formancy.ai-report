@@ -10,6 +10,69 @@ later.
 
 ## Unreleased
 
+**A report's first page may print a header of its own, or none, in place of
+the page header**
+([0060](docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+A letter, an invoice or an order often opens with a letterhead and runs on
+under a short line, or under nothing. A report could print a letterhead only
+in its report header, which is the start of the body: under the page header,
+which still printed above it on page 1, and with no room of its own. Page 1
+can now print its own header in the page header's place, which then prints
+from page 2 on, each page's body starting below the header that page prints.
+A report that does not use it resolves and prints exactly as before: every
+PDF the e-invoice gate records, drawn again by the changed renderer, has the
+digest it had.
+- **report-spec's sixth region, `firstPageHeader`**, optional, between the
+  report header and the page header in `REGION_NAMES`, which now lists six
+  names a report may hold five of; `OPTIONAL_REGIONS` names it, and
+  `heldRegions` lists the regions a report holds. Its presence is the
+  choice: absent, page 1 prints the page header; **empty, page 1 prints no
+  header**, which has no other spelling. It holds what the page header
+  holds, with a budget of its own, but **no page number or page count**,
+  refused as `misplaced-page-counter`: it is drawn before the pages are
+  counted, and page 1's number and count print in the page footer.
+- **report-core's `putFirstPageHeader` and `removeFirstPageHeader`**, each
+  one undo step and a descriptor a proposal can carry; removing it takes
+  what it holds with it, and a place in it is refused as `not-found` while a
+  report has none. The walk, `fieldReaders`, the diagnostics and a form
+  review reach what stands in it.
+- **The runtime's `ResolvedDocument.firstPageHeader`**, present exactly when
+  the report's is, an empty list for none and for one whose every component
+  its condition hides, never the page header's blocks; and headed by every
+  label the page header carries, a preview's, an e-invoice preview's and an
+  XRechnung's copy paragraph.
+- **The renderer draws it in page 1's background**, at the margin the page
+  header stands at, the page header drawing nothing on page 1, and moves
+  page 1's body by the difference between the two headers' rooms: a
+  pdfmake page header's box is the top margin, one for every page, which
+  would lose a taller letterhead's lines. It is measured in a pass of its
+  own, and refused as `content-too-large` naming `firstPageHeader` where it
+  is taller than the printable area or leaves page 1 no body; a page field
+  in a document's first page header is `unsupported`, an XRechnung's that
+  does not open with the copy paragraph is refused, and an SVG in it counts
+  once toward `MAX_SVG_DRAWING`. **What it costs**: where page 1's own
+  header is taller, a block kept together that page 1's body cannot hold
+  starts page 2, page 1 printing its header alone; an image, a QR code or
+  another block of fixed height taller than the shorter of page 1's and the
+  later pages' bodies is refused, though a later page could hold it,
+  because pdfmake draws an image on a page that holds nothing yet whatever
+  its room, and would draw it past page 1's foot;
+  a tall own header is held above a QR-bill's slip though the report may
+  end on a later page; and the page header is still measured and held in a
+  report of one page that prints it nowhere.
+- **Both builders choose it in the report's properties**: "Header on page
+  1", the page header or a header of its own, which prints none while it is
+  empty. The outline's group and the design view's band show it only where
+  a report has one, before the page header's, so a report without it shows
+  the outline and the design view it did; every report's properties show
+  the choice, and the README's picture of them is retaken for it.
+- **0.2.0 refuses a report with one** as `unknown-property`, and a 0.2.0
+  renderer handed this runtime's document would print the page header on
+  page 1 without a word: the runtime and the renderer are of one release. No
+  e-invoice variant draws one yet, so veraPDF and Mustang have not judged a
+  PDF/A-3b whose page 1 prints its own header. A first page's own footer is
+  not part of it.
+
 **The product pages are measured in a browser on every pull request**
 ([0053](docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 Their reflow down to 320 pixels and their contrast were measured by hand in Chromium when each

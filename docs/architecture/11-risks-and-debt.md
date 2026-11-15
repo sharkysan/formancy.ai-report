@@ -91,6 +91,33 @@ group of the element's own size, and a callback for links, would be
 svg-to-pdfkit's to add; neither has been asked of it
 ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
+### Page 1's own header rests on pdfmake's page background
+
+A report's first page header is drawn in page 1's background, which
+pdfmake lays out first, under the body, through the hook the renderer
+already reads the page limit in, and page 1's body is moved below it by an
+empty node's top margin, which pdfmake does not clamp
+([0060](../decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+`report-render-pdf/src/pdfmake.test.ts` holds both on the release the
+renderer pins, and that a page whose header function returns nothing is
+drawn without a header. Two more behaviours nothing of the renderer's asks
+for are held as far as one case each: pdfmake hands the background's
+nodes to `pageBreakBefore` with the body's, and no node of a page region
+is marked for a rule; and it inserts a table's fill at the count of the
+background's positions rather than of its items, held for a filled table
+first on page 1 beneath a background of text, a rule and an image. A
+background drawn under page 1, which the roadmap plans apart, will have to
+share the hook. What it costs a report is page 1's: no page number or
+count in page 1's own header; a block page 1's taller header leaves no
+room for starts page 2, page 1 printing its header alone; an image page
+1's shorter body cannot hold refused, though a later page could hold it;
+and a tall own header held above a QR-bill's slip, though the report may
+end under the page header. No e-invoice variant draws one, so veraPDF and
+Mustang have not judged a PDF/A-3b whose page 1 prints its own header; and
+a 0.2.0 renderer handed a later runtime's document prints the page header
+on page 1 without a word, which only two releases in one install could do,
+since the packages pin each other exactly.
+
 ### An SVG logo costs every reader, and some files are refused
 
 Every recipient's viewer, and the Studio's Preview on every edit, pays to

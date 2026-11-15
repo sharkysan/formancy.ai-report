@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:e6f2d8c459335d773e1b768c78ea900d8bbed9b8c96055b2e2d90f125e4631d7",
+      "reviewed": "sha256:af379adbd4d96d87d46f549fc5a0e31bc5a5413a26c4831ef094962ccc35bdb4",
       "limitations": [
         {
           "area": "testing",
@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:6e36b3e78c78f8e66734806c1fbfce16c2be1286dd782b547dfa8c0a37174931",
+      "reviewed": "sha256:fc4342e019fb55fd6c92970f51caed82ca3f0ad5376562d2a920f9f21493d9ee",
       "limitations": [
         {
           "area": "format",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:d2262b528a9832011368ca08c8a3b2581e9f146152a6c0760dc1c366812f758f",
+      "reviewed": "sha256:0994f84945e47f29d2ce95e4f4b7ee038e7441239ebc7ab0b48687cfad6a24f5",
       "limitations": [
         {
           "area": "runtime",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:358a559280561418d1bafe9fe9f0cc201f522ceeb621729c28bc67651f7069a2",
+      "reviewed": "sha256:7c53300bc5a385efc7d350127cc59c7ccf27b2bb3c8b390123f463c6b3bb7447",
       "limitations": [
         {
           "area": "rendering",
@@ -296,7 +296,7 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:f3a9d8ddfbcc523d096dbc4c69c2ed58613a3942e8c54ee4ab59d63f28638e31",
+      "reviewed": "sha256:899f197352616d3310a5d4747505e21e05b997a43c18e873f458773f0bcc457d",
       "limitations": [
         {
           "area": "builders",
@@ -499,7 +499,7 @@
       ]
     },
     "0022": {
-      "reviewed": "sha256:2be7cd0a270c9ee7c9ee7cefe355364a4402302e96a0fafaa80220f1deadd776",
+      "reviewed": "sha256:c69c1f54f467b9b551209ede0617e60cd6f19db091c98b6cba3b739a8c03cdab",
       "limitations": [
         {
           "area": "format",
@@ -1024,7 +1024,7 @@
       ]
     },
     "0030": {
-      "reviewed": "sha256:c64937d3fb7ac564b9eb61a2a27edeb159d2e71ff0008609840f9c5ec5a85f37",
+      "reviewed": "sha256:4a237dad47eeba815b8616899a7c2c0f7aa5b1ff1a2482220f755e883560deea",
       "limitations": [
         {
           "area": "format",
@@ -1077,7 +1077,7 @@
         },
         {
           "area": "rendering",
-          "says": "A render may draw `MAX_SVG_DRAWING` units of SVG, an image in a page region counted on every page `maxPages` allows and not on the pages printed, so at a limit of 200 pages a header logo may cost 5,000 units however short the report: a logo of 9,999 short lines, the most one drawing may hold, costs 12,152 and may head a report of 82 pages at most, which the Studio's Preview, limited to 40, draws and a render limited to 200 refuses.",
+          "says": "A render may draw `MAX_SVG_DRAWING` units of SVG, an image in the page header or footer counted on every page `maxPages` allows and not on the pages printed, so at a limit of 200 pages a header logo may cost 5,000 units however short the report: a logo of 9,999 short lines, the most one drawing may hold, costs 12,152 and may head a report of 82 pages at most, which the Studio's Preview, limited to 40, draws and a render limited to 200 refuses.",
           "heldBy": "packages/report-render-pdf/src/svg.test.ts"
         },
         {
@@ -1399,7 +1399,7 @@
       ]
     },
     "0038": {
-      "reviewed": "sha256:c004c5e3dbade806092187a42896bd13c1e9a6c7fe0f29af725f99d6ced24210",
+      "reviewed": "sha256:17b8ff8583a5300cad732b9d35ae60eb6957bd9791c3e6d0b3f5ab726f0862b9",
       "limitations": [
         {
           "area": "format",
@@ -2358,6 +2358,63 @@
           "area": "rendering",
           "says": "Until the renderer draws charts, a report that would print one is refused when it renders.",
           "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        }
+      ]
+    },
+    "0060": {
+      "reviewed": "sha256:c89e390a394ce48d981d62cd5e670f68a610877873b375bea59b5dfefb88a016",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A page number or a page count is refused in page 1's own header, since it is drawn before the pages are counted: page 1's number and count print in the page footer, and a first page header copied from a page header that numbers its pages is refused until the number is taken out.",
+          "heldBy": "packages/report-spec/src/validate-first-page-header.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "No header on page 1 is written as an empty header of page 1's own, which the format has no other word for: a person who chooses a header of page 1's own and adds nothing to it gets no header on page 1.",
+          "heldBy": "packages/report-spec/src/validate-first-page-header.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "`REGION_NAMES` lists six regions and a report may hold five of them, so an integrator who iterates the list meets `firstPageHeader` missing from a report without one; report-spec's `heldRegions` lists the regions a report holds.",
+          "heldBy": "packages/report-spec/src/walk.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Choosing the page header again for page 1 in either builder's report properties removes page 1's own header with everything it holds, in one step that undo brings back.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "In a report with a header of page 1's own, an image, a QR code or another block of fixed height taller than the shorter of page 1's body and the later pages' bodies is refused, though a later page could hold it.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Where page 1's own header takes more room than the page header, a block kept together, or a table's first rows kept with its column header, that page 1's body cannot hold starts page 2, and page 1 prints its header with nothing under it.",
+          "heldBy": "packages/report-render-pdf/src/first-page-header.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Where page 1's own header takes less room than the page header, a kept block that only page 1's taller body could hold is refused, even in a report that would end on page 1."
+        },
+        {
+          "area": "rendering",
+          "says": "A header of page 1's own that reaches into a QR-bill's slip is refused, though the report runs on to a later page whose page header leaves the slip its room, since which page is the last is known only once the pages are laid out.",
+          "heldBy": "packages/report-render-pdf/src/first-page-header.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The page header of a report with a header of page 1's own is measured and held to leaving the later pages' body room, even where the report has one page and no page prints it.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "No e-invoice gate variant draws a header of page 1's own, so veraPDF and Mustang have not judged a PDF/A-3b whose page 1 prints one."
+        },
+        {
+          "area": "release",
+          "says": "A report that holds a first page header is refused whole by 0.2.0 as an unknown property, so a report saved with one opens only in a release that has the region; and a 0.2.0 renderer handed a document this runtime resolved prints the page header on page 1 without a word, so the runtime and the renderer must be of one release."
         }
       ]
     }
