@@ -81,14 +81,21 @@
     section 20's fixtures `fonts` and `host-fonts` alone.
   - **The builders.** report-builder-core's `src/scenario-table-group.ts`,
     in `BUILDER_SCENARIOS`, run against the model by `src/scenarios.test.ts`
-    in English, Swiss German and Swiss French, and by React's
-    `src/scenarios.test.tsx` and Angular's `src/scenarios.test.ts`: the
-    count's field on a grouped table read, typed, refused, written back as
-    one, and undone, and absent from a table without a group.
-    `src/properties.test.ts` holds the field's key on the grouped table of
-    its report. The Studio's `parity.test.tsx` and `journey.test.tsx` hold
-    both builders alike, and every control named, over the grouped
-    equipment starter's table.
+    and by React's `src/scenarios.test.tsx` and Angular's
+    `src/scenarios.test.ts`, each in English, Swiss German and Swiss French,
+    the frameworks with axe over the end of each: the count's field on a
+    grouped table read as one, typed, refused out of range on its field,
+    written back as one, and undone; a count given back as it reads, or
+    emptied where none is stated, no edit, and the field reading one again
+    in both builders; and the field absent from a table without a group.
+    `src/properties.test.ts` holds the field's key, kind and value on the
+    grouped table of its report and its absence from the same table without
+    a group, one and nothing written as the member's absence, a count given
+    back as it reads or written otherwise left alone, and the validator's
+    own reason on the field for a count it refuses. The Studio's
+    `parity.test.tsx` holds both builders' accessible trees alike over the
+    grouped equipment starter's table, the one starter whose table has a
+    group, in each of the editor's languages.
   - **Seen failing.** Each stage records here, with the date, each case
     run before its code or with that code disabled and restored, and the
     byte comparison above with what it compared. Until it has, this line
@@ -229,11 +236,18 @@ breaks keep the longer block; nothing beside them is built.
 properties, *Rows kept with each group header*, a number, reading 1 where
 the member is absent. A number typed is written through `updateComponent`
 at `/group/keepWithRows`; 1, or nothing, is written as the member's
-absence, as a boolean's default is; a count out of range is the
-validator's to refuse, and its message stands on the field. The field is
-builder-core's, drawn by both builders as any number field, and held by
-`BUILDER_SCENARIOS` ([0012](0012-the-builders-are-native-and-share-one-session.md)).
-A table without a group shows no such field.
+absence, as a boolean's default is; a count given back as it reads -- 1,
+or nothing, where none is stated -- is no edit, with no Undo of its own,
+and the field reads it again; a count out of range is the validator's to
+refuse, and its message stands on the field. The field is builder-core's
+(`field-specs.ts`, where the constructors of every field now stand, apart
+from the table of which fields each kind has), drawn by both builders as
+any number field, and held by `BUILDER_SCENARIOS`
+([0012](0012-the-builders-are-native-and-share-one-session.md)). The
+Angular builder gives a typed control back what its field reads once a
+commit is taken as no edit, which Angular's binding, unchanged, would not
+write, as React's draft already gives way to it. A table without a group
+shows no such field.
 
 ## Consequences
 
@@ -287,8 +301,8 @@ A table without a group shows no such field.
   check holds a group header to the count its row carries, and its fixture
   is built of rows that fit; where the stated rows cannot fit, a case says
   the count it expects, from the heights it computes.
-- **One field and a scenario more**, in three languages, for the builders
-  to keep.
+- **One field and three scenarios more**, in three languages, for the
+  builders to keep.
 
 **What it forecloses.** Nothing that cannot be undone: the format is a
 draft's. A group header repeated on the pages its group continues on --

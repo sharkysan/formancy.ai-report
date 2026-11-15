@@ -7,7 +7,11 @@
  * single-line one; a select or a checkbox at once. A value given back as it
  * already stands is not sent, so the change event a browser fires after
  * Enter commits nothing twice. Escape in a typed field gives back what the
- * report holds, so leaving it afterwards commits nothing. A refused value
+ * report holds, so leaving it afterwards commits nothing. A value the
+ * editor takes as no edit -- a count emptied, which reads one (0059) --
+ * changes nothing the template binds, so Angular would leave what was
+ * typed in the control: once committed, the control takes back what the
+ * field reads, as React's draft gives way to it. A refused value
  * stays as typed, marked invalid and described by the reason, which is
  * shown under it; the editor keeps both, so they survive a re-render.
  */
@@ -46,7 +50,7 @@ export interface Shown {
           [attr.placeholder]="shown().field.placeholder ?? null"
           [attr.aria-invalid]="shown().errorId === null ? null : 'true'"
           [attr.aria-describedby]="shown().errorId"
-          (change)="commit(shown().field, $any($event.target).value)"
+          (change)="commit(shown().field, $any($event.target).value, $any($event.target))"
           (keydown.escape)="giveBack(shown().field, $event)"
         ></textarea>
       }
@@ -83,7 +87,7 @@ export interface Shown {
           [attr.placeholder]="shown().field.placeholder ?? null"
           [attr.aria-invalid]="shown().errorId === null ? null : 'true'"
           [attr.aria-describedby]="shown().errorId"
-          (change)="commit(shown().field, $any($event.target).value)"
+          (change)="commit(shown().field, $any($event.target).value, $any($event.target))"
           (keydown.enter)="enter(shown().field, $event)"
           (keydown.escape)="giveBack(shown().field, $event)"
         />
@@ -98,21 +102,31 @@ export class ReportPropertyRow {
   private readonly root = inject(ReportEditorRoot)
   readonly shown = input.required<Shown>()
 
-  protected commit(field: PropertyField, value: string | boolean): void {
-    // The field as the editor has it now: an Enter's commit has landed by the time the browser's change event follows it.
-    const now = this.root.state().properties.fields.find((candidate) => candidate.key === field.key)
+  /** The field as the editor has it now. */
+  private now(field: PropertyField): PropertyField | undefined {
+    return this.root.state().properties.fields.find((candidate) => candidate.key === field.key)
+  }
+
+  /** `value` sent, where it is not what the field holds; then, for a typed control, what the field reads back in it. */
+  protected commit(field: PropertyField, value: string | boolean, control?: HTMLInputElement | HTMLTextAreaElement): void {
+    // An Enter's commit has landed by the time the browser's change event follows it.
+    const now = this.now(field)
     if (now !== undefined && now.value === value) return
     this.root.dispatch({ type: 'setProperty', key: field.key, value })
+    // Taken as no edit, it leaves every binding as it was, so Angular writes nothing into the control.
+    const reads = this.now(field)?.value
+    if (control !== undefined && reads !== undefined && control.value !== String(reads)) control.value = String(reads)
   }
 
   protected enter(field: PropertyField, event: Event): void {
     event.preventDefault()
-    this.commit(field, (event.target as HTMLInputElement).value)
+    const control = event.target as HTMLInputElement
+    this.commit(field, control.value, control)
   }
 
   /** Escape: what the report holds, back in the field, so nothing typed since is committed when it is left. */
   protected giveBack(field: PropertyField, event: Event): void {
-    const now = this.root.state().properties.fields.find((candidate) => candidate.key === field.key) ?? field
+    const now = this.now(field) ?? field
     ;(event.target as HTMLInputElement | HTMLTextAreaElement).value = String(now.value)
   }
 }

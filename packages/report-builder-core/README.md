@@ -174,6 +174,15 @@ const editor = createReportEditor(opening.session, {
   against which report-spec measures a square. A QR code's
   content is edited run by run as a text's is, and each of its levels of
   error correction says the share of the code it restores.
+  A table with a group has one field more, after its heading style: how
+  many of the group's first rows its header is kept on its page with,
+  `/group/keepWithRows`, a `number` written into the group through
+  `updateComponent`. It reads 1 where the report states none; 1, or
+  nothing, is written as the member's absence, as a boolean's default is,
+  and a count given back as it reads is no edit. Whether a count is whole
+  and from 1 to report-spec's `MAX_KEEP_WITH_ROWS` is the validator's to
+  say, on the field. A table without a group has no such field
+  ([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
   An EPC payment code's fields follow the order the code holds its
   elements (EPC069-12 2.2): the beneficiary, the IBAN, the BIC, the amount,
   the purpose code, the RF creditor reference, the remittance text and the
@@ -535,7 +544,9 @@ so the choices are made here.
   control per field, labelled by the field's label, with the role
   `PROPERTY_ROLES` gives and `required` where the field is. A text field
   commits when it changes (on blur, or Enter in a single-line field), and
-  Escape gives back what the report holds. A refused value sets
+  Escape gives back what the report holds. Once committed, it shows what
+  its field reads, so a value the editor takes as no edit -- a count
+  emptied, which reads 1 -- gives way to it (0059). A refused value sets
   `aria-invalid="true"` and an `aria-describedby` pointing to the visible
   error. While something is selected, a button named `properties.report`
   above the form selects nothing and takes focus to the first field: the
@@ -629,7 +640,11 @@ from either code, an account the bill cannot pay refused, delete the
 e-invoice and bring it back, refuse an XRechnung's Leitweg-ID and its
 buyer's reference where they are typed, and insert an EPC payment code by keyboard, its IBAN refused on its field
 when its check digits are wrong, and its BIC added by typing it and
-removed by emptying it. Six are about a host's view: it takes the design view's place with
+removed by emptying it. Three are about a table's group: the rows its
+header is kept with typed, a count out of range refused on its field,
+written back as 1 and undone; a count given back as it reads changing
+nothing, Undo then having nothing to undo; and no such count on a table
+without a group (0059). Six are about a host's view: it takes the design view's place with
 the outline and the properties beside it, and the toolbar's Design view
 gives the place back; a key pressed in it is the host's; a side pane
 hidden beside it gives it the room and the keyboard; placed beside the
@@ -773,8 +788,8 @@ the other's steps in English.
   warning where the page names them in its own text ([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
 - **Not every property is editable yet.** These need editors of their own,
   and have none:
-  - a table's sort, its group, its group and total rows, and its footer
-    cells;
+  - a table's sort, its group but for the rows its header is kept with
+    (0059), its group and total rows, and its footer cells;
   - conditional style rules (`styleWhen`);
   - value formats;
   - adding or removing a run in a text, a QR code's content or an EPC
