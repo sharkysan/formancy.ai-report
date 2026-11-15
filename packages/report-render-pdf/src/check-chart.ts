@@ -78,6 +78,89 @@ export function checkChart(chart: Chart, at: string, place: Place, walk: Walk): 
   walk.charts.push({ block: chart, at })
 }
 
+/**
+ * What drawing one render's charts may cost, in units of what one more
+ * point of a line chart of 8 series and 200 categories costs a render:
+ * each chart its kind's weight (`CHART_WEIGHT`), and a unit for each
+ * series at each category, or for each slice of a pie (`chartUnits`), as
+ * `MAX_SVG_DRAWING` weighs an SVG. ECharts lays out every chart of a
+ * render three times, a pie twice, before the body is paginated, and a
+ * reader draws every one. What a chart costs beyond its points is the
+ * render's layouts of its frame -- its axes, gridlines and words -- and,
+ * for a line chart, a reader's drawing of the clip ECharts gives each of
+ * its series, which svg-to-pdfkit draws as a page-sized group under a
+ * luminosity soft mask (`useMask`). A kind's weight is the larger of what
+ * its costliest chart of one category costs the render and a reader
+ * beyond its points, both in the one unit, rounded up to ten.
+ *
+ * Measured on 2026-11-15 on a Mac (Apple M2, 8 cores) under Node 22.23.4,
+ * ECharts 6.1.0, pdfmake 0.3.11 and pdfjs-dist 6.4.299. Other work held
+ * the machine at a load average of 9.6 to 24 throughout, so no time here
+ * is a quiet machine's: the weights are ratios of times taken together,
+ * and the bound is set from the times under that load, which a quiet
+ * machine beats. Charts stood on A4 landscape pages with no margins, each
+ * form in the densest grid it draws in -- 11 by 8, report-spec's least
+ * side, where it draws there -- and `renderPdf`, and PDF.js at scale 1 on
+ * a page, were timed seven times each over N charts and 2N, interleaved.
+ * One more point of an 8 × 200 line, against an 8 × 1 line in the same
+ * box, cost the render 0.203 ms, the unit, and a reader 0.030 ms. Beyond
+ * its points, a line of 8 series and one category cost a reader 1,250
+ * units, 32 ms for each series' group, and the render 95 to 203; a bar
+ * of 8 series and one category, dressed and its values labelled, the
+ * render 161 and a reader 49; a dressed pie of 8 slices the render 96 and
+ * a reader 8. No chart of one category, of 1 or 8 series, bare or
+ * dressed, cost either side more than its kind's weight.
+ *
+ * The bound was tried on twenty-one forms: charts of one value of each
+ * kind, the 8 × 1 forms, and the largest of each kind Task 25 tried, bare
+ * and dressed. Each was packed as many to a render as the bound's units
+ * hold, across pages, and as many to one page as the page holds of them.
+ * At 6000, at a load of 15 to 24, the costliest render, 20 bar charts of
+ * 123 one-letter categories on 3 pages, took a median of 1,547 ms, and 35
+ * bar charts of one value, dressed, 960 ms; the costliest page, 4 lines
+ * of 8 series and one category, cost PDF.js 1,000 ms, and a page of one
+ * 8 × 200 line and two 8 × 1 lines 825 ms. At 7000 the costliest render
+ * took 1,782 ms at a load of 10 to 16 and 2,278 ms at 14 to 19, past the
+ * 2 s a render may cost.
+ */
+export const MAX_CHART_DRAWING = 6000
+
+/** What each kind of chart costs beyond its points, in `MAX_CHART_DRAWING`'s units: the larger of what its layouts cost the render and what its drawing costs a reader, rounded up to ten. */
+export const CHART_WEIGHT = { bar: 170, line: 1260, pie: 100 } as const satisfies Readonly<Record<Chart['chart'], number>>
+
+/**
+ * What drawing `chart` costs, in `MAX_CHART_DRAWING`'s units: its kind's
+ * weight, and a unit for each series at each category, null or not, or
+ * for each of a pie's slices, one of no share among them. A chart with
+ * nothing to draw costs none: ECharts never lays it out (`drawEmpty`),
+ * and it paints no mark.
+ */
+export function chartUnits(chart: Chart): number {
+  if (chart.empty !== undefined) return 0
+  return CHART_WEIGHT[chart.chart] + (chart.chart === 'pie' ? chart.slices.length : chart.series.length * chart.categories.length)
+}
+
+/**
+ * A render's charts, as the walk listed them, held to what drawing all of
+ * them costs together, before any of them is laid out: past
+ * `MAX_CHART_DRAWING`, refused as `content-too-large` at the chart that
+ * crossed it, naming the count and the bound and quoting none of its
+ * words, as `MAX_SVG_DRAWING` holds a render's SVGs (`check.ts`).
+ */
+export function checkChartDrawing(charts: Walk['charts']): void {
+  let total = 0
+  for (const { block } of charts) {
+    total += chartUnits(block)
+    if (total > MAX_CHART_DRAWING) {
+      throw new RenderRefusal(
+        'content-too-large',
+        `the charts up to ${block.id} cost ${String(total)} units to draw, each its kind's weight and one for each series at each category or each slice of a pie; a render may draw ${String(MAX_CHART_DRAWING)}`,
+        block.id,
+      )
+    }
+  }
+}
+
 /** An `unsupported` refusal of `chart`, saying `message`. */
 const refusal = (chart: Chart, message: string): RenderRefusal => new RenderRefusal('unsupported', message, chart.id)
 

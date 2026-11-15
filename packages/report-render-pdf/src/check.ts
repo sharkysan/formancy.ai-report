@@ -16,7 +16,7 @@ import {
 } from '@formancy/report-runtime'
 import { checkImageAsset, MAX_IMAGE_DATA, MAX_SVG_DRAWING, type CheckedImage, type Vector } from './assets.js'
 import { paragraphLine } from './bound.js'
-import { checkChart } from './check-chart.js'
+import { checkChart, checkChartDrawing } from './check-chart.js'
 import { checkColor, checkStyle, checkText } from './check-faces.js'
 import { checkTable, checkTableCells } from './check-table.js'
 import { tall, type Measured, type Place, type Tall, type Walk } from './check-walk.js'
@@ -46,7 +46,8 @@ import { fillWidth, fixedWidth } from './widths.js'
  * stands at. It encodes every QR code and EPC QR code, once, and what it
  * encodes is what every pass draws (`qr.ts`, `epc.ts`). It reads every image
  * asset once (`assets.ts`) and holds the render to what its images cost
- * together (`checkImages`).
+ * together (`checkImages`), and to what its charts cost to draw together
+ * (`checkChartDrawing`).
  */
 
 /** The paper and its printable area, in points. */
@@ -110,6 +111,7 @@ export async function checkDocument(document: ResolvedDocument, fonts: RenderFon
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true }, walk)
   checkBlocks(document.body, 'body', { ...top, region: false }, walk)
+  checkChartDrawing(walk.charts)
   const assets = await checkImages(walk.images, maxPages, pdfa !== undefined, page)
   return {
     page,
