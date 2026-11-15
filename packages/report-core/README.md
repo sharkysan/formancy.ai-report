@@ -343,7 +343,9 @@ one.
   gives a string or a value the compiler cannot type, its run prints it
   as text, and its source holds a quote. An error that names a language
   refuses a render in that language alone; one that names none refuses
-  every render.
+  every render. `wordExpressions(report)` gives those expressions, every
+  place each stands, by the same verdict: what the builders mark and edit
+  as words, so that they ask for no translation the diagnostics do not.
 
 Every member read is checked as its type. `@formancy/expressions` 0.12.0,
 as 0.5.0 to 0.7.0 and 0.11.0 before it, declares a variable only by its whole name, so each read of `row.amount` is

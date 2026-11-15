@@ -70,6 +70,11 @@
 //     each read back from the XML the final Download PDF embeds and held to
 //     the page it prints, the IBAN to the EPC QR code its page draws too,
 //     decoded from its pixels, and each undone (gate-e-invoice.mjs, 0044);
+//   - in each builder, French added to the invoice from the keyboard and
+//     chosen in the bar's switch, the Preview refusing it while its words
+//     are missing, the title's French typed where the German is the
+//     field's placeholder, the report's own printed again, and both undone,
+//     the switch gone with the language (gate-languages.mjs, 0063);
 //   - the page wears the released room: every variable the installed
 //     @formancy/themes/room.css sets, and its colour scheme, computed on
 //     the page as room.css gives it, at every pass (0034);

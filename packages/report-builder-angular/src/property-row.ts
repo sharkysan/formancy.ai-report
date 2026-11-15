@@ -9,7 +9,10 @@
  * Enter commits nothing twice. Escape in a typed field gives back what the
  * report holds, so leaving it afterwards commits nothing. A refused value
  * stays as typed, marked invalid and described by the reason, which is
- * shown under it; the editor keeps both, so they survive a re-render.
+ * shown under it; the editor keeps both, so they survive a re-render. A
+ * field at a word in a language besides the report's own has its note
+ * under it, which describes it too, and is marked while the word is
+ * missing (0063).
  */
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core'
 import type { PropertyField } from '@formancy/report-builder-core'
@@ -26,6 +29,10 @@ export interface Shown {
   readonly control: Control
   readonly id: string
   readonly errorId: string | null
+  /** The id of the note under a field at a word in another language than the report's own (0063). */
+  readonly noteId: string | null
+  /** What describes the control: its error, then its note; null when it has neither. */
+  readonly describedBy: string | null
 }
 
 @Component({
@@ -34,6 +41,7 @@ export interface Shown {
   host: {
     'data-report-part': 'property',
     '[attr.data-kind]': 'shown().field.kind',
+    '[attr.data-missing]': "shown().field.missing === true ? 'true' : null",
   },
   template: `
     <label [attr.for]="shown().id">{{ shown().field.label }}</label>
@@ -45,7 +53,7 @@ export interface Shown {
           [required]="shown().field.required"
           [attr.placeholder]="shown().field.placeholder ?? null"
           [attr.aria-invalid]="shown().errorId === null ? null : 'true'"
-          [attr.aria-describedby]="shown().errorId"
+          [attr.aria-describedby]="shown().describedBy"
           (change)="commit(shown().field, $any($event.target).value)"
           (keydown.escape)="giveBack(shown().field, $event)"
         ></textarea>
@@ -56,7 +64,7 @@ export interface Shown {
           [id]="shown().id"
           [checked]="shown().field.value === true"
           [attr.aria-invalid]="shown().errorId === null ? null : 'true'"
-          [attr.aria-describedby]="shown().errorId"
+          [attr.aria-describedby]="shown().describedBy"
           (change)="commit(shown().field, $any($event.target).checked)"
         />
       }
@@ -65,7 +73,7 @@ export interface Shown {
           [id]="shown().id"
           [required]="shown().field.required"
           [attr.aria-invalid]="shown().errorId === null ? null : 'true'"
-          [attr.aria-describedby]="shown().errorId"
+          [attr.aria-describedby]="shown().describedBy"
           (change)="commit(shown().field, $any($event.target).value)"
         >
           @for (option of shown().field.options ?? []; track option.value) {
@@ -82,7 +90,7 @@ export interface Shown {
           [required]="shown().field.required"
           [attr.placeholder]="shown().field.placeholder ?? null"
           [attr.aria-invalid]="shown().errorId === null ? null : 'true'"
-          [attr.aria-describedby]="shown().errorId"
+          [attr.aria-describedby]="shown().describedBy"
           (change)="commit(shown().field, $any($event.target).value)"
           (keydown.enter)="enter(shown().field, $event)"
           (keydown.escape)="giveBack(shown().field, $event)"
@@ -91,6 +99,9 @@ export interface Shown {
     }
     @if (shown().errorId !== null) {
       <p data-report-part="property-error" class="wb-problem" [id]="shown().errorId">{{ shown().field.error }}</p>
+    }
+    @if (shown().noteId !== null) {
+      <p data-report-part="property-note" [id]="shown().noteId">{{ shown().field.note }}</p>
     }
   `,
 })

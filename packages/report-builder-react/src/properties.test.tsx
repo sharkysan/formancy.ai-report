@@ -153,3 +153,22 @@ describe('the problems', () => {
     expect(count()).toBe(t('pane.problems'))
   })
 })
+
+describe('a word in another language', () => {
+  // The stylesheet marks a word not written yet in the language edited --
+  // on its box and on its field -- by `data-missing`; a builder that left
+  // it off would draw a German word in the French view as though it were
+  // French (0063). Read from the DOM, as the stylesheet reads it.
+  test('is marked missing on its box and its field, and no longer once written', async () => {
+    const { user } = mount({ ...scenarioReport(), translations: [{ locale: 'fr-CH', words: [], expressions: [] }] })
+    await user.selectOptions(screen.getByRole('combobox', { name: t('language.label') }), 'fr-CH')
+    await user.click(screen.getByRole('treeitem', { name: 'Introduction' }))
+    const field = (): HTMLElement => screen.getByRole('textbox', { name: t('field.text') })
+    expect(field().closest('[data-report-part="property"]')?.getAttribute('data-missing')).toBe('true')
+    expect(screen.getByRole('img', { name: 'Introduction' }).getAttribute('data-missing')).toBe('true')
+    await user.type(field(), 'Présentation')
+    await user.tab()
+    expect(field().closest('[data-report-part="property"]')?.hasAttribute('data-missing')).toBe(false)
+    expect(screen.getByRole('img', { name: 'Présentation' }).hasAttribute('data-missing')).toBe(false)
+  })
+})

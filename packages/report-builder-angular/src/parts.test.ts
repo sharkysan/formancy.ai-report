@@ -24,7 +24,7 @@ import { screen, within } from '@testing-library/angular'
 import { afterEach, describe, expect, test } from 'vitest'
 import { mountBuilder, mountWithHostView } from './test-mount'
 import { sessionOver } from './test-support'
-import { click, fill } from './test-user'
+import { choose, click, fill } from './test-user'
 
 afterEach(() => {
   TestBed.resetTestingModule()
@@ -98,6 +98,31 @@ async function hostHooks(): Promise<Set<string | null>> {
   return new Set([...root.querySelectorAll('[data-report-part]')].map((element) => element.getAttribute('data-report-part')))
 }
 
+/**
+ * The hooks, and the states, of the builder over a report written in a
+ * second language with none of its words yet, showing that language with
+ * a text selected (0063): the switch in the bar, the boxes marked missing,
+ * and the text's field marked, with its note.
+ */
+async function languageHooks(): Promise<{ readonly parts: Set<string | null>; readonly states: Set<string> }> {
+  TestBed.resetTestingModule()
+  const report: ReportDefinition = { ...scenarioReport(), translations: [{ locale: 'fr-CH', words: [], expressions: [] }] }
+  const mounted = await mountBuilder(createReportEditor(sessionOver(report)))
+  choose(screen.getByRole('combobox', { name: 'Edited language' }), 'French (Switzerland), words missing: 4')
+  await mounted.settle()
+  click(screen.getByRole('treeitem', { name: 'Introduction' }))
+  await mounted.settle()
+  const root = mounted.fixture.nativeElement as HTMLElement
+  // The field and the box of the word not written yet, each marked: the stylesheet dresses both (0063).
+  expect(root.querySelector('[data-report-part="property"][data-missing="true"] textarea')).not.toBeNull()
+  expect(root.querySelector('[data-report-part="box"][data-missing="true"]')).not.toBeNull()
+  const elements = [root, ...root.querySelectorAll('*')]
+  return {
+    parts: new Set(elements.filter((element) => element.hasAttribute('data-report-part')).map((element) => element.getAttribute('data-report-part'))),
+    states: new Set(elements.flatMap((element) => element.getAttributeNames().filter((name) => name.startsWith('data-')))),
+  }
+}
+
 /** The data attributes of the root of a builder whose outline the person hid. */
 async function hiddenRoot(): Promise<string[]> {
   TestBed.resetTestingModule()
@@ -124,6 +149,10 @@ describe('the stylesheet’s hooks', () => {
     expect(host.has('view')).toBe(true)
     expect(host.has('canvas')).toBe(false)
     for (const part of host) rendered.add(part)
+    // The switch between languages, and a field's note, are drawn only for a report written in more than one.
+    const languages = await languageHooks()
+    expect(rendered.has('language')).toBe(false)
+    for (const part of languages.parts) rendered.add(part)
     expect(rendered).toEqual(new Set(REPORT_PARTS))
   })
 
@@ -134,6 +163,8 @@ describe('the stylesheet’s hooks', () => {
     const used = new Set([root, ...root.querySelectorAll('*')].flatMap((element) => element.getAttributeNames().filter((name) => name.startsWith('data-'))))
     // The panes the person hid are on the root, which `everything` has none of.
     for (const name of await hiddenRoot()) used.add(name)
+    // A word missing in the language edited is marked only in a report written in more than one.
+    for (const name of (await languageHooks()).states) used.add(name)
     const listed = REPORT_ATTRIBUTES.filter((name) => name.startsWith('data-'))
     expect(used).toEqual(new Set(listed))
   })

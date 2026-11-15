@@ -20,6 +20,10 @@
  * named by the editor's `hostView`, holding what the host gave and nothing
  * of the builder's, its keys the host's.
  *
+ * A report written in more than one language has a switch between them
+ * beside its title, which shows and edits the words of the one chosen
+ * (0063).
+ *
  * Where the host gave the editor a store for images, the palette ends with
  * Add image…, and the report's own properties list its images (0033): the
  * file a person chooses goes to `editor.addImage`, which says what became
@@ -299,6 +303,21 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
       <div className="wb-pane">
         <header>
           <span data-report-part="title">{state.document.title}</span>
+          {/* The language whose words the builder shows (0063): there only for a report written in more than one. */}
+          {state.languages.declared.length > 1 ? (
+            <select
+              aria-label={t('language.label')}
+              data-report-part="language"
+              value={state.languages.edited}
+              onChange={(event) => act({ type: 'setLanguage', locale: event.target.value })}
+            >
+              {state.languages.declared.map((language) => (
+                <option key={language.locale} value={language.locale}>
+                  {language.label}
+                </option>
+              ))}
+            </select>
+          ) : null}
           <Toolbar state={state} t={t} act={act} placeSelection={placeSelection} showPane={(pane) => act({ type: 'openPanel', panel: pane }, pane)} />
         </header>
       </div>

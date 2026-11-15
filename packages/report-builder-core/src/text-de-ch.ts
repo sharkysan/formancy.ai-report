@@ -401,4 +401,22 @@ export const DE_CH: Catalogue = {
   'status.notOptionalItem': '{name} gehört zu einer Liste: Deren eigene Schaltflächen fügen Einträge hinzu und entfernen sie.',
   'status.vatCategoriesFull':
     'Die E-Rechnung führt schon jede Aufschlüsselung, die eine hinzugefügte Umsatzsteuerkategorie sein könnte: Ändern Sie stattdessen eine ihrer Kategorien.',
+
+  'language.label': 'Bearbeitete Sprache',
+  'language.own': '{name}, die eigene des Berichts',
+  'language.missing': '{name}, fehlende Wörter: {count}',
+  'languages.heading': 'Sprachen',
+  'field.addLanguage': 'Sprache hinzufügen',
+  'option.languageTag': 'Ein Sprachkürzel wie fr-CH',
+  'action.removeLanguage': '{name} entfernen',
+  'history.addLanguage': 'Sprache hinzufügen',
+  'history.removeLanguage': 'Sprache entfernen',
+  'canvas.missing': 'Noch nicht auf {language} geschrieben',
+  'field.wordIn': 'Auf {language}. Stellen, an denen es steht: {count}',
+  'field.wordMissing': 'Noch nicht auf {language} geschrieben. Stellen, an denen es steht: {count}',
+  'problem.itemIn': '{severity} auf {language}: {where}',
+  'status.languageAdded': '{name} hinzugefügt. Ihre Wörter fehlen, bis sie geschrieben sind: Wählen Sie sie als bearbeitete Sprache, um sie zu schreiben.',
+  'status.languageRemoved': '{name} mit ihren Wörtern entfernt.',
+  'status.languageShown': 'Die Wörter werden auf {name} gezeigt.',
+  'status.notWrittenIn': 'Der Bericht ist nicht auf {name} geschrieben.',
 }

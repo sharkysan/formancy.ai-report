@@ -14,6 +14,8 @@ export type {
   DragState,
   DragSubject,
   DropTarget,
+  EditorLanguage,
+  EditorLanguages,
   EditorPanel,
   EditorState,
   HideablePanel,

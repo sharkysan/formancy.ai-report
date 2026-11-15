@@ -167,6 +167,20 @@
   box-shadow: inset -3px 0 0 var(--wb-caution);
 }
 
+/* A word not written yet in the language edited, shown in the report's own
+   (0063): marked along its start, as an overflow is along its end, in the
+   colour of the error a render in that language is refused for. The
+   payment part's band is marked as a box is, for its message. */
+:is([data-report-part='box'], [data-report-part='payment-part'])[data-missing='true'] {
+  box-shadow: inset 3px 0 0 var(--wb-invalid);
+}
+
+[data-report-part='box'][data-missing='true'][data-overflows='true'] {
+  box-shadow:
+    inset 3px 0 0 var(--wb-invalid),
+    inset -3px 0 0 var(--wb-caution);
+}
+
 [data-report-part='box'][data-dragging='true'] {
   opacity: 0.4;
 }

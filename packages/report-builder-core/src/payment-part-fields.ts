@@ -24,8 +24,9 @@
 import { QR_BILL_ADDRESS_RULES, QR_BILL_CURRENCIES, QR_BILL_LANGUAGES } from '@formancy/report-spec'
 import type { QrBillAddress, SwissQrBill } from '@formancy/report-spec'
 import { EXAMPLE_DEBTOR } from './payment-part.js'
-import { choiceField, codeTextFields, expressionField, optionalCodeTextFields, optionalGroup } from './property-fields.js'
+import { choiceField, expressionField, optionalGroup } from './property-fields.js'
 import type { FieldContext, FieldSpec, GroupSpec, PanelSpec } from './property-fields.js'
+import { codeTextFields, optionalCodeTextFields, translatedTextFields } from './run-fields.js'
 import type { MessageId } from './text.js'
 
 type Party = 'creditor' | 'debtor'
@@ -93,7 +94,9 @@ const TERMS: { readonly [K in Exclude<keyof SwissQrBill, 'kind'>]-?: TermFields 
     optionalGroup('/debtor', 'group.debtor', bill.debtor === undefined ? undefined : addressFields('debtor', bill.debtor, context), EXAMPLE_DEBTOR, DEBTOR),
   ],
   reference: (bill, context) => optionalCodeTextFields(bill.reference, '/reference', 'field.paymentReference', context),
-  message: (bill, context) => optionalCodeTextFields(bill.message, '/message', 'field.message', context),
+  // Its message is where words stand on the slip (0063): in a language besides the report's own, its translation.
+  message: (bill, context) =>
+    translatedTextFields(bill.message, '/message', 'field.message', context) ?? optionalCodeTextFields(bill.message, '/message', 'field.message', context),
   billingInformation: (bill, context) => optionalCodeTextFields(bill.billingInformation, '/billingInformation', 'field.billingInformation', context),
   language: (bill, context) => [
     choiceField(

@@ -436,6 +436,27 @@ export const EN = {
   'status.notOptionalInvoice': '{name}: part of every {kind} invoice, never added or removed.',
   'status.notOptionalItem': '{name} belongs to a list: its own buttons add and remove its items.',
   'status.vatCategoriesFull': 'The e-invoice declares every VAT breakdown a category added could be: change one of its categories instead.',
+
+  // A report's languages (0063): the switch between them in the bar, the
+  // report's own Languages, a word not written in one yet, and a problem
+  // that names its language.
+  'language.label': 'Edited language',
+  'language.own': '{name}, the report’s own',
+  'language.missing': '{name}, words missing: {count}',
+  'languages.heading': 'Languages',
+  'field.addLanguage': 'Add language',
+  'option.languageTag': 'A language tag, such as fr-CH',
+  'action.removeLanguage': 'Remove {name}',
+  'history.addLanguage': 'Add language',
+  'history.removeLanguage': 'Remove language',
+  'canvas.missing': 'Not written in {language} yet',
+  'field.wordIn': 'In {language}. Places it stands in: {count}',
+  'field.wordMissing': 'Not written in {language} yet. Places it stands in: {count}',
+  'problem.itemIn': '{severity} in {language}: {where}',
+  'status.languageAdded': 'Added {name}. Its words are missing until they are written: choose it as the edited language to write them.',
+  'status.languageRemoved': 'Removed {name} and its words.',
+  'status.languageShown': 'Showing the words in {name}.',
+  'status.notWrittenIn': 'The report is not written in {name}.',
 } as const
 
 export type MessageId = keyof typeof EN

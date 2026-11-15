@@ -5,14 +5,14 @@
  * diagnostic the report written in that language gives that its own does
  * not, each naming its language.
  */
-import { componentAt, reportWords, validateReport } from '@formancy/report-spec'
+import { componentAt, reportWords, validateReport, wordExpressionSites } from '@formancy/report-spec'
 import type { ReportDefinition, Translation } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { thawed } from '../snapshot.js'
 import type { Mutable } from '../snapshot.js'
 import { eInvoiceSample, sampleReport, setAt } from '../test-support.js'
 import { diagnose } from './diagnose.js'
-import { languageDiagnostics } from './words.js'
+import { languageDiagnostics, wordExpressions } from './words.js'
 
 const INTRO = 'header.customer + " x" + string(params.copies)'
 const GROUP = '" (" + string(group.lines) + ")"'
@@ -326,5 +326,23 @@ describe("diagnose, in each language's", () => {
     )
     expect(said.findIndex(({ language }) => language === 'it-CH')).toBeGreaterThan(said.findLastIndex(({ language }) => language === 'fr-CH'))
     expect(said.every(({ language }) => language !== undefined)).toBe(true)
+  })
+})
+
+describe('wordExpressions', () => {
+  // The builders mark and edit an expression as a word where the
+  // diagnostics ask its translation: a list of their own would show an
+  // expression to translate that no problem asks for, or hide one that a
+  // render in that language is refused for (0063).
+  test('gives the expression runs where words stand that print words, and none that prints a number or a text without a quote', () => {
+    const report = valid(sampleReport(), (draft) => {
+      const content = draft.regions.body[0] as Mutable<{ content: unknown[] }>
+      content.content.push({ kind: 'expression', expression: { cel: 'totals.subtotal * dec("1.081")' } })
+      content.content.push({ kind: 'expression', expression: { cel: 'header.customer + header.currency' } })
+    })
+    const sites = wordExpressions(report)
+    expect([...new Set(sites.map(({ cel }) => cel))].sort()).toEqual([...WORD_EXPRESSIONS].sort())
+    expect(sites.every((site) => wordExpressionSites(report).some(({ path }) => path === site.path))).toBe(true)
+    expect(wordExpressionSites(report).length - sites.length).toBeGreaterThanOrEqual(2)
   })
 })

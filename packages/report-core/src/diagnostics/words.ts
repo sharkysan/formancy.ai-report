@@ -174,6 +174,18 @@ export function inLanguage(report: ReportDefinition, locale: string, own: Diagno
 }
 
 /**
+ * Every expression run of `report` -- a report the validator accepts --
+ * where a word stands that prints words, in document order: what a
+ * language translates, as `word-missing` says of each, and what the
+ * builders mark and edit as a word (0063). The one verdict the diagnostics
+ * give, so that the two never disagree.
+ */
+export function wordExpressions(report: ReportDefinition): readonly WordExpressionSite[] {
+  const own = diagnosis(report)
+  return wordExpressionSites(report).filter((site) => verdict(site, own).kind === 'words')
+}
+
+/**
  * Every diagnostic of `report` -- a report the validator accepts -- in
  * `locale`, a language its translations declare, each naming it: what a
  * render in that language is refused for, beside the report's own errors,

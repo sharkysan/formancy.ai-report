@@ -175,8 +175,13 @@ export async function runStep(step: ScenarioStep, { user, session, editor }: Mou
         if (step.text !== '') await user.type(element, step.text)
         return user.tab()
       }
-      case 'choose':
-        return void (await user.selectOptions(find(step), step.option))
+      case 'choose': {
+        // The option by its label, as a person reads it: user-event compares its markup, where a no-break space is `&nbsp;`.
+        const select = find(step) as HTMLSelectElement
+        const option = [...select.options].find((candidate) => candidate.text === step.option)
+        expect(option, `an option ${step.option} in ${step.name}`).toBeDefined()
+        return void (await user.selectOptions(select, option as HTMLOptionElement))
+      }
       case 'host':
         // What the host's own control does -- the Studio's Preview, in its bar -- through the editor.
         return void act(() => {
@@ -202,6 +207,8 @@ export async function runStep(step: ScenarioStep, { user, session, editor }: Mou
       expect(element.getAttribute('aria-invalid')).toBe('true')
       return void expect(computeAccessibleDescription(element)).not.toBe('')
     }
+    case 'described':
+      return void expect(computeAccessibleDescription(find(step))).toContain(step.text)
     case 'document':
       return void expect(step.check(session.document()), step.says).toBe(true)
     case 'kept':

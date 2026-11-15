@@ -147,20 +147,39 @@
     German starter's report, whole in every language it declares, and
     written in each to the same invoice written in it alone, word for
     word.
-  - **The builders.** report-builder-core's `BUILDER_SCENARIOS` add a
-    language, see its missing words as problems, write one in either
-    builder, see it in the design view, switch back to the report's own
-    words and undo; the core runs them against the model, and React's and
-    Angular's suites in both builders, in three languages, with axe over
-    the end of each. `src/css.test.ts` holds the mark of a missing word to
-    the workbench's variables and the hooks both builders render.
+  - **The builders.** report-builder-core's `BUILDER_SCENARIOS`, in
+    `src/scenario-languages.ts`, add a language by its tag -- the
+    report's own refused on the field -- see its missing words as
+    problems that name it, choose it in the bar's switch, see a box
+    described as missing, write a word from its field, which says in how
+    many places the word stands, see it in the design view, switch back
+    to the report's own words and undo; the core runs them against the
+    model, and React's and Angular's suites in both builders, in three
+    languages, with axe over the end of each, a `described` step holding
+    each builder's descriptions. `src/languages.test.ts` holds the model:
+    a report in its own language alone offering no switch and marking
+    nothing; a language added and removed in one step each, the view back
+    to the report's own when the language shown goes, a refusal changing
+    nothing; the outline, the design view and the bar in the language's
+    words, a word it lacks the report's own, marked; every field at a
+    word writing its translation, every other the report's own, the
+    Language field the report's own language; and one word missing in two
+    languages two problems. `src/css.test.ts` holds the marks to the
+    workbench's variables and the hooks both builders render, the Angular
+    builder's `src/parts.test.ts` holds it to rendering every hook, and
+    React's `src/properties.test.tsx` and that test hold each builder to
+    marking a missing word's box and field.
   - **The Studio.** `apps/studio/src/studio.test.tsx` previews the
-    language the builder shows, across the framework switch;
-    `src/parity.test.tsx` compares both builders' trees in a report with
-    a translation; the browser gate's `gate-languages.mjs` adds a
-    language in each builder from the keyboard, writes a word, sees the
-    Preview refuse the language while a word is missing and print the
-    report's own, and undoes.
+    language the builder shows, across the framework switch, refused
+    while a word is missing and printed once it is written;
+    `src/preview/pipeline.test.ts` prints the four-language invoice in
+    French and refuses it a word short; `src/parity.test.tsx` compares
+    both builders' trees with a language added, shown, a row of each kind
+    selected in it and a word written; `src/journey.test.tsx` audits the
+    blank report with a language shown; and the browser gate's
+    `gate-languages.mjs` adds a language to the invoice in each builder
+    from the keyboard, sees the Preview refuse it while its words are
+    missing, writes its title, prints the report's own, and undoes.
   - **Seen failing.** On 2026-11-15, the format and the core: each new
     test file refused to load before the module it tests existed; the
     words guard failed on `/regions/summary/4/valueTitle` with the
@@ -192,9 +211,25 @@
     formatted in the report's own locale -- en-CH's by `inflatedDigest`
     alone, its total's line printing alike -- and the bytes of every
     starter and sample not in de-DE with a named locale formatted
-    otherwise. The builders' and the Studio's are to be written by the
-    changes that add them: which case failed before its code, how, and on
-    what day.
+    otherwise. On 2026-11-15 too, the builders and the Studio, each rule
+    broken alone and put back: report-builder-core's `languages.test.ts`
+    failed five cases with a field's own change ignored, two with a
+    text's runs taken for a code's and two with no word counted missing
+    from the diagnostics, and one case each with the labels of the
+    report's own words, no box marked, the view kept on a language undone
+    away, problems keyed without their language, a word missing given as
+    its field's error, a QR code's content taken for words, every
+    expression taken for words, and the places a word stands not
+    counted; report-core's `wordExpressions` case refused to load before
+    its function; the React and the Angular scenario failed in every
+    language with the switch left out, the box not described as missing
+    and the field's note not describing it, and the Angular hooks test
+    with the note left out; each builder's mark test failed with the
+    mark left off its field, and React's with it left off the box; the
+    parity test failed at "the language added shown" with React's note
+    left out; and the Studio's preview test failed with the language left
+    out of the request and with the pipeline dropping it, and its
+    pipeline test with the runtime given no locale.
 
 ## Context
 
@@ -460,14 +495,21 @@ see none of its languages but the report's own.
 the language a person edits, the report's own at first, as view state,
 as the zoom is; the report-level Locale field edits the report's own
 locale in every language's view (`setLocale`), as the Title field writes
-the title's translation in another's:
+the title's translation in another's. The switch between languages
+stands in the bar beside the title only while the report declares more
+than one, and a language is added from the report's own properties,
+whose Languages group every report's has:
 - the design view and the properties show that language's words, and
   typing a word there writes its translation (`translateWord`,
   `translateExpression`), the field saying in how many places the word
   stands, a count derived from the walk;
 - a word missing in it is shown as the report's own word marked missing,
   never as though it were written, and listed in the problems by its
-  language;
+  language. Every language's problems are listed and counted on the
+  outline's rows whichever is edited, as each refuses a render in its
+  language; a field shows none of another language's, and no word
+  missing, which its note says. Which expressions print words is
+  report-core's `wordExpressions`, the verdict `word-missing` gives;
 - a language is added and removed at the report's level (`addLanguage`,
   `removeLanguage`), each one undo step, and a language removed returns
   the view to the report's own;

@@ -67,7 +67,7 @@ export type { ExpressionMember, Members, ScopeName } from './expressions/members
 export { UNREPRODUCIBLE_FUNCTIONS } from './expressions/reproducible.js'
 export type { UnreproducibleFunction } from './expressions/reproducible.js'
 export { diagnose } from './diagnostics/diagnose.js'
-export { languageDiagnostics } from './diagnostics/words.js'
+export { languageDiagnostics, wordExpressions } from './diagnostics/words.js'
 export { DIAGNOSTIC_CODES, DIAGNOSTIC_SEVERITIES } from './diagnostics/codes.js'
 export type { Diagnostic, DiagnosticCode, DiagnosticSeverity } from './diagnostics/codes.js'
 export { expressionSites } from './diagnostics/parts.js'
