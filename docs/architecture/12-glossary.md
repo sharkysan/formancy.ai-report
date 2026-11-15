@@ -77,8 +77,8 @@ reasonably misread.
 ## Words used for two things
 
 **"Gate"** is three things, and the documents say which. A *job* of
-`gates.yml` — `verify`, `test`, `browser`, `install`, `e-invoice`, `container`, `report`; the
-Studio's *browser gate*, a script that runs inside the `browser` job, and
+`gates.yml` — `verify`, `test`, `browser`, `install`, `e-invoice`, `container`, `report`; a
+*browser gate*, the Studio's or the product pages', a script that runs inside the `browser` job, and
 the *container gate*, `scripts/container.mjs`, inside the `container` job; and a
 *release gate*, G1 to G7, which a run's evidence passes or which stays open.
 

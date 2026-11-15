@@ -18,6 +18,7 @@ passes through a JavaScript number, as in Formancy Data
 | Printing | Intl is handed the exact digits, already rounded half away from zero to the places shown. A format that would round a rounded total again is a diagnostic ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) |
 | A payment code's amount | A QR-bill's and an EPC QR code's alike: written from its own digits and never rounded; a third decimal is refused, so rounding stays where the total is computed. An EPC QR code's is written as short as it can be, as Austria's PSA asks ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | An e-invoice's totals | Computed once, in `Decimal`, from the very values the table prints: each VAT category's tax is its basis times its rate over 100, rounded once, half away from zero, and never per line; a line's net amount and a paid amount are whole cents, refused rather than rounded, and a net amount other than its quantity times its net price rounded once is refused; a rate is compared by value, so `19` and `19.00` are one rate. The XML writes each amount from its own digits at two places, and the page reads the totals by name, so that it prints what the XML holds ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
+| A chart | Each series totalled by the function every aggregate is, `totalOf`, in the decimals the compiler types it in, so a bar and the table's subtotal of one definition, over the same rows, are one value; its value axis one, two or five times a power of ten, found by BigInt division on a decimal's units; a pie's share the exact ratio of its value to the sum of its slices, rounded once, half away from zero, and printed by `percent`, which refuses a fraction Intl would round again. The block holds each value twice, its exact digits and its text: a renderer is handed strings to print and makes a coordinate of the digits, never a number to print ([0055](../decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)) |
 | Lengths | Points, on the hundredth of a point; a finer one is refused, not rounded, so one layout has one stored value and one hash ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
 
 ## 8.2 Refusals
@@ -70,14 +71,16 @@ text, a date or a number with a label for its rows without one, series
 that total numbers or count rows, a pie the shares of one sum or count --
 and refuses the rest as `invalid-chart`, or by the code every component's
 fields are refused by; the editing core names what it reads, so a removed
-field takes its series. The runtime does not resolve one yet, and refuses
-a report that would print one as `chart-not-resolved`, naming it, in a
-preview as in a final render, rather than resolve the report without it;
-and the builders' palettes do not offer one until the builders edit a
-chart's own properties (0052).
-What only the data can say -- whether the categories fit the box, how
-many slices a pie has -- is left to the stages that resolve and draw a
-chart, to be refused there, never cut to fit.
+field takes its series. The runtime resolves one (0055), and the renderer
+does not draw one yet: it refuses a report that would print one as
+`unsupported`, naming it, in a preview as in a final render, rather than
+print the report without it; and the builders' palettes do not offer one
+until the builders edit a chart's own properties (0052).
+What only the data can say is left to the stages that resolve and draw a
+chart, to be refused there, never cut to fit: the runtime refuses more
+categories than `MAX_CHART_CATEGORIES` and a pie of more slices than its
+palette has colours, before anything is totalled, and whether the
+categories fit the box is the renderer's to say.
 
 **A code is read from a closed list.** An e-invoice's units, countries, VAT
 prefixes and schemes are lists someone chose (`UNIT_CODES`,
@@ -121,7 +124,7 @@ An e-invoice holds names, addresses, accounts and VAT identifiers, so
 and the renderer's refusals of an e-invoice never quote its XML (0027).
 The validator's refusals of a chart are located by their path, and say
 "this chart" where they name it at all; the core's diagnostics and the
-runtime's refusal name the chart, and a series, by id. Each says what is
+runtime's refusals name the chart, and a series, by id. Each says what is
 wrong by a count, a size, a type, a function or a colour, never quoting a
 label, a title or the empty text, which may be a customer's words (0052).
 An SVG's refusal names the element path and the construct, and what
@@ -167,8 +170,8 @@ a preview as a plain PDF that embeds nothing
 
 ## 8.4 Untrusted input
 
-Templates, expressions, datasets, fonts and images are untrusted even when an
-administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
+Templates, expressions, datasets, fonts, images and PDFs are untrusted even
+when an administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
 
 | Input | How it is read |
 |---|---|
@@ -186,6 +189,7 @@ administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
 | A draft a host saves to the server | Its body no byte past report-spec's `MAX_REPORT_BYTES`, refused by the length it declares before it is read, and none before the token is verified; JSON alone, parsed by Fastify's own parser; then, after `can`, held to report-spec's identifier for the template's id, to a precondition naming a revision by `isRevision`, to `validateReport`, to the report's own `id`, and to every image it declares kept for the tenant as the kind it declares, and no font; stored as the report the validator returned, and `savedBy` the verified token's subject, never anything the body says of who wrote it. A refusal's errors, the revision that stands and the assets not kept go to the requester alone, never to a log or the trail ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)) |
 | An image a host keeps on the server | Its bytes no more than `MAX_ASSET_BYTES`, refused by the length declared before they are read; recognised by `sniffImage`, the media type claimed held to what the bytes are, a PNG's or a JPEG's header read by `imageHeader`, an SVG held to `MAX_SVG_BYTES` and to the form `cleanSvg` writes by `checkSvg`, and the bytes' SHA-256 held to the digest in the path, all before the store sees them; read back checked against that digest (0049) |
 | A file in the server's store | Read only under the names the store writes; a draft's record held to its `format`, to JSON and to the SHA-256 of its report's text, and never validated again, so a later report-spec meets it where it is opened; a template id, a digest and a tenant claim checked again before any file operation, a tenant named by the SHA-256 of its claim; a record that fails a check never served, and logged by its path inside the tenant's directory and the tenant's keyed reference, never its absolute path, whose tenant directory is the claim's unkeyed hash (0049) |
+| A PDF | Read by one reader, report-documents' `readDocument`, and by no other code, though nothing calls it yet: a Uint8Array of the host's own realm, anything else refused before a property of it is read, and copied before a byte is; then held to its byte bound, its header, its end and its last trailer's `/Encrypt` before a byte is parsed; every object, table and stream read in order by a strict loop of the reader's own, nothing between them skipped and no `endstream` searched for, every token measured before it is copied and every cross-reference claim before a row is read, nesting held to its bound and the page tree and the objects the pages draw with walked without recursion; one count of values a document, a decoder counted as it is built, every stage of every stream decoded from one budget, chunk by chunk, an image never decoded and held to its pixels instead; what prints held to what a viewer shows -- a shadowed revision, optional content, XFA, NeedAppearances, an annotation that would print otherwise and an inline image PDF.js would end elsewhere refused; a stream in another file refused unread; and a refusal in the reader's own words, naming a page and an annotation by its own count, never a byte the file wrote. What does not survive printing is counted and never named. Each bound was measured at it and one past it, within a second and 256 MiB of heap on one machine, which nothing gates ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)) |
 | A font file | Read from its own name table by the licence guard, and refused when it cannot be read; a font inside a script the guard does not see ([§8.7](#87-licences), [0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)) |
 | A font's bytes | Read once, by report-spec's reader, which the renderer reads its own faces' character maps through today, and a builder and a host's approval will read a host's font through (`readFont`): every table's offset and length held to the bytes, its recorded length read as fontkit reads it, every read checked against them, every count against the bytes it counts before anything is read by it, every loop bounded by them and nothing recursing; the character map read as fontkit, which PDFKit prints with, reads it, its segments sorted and apart; the PostScript name, which PDFKit writes into the PDF unescaped, held to characters that write no PDF syntax and to encodings fontkit decodes alike; the name strings fontkit decodes, a glyph's points times its contours and the characters mapped bounded; the line the horizontal header makes, by which pdfmake lays every line out and the renderer counts the page limit, held above nothing and within a measured range; and an fsType that forbids embedding a subset of the outlines refused, with no override. The licence the font states is handed back for a person to read and judged by nothing. The layout tables fontkit runs at print, GSUB, GPOS, kern and morx, are not read, and a crafted one can make a render throw or never end ([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)); the renderer strips those records from a host face before it embeds it, so fontkit builds no engine to run them, and prints Latin, Greek and Cyrillic alone, refusing every other script, which would need them; it refuses a host face PDFKit would draw as another, of another face's PostScript name with other bytes or of a name PDFKit's font table holds already, by every name the reader hands back; and the reader bounds a font's outlines together, since a subset holds every glyph a printed character reaches ([0043](../decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)) |
 | An ICC profile | PDFKit's own file, which an e-invoice's render reads and embeds as its output intent: admitted by the licence guard by the SHA-256 of its bytes, which a review read, and refused under any other; a profile inside a script the guard does not see, and the renderer's browser test holds pdfmake's copy to the reviewed digest ([§8.7](#87-licences), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
@@ -217,9 +221,10 @@ callback, each on its own
 The corpus hands ZXing its WebAssembly from the package's own file, where
 the library would fetch it from a CDN
 ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md));
-the Studio and the pages ask no other site for anything, which the browser
-gate and the pages' checks fail on
-([0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
+the Studio and the pages ask no other site for anything, which the
+Studio's browser gate, the pages' own and the pages' checks fail on
+([0023](../decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md),
+[0053](../decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 
 **Digests are trusted.** The runtime does not check an image's bytes
 against the digest that names them, and trusts the host's lookup to return
@@ -344,6 +349,28 @@ anything:
   review read its MIT licence on 17 October 2026, and the guard judges it
   by pdfmake's field alone
   ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
+- **Code a package ports.** pdf-lib's stream decoders are ports under
+  Apache-2.0, as their headers in the source map pdf-lib 6.2.4 publishes
+  say, read on 11 November 2026: ASCIIHex, ASCII85, RunLength and LZW, and
+  the `Stream` and `DecodeStream` they extend, of PDF.js's, Copyright 2012
+  Mozilla Foundation, and Flate of XPDF's through PDF.js, its header both
+  Copyright 1996-2003 Glyph & Cog and Copyright 2012 Mozilla Foundation.
+  The one PDF reader runs the first three and the two they extend; the
+  Flate and LZW ports come with the function it calls, and it never runs
+  them. `@pdfme/pdf-lib/dist/index.js` keeps none of the headers and
+  pdf-lib's `LICENSE.md` is MIT alone, so the guard judges them by
+  pdf-lib's MIT field, and `scripts/third-party-notices.mjs` would list
+  pdf-lib under MIT alone. `pdfjs-dist` 6.4.299 ships no NOTICE, so as far
+  as pdfjs-dist shows section 4(d) asks nothing; section 4(a) asks that the
+  licence go with a bundle that holds them, and section 4(c) that the
+  headers' attribution be kept: an entry of
+  `apps/studio/src/embedded-notices.ts` for
+  `@pdfme/pdf-lib/dist/index.js`, which nothing fails without, and which
+  lands with the pull request that first bundles the reader. Nothing
+  bundles it yet. Unchecked: a NOTICE in
+  PDF.js's own repository, which of the modules a bundler keeps, and
+  whether pdf-lib's MIT label over ported files is sound, a lawyer's
+  question ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 - **What the e-invoice gate runs, and what was copied from it.** Its
   downloads carry works under their own licences -- Saxon in both, veraPDF
   under the GPL or the MPL in Mustang's, CEN/TC 434's EUPL-1.2 schematron

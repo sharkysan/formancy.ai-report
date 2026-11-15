@@ -32,13 +32,13 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **An EN 16931 e-invoice**, the German hybrid invoice: the Factur-X / ZUGFeRD XML is written from the values the page prints, and a final render is a PDF/A-3b that embeds it. It may name the parties' electronic addresses, the seller's contact and its business process, which a German business invoice does not need. Or it is an **XRechnung 3.0** for a German public buyer, in CII: its XML, which your application takes from the resolved document and sends, is the invoice, and its PDF a copy labelled so on every page. France is not claimed. In a gate of its own, Mustang and KoSIT judge the XML of the repository's samples, an XRechnung's in KoSIT's XRechnung scenario, and veraPDF and Mustang the hybrids' PDFs ([0027](./docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), [0031](./docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0037](./docs/decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md), [0038](./docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)). Either kind is edited field by field in either builder, its terms in groups and its VAT categories a list, and an IBAN typed into the e-invoice, its QR-bill or its EPC QR code is the account all of them pay, in one step, where every one of them writes it in the report. Only its totals and its lines are held to the page: a seller, a date or a bank the page prints in its own words is yours to change with it. An e-invoice is edited and never made from nothing: a starter gives one ([0044](./docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
 - **Fonts**: a report maps its `sans`, `serif` and `mono` tokens to TrueType fonts your application approves, pinned by digest; the renderer reads each with report-spec's reader, embeds it from its bytes with the layout tables fontkit would run removed, and refuses a character the face lacks and a weight or slant it does not map. It prints Latin, Greek and Cyrillic, with their punctuation and symbols, and refuses every other script, right-to-left, shaping and CJK among them, in any face. A token left unmapped prints in Roboto (`sans`) or is refused; a QR-bill's slip keeps Liberation Sans ([0040](./docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), [0043](./docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
 - **Images**: a PNG, a JPEG, or an SVG logo drawn as vectors, made of shapes alone: no text, no embedded picture. Where your application gives the editor a store for them, a person adds one in either builder, and your application keeps its bytes ([0030](./docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0033](./docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
-- **Charts**, in the format and the editing core, and not yet in a PDF or in the builders' palettes: a bar, line or pie chart of the detail rows, its categories the values of one field and each series a sum, a count, an average, a minimum or a maximum of a field for each category, held where it is written to what a reader could use. Until the runtime resolves charts, a report that would print one is refused rather than printed without it ([0052](./docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+- **Charts**, in the format, the editing core and the runtime, and not yet in a PDF or in the builders' palettes: a bar, line or pie chart of the detail rows, its categories the values of one field and each series a sum, a count, an average, a minimum or a maximum of a field for each category, held where it is written to what a reader could use. The runtime resolves one by the rules a table's totals are decided by, so a series and a subtotal of one definition, over the same rows and in one format, print the same number; its value axis is one, two or five times a power of ten, chosen exactly, and a pie's shares are exact ratios rounded once, to `SHARE_PLACES`, that need not add up to 100.0 %. A chart of more than `MAX_CHART_CATEGORIES`, or a pie of more categories than its palette has colours, is refused when it renders. Until the renderer draws charts, a report that would print one is refused rather than printed without it ([0052](./docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md), [0055](./docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
 - **A server that knows who is asking**: it verifies your application's token offline with Formancy Data's own verifier, takes the person's tenant from a claim every token must carry, and says which actions your roles give them, under `/v1` ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](./docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
 - **A template's draft, kept on that server**: one per template of a tenant, saved from the version your page opened, its revision and the digest of its report, so a save from a draft another author has saved over since, or from one whose number a restore let another save take with another report, is refused with nothing written, and your page offers a reload; the report checked by the format before it is kept and served as it was saved, who saved each revision kept beside it, and the images it declares kept by their digest. `@formancy/report-client` is what your page asks it with; your page draws Save and the reload, not the builders. It renders and publishes nothing yet, and keeps no fonts ([0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 - **The Studio**, a playground with both builders and the PDF they print, beside them or in the design view's place, online at https://formancy.ai/report/ ([Try it](#try-it), [0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 
-Planned and not here: charts resolved and drawn, and offered and edited in
-the builders, and documents, which are being built; the server's
+Planned and not here: charts drawn, and offered and edited in the
+builders, and documents, which are being built; the server's
 publication, render jobs and artifacts, fonts kept beside its images, a
 Save in the builders themselves, and its published image; reviewed AI
 changes, a published PDF viewer, and a consistent read from Formancy Data.
@@ -47,7 +47,7 @@ barcodes, nested groups, more datasets, running totals, crosstabs, PDF/A
 and accessible PDFs, Excel, copy and paste in the editor, among the rest --
 and what is not planned at all.
 
-> **Status, 1 November 2026: 0.2.0, a developer preview, is released.**
+> **Status, 15 November 2026: 0.2.0, a developer preview, is released.**
 > Its eight packages are on npm, with provenance, and
 > [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.2.0)
 > carries the signed SBOM and release report of the run that published
@@ -58,11 +58,11 @@ and what is not planned at all.
 > `@formancy/report-client` among it, which no release has published yet;
 > the server answers who is asking and keeps a template's draft and its
 > images, in files on one volume, and its image is built by the gates and
-> not published; and a report may hold a chart, which the format and the
-> editing core know, the builders do not offer yet and nothing prints:
-> the runtime refuses a report that would print one. The report format is
-> still version "0", the draft: a report written now is not promised to be
-> read by a later release
+> not published; and a report may hold a chart, which the format, the
+> editing core and the runtime know, the builders do not offer yet and
+> nothing prints: the renderer refuses a report that would print one. The
+> report format is still version "0", the draft: a report written now is
+> not promised to be read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
 
 **Start with [the getting-started guide](./docs/getting-started.md)**: a
@@ -251,6 +251,7 @@ these lines from the packed packages (`scripts/install-fixture/consume.ts`).
 | Package | What it is |
 | --- | --- |
 | [`@formancy/report-spec`](./packages/report-spec/README.md) | The report format, version 0 (a draft): its types, validation with stable error codes, a canonical hash, and the rules of a QR-bill, an EPC QR code, an e-invoice, a chart, an SVG, an image's bytes and a font's ([0007](./docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)). |
+| [`@formancy/report-documents`](./packages/report-documents/README.md) | The one PDF reader: a PDF's bytes read whole -- its pages, every object they draw with, and a count of what does not survive printing -- or refused, synchronously, within bounds measured at each, with no Node or DOM global; nothing calls it yet ([0054](./docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)). |
 | [`@formancy/report-core`](./packages/report-core/README.md) | Commands over a report, as functions and as data, several as one batch, a session that commits only what validates, with exact undo and redo, and one compilation of every expression for the diagnostics and the runtime ([0008](./docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0048](./docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)). |
 | [`@formancy/report-runtime`](./packages/report-runtime/README.md) | Resolves a report against its data into a renderer-neutral document, exact numbers as strings and totals rounded once, and writes an e-invoice's XML, or refuses with every reason; its manifest says what a render was resolved from, the data's source among it ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0041](./docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)). |
 | [`@formancy/report-render-pdf`](./packages/report-render-pdf/README.md) | Draws that document with pdfmake, in Node and through a browser entry, and refuses what it cannot draw whole rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)). |
@@ -349,6 +350,11 @@ serves it on port 4394, once `pnpm build` has built the packages it
 imports. `node scripts/container.mjs` builds the server's image and runs
 the container gate's checks on it, with Docker; the server's settings are
 in [its README](./packages/report-server/README.md#settings).
+`pnpm --filter @formancy/report-pages test:browser`, after `pnpm build`
+and the Studio's `playwright install chromium`, measures every page of the
+built sitemap in Chromium, served under `/report/` with the demo's
+headers, as CI's `browser` job does
+([0053](./docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 
 CI runs the gates of `.github/workflows/gates.yml` on every pull request,
 and a release runs them before it publishes. Every run ends in a release
@@ -373,6 +379,8 @@ gate proves and what it does not.
 | `@formancy/spec` (transitive) | 0.5.0 |  |
 | `@formancy/themes` | 0.12.0 | `0.12.0` |
 | `tslib`, by `@formancy/report-builder-angular` | 2.8.1 | `^2.8.0` |
+| `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
+| `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |
 | `pdfkit`, by `@formancy/report-render-pdf` | 0.19.1 | `0.19.1` |
 | `pdfmake`, by `@formancy/report-render-pdf` | 0.3.11 | `0.3.11` |
 | `uqr`, by `@formancy/report-render-pdf` | 0.1.3 | `0.1.3` |
@@ -393,7 +401,7 @@ gate proves and what it does not.
 | `axe-core` | 4.14.0 |  |
 | `playwright` | 1.64.1 | `^1.63.0` |
 
-What a run actually ran -- the Node of each job, the React and Angular each install host resolved at both ends of the builders’ peer ranges, and the Chromium the browser gate launched -- is in the release report every CI run produces and every release attaches, signed.
+What a run actually ran -- the Node of each job, the React and Angular each install host resolved at both ends of the builders’ peer ranges, and the Chromium the browser gates launched -- is in the release report every CI run produces and every release attaches, signed.
 
 <!-- end generated -->
 
