@@ -7,7 +7,8 @@ import { planFonts } from './host-fonts.js'
 import { engine } from './node-engine.js'
 import { renderPdf } from './node.js'
 import { ACTUAL, BARS, EMPTY, LINE, PIE, PLAN, SERIF, value } from './testing/charts.js'
-import { BODY_HEIGHT, documentOf, paragraph, PRINTABLE_WIDTH, TIMEOUT } from './testing/documents.js'
+import { BODY_HEIGHT, documentOf, heading, paragraph, PRINTABLE_WIDTH, TIMEOUT } from './testing/documents.js'
+import { lastPassLayouts } from './testing/layouts.js'
 
 /**
  * A chart held to what the renderer draws before anything is laid out
@@ -763,6 +764,29 @@ describe("a render's charts, bounded in all", { timeout: TIMEOUT }, () => {
   // charts cost. Weighed, it is admitted as many as their weights fit.
   test('admits as many charts of one value as their weight fits', async () => {
     expect(await refusedAll(tinies(Math.floor(MAX_CHART_DRAWING / TINY_UNITS)))).toBe('rendered')
+  })
+
+  // The bound holds one layout pass, and a kept heading costs more than
+  // one: pdfmake lays the whole document out again for each page it moves
+  // a heading to (src/LayoutBuilder.js 137-141), every chart's share of a
+  // layout with it, which no bound before the layout can count. Four
+  // charts, each too tall to follow its heading at the foot of the page
+  // before, are laid out four times behind kept headings and once behind
+  // plain ones; 0058 states the multiple, and a pdfmake that set every
+  // break in one layout fails here, the limitation going with it.
+  test('is laid out again by pdfmake for each kept heading it moves, which the bound does not count', async () => {
+    const chart = (index: number): AxisChart => ({ ...BARS, id: `kept-${String(index)}`, height: Math.floor(BODY_HEIGHT * 0.6) })
+    const behind = (head: (text: string) => Block): Block[] => [0, 1, 2, 3].flatMap((index) => [head(`Figure ${String(index)}`), chart(index)])
+    expect(await lastPassLayouts(documentOf('Kept', behind(heading)), 10)).toBe(4)
+    expect(
+      await lastPassLayouts(
+        documentOf(
+          'Plain',
+          behind((text) => paragraph(text)),
+        ),
+        10,
+      ),
+    ).toBe(1)
   })
 
   // ... and refused one more, at the chart that crossed the bound: a weight

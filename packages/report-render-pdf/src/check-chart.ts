@@ -95,10 +95,12 @@ export function checkChart(chart: Chart, at: string, place: Place, walk: Walk): 
  *
  * It holds one layout pass. pdfmake lays the document out again for each
  * page where a kept heading moves to the next, as often as where the
- * pages break decides, which no bound before the layout can count: 20 bar
- * charts of 123 one-letter categories, each 290 points tall behind a
- * keep-with-next heading, took 1,887 ms where with plain headings they
- * took 637, three times as long.
+ * pages break decides, which no bound before the layout can count: 17 bar
+ * charts of 123 one-letter categories, which the bound admits, each 290
+ * points tall behind a keep-with-next heading, took a median of 1,475 ms
+ * where with plain headings they took 574, two and a half times as long,
+ * at a load of 3.2 to 3.7 (seven interleaved runs); 20 of them, past the
+ * bound, 1,887 against 637 at a load of 3.9 to 4.3, three times as long.
  *
  * Measured on 2026-11-15 on a Mac (Apple M2, 8 cores) under Node 22.23.4,
  * ECharts 6.1.0, pdfmake 0.3.11 and pdfjs-dist 6.4.299. The weights came
@@ -116,7 +118,11 @@ export function checkChart(chart: Chart, at: string, place: Place, walk: Walk): 
  * groups.
  *
  * The bound is set by the slowest of seven interleaved runs of the
- * costliest of the forms tried, at a load of 3.3 to 5.6. The forms were
+ * costliest of the forms tried, at a load of 3.3 to 5.6, a quiet machine's,
+ * and it keeps 2 s only at such a load: at a load of 10 to 18.6 the
+ * documents it admits ran far slower at their slowest, a page of nine
+ * line charts of 8 series and one category 5.5 s, and the page below
+ * 9.45 s. The forms were
  * packed as many to a render as the bound holds, in the densest grid each
  * draws in on A4 landscape pages without margins, across pages, and as
  * many as one page holds: charts of one category of each kind, of 1 and 8
@@ -128,8 +134,10 @@ export function checkChart(chart: Chart, at: string, place: Place, walk: Walk): 
  * costliest render, 263 dressed pies of one slice on 3 pages, took 878 ms
  * at its slowest, and the costliest page, one 8 × 200 line beside five
  * 8 × 1 lines, cost PDF.js 1,614 ms at its slowest and 723 at its median.
- * That page reaches 2 s at about 6,000 units; the bound is the round
- * number below, which the run confirmed.
+ * The bound rests on that one run, a spike: the page's other six stood at
+ * 0.66 to 1.10 times the reference render's in their rounds. At 0.332 ms
+ * a unit it reaches 2 s at about 6,017 units, and 6,000 would leave about
+ * 10 ms, so the bound is 5,000, which the run confirmed.
  */
 export const MAX_CHART_DRAWING = 5000
 

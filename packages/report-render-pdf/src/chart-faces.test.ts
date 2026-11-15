@@ -102,6 +102,16 @@ describe("a chart's faces", () => {
     expect(chartFaces({ ...sales, style: { font: 'serif', bold: true } }, plan).words).toMatchObject({ face: 'bold', font: { fontWeight: 'bold' } })
   })
 
+  // A chart's words are placed by ECharts, so an alignment means nothing
+  // for them, and 0058 says its style's is not read: a style that aligns
+  // its words right gets the faces the same style gets without, so that
+  // a renderer that read the alignment into a face fails here.
+  test('reads no alignment: a style that aligns right gets the faces it gets without one', () => {
+    const plan = planFonts(SERIF, ROBOTO)
+    const style = { font: 'serif', size: 10, italic: true, color: '#336699' } as const
+    expect(chartFaces({ ...sales, style: { ...style, align: 'right' } }, plan)).toEqual(chartFaces({ ...sales, style }, plan))
+  })
+
   // zrender keeps widths process-wide by the font string it measures in:
   // two faces handed under one digest, in other bytes, named alike, would
   // lay the second chart out by the first one's widths. Each is named by
