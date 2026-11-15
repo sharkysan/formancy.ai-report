@@ -9,8 +9,10 @@
 //   - nothing scrolls sideways and nothing is past either edge, in every
 //     state, from the side-by-side layout down to a 320px phone;
 //   - the keyboard path: from the top of the page the first Tab reaches the
-//     skip link, on screen, and Enter on it puts the keyboard on <main>,
-//     where the next Tab reaches its first control; and Enter on a refusal's
+//     skip link, on screen, where axe finds nothing on it and measured its
+//     contrast, and Enter on it -- given the focus where the first Tab went
+//     elsewhere -- puts the keyboard on <main>, where the next Tab reaches
+//     its first control; and Enter on a refusal's
 //     "Select …" button puts the keyboard on its component's outline row,
 //     selected, in the React builder and in the Angular one;
 //   - axe's default rules and its target-size rule find nothing, and
@@ -26,7 +28,10 @@
 //     page prints, and the Download PDF link a PDF whose page draws the
 //     drawings pictures.json records there, path by path -- the firm's
 //     mark, a code -- and no other; an e-invoice's with Final on, since its
-//     preview says on every page that it is no e-invoice (0044);
+//     preview says on every page that it is no e-invoice (0044); every
+//     Download PDF downloaded as a person downloads it, and read again
+//     where the Preview printed anew between the read of the link and the
+//     download, each pass measuring how often it did (gate-download.mjs);
 //   - the framework switch keeps the document and its history: an edit made
 //     in React is in the Angular builder with its Undo, undone there the PDF
 //     follows, and back in React the Redo is offered; and the first moment
@@ -106,6 +111,7 @@ import { LAUNCH_OPTIONS } from '../../../scripts/browsers.mjs'
 import { headersFor } from '../../../scripts/demo-headers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
+import { offeredPdf, rereadsOn } from './gate-download.mjs'
 import { interactions } from './gate-interactions.mjs'
 import { audit, connectionHints, describeFocus, fontProblem, fromTheTop, listenForRefusals, measureWidth, paletteProblem, refusalsOf } from './gate-measure.mjs'
 import { app, cutControls, downloaded, drawnPages, passes, rulesOnThePaper } from './gate-page.mjs'
@@ -231,11 +237,9 @@ async function paperChecks(gate, page, state, picture) {
     `${state}: page ${String(picture.page)}'s text layer holds the ${String(picture.lines.length)} lines pictures.json says it prints, and no other`,
     missing.length === 0 && extra.length === 0 ? null : `missing ${JSON.stringify(missing.slice(0, 4))}, extra ${JSON.stringify(extra.slice(0, 4))}`,
   )
-  const href = await previewOf(page)
-    .getByRole('link', { name: 'Download PDF', exact: true })
-    .evaluate((link) => link.href)
-  const { head, drawings } = await downloaded(page, href, picture.page)
-  check(`${state}: Download PDF is a PDF`, head === '%PDF-' ? null : `it begins ${JSON.stringify(head)}`)
+  const pdf = await offeredPdf(page, previewOf(page))
+  const { head, drawings } = await downloaded(pdf?.bytes ?? new Uint8Array(), picture.page)
+  check(`${state}: Download PDF is a PDF`, pdf === null ? 'the Preview offers no Download PDF' : head === '%PDF-' ? null : `it begins ${JSON.stringify(head)}`)
   // A manifest written before it recorded drawings records none, and fails here rather than passing a page it never pictured.
   const recorded = Array.isArray(picture.drawings) ? JSON.stringify(picture.drawings) : 'no drawings at all'
   check(
@@ -267,20 +271,46 @@ async function paperRules(gate, page) {
   gate.check('and read every stylesheet of the page', paper.unread.length === 0 ? null : `could not read ${paper.unread.join(', ')}`)
 }
 
-/** From the top of the page: the skip link, on screen, then <main>, then its first control. */
+/**
+ * From the top of the page: the skip link, on screen and as axe finds it
+ * shown, then <main>, then its first control, each a check of its own: a
+ * first Tab that went elsewhere fails the first alone. The pages' gate's
+ * keyboard path (apps/pages/scripts/browser-test.mjs, 0053), from the
+ * Studio's `fromTheTop`.
+ */
 async function keyboard(gate, page) {
   const { check } = gate
   await fromTheTop(page)
-  await page.keyboard.press('Tab')
   const skip = page.getByRole('link', { name: 'Skip to the builder', exact: true })
-  const shown = await skip.evaluate((link) => {
+  const links = await skip.count()
+  await page.keyboard.press('Tab')
+  if (links !== 1) {
+    check('the first Tab reaches the skip link', `the page has ${String(links)} links named "Skip to the builder", where it has one skip link`)
+    return
+  }
+  const focused = await skip.evaluate((link) => link === document.activeElement)
+  check('the first Tab reaches the skip link', focused ? null : `focus went to ${await describeFocus(page)} first`)
+  // What follows is of the skip link itself. Where the first Tab went
+  // elsewhere, the link is given the focus, so that Enter is pressed on it
+  // and never on whatever had the focus: a control there -- the starter
+  // picker, the bar's Preview -- would change the page every check after
+  // it measures, and a link would take the page away.
+  if (!focused) await skip.focus()
+  const onScreen = await skip.evaluate((link) => {
     const box = link.getBoundingClientRect()
-    return { focused: link === document.activeElement, onScreen: box.top >= 0 && box.left >= 0 && box.right <= document.documentElement.clientWidth }
+    return box.top >= 0 && box.left >= 0 && box.right <= document.documentElement.clientWidth
   })
-  check('the first Tab reaches the skip link', shown.focused ? null : `focus went to ${await describeFocus(page)} first`)
-  check('which is on screen while it has focus', shown.onScreen ? null : 'it stayed off screen')
+  check('which is on screen while it has focus', onScreen ? null : 'it stayed off screen')
+  // Off screen, axe leaves the link's contrast out, so shown is where it is measured, or by nobody.
   const skipAudit = await audit(page, skip)
-  check('the skip link, shown: axe finds nothing', skipAudit.violations.length === 0 ? null : skipAudit.violations.join('; '))
+  check(
+    'the skip link, shown: axe finds nothing, and measured its contrast',
+    skipAudit.violations.length > 0
+      ? skipAudit.violations.join('; ')
+      : skipAudit.measured.includes('color-contrast')
+        ? null
+        : 'axe measured no contrast on it, so its colours were read by nobody',
+  )
   await page.keyboard.press('Enter')
   const main = page.getByRole('main')
   check(
@@ -450,6 +480,12 @@ async function pass(gate, browser, url, entry) {
           : `the page started ${workers.size === 0 ? 'no worker' : [...workers].join(', ')}`,
       )
   } finally {
+    // A green run would hide a race lost and read again; the pass says how often it was (gate-download.mjs).
+    gate.measure({
+      name: `${label}: Download PDFs read again, the Preview having replaced the address read before the download`,
+      value: rereadsOn(page),
+      unit: 'rereads',
+    })
     await page.close()
   }
   if (parity) {
