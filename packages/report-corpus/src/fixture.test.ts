@@ -369,6 +369,9 @@ describe('chartsOf', () => {
       faces: ['North: 3 (100.0 %)', 'East: 0 (0.0 %)'].map((text) => ({ text, postScriptName: 'Roboto-Regular' })),
       empty: false,
     })
+    // A value whose label is blank prints none.
+    const blank = chartsOf(documentOf([{ ...bars, series: [{ ...bars.series[0]!, values: [value('10.25', ' '), null, value('0')] }] }]))[0]!
+    expect(blank.marks[0]!.labels).toEqual([null, null, '0'])
     // Values not labelled print no label, and none is held.
     const unlabelled = chartsOf(documentOf([{ ...bars, valueLabels: false }]))[0]!
     expect(unlabelled.words).toEqual(['Sales', 'Region', 'North', 'A B', 'Plan'])
@@ -402,6 +405,10 @@ describe('chartsOf', () => {
       { text: 'Region', postScriptName: 'Roboto-Italic' },
     ])
     expect(chartsOf(documentOf([{ ...bars, style: { font: 'mono' } }]))[0]!.faces).toEqual([])
+    // A mapped token with no such face, or a face that is no font, is refused by the renderer, and names none.
+    expect(chartsOf(documentOf([{ ...bars, style: { font: 'mono', italic: true } }], fonts))[0]!.faces).toEqual([])
+    const broken = { serif: { normal: { id: 'broken', digest: `sha256:${'0'.repeat(64)}`, bytes: new Uint8Array([1, 2, 3]) } } }
+    expect(chartsOf(documentOf([{ ...pie, style: { font: 'serif' } }], broken))[0]!.faces).toEqual([])
   })
 
   // A chart with nothing to draw has no box to be found by: its words are

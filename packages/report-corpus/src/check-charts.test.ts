@@ -758,6 +758,26 @@ describe("a chart's legend and its values' labels", () => {
     ])
   })
 
+  // An entry whose words print nothing -- blank once trimmed -- is its
+  // swatch alone, which is held; and an entry whose words print nowhere
+  // leaves its swatch beside nothing.
+  test('holds an entry that prints no words by its swatch, and finds one whose words print nowhere', () => {
+    const blank: ExpectedChart = {
+      ...SALES,
+      words: SALES.words.filter((word) => word !== 'Actual'),
+      legend: [SALES.legend[0]!, { text: '', paint: '#ff7f0e' }],
+    }
+    const unworded = sales({ items: replaced(SALES_READ.items, ACTUAL) })
+    expect(problemsOf([blank], unworded)).toEqual([])
+    expect(problemsOf([blank], { ...unworded, paths: SALES_READ.paths.filter((path) => !(path.paint === 'fillStroke' && path.fill === '#ff7f0e')) })).toEqual([
+      'page 1: the chart sales draws no swatch of legend entry 2 in its colour #ff7f0e',
+    ])
+    expect(problemsOf([SALES], unworded)).toEqual([
+      "page 1: the chart sales prints nothing beside the swatch of legend entry 2, which names 'Actual'",
+      "page 1: the chart sales does not print 'Actual' inside its box",
+    ])
+  })
+
   // An entry drawn twice is two swatches of one colour, one of them
   // naming nothing.
   test('finds a legend entry drawn twice', () => {
@@ -795,6 +815,56 @@ describe("a chart's legend and its values' labels", () => {
     // In East's slot, beside the zero labelled there.
     expect(problemsOf([SALES], moved(SALES_READ, '-5', 93.3, 0))).toEqual([
       "page 1: the chart sales prints the label '-5' of series 2 at category 2 centred at 314.04 pt across; its bar is centred at 220.7",
+    ])
+  })
+
+  // A label printed nowhere is check 2's to say, and is said once; and a
+  // zero ECharts drew no bar of is held to its slot, there being no bar to
+  // centre it on: East's plan, its zero bar left out, its label moved into
+  // South's slot.
+  test("leaves a label printed nowhere to the words, and holds a zero's label with no bar to its slot", () => {
+    expect(problemsOf([SALES], sales({ items: replaced(SALES_READ.items, runOf(SALES_READ, '-5')) }))).toEqual([
+      "page 1: the chart sales does not print '-5' inside its box",
+    ])
+    const zero = SALES_READ.paths.find((path) => path.paint === 'fill' && path.height === 0)!
+    const barless = { paths: replaced(SALES_READ.paths, zero) }
+    expect(problemsOf([SALES], sales(barless))).toEqual([])
+    expect(problemsOf([SALES], { ...moved(SALES_READ, '0', -93.3, 0), ...barless })).toEqual([
+      "page 1: the chart sales prints the label '0' of series 1 at category 3 centred at 179.29 pt across; its slot runs from 246.67 to 340",
+    ])
+  })
+
+  // A line's label stands above its marker, a value's text over its
+  // point; under it, it reads as the next value's. The read is the
+  // renderer's line of two series, its first series' values labelled, each
+  // label placed as the renderer placed `chart-line`'s: centred on its
+  // marker, its box 5.35 pt above the marker's top (measured on that
+  // fixture's render, 2026-11-15). A label of a value whose marker is not
+  // drawn is not held, the marker's absence being said.
+  test("holds a line's label above its marker", () => {
+    const labelled: ExpectedChart = {
+      ...BALANCE,
+      words: [...BALANCE.words, '6', '12', '9'],
+      marks: [{ ...BALANCE.marks[0]!, labels: ['6', null, '12', '9'] }, BALANCE.marks[1]!],
+    }
+    const markers = BALANCE_READ.paths.filter((path) => path.paint === 'fill')
+    const labels = ['6', '12', '9'].map((text, index) => {
+      const marker = markers[index]!
+      const width = text.length * 4.496
+      return run(text, marker.x + marker.width / 2 - width / 2, marker.top - 5.35 - 8, width)
+    })
+    const read = balance({ items: [...BALANCE_READ.items, ...labels] })
+    expect(problemsOf([labelled], read)).toEqual([])
+    expect(
+      problemsOf([labelled], {
+        ...read,
+        items: read.items.map((item) => (item === labels[1] ? { ...item, top: item.top + 20, bottom: item.bottom + 20 } : item)),
+      }),
+    ).toEqual([
+      "page 1: the chart balance prints the label '12' of series 1 at category 3 from 95.4 to 103.4 pt down the page; it stands 5 pt above its marker at 88.75",
+    ])
+    expect(problemsOf([labelled], { ...read, paths: replaced(read.paths, markers[1]!) })).toEqual([
+      'page 1: the chart balance draws no marker of series 1 at category 3',
     ])
   })
 

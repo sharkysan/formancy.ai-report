@@ -119,10 +119,14 @@ export function labelProblems(
       const end = mark !== undefined && expected.chart === 'line' ? mark.top : heightAt(plot, place(value))
       const [left, right] = slotAt(plot, expected, category)
       const across = mark === undefined ? (left + right) / 2 : mark.x + mark.width / 2
-      const edgeOf = (item: PdfTextItem): number => (below ? item.top : item.bottom)
+      const edgeOf = below ? (item: PdfTextItem): number => item.top : (item: PdfTextItem): number => item.bottom
       const wanted = below ? end + LABEL_DISTANCE : end - LABEL_DISTANCE
       const away = (item: PdfTextItem): number => Math.hypot(item.x + item.width / 2 - across, edgeOf(item) - wanted)
-      const [run] = words.filter((item) => item.text === label && !used.has(item)).sort((a, b) => away(a) - away(b))
+      const [run] = words
+        .filter((item) => item.text === label && !used.has(item))
+        .map((item) => ({ item, by: away(item) }))
+        .sort((a, b) => a.by - b.by)
+        .map(({ item }) => item)
       if (run === undefined) return []
       used.add(run)
       const of = `series ${String(series + 1)} at category ${String(category + 1)}`
