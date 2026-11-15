@@ -93,17 +93,91 @@ and the three things Report does not mean to do -- connect to a
 database, fetch by address, drill down -- with the reason for each. It promises nothing: an item is built when its
 record is written, and that record may narrow it or turn it down.
 
-**The runtime resolves a chart exactly, and the renderer refuses one
-until it draws charts**
+**The renderer draws a chart, laid out by Apache ECharts, its words in the
+report's faces**
+[0058](docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
+A report that held a chart was refused when it rendered; now its chart
+prints. A chart is a layout -- axes, a legend that wraps, every word kept
+clear of every other -- which a charting library does and the renderer
+would otherwise write and keep for every kind, so ECharts 6.1.0 lays it
+out, and pdfmake draws it: its marks through pdfmake's SVG converter, as
+vectors, and each word as pdfmake's text where ECharts placed it, in the
+report's own faces. ECharts decides nothing a reader reads.
+- **What prints.** A bar, line or pie chart in its box: its title, its axes'
+  titles, its category labels across, its ticks, every tick a gridline and
+  every k-th labelled from the lowest, k the least that sets the labels a
+  line and a quarter apart, its values' labels, and a legend wrapped into
+  rows. Its words take its
+  style's font, size -- 8 pt where it names none -- weight, slant and
+  colour, its title bold; **its alignment is not read**, since ECharts
+  places each word. A chart with nothing to draw prints its title and its
+  empty text in its box, without ECharts.
+- **Every number is the runtime's.** ECharts is handed the runtime's ticks
+  as the axis and a value as its place among them, worked out exactly from
+  its decimals in BigInt, so ticks that share fifteen digits stand where
+  they are; and every word by its index in the block. It is handed no
+  value to round or format, and every colour it paints is the report's or
+  the renderer's, none its theme's.
+- **A pie's slices** are their exact shares. A slice of no share, a zero or
+  less than one part in 10^17, draws nothing and keeps its legend entry.
+  Each slice's arc is drawn on the pie's own circle, within 0.0965 pt:
+  as ECharts writes them, a slice near half a turn printed 5 pt off it and
+  a pie of 9999 and 1 printed blank.
+- **What does not fit is refused, never cut or turned**, as
+  `content-too-large`, naming the chart and its box and the sizes: words
+  that would meet, leave the box or stand in the plot; category labels too
+  wide for their slots, which never turn, so a chart of long labels is
+  widened or given shorter ones; a plot too short for two tick labels; and
+  bars narrower than `MIN_BAR_WIDTH`, 3.5 pt, the least the Studio's
+  Preview draws apart at 100 % on a screen of device pixel ratio 2,
+  measured, so that **bar charts denser than that are refused**.
+- **What the renderer cannot draw as written is refused** as `unsupported`,
+  before anything is laid out: a chart in a page region, one past the
+  runtime's bounds, a word with a tab, a line break or any other control
+  character, its empty text's included, and a drawing ECharts writes
+  otherwise than it was read to write. The runtime now hands on
+  report-spec's `MAX_CHART_SERIES` beside its own bounds, so that a
+  renderer that holds a block to one reads it rather than a copy.
+- **ECharts and zrender are new dependencies of report-render-pdf**, at
+  exactly 6.1.0, under Apache-2.0, whose `NOTICE` a host that bundles them
+  carries, and BSD-3-Clause, with the tslib 2.3.0 they pin under 0BSD;
+  ECharts holds code of d3's under d3's BSD-3-Clause, which the Studio's
+  notices now carry. The licence guard admits them for the renderer alone,
+  at those versions, by the digests of the licence files a review read, so
+  no other package, a builder above all, depends on them. A browser loads
+  them, as a chunk of their own, only with the first document that holds a
+  chart with something to draw. A host whose bundle gives ECharts another
+  copy of zrender than the renderer's has every chart refused: the
+  renderer measures a chart's words through zrender's platform.
+- **A chart's words stay in the process after its render**, in zrender's
+  width cache, up to 500 words for each of 100 fonts, which nothing
+  zrender exports clears.
+- **A heading kept with the next block now moves with a keep-together
+  block that opens with an image**, kept with its first text wherever it
+  stands in the block, as it is with a chart's first word; that text is
+  given an id, `kept-N`, which the PDF writes as a named destination. A
+  chart that prints no word, and a keep-together block of an image alone,
+  still leave such a heading at the foot of the page they leave, since
+  pdfmake never corrects the page of a drawing it moves.
+- **The getting-started guide's quotation prints a bar chart** of its
+  lines' amounts, which the install gate compiles and runs in Node and
+  bundles for a browser.
+- **A chart is proved on the PDF it produced**: report-corpus reads each
+  word in its box and its face, each bar its value's length, each line
+  through its markers, each slice its share's sector, each legend entry
+  beside its swatch and each value's label at its mark. The e-invoice gate
+  draws a bar, a line, a pie and a bar in a host's serif face inside a
+  PDF/A-3b, for veraPDF and Mustang to judge.
+
+**The runtime resolves a chart exactly**
 ([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
 A chart is read for its numbers as a table is, and a chart that grouped,
 totalled or printed by rules of its own would print another number than
 the table beside it, with nothing to say which is right. So a chart is
 resolved by the runtime's own rules into a `chart` block, which holds
 every number and every word it prints; a renderer is handed strings to
-print and the digits of each coordinate. **Nothing prints a chart yet**:
-the renderer refuses a report that would print one, a preview as a final
-render, as `unsupported`, naming the chart, until it draws charts.
+print and the digits of each coordinate, which the renderer draws
+(above).
 - **Its categories are grouped where a table's rows are**: sorted, by the
   table's own order, or in the order the data first gives each, one key
   each, so that 1.0 and 1.00 are one category and grouping costs what a
@@ -148,22 +222,17 @@ render, as `unsupported`, naming the chart, until it draws charts.
   no value, a pie of zeros -- holds its title and its empty text alone.
 - **The runtime exports** the block's types (`Chart`, `AxisChart`,
   `PieChart`, `ChartValue`, `ChartLegendEntry`, `ChartSeriesValues`) and
-  `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and `SHARE_PLACES`, and
-  hands on report-spec's `MAX_CHART_SERIES`, so that a host that tells an
-  author a bound, or a renderer that holds a block to one, reads it rather
-  than a copy.
+  `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and `SHARE_PLACES`, so that
+  a host that tells an author a bound reads it rather than a copy.
 
-**A report may hold a bar, line or pie chart of its detail rows, which no
-release prints yet**
+**A report may hold a bar, line or pie chart of its detail rows**
 ([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
 Reports are often read for a shape -- which month was up, which category
 is most of the total -- and Report could print numbers only in tables. A
 chart arrives a stage at a time, the format and the editing core first,
-and a stage that does not handle one yet refuses it rather than print the
-report without it: **the renderer refuses a report that would print a
-chart, a preview as a final render**, naming the chart, until it draws
-charts, the runtime resolving it (above); and **neither builder offers one
-yet**.
+the runtime resolving it and the renderer drawing it (above), and a stage
+that does not handle one yet refuses it rather than print the report
+without it: **neither builder offers one yet**.
 - **report-spec's `chart` component.** `chart` is `bar`, `line` or `pie`
   (`CHART_KINDS`), a property, so a bar chart becomes a line chart in
   place; `dataset` is `'detail'`; `width` and `height` are a box of at
@@ -204,13 +273,12 @@ yet**.
   of an integer -- a count, or a sum, a least or a greatest of integers --
   which the runtime refuses too. A chart changes through
   `updateComponent`, with no command of its own.
-- **The renderer's `unsupported`** is the refusal above, naming the chart
-  wherever it stands, in either entry. A chart its condition hides prints
-  nothing, so its report is not refused.
+- **A chart its condition hides prints nothing**, so its report is not
+  refused.
 - **Neither builder's palette offers Chart yet**, and an insert or a drag
   of one is refused as `unavailable`: until the builders edit a chart's
   own properties, a chart inserted from the palette would be a box nobody
-  could edit, in a report the renderer refuses to print. A chart a report
+  could edit into shape. A chart a report
   holds is drawn in the design view as a box of its size, moved and
   removed, with the properties every component has, so a chart is a
   host's or a proposal's to write in the JSON for now.

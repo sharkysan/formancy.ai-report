@@ -476,8 +476,9 @@ What they do not check:
   the data says: the runtime refuses a pie of more categories than its
   palette has colours when it renders
   ([0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md));
-- what a chart prints, which the runtime resolves. No release draws one
-  yet: the renderer refuses a report that would print one.
+- what a chart prints, which the runtime resolves, and whether its words
+  fit its box, which the renderer reads once it has laid the chart out
+  ([0058](../../docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)).
 
 ## An SVG asset
 
