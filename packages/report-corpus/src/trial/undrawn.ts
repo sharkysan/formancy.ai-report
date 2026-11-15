@@ -1,6 +1,7 @@
 import {
   RenderRefusal,
   type Block,
+  type Chart,
   type Columns,
   type EpcQrCode,
   type QrCode,
@@ -13,13 +14,13 @@ import {
 
 /**
  * What the document grew after the renderer trial, which neither trial
- * adapter draws: columns, sections, rectangles, QR codes and EPC QR codes,
- * a payment part, an e-invoice to embed, an SVG image, fonts but the sans,
- * colour, rules of another weight or colour, and table rows and cells with
- * styles of their own or running across the table. Both adapters refuse it
- * here, as `unsupported` and naming where it stands, before they build
- * anything: a block skipped or a style ignored would print a report that is
- * not the one asked for, with nothing to say so.
+ * adapter draws: columns, sections, rectangles, QR codes, EPC QR codes and
+ * charts, a payment part, an e-invoice to embed, an SVG image, fonts but
+ * the sans, colour, rules of another weight or colour, and table rows and
+ * cells with styles of their own or running across the table. Both
+ * adapters refuse it here, as `unsupported` and naming where it stands,
+ * before they build anything: a block skipped or a style ignored would
+ * print a report that is not the one asked for, with nothing to say so.
  *
  * The trial's findings stand on the document it ran on (0005). Drawing the
  * rest is the renderer's, judged on the same corpus. An image's fit is each
@@ -27,7 +28,7 @@ import {
  */
 
 /** The blocks the trial's document did not have. */
-export type Undrawn = Columns | Section | Rectangle | QrCode | EpcQrCode
+export type Undrawn = Columns | Section | Rectangle | QrCode | EpcQrCode | Chart
 
 /** The weight both trial adapters draw a rule at: `RULE` in `pdfmake-content.ts`, `RULE_WEIGHT` in `pdfme.ts`. */
 const TRIAL_RULE = 0.5
@@ -36,7 +37,8 @@ const TRIAL_RULE = 0.5
 const BLACK = '#000000'
 
 export function isUndrawn(block: Block): block is Undrawn {
-  return block.kind === 'columns' || block.kind === 'section' || block.kind === 'rectangle' || block.kind === 'qrCode' || block.kind === 'epcQrCode'
+  const { kind } = block
+  return kind === 'columns' || kind === 'section' || kind === 'rectangle' || kind === 'qrCode' || kind === 'epcQrCode' || kind === 'chart'
 }
 
 /** Refuses the first thing in `document` that neither trial adapter draws: a payment part, an e-invoice, then what the page regions and the body hold. */

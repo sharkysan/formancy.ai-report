@@ -555,7 +555,7 @@ describe("what an engine reads of report-spec's image decisions", () => {
   })
 })
 
-describe('a chart, which this release of the runtime does not resolve', () => {
+describe('a chart', () => {
   const chart: Component = {
     id: 'by-kind',
     kind: 'chart',
@@ -579,24 +579,19 @@ describe('a chart, which this release of the runtime does not resolve', () => {
     return resolveReport(withDetail, { ...data(), detail: [{ kind: 'a' }], completeness: { complete: true, captured: 1 } }, { ...OPTIONS, mode })
   }
 
-  // A chart lowered to nothing would print the report without it, and
-  // nothing would say so; a preview that did would show a person a report
-  // that no final render prints.
-  test('refuses a report holding a chart, which it cannot resolve yet, in a final render and a preview', () => {
-    for (const mode of ['final', 'preview'] as const) {
-      const outcome = resolved([chart], mode)
-      expect(outcome.ok ? [] : outcome.errors.map(({ stage, code, path, message }) => ({ stage, code, path, message })), mode).toEqual([
-        { stage: 'resolve', code: 'chart-not-resolved', path: '/regions/body/0', message: 'chart by-kind is not resolved by this release of the runtime' },
-      ])
-    }
-  })
-
-  // A chart its condition hides prints nothing, as any component would, so
-  // its report has nothing to refuse; a refusal there would refuse a report
-  // that prints whole.
-  test('prints a report whose chart its condition hides', () => {
-    const hidden = { ...chart, visibleWhen: { cel: 'header.flagged == false' } } as Component
-    const outcome = resolved([words('intro', 'Visit'), hidden], 'final')
-    expect(outcome.ok ? outcome.document.body.map((block) => block.kind) : outcome.errors.map(({ code }) => code)).toEqual(['paragraph'])
+  // A chart is lowered where it stands, in the style its words inherit and
+  // its own, as any component is; and one its condition hides prints
+  // nothing, as any component would. A chart lowered even so would print a
+  // chart the report hid, and one that lost its style would print its words
+  // in another than the report's.
+  test('prints a chart where it stands, in its style, and nothing where its condition hides it', () => {
+    const kept = { id: 'kept', kind: 'section', style: 'red', components: [{ ...chart, style: 'small' }] } as Component
+    const hidden = { ...chart, id: 'hidden', visibleWhen: { cel: 'header.flagged == false' } } as Component
+    const outcome = resolved([words('intro', 'Visit'), hidden, kept], 'final')
+    expect(outcome.ok ? outcome.document.body.map((block) => block.kind) : outcome.errors.map(({ code }) => code)).toEqual(['paragraph', 'section'])
+    const section = outcome.ok ? outcome.document.body[1] : undefined
+    expect(section?.kind === 'section' && section.blocks).toMatchObject([
+      { kind: 'chart', id: 'by-kind', categories: ['a'], style: { color: '#b00020', size: 8 } },
+    ])
   })
 })

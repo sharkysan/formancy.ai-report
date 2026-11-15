@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:216ccb336389de622adf0260112e3429125700607627916fb63a31f63348fff6",
+      "reviewed": "sha256:d2262b528a9832011368ca08c8a3b2581e9f146152a6c0760dc1c366812f758f",
       "limitations": [
         {
           "area": "runtime",
@@ -2267,7 +2267,7 @@
       ]
     },
     "0052": {
-      "reviewed": "sha256:568c43ad88b1f944eb2f00fe172641a3bd3d1b07fd4feb68571a26ea814165e6",
+      "reviewed": "sha256:f6d9a17cf3e61f5718fa61fd297820d0797ba0a7e364630e8f57a760c86912f2",
       "limitations": [
         {
           "area": "format",
@@ -2288,15 +2288,6 @@
           "says": "A report that holds a chart is refused whole by 0.2.0, which does not know the kind, so a report saved with one opens only in a release that has it."
         },
         {
-          "area": "format",
-          "says": "A pie’s own palette is not held to its slices, which only the data counts: what a slice past its end is drawn in is undecided until the runtime resolves charts."
-        },
-        {
-          "area": "runtime",
-          "says": "Until the runtime resolves charts, a report that would print one is refused, a preview as a final render; one whose chart its condition hides prints.",
-          "heldBy": "packages/report-runtime/src/lower.test.ts"
-        },
-        {
           "area": "builders",
           "says": "Until the builders offer a chart and edit its own properties, neither palette has Chart, and a chart is written in the report’s JSON by a host or a proposal; a builder shows one a report holds, moves it and removes it.",
           "heldBy": "packages/report-builder-core/src/palette.test.ts"
@@ -2305,6 +2296,51 @@
           "area": "data",
           "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
           "heldBy": "packages/report-forms/src/review.test.ts"
+        }
+      ]
+    },
+    "0055": {
+      "reviewed": "sha256:79068db0b7e10a6ee8dba6fe1f41c9a87c641fe9a150416bbe8a3044c1b426e8",
+      "limitations": [
+        {
+          "area": "runtime",
+          "says": "A chart of more than 200 categories, or a pie of more categories than its palette has colours -- eight unless it names its own -- is refused when it renders.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A pie refuses a negative value, and one whose values are all zero prints its empty text.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A chart's value axis is chosen by one rule, at most five steps of one, two or five times a power of ten; an author cannot set its range or its step.",
+          "heldBy": "packages/report-runtime/src/chart-ticks.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A pie's shares are each rounded once, to a tenth of a percent, so they need not add up to 100.0 %: three equal slices print 33.3 % each.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A pie's legend entry that labels its value reads `label: value (share)`, its colon and its parentheses the same in every language.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A decimal category with no format prints as its first row in the data's order spells it, so a chart and a table sorted otherwise can spell one value differently, 7.7 and 7.70; a category format with a scale prints both alike.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A pie whose values its format cannot print is refused even where it labels none of them.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Until the renderer draws charts, a report that would print one is refused when it renders.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
         }
       ]
     }
