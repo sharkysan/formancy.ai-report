@@ -52,6 +52,18 @@ export function walkComponents(report: ReportDefinition): readonly ComponentLoca
   return walkRegions(report.regions)
 }
 
+/**
+ * The regions `regions` holds, each with its components, in the order a
+ * reader meets them: every region but an optional one the report leaves
+ * out, which holds nothing to visit or put a component in (0060).
+ */
+export function heldRegions(regions: Regions): readonly (readonly [RegionName, readonly Component[]])[] {
+  return REGION_NAMES.flatMap((region) => {
+    const components = regions[region]
+    return components === undefined ? [] : [[region, components] as const]
+  })
+}
+
 /** Every component in `regions`, as `walkComponents` finds them: for a validation that has read the regions and not yet the whole report. */
 export function walkRegions(regions: Regions): readonly ComponentLocation[] {
   const found: ComponentLocation[] = []
@@ -62,7 +74,7 @@ export function walkRegions(regions: Regions): readonly ComponentLocation[] {
       for (const [suffix, children] of childLists(component)) visit(children, region, `${where}${suffix}`, depth + 1)
     }
   }
-  for (const region of REGION_NAMES) visit(regions[region], region, at('/regions', region), 0)
+  for (const [region, components] of heldRegions(regions)) visit(components, region, at('/regions', region), 0)
   return found
 }
 

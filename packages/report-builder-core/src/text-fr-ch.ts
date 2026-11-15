@@ -36,6 +36,7 @@ export const FR_CH: Catalogue = {
   'action.addDebtor': 'Ajouter le débiteur',
   'action.removeDebtor': 'Retirer le débiteur',
   'region.reportHeader': 'En-tête du rapport',
+  'region.firstPageHeader': 'En-tête de la première page',
   'region.pageHeader': 'En-tête de page',
   'region.body': 'Corps',
   'region.pageFooter': 'Pied de page',

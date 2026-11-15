@@ -488,11 +488,23 @@ export function editable(value: unknown): Record<string, unknown> {
   return JSON.parse(JSON.stringify(value)) as Record<string, unknown>
 }
 
-/** The fixture, edited. */
-export function edited(edit: (report: Record<string, unknown>) => void): Record<string, unknown> {
-  const report = editable(richReport())
+/** The fixture, or `base`, edited. */
+export function edited(edit: (report: Record<string, unknown>) => void, base: ReportDefinition = richReport()): Record<string, unknown> {
+  const report = editable(base)
   edit(report)
   return report
+}
+
+/**
+ * The fixture with every region the format has: its first page header,
+ * which `richReport` leaves out so that every other test reads a report
+ * whose page 1 prints the page header, put in empty (0060). A test over
+ * `REGION_NAMES` finds each region in it to put a component in, and an
+ * empty first page header holds nothing the test did not put there.
+ */
+export function everyRegionReport(): ReportDefinition {
+  const report = richReport()
+  return { ...report, regions: { ...report.regions, firstPageHeader: [] } }
 }
 
 /**

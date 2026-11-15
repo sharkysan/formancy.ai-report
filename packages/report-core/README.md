@@ -82,6 +82,14 @@ clamps when what it names is not there:
 - **the table:** `insertColumn`, `removeColumn` (with its footer cells),
   `moveColumn`, `updateColumn`, `setGroup`, `setSort`, and the footer rows
   under the table and under each group, row by row and cell by cell;
+- **the first page header**, which page 1 prints in place of the page
+  header: `putFirstPageHeader(report, components)` gives page 1 a header of
+  its own, added or in place of the one it has, an empty one printing no
+  header; `removeFirstPageHeader` gives page 1 the page header back, what
+  its own held with it, and is refused as `not-found` where there is none.
+  Every component command works in it once it is there; a location in it
+  while it is not is refused as `not-found`
+  ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md));
 - **the payment part**, the report's Swiss QR-bill: `putPaymentPart` (the
   bill whole, added or in place of one), `updatePaymentPart` (a patch of
   its properties, never its kind) and `removePaymentPart`, which judge
@@ -170,10 +178,11 @@ call to a command can pass none of these.
   move to it takes: the start of a keyboard move, the place to put focus
   after a deletion.
 - `locations(report)` is every place a component could be put, in reading
-  order.
+  order, in every region the report holds: a first page header's only where
+  it has one.
 - `validLocations(report, componentOrId)` is the places the validator
-  accepts it in: a page counter only in the page header and footer, a table
-  never inside columns.
+  accepts it in: a page counter only in the page header and footer, never
+  in the first page's own header, a table never inside columns.
 
 The validator decides what may stand where (0007), so `validLocations` asks
 it, place by place, rather than copying its rules. It validates the whole

@@ -39,6 +39,7 @@ export const EN = {
 
   // The report's regions and the kinds of thing in them.
   'region.reportHeader': 'Report header',
+  'region.firstPageHeader': 'First page header',
   'region.pageHeader': 'Page header',
   'region.body': 'Body',
   'region.pageFooter': 'Page footer',

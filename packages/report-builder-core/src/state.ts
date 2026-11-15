@@ -9,7 +9,7 @@
  */
 import { diagnose } from '@formancy/report-core'
 import type { Diagnostic, DiagnosticSeverity } from '@formancy/report-core'
-import { REGION_NAMES, walkComponents } from '@formancy/report-spec'
+import { heldRegions, walkComponents } from '@formancy/report-spec'
 import type { Component, ReportDefinition } from '@formancy/report-spec'
 import { duplicate, indent, moveBy, outdent } from './edits.js'
 import { layoutReport, MAX_ZOOM, MIN_ZOOM, pageGeometry, PX_PER_PT, rulerTicks, toPx } from './geometry.js'
@@ -280,7 +280,8 @@ export function buildState(
   const inputs = { labels, selection: local.selection, problems, severities, overflowing }
   // The editor keeps its selection one the document has, so this finds it.
   const panelTarget = propertyTarget(report, local.selection) ?? REPORT
-  const counts = new Map(REGION_NAMES.map((region) => [region, 0]))
+  // A first page header is listed only where the report has one (0060).
+  const counts = new Map(heldRegions(report.regions).map(([region]) => [region, 0]))
   for (const { region } of walkComponents(report)) counts.set(region, (counts.get(region) ?? 0) + 1)
   const placing = dragOf(derived, local, t, targets)
   return freeze({
@@ -293,7 +294,7 @@ export function buildState(
       title: report.title,
       locale: report.locale,
       page: pageGeometry(report, local.zoom),
-      regions: REGION_NAMES.map((region) => ({ region, label: regionLabel(region, t), count: counts.get(region) ?? 0 })),
+      regions: [...counts].map(([region, count]) => ({ region, label: regionLabel(region, t), count })),
     },
     selection: local.selection,
     outline: buildOutline(report, inputs, t),

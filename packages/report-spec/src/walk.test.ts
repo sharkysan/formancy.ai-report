@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { COMPONENT_KINDS } from './components.js'
+import type { ReportDefinition } from './definition.js'
 import { eInvoiceReport, getAt, richReport } from './test-support.js'
 import { componentAt, walkComponents } from './walk.js'
 
@@ -79,6 +80,41 @@ describe('walkComponents over an e-invoice', () => {
     expect(componentsIn(eInvoice)).toEqual([])
     expect(walkComponents(report).map(({ path }) => path)).toEqual(walkComponents(plain).map(({ path }) => path))
     expect(componentAt(report, eInvoice?.lines.table ?? '')?.component.kind).toBe('table')
+  })
+})
+
+describe('walkComponents over a first page header (0060)', () => {
+  // The walk is how the core's commands, the readers' diagnostics and a
+  // form review find a component. One that skipped the first page header
+  // would leave a field only it prints unread; one that visited it out of
+  // its place would put it in the outline after the page it heads.
+  test("finds its components between the report header's and the page header's, a container before what it holds", () => {
+    const report = richReport()
+    const first = {
+      ...report,
+      regions: {
+        ...report.regions,
+        firstPageHeader: [
+          { id: 'letterhead', kind: 'section', components: [{ id: 'sender', kind: 'text', content: [{ kind: 'text', text: 'Orders' }] }] },
+          { id: 'letterhead-rule', kind: 'line', thickness: 0.5, color: '#999999' },
+        ],
+      },
+    } as ReportDefinition
+    const walked = walkComponents(first).map(({ component, region, depth, path }) => `${region} ${depth} ${component.id} ${path}`)
+    expect(walked.slice(3, 7)).toEqual([
+      'reportHeader 0 rule /regions/reportHeader/1',
+      'firstPageHeader 0 letterhead /regions/firstPageHeader/0',
+      'firstPageHeader 1 sender /regions/firstPageHeader/0/components/0',
+      'firstPageHeader 0 letterhead-rule /regions/firstPageHeader/1',
+    ])
+    expect(walked[7]).toBe('pageHeader 0 running-title /regions/pageHeader/0')
+    for (const { component, path } of walkComponents(first)) expect(getAt(first, path)).toBe(component)
+  })
+
+  // Absent, it holds nothing to visit: a walk that met an absent region
+  // as an empty one would throw, or name a list the report does not have.
+  test('finds nothing of it in a report without one', () => {
+    expect(walkComponents(richReport()).filter(({ region }) => region === 'firstPageHeader')).toEqual([])
   })
 })
 

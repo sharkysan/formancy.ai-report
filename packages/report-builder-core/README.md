@@ -99,13 +99,18 @@ const editor = createReportEditor(opening.session, {
 `editor.state()` returns one `EditorState`:
 
 - **`document`**: the title, the page in points and in CSS pixels at the
-  zoom, and each region with its label and how many components it holds.
-- **`outline`**: the regions, then the components in each as a tree, with a
-  table's columns under it. Each row has its kind, its id, its depth,
-  whether it is selected, how many diagnostics are about it and the worst
-  of their severities, and whether it is wider than the space it stands
-  in. Its label is what a person calls it: a text by what it prints, a QR
-  code by its kind and what it encodes ("QR code: https://…"), an EPC
+  zoom, and each region the report holds with its label and how many
+  components it holds: a first page header, which page 1 prints in place
+  of the page header, only where the report has one, before the page
+  header
+  ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+- **`outline`**: the regions the report holds, in that order, then the
+  components in each as a tree, with a table's columns under it. Each row
+  has its kind, its id, its depth, whether it is selected, how many
+  diagnostics are about it and the worst of their severities, and whether
+  it is wider than the space it stands in. Its label is what a person
+  calls it: a text by what it prints, a QR code by its kind and what it
+  encodes ("QR code: https://…"), an EPC
   payment code by its kind and whom it pays ("EPC payment code: Franz
   Mustermänn"), a bound run by what it binds. Labels are unique in the
   report, so each can be an accessible name; where two would read the
@@ -237,7 +242,8 @@ const editor = createReportEditor(opening.session, {
   `QR_BILL_EXAMPLE`; an IBAN typed over a QR reference takes it away; the
   live region says which. A reference the data gives is left as it is.
 - **`canvas`**: the design view. It is one sheet as wide as the page, with
-  the regions as bands and each component's flow box in its band, in points
+  the regions the report holds as bands, an empty one a band still, and
+  each component's flow box in its band, in points
   and in pixels, with the same severity and overflow its outline row has.
   It also carries rulers in millimetres. It is labelled as not the PDF,
   because it is not; see *What it does not do*.

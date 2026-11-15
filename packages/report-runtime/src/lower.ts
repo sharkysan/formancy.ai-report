@@ -11,7 +11,7 @@
  * the document has three regions: the page header and footer, repeated on
  * every page, and the body.
  */
-import type { Component, ComponentKind, RegionName } from '@formancy/report-spec'
+import type { Component, ComponentKind, OptionalRegionName, RegionName } from '@formancy/report-spec'
 import type { Block, TextStyle } from './document.js'
 import { imageBlock } from './images.js'
 import { encodedText, runOf } from './inlines.js'
@@ -95,7 +95,8 @@ function blocksOf(render: Render, components: readonly Component[], path: string
   return components.flatMap((component, index) => blockOf(render, component, `${path}/${index}`, inherited) ?? [])
 }
 
-function region(render: Render, name: RegionName): Block[] {
+/** A region every report holds, lowered. */
+function region(render: Render, name: Exclude<RegionName, OptionalRegionName>): Block[] {
   return blocksOf(render, render.report.regions[name], `/regions/${name}`, undefined)
 }
 

@@ -33,6 +33,7 @@ export const DE_CH: Catalogue = {
   'action.addDebtor': 'Zahlungspflichtigen hinzufügen',
   'action.removeDebtor': 'Zahlungspflichtigen entfernen',
   'region.reportHeader': 'Berichtskopf',
+  'region.firstPageHeader': 'Seitenkopf der ersten Seite',
   'region.pageHeader': 'Seitenkopf',
   'region.body': 'Hauptteil',
   'region.pageFooter': 'Seitenfuss',

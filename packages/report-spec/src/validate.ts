@@ -9,8 +9,9 @@
  * and whether the rendered output fits are later levels, owned elsewhere.
  */
 import { identifier, matches, optional, readObject, shape, strictKeys, text } from './check.js'
-import { REGION_NAMES } from './definition.js'
-import type { Regions, ReportDefinition } from './definition.js'
+import type { Component } from './components.js'
+import { OPTIONAL_REGIONS, REGION_NAMES } from './definition.js'
+import type { RegionName, Regions, ReportDefinition } from './definition.js'
 import type { ReportError } from './errors.js'
 import { MAX_LABEL_LENGTH, MAX_REGION_COMPONENTS } from './limits.js'
 import { at } from './pointer.js'
@@ -27,14 +28,33 @@ import { checkSpecVersion, REPORT_SPEC_VERSION } from './version.js'
 
 export type ReportValidation = { readonly valid: true; readonly report: ReportDefinition } | { readonly valid: false; readonly errors: readonly ReportError[] }
 
+/** The regions every report holds: every one but those it may leave out. */
+const REQUIRED_REGIONS: readonly RegionName[] = REGION_NAMES.filter((region) => !(OPTIONAL_REGIONS as readonly RegionName[]).includes(region))
+
+/**
+ * The regions, each read by its name in the order a reader meets them, so
+ * that a component id taken twice is reported where the reader meets it
+ * second. An optional region absent is left absent, and one present as an
+ * empty list is kept: the two print different first pages (0060).
+ */
 function readRegions(c: Ctx, value: unknown, path: string): Regions | undefined {
-  const o = shape(c.f, value, path, REGION_NAMES)
-  const [reportHeader, pageHeader, body, pageFooter, summary] = REGION_NAMES.map((region) => {
+  const o = shape(c.f, value, path, REQUIRED_REGIONS, OPTIONAL_REGIONS)
+  const read: Partial<Record<RegionName, readonly Component[]>> = {}
+  for (const region of REGION_NAMES) {
     const where = at(path, region)
-    return readComponents(c, o?.[region], where, { region, regionPath: where, depth: 0, layout: undefined, budget: { left: MAX_REGION_COMPONENTS } })
-  })
+    const components = readComponents(c, o?.[region], where, {
+      region,
+      regionPath: where,
+      depth: 0,
+      layout: undefined,
+      budget: { left: MAX_REGION_COMPONENTS },
+    })
+    if (components !== undefined) read[region] = components
+  }
+  const { reportHeader, firstPageHeader, pageHeader, body, pageFooter, summary } = read
   if (reportHeader === undefined || pageHeader === undefined || body === undefined || pageFooter === undefined || summary === undefined) return undefined
-  return { reportHeader, pageHeader, body, pageFooter, summary }
+  if (o?.firstPageHeader !== undefined && firstPageHeader === undefined) return undefined
+  return { reportHeader, ...optional('firstPageHeader', firstPageHeader), pageHeader, body, pageFooter, summary }
 }
 
 /** The report in `o`, a copy of the document's top level whose version has been checked. */

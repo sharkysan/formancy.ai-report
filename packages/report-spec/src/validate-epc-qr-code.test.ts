@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { REGION_NAMES } from './definition.js'
 import { EPC_CAPTIONS } from './epc-qr-code.js'
 import { reportHash } from './hash.js'
-import { append, edited, editable, getAt, refusals, removeAt, richReport, setAt } from './test-support.js'
+import { append, edited, editable, everyRegionReport, getAt, refusals, removeAt, richReport, setAt } from './test-support.js'
 import { validateReport } from './validate.js'
 
 /** Where the fixture's EPC QR code is: last in the summary. */
@@ -108,7 +108,7 @@ describe('an EPC QR code', () => {
   // of the page, which a page footer or a column at the summary's end is.
   test('stands wherever a QR code does: in every region and in every container', () => {
     for (const region of REGION_NAMES) {
-      const report = editable(richReport())
+      const report = editable(everyRegionReport())
       append(report, `/regions/${region}`, alone())
       expect(refusals(report), region).toEqual([])
     }
@@ -140,7 +140,7 @@ describe('an EPC QR code', () => {
     ])
     for (const region of REGION_NAMES) {
       for (const key of ['beneficiary', 'information']) {
-        const report = editable(richReport())
+        const report = editable(everyRegionReport())
         const at = append(report, `/regions/${region}`, { ...(alone() as object), [key]: [{ kind: 'text', text: 'Seite ' }, { kind: 'pageNumber' }] })
         expect(refusals(report), `${key} in ${region}`).toEqual([`misplaced-page-counter ${at}/${key}/1`])
       }
