@@ -6,8 +6,9 @@
   whose `CARD_EVIDENCE` became every card's `evidence`
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
-- **Verified by:** the pages' suite, which CI's `test` job runs, and
-  `pnpm test:repo`. Each case below was watched failing on a Mac on
+- **Verified by:** the pages' suite, which CI's `test` job runs,
+  `pnpm test:repo`, and the pages' browser gate, which CI's `browser` job
+  runs. Each case below but the gate's was watched failing on a Mac on
   11 November 2026, its fault planted once and the file put back, or the
   case written before what it holds was built. A case watched before a
   later round of review changed the code it reads says so.
@@ -130,17 +131,25 @@
     `docs/release/limitations.json`, and every record whose Status line it
     changed was read again and stamped. Both failed with this record
     written and nothing else.
-
-  Not run: the pages' browser gate, which 0053 adds, and which this record's
-  branch was cut before. No gate has measured the start page's topic
-  cards, its totals, its list of what it does not do yet or its hero's
-  standing in a browser, and no fault of this record's has been planted in
-  one; CI's `browser` job measures them once main, with 0053, is merged
-  into this branch. On 11 November 2026 the built start page was looked at
-  by hand in Chromium, in English at 1280 pixels and in German at 320, for
-  the topic cards' spacing and for nothing else: a card's teaser, standing
-  and link ran together, and 8047605 spaced them, with nothing past the
-  window at 320.
+  - **The pages' browser gate, `apps/pages/scripts/browser-test.mjs`, in
+    CI's `browser` job
+    ([0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).**
+    It measured the start page, with its topic cards, its totals, its list
+    of what it does not do yet and its hero's standing, beside every other
+    page of the built sitemap. Run 43722166870, at 2b6fb97, this record's
+    branch with main and 0053 merged in, passed it on 15 November 2026:
+    1,148 checks, none failed, in seven of seven passes, at 320 pixels
+    with and without the web fonts, 360, 641, 1280, 1920 and 2053, in
+    Chromium 156.0.8078.4 headless on Linux, with Playwright 1.64.1 and
+    axe-core 4.14.0. The release report's table of browser gates gives it
+    24.1 seconds of wall time. The gate's checks were watched failing in
+    0053, and no fault of this record's was planted in it. So the run shows
+    that these sections pass it, not that it catches a fault they could
+    bring. Before that, on 11 November 2026, the built start page was
+    looked at by hand in Chromium, in English at 1280 pixels and in German
+    at 320, for the topic cards' spacing and for nothing else: a card's
+    teaser, standing and link ran together, and 8047605 spaced them, with
+    nothing past the window at 320.
 
   What holds nothing:
   - whether a sentence claims more than its evidence shows, and whether a
