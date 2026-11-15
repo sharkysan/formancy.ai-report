@@ -4,7 +4,10 @@
  *
  * `sampleReport` is one valid report that holds every component kind, every
  * expression site, every declaration kind, every table feature and a
- * payment part, and uses each thing it declares, so that diagnosing it
+ * payment part -- but a table's condition on its rows, under which its
+ * totals of every row would be warned of (0062; `diagnostics/tables.test.ts`
+ * and `commands/readers.test.ts` add one) -- and uses each thing it
+ * declares, so that diagnosing it
  * finds nothing; that it holds every kind, `reportParts`' test holds. A
  * test breaks one thing in it and shows that exactly that is reported, and
  * a command test edits it and shows what changed and what did not.

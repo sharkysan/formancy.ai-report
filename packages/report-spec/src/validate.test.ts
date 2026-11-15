@@ -379,21 +379,29 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     accept: set('/regions/body/2/group/footer/0/cells/1/value/over', 'report'),
     at: ['/regions/body/2/totals/0/cells/2/value/over'],
   },
-  // Version 0 has one primary detail dataset and one table over it; a second
-  // table would raise questions of order and totals the format does not
-  // answer yet.
+  // A table's total over its own rows has a value only where there is a
+  // table whose rows it is: in a paragraph it would be some table's, and
+  // nothing would say whose (0062).
+  'misplaced-table-aggregate': {
+    refuse: set('/regions/body/0/content/2', { kind: 'aggregate', aggregate: 'lines', over: 'table' }),
+    accept: set('/regions/body/2/totals/0/cells/1/value/over', 'table'),
+    at: ['/regions/body/0/content/2/over'],
+  },
+  // An e-invoice's lines are every detail row, printed once by the report's
+  // one table: a second table in such a report would print lines, or a
+  // part of them, that the XML does not hold as printed. The same two
+  // tables in a report that is no e-invoice are two lists (0062).
   'second-detail-table': {
-    refuse: (report) => {
-      setAt(report, '/regions/summary/4', { ...(getAt(report, '/regions/body/2') as object), id: 'lines-again' })
+    refuse: () => {
+      const report = editable(eInvoiceReport())
+      setAt(report, '/regions/summary/5', { ...(getAt(report, '/regions/body/2') as object), id: 'lines-again' })
       return report
     },
     accept: (report) => {
-      const table = getAt(report, '/regions/body/2')
-      removeAt(report, '/regions/body/2')
-      setAt(report, '/regions/summary/4', table)
+      setAt(report, '/regions/summary/5', { ...(getAt(report, '/regions/body/2') as object), id: 'lines-again' })
       return report
     },
-    at: ['/regions/summary/4'],
+    at: ['/regions/summary/5'],
   },
   // Containers nest at most MAX_NESTING_DEPTH deep, which bounds the work of
   // every later stage that walks them; the bound itself is allowed.

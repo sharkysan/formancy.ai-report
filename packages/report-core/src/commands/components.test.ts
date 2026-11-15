@@ -2,7 +2,8 @@ import { COMPONENT_KINDS, componentAt, isIdentifier, walkComponents } from '@for
 import type { Component, EpcQrCodeComponent, ReportDefinition, TextComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { Location } from '../tree.js'
-import { accepted, frozenSample, idsIn, refused, sampleReport } from '../test-support.js'
+import { openReportSession } from '../session.js'
+import { accepted, eInvoiceSample, frozenSample, idsIn, refused, sampleReport } from '../test-support.js'
 import { duplicateComponent, insertComponent, moveComponent, nextComponentId, removeComponent, updateComponent } from './components.js'
 
 const note = (id: string): TextComponent => ({ id, kind: 'text', content: [{ kind: 'text', text: id }] })
@@ -244,6 +245,27 @@ describe('duplicateComponent', () => {
   test('refuses a component the report lacks', () => {
     // Duplicating a stale selection is refused rather than copying nothing.
     expect(refused(duplicateComponent(frozenSample(), 'nowhere')).code).toBe('not-found')
+  })
+
+  // A further table is a copy of one a report holds as often as a new one
+  // (0062): the copy is a second table the session commits, beside the
+  // first, and given a condition through updateComponent prints the rows
+  // it selects. In a report that is an e-invoice, whose lines are every
+  // row of its one table, the session refuses the copy, and nothing changes.
+  test('copies a table into a second one, which the session commits but in an e-invoice', () => {
+    const opening = openReportSession(sampleReport())
+    if (!opening.ok) throw new Error('the sample did not open')
+    const { session } = opening
+    const copy = session.apply({ command: 'duplicateComponent', args: ['lines'] })
+    expect(copy.ok && session.document().regions.body.map(({ id }) => id)).toEqual(['intro', 'gap', 'lines', 'lines-2', 'keep', 'break'])
+    const condition = session.apply({ command: 'updateComponent', args: ['lines-2', 'table', { rowsWhen: { cel: 'row.quantity > 1' } }] })
+    expect(condition.ok && componentAt(session.document(), 'lines-2')?.component).toMatchObject({ kind: 'table', rowsWhen: { cel: 'row.quantity > 1' } })
+    const invoiced = openReportSession(eInvoiceSample())
+    if (!invoiced.ok) throw new Error('the e-invoice sample did not open')
+    const before = invoiced.session.document()
+    const refusal = refused(invoiced.session.apply({ command: 'duplicateComponent', args: ['lines'] }))
+    expect([refusal.code, refusal.errors?.map(({ code }) => code)]).toEqual(['invalid-document', ['second-detail-table']])
+    expect([invoiced.session.document(), invoiced.session.revision()]).toEqual([before, 0])
   })
 })
 

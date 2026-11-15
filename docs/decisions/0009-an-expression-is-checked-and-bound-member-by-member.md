@@ -248,9 +248,12 @@ a read of it anywhere else is `expression-out-of-scope`. A table's
 condition is compiled in the row's scope as a condition, where `group` and
 `table` are out of scope. And `group.key` is declared with the type of the
 field the group's own table groups by, where this record declared the
-report's one table's: two tables grouped by a text and by a date each
-check their group's key as theirs. `compile-report.test.ts` holds the
-three.
+report's one table's: `members.group` holds the aggregates alone, and
+`members.groupKeys` each grouping table's key by the table's id, so two
+tables grouped by an integer and by a text each check their group's key
+as theirs, `group.key + 1` compiling under the one and refused as
+`expression-type` under the other. `compile-report.test.ts` holds the
+three, and `members.test.ts` the members.
 
 ## Alternatives considered
 

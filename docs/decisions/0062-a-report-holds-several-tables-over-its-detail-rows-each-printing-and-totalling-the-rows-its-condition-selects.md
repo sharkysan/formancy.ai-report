@@ -231,8 +231,20 @@ valid.
   every row's.
 - **`table` is read where `totals` and `group` are.** An aggregate read as
   `table.<id>` is used, and goes with a removed field that it totals; the
-  names an aggregate is read under are one list in the core, read by
-  `unused.ts` and `readers.ts` both.
+  names an aggregate is read under are one list in the core
+  (`AGGREGATE_NAMES`, `expressions/reads.ts`), read by `unused.ts` and
+  `readers.ts` both.
+- **A group's key is its table's.** `compileReport`'s `members.group`
+  holds the aggregates alone, and `members.groupKeys` the key of each
+  table that groups, by the table's id; a group's header and footer are
+  compiled with their own table's (`groupOf`, `members.ts`). A field a
+  table groups by reaches, in `fieldReaders`, the reads of that table's
+  key and no other table's.
+- **One message understates.** `row` read where there is no row is
+  refused as having "a value only in a table's cells and what an aggregate
+  reads from each row", the words of before: a table's condition reads it
+  too, and the message does not say so, since a README picture's caption
+  quotes it and is retaken only with the Studio's pictures.
 - **No command of its own.** A table's condition changes through
   `updateComponent`, as its empty text does; a further table comes in by
   `insertComponent` or `duplicateComponent`, and the session's validation

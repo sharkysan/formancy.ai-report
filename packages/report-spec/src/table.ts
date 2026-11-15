@@ -1,7 +1,8 @@
 /**
- * The table over the report's one detail dataset: its columns, the keys it
- * sorts by, its one level of grouping and the rows under a group or the
- * table that total them.
+ * A table over the report's one detail dataset: the rows it prints, its
+ * columns, the keys it sorts by, its one level of grouping and the rows
+ * under a group or the table that total them. A report may hold several,
+ * each printing the rows its own condition selects (0062).
  */
 import type { ComponentBase, Width } from './components.js'
 import type { FieldRef } from './data.js'
@@ -38,7 +39,7 @@ export interface TableFooterCell {
   readonly value: Inline
 }
 
-/** A row under a group or under the table: a subtotal, a tax line, a total. */
+/** A row under a group or under the table: a subtotal, a tax line, a total. One under the table is read in the `table` scope, where `table` totals the rows the table prints. */
 export interface TableFooterRow {
   readonly cells: readonly TableFooterCell[]
   readonly style?: string
@@ -59,10 +60,16 @@ export interface TableGroup {
   readonly footer: readonly TableFooterRow[]
 }
 
-/** The table over the report's one detail dataset. Its header repeats on every page; version 0 has no other choice. */
+/** A table over the report's one detail dataset. Its header repeats on every page; version 0 has no other choice. */
 export interface TableComponent extends ComponentBase {
   readonly kind: 'table'
   readonly dataset: 'detail'
+  /**
+   * Read once per detail row, in its scope, in the provider's order and
+   * before anything is ordered: the table prints, orders, groups and
+   * totals the rows for which it holds. Absent, every row (0062).
+   */
+  readonly rowsWhen?: Expression
   readonly columns: readonly TableColumn[]
   readonly headerStyle?: string
   readonly sort?: readonly SortKey[]

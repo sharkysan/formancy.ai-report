@@ -32,6 +32,7 @@ import { quote } from '../outcome.js'
 import { invoiceRefusal, termBreak } from './e-invoice.js'
 import { inexactOperations, unboundedCalls } from './exactness.js'
 import type { InexactKind } from './exactness.js'
+import { groupOf } from './members.js'
 import type { Members, ScopeName } from './members.js'
 import { unreproducibleCalls } from './reproducible.js'
 import { readSpans } from './spans.js'
@@ -78,6 +79,7 @@ const BY_KIND: { readonly [K in ExpressionErrorKind]: DiagnosticCode } = {
 /** Where each scope's own names have a value, for a message. */
 const WHERE: { readonly [S in ValueScope]: string } = {
   report: 'every part of the report',
+  table: "a table's total rows",
   group: "a group's header and footer",
   row: "a table's cells and what an aggregate reads from each row",
 }
@@ -88,6 +90,7 @@ const MEMBERS_ARE: { readonly [N in ScopeName]: string } = {
   header: 'field of the header dataset',
   row: 'field of the detail dataset',
   totals: 'aggregate',
+  table: 'aggregate',
   group: 'aggregate',
   invoice: 'total of the e-invoice',
   vatBasis: 'VAT category of the e-invoice',
@@ -247,12 +250,15 @@ function wholeReads(site: ExpressionSite, paths: readonly string[], source: stri
 
 /**
  * `site` compiled against what its scope binds in this report -- a report
- * that is an e-invoice when `invoiced` says so -- or every reason it
- * cannot be: a read its scope does not allow, each where it is; the
- * compiler's first error; each call to the clock or a random draw; or a
- * value its place does not take.
+ * that is an e-invoice when `invoiced` says so, and in a group's header
+ * and footer the key of the table the site stands in (0062) -- or every
+ * reason it cannot be: a read its scope does not allow, each where it is;
+ * the compiler's first error; each call to the clock or a random draw; or
+ * a value its place does not take.
  */
-export function compileSite(site: ExpressionSite, members: Members, images: Images, invoiced: boolean): SiteOutcome {
+export function compileSite(site: ExpressionSite, held: Members, images: Images, invoiced: boolean): SiteOutcome {
+  // A group's header and footer stand in their table, which the walk names as their component.
+  const members = site.scope === 'group' ? { ...held, group: groupOf(held, site.componentId as string) } : held
   const parsed = parse(site.cel)
   if (!parsed.ok) return failed([refused(site, parsed.error, site.cel, [])])
   const paths = referencedPaths(parsed.ast)

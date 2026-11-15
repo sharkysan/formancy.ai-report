@@ -31,7 +31,7 @@ export const REPORT_ERROR_CODES = [
   'too-precise',
   /** A string, or a property name, past its bound. */
   'too-long',
-  /** An array past its bound, or a region past its component budget. */
+  /** An array past its bound, a region past its component budget, or a table past `MAX_TABLES` (0062). */
   'too-many',
   'too-few',
   /** A CEL expression that is empty or only whitespace. */
@@ -71,7 +71,8 @@ export const REPORT_ERROR_CODES = [
    * the rule: a literal text, code or rate that breaks its rule; a seller,
    * a buyer, a time of supply, a period or VAT categories that cannot make
    * a valid invoice; lines that are not what the table over the detail
-   * dataset prints; a QR-bill or an EPC QR code that asks to be paid
+   * dataset prints, or a lines' table that selects its rows (0062); a
+   * QR-bill or an EPC QR code that asks to be paid
    * otherwise than the e-invoice says; or a title its PDF/A cannot hold.
    */
   'invalid-e-invoice',
@@ -135,7 +136,12 @@ export const REPORT_ERROR_CODES = [
   'misplaced-detail-field',
   /** A group's aggregate outside a group header or footer. */
   'misplaced-group-aggregate',
-  /** A second table over the detail dataset. */
+  /** A table's aggregate, `over: 'table'`, outside a table's total rows and its group's header and footer (0062). */
+  'misplaced-table-aggregate',
+  /**
+   * A second table in a report that is an e-invoice, whose lines are every
+   * row of its one table (0062). Before 0062, a second table in any report.
+   */
   'second-detail-table',
   'nesting-too-deep',
   /** Two components with one id, anywhere in the report. */

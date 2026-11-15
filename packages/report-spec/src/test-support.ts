@@ -4,7 +4,9 @@
  *
  * `richReport` is one valid report that uses every component kind, every
  * inline, every format, every currency and image source, every aggregate
- * function, every table feature and a payment part, so that a refusal
+ * function, every table feature but a condition on its rows, which an
+ * e-invoice's table may not have (`validate-tables.test.ts` adds one to a
+ * second table), and a payment part, so that a refusal
  * test can break exactly one rule by editing it at one JSON Pointer and
  * show that the rule refuses that edit and nothing around it.
  * `eInvoiceReport` is that report as an e-invoice, for the same use, and

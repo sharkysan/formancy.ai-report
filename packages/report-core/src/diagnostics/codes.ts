@@ -22,7 +22,7 @@ export const DIAGNOSTIC_SEVERITIES = {
   'expression-policy': 'error',
   /** An expression that reads a name, or a member of one, that nothing declares, or a member of a single value; or an e-invoice's total where there is none, or where it is computed from. */
   'expression-unknown-name': 'error',
-  /** An expression that reads `row` or `group` where there is no row or group. */
+  /** An expression that reads `row`, `table` or `group` where there is no row, table or group. */
   'expression-out-of-scope': 'error',
   /** An expression that reads an image field, which is drawn and never read. */
   'expression-unreadable-field': 'error',
@@ -62,6 +62,8 @@ export const DIAGNOSTIC_SEVERITIES = {
   'empty-text': 'warning',
   /** A payment part that holds, written in the report, one of SIX's example accounts, or the creditor, the debtor or the QR reference a builder puts in from SIX's examples, which are no one's (0039). */
   'example-payment-part': 'warning',
+  /** A total row, under a table that prints only the rows its condition selects, that prints a total over every detail row: an aggregate over the report, or an expression that reads `totals` and not `table` (0062). Printed under those rows, it reads as theirs. */
+  'total-of-every-row': 'warning',
 } as const satisfies Readonly<Record<string, 'error' | 'warning'>>
 
 export type DiagnosticCode = keyof typeof DIAGNOSTIC_SEVERITIES

@@ -63,7 +63,7 @@ export function locations(report: ReportDefinition): Location[] {
  * id of one the report holds, each location a move of it to gives one --
  * read, as `moveComponent` reads it, in the report without it. None for an
  * id the report lacks, or a component no place accepts, such as a second
- * detail table or one whose id is taken.
+ * table in a report that is an e-invoice (0062) or one whose id is taken.
  *
  * It validates the whole report once per place, so its cost is the
  * report's size times its number of places: a builder asks it when a drag

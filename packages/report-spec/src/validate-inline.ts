@@ -70,10 +70,10 @@ export interface FieldBinding {
   readonly declared: boolean
 }
 
-/** Reports a detail field read where there is no current row. */
+/** Reports a detail field read where there is no current row: in the report's scope, and under a table, in its total rows. */
 function placeDetailField(c: Ctx, field: string, path: string, scope: InlineScope): void {
   if (scope.reads === 'row') return
-  if (scope.reads === 'report') {
+  if (scope.reads === 'report' || scope.reads === 'table') {
     c.f.report(path, 'misplaced-detail-field', 'a detail field has a current row only in the cells of the table over the detail dataset')
   } else if (scope.groupBy !== undefined && field !== scope.groupBy) {
     c.f.report(
@@ -271,6 +271,14 @@ const INLINES: { readonly [K in InlineKind]: InlineRule } = {
           at(path, 'over'),
           'misplaced-group-aggregate',
           'an aggregate over a group has a value only in that group\'s header and footer; over "report", it is taken over every row',
+        )
+      }
+      // A group's header and footer stand under a table too, and read its totals (0062).
+      if (over === 'table' && scope.reads !== 'table' && scope.reads !== 'group') {
+        c.f.report(
+          at(path, 'over'),
+          'misplaced-table-aggregate',
+          'an aggregate over a table has a value only in its total rows and its group\'s header and footer; over "report", it is taken over every row',
         )
       }
       const format = readCheckedFormat(c, o.format, at(path, 'format'), scope, type)

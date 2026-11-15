@@ -51,6 +51,18 @@ export const MAX_COLUMNS = 4
 /** Columns in a table: wider than a landscape page can show legibly, and a bound on per-row work. */
 export const MAX_TABLE_COLUMNS = 32
 
+/**
+ * Tables in a report, counting those inside containers (0062). Chosen, not
+ * measured: each table orders the rows its condition selects, work no step
+ * budget counts, and reads its condition once per detail row, which the
+ * render's budget does; a report of more lists than eight is several
+ * reports. Ordering the runtime's `MAX_DETAIL_ROWS` once, by two keys,
+ * took a median of 0.5 seconds (Node 24.21, an Intel i9-10900K, 15 October
+ * 2026, as measured beside that bound); what eight tables with a condition
+ * cost at that bound is measured where the runtime selects their rows.
+ */
+export const MAX_TABLES = 8
+
 /** Sort keys on a table. Each one costs a comparison per row pair; a longer sort is usually a missing key. */
 export const MAX_SORT_KEYS = 8
 
@@ -122,7 +134,7 @@ export const MAX_CHART_SERIES = CHART_PALETTE.length
 /** The least a chart's side: under an inch (72 points) holds no plot beneath its title and its labels. Chosen, not measured. */
 export const MIN_CHART_SIDE = 72
 
-/** Aggregates: each is a pass over the detail rows, per group and once overall. */
+/** Aggregates: each is a pass over the detail rows, per group, once per table that selects its rows (0062), and once overall. */
 export const MAX_AGGREGATES = 32
 
 /**

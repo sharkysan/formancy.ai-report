@@ -11,7 +11,7 @@
  */
 import { FONT_FACE_KEYS, isFontMediaType } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
-import { expressionReads, READ_AS, readsMember as read } from '../expressions/reads.js'
+import { AGGREGATE_NAMES, expressionReads, READ_AS, readsMember as read } from '../expressions/reads.js'
 import { quote } from '../outcome.js'
 import { diagnostic } from './codes.js'
 import type { Diagnostic, DiagnosticCode } from './codes.js'
@@ -71,7 +71,7 @@ export function unusedDiagnostics(report: ReportDefinition, parts: ReportParts):
   }
   check(
     report.aggregates,
-    (id) => aggregates.has(id) || read(reads, ['totals', 'group'], id),
+    (id) => aggregates.has(id) || read(reads, AGGREGATE_NAMES, id),
     'unused-aggregate',
     '/aggregates',
     (id) => `aggregate ${id} is neither printed nor read, and would be computed over every row for nothing`,

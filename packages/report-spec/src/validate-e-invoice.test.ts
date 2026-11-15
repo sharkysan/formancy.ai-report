@@ -497,6 +497,29 @@ describe('the lines', () => {
     )
   })
 
+  // The lines are every detail row, printed once by the report's one
+  // table (0062): a second table would print lines, or a part of them,
+  // that the XML does not hold as printed, and is refused where it stands,
+  // naming the lines' table, conditioned or not.
+  test("are the rows of the report's one table: a second is refused where it stands", () => {
+    const second = { ...(getAt(eInvoiceReport(), '/regions/body/2') as object), id: 'lines-again' }
+    expect(refusals(report({ '/regions/summary/5': second }))).toEqual(['second-detail-table /regions/summary/5'])
+    expect(refusals(report({ '/regions/summary/5': { ...second, rowsWhen: { cel: 'row.quantity > 1' } } }))).toEqual(['second-detail-table /regions/summary/5'])
+    expect(messages(report({ '/regions/summary/5': second }))['/regions/summary/5']).toBe(
+      "an e-invoice's lines are every row of the report's one table, at /regions/body/2, and a report that is an e-invoice holds no other",
+    )
+  })
+
+  // Every row is a line of the XML, so the lines' table prints every row: a
+  // condition on its rows would leave lines off the page that the XML
+  // holds, as a table that may be hidden would.
+  test("are every detail row: the lines' table selects none out", () => {
+    expect(refusals(report({ '/regions/body/2/rowsWhen': { cel: 'row.quantity > 1' } }))).toEqual([`invalid-e-invoice ${EI}/lines/table`])
+    expect(messages(report({ '/regions/body/2/rowsWhen': { cel: 'true' } }))[`${EI}/lines/table`]).toBe(
+      'the lines are printed by a table that prints only the rows its condition selects: every detail row is a line the XML holds, and is printed',
+    )
+  })
+
   // The name, quantity, net price and net amount are the columns that
   // print them, so the page and the XML read one evaluation of each line.
   // A column the table does not have prints nothing; one column naming two

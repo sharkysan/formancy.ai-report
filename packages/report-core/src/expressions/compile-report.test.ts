@@ -1,7 +1,8 @@
 import { Decimal, decimalFromString, decimalToString, evaluate, fixedCapabilities } from '@formancy/expressions'
 import type { ExpressionValue } from '@formancy/expressions'
-import type { AggregateDef, ReportDefinition } from '@formancy/report-spec'
+import type { AggregateDef, ReportDefinition, TableComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
+import type { Diagnostic } from '../diagnostics/codes.js'
 import { expressionSites } from '../diagnostics/parts.js'
 import { frozenSample, sampleReport } from '../test-support.js'
 import { compileReport } from './compile-report.js'
@@ -189,5 +190,110 @@ describe('expressionValues', () => {
   test('binds a decimal at the scale the data writes it', () => {
     const compiled = compileReport(frozenSample()).expressions.get(GROSS)
     expect(compiled && expressionValues(compiled, DATA)).toEqual({ row_amount: decimalFromString('12.38') })
+  })
+})
+
+/** Where the sample's table stands, the condition a table may be given there, and a cell and a group footer's expression in it. */
+const LINES = '/regions/body/2'
+const ROWS_WHEN = `${LINES}/rowsWhen/cel`
+const GROUP_FOOTER_VALUE = `${LINES}/group/footer/0/cells/1/value/expression/cel`
+const GROUP_HEADER_VALUE = `${LINES}/group/header/2/expression/cel`
+
+/** The sample with its table changed by `change`. */
+function withTable(change: (table: TableComponent) => TableComponent): ReportDefinition {
+  const report = sampleReport()
+  return { ...report, regions: { ...report.regions, body: report.regions.body.map((each) => (each.kind === 'table' ? change(each) : each)) } }
+}
+
+/** The code and path of each diagnostic of `report`, and its message where `said`. */
+const diagnosed = (report: ReportDefinition): string[] => compileReport(report).diagnostics.map(({ code, path }) => `${code} ${path}`)
+
+describe("a table's condition", () => {
+  // The condition selects a row by what the row holds, a parameter, the
+  // header or a total of every row: compiled in any narrower scope, a
+  // condition such as `row.amount < totals.subtotal` would be refused
+  // where it means something (0062).
+  test('reads the row, the parameters, the header and the totals of every row', () => {
+    const report = withTable((table) => ({
+      ...table,
+      rowsWhen: { cel: 'row.quantity > 1 && params.draft == false && header.customer != "" && row.amount < totals.subtotal' },
+    }))
+    expect(diagnosed(report)).toEqual([])
+    expect(
+      compileReport(report)
+        .expressions.get(ROWS_WHEN)
+        ?.reads.map(({ name, member }) => `${name}.${member}`),
+    ).toEqual(['header.customer', 'params.draft', 'row.amount', 'row.quantity', 'totals.subtotal'])
+  })
+
+  // The groups and the table's own totals are made of the rows it
+  // selects, so a condition that read them would select by what its own
+  // selection makes; one that gives no boolean selects nothing anyone
+  // could say.
+  test("reads neither the group nor the table's totals, and gives a boolean", () => {
+    const at = (cel: string): readonly Diagnostic[] => compileReport(withTable((table) => ({ ...table, rowsWhen: { cel } }))).diagnostics
+    expect(at('group.lines > 0').map(({ code, message }) => [code, message])).toEqual([
+      ['expression-out-of-scope', "group has a value only in a group's header and footer"],
+    ])
+    expect(at('table.lines > 0').map(({ code, message }) => [code, message])).toEqual([
+      ['expression-out-of-scope', "table has a value only in a table's total rows and a group's header and footer"],
+    ])
+    expect(at('row.quantity').map(({ code, path, componentId }) => [code, path, componentId])).toEqual([['expression-policy', ROWS_WHEN, 'lines']])
+  })
+})
+
+describe("a table's totals", () => {
+  // `table.<id>` is the report's aggregate over the rows the table prints:
+  // typed as the aggregate is, read in the table's total rows and its
+  // group's header and footer, and nowhere a row is current, since the
+  // row is what it is totalled from (0062).
+  test('are read as table.<id> under the table, typed as the aggregate, and refused in a cell and a paragraph', () => {
+    const report = JSON.parse(
+      JSON.stringify(sampleReport()).replace('"cel":"totals.gross"', '"cel":"table.gross"').replace('"cel":"group.lines"', '"cel":"table.lines"'),
+    ) as ReportDefinition
+    expect(diagnosed(report)).toEqual([])
+    expect(compileReport(report).expressions.get(TOTAL_VALUE)?.reads).toEqual([
+      { name: 'table', member: 'gross', variable: 'table_gross', type: 'decimal', nullable: false },
+    ])
+    expect(compileReport(report).expressions.get(GROUP_FOOTER_VALUE)?.reads).toEqual([
+      { name: 'table', member: 'lines', variable: 'table_lines', type: 'int', nullable: false },
+    ])
+    expect(compileReport(report).members.table).toEqual(compileReport(report).members.totals)
+    const misplaced = JSON.parse(
+      JSON.stringify(sampleReport())
+        .replace('"cel":"round(dec(row.quantity) * row.unit_price, 2)"', '"cel":"table.gross"')
+        .replace('"cel":"header.customer + \\" x\\" + string(params.copies)"', '"cel":"string(table.lines)"'),
+    ) as ReportDefinition
+    expect(compileReport(misplaced).diagnostics.map(({ code, path }) => `${code} ${path}`)).toEqual([
+      `expression-out-of-scope ${INTRO_VALUE}`,
+      `expression-out-of-scope ${AMOUNT_VALUE}`,
+    ])
+  })
+})
+
+describe("a group's key", () => {
+  // Two tables grouped by fields of two types: each group's key is its own
+  // table's, so `group.key + 1` adds to an integer under one and is
+  // refused under the other. Typed by the first grouping table, the second
+  // table's key would be checked, and bound, as the other field's type.
+  test('is typed in each table by the field that table groups by', () => {
+    const report = sampleReport()
+    const lines = report.regions.body[2] as TableComponent
+    const group = lines.group as NonNullable<TableComponent['group']>
+    const byQuantity: TableComponent = {
+      ...lines,
+      id: 'by-quantity',
+      group: { ...group, by: { dataset: 'detail', field: 'quantity' }, header: [{ kind: 'expression', expression: { cel: 'string(group.key + 1)' } }] },
+    }
+    const twoTables: ReportDefinition = { ...report, regions: { ...report.regions, summary: [...report.regions.summary, byQuantity] } }
+    expect(diagnosed(twoTables)).toEqual([])
+    const keyed = JSON.parse(
+      JSON.stringify(twoTables).replace('"cel":"\\" (\\" + string(group.lines) + \\")\\""', '"cel":"string(group.key + 1)"'),
+    ) as ReportDefinition
+    expect(diagnosed(keyed)).toEqual([`expression-type ${GROUP_HEADER_VALUE}`])
+    expect([...compileReport(twoTables).members.groupKeys]).toEqual([
+      ['lines', { type: 'string', nullable: false }],
+      ['by-quantity', { type: 'int', nullable: false }],
+    ])
   })
 })
