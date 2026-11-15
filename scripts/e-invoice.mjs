@@ -64,6 +64,8 @@ import { CODE_LISTS, oracleProblems, readCodedb, readSchematron, readVariables, 
 import {
   blocksDocument,
   boundDocument,
+  CHART_VARIANT_FIXTURES,
+  chartsDocument,
   embeddingProblems,
   PDF_BASE,
   pdfCorpus,
@@ -356,6 +358,16 @@ function samplesOf({ spec, runtime, renderer, corpus }) {
     const svg = (id, bytes) => ({ id, mediaType: 'image/svg+xml', bytes })
     return [svg('svg-mark', corpus.SVG_MARK), svg('svg-window', corpus.SVG_WINDOW), svg('svg-translucent', translucent)]
   }
+  const charts = () =>
+    chartsDocument(
+      documents.get(PDF_BASE),
+      CHART_VARIANT_FIXTURES.map((id) => {
+        const fixture = corpus.CHART_FIXTURES.find((each) => each.id === id)
+        if (fixture === undefined) throw new Error(`variant-charts.pdf draws the chart fixture ${id}, which report-corpus does not have`)
+        if (fixture.expect.outcome !== 'render') throw new Error(`variant-charts.pdf draws the chart fixture ${id}, which the renderer is not to draw whole`)
+        return fixture
+      }),
+    )
   const bound = () => boundDocument(documents.get(PDF_BASE), { id: 'svg-bound', mediaType: 'image/svg+xml', bytes: corpus.SVG_BOUND }, corpus.SVG_BOUND_SIDE)
   const drawVariant = (draws) => {
     const base = documents.get(PDF_BASE)
@@ -366,9 +378,11 @@ function samplesOf({ spec, runtime, renderer, corpus }) {
           ? svgDocument(base, svgAssets())
           : draws.bound === true
             ? bound()
-            : draws.fixture !== undefined
-              ? fixtureDocument(draws.fixture)
-              : starterDocument(draws.starter)
+            : draws.charts === true
+              ? charts()
+              : draws.fixture !== undefined
+                ? fixtureDocument(draws.fixture)
+                : starterDocument(draws.starter)
     return renderer.renderPdf({ ...page, eInvoice: base.eInvoice }, { maxPages: VARIANT_MAX_PAGES })
   }
   return { documentOf, draw, drawVariant }

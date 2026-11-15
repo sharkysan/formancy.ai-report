@@ -6,6 +6,8 @@ import { corpus } from './corpus.mjs'
 import {
   blocksDocument,
   boundDocument,
+  CHART_VARIANT_FIXTURES,
+  chartsDocument,
   embeddingProblems,
   patched,
   PDF_BASE,
@@ -174,6 +176,36 @@ describe('the variants', () => {
         assets.filter((asset) => asset.id !== 'svg-window'),
       ),
     ).toThrow('variant-svg.pdf draws the SVG svg-window, which it was not given')
+  })
+
+  // The charts after the sample's page, one to a page, with the fonts their
+  // documents map: a variant that lost a chart would leave a way ECharts'
+  // drawing is laid into a PDF/A-3b unjudged, and one that lost the host's
+  // face would judge Roboto alone (0058).
+  test('add the charts of each fixture after a page break, and the fonts their documents map', () => {
+    const base = { info: { title: 'Rechnung' }, pageHeader: [], pageFooter: [], body: [{ kind: 'paragraph' }], eInvoice: { xml: '<x/>' } }
+    const fixture = (id, fonts) => ({
+      id,
+      document: {
+        body: [
+          { kind: 'paragraph', id },
+          { kind: 'chart', id: `chart-${id}` },
+        ],
+        ...(fonts === undefined ? {} : { fonts }),
+      },
+    })
+    const drawn = chartsDocument(base, [fixture('a'), fixture('b', { serif: { id: 'serif' } })])
+    expect(drawn.body.map((block) => block.id ?? block.kind)).toEqual(['paragraph', 'pageBreak', 'a', 'chart-a', 'pageBreak', 'b', 'chart-b'])
+    expect(drawn.fonts).toEqual({ serif: { id: 'serif' } })
+    expect([drawn.info, drawn.eInvoice, drawn.pageHeader, drawn.pageFooter]).toEqual([base.info, base.eInvoice, base.pageHeader, base.pageFooter])
+  })
+
+  // The variant takes a bar, a line, a pie and a chart in the host's font,
+  // each drawn and none empty: a refusal or an empty chart in its place
+  // would leave ECharts' marks out of the PDF/A-3b, or stop the gate.
+  test('name a bar, a line, a pie and a chart in a host font, and the variant draws them', () => {
+    expect(CHART_VARIANT_FIXTURES).toEqual(['chart-bars', 'chart-line', 'chart-pie', 'chart-host-font'])
+    expect(PDF_VARIANTS.find((variant) => variant.file === 'variant-charts.pdf')?.draws).toEqual({ charts: true })
   })
 
   // The drawing at the bound after the sample's page, alone and contained
