@@ -2,6 +2,7 @@ import pdfmake from 'pdfmake'
 import {
   ALL_FIXTURES,
   AXIS_PAINT,
+  CHART_FIXTURES,
   E_INVOICE,
   GRID_PAINT,
   pageDimensions,
@@ -32,8 +33,29 @@ import { documentOf, fixture, fixtureOf, paragraph, TIMEOUT } from './testing/do
  * trial's engines never drew.
  */
 
-/** Section 20's fixtures, and the SVG ones. */
-const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES]
+/** Section 20's fixtures, the SVG ones and the chart ones. */
+const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...CHART_FIXTURES]
+
+/**
+ * Why each chart fixture the renderer refuses is refused, by its message,
+ * which names the chart and its box and the sizes that do not hold, and
+ * quotes none of its words: a fixture refused for another reason than its
+ * own -- bars for their labels, labels for their bars -- passes its code
+ * and its subject and proves nothing it is named for.
+ */
+const CHART_REFUSALS: ReadonlyMap<string, RegExp> = new Map([
+  [
+    'chart-labels-too-wide',
+    /^the chart wide-labels, 300 by 240 points, has category labels too wide for their slots of [\d.]+ points across, and never turned$/,
+  ],
+  ['chart-bars-too-thin', /^the chart thin-bars, 300 by 240 points, has bars [\d.]+ points wide, narrower than the 3\.5 points a bar is drawn at least$/],
+  [
+    'chart-bars-too-thin-labelled',
+    /^the chart thin-labelled, 300 by 240 points, has bars [\d.]+ points wide, narrower than the 3\.5 points a bar is drawn at least$/,
+  ],
+  ['chart-too-short', /^the chart short, 300 by 30 points, has a plot [\d.]+ points tall, too short to label two of its 5 ticks 1\.25 lines apart$/],
+  ['chart-unprintable-label', /^category 2 of the chart tokyo prints U\+6771, which is in no script the renderer prints/],
+])
 
 /**
  * The fixtures the renderer cannot satisfy, each with what it cannot do and
@@ -70,6 +92,25 @@ describe('the renderer on the corpus', () => {
     )
   }
 
+  // A chart the renderer cannot draw so that it reads is refused whole,
+  // naming it (Review Focus 4): each such fixture is refused for the
+  // reason it is named for, and every one of them is listed.
+  for (const [id, reason] of CHART_REFUSALS) {
+    test(
+      `${id}: is refused for its own reason`,
+      async () => {
+        const each = CHART_FIXTURES.find((fixture) => fixture.id === id)!
+        const refused: unknown = await renderPdf(each.document, { maxPages: each.maxPages }).then(
+          () => 'rendered',
+          (error: unknown) => error,
+        )
+        expect(refused).toBeInstanceOf(RenderRefusal)
+        expect((refused as RenderRefusal).message).toMatch(reason)
+      },
+      TIMEOUT,
+    )
+  }
+
   // A drawing is painted inside a clip of its box, and `cover` paints it
   // past the box for the clip to hide: the operator list cannot say what
   // the clip kept in, and the pixels can (0003). Each SVG fixture's every
@@ -89,6 +130,8 @@ describe('the renderer on the corpus', () => {
   test('runs a corpus that has fixtures, and excuses none of them', () => {
     expect(ALL_FIXTURES.length).toBeGreaterThan(0)
     expect(SVG_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
+    expect(CHART_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
+    expect([...CHART_REFUSALS.keys()]).toEqual(CHART_FIXTURES.filter((fixture) => fixture.expect.outcome === 'refuse').map((fixture) => fixture.id))
     expect([...CANNOT.keys()]).toEqual([])
   })
 })

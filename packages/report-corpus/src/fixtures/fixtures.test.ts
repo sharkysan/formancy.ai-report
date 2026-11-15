@@ -4,6 +4,7 @@ import { describe, expect, test } from 'vitest'
 import type { Block, ResolvedDocument } from '../document.js'
 import { flatten, normalise, plainText, tables } from '../fixture.js'
 import { ALL_FIXTURES } from './all.js'
+import { CHART_FIXTURES, chartPageFoot, FOOT_SPACERS } from './charts.js'
 import { decimals } from './decimals.js'
 import { fonts } from './fonts.js'
 import { BODY_HEIGHT, bodyHeight, BODY_SIZE, CHAR_EM_RANGE, LINE_FACTOR_RANGE, lineHeight, PRINTABLE_WIDTH, ROWS_PER_PAGE_RANGE } from './geometry.js'
@@ -57,8 +58,8 @@ function documentLines(document: ResolvedDocument): string[] {
   })
 }
 
-/** Section 20's fixtures and the SVG ones: every fixture an engine answers to. */
-const EVERY = [...ALL_FIXTURES, ...SVG_FIXTURES]
+/** Section 20's fixtures, the SVG ones and the chart ones: every fixture an engine answers to. */
+const EVERY = [...ALL_FIXTURES, ...SVG_FIXTURES, ...CHART_FIXTURES]
 
 describe('the corpus', () => {
   // Section 20's list, spelled out once here: a fixture dropped from the
@@ -88,6 +89,29 @@ describe('the corpus', () => {
   // ran on (0005): one dropped would leave an SVG unproved on the PDF.
   test('has the SVG fixtures beside them, each once', () => {
     expect(SVG_FIXTURES.map((fixture) => fixture.id)).toEqual(['svg-mark', 'svg-window', 'svg-as-saved'])
+  })
+
+  // The chart fixtures stand beside them too (0058): one dropped would
+  // leave a chart's drawing, or the refusal of a chart that cannot be
+  // read, unproved on the PDF.
+  test('has the chart fixtures beside them, each once', () => {
+    expect(CHART_FIXTURES.map((fixture) => fixture.id)).toEqual([
+      'chart-bars',
+      'chart-line',
+      'chart-line-no-value',
+      'chart-pie',
+      'chart-pie-sliver',
+      'chart-empty',
+      'chart-page-foot',
+      'chart-in-columns',
+      'chart-host-font',
+      'chart-markup',
+      'chart-labels-too-wide',
+      'chart-bars-too-thin',
+      'chart-bars-too-thin-labelled',
+      'chart-too-short',
+      'chart-unprintable-label',
+    ])
   })
 
   // A refusal without a code would accept any refusal, and a code on a
@@ -263,6 +287,26 @@ describe('the boundary arithmetic', () => {
     expect(OVERFLOW - BOUNDARY.max).toBeGreaterThan(lineHeight(BODY_SIZE))
     expect(OVERFLOW).toBeLessThan(bodyHeight(LINE_FACTOR_RANGE.max))
     expect(summaryOverflows.expect).toMatchObject({ minPagesExpected: 3, maxPagesExpected: 3 })
+  })
+
+  // The page-foot fixture is about charts that do not fit under what
+  // precedes them: on every plausible engine the heading and the chart,
+  // and the kept line and the pie, take more than the room the spacer
+  // before them leaves, and what precedes each fits its page, or neither
+  // chart ever reaches a page's foot.
+  test('chart-page-foot leaves each chart less room than it takes, and the rest of its page fits, on every plausible engine', () => {
+    const charts = flatten(chartPageFoot.document.body).flatMap((block) => (block.kind === 'chart' ? [block.height] : []))
+    const [moved, kept] = charts as [number, number]
+    const line = (size: number, factor: number): number => size * factor
+    const [roomiest, tightest] = [LINE_FACTOR_RANGE.min, LINE_FACTOR_RANGE.max]
+    // The first page: a line and the spacer fit, and the heading and the chart after them do not.
+    expect(line(BODY_SIZE, tightest) + FOOT_SPACERS[0]).toBeLessThan(bodyHeight(tightest))
+    expect(line(BODY_SIZE, roomiest) + FOOT_SPACERS[0] + line(14, roomiest) + moved).toBeGreaterThan(bodyHeight(roomiest))
+    // The second: the heading, the chart and the spacer fit, and the kept line and the pie after them do not; the third holds those.
+    expect(line(14, tightest) + moved + FOOT_SPACERS[1]).toBeLessThan(bodyHeight(tightest))
+    expect(line(14, roomiest) + moved + FOOT_SPACERS[1] + line(BODY_SIZE, roomiest) + kept).toBeGreaterThan(bodyHeight(roomiest))
+    expect(line(BODY_SIZE, tightest) + kept).toBeLessThan(bodyHeight(tightest))
+    expect(chartPageFoot.expect).toMatchObject({ minPagesExpected: 3, maxPagesExpected: 3 })
   })
 
   // The page limit must bind: under the densest plausible rows the table
