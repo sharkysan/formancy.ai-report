@@ -1,13 +1,13 @@
 import { MAX_CHART_CATEGORIES, MAX_CHART_SERIES, MAX_FONT_SIZE, MAX_TICK_INTERVALS, MIN_FONT_SIZE } from '@formancy/report-runtime'
 import type { AxisChart, Block, Chart, PieChart, ResolvedDocument, ResolvedFonts } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
-import { CHART_WEIGHT, checkChart, MAX_CHART_DRAWING } from './check-chart.js'
+import { CHART_WEIGHT, checkChart, MAX_CHART_DRAWING, WORD_WEIGHT } from './check-chart.js'
 import type { Walk } from './check-walk.js'
 import { planFonts } from './host-fonts.js'
 import { engine } from './node-engine.js'
 import { renderPdf } from './node.js'
 import { ACTUAL, BARS, EMPTY, LINE, PIE, PLAN, SERIF, value } from './testing/charts.js'
-import { BODY_HEIGHT, documentOf, paragraph, PRINTABLE_WIDTH } from './testing/documents.js'
+import { BODY_HEIGHT, documentOf, paragraph, PRINTABLE_WIDTH, TIMEOUT } from './testing/documents.js'
 
 /**
  * A chart held to what the renderer draws before anything is laid out
@@ -586,7 +586,7 @@ describe('a chart checked before anything is laid out', () => {
   })
 })
 
-/** A line chart of `series` series and `categories` categories, its category labels empty, which no slot bounds, and its values a pattern on an axis of 0 to 100: one the drawing lays out whole, as wide as the body. */
+/** A line chart of `series` series and `categories` categories, its category labels empty, which no slot bounds, and its values a pattern on an axis of 0 to 100: one the drawing lays out whole, as wide as the body, whose words are its six ticks. */
 function line(id: string, series: number, categories: number): AxisChart {
   return {
     kind: 'chart',
@@ -605,29 +605,41 @@ function line(id: string, series: number, categories: number): AxisChart {
   }
 }
 
+/** What a chart of `kind` with `points` points and these words weighs, its words counted by hand from what it prints. */
+function weighs(kind: Chart['chart'], points: number, words: Partial<Record<keyof typeof WORD_WEIGHT, number>>): number {
+  return Object.entries(words).reduce((units, [word, count]) => units + WORD_WEIGHT[word as keyof typeof WORD_WEIGHT] * count, CHART_WEIGHT[kind] + points)
+}
+
+/** LINE: its title, two axis titles, three months and three ticks. */
+const LINE_UNITS = weighs('line', 3, { title: 3, category: 3, tick: 3 })
+/** PIE: its title and three legend entries; its slices are its points, one of no share among them. */
+const PIE_UNITS = weighs('pie', 3, { title: 1, legend: 3 })
+/** BARS: its title, two axis titles, two regions, five ticks, three values, one being null, and two legend entries. */
+const BARS_UNITS = weighs('bar', 4, { title: 3, category: 2, tick: 5, value: 3, legend: 2 })
+
 /**
- * Line charts that cost `units` in all, `fill-0` on, each its weight and
- * a unit for each series at each category. While more is left than two
- * charts make up -- one of MAX_CHART_SERIES series and one of one, of at
- * most MAX_CHART_CATEGORIES categories each -- one of MAX_CHART_SERIES
- * series, of the fewest categories that leave no more than that, at least
- * one; then those two, whose categories make up the rest exactly, or one
- * of one series where one is enough.
+ * Line charts that cost `units` in all, `fill-0` on, each its weight, its
+ * six ticks' and a unit for each series at each category. While more is
+ * left than two charts make up -- one of MAX_CHART_SERIES series and one
+ * of one, of at most MAX_CHART_CATEGORIES categories each -- one of
+ * MAX_CHART_SERIES series, of the fewest categories that leave no more
+ * than that, at least one; then those two, whose categories make up the
+ * rest exactly, or one of one series where one is enough.
  */
 function filler(units: number): AxisChart[] {
-  const weight = CHART_WEIGHT.line
+  const each = weighs('line', 0, { tick: 6 })
   const pair = (MAX_CHART_SERIES + 1) * MAX_CHART_CATEGORIES
   const shapes: (readonly [number, number])[] = []
   let left = units
-  while (left > 2 * weight + pair) {
-    const fewest = MAX_CHART_SERIES * Math.ceil((left - 3 * weight - pair) / MAX_CHART_SERIES)
+  while (left > 2 * each + pair) {
+    const fewest = MAX_CHART_SERIES * Math.ceil((left - 3 * each - pair) / MAX_CHART_SERIES)
     const points = Math.min(MAX_CHART_SERIES * MAX_CHART_CATEGORIES, Math.max(MAX_CHART_SERIES, fewest))
     shapes.push([MAX_CHART_SERIES, points / MAX_CHART_SERIES])
-    left -= weight + points
+    left -= each + points
   }
-  if (left > weight && left <= weight + MAX_CHART_CATEGORIES) shapes.push([1, left - weight])
+  if (left > each && left <= each + MAX_CHART_CATEGORIES) shapes.push([1, left - each])
   else if (left !== 0) {
-    const rest = left - 2 * weight
+    const rest = left - 2 * each
     if (rest < 2) throw new Error(`no line charts cost ${String(units)} units in all`)
     const eights = Math.max(0, Math.ceil((rest - MAX_CHART_CATEGORIES) / MAX_CHART_SERIES))
     shapes.push(
@@ -644,15 +656,15 @@ const refusedAll = (blocks: readonly Block[]): Promise<unknown> => refusal(docum
 const tooMany = (id: string, units: number): object => ({
   code: 'content-too-large',
   subject: id,
-  message: `the charts up to ${id} cost ${String(units)} units to draw, each its kind's weight and one for each series at each category or each slice of a pie; a render may draw ${String(MAX_CHART_DRAWING)}`,
+  message: `the charts up to ${id} cost ${String(units)} units to draw, each its kind's weight, one for each series at each category or each slice of a pie, and its words' weights; a render may draw ${String(MAX_CHART_DRAWING)}`,
 })
 
-/** A bar chart of one value, 72 points tall, report-spec's least side, and a seventh of the body wide: the least a chart draws. */
+/** A bar chart of one value, 72 points tall, report-spec's least side, and a quarter of the body wide, whose words are its category and its two ticks: the least a chart draws. */
 const tiny = (id: string): AxisChart => ({
   kind: 'chart',
   chart: 'bar',
   id,
-  width: Math.floor((PRINTABLE_WIDTH / 7) * 100) / 100,
+  width: Math.floor((PRINTABLE_WIDTH / 4) * 100) / 100,
   height: 72,
   legend: [],
   categories: ['A'],
@@ -660,22 +672,33 @@ const tiny = (id: string): AxisChart => ({
   ticks: ['0', '1'].map((exact) => value(exact)),
   valueLabels: false,
 })
+const TINY_UNITS = weighs('bar', 1, { category: 1, tick: 2 })
 
-/** `count` tiny charts, `tiny-0` on, seven to a row of columns. */
+/** `count` tiny charts, `tiny-0` on, four to a row of columns, the most a columns block the runtime resolves holds. */
 function tinies(count: number): Block[] {
   const charts = Array.from({ length: count }, (_, index) => tiny(`tiny-${String(index)}`))
-  return Array.from({ length: Math.ceil(count / 7) }, (_, row) => ({
+  return Array.from({ length: Math.ceil(count / 4) }, (_, row) => ({
     kind: 'columns',
-    columns: charts.slice(7 * row, 7 * row + 7).map((chart) => ({ width: chart.width, blocks: [chart] })),
+    columns: charts.slice(4 * row, 4 * row + 4).map((chart) => ({ width: chart.width, blocks: [chart] })),
   }))
 }
 
-describe("a render's charts, bounded in all", () => {
+// A document at MAX_CHART_DRAWING renders in about a second on its own, and
+// took past vitest's default 5 under coverage beside the other suites,
+// hence the timeout.
+describe("a render's charts, bounded in all", { timeout: TIMEOUT }, () => {
   // The weights and the bound are what the comment on MAX_CHART_DRAWING
   // measured: a change to one is a change to the measurement, which the
-  // comment has to say.
-  test('weighs each kind of chart and bounds a render by the numbers its comment measured', () => {
-    expect({ MAX_CHART_DRAWING, CHART_WEIGHT }).toEqual({ MAX_CHART_DRAWING: 6000, CHART_WEIGHT: { bar: 170, line: 1260, pie: 100 } })
+  // comment has to say. The line's weight is what a reader pays for each
+  // series' clip, eight of them, as many as the palette has colours: a
+  // longer palette is a heavier line, measured again.
+  test('weighs each kind of chart and word, and bounds a render, by the numbers its comment measured', () => {
+    expect({ MAX_CHART_DRAWING, CHART_WEIGHT, WORD_WEIGHT, MAX_CHART_SERIES }).toEqual({
+      MAX_CHART_DRAWING: 5000,
+      CHART_WEIGHT: { bar: 40, line: 490, pie: 10 },
+      WORD_WEIGHT: { title: 3, legend: 5, tick: 1, category: 1, value: 1 },
+      MAX_CHART_SERIES: 8,
+    })
   })
 
   // ECharts lays out every chart of a render, three times, before the body
@@ -695,7 +718,8 @@ describe("a render's charts, bounded in all", () => {
       legend: [],
     }
     expect(await refused(thin)).toMatchObject({ code: 'content-too-large', subject: 'thin', message: expect.stringContaining('narrower than') as string })
-    const before = CHART_WEIGHT.bar + MAX_CHART_CATEGORIES + CHART_WEIGHT.line + 3
+    // Its title, two axis titles, 200 categories, five ticks and 200 values.
+    const before = weighs('bar', MAX_CHART_CATEGORIES, { title: 3, category: MAX_CHART_CATEGORIES, tick: 5, value: MAX_CHART_CATEGORIES }) + LINE_UNITS
     const outcome = await refusedAll([thin, ...filler(MAX_CHART_DRAWING + 1 - before), LINE])
     expect(outcome).toMatchObject(tooMany('balance', MAX_CHART_DRAWING + 1))
     for (const word of ['Balance', 'Month', 'CHF', 'Jan']) expect((outcome as Error).message).not.toContain(word)
@@ -704,39 +728,48 @@ describe("a render's charts, bounded in all", () => {
   // The bound is a render's, at it as well as under it: a document whose
   // charts cost exactly MAX_CHART_DRAWING prints, every chart of it.
   test('renders one whose charts cost MAX_CHART_DRAWING', async () => {
-    expect(await refusedAll([...filler(MAX_CHART_DRAWING - CHART_WEIGHT.line - 3), LINE])).toBe('rendered')
+    expect(await refusedAll([...filler(MAX_CHART_DRAWING - LINE_UNITS), LINE])).toBe('rendered')
   })
 
   // A chart with nothing to draw prints its title and its empty text, and
   // ECharts never lays it out (`drawEmpty`), nor does it paint a mark:
-  // weighed as its kind, it would refuse a render for work it never does.
+  // weighed as its kind or its words, it would refuse a render for work it
+  // never does.
   test('weighs nothing of a chart with nothing to draw', async () => {
-    expect(await refusedAll([...filler(MAX_CHART_DRAWING - CHART_WEIGHT.line - 3), EMPTY, LINE, EMPTY])).toBe('rendered')
-    expect(await refusedAll([...filler(MAX_CHART_DRAWING - CHART_WEIGHT.line - 2), EMPTY, LINE])).toMatchObject(tooMany('balance', MAX_CHART_DRAWING + 1))
+    expect(await refusedAll([...filler(MAX_CHART_DRAWING - LINE_UNITS), EMPTY, LINE, EMPTY])).toBe('rendered')
+    expect(await refusedAll([...filler(MAX_CHART_DRAWING - LINE_UNITS + 1), EMPTY, LINE])).toMatchObject(tooMany('balance', MAX_CHART_DRAWING + 1))
   })
 
   // A pie has no series: it lays out each of its slices, a slice of no
   // share among them, as an axis chart does each series at each category.
   // Counted as one, a pie of 200 slices would pass for a chart of a point.
   test('counts a pie by its slices', async () => {
-    expect(await refusedAll([...filler(MAX_CHART_DRAWING - CHART_WEIGHT.pie - PIE.slices.length), PIE])).toBe('rendered')
-    expect(await refusedAll([...filler(MAX_CHART_DRAWING - CHART_WEIGHT.pie - PIE.slices.length + 1), PIE])).toMatchObject(
-      tooMany('shares', MAX_CHART_DRAWING + 1),
-    )
+    expect(await refusedAll([...filler(MAX_CHART_DRAWING - PIE_UNITS), PIE])).toBe('rendered')
+    expect(await refusedAll([...filler(MAX_CHART_DRAWING - PIE_UNITS + 1), PIE])).toMatchObject(tooMany('shares', MAX_CHART_DRAWING + 1))
+  })
+
+  // A value missing at a category is still a series ECharts walks there,
+  // and BARS has one: counted by its values alone, a chart of series
+  // mostly missing would weigh as a chart of almost none.
+  test("counts a series' missing values among its points", async () => {
+    expect(await refusedAll([...filler(MAX_CHART_DRAWING - BARS_UNITS), BARS])).toBe('rendered')
+    expect(await refusedAll([...filler(MAX_CHART_DRAWING - BARS_UNITS + 1), BARS])).toMatchObject(tooMany('sales', MAX_CHART_DRAWING + 1))
   })
 
   // Every chart costs its layouts and a reader's drawing however little it
   // draws: counted by its points alone, a render of charts of one value
-  // each, packed to report-spec's least side, would be admitted MAX_CHART_DRAWING of
-  // them, at many times what the bound's largest charts cost. Weighed, it
-  // is admitted as many as their weights fit, and refused one more.
+  // each, packed to report-spec's least side, would be admitted
+  // MAX_CHART_DRAWING of them, at many times what the bound's largest
+  // charts cost. Weighed, it is admitted as many as their weights fit.
   test('admits as many charts of one value as their weight fits', async () => {
-    const most = Math.floor(MAX_CHART_DRAWING / (CHART_WEIGHT.bar + 1))
-    expect(await refusedAll(tinies(most))).toBe('rendered')
+    expect(await refusedAll(tinies(Math.floor(MAX_CHART_DRAWING / TINY_UNITS)))).toBe('rendered')
   })
 
+  // ... and refused one more, at the chart that crossed the bound: a weight
+  // that let one more of them through would let the many-tiny render the
+  // weights were measured against past it.
   test('refuses one more chart of one value than their weight fits, naming the count', async () => {
-    const most = Math.floor(MAX_CHART_DRAWING / (CHART_WEIGHT.bar + 1))
-    expect(await refusedAll(tinies(most + 1))).toMatchObject(tooMany(`tiny-${String(most)}`, (most + 1) * (CHART_WEIGHT.bar + 1)))
+    const most = Math.floor(MAX_CHART_DRAWING / TINY_UNITS)
+    expect(await refusedAll(tinies(most + 1))).toMatchObject(tooMany(`tiny-${String(most)}`, (most + 1) * TINY_UNITS))
   })
 })

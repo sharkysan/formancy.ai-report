@@ -80,64 +80,99 @@ export function checkChart(chart: Chart, at: string, place: Place, walk: Walk): 
 
 /**
  * What drawing one render's charts may cost, in units of what one more
- * point of a line chart of 8 series and 200 categories costs a render:
- * each chart its kind's weight (`CHART_WEIGHT`), and a unit for each
- * series at each category, or for each slice of a pie (`chartUnits`), as
- * `MAX_SVG_DRAWING` weighs an SVG. ECharts lays out every chart of a
- * render three times, a pie twice, before the body is paginated, and a
- * reader draws every one. What a chart costs beyond its points is the
- * render's layouts of its frame -- its axes, gridlines and words -- and,
- * for a line chart, a reader's drawing of the clip ECharts gives each of
- * its series, which svg-to-pdfkit draws as a page-sized group under a
- * luminosity soft mask (`useMask`). A kind's weight is the larger of what
- * its costliest chart of one category costs the render and a reader
- * beyond its points, both in the one unit, rounded up to ten.
+ * point of a line chart of 8 series and 200 categories costs a render.
+ * Each chart costs its kind's weight (`CHART_WEIGHT`), a unit for each
+ * series at each category or each slice of a pie, and its word's weight
+ * for each word it places (`WORD_WEIGHT`), as `MAX_SVG_DRAWING` weighs an
+ * SVG (`chartUnits`). ECharts lays out every chart of a render three
+ * times, a pie twice, before the body is paginated, and a reader draws
+ * every one. Beyond its points and its words, a chart costs the render
+ * its layouts, and a line chart costs a reader the clip ECharts gives
+ * each of its series, which svg-to-pdfkit draws as a page-sized group
+ * under a luminosity soft mask (`useMask`). Each weight is the larger of
+ * what it costs the render and a reader, in the one unit, rounded up: a
+ * kind's to ten, a word's to a whole unit.
+ *
+ * It holds one layout pass. pdfmake lays the document out again for each
+ * page where a kept heading moves to the next, as often as where the
+ * pages break decides, which no bound before the layout can count: 20 bar
+ * charts of 123 one-letter categories, each 290 points tall behind a
+ * keep-with-next heading, took 1,887 ms where with plain headings they
+ * took 637, three times as long.
  *
  * Measured on 2026-11-15 on a Mac (Apple M2, 8 cores) under Node 22.23.4,
- * ECharts 6.1.0, pdfmake 0.3.11 and pdfjs-dist 6.4.299. Other work held
- * the machine at a load average of 9.6 to 24 throughout, so no time here
- * is a quiet machine's: the weights are ratios of times taken together,
- * and the bound is set from the times under that load, which a quiet
- * machine beats. Charts stood on A4 landscape pages with no margins, each
- * form in the densest grid it draws in -- 11 by 8, report-spec's least
- * side, where it draws there -- and `renderPdf`, and PDF.js at scale 1 on
- * a page, were timed seven times each over N charts and 2N, interleaved.
- * One more point of an 8 × 200 line, against an 8 × 1 line in the same
- * box, cost the render 0.203 ms, the unit, and a reader 0.030 ms. Beyond
- * its points, a line of 8 series and one category cost a reader 1,250
- * units, 32 ms for each series' group, and the render 95 to 203; a bar
- * of 8 series and one category, dressed and its values labelled, the
- * render 161 and a reader 49; a dressed pie of 8 slices the render 96 and
- * a reader 8. No chart of one category, of 1 or 8 series, bare or
- * dressed, cost either side more than its kind's weight.
+ * ECharts 6.1.0, pdfmake 0.3.11 and pdfjs-dist 6.4.299. The weights came
+ * from one run at a load average of 12 to 20: every document rendered and
+ * its page drawn by PDF.js at scale 1 in the same seven rounds, each
+ * difference read against its own round's unit, 0.15 to 0.50 ms as the
+ * load fell, and the median of the seven taken. A word's is the
+ * difference between one-page documents of the same charts with and
+ * without words of its kind: a value label 0.85 units on a bar and 0.67
+ * on a line, a category label 0.48, a legend entry 2.36 on a pie and 4.02
+ * on an axis chart, a title 2.74, each the render's, and a tick 0.35, a
+ * reader's. A kind's is its barest chart of one category, N against 2N,
+ * less its points and its words: a bar of 8 series 34 to the render, a
+ * pie of one slice 8, and a line of 8 series 482 to a reader, its eight
+ * groups.
  *
- * The bound was tried on twenty-one forms: charts of one value of each
- * kind, the 8 × 1 forms, and the largest of each kind Task 25 tried, bare
- * and dressed. Each was packed as many to a render as the bound's units
- * hold, across pages, and as many to one page as the page holds of them.
- * At 6000, at a load of 15 to 24, the costliest render, 20 bar charts of
- * 123 one-letter categories on 3 pages, took a median of 1,547 ms, and 35
- * bar charts of one value, dressed, 960 ms; the costliest page, 4 lines
- * of 8 series and one category, cost PDF.js 1,000 ms, and a page of one
- * 8 × 200 line and two 8 × 1 lines 825 ms. At 7000 the costliest render
- * took 1,782 ms at a load of 10 to 16 and 2,278 ms at 14 to 19, past the
- * 2 s a render may cost.
+ * The bound is set by the slowest of seven interleaved runs of the
+ * costliest of the forms tried, at a load of 3.3 to 5.6. The forms were
+ * packed as many to a render as the bound holds, in the densest grid each
+ * draws in on A4 landscape pages without margins, across pages, and as
+ * many as one page holds: charts of one category of each kind, of 1 and 8
+ * series, bare, dressed and value-labelled; the largest of each kind Task
+ * 25 tried; bars of 120 and 186 categories and lines of 8 × 200, every
+ * value labelled at 4 points, report-spec's least size; pies of 200
+ * slices, bare and with every slice in the legend; and a page of one
+ * 8 × 200 line beside lines of 8 series and one category. At 5,000 the
+ * costliest render, 263 dressed pies of one slice on 3 pages, took 878 ms
+ * at its slowest, and the costliest page, one 8 × 200 line beside five
+ * 8 × 1 lines, cost PDF.js 1,614 ms at its slowest and 723 at its median.
+ * That page reaches 2 s at about 6,000 units; the bound is the round
+ * number below, which the run confirmed.
  */
-export const MAX_CHART_DRAWING = 6000
+export const MAX_CHART_DRAWING = 5000
 
-/** What each kind of chart costs beyond its points, in `MAX_CHART_DRAWING`'s units: the larger of what its layouts cost the render and what its drawing costs a reader, rounded up to ten. */
-export const CHART_WEIGHT = { bar: 170, line: 1260, pie: 100 } as const satisfies Readonly<Record<Chart['chart'], number>>
+/** What each kind of chart costs beyond its points and its words, in `MAX_CHART_DRAWING`'s units: the larger of what its layouts cost the render and what its drawing costs a reader, rounded up to ten. */
+export const CHART_WEIGHT = { bar: 40, line: 490, pie: 10 } as const satisfies Readonly<Record<Chart['chart'], number>>
+
+/** What each word a chart places costs, by what it is, in `MAX_CHART_DRAWING`'s units: the larger of what it costs the render and a reader, rounded up. A title is the chart's or an axis's. */
+export const WORD_WEIGHT = { title: 3, legend: 5, tick: 1, category: 1, value: 1 } as const
 
 /**
  * What drawing `chart` costs, in `MAX_CHART_DRAWING`'s units: its kind's
- * weight, and a unit for each series at each category, null or not, or
- * for each of a pie's slices, one of no share among them. A chart with
+ * weight, a unit for each series at each category, null or not, or for
+ * each of a pie's slices, one of no share among them, and each word it
+ * places, as `chartWords` lists them, its word's weight. A chart with
  * nothing to draw costs none: ECharts never lays it out (`drawEmpty`),
  * and it paints no mark.
  */
 export function chartUnits(chart: Chart): number {
   if (chart.empty !== undefined) return 0
-  return CHART_WEIGHT[chart.chart] + (chart.chart === 'pie' ? chart.slices.length : chart.series.length * chart.categories.length)
+  const points = chart.chart === 'pie' ? chart.slices.length : chart.series.length * chart.categories.length
+  return chartWords(chart).reduce((units, { key }) => units + wordWeight(key, chart.id), CHART_WEIGHT[chart.chart] + points)
+}
+
+/** The weight of the word `key` (`ChartWord.key`) of the chart `id`, by what the word is. */
+function wordWeight(key: string, id: string): number {
+  const [role] = key.split('/')
+  switch (role) {
+    case 'title':
+    case 'categoryTitle':
+    case 'valueTitle':
+      return WORD_WEIGHT.title
+    case 'legend':
+      return WORD_WEIGHT.legend
+    case 'tick':
+      return WORD_WEIGHT.tick
+    case 'category':
+      return WORD_WEIGHT.category
+    case 'value':
+      return WORD_WEIGHT.value
+    default:
+      // An empty text, which only a chart with nothing to draw prints, or a word chartWords never lists.
+      throw new Error(`the chart ${id} has a word ${key} that a chart with something to draw never places`)
+  }
 }
 
 /**
@@ -154,7 +189,7 @@ export function checkChartDrawing(charts: Walk['charts']): void {
     if (total > MAX_CHART_DRAWING) {
       throw new RenderRefusal(
         'content-too-large',
-        `the charts up to ${block.id} cost ${String(total)} units to draw, each its kind's weight and one for each series at each category or each slice of a pie; a render may draw ${String(MAX_CHART_DRAWING)}`,
+        `the charts up to ${block.id} cost ${String(total)} units to draw, each its kind's weight, one for each series at each category or each slice of a pie, and its words' weights; a render may draw ${String(MAX_CHART_DRAWING)}`,
         block.id,
       )
     }
