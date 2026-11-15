@@ -460,10 +460,9 @@ reads what each embeds, a PDF/A-2b nothing.
   Every PDF/A-2b is recorded by the digest of its objects inflated, so a
   change to what a starter, a fixture or an image kind draws fails the
   e-invoice job until somebody with a Java runs the gate with `--record`.
-  When this record was written, on 11 November 2026, its own PDF/A-2b
-  corpus was in that state: not yet recorded, so CI's `e-invoice` job and
-  the judges' test of the recorded 2b run were red, and the record was
-  the rightsholder's to retake on a passing run.
+  Its own PDF/A-2b corpus was first recorded on 15 November 2026, on an
+  Apple M2 Mac, on Corretto 17.0.6, after this record was written on 11
+  November 2026.
 - **Read first on one Java, locally.** The 2b profile's verdicts this
   record states were read on Zulu 22.0.1 on 11 November 2026, as
   evidence; CI's run on the register's Temurin 17 is the gate, as it is
