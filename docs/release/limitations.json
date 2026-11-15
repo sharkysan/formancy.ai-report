@@ -2369,7 +2369,7 @@
         },
         {
           "area": "rendering",
-          "says": "A chart's categories, legend entries and title stay in the Node process or the page after its render, in zrender's width cache of up to 500 words for each of 100 fonts, which nothing clears.",
+          "says": "A chart's categories, legend entries and title stay in the Node process or the page after its render, in zrender's width cache of up to 500 words for each of 100 fonts, which nothing zrender exports clears.",
           "heldBy": "packages/report-render-pdf/src/echarts.test.ts"
         },
         {
