@@ -47,7 +47,7 @@ import type { PdfPath, PdfTextItem } from './read-pdf.js'
  * whose places are swapped are each where one of them belongs, and pass.
  */
 
-/** Points: how far right of its swatch a legend entry's words start, ECharts' own, measured. */
+/** Points: how far right of its swatch a legend entry's words start: ECharts 6.1.0's own, its swatch's width and 5 (LegendView.js, `textX`), read at 5.000 on the renderer's legends. */
 const LEGEND_GAP = 5
 
 /** Points: how far beyond its mark's end a value's label stands, `chart-option.ts`'s VALUE_LABEL_DISTANCE, which report-render-pdf's `corpus.test.ts` holds it to. */

@@ -32,10 +32,10 @@ import type { ConvertedSvg, ConverterOptions } from './svg-content.js'
  * box's top and not below its offset, so that a word at the box's foot
  * would still never go to another page than its chart. The words are
  * painted after the marks, over them, in the order pdfmake is handed
- * them. A word stands where ECharts placed
- * it, which pdfmake prints it at: its box's top half its face's line above
- * the line's centre, `dominant-baseline: central`, and its baseline the
- * face's ascent below its top, where pdfmake sets a line's.
+ * them. A word stands where ECharts placed it, which pdfmake prints it
+ * at: its box's top half its face's line above the line's centre,
+ * `dominant-baseline: central`, and its baseline the face's ascent below
+ * its top, where pdfmake sets a line's.
  *
  * A chart with nothing to draw has no marks: its title and its empty text
  * are its words, in its box, and no SVG is handed to the converter.

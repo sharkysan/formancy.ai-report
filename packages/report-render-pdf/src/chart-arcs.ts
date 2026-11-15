@@ -66,7 +66,8 @@ import { heldPath, pathParts, type PathPart } from './chart-svg.js'
  * And one whose arc is shorter than a tenth's diagonal, 0.1 · √2 ≈ 0.141
  * pt, may have its two ends rounded into one point: it draws no more of
  * its arc than a hair out to the circle and back, and may draw no curve,
- * while every point of its sector stands within 0.0707 pt of that point.
+ * while every point of its sector stands within 0.0707 pt of the outline
+ * drawn.
  * A slice whose arc is shorter than 0.141 pt may so draw no curve at all.
  */
 

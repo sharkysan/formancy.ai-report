@@ -563,6 +563,40 @@ describe('confined packages', () => {
     })
   })
 
+  // The walk keeps the first route to a package, so a package that depends
+  // on the renderer and on echarts itself reaches echarts first through the
+  // renderer: what refuses it is that the walk records every package that
+  // depends on echarts, its second edge to it as well as its first. A walk
+  // that recorded a dependent only where it first found a package would
+  // record the renderer alone, and let the builder's own echarts through.
+  test('records every package that depends on a confined package, one behind the route through the renderer among them, and refuses it', () => {
+    const root = tree(
+      {
+        'packages/report-builder-core/package.json': manifest('@formancy/report-builder-core', '0.1.0', 'MIT', {
+          dependencies: { '@formancy/report-render-pdf': '0.1.0', echarts: '6.1.0' },
+        }),
+        'node_modules/.pnpm/r@0.1.0/node_modules/@formancy/report-render-pdf/package.json': manifest('@formancy/report-render-pdf', '0.1.0', 'MIT', {
+          dependencies: { echarts: '6.1.0' },
+        }),
+        'node_modules/.pnpm/echarts@6.1.0/node_modules/echarts/package.json': manifest('echarts', '6.1.0', 'Apache-2.0'),
+        'node_modules/.pnpm/echarts@6.1.0/node_modules/echarts/LICENSE': 'the terms',
+      },
+      {
+        'packages/report-builder-core/node_modules/@formancy/report-render-pdf': 'node_modules/.pnpm/r@0.1.0/node_modules/@formancy/report-render-pdf',
+        'packages/report-builder-core/node_modules/echarts': 'node_modules/.pnpm/echarts@6.1.0/node_modules/echarts',
+        'node_modules/.pnpm/r@0.1.0/node_modules/echarts': 'node_modules/.pnpm/echarts@6.1.0/node_modules/echarts',
+      },
+    )
+    const found = closure(join(root, 'packages/report-builder-core'))
+    const echarts = found.find(({ name }) => name === 'echarts')
+    expect(echarts.via).toEqual(['@formancy/report-builder-core', RENDERER])
+    expect(echarts.dependents).toEqual(['@formancy/report-builder-core', RENDERER])
+    const read = { 'echarts@6.1.0': { licenceFile: { path: 'LICENSE', sha256: digest('the terms') }, for: RENDERER, evidence: 'LICENSE' } }
+    expect(problems(found, {}, {}, {}, read)).toEqual([
+      'echarts@6.1.0 is admitted for @formancy/report-render-pdf alone, and @formancy/report-builder-core depends on it (@formancy/report-builder-core > @formancy/report-render-pdf > echarts)',
+    ])
+  })
+
   // The real tree: the renderer's echarts and zrender at the versions the
   // review read, each reached from the renderer alone, and no other package
   // of the workspace depends on either.

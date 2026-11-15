@@ -191,11 +191,12 @@ function deviation(outline: ReturnType<typeof outlineOf>, { centre, radius }: Ci
  * `chart` rendered alone in a bare document and read back: the page, its
  * slices -- the paths filled in each slice's colour inside the clip of
  * its box, one each -- and the circle the option handed ECharts, on the
- * page; each slice held within `onCircle` of its sector, its measures
- * returned.
+ * page; each slice held within `bound` of its sector, by default
+ * `onCircle`, its measures returned.
  */
 async function drawnOnItsCircle(
   chart: PieChart,
+  bound: (slice: number, radius: number) => number = (_, radius) => onCircle(radius),
 ): Promise<{ readonly bytes: Uint8Array; readonly page: PdfPage; readonly circle: Circle; readonly measures: readonly ReturnType<typeof deviation>[] }> {
   const bytes = await renderPdf(bareDocument('Pie', [chart]), { maxPages: 2 })
   const [page] = (await readPdf(bytes)).pages
@@ -212,7 +213,7 @@ async function drawnOnItsCircle(
   })
   measures.forEach(({ out, back, rim }, index) => {
     expect(
-      [out, back, rim].map((each) => each <= onCircle(radius)),
+      [out, back, rim].map((each) => each <= bound(index, radius)),
       `slice ${String(index + 1)} of ${chart.id}: out, back and rim ${[out, back, rim].join(', ')}`,
     ).toEqual([true, true, true])
   })
@@ -327,6 +328,62 @@ describe("a pie's slices drawn on its own circle", () => {
       const point = (numbers: readonly string[]): Point => [Number(numbers.at(-2)), Number(numbers.at(-1))]
       expect([move!.command, arc!.command, arc!.numbers[3]]).toEqual(['M', 'A', '0'])
       expect(turnOf(point(move!.numbers), point(arc!.numbers), arc!.numbers[4]!, circleOf(chart).centre)).toBeGreaterThan(Math.PI)
+    },
+    TIMEOUT,
+  )
+
+  // zrender writes a slice of 10^-4 of a radian or less with no arc at
+  // all, a line from its start to the centre (graphic/helper/roundSector.js),
+  // which the rewrite has no arc of to write again: it stands within
+  // 0.0707 pt and its own arc's length of its sector, the header's bound,
+  // and not within 0.0707 pt alone. The first slice of 15127021 parts in
+  // a pie of 999959116159 and 25756820 more, 9.5 · 10^-5 of a radian in a
+  // titled box of 333.3 by 280.7 pt, is such a sliver: written as no arc,
+  // drawn with no curve, and held to that bound on the PDF, its
+  // neighbours, one all but a whole turn, to `onCircle`.
+  test(
+    'draws a sliver zrender writes with no arc within half a tenth’s diagonal and its own arc of its sector',
+    async () => {
+      const chart = pieOf('no-arc', ['15127021', '999959116159', '25756820'], 333.3, 280.7, 'Shares of it')
+      const [sliver] = sectorsOf(chart)
+      const arc = (radius: number): number => radius * (sliver!.to - sliver!.from)
+      const { page, circle, measures } = await drawnOnItsCircle(chart, (slice, radius) => (slice === 0 ? ROUNDING + arc(radius) : onCircle(radius)))
+      expect(arc(circle.radius)).toBeLessThanOrEqual(1e-4 * circle.radius)
+      expect(Math.max(measures[0]!.out, measures[0]!.back)).toBeGreaterThan(ROUNDING)
+      // As zrender wrote it: a move, lines and a close, no arc; and drawn with no curve.
+      const { faces, widths } = await measured(planned(), {}, chart.title)
+      drawChart(chart, faces, widths)
+      const { svg } = withMeasurer(faces, widths, () => layOut(drawnOption(chart), chart.width, chart.height))
+      expect(partsOf(slicesOf(svg).get(PALETTE[0])!).map(({ command }) => command)).not.toContain('A')
+      const [path] = page.paths.filter((each) => each.paint === 'fill' && each.fill === PALETTE[0])
+      expect(path!.curves).toEqual([])
+    },
+    TIMEOUT,
+  )
+
+  // zrender writes a slice's radius rounded to a tenth, half a tenth off
+  // the pie's at most -- by decimals. A radius of 130.95 is no double, and
+  // zrender writes it as 131, 0.05000000000001137 off by doubles: a rewrite
+  // that held a slice's radius to half a tenth alone would leave every arc
+  // of that pie as written, its quarters single arcs between two rounded
+  // ends, up to a tenth off its circle. `RADIUS_ROUNDING` takes the
+  // doubles' own error too: a pie 261.9 pt across, its radius 130.95, has
+  // every arc written again in quarters on its circle, and draws on it.
+  test(
+    'writes again the arcs of a pie whose radius zrender rounds half a tenth away, as doubles count it',
+    async () => {
+      const chart = pieOf('rounded', ['1', '2', '5'], 261.9, 261.9)
+      const { faces, widths } = await measured(planned(), {})
+      const drawing = drawChart(chart, faces, widths)
+      const circle = circleOf(chart)
+      expect(circle.radius).toBe(130.95)
+      const { svg: written } = withMeasurer(faces, widths, () => layOut(drawnOption(chart), chart.width, chart.height))
+      const zrender = slicesOf(written)
+      const radii = [...zrender.values()].flatMap((d) => partsOf(d).flatMap(({ command, numbers }) => (command === 'A' ? [Number(numbers[0])] : [])))
+      expect(radii.length).toBeGreaterThan(0)
+      for (const radius of radii) expect(Math.abs(radius - circle.radius)).toBeGreaterThan(0.05)
+      for (const [fill, d] of slicesOf(drawing.svg)) expectQuarters(d, zrender.get(fill)!, circle, `rounded ${fill}`)
+      await drawnOnItsCircle(chart)
     },
     TIMEOUT,
   )

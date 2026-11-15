@@ -93,8 +93,11 @@ function serialised(definition: TDocumentDefinitions): string {
   return JSON.stringify({ definition, regions }, (_, value: unknown) => (typeof value === 'function' ? `function ${String(value)}` : value))
 }
 
-/** Every definition `render` hands `pdfmake`, in order. */
-async function definitions(pdfmake: typeof nodePdfmake, render: () => Promise<unknown>): Promise<string[]> {
+/** Every definition `render` hands `pdfmake`, in order, and the PDF it rendered, or none where it refused. */
+async function rendering(
+  pdfmake: typeof nodePdfmake,
+  render: () => Promise<Uint8Array>,
+): Promise<{ readonly passes: string[]; readonly bytes: Uint8Array | undefined }> {
   const seen: string[] = []
   const createPdf = pdfmake.createPdf.bind(pdfmake)
   const spy = vi.spyOn(pdfmake, 'createPdf').mockImplementation((definition, options) => {
@@ -102,12 +105,14 @@ async function definitions(pdfmake: typeof nodePdfmake, render: () => Promise<un
     return createPdf(definition, options)
   })
   try {
-    await render().catch(() => undefined)
+    return { passes: seen, bytes: await render().catch(() => undefined) }
   } finally {
     spy.mockRestore()
   }
-  return seen
 }
+
+/** Every definition `render` hands `pdfmake`, in order. */
+const definitions = async (pdfmake: typeof nodePdfmake, render: () => Promise<Uint8Array>): Promise<string[]> => (await rendering(pdfmake, render)).passes
 
 describe('the browser entry', () => {
   // Two entries that built their definitions apart could disagree about a
@@ -121,9 +126,10 @@ describe('the browser entry', () => {
   // and a clip path's name only ties it to where it is used. Each name is
   // read as the order it first stands in its pass, so that which marks
   // share a class or a clip is compared, and not what zrender numbered
-  // them; the PDFs' bytes are held equal besides.
+  // them. Each fixture either entry renders, the other renders too, and
+  // to the same PDF, every stream inflated (`inflatedDigest`).
   test(
-    'hands pdfmake the definitions the Node entry does, for every fixture',
+    'hands pdfmake the definitions the Node entry does, and renders the PDF it does, for every fixture',
     async () => {
       const unnumbered = (passes: readonly string[]): string[] =>
         passes.map((pass) => {
@@ -132,10 +138,13 @@ describe('the browser entry', () => {
         })
       for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...CHART_FIXTURES]) {
         const options = { maxPages: each.maxPages }
-        const inNode = unnumbered(await definitions(nodePdfmake, () => renderInNode(each.document, options)))
-        const inBrowser = unnumbered(await definitions(browserPdfmake, () => renderInBrowser(each.document, options)))
-        expect(inBrowser.length, each.id).toBe(inNode.length)
-        expect(inBrowser, each.id).toEqual(inNode)
+        const inNode = await rendering(nodePdfmake, () => renderInNode(each.document, options))
+        const inBrowser = await rendering(browserPdfmake, () => renderInBrowser(each.document, options))
+        expect(inBrowser.passes.length, each.id).toBe(inNode.passes.length)
+        expect(unnumbered(inBrowser.passes), each.id).toEqual(unnumbered(inNode.passes))
+        expect(inBrowser.bytes === undefined, each.id).toBe(inNode.bytes === undefined)
+        if (inNode.bytes !== undefined && inBrowser.bytes !== undefined)
+          expect(await inflatedDigest(inBrowser.bytes), each.id).toBe(await inflatedDigest(inNode.bytes))
       }
     },
     TIMEOUT,

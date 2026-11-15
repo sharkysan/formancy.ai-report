@@ -12,9 +12,9 @@ import type { FaceWidths } from './engine.js'
  * reserved whole, its title where a drawn chart's stands, `TITLE_PADDING`
  * below the box's top, centred across it, in the title's face, and its
  * empty text, the report's words, centred in the box, each measured as
- * pdfmake prints it (`Engine.widths`). No axis and no mark. Its words are held as a drawn chart's are (`chart-held.ts`):
- * one past the box, or the two meeting, refuse it. It imports nothing of
- * ECharts.
+ * pdfmake prints it (`Engine.widths`). No axis and no mark. Its words
+ * are held as a drawn chart's are (`chart-held.ts`): one past the box, or
+ * the two meeting, refuse it. It imports nothing of ECharts.
  */
 export function drawEmpty(chart: Chart, faces: ChartFaces, widths: FaceWidths): readonly PlacedWord[] {
   const words = chartWords(chart).map((word): PlacedWord => {
