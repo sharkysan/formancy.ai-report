@@ -249,9 +249,10 @@ AI, each in order, code a report carries run in a sandbox among them,
 and the three things Report does not mean to do -- connect to a
 database, fetch by address, drill down -- with the reason for each. What
 a report can hold takes in more than one table, each over rows of its
-own with columns of its own, one template in several languages, a first
-page's own page header, and sub- and superscript; a group's header kept
-with a stated number of its rows has since been built (0059). It promises nothing: an item is
+own with columns of its own, a first page's own page header, and sub-
+and superscript; a group's header kept with a stated number of its rows
+(0059) and one template in several languages (0063) have since been
+built. It promises nothing: an item is
 built when its record is written, and that record may narrow it or turn
 it down.
 
