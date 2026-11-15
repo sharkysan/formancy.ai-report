@@ -2,7 +2,7 @@ import type { ReportDefinition } from '@formancy/report-runtime'
 import { MAX_LANGUAGES, MAX_REPORT_BYTES, MAX_WORDS, reportWords, wordExpressionSites } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { SITE_VISIT_REPORT } from './forms/site-visit.js'
-import { E_INVOICE_SAMPLES, EURO_INVOICE_SAMPLES, INVOICE_SAMPLES, STARTERS, XRECHNUNG_SAMPLES } from './starters/index.js'
+import { E_INVOICE_SAMPLES, EURO_INVOICE_SAMPLES, INVOICE_LANGUAGES, INVOICE_SAMPLES, STARTERS, XRECHNUNG_SAMPLES } from './starters/index.js'
 
 /** The factor `MAX_REPORT_BYTES`'s comment in report-spec's `limits.ts` states, which this file is the guard of. */
 const MARGIN = 16
@@ -12,12 +12,13 @@ function serialisedBytes(report: ReportDefinition): number {
   return new TextEncoder().encode(JSON.stringify(report)).byteLength
 }
 
-/** Every report the corpus holds, once each: the starters and the samples that share their definitions, then the site visit's. */
+/** Every report the corpus holds, once each: the starters and the samples that share their definitions, then the site visit's and the invoice in four languages (0063). */
 const REPORTS = new Map<string, ReportDefinition>([
   ...[...STARTERS, ...INVOICE_SAMPLES, ...EURO_INVOICE_SAMPLES, ...E_INVOICE_SAMPLES, ...XRECHNUNG_SAMPLES].map(
     (starter) => [starter.id, starter.report] as const,
   ),
   ['site-visit-report', SITE_VISIT_REPORT],
+  [INVOICE_LANGUAGES.id, INVOICE_LANGUAGES],
 ])
 
 describe('the size a report may have as a draft', () => {

@@ -313,6 +313,16 @@ describe('generateReport, its labels', () => {
     expect(JSON.stringify(notes)).not.toContain('Erika')
   })
 
+  // A draft is written in the one language asked for, as 0045 decides and
+  // 0063 keeps: a version's other catalogues written as translations would
+  // be words no person chose, printed in a language no render was asked
+  // to name by a host that never declared it.
+  test('writes the draft in one language, with no translations, whatever catalogues the version holds', () => {
+    for (const locale of ['en', 'de-CH', 'fr-CH']) {
+      expect('translations' in generatedFrom(generate(SITE_VISIT_V2, { ...VISIT, locale })).report, locale).toBe(false)
+    }
+  })
+
   // A title of white space, which formancy's length rule admits, would
   // head the draft with nothing, a warning in the problems pane of every
   // draft made of it: titled by the form's id instead, said. A title of

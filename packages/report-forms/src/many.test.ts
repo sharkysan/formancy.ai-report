@@ -1,5 +1,6 @@
 import { SITE_VISIT_SUBMISSION_V1, SITE_VISIT_SUBMISSION_V2, SITE_VISIT_V1, SITE_VISIT_V2 } from '@formancy/report-corpus'
 import { MAX_DETAIL_ROWS, resolveReport } from '@formancy/report-runtime'
+import type { ReportDefinition } from '@formancy/report-spec'
 import { schemaHash } from '@formancy/spec'
 import { describe, expect, test } from 'vitest'
 import { field, formOf, perSubmission, readData, readMany, refusals, reportOf, SUBMISSION } from './test-support.js'
@@ -268,5 +269,31 @@ describe('readSubmissions', () => {
     })
     expect(refusals(outcome)).toEqual(['version-lacks-field /datasets/detail/fields/0/form'])
     expect(calls).toBe(0)
+  })
+})
+
+describe('readSubmissions in a language the report declares (0063)', () => {
+  /** The visits in English too: the report prints its title alone, so one word makes the language whole. */
+  const IN_ENGLISH: ReportDefinition = { ...VISITS, translations: [{ locale: 'en', words: [{ word: 'Visit', text: 'Visits' }], expressions: [] }] }
+  const input = { forms: [SITE_VISIT_V1, SITE_VISIT_V2], submissions: SUBMISSIONS, complete: true }
+
+  // Each submission's labels are read in the locale the render prints in,
+  // from its own version: a list of visits printed in English with each
+  // outcome in German would be half in each language.
+  test('reads each submission’s labels in the locale it names, from its own version, and names the locale', () => {
+    const data = readData(readMany(IN_ENGLISH, input, { locale: 'en' }))
+    expect(data.detail?.map((row) => row['outcome'])).toEqual(['Repairs needed', 'Failed'])
+    expect(data.source !== undefined && 'locale' in data.source ? data.source.locale : undefined).toBe('en')
+    const resolution = resolveReport(IN_ENGLISH, data, { mode: 'final', creationDate: '2026-10-22T08:00:00Z', locale: 'en' })
+    expect(resolution.ok ? resolution.manifest.source : resolution.errors).toEqual(data.source)
+  })
+
+  // The report's own locale named is none named, and a locale the report
+  // does not declare is refused before any version is read: fr-CH labels
+  // for a report in en and de-CH would print in a language no render names.
+  test('names no locale for the report’s own, and refuses one it does not declare', () => {
+    const own = readData(readMany(IN_ENGLISH, input, { locale: 'de-CH' }))
+    expect([own.detail?.[0]?.['outcome'], own.source !== undefined && 'locale' in own.source]).toEqual(['Reparaturen nötig', false])
+    expect(refusals(readMany(IN_ENGLISH, { ...input, forms: [{ not: 'a form' }] }, { locale: 'fr-CH' }))).toEqual(['undeclared-locale /options/locale'])
   })
 })

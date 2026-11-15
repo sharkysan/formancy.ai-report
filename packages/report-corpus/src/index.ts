@@ -86,11 +86,15 @@ export {
   inspectionData,
   inspectionNotes,
   INVOICE,
+  INVOICE_EDITIONS,
   INVOICE_EN,
   INVOICE_FR,
   INVOICE_IT,
+  INVOICE_LANGUAGES,
   INVOICE_SAMPLES,
+  invoiceAlone,
   invoiceData,
+  invoiceLanguagesData,
   invoiceLines,
   LETTERHEAD,
   lineAmount,
@@ -110,5 +114,5 @@ export {
   XRECHNUNG_SAMPLES,
   xrechnungData,
 } from './starters/index.js'
-export type { Starter, StarterImage } from './starters/index.js'
+export type { Edition, Starter, StarterImage } from './starters/index.js'
 export type { PdfAttachment, PdfBox, PdfFont, PdfPage, PdfPaint, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'

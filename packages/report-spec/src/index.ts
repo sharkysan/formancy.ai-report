@@ -290,7 +290,7 @@ export {
   MIN_FONT_SIZE,
   MIN_PRINTABLE_PT,
 } from './limits.js'
-export { isDigest, isFieldKey, isFormId, isFormPath, isIdentifier, isSchemaHash } from './syntax.js'
+export { isDigest, isFieldKey, isFormId, isFormPath, isIdentifier, isLocale, isSchemaHash } from './syntax.js'
 
 export { assetDigest } from './digest.js'
 export { IMAGE_REFUSAL_CODES, imageHeader, sniffImage } from './image-header.js'

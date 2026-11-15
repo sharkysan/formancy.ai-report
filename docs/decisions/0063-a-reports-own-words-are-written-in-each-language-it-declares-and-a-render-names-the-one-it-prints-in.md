@@ -132,7 +132,7 @@
     refuse a locale the report does not declare, and name the locale in
     the data's source only where it is not the report's own.
     `src/generate.test.ts` holds a generated report to no translations,
-    and the review's tests a field's new type judged in every language
+    and `src/review.test.ts` a field's new type judged in every language
     the report declares.
   - **The PDF.** report-render-pdf's `src/languages.test.ts` prints the
     corpus's invoice in four languages in each of them and reads each PDF
@@ -142,7 +142,11 @@
     and the slip's QR code, decoded with `readCodes`, carrying the
     message in it; each PDF equal by `inflatedDigest` to the same invoice
     written in that language alone. And every starter and sample prints
-    the same bytes with its own locale named as with none.
+    the same bytes with its own locale named as with none. The corpus's
+    `src/starters/invoice-languages.test.ts` holds that invoice to the
+    German starter's report, whole in every language it declares, and
+    written in each to the same invoice written in it alone, word for
+    word.
   - **The builders.** report-builder-core's `BUILDER_SCENARIOS` add a
     language, see its missing words as problems, write one in either
     builder, see it in the design view, switch back to the report's own
@@ -168,9 +172,29 @@
     without the report written in the language diagnosed, every case but
     one with any text taken for a quote, and the number-format case
     without the run's format read; the corpus's `MAX_WORDS` guard failed
-    at 512. The runtime's, the PDF's, the builders' and the Studio's are
-    to be written by the changes that add them: which case failed before
-    its code, how, and on what day.
+    at 512. On 2026-11-15 too, the runtime, the form's labels, the corpus
+    and the PDF, each rule broken alone and put back: the runtime's
+    `languages.test.ts` failed its unfinished-French and missing-word
+    cases with an error of any language refusing every render, twenty
+    cases with the locale a render names ignored, its three
+    `labels-locale-differs` cases with the labels unchecked, four with a
+    source's locale left unread, thirteen with the report printed as
+    validated rather than written in the render's locale, the
+    translation's `unsupported-locale` case with it refused at `/locale`,
+    the manifest's with the printed copy hashed, and the own-locale cases
+    with a named locale formatted otherwise; report-forms' review case
+    failed offering both retypes over the French translation, and the
+    generator's with a translation written into its draft; the corpus's
+    `invoice-languages.test.ts` refused to load before its module, and
+    failed with the firm's line left out of the words and with each
+    language billed by its own firm; the PDF's `languages.test.ts` failed
+    six cases with the slip left in the bill's language, five with values
+    formatted in the report's own locale -- en-CH's by `inflatedDigest`
+    alone, its total's line printing alike -- and the bytes of every
+    starter and sample not in de-DE with a named locale formatted
+    otherwise. The builders' and the Studio's are to be written by the
+    changes that add them: which case failed before its code, how, and on
+    what day.
 
 ## Context
 
