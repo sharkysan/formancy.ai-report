@@ -1,3 +1,4 @@
+import { faceKey, readFont, type ResolvedFonts } from '@formancy/report-runtime'
 import type { Block, Chart, ChartValue, EpcQrCode, Image, Inline, RefusalCode, ResolvedDocument, Table, TableRow } from './document.js'
 
 /**
@@ -183,11 +184,12 @@ export interface Expectation {
    * The body's drawings in document order through every container -- a
    * column, a section, a keep-together block -- each found after the one
    * before (`drawings.ts`): its SVG images, and its charts that have
-   * something to draw. Absent from an expectation built without it, as
-   * report-render-pdf's tests build their own: its SVG images are then
-   * those `images` lists, in its order, and it has no chart.
+   * something to draw (`drawingsOf`). A drawing it does not list is
+   * sought nowhere, and a chart not sought is proved by nothing.
    */
-  readonly drawings?: readonly ExpectedDrawing[]
+  readonly drawings: readonly ExpectedDrawing[]
+  /** Every chart in the body, in document order through every container (`chartsOf`), each proved by `check-charts.ts` where `drawings.ts` placed it. */
+  readonly charts: readonly ExpectedChart[]
   /** The page header's and footer's images, each drawn on every page at this size. */
   readonly pageRegionImages: readonly ExpectedImage[]
 }
@@ -225,6 +227,7 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
     drawings: drawingsOf(document.body),
+    charts: chartsOf(document),
     ...stated,
   }
 }
@@ -252,6 +255,91 @@ export function drawingsOf(blocks: readonly Block[]): ExpectedDrawing[] {
     if (block.kind === 'columns') return block.columns.flatMap((column) => drawingsOf(column.blocks))
     return 'blocks' in block ? drawingsOf(block.blocks) : []
   })
+}
+
+/**
+ * Every chart in `document`'s body as its PDF must show it, in document
+ * order through every container, as `drawingsOf` walks them: its words as
+ * PDF.js extracts them (`normalise`), none that prints nothing; a bar or a
+ * line chart's categories and ticks, a pie's none; each series' or slice's
+ * colour and exact values; the face each word prints in where its token
+ * maps a host font (0043); and a chart with nothing to draw anchored in
+ * its flow. A flow is the body, or a column: a section or a keep-together
+ * block flows in the flow it stands in, and a column flows below what
+ * stands before its columns block, apart from the columns beside it, so
+ * that an empty chart is sought after the chart drawn before it there
+ * (`ExpectedChart.after`), and where none is, after the page breaks before
+ * it (`ExpectedChart.breaks`), which stand in the body and its sections
+ * alone. What follows a columns block stands below every column, and
+ * after the last chart drawn in any.
+ */
+export function chartsOf(document: ResolvedDocument): ExpectedChart[] {
+  const charts: ExpectedChart[] = []
+  let breaks = 0
+  /** `blocks` walked, `drawn` the id of the chart drawn last before them in their flow; the one drawn last once they are. */
+  const walk = (blocks: readonly Block[], drawn: string | undefined): string | undefined => {
+    let last = drawn
+    for (const block of blocks) {
+      if (block.kind === 'pageBreak') breaks += 1
+      else if (block.kind === 'chart') {
+        const anchor = block.empty === undefined ? {} : last === undefined ? { breaks } : { after: last }
+        charts.push({ ...expectedChart(block, document.fonts), ...anchor })
+        if (block.empty === undefined) last = block.id
+      } else if (block.kind === 'columns') {
+        const before = last
+        for (const column of block.columns) {
+          const ended = walk(column.blocks, before)
+          if (ended !== before) last = ended
+        }
+      } else if ('blocks' in block) last = walk(block.blocks, last)
+    }
+    return last
+  }
+  walk(document.body, undefined)
+  return charts
+}
+
+/** `chart` as its PDF must show it, its words' faces read from `fonts` where its token maps a host font. */
+function expectedChart(chart: Chart, fonts: ResolvedFonts | undefined): ExpectedChart {
+  const printed = (texts: readonly (string | undefined)[]): string[] => texts.map((text) => normalise(text ?? '')).filter((text) => text !== '')
+  const axis = chart.chart === 'pie' ? undefined : chart
+  const values = axis?.valueLabels === true ? axis.series.flatMap(({ values: each }) => each.flatMap((value) => (value === null ? [] : [value.text]))) : []
+  const title = printed([chart.title])
+  const words = printed([axis?.categoryTitle, axis?.valueTitle, ...(axis?.categories ?? []), ...values, ...chart.legend.map(({ text }) => text), chart.empty])
+  const ticks = axis?.ticks ?? []
+  const [titleFace, wordsFace] = [true, false].map((bold) => faceName(chart, fonts, bold))
+  const named = (texts: readonly string[], postScriptName: string | undefined): ExpectedFontName[] =>
+    postScriptName === undefined ? [] : texts.map((text) => ({ text, postScriptName }))
+  return {
+    id: chart.id,
+    chart: chart.chart,
+    width: chart.width,
+    height: chart.height,
+    words: [...title, ...words],
+    categories: (axis?.categories ?? []).map(normalise),
+    ticks,
+    marks:
+      chart.chart === 'pie'
+        ? chart.slices.map(({ color, value }) => ({ paint: color, values: [value.exact] }))
+        : chart.series.map(({ color, values: each }) => ({ paint: color, values: each.map((value) => value?.exact ?? null) })),
+    faces: [...named(title, titleFace), ...named([...words, ...printed(ticks.map(({ text }) => text))], wordsFace)],
+    empty: chart.empty !== undefined,
+  }
+}
+
+/**
+ * The PostScript name of the face a word of `chart` prints in, read from
+ * the bytes `fonts` maps its token to, as the renderer reads them: its
+ * title bold, every other word its style's weight, each its style's slant
+ * (`chart-faces.ts`). None where its token maps no host font -- the sans
+ * token then prints in Roboto -- or no such face, or one that is no font,
+ * which the renderer refuses.
+ */
+function faceName(chart: Chart, fonts: ResolvedFonts | undefined, title: boolean): string | undefined {
+  const style = chart.style ?? {}
+  const asset = fonts?.[style.font ?? 'sans']?.[faceKey(title || (style.bold ?? false), style.italic ?? false)]
+  const read = asset === undefined ? undefined : readFont(asset.bytes)
+  return read?.ok === true ? read.names.postScriptName : undefined
 }
 
 /** Every EPC QR code among `blocks`, inside every container -- a column, a section, a keep-together block -- in document order. */

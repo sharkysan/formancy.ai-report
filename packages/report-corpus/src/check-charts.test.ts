@@ -136,11 +136,13 @@ interface Drawn {
   readonly items: readonly PdfTextItem[]
 }
 
+/** The corpus's A4 page, 36 pt above and below and 40 pt at the sides. */
+const NOTHING_ELSE_PAGE = { size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 } } as const
 /** An expectation of no body, laid under the drawings a case places. */
 const NOTHING_ELSE = expectation(
   {
     info: { title: 'Charts', creationDate: '2026-01-01T00:00:00Z' },
-    page: { size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 } },
+    page: NOTHING_ELSE_PAGE,
     pageHeader: [],
     pageFooter: [],
     body: [],
@@ -148,10 +150,15 @@ const NOTHING_ELSE = expectation(
   { maxPagesExpected: 5 },
 )
 
+/** A PDF of these pages, A4 each. */
+function pdfOf(...drawn: readonly Drawn[]): ReadPdf {
+  const read: PdfPage[] = drawn.map(({ clips, paths, items }, index) => ({ number: index + 1, width: 595.28, height: 841.89, items, images: [], paths, clips }))
+  return { pages: read, fonts: [], attachments: [] }
+}
+
 /** What `verify` says of `charts` on these pages, `drawings` the body's in document order: where `placeDrawings` places them, and what `chartProblems` finds. */
 function checked(charts: readonly ExpectedChart[], drawings: readonly ExpectedDrawing[], ...drawn: readonly Drawn[]): string[] {
-  const read: PdfPage[] = drawn.map(({ clips, paths, items }, index) => ({ number: index + 1, width: 595.28, height: 841.89, items, images: [], paths, clips }))
-  const pdf: ReadPdf = { pages: read, fonts: [], attachments: [] }
+  const pdf = pdfOf(...drawn)
   const placed = placeDrawings(pdf, { ...NOTHING_ELSE, drawings })
   return [...placed.problems, ...chartProblems(pdf, pagesOf(pdf, NOTHING_ELSE, placed), charts)]
 }
@@ -428,10 +435,11 @@ describe('chartProblems', () => {
     expect(checked([MIX], [image, drawingOf(MIX)], after)).toContain('page 1: the chart mix paints nothing of slice 1')
   })
 
-  // report-render-pdf's tests build their own expectation, which lists no
-  // drawings: its SVG images are then those its images list, and it has
-  // no chart -- the corpus's own derives both, in one walk.
-  test('places the SVG images an expectation without drawings lists among its images', () => {
+  // The body's drawings are sought as its expectation lists them, SVG
+  // images and charts in one walk (`drawingsOf`), and never from its
+  // images besides: an expectation that sought the SVG images its images
+  // list when it listed no drawing found no chart, and proved none (N3).
+  test('seeks the drawings an expectation lists, and nothing its images list besides', () => {
     const read: PdfPage = {
       number: 1,
       width: 595.28,
@@ -441,10 +449,14 @@ describe('chartProblems', () => {
       paths: markAt(40, 46.547, 0),
       clips: [box(40, 46.547, 200, 200)],
     }
-    const { drawings: listed, ...unlisted } = NOTHING_ELSE
-    expect(listed).toEqual([])
-    const placed = placeDrawings({ pages: [read], fonts: [], attachments: [] }, { ...unlisted, images: [{ kind: 'vector', width: 200, height: 200 }] })
-    expect(placed).toEqual({ boxes: [[box(40, 46.547, 200, 200)]], charts: [[]], problems: [] })
+    const pdf: ReadPdf = { pages: [read], fonts: [], attachments: [] }
+    const images = [{ kind: 'vector', width: 200, height: 200 }] as const
+    expect(placeDrawings(pdf, { ...NOTHING_ELSE, images, drawings: [] })).toEqual({ boxes: [[]], charts: [[]], problems: [] })
+    expect(placeDrawings(pdf, { ...NOTHING_ELSE, images, drawings: [{ kind: 'image', width: 200, height: 200 }] })).toEqual({
+      boxes: [[box(40, 46.547, 200, 200)]],
+      charts: [[]],
+      problems: [],
+    })
   })
 
   // ECharts clips a series to its plot, and a path's clip is the innermost

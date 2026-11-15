@@ -1,3 +1,4 @@
+import { chartProblems } from './check-charts.js'
 import { emptyPages, footers, images, keptByRoom, keptTogether, outsidePrintable, overlaps, pageCount, pageSizes, regions } from './check-layout.js'
 import { capped, pagesOf } from './check-page.js'
 import { headers, orphans, readTables, rowProblems } from './check-tables.js'
@@ -49,6 +50,7 @@ export function verify(fixture: Fixture, pdf: ReadPdf): string[] {
     ...(expected.fontsEmbedded ? pdf.fonts.filter((font) => !font.embedded).map((font) => `the font ${font.name} is not embedded`) : []),
     ...capped(images(pages, expected)),
     ...capped([...drawings.problems]),
+    ...capped(chartProblems(pdf, pages, expected.charts)),
   ]
   return problems.map((problem) => `${fixture.id}: ${problem}`)
 }

@@ -1,4 +1,13 @@
-import { ALL_FIXTURES, type Expectation, type ExpectedCell, type ExpectedImage, type ExpectedTable, type Fixture } from '@formancy/report-corpus'
+import {
+  ALL_FIXTURES,
+  chartsOf,
+  drawingsOf,
+  type Expectation,
+  type ExpectedCell,
+  type ExpectedImage,
+  type ExpectedTable,
+  type Fixture,
+} from '@formancy/report-corpus'
 import type { Block, Image, Inline, Paragraph, ResolvedDocument, Table, TableColumn, TableRow, TextStyle } from '@formancy/report-runtime'
 
 /**
@@ -10,7 +19,10 @@ import type { Block, Image, Inline, Paragraph, ResolvedDocument, Table, TableCol
  * difference: `flatten` here reads the blocks of sections and columns as
  * well as keep-together blocks, so that a table or a kept block inside a
  * section is expected like any other. The corpus's reads keep-together
- * blocks alone, because its fixtures hold no sections.
+ * blocks alone, because its fixtures hold no sections. What the corpus
+ * exports is taken, not copied: the drawings an expectation seeks and the
+ * charts it proves are the corpus's `drawingsOf` and `chartsOf`, so that a
+ * chart here is proved as a fixture's is, and never found by nothing.
  */
 
 /** Long enough for the corpus's largest documents on a slow runner; a render that hangs still fails. */
@@ -150,6 +162,8 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     fontNames: [],
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
+    drawings: drawingsOf(document.body),
+    charts: chartsOf(document),
     ...stated,
   }
 }

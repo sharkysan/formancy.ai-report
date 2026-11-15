@@ -62,7 +62,6 @@ const LISTED = 5
 export function placeDrawings(pdf: ReadPdf, expected: Expectation): PlacedDrawings {
   const vector = (images: readonly ExpectedImage[]): ExpectedImage[] => images.filter((image) => image.kind === 'vector')
   const regions = vector(expected.pageRegionImages)
-  const body: readonly ExpectedDrawing[] = expected.drawings ?? vector(expected.images).map(({ width, height }) => ({ kind: 'image', width, height }))
   const boxes: PdfBox[][] = pdf.pages.map(() => [])
   const charts: PlacedChart[][] = pdf.pages.map(() => [])
   const clips: Clip[] = pdf.pages.flatMap((page) =>
@@ -83,7 +82,7 @@ export function placeDrawings(pdf: ReadPdf, expected: Expectation): PlacedDrawin
   }
   // Each of the body's after the one before it; one not found leaves the next to be sought from the same place.
   let [next, images] = [0, 0]
-  for (const drawing of body) {
+  for (const drawing of expected.drawings) {
     const what = drawing.kind === 'image' ? `the SVG image ${++images} of the body` : `the chart ${drawing.id}`
     const after = clips.slice(next)
     const at = after.findIndex((clip, offset) => !clip.used && sized(clip.box, drawing) && painted(drawing, clip, after.slice(offset + 1)) > 0)

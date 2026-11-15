@@ -26,8 +26,19 @@ export type {
   TableRow,
   TextStyle,
 } from './document.js'
-export type { Expectation, ExpectedCell, ExpectedChart, ExpectedImage, ExpectedRefusal, ExpectedRow, ExpectedTable, Fixture, Stated } from './fixture.js'
-export { epcCodes, expectation } from './fixture.js'
+export type {
+  Expectation,
+  ExpectedCell,
+  ExpectedChart,
+  ExpectedDrawing,
+  ExpectedImage,
+  ExpectedRefusal,
+  ExpectedRow,
+  ExpectedTable,
+  Fixture,
+  Stated,
+} from './fixture.js'
+export { chartsOf, drawingsOf, epcCodes, expectation } from './fixture.js'
 export {
   SITE_VISIT_HIGH,
   SITE_VISIT_REPORT,

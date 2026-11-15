@@ -10,12 +10,14 @@ import {
   verifyInk,
   verifyRefusal,
   type Fixture,
+  type ReadPdf,
 } from '@formancy/report-corpus'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf } from './node.js'
 import type { RenderOptions } from './options.js'
-import { fixture, TIMEOUT } from './testing/documents.js'
+import { BARS } from './testing/charts.js'
+import { documentOf, fixture, fixtureOf, paragraph, TIMEOUT } from './testing/documents.js'
 
 /**
  * The renderer on the corpus: every fixture rendered and proved on the PDF
@@ -85,6 +87,33 @@ describe('the renderer on the corpus', () => {
     expect(SVG_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect([...CANNOT.keys()]).toEqual([])
   })
+})
+
+describe("the corpus's checks on a chart the renderer drew", () => {
+  // A chart is proved where the walk that places drawings finds it: an
+  // expectation that sought no drawing found no chart, and the chart's
+  // check, finding none placed, said nothing, so a chart drawn with no
+  // bar at all passed every check. Its renderer's PDF passes; the same
+  // PDF with its bars taken out is said to lack each of them.
+  test(
+    'finds a bar chart drawn with no bar',
+    async () => {
+      const each = fixtureOf('bars', documentOf('Bars', [paragraph('Before'), BARS]), { maxPagesExpected: 1 })
+      const pdf = await readPdf(await renderPdf(each.document, { maxPages: 5 }))
+      expect(verify(each, pdf)).toEqual([])
+      const colours = new Set(BARS.series.map(({ color }) => color))
+      const barless: ReadPdf = {
+        ...pdf,
+        pages: pdf.pages.map((page) => ({ ...page, paths: page.paths.filter((path) => path.paint !== 'fill' || !colours.has(path.fill ?? '')) })),
+      }
+      expect(verify(each, barless)).toEqual([
+        'bars: page 1: the chart sales draws no bar of series 1 at category 1',
+        'bars: page 1: the chart sales draws no bar of series 2 at category 1',
+        'bars: page 1: the chart sales draws no bar of series 2 at category 2',
+      ])
+    },
+    TIMEOUT,
+  )
 })
 
 describe('a render', () => {

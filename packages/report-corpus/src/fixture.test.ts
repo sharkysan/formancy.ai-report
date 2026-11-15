@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import type { Block, ResolvedDocument } from './document.js'
-import { drawingsOf, epcCodes, expectation, footerPattern } from './fixture.js'
+import { chartsOf, drawingsOf, epcCodes, expectation, footerPattern } from './fixture.js'
+import { hostFonts } from './fixtures/host-fonts.js'
 
 const page = { size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 } } as const
 const text = (value: string): Block => ({ kind: 'paragraph', runs: [{ text: value }] })
@@ -246,6 +247,185 @@ describe('drawingsOf', () => {
       { kind: 'chart', id: 'in-column', width: 200, height: 100 },
       { kind: 'image', width: 30, height: 30 },
       { kind: 'chart', id: 'kept-in-section', width: 200, height: 100 },
+    ])
+  })
+})
+
+describe('chartsOf', () => {
+  const value = (exact: string, text = exact) => ({ exact, text })
+  const documentOf = (body: readonly Block[], fonts?: ResolvedDocument['fonts']): ResolvedDocument => ({
+    info: { title: 'Charts', creationDate: '2026-01-01T00:00:00Z' },
+    page,
+    pageHeader: [],
+    pageFooter: [],
+    body,
+    ...(fonts === undefined ? {} : { fonts }),
+  })
+  const bars: Block = {
+    kind: 'chart',
+    chart: 'bar',
+    id: 'sales',
+    width: 300,
+    height: 200,
+    title: ' Sales ',
+    categoryTitle: 'Region',
+    valueTitle: ' ',
+    categories: ['North', ' ', 'A  B'],
+    series: [
+      { color: '#1f77b4', values: [value('10.25', '10.25'), null, value('0', '0')] },
+      { color: '#ff7f0e', values: [value('-5', '−5'), value('15'), null] },
+    ],
+    ticks: ['-5', '0', '5', '10', '15'].map((exact) => value(exact)),
+    valueLabels: true,
+    legend: [
+      { text: 'Plan', color: '#1f77b4' },
+      { text: '', color: '#ff7f0e' },
+    ],
+  }
+  const pie: Block = {
+    kind: 'chart',
+    chart: 'pie',
+    id: 'shares',
+    width: 200,
+    height: 200,
+    slices: [
+      { color: '#1f77b4', value: value('3') },
+      { color: '#ff7f0e', value: value('0') },
+    ],
+    legend: [
+      { text: 'North: 3 (100.0 %)', color: '#1f77b4' },
+      { text: 'East: 0 (0.0 %)', color: '#ff7f0e' },
+    ],
+  }
+  const drawn = (id: string): Block => ({ ...bars, id, title: id })
+  const empty = (id: string): Block => ({
+    kind: 'chart',
+    chart: 'line',
+    id,
+    width: 200,
+    height: 100,
+    title: 'Balance',
+    empty: 'No data',
+    legend: [],
+    categories: [],
+    series: [],
+    ticks: [],
+    valueLabels: false,
+  })
+
+  // A chart's words are the runtime's, and the check holds the PDF to them
+  // as PDF.js extracts them: a title with a space at either end, or two
+  // spaces in a category, expected as written would be missing from a
+  // PDF that prints it. A word that prints nothing -- a blank axis title,
+  // a blank category, an empty legend entry -- is none to find, and its
+  // slot stays; a pie's labels print in its legend alone, so it has no
+  // category or tick to find. A value prints only where the chart labels
+  // values, as its text; it is placed by its exact value.
+  test("derives each chart's words, categories, ticks and marks from its block", () => {
+    const [sales, shares] = chartsOf(documentOf([bars, pie]))
+    expect(sales).toEqual({
+      id: 'sales',
+      chart: 'bar',
+      width: 300,
+      height: 200,
+      words: ['Sales', 'Region', 'North', 'A B', '10.25', '0', '−5', '15', 'Plan'],
+      categories: ['North', '', 'A B'],
+      ticks: ['-5', '0', '5', '10', '15'].map((exact) => value(exact)),
+      marks: [
+        { paint: '#1f77b4', values: ['10.25', null, '0'] },
+        { paint: '#ff7f0e', values: ['-5', '15', null] },
+      ],
+      faces: [],
+      empty: false,
+    })
+    expect(shares).toEqual({
+      id: 'shares',
+      chart: 'pie',
+      width: 200,
+      height: 200,
+      words: ['North: 3 (100.0 %)', 'East: 0 (0.0 %)'],
+      categories: [],
+      ticks: [],
+      marks: [
+        { paint: '#1f77b4', values: ['3'] },
+        { paint: '#ff7f0e', values: ['0'] },
+      ],
+      faces: [],
+      empty: false,
+    })
+    expect(chartsOf(documentOf([{ ...bars, valueLabels: false }]))[0]!.words).toEqual(['Sales', 'Region', 'North', 'A B', 'Plan'])
+    expect(chartsOf(documentOf([empty('nothing')]))[0]).toMatchObject({ words: ['Balance', 'No data'], categories: [], ticks: [], marks: [], empty: true })
+  })
+
+  // A chart prints in its style's token, its title bold in it (0058): where
+  // the token maps a host font, each word, its ticks' labels among them,
+  // is held to the face it prints in, so that a chart printed in Roboto,
+  // or its title in the regular face, is seen. A token the report maps no
+  // host font for prints in Roboto, and is held to no face.
+  test('holds each word to the face it prints in where its token maps a host font', () => {
+    const fonts = hostFonts.document.fonts
+    const [serif] = chartsOf(documentOf([{ ...bars, style: { font: 'serif' } }], fonts))
+    expect(serif!.faces).toEqual([
+      { text: 'Sales', postScriptName: 'LiberationSerif-Bold' },
+      ...['Region', 'North', 'A B', '10.25', '0', '−5', '15', 'Plan', '-5', '0', '5', '10', '15'].map((text) => ({ text, postScriptName: 'LiberationSerif' })),
+    ])
+    const [italic] = chartsOf(documentOf([{ ...pie, title: 'Shares', style: { font: 'serif', italic: true } }], fonts))
+    expect(italic!.faces).toEqual([
+      { text: 'Shares', postScriptName: 'LiberationSerif-BoldItalic' },
+      { text: 'North: 3 (100.0 %)', postScriptName: 'LiberationSerif-Italic' },
+      { text: 'East: 0 (0.0 %)', postScriptName: 'LiberationSerif-Italic' },
+    ])
+    expect(chartsOf(documentOf([bars], fonts))[0]!.faces).toEqual([])
+  })
+
+  // A chart with nothing to draw has no box to be found by: its words are
+  // sought after the chart drawn before it in its flow, else after the
+  // page breaks before it (`check-charts.ts`). Anchored wrongly they are
+  // sought from the first page, where the same words printed as other
+  // text pass for them, or after a chart beside it in another column,
+  // which may stand lower, where a correct PDF fails. A section or a
+  // keep-together block flows in its flow, a column below what stands
+  // before its columns, and what follows a columns block below all of
+  // them.
+  test('anchors an empty chart after the chart drawn before it in its flow, else after the page breaks before it', () => {
+    const body: Block[] = [
+      { kind: 'pageBreak' },
+      { kind: 'section', blocks: [{ kind: 'keepTogether', blocks: [empty('framed')] }] },
+      {
+        kind: 'columns',
+        columns: [
+          { width: 'fill', blocks: [empty('beside')] },
+          { width: 'fill', blocks: [drawn('right'), empty('under-right')] },
+        ],
+      },
+      empty('below-columns'),
+      { kind: 'section', blocks: [drawn('last')] },
+      { kind: 'pageBreak' },
+      { kind: 'section', blocks: [empty('after-break')] },
+      { kind: 'columns', columns: [{ width: 'fill', blocks: [empty('in-column')] }] },
+    ]
+    expect(chartsOf(documentOf(body)).map(({ id, after, breaks }) => ({ id, after, breaks }))).toEqual([
+      { id: 'framed', after: undefined, breaks: 1 },
+      { id: 'beside', after: undefined, breaks: 1 },
+      { id: 'right', after: undefined, breaks: undefined },
+      { id: 'under-right', after: 'right', breaks: undefined },
+      { id: 'below-columns', after: 'right', breaks: undefined },
+      { id: 'last', after: undefined, breaks: undefined },
+      { id: 'after-break', after: 'last', breaks: undefined },
+      { id: 'in-column', after: 'last', breaks: undefined },
+    ])
+    expect(chartsOf(documentOf([empty('first')]))[0]).toMatchObject({ breaks: 0 })
+  })
+
+  // The expectation proves every chart it holds, and the drawings it seeks
+  // are those charts' that draw something, in the same order.
+  test('is the expectation’s charts, the drawn ones among its drawings', () => {
+    const document = documentOf([empty('nothing'), bars, { kind: 'columns', columns: [{ width: 'fill', blocks: [pie] }] }])
+    const derived = expectation(document, { maxPagesExpected: 1 })
+    expect(derived.charts).toEqual(chartsOf(document))
+    expect(derived.drawings).toEqual([
+      { kind: 'chart', id: 'sales', width: 300, height: 200 },
+      { kind: 'chart', id: 'shares', width: 200, height: 200 },
     ])
   })
 })
