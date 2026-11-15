@@ -54,7 +54,7 @@ extend it). Apache ECharts and zrender, which the renderer lays a chart
 out with, are permissive and judged so, and admitted further for
 `report-render-pdf` alone, each at exactly 6.1.0, by the digests of the
 licence files a review read (`CONFINED`, 0006 as 0058 extends it):
-another version, a licence file of other bytes, and any other package
+another version, a licence file of other bytes, and any other published package
 that depends on either itself, ECharts on zrender aside, are refused, so
 that no builder depends on a charting library; the tslib 2.3.0 they pin
 is judged as any package. A commercial
@@ -212,7 +212,7 @@ of ten, exactly, at most `MAX_TICK_INTERVALS` intervals
 `format.ts`'s `percent`, which refuses rather than rounds again
 ([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
 The renderer draws the block, laid out by Apache ECharts 6.1.0 and drawn
-by pdfmake [0058](docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md): `check-chart.ts` holds it, before anything is laid out, to
+by pdfmake ([0058](docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)): `check-chart.ts` holds it, before anything is laid out, to
 where it stands, the runtime's bounds, its parts, its words and its
 numbers; `chart-draw.ts`, the one module that imports ECharts' code, which
 `render.ts` loads through `loadOnce` for the first chart with marks, so
@@ -220,7 +220,9 @@ that a browser loads it as a chunk of its own, lays it out three times, a
 pie twice, the plot only snapped, and refuses as `content-too-large` words
 that would meet, leave the box or stand in the plot, category labels that
 do not fit across, which are never turned, a plot too short for two tick
-labels and bars under `MIN_BAR_WIDTH`, measured; `chart-measure.ts`
+labels and bars under `MIN_BAR_WIDTH`, measured, by the words' one
+rule, `chart-held.ts`, which an empty chart's words meet too;
+`chart-measure.ts`
 replaces zrender's platform for one layout, answering in the widths each
 engine's `widths` measures in the faces the render embeds
 (`chart-faces.ts`, each named by the digest of its bytes);
@@ -361,7 +363,7 @@ before it:
    a renderer-neutral output.
 5. `report-render-pdf` -- the one chosen engine's adapter. It takes resolved
    input and approved asset bytes, never a database connection or a URL.
-   A chart is laid out inside it by ECharts, which no other package
+   A chart is laid out inside it by ECharts, which no other published package
    depends on (0058).
 6. `report-server-core` / `report-server` / `report-client` -- built: who
    may do what, a server that knows who is asking (0046) and keeps a
@@ -796,7 +798,7 @@ exactly what CI does:
   the first sample's e-invoice on other pages -- every starter's, a page
   of every image kind PDFKit embeds, a page of SVGs in every way
   svg-to-pdfkit paints one, one of an SVG at every bound an e-invoice
-  holds one to, and a page each of the corpus's charts, laid out by
+  holds one to, and a page each of four of the corpus's charts, laid out by
   ECharts (0058) -- Mustang by its PDF part too,
   never its exit status alone; each control is judged exactly as the
   corpus expects, at least one tool refusing it and each tool refusing at
