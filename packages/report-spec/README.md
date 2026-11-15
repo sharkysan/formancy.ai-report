@@ -514,6 +514,65 @@ What they do not check:
 - what a chart prints, which the runtime resolves. No release draws one
   yet: the renderer refuses a report that would print one.
 
+## A report in several languages
+
+A report is written in its own `locale`, and may declare `translations`:
+for each other language, its words written in that language, each looked
+up by its exact text in the report's own, and each expression that
+prints words by its exact source ([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)). Its types and its
+walk are `translation.ts`'s, the report written in one of its languages
+`report-in.ts`'s, and `validate-translations.ts` holds a translation to
+what it may be.
+
+```ts
+import { declaredLocales, isWord, MAX_LANGUAGES, MAX_WORDS, renderLocale, reportIn, reportWords, writtenIn } from '@formancy/report-spec'
+import type { ReportDefinition, Translation } from '@formancy/report-spec'
+
+const french: Translation = {
+  locale: 'fr-CH',
+  words: [{ word: 'Quantity', text: 'Quantité' }, { word: 'No lines.', text: 'Aucune ligne.' }],
+  expressions: [{ cel: 'row.count == 1 ? "item" : "items"', expression: { cel: 'row.count == 1 ? "article" : "articles"' } }],
+}
+declare const report: ReportDefinition // one the validator accepts, its translations [french]
+reportWords(report) // each word at each place it stands: { path, text, componentId?, columnId? }
+declaredLocales(report) // ['de-CH', 'fr-CH']: the report's own first
+renderLocale(report, 'fr') // { ok: false, message: '"fr" is not a locale this report is written in; ...' }
+reportIn(report, 'fr-CH') // the report in French, whole, locale 'fr-CH', no translations; throws where a word is missing
+writtenIn(report, 'fr-CH') // the same, a missing word left in the report's own: what each language is validated as
+isWord('12.50') // false: a text with no letter prints as written in every language
+MAX_LANGUAGES // 24, the report's own among them
+MAX_WORDS // 1024 words, and as many expressions, in each translation
+```
+
+- **The words** are the title; each literal run of a text, of a table's
+  cells, its group's header and its footer rows' cells; a table's column
+  headers and its empty text; a chart's titles, its empty text, the label
+  of its rows without a category and each series' label; and a QR-bill's
+  message. A literal is a word only where it holds a letter. Every other
+  string prints as written in every language -- a QR code's content, an
+  EPC QR code's texts, a bill's account, parties, reference and billing
+  information, an e-invoice's texts, a field's and a parameter's label, a
+  parameter's default -- and `NOT_WORDS`, beside the walk, names each,
+  which `words.test.ts` holds every string of the format to.
+- **An expression run where a word stands** is translated whole, by its
+  source; which of them print words, report-core's diagnostics say.
+- **The validator** holds a translation's shape: a locale written as the
+  report's is, never the report's own nor twice (`duplicate-language`), a
+  word that holds a letter (`not-a-word`), once in a language
+  (`duplicate-word`), and never translated blank (`blank-translation`).
+  Then it writes the report in each language and reads it again, so that
+  a translation is held to every rule each place of its word holds the
+  word to, and an error is reported at the translation, naming the place
+  and the language.
+- **In a translation's locale** the QR-bill's headings are printed in that
+  locale's language where SIX has headings in it, and in the bill's own
+  where it has none. In the report's own locale the report prints as it
+  did, without its translations.
+
+What they do not check: whether a language holds every word, which
+report-core's `languageDiagnostics` says, and the runtime refuses a render
+for.
+
 ## An SVG asset
 
 An image asset may be `image/svg+xml`, held to one form: what `cleanSvg`

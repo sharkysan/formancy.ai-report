@@ -40,10 +40,10 @@ export interface AnswerRecord {
   readonly copies: Map<string, Read<unknown>>
 }
 
-/** A host's labels for the options a deployment resolves (`optionsSource`), in the report's locale; undefined for a value it has no label for. */
+/** A host's labels for the options a deployment resolves (`optionsSource`), in the locale the read names -- the report's own unless a translation's (0063); undefined for a value it has no label for. */
 export type OptionLabels = (option: { readonly source: string; readonly value: string; readonly locale: string }) => string | undefined
 
-/** What reading answers needs besides the answer: the version, the report's locale and the host's labels. */
+/** What reading answers needs besides the answer: the version, the locale the read names -- the report's own unless a translation's (0063) -- and the host's labels. */
 export interface AnswerContext {
   readonly version: Version
   readonly locale: string
@@ -158,7 +158,7 @@ function hostLabel(labels: OptionLabels | undefined, option: { readonly source: 
   }
 }
 
-/** The text a choice of `plan` prints for `value`: its label in the report's locale, from the version or the host, or the value itself. */
+/** The text a choice of `plan` prints for `value`: its label in the locale the read names, the report's own unless a translation's (0063), from the version or the host, or the value itself. */
 function choice(plan: ReadPlan, value: string, context: AnswerContext): Turned {
   const { def } = plan
   if (plan.options.size > 0) {

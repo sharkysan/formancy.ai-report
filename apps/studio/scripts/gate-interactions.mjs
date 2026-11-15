@@ -6,8 +6,9 @@
 // render, and back; and the Preview's Zoom in, which draws every page
 // larger, on white, with ink. Then the room made for the middle pane
 // (gate-room.mjs), an image added (gate-images.mjs), the invoice's QR-bill
-// edited (gate-payment-part.mjs) and the e-invoice's e-invoice edited
-// (gate-e-invoice.mjs). Each is undone, so the journey goes on where the
+// edited (gate-payment-part.mjs), the e-invoice's e-invoice edited
+// (gate-e-invoice.mjs) and the invoice given a language
+// (gate-languages.mjs). Each is undone, so the journey goes on where the
 // starters left off.
 //
 // React binds a pointer's drag to pointer events and Angular to HTML drag
@@ -18,6 +19,7 @@
 
 import { eInvoiceChecks } from './gate-e-invoice.mjs'
 import { imageChecks } from './gate-images.mjs'
+import { languageChecks } from './gate-languages.mjs'
 import { describeFocus } from './gate-measure.mjs'
 import { drawnPages } from './gate-page.mjs'
 import { paymentPartChecks } from './gate-payment-part.mjs'
@@ -166,4 +168,5 @@ export async function interactions(gate, page, framework) {
   await imageChecks(gate, page, framework)
   await paymentPartChecks(gate, page, framework)
   await eInvoiceChecks(gate, page, framework)
+  await languageChecks(gate, page, framework)
 }

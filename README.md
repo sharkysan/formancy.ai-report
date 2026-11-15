@@ -22,8 +22,9 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **Design a report** in a native React or Angular builder, with undo, and see what is wrong before anything renders ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
 - **Print it as a paginated PDF**, in Node or in a browser, from your application's JSON. Totals are exact, values are formatted for the report's locale, and a report that cannot be drawn whole is refused, never truncated ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 - **Groups that start with their rows**: a table's group header is kept on its page with its group's first row, or with as many of its first rows as the report states, as many as fit where they do not, and both builders edit that number ([0059](./docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+- **One template in several languages**: a report's own words -- its title, its texts, its tables' headers, cells and empty texts, a chart's words and a QR-bill's message -- written in each language it declares, and a render that names one prints in it: its words, its numbers and dates, the order of its rows, a formancy form's labels and the QR-bill slip's headings. A word missing in that language refuses the render, never printed in another, and no language falls back to another. The builders edit one language at a time and show what each still lacks, and the Studio's Preview prints the one the builder shows. A report without translations prints as it did ([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 - **Read its data from [Formancy Data](https://github.com/sharkysan/formancy.ai-data) 0.1.0**, optionally and best-effort ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
-- **Print a [formancy](https://github.com/sharkysan/formancy.ai) form's submissions**, each against the exact form version that collected it: its labels in the report's language, a field the version moved refused rather than printed wrong, and a number by its digits or not at all. Your application hands over the version and the submission ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+- **Print a [formancy](https://github.com/sharkysan/formancy.ai) form's submissions**, each against the exact form version that collected it: its labels in the language the render prints in, a field the version moved refused rather than printed wrong, and a number by its digits or not at all. Your application hands over the version and the submission ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
 - **Start a report from a formancy form version**: a first draft, the same for the same version, that names the version and reads its submissions, with notes of what it left out and assumed ([0045](./docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
 - **Review a formancy form's new version** for a report: a version that moved, removed or retyped a field the report reads is refused until a resolution is applied, and anything else prints. Each resolution is a report-core command your application applies in one undo step -- a rename the form's author declared first, after which the versions that keep the field there print unreviewed -- and none is applied by itself ([0048](./docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)).
 - **Say where a render's data came from**, in the manifest kept beside the PDF: the Data forms it read, or each submission of a formancy form with its form's id and the version that collected it, held to the syntax of identifiers ([0041](./docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)).
@@ -64,7 +65,10 @@ and what is not planned at all.
 > editing core and the runtime know, the builders do not offer yet and
 > nothing prints: the renderer refuses a report that would print one; and
 > a final render of any report that is no e-invoice may be drawn as a
-> PDF/A-2b. The report format is still version "0", the draft: a report
+> PDF/A-2b; and a report may be written in several languages, its own
+> words in each, which the format, the editing core, the runtime, the form
+> bridge, both builders and the Studio know, and a render names the one it
+> prints in. The report format is still version "0", the draft: a report
 > written now is not promised to be read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
 
@@ -112,6 +116,11 @@ and in the design view's place where it has not
 Add image… adds a PNG, a JPEG or an SVG from your computer, kept in the
 page and sent nowhere
 ([0033](./docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
+A language added from the report's own properties gives the builder's bar a
+switch between the report's languages; the builder then shows that
+language's words and marks those it lacks, and the Preview prints in it,
+refused until its last word is written
+([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 
 <!-- generated by scripts/pictures/readme.mjs from scripts/pictures/scenes.json: studio; do not edit -->
 
@@ -256,7 +265,7 @@ and a report that is an e-invoice, or a labelled preview, is refused as one
 
 | Package | What it is |
 | --- | --- |
-| [`@formancy/report-spec`](./packages/report-spec/README.md) | The report format, version 0 (a draft): its types, validation with stable error codes, a canonical hash, and the rules of a QR-bill, an EPC QR code, an e-invoice, a chart, an SVG, an image's bytes and a font's ([0007](./docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md)). |
+| [`@formancy/report-spec`](./packages/report-spec/README.md) | The report format, version 0 (a draft): its types, validation with stable error codes, a canonical hash, and the rules of a QR-bill, an EPC QR code, an e-invoice, a chart, an SVG, an image's bytes and a font's, and a report written in one of its languages ([0007](./docs/decisions/0007-a-report-definition-is-its-own-versioned-document.md), [0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)). |
 | [`@formancy/report-documents`](./packages/report-documents/README.md) | The one PDF reader: a PDF's bytes read whole -- its pages, every object they draw with, and a count of what does not survive printing -- or refused, synchronously, within bounds measured at each, with no Node or DOM global; nothing calls it yet ([0054](./docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)). |
 | [`@formancy/report-core`](./packages/report-core/README.md) | Commands over a report, as functions and as data, several as one batch, a session that commits only what validates, with exact undo and redo, and one compilation of every expression for the diagnostics and the runtime ([0008](./docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0048](./docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)). |
 | [`@formancy/report-runtime`](./packages/report-runtime/README.md) | Resolves a report against its data into a renderer-neutral document, exact numbers as strings and totals rounded once, and writes an e-invoice's XML, or refuses with every reason; its manifest says what a render was resolved from, the data's source among it ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0041](./docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)). |

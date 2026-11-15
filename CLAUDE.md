@@ -212,6 +212,24 @@ of ten, exactly, at most `MAX_TICK_INTERVALS` intervals
 renderer's `check.ts` refuses the block as `unsupported` until it draws
 charts
 ([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
+A report may be written in several languages: its own `locale` and the
+`translations` beside it, each a language's words keyed by their exact
+text in the report's own and the expressions that print words keyed by
+their source. Report-spec's `translation.ts` is the one walk of the words
+a report prints, `NOT_WORDS` every other string with its reason,
+`validate-translations.ts` holds each language to the rules every report
+is held to, and `report-in.ts`'s `reportIn` writes the report in a
+declared locale; report-core diagnoses each language as a report
+(`diagnostics/words.ts`'s `languageDiagnostics`), a word missing being
+`word-missing`, an error of that language alone, and edits one through
+`addLanguage`, `removeLanguage`, `translateWord` and
+`translateExpression`; the runtime prints in the locale a render names,
+the report's own or a declared one exactly, refusing a render only for
+its own language's errors (`languages.ts`), every word, value, row
+order, a form's labels and the slip's headings in that locale and never
+another's; and both builders edit one language at a time (builder-core's
+`languages.ts`)
+([0063](docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 `@formancy/report-documents` is the one reader of PDFs, beside report-spec,
 which holds no PDF engine, and nothing calls it yet: `readDocument`, in
 `read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
@@ -279,7 +297,8 @@ scopes indexed once and held to formancy's `modelDataPaths`
 (`version.test.ts`), every field the report reads checked against each
 version before an answer is read, formancy's kinds mapped once in
 `kinds.ts`, a number by its digits or refused (`numbers.ts`), labels from
-that version in the report's locale, and the data host-captured, its
+that version in the locale the render names (0063), and the data
+host-captured, its
 source naming each submission and its version; the binding is
 report-spec's, on the dataset contract (`validate-form-binding.ts`)
 ([0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).

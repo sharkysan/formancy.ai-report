@@ -436,6 +436,35 @@ describe('reviewFormVersion, a version that removes or retypes a field', () => {
     expect(summary(itemsOf(reviewed(retyped, report)).items)).toEqual([['header', 'count', 'field.typeChanged', true, ['print-nothing', 'remove']]])
   })
 
+  // A resolution is judged in every language the report declares, as in
+  // its own (0063): the English writes the count through `string()`, which
+  // any type passes, and its French translation appends it to text, which
+  // only a string does. A retype judged by the report's own words alone
+  // would be applied and refuse every French render after it.
+  test('offers no type a translation of an expression that reads the field would be refused at', () => {
+    const source = '"Visits: " + string(header.count)'
+    const counted: Component = { id: 'visits', kind: 'text', content: [{ kind: 'expression', expression: { cel: source } }] }
+    const header = REPORT.datasets.header as DatasetContract
+    const report: ReportDefinition = {
+      ...REPORT,
+      datasets: {
+        ...REPORT.datasets,
+        header: { ...header, fields: header.fields.map((field) => (field.id === 'count' ? { ...field, nullable: false } : field)) },
+      },
+      regions: { ...REPORT.regions, summary: [counted] },
+    }
+    const french: ReportDefinition = {
+      ...report,
+      translations: [{ locale: 'fr', words: [], expressions: [{ cel: source, expression: { cel: '"Visites : " + header.count' } }] }],
+    }
+    const retyped = version((fields) => changed(fields, 'count', (field) => ({ ...field, type: 'number', step: 1 })))
+    const kinds = (each: ReportDefinition) => summary(itemsOf(reviewed(retyped, each)).items)[0]?.[4]
+    expect([kinds(report), kinds(french)]).toEqual([
+      ['print-nothing', 'retype', 'retype', 'remove'],
+      ['print-nothing', 'remove'],
+    ])
+  })
+
   // A field renamed and retyped in one version is not read by following
   // the rename: offered, it would be applied and the version still
   // refused. Its other resolutions are offered.

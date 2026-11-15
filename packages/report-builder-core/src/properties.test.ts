@@ -36,7 +36,8 @@ const OF_KIND: { readonly [K in ComponentKind]: string } = {
 
 describe('the report’s own properties', () => {
   // With nothing selected the panel is the report's: its title, language
-  // and page, the page's margins in millimetres.
+  // and page, the page's margins in millimetres, then its languages' Add
+  // language, the way a report comes to be written in another (0063).
   test('are shown when nothing is selected', () => {
     const { editor } = editorOver()
     const { heading, fields } = editor.state().properties
@@ -50,6 +51,7 @@ describe('the report’s own properties', () => {
       ['/page/margins/right', 'Right margin (mm)', 'length', '20'],
       ['/page/margins/bottom', 'Bottom margin (mm)', 'length', '20'],
       ['/page/margins/left', 'Left margin (mm)', 'length', '20'],
+      ['/translations/-', 'Add language', 'text', ''],
     ])
   })
 

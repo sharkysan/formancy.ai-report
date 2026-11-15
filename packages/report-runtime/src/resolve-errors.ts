@@ -20,6 +20,8 @@ import type { FormatErrorCode } from './format.js'
 export const RESOLVE_ERROR_CODES = [
   /** A creation date that is not an ISO 8601 instant with its zone. */
   'invalid-creation-date',
+  /** A locale a render names that the report is not written in: neither its own nor one its translations declare, a near one among them (0063). */
+  'undeclared-locale',
   /** An image whose bytes the host does not have, or a report with images and no way to fetch them. */
   'missing-asset',
   /** Bytes for an image that are not a `Uint8Array`, or of another media type than the asset declares or a report may draw. */

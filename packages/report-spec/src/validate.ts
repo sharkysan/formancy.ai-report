@@ -23,6 +23,7 @@ import { readAssets, readDatasets, readPage, readParameters, readProvenance, rea
 import { readEInvoice } from './validate-e-invoice.js'
 import { checkMissingFaces, readFontMap } from './validate-font-map.js'
 import { readPaymentPart } from './validate-payment-part.js'
+import { checkLanguages, readTranslations } from './validate-translations.js'
 import { checkSpecVersion, REPORT_SPEC_VERSION } from './version.js'
 
 export type ReportValidation = { readonly valid: true; readonly report: ReportDefinition } | { readonly valid: false; readonly errors: readonly ReportError[] }
@@ -44,7 +45,7 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
     o,
     '',
     ['reportSpecVersion', 'id', 'title', 'locale', 'page', 'styles', 'datasets', 'parameters', 'assets', 'aggregates', 'regions'],
-    ['fonts', 'paymentPart', 'eInvoice', 'provenance'],
+    ['fonts', 'paymentPart', 'eInvoice', 'provenance', 'translations'],
   )
   const id = identifier(c.f, o.id, '/id')
   const title = text(c.f, o.title, '/title', MAX_LABEL_LENGTH)
@@ -65,6 +66,8 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
   const paymentPart = readPaymentPart(c, o.paymentPart, '/paymentPart', page)
   const eInvoice = readEInvoice(c, o.eInvoice, '/eInvoice', { title, regions, paymentPart })
   const provenance = readProvenance(c.f, o.provenance, '/provenance')
+  // Last: a translation is of words the rest holds, and each language is the rest written again.
+  const translations = readTranslations(c, o.translations, '/translations', locale)
   if (
     id === undefined ||
     title === undefined ||
@@ -78,7 +81,8 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
     regions === undefined ||
     (o.fonts !== undefined && fonts === undefined) ||
     (o.paymentPart !== undefined && paymentPart === undefined) ||
-    (o.eInvoice !== undefined && eInvoice === undefined)
+    (o.eInvoice !== undefined && eInvoice === undefined) ||
+    (o.translations !== undefined && translations === undefined)
   ) {
     return undefined
   }
@@ -99,6 +103,7 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
     ...optional('paymentPart', paymentPart),
     ...optional('eInvoice', eInvoice),
     ...optional('provenance', provenance),
+    ...optional('translations', translations),
   }
 }
 
@@ -130,6 +135,8 @@ export function validateReport(document: unknown): ReportValidation {
   }
   // checkSpecVersion reads a version only from an object, so `top` is one.
   const report = readReport(c, top as Record<string, unknown>)
+  // Each language only once the report in its own is whole: an error then is the translation's alone.
+  if (report?.translations !== undefined && c.f.errors().length === 0) checkLanguages(c, report, report.translations, readReport)
   const errors = c.f.errors()
   return report !== undefined && errors.length === 0 ? { valid: true, report } : { valid: false, errors }
 }

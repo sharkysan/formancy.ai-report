@@ -10,6 +10,33 @@ later.
 
 ## Unreleased
 
+**A report's own words are written in each language it declares, and a render names the one it
+prints in**
+([0063](docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+A firm that bills in German, French, Italian and English kept a report for each language: four
+layouts edited four times and four reviews of every form version, as the invoice's samples still
+are (0024). A report may now declare `translations`: for each language beside its own `locale`,
+its words written in it, each looked up by its exact text in the report's own -- the title, a
+text's literal runs, a table's cells, group headers, footer rows, column headers and empty text, a
+chart's words and a QR-bill's message -- and each expression that prints words translated whole.
+`resolveReport` takes a `locale`, the report's own or a declared one exactly, and that locale
+writes every word, formats every value, orders the rows and, through report-forms' new `locale`
+read option, gives a form's labels; the slip's headings follow it where SIX has the language. A
+word missing in that language is an error of that language, `word-missing`, which refuses a
+render in it alone: nothing is printed in another language, and nothing falls back from de-CH to
+de-DE. report-spec gains `reportWords`, `renderLocale`, `reportIn` and `writtenIn`; report-core
+`addLanguage`, `removeLanguage`, `translateWord`, `translateExpression`, `languageDiagnostics`
+and `wordExpressions`, and a diagnostic names its `language`; the runtime refuses
+`undeclared-locale` and `labels-locale-differs`, and its manifest names the locale a render
+printed in. Both builders edit one language at a time, chosen in a switch their bar shows once a
+report declares a translation, its missing words marked and listed by their language, and every
+report's own fields end with a Languages group, before the images a report declares; the Studio's
+Preview prints the language the builder shows. A report without translations validates, hashes,
+resolves and prints exactly as before, which every starter's and sample's bytes hold, and 0.2.0
+refuses a report that has them. What it costs -- a word changed is a word to translate again, an
+expression is judged a word by a quote, codes and the XML keep one language and data the
+host's -- is the record's.
+
 **A table's group header may be kept on its page with as many of its group's first rows as the
 report states, or as many as fit**
 ([0059](docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
@@ -222,9 +249,10 @@ AI, each in order, code a report carries run in a sandbox among them,
 and the three things Report does not mean to do -- connect to a
 database, fetch by address, drill down -- with the reason for each. What
 a report can hold takes in more than one table, each over rows of its
-own with columns of its own, one template in several languages, a first
-page's own page header, and sub- and superscript; a group's header kept
-with a stated number of its rows has since been built (0059). It promises nothing: an item is
+own with columns of its own, a first page's own page header, and sub-
+and superscript; a group's header kept with a stated number of its rows
+(0059) and one template in several languages (0063) have since been
+built. It promises nothing: an item is
 built when its record is written, and that record may narrow it or turn
 it down.
 

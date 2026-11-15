@@ -16,7 +16,11 @@
   under which the start page carries a status too, named first in the
   site's one error, each of the QR-bill page's cards names the tests it
   rests on, and the Studio's words this record says nothing reads,
-  "Starter" and "Invoice", are held to the Studio's recorded pictures
+  "Starter" and "Invoice", are held to the Studio's recorded pictures, and by
+  [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md),
+  under which the corpus holds, beside these four samples, which stay
+  four reports, the German starter's invoice once in four languages, its
+  PDF in each held to the same invoice written in that language alone
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

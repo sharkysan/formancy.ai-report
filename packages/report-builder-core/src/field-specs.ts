@@ -1,7 +1,8 @@
 /**
  * A field: how one property is shown, and how what a person types becomes
  * a value in the report, one constructor for each kind of value. Which
- * fields each thing has is `property-fields.ts`'s.
+ * fields each thing has is `component-fields.ts`'s, and the groups they
+ * are drawn in `property-fields.ts`'s.
  *
  * A field turns text into a value and nothing more: whether the value is
  * valid is the validator's question, asked when the edit is applied, so
@@ -11,6 +12,7 @@
 import { mmToPt, ptToMm } from '@formancy/report-spec'
 import type { Inline, PrintStyle } from '@formancy/report-spec'
 import type { PropertyKind, PropertyOption } from './model-properties.js'
+import type { PropertyChange } from './properties.js'
 import type { EditorText, MessageId } from './text.js'
 
 /** What a field makes of what was typed: a value at `at` (its key unless it says), nothing changed, or why it cannot be one. */
@@ -32,6 +34,16 @@ export interface FieldWords {
   readonly item?: number
 }
 
+/** What a field at a word says in a language besides the report's own (0063): the language, the report's own word, whether it is missing, and how many places it stands in. */
+export interface FieldTranslation {
+  /** The language's name, in the editor's language. */
+  readonly language: string
+  /** The report's own word, or the expression's own source: what the field shows while it is empty. */
+  readonly word: string
+  readonly missing: boolean
+  readonly places: number
+}
+
 export interface FieldSpec {
   readonly key: string
   readonly words: FieldWords
@@ -42,6 +54,17 @@ export interface FieldSpec {
   readonly options?: readonly PropertyOption[]
   readonly read: () => string | boolean
   readonly write: (input: string | boolean) => Written
+  /** Where the field writes a word in a language besides the report's own (0063). */
+  readonly translation?: FieldTranslation
+  /**
+   * Where the diagnostics of what it writes stand, where that is not its
+   * key: a pointer into the report, the translation's own entry for an
+   * expression translated, which report-core points that translation's
+   * errors at, at whichever place its source stands (0063).
+   */
+  readonly diagnosed?: string
+  /** The change a value written makes where it is none of the target's own properties: a word's translation, a language added (0063). */
+  readonly change?: (written: unknown) => PropertyChange
 }
 
 /** The words of a field, filled in a language: "Part 2: Field". */

@@ -105,6 +105,17 @@ clamps when what it names is not there:
   own account then; whether each place takes the account is the
   validator's to say, each by its own rule, and no BIC is changed
   ([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
+- **the report's languages** ([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)): `addLanguage(report,
+  locale)`, a language with no words yet, refused as `already-declared`
+  for the report's own and one it has; `removeLanguage(report, locale)`,
+  with its words, the last leaving the report without translations;
+  `translateWord(report, locale, word, text)`, a word of the report's own
+  language written in a language it has, or taken back for `null`; and
+  `translateExpression(report, locale, cel, expression)`, an expression
+  that stands where words do written again in it. A word or a source the
+  report prints nowhere a word stands, and a language it has no
+  translation in, are refused as `not-found`; a blank translation and a
+  locale written otherwise are the validator's, which the session asks;
 - **a field with what reads it:** `removeFieldWithReaders(report, role, id)`
   removes the field and every component, column, footer cell, sort key,
   group and aggregate that reads it, and every reader of such an
@@ -323,6 +334,23 @@ one.
   debtor or the QR reference a builder puts in, report-spec's
   `QR_BILL_EXAMPLE` (`example-payment-part`, one warning on `/paymentPart`
   naming each term that is an example).
+- **In each language a report's translations declare**, after the
+  report's own and naming it as `language`, `languageDiagnostics(report,
+  locale)`'s (0063): each word the language does not translate, and each
+  expression that prints words, once where it first stands
+  (`word-missing`); a translated expression of another type than its
+  source, that reads another member or fails to read one, or that
+  translates an expression printing no words (`translation-differs`);
+  every diagnostic the report written in that language gives that its
+  own does not, a translated expression's at its translation; and a
+  translation of what the report no longer prints (`unused-translation`,
+  a warning). An expression where a word stands prints words where it
+  gives a string or a value the compiler cannot type, its run prints it
+  as text, and its source holds a quote. An error that names a language
+  refuses a render in that language alone; one that names none refuses
+  every render. `wordExpressions(report)` gives those expressions, every
+  place each stands, by the same verdict: what the builders mark and edit
+  as words, so that they ask for no translation the diagnostics do not.
 
 Every member read is checked as its type. `@formancy/expressions` 0.12.0,
 as 0.5.0 to 0.7.0 and 0.11.0 before it, declares a variable only by its whole name, so each read of `row.amount` is

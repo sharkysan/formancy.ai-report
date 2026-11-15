@@ -28,6 +28,8 @@ export interface PreviewRequest {
   readonly images: ImageResolver
   /** The PDF's creation date: the caller's clock, read once per render. */
   readonly creationDate: string
+  /** The language it prints in: the one the builder shows, the report's own or one its translations declare (0063); the report's own when absent. */
+  readonly locale?: string
 }
 
 export interface NotDrawn {
@@ -47,8 +49,14 @@ export async function preview(
   signal: AbortSignal,
   { maxPages = PREVIEW_PAGE_LIMIT }: { readonly maxPages?: number } = {},
 ): Promise<PreviewOutcome> {
-  const { report, starter, mode, images, creationDate } = request
-  const resolved = resolveReport(report, starter.data, { mode, parameters: starter.parameters, images, creationDate })
+  const { report, starter, mode, images, creationDate, locale } = request
+  const resolved = resolveReport(report, starter.data, {
+    mode,
+    parameters: starter.parameters,
+    images,
+    creationDate,
+    ...(locale === undefined ? {} : { locale }),
+  })
   if (!resolved.ok) return { kind: 'refused', errors: resolved.errors }
   try {
     const pdf = await renderPdf(resolved.document, { maxPages, signal })

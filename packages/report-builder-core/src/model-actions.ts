@@ -71,6 +71,10 @@ export type EditorAction =
   | { readonly type: 'removeItem'; readonly key: string }
   /** Moves the item at `key` to the position `to` of its list, in one undo step. */
   | { readonly type: 'moveItem'; readonly key: string; readonly to: number }
+  /** Shows and edits the report's words in `locale`, its own or one a translation declares: the editor's own, never the report's (0063). */
+  | { readonly type: 'setLanguage'; readonly locale: string }
+  /** Removes the report's translation into `locale`, with its words, in one undo step. A language is added by typing its tag into the report's Add language. */
+  | { readonly type: 'removeLanguage'; readonly locale: string }
 
 export type EditorActionType = EditorAction['type']
 
@@ -80,7 +84,7 @@ export const EDITOR_REFUSAL_CODES = [
   'disposed',
   /** The action is about the selection, and nothing is selected. */
   'nothing-selected',
-  /** The component, column or target the action names is not there. */
+  /** The component, column, target or language the action names is not there. */
   'not-found',
   /** First or last already: a move up, a move down, an indent or an outdent with nowhere to go, or a step out of a top-level row or into one that holds nothing; any move or copy of a part of the report's own level, which has one place; and an item of a list moved past either end. */
   'at-edge',
