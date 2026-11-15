@@ -30,11 +30,12 @@ and `wordExpressions`, and a diagnostic names its `language`; the runtime refuse
 `undeclared-locale` and `labels-locale-differs`, and its manifest names the locale a render
 printed in. Both builders edit one language at a time, chosen in a switch their bar shows once a
 report declares a translation, its missing words marked and listed by their language, and every
-report's own properties end with a Languages group; the Studio's Preview prints the language the
-builder shows. A report without translations validates, hashes, resolves and prints exactly as
-before, which every starter's and sample's bytes hold, and 0.2.0 refuses a report that has them.
-What it costs -- a word changed is a word to translate again, an expression is judged a word by a
-quote, codes and the XML keep one language and data the host's -- is the record's.
+report's own fields end with a Languages group, before the images a report declares; the Studio's
+Preview prints the language the builder shows. A report without translations validates, hashes,
+resolves and prints exactly as before, which every starter's and sample's bytes hold, and 0.2.0
+refuses a report that has them. What it costs -- a word changed is a word to translate again, an
+expression is judged a word by a quote, codes and the XML keep one language and data the
+host's -- is the record's.
 
 **The demo at `/report/` is served under a content security policy that admits its own files
 alone**

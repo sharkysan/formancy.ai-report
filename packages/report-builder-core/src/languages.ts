@@ -53,6 +53,8 @@ export interface Edited {
   readonly name: string
   /** The translation into it; none in the report's own language, whose words are edited where they stand. */
   readonly translation: Translation | undefined
+  /** Where that translation stands in the report, as a pointer: what report-core points a translated expression's diagnostics into. */
+  readonly at: string | undefined
   /** Every place a word stands that the language edited does not translate, a literal's or an expression's, in document order. */
   readonly missing: readonly Pick<WordPlace, 'path' | 'componentId' | 'columnId'>[]
   /** The sources of the expressions where words stand that print words: those a language translates. */
@@ -71,10 +73,12 @@ function counted(texts: readonly string[]): ReadonlyMap<string, number> {
 
 /** The language `chosen` -- a locale `report` declares, or null for its own -- as the derivations read it. One the report no longer declares is its own. */
 export function editedLanguage(report: ReportDefinition, chosen: string | null, editorLocale: EditorLocale): Edited {
-  const translation = chosen === null ? undefined : report.translations?.find((candidate) => candidate.locale === chosen)
+  const translations = report.translations ?? []
+  const index = translations.findIndex((candidate) => candidate.locale === chosen)
+  const translation = translations[index]
   if (translation === undefined) {
     const own = { locale: report.locale, name: languageName(report.locale, editorLocale) }
-    return { chosen, ...own, translation, missing: [], expressions: new Set(), words: new Map(), sources: new Map() }
+    return { chosen, ...own, translation, at: undefined, missing: [], expressions: new Set(), words: new Map(), sources: new Map() }
   }
   const words = reportWords(report)
   const sites = wordExpressions(report)
@@ -85,6 +89,7 @@ export function editedLanguage(report: ReportDefinition, chosen: string | null, 
     locale: translation.locale,
     name: languageName(translation.locale, editorLocale),
     translation,
+    at: `/translations/${String(index)}`,
     missing: [...words.filter(({ text }) => !written.has(text)), ...sites.filter(({ cel }) => !translated.has(cel))],
     expressions: new Set(sites.map(({ cel }) => cel)),
     words: counted(words.map(({ text }) => text)),

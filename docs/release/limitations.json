@@ -2345,7 +2345,7 @@
       ]
     },
     "0063": {
-      "reviewed": "sha256:6a97eb3b15f3717ca34a1c52cd8441275d0c7b5aecc6a406d86d2f763d72f9b2",
+      "reviewed": "sha256:266e3aa7087ccb8159c1b883dbf7cad469193f73f1999324bd8327a208b74e06",
       "limitations": [
         {
           "area": "format",
@@ -2409,7 +2409,7 @@
         },
         {
           "area": "builders",
-          "says": "Every report's own properties end with a Languages group, a report in one language among them.",
+          "says": "Every report's own fields end with a Languages group, before the images a report declares, a report in one language among them.",
           "heldBy": "packages/report-builder-core/src/properties.test.ts"
         },
         {

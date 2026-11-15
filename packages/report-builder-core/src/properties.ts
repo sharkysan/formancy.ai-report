@@ -97,8 +97,9 @@ function within(path: string, at: string): boolean {
 /**
  * The pane for `target`: each field with its value -- what was typed, after
  * a refusal -- and its error: the refusal's, else the first diagnostic
- * about what the field holds; and the same fields as rows, each by itself
- * or in its group, the group with its button.
+ * about what the field holds, at its key or where what it writes is
+ * diagnosed; and the same fields as rows, each by itself or in its group,
+ * the group with its button.
  */
 export function propertyPanel(
   target: PropertyTarget,
@@ -110,7 +111,8 @@ export function propertyPanel(
 ): PropertyPanel {
   const fieldOf = (spec: FieldSpec): PropertyField => {
     const error = errors.get(spec.key)
-    const about = error?.message ?? diagnostics.find((diagnostic) => within(diagnostic.path, `${target.path}${spec.key}`))?.message
+    const at = [`${target.path}${spec.key}`, ...(spec.diagnosed === undefined ? [] : [spec.diagnosed])]
+    const about = error?.message ?? diagnostics.find((diagnostic) => at.some((path) => within(diagnostic.path, path)))?.message
     // At a word in another language: empty until written, the report's own word shown in its place.
     const { translation } = spec
     const placeholder = translation?.word ?? (spec.placeholder === undefined ? undefined : t(spec.placeholder))

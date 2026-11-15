@@ -16,8 +16,8 @@ import type { Edited } from './languages.js'
 import { refused, textField, UNCHANGED, value } from './property-fields.js'
 import type { FieldContext, FieldSpec, FieldWords } from './property-fields.js'
 
-/** The language edited, where it is one a translation declares. */
-export type InTranslation = Edited & { readonly translation: Translation }
+/** The language edited, where it is one a translation declares, which stands where `at` says. */
+export type InTranslation = Edited & { readonly translation: Translation; readonly at: string }
 
 /** Whether `context`'s fields at a word write a translation: whether the language edited is not the report's own. */
 export function translating(context: FieldContext): context is FieldContext & { readonly edited: InTranslation } {
@@ -53,12 +53,15 @@ export function wordField(key: string, words: FieldWords, kind: 'text' | 'multil
 /** The field of the expression whose source is `cel`, where it prints words, at `key`: its translation in the language edited, another expression. */
 export function wordExpressionField(key: string, words: FieldWords, cel: string, edited: InTranslation): FieldSpec {
   const { locale } = edited
-  const shown = edited.translation.expressions.find((entry) => entry.cel === cel)?.expression.cel ?? ''
+  const entry = edited.translation.expressions.findIndex((candidate) => candidate.cel === cel)
+  const shown = edited.translation.expressions[entry]?.expression.cel ?? ''
   return {
     key,
     words,
     kind: 'expression',
     required: false,
+    // Its errors, and a translation that would print another thing, are the translation's, and stand at its entry.
+    ...(entry === -1 ? {} : { diagnosed: `${edited.at}/expressions/${String(entry)}` }),
     translation: { language: edited.name, word: cel, missing: shown === '', places: edited.sources.get(cel) ?? 1 },
     read: () => shown,
     write: translationWrite(shown, (input) => ({ cel: input })),

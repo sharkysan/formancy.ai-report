@@ -62,6 +62,13 @@ export interface FieldSpec {
   readonly write: (input: string | boolean) => Written
   /** Where the field writes a word in a language besides the report's own (0063). */
   readonly translation?: FieldTranslation
+  /**
+   * Where the diagnostics of what it writes stand, where that is not its
+   * key: a pointer into the report, the translation's own entry for an
+   * expression translated, which report-core points that translation's
+   * errors at, at whichever place its source stands (0063).
+   */
+  readonly diagnosed?: string
   /** The change a value written makes where it is none of the target's own properties: a word's translation, a language added (0063). */
   readonly change?: (written: unknown) => PropertyChange
 }

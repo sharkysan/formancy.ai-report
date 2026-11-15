@@ -261,6 +261,27 @@ describe('the language edited', () => {
     expect(field(editor.state(), '/content/0/expression')).not.toHaveProperty('note')
   })
 
+  // report-core points a translated expression's errors at its translation,
+  // not at the run it stands in: a field matched by the run's path alone
+  // would show a translator who wrote a broken expression no error where
+  // they typed it, while the problems list sent them there.
+  test('shows a translated expression’s own errors on the field that writes it, and none in the report’s own language', () => {
+    const source = 'header.customer + " AG"'
+    for (const [written, code] of [
+      ['header.customer + ', 'expression-syntax'],
+      ['"Client SA"', 'translation-differs'],
+    ] as const) {
+      const { editor } = editorOver(inFrench({}, withExpressions(), { [source]: written }))
+      const problem = editor.state().diagnostics.find((entry) => entry.language === 'fr-CH' && entry.code === code)
+      expect(problem, written).toBeDefined()
+      ok(editor.dispatch({ type: 'select', id: 'intro' }))
+      expect(field(editor.state(), '/content/1/expression'), written).not.toHaveProperty('error')
+      ok(editor.dispatch({ type: 'setLanguage', locale: 'fr-CH' }))
+      expect(field(editor.state(), '/content/1/expression'), written).toMatchObject({ value: written, error: problem?.message })
+      expect(field(editor.state(), '/content/0/text'), written).not.toHaveProperty('error')
+    }
+  })
+
   // The report's own language is the one its words are written in: its
   // field names it in every language's view, and changes it.
   test('keeps the Language field the report’s own, in every language’s view', () => {

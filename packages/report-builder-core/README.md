@@ -212,8 +212,8 @@ const editor = createReportEditor(opening.session, {
   somewhere to go, `available`, and, where the keyboard goes elsewhere
   than the button once it is done, `then`: a button of a group by its key,
   or that group's first field); a builder draws `rows` and finds a field
-  in `fields`. Where the report has no bill, its own properties end with a
-  group "Payment part" whose button is Add QR-bill.
+  in `fields`. Where the report has no bill, its own properties have a
+  group "Payment part" whose button is Add QR-bill, before Languages.
   An e-invoice's fields are every term of report-spec's `EInvoice`, of
   either kind, tables over each part (`invoice-fields.ts`): the invoice's
   own terms -- in an XRechnung its version, the buyer's reference and the
@@ -448,10 +448,11 @@ zoom is, so two editors of one session may each edit another, and an
 undo, a redo or a removal that takes the language away gives the view
 back to the report's own.
 
-- **Adding and removing one.** The report's own properties end with a
-  group, Languages: its one field, Add language, takes a tag -- its key
-  `/translations/-`, the pointer past a list's last item -- and adds the
-  language with no words yet, report-core's `addLanguage`, in one step,
+- **Adding and removing one.** The report's own fields end with a
+  group, Languages, before the images a report declares: its one field,
+  Add language, takes a tag -- its key `/translations/-`, the pointer
+  past a list's last item -- and adds the language with no words yet,
+  report-core's `addLanguage`, in one step,
   "Add language"; the report's own language, one it has and a tag that is
   none are refused on the field, in report-core's or the validator's
   words. A Remove for each language follows, and sends `removeLanguage`.
@@ -473,7 +474,11 @@ back to the report's own.
   as it does in its own language -- a size, a style, a binding -- and the
   Language field names, and changes, the report's own language; its own
   words are edited in it alone. A field shows no problem of another
-  language's, and no word missing, which its note says.
+  language's, and no word missing, which its note says; an expression's
+  translation that the compiler refuses, or that would print another
+  thing than its expression, is the error of the field that writes it,
+  where report-core points it at the translation's own entry
+  (`diagnosed`).
 
 What it does not do: a side-by-side grid of every language's words, a
 language made the report's own in place of another, and a preview of a

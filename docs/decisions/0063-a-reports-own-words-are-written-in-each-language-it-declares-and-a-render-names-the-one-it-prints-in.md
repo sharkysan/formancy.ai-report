@@ -163,12 +163,16 @@
     nothing; the outline, the design view and the bar in the language's
     words, a word it lacks the report's own, marked; every field at a
     word writing its translation, every other the report's own, the
-    Language field the report's own language; and one word missing in two
+    Language field the report's own language; a translated expression
+    the compiler refuses, and one that reads another member than its
+    source, each the error of the field that writes it in French and of
+    no field in the report's own language; and one word missing in two
     languages two problems. `src/css.test.ts` holds the marks to the
     workbench's variables and the hooks both builders render, the Angular
     builder's `src/parts.test.ts` holds it to rendering every hook, and
     React's `src/properties.test.tsx` and that test hold each builder to
-    marking a missing word's box and field.
+    marking a missing word's box and field, and the payment part's band,
+    marked and described as missing until the bill's message is written.
   - **The Studio.** `apps/studio/src/studio.test.tsx` previews the
     language the builder shows, across the framework switch, refused
     while a word is missing and printed once it is written;
@@ -188,7 +192,12 @@
     while one is missing, and `fr-FR` as undeclared, while the German
     prints; then the French render's words, its amount as fr-CH writes it
     and no German word of the report's, its manifest naming fr-CH and the
-    template's hash, and its PDF titled in French.
+    template's hash, and its PDF titled in French. And `structure.ts`,
+    which `react.tsx` and `angular.ts` run over each builder drawn on a
+    server a sixth time, in two languages with the second shown
+    (`editorWithLanguages`): the switch in the bar, one select with an
+    option per language by tag and label, as many boxes marked missing
+    as the state says, and each field's note drawn.
   - **Seen failing.** On 2026-11-15, the format and the core: each new
     test file refused to load before the module it tests existed; the
     words guard failed on `/regions/summary/4/valueTitle` with the
@@ -244,6 +253,25 @@
     French render naming `fr-FR`, with its amount expected as de-CH
     writes it, and with a German word left in its French, each put back;
     the install gate then passed with it, every host it plans checked.
+    On 2026-11-15 too, after review, each rule broken alone and put back:
+    report-builder-core's `languages.test.ts` failed its translated
+    expression case with a field matched by its run's path alone, the
+    compiler's "in fr-CH, Unexpected token: EOF" on no field; each
+    builder's band test failed with the band's `data-missing` left off,
+    and with its `title` left off, its description then empty;
+    `structure.ts`, run through a copy against React's builder drawn
+    from its source by React's server renderer, failed with the switch
+    left out ("there is not one select named Bearbeitete Sprache"), with
+    a box's `data-missing` left off ("the boxes marked missing are not
+    the 1 the state says") and with a field's note not drawn, and passed
+    with each put back; and `gate-languages.mjs`, run alone in Chromium
+    at 1440 by 900 against the Studio built and served as the browser
+    gate builds and serves it, failed in React with its switch left out
+    ("no switch", the run then stopped), with the Preview asked for the
+    report's own locale in place of the language shown (its refusal and
+    the word missing among why not seen), and with the title's field the
+    report's own in French (its German as the value, no placeholder),
+    and passed in both builders with each put back.
 
 ## Context
 
@@ -507,7 +535,7 @@ see none of its languages but the report's own.
 
 **The builders edit one language at a time.** report-builder-core keeps
 the language a person edits, the report's own at first, as view state,
-as the zoom is; the report-level Locale field edits the report's own
+as the zoom is; the report-level Language field edits the report's own
 locale in every language's view (`setLocale`), as the Title field writes
 the title's translation in another's. The switch between languages
 stands in the bar beside the title only while the report declares more
@@ -522,7 +550,9 @@ whose Languages group every report's has:
   language. Every language's problems are listed and counted on the
   outline's rows whichever is edited, as each refuses a render in its
   language; a field shows none of another language's, and no word
-  missing, which its note says. Which expressions print words is
+  missing, which its note says, and a translated expression's errors,
+  which report-core points at the translation, on the field that writes
+  it. Which expressions print words is
   report-core's `wordExpressions`, the verdict `word-missing` gives;
 - a language is added and removed at the report's level (`addLanguage`,
   `removeLanguage`), each one undo step, and a language removed returns

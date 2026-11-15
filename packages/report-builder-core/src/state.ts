@@ -255,8 +255,10 @@ function diagnosticEntries(derived: Derived, t: EditorText, locale: EditorLocale
 /**
  * The diagnostics a field shows: those about the report in every language
  * and those about the language edited, but a word missing, which the
- * field's own note says. In the report's own language, none that names a
- * translation's: a field there writes no translation.
+ * field's own note says -- a translated expression's among them, which
+ * report-core points at its translation and the field that writes it
+ * finds there (`diagnosed`). In the report's own language, none that
+ * names a translation's: a field there writes no translation.
  */
 function fieldDiagnostics(derived: Derived): readonly Diagnostic[] {
   const { diagnostics, edited } = derived

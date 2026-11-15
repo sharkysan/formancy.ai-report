@@ -13,6 +13,7 @@ import {
   BUILDER_SCENARIOS,
   createReportEditor,
   EDITOR_PANELS,
+  editorText,
   REPORT_ATTRIBUTES,
   REPORT_PARTS,
   scenarioReport,
@@ -21,6 +22,7 @@ import {
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { screen, within } from '@testing-library/angular'
+import { computeAccessibleDescription } from 'dom-accessibility-api'
 import { afterEach, describe, expect, test } from 'vitest'
 import { mountBuilder, mountWithHostView } from './test-mount'
 import { sessionOver } from './test-support'
@@ -179,5 +181,36 @@ describe('the stylesheet’s hooks', () => {
     expect(classes).toEqual(new Set(Object.values(WORKBENCH_CLASSES)))
     expect(new Set([...root.querySelectorAll('[data-pane]')].map((pane) => pane.getAttribute('data-pane')))).toEqual(new Set(EDITOR_PANELS))
     expect(root.getAttribute('data-panel')).toBe('outline')
+  })
+})
+
+describe('a payment part’s band in another language', () => {
+  // A QR-bill's message is a word too, printed on the slip: its band is
+  // marked by `data-missing` and described as missing as a box is, and a
+  // builder that left either off would draw the slip in the French view
+  // as though its message were French (0063). The mark read from the DOM,
+  // as the stylesheet reads it; the description as assistive technology
+  // computes it.
+  test('is marked missing, described so, and no longer once its message is written', async () => {
+    const t = editorText('en')
+    const paymentPart = BUILDER_SCENARIOS.map((scenario) => scenario.report().paymentPart).find((bill) => bill !== undefined)
+    if (paymentPart === undefined) throw new Error('no scenario has a report with a payment part')
+    const report: ReportDefinition = { ...scenarioReport(), paymentPart, translations: [{ locale: 'fr-CH', words: [], expressions: [] }] }
+    const mounted = await mountBuilder(createReportEditor(sessionOver(report)))
+    const band = (): HTMLElement => screen.getByRole('img', { name: t('canvas.paymentPart') })
+    expect(band().hasAttribute('data-missing')).toBe(false)
+    expect(computeAccessibleDescription(band())).toBe('')
+    const switcher = screen.getByRole<HTMLSelectElement>('combobox', { name: t('language.label') })
+    const french = [...switcher.options].find((option) => option.value === 'fr-CH')
+    choose(switcher, french?.text ?? 'fr-CH')
+    await mounted.settle()
+    expect(band().getAttribute('data-missing')).toBe('true')
+    expect(computeAccessibleDescription(band())).toBe(t('canvas.missing', { language: 'French (Switzerland)' }))
+    click(band())
+    await mounted.settle()
+    fill(screen.getByRole('textbox', { name: t('field.message') }), 'Visite')
+    await mounted.settle()
+    expect(band().hasAttribute('data-missing')).toBe(false)
+    expect(computeAccessibleDescription(band())).toBe('')
   })
 })
