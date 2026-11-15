@@ -13,8 +13,8 @@
       "width": 2100,
       "height": 900
     },
-    "bytes": 270112,
-    "sha256": "4a426520a50d9697c8c16c2c1b13594582b7c2d1319354f2760c4d8e41ba9823",
+    "bytes": 270096,
+    "sha256": "c6f173fa59be35ff94f70d550f8f6728b1e01bc8ae339ad3dfbbe1e6ef7ac2a9",
     "look": {
       "platform": "win32-x64",
       "playwright": "1.64.1",
