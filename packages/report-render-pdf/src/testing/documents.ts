@@ -14,15 +14,18 @@ import type { Block, Image, Inline, Paragraph, ResolvedDocument, Table, TableCol
  * Documents for the renderer's own tests, built as the corpus builds its
  * fixtures, and the expectation the corpus derives from a document.
  *
- * These are copies of `@formancy/report-corpus`'s `fixtures/build.ts` and
- * `fixture.ts`, which its index does not export; they go once it does. One
+ * The documents are copies of `@formancy/report-corpus`'s
+ * `fixtures/build.ts`, which its index does not export. The expectation is
+ * a copy of its `fixture.ts`'s, which it does export, kept for one
  * difference: `flatten` here reads the blocks of sections and columns as
  * well as keep-together blocks, so that a table or a kept block inside a
- * section is expected like any other. The corpus's reads keep-together
- * blocks alone, because its fixtures hold no sections. What the corpus
- * exports is taken, not copied: the drawings an expectation seeks and the
- * charts it proves are the corpus's `drawingsOf` and `chartsOf`, so that a
- * chart here is proved as a fixture's is, and never found by nothing.
+ * section or a column is expected like any other; the corpus's reads
+ * keep-together blocks alone, because no fixture of its holds a table or
+ * a kept block inside either. What the corpus derives of drawings and
+ * charts is taken, not copied: the drawings an expectation seeks and the
+ * charts it proves are the corpus's `drawingsOf` and `chartsOf`, never
+ * stated, so that a chart here is proved as a fixture's is, and never
+ * found by nothing.
  */
 
 /** Long enough for the corpus's largest documents on a slow runner; a render that hangs still fails. */

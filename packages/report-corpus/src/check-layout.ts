@@ -16,9 +16,11 @@ import type { PdfBox } from './read-pdf.js'
  * line below, in text set tighter than any fixture sets it -- are not seen.
  * Page images are the evidence for those, and for anything drawn as vector
  * paths rather than text or images, text clipped by a clipping path, and
- * colour: white text on white extracts perfectly. An SVG image is the one
- * vector drawing read here, by the box of the clip it is painted inside
- * (`drawings.ts`), where an image is read by its own.
+ * colour: white text on white extracts perfectly. SVG images and charts
+ * are the vector drawings read here, each by the box of the clip it is
+ * painted inside (`drawings.ts`), where an image is read by its own; a
+ * chart's own words print inside its box, and are its check's to hold
+ * (`check-charts.ts`), not text drawn over it.
  */
 
 /** A run of text or a picture on a page, a run by its text as the checks compare it. */

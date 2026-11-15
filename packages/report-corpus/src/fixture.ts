@@ -181,14 +181,15 @@ export interface Expectation {
   /** No page's last table line is a group header or the column header: a heading never ends a page alone. */
   readonly noOrphanedHeaders: boolean
   /**
-   * Every page prints something between its page header and footer: text or
-   * an image. Off for a document whose body has a spacer or a rule, which
-   * print nothing the checks can read and may be all a page holds.
+   * Every page prints something between its page header and footer: text,
+   * an image, or a drawing -- an SVG image or a chart. Off for a document
+   * whose body has a spacer or a rule, which print nothing the checks can
+   * read and may be all a page holds.
    */
   readonly noEmptyPages: boolean
-  /** All text and every image lies inside the document's margins. */
+  /** All text, every image and every drawing -- an SVG image, a chart -- lies inside the document's margins. */
   readonly allTextInsidePrintable: boolean
-  /** No two pieces of text, and no text and image, are drawn over each other. */
+  /** No two pieces of text, no text and an image or a drawing, and no two of those, are drawn over each other, but a chart's own words, which print inside its box. */
   readonly noOverlaps: boolean
   /** Every font a page uses travels inside the PDF. */
   readonly fontsEmbedded: boolean
