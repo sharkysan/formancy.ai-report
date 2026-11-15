@@ -1,7 +1,8 @@
-import { capped, plural, quoted, type Page } from './check-page.js'
-import type { ExpectedFontName } from './fixture.js'
+import { SHIFTED_SIZE } from '@formancy/report-runtime'
+import { capped, plural, points, quoted, type Page } from './check-page.js'
+import type { Expectation, ExpectedFontName, ExpectedShiftedRun } from './fixture.js'
 import { normalise } from './fixture.js'
-import { lineHas } from './lines.js'
+import { lineHas, SHIFT_TOLERANCE, type ShiftedRun } from './lines.js'
 
 /** A font's subset prefix in a PDF: six upper-case letters and a plus sign before the PostScript name. */
 const SUBSET_PREFIX = /^[A-Z]{6}\+/
@@ -114,4 +115,56 @@ export function glyphs(pages: readonly Page[]): string[] {
         : [`page ${page.number}: ${quoted(item.text.replaceAll('\u0000', '␀'))} has ${codes.join(' and ')}, a character no glyph was drawn for`]
     }),
   )
+}
+
+/** How a run set below or above the line is said in a problem. */
+const SET = { subscript: 'below the line', superscript: 'above the line' } as const
+
+/**
+ * Each run the document sets below or above the line read so on the PDF
+ * (0061): read into the line it stands on by the line reader, which reads
+ * only a run drawn at `SHIFTED_SIZE` of the run beside it and moved by
+ * `SHIFTED_RISE` of that run's size (`lines.ts`), set the way the document
+ * sets it, and drawn at `SHIFTED_SIZE` of its paragraph's size where the
+ * paragraph states one. A page region's run is held on every page, the
+ * body's once. A run printed on the line, at another size or moved
+ * otherwise is not read so, and is missing here; and a run read so that
+ * the document does not set is reported too, so that a document that sets
+ * none -- every fixture before 0061 -- holds that the reader read none so.
+ * A run is matched by its text as one run of extracted text has it.
+ */
+export function shiftedRuns(pages: readonly Page[], expected: Pick<Expectation, 'shiftedRuns' | 'pageRegionShiftedRuns'>): string[] {
+  const left = pages.map(({ lines }) => lines.flatMap((line) => line.shifted.map((run) => ({ run, line: line.text }))))
+  const problems: string[] = []
+  const take = (found: { run: ShiftedRun }[], sought: ExpectedShiftedRun): boolean => {
+    const at = found.findIndex(({ run }) => matches(run, sought))
+    if (at >= 0) found.splice(at, 1)
+    return at >= 0
+  }
+  pages.forEach(({ page }, index) => {
+    for (const sought of expected.pageRegionShiftedRuns) {
+      if (!take(left[index]!, sought)) problems.push(`page ${page.number}: the page region's ${described(sought)} is not read so`)
+    }
+  })
+  for (const sought of expected.shiftedRuns) {
+    if (!left.some((found) => take(found, sought)))
+      problems.push(`${described(sought)} is not read so on any page: printed on the line, at another size or moved otherwise`)
+  }
+  pages.forEach(({ page }, index) => {
+    for (const { run, line } of left[index]!) {
+      problems.push(
+        `page ${page.number}: ${quoted(run.text)} is read set ${SET[run.shift]} at ${points(run.size)} pt, on ${quoted(line)}, which the document does not set`,
+      )
+    }
+  })
+  return capped(problems)
+}
+
+function matches(run: ShiftedRun, sought: ExpectedShiftedRun): boolean {
+  if (normalise(run.text) !== sought.text || run.shift !== sought.shift) return false
+  return sought.size === undefined || Math.abs(run.size - SHIFTED_SIZE * sought.size) <= SHIFT_TOLERANCE
+}
+
+function described({ text, shift, size }: ExpectedShiftedRun): string {
+  return `${quoted(text)}, set ${SET[shift]}${size === undefined ? '' : ` at ${points(SHIFTED_SIZE * size)} pt`},`
 }

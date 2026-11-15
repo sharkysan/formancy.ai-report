@@ -42,7 +42,9 @@
     `src/bounds.test.ts` counts a run so set at its own line, never more
     than pdfmake lays out; `src/pdfmake.test.ts` holds that pdfmake
     0.3.11 still writes a text node's words as `_inlines`, each with
-    `sup`, `sub`, `noNewLine` and `width`, where the renderer reads them;
+    `sup`, `sub`, `noNewLine`, `width`, `leadingCut` and `trailingCut`,
+    where the renderer reads them, and chains a mark before a space to
+    that space alone;
     `src/corpus.test.ts` renders the corpus's `SHIFTED_FIXTURES` and
     passes every check.
   - **The proof's reader.** report-corpus's `src/lines.test.ts`: a run
@@ -172,10 +174,16 @@ the corpus read the geometry from the runtime, which both depend on.
   reads its widest word -- the renderer reads pdfmake's own words, the
   inlines it chains with `noNewLine` so that a line never breaks inside
   them. Every word that holds a run set below or above the line must hold
-  a run on the line too, or the paragraph is refused as `unsupported`,
-  naming it: pdfmake could set that word on a line of its own, laid out
-  at the small run's height and drawn above its top, into the line
-  before. And the word must fit its line, or it is refused as
+  a run on the line too, one set on it that prints a character other than
+  a space, or the paragraph is refused as `unsupported`, naming it:
+  pdfmake could set that word on a line of its own, laid out at the small
+  run's height and drawn above its top, into the line before. A word whose
+  only other run prints a space or nothing is laid out as tall as its
+  line, but stands on it as alone as a reader sees it -- pdfmake chains a
+  mark before a space to that space, a word of its own -- and is refused
+  too. And the word must fit its line, measured as pdfmake measures a word
+  that starts one, its leading and trailing spaces left out
+  (`Line.hasEnoughSpaceForInline`), or it is refused as
   `content-too-large`: pdfmake breaks a word wider than its line anywhere,
   and a piece of it could stand alone. The breaks are pdfmake's, read
   from it, never a second rule here. Only a paragraph that holds such a
@@ -301,7 +309,8 @@ roadmap item 8's other half, and another record's.
   two runs, bounded by `MAX_INLINES`; a paragraph near it refuses a split
   that would pass it.
 - **pdfmake's own fields are read.** `_inlines`, `noNewLine`, `sup`,
-  `sub` and an inline's `width` are not pdfmake's API;
+  `sub` and an inline's `width`, `leadingCut` and `trailingCut` are not
+  pdfmake's API;
   `pdfmake.test.ts` holds 0.3.11 to them, and an upgrade reads them
   again, as `_minWidth` already is (`words.ts`).
 - **No browser gate sets one.** The scenarios hold both builders in

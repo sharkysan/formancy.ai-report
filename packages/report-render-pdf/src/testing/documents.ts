@@ -1,4 +1,4 @@
-import { ALL_FIXTURES, type Expectation, type ExpectedCell, type ExpectedImage, type ExpectedTable, type Fixture } from '@formancy/report-corpus'
+import { ALL_FIXTURES, shiftedRunsOf, type Expectation, type ExpectedCell, type ExpectedImage, type ExpectedTable, type Fixture } from '@formancy/report-corpus'
 import type { Block, Image, Inline, Paragraph, ResolvedDocument, Table, TableColumn, TableRow, TextStyle } from '@formancy/report-runtime'
 
 /**
@@ -150,6 +150,9 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     fontNames: [],
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
+    // The corpus's own: which runs a document sets below or above the line is no copy's to decide again (0061).
+    shiftedRuns: shiftedRunsOf(document.body),
+    pageRegionShiftedRuns: shiftedRunsOf([...document.pageHeader, ...document.pageFooter]),
     ...stated,
   }
 }

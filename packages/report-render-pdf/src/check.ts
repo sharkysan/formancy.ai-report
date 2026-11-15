@@ -28,6 +28,7 @@ import { checkCopyLabel, checkEInvoice, checkEInvoiceTitle } from './e-invoice.j
 import { codePoint, missingGlyph } from './glyphs.js'
 import type { FaceWanted, RenderFonts } from './host-fonts.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
+import { checkBaselines } from './shifted.js'
 import { COLOR } from './style.js'
 import { checkSvgInEInvoice } from './svg-pdfa.js'
 import { cellFace, PADDING_X, PADDING_Y, styledRows, type StyledRow } from './table.js'
@@ -277,6 +278,7 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
       checkStyle(block.style, at, walk.fonts)
       if (block.runs.some((run) => !('text' in run) && run.field !== 'pageNumber' && run.field !== 'pageCount'))
         throw new RenderRefusal('unsupported', `${at} prints a field the renderer does not know`, at)
+      checkBaselines(block, at)
       for (const run of block.runs) {
         if ('text' in run) checkText(run.text, runFace(block.style, run), walk, at)
       }

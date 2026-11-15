@@ -272,6 +272,30 @@ seconds, against 2.0 for the same report and rows without the e-invoice;
 0.23 (five runs each, from the built package, Node 24.21.0, an Intel
 i9-10900K, 17 October 2026). The e-invoice has no bound of its own yet.
 
+## A run below or above the line
+
+A paragraph's run carries the `baseline` its report's run sets,
+`subscript` or `superscript`, a field's, a parameter's, an expression's
+and an aggregate's value as literal text's, and a run that sets none
+carries no key, so the document of a report that sets none is the one it
+was ([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+A table's cell joins its runs into one string, as before, where
+report-spec refuses a baseline. What such a run prints as is the
+document's, for any engine:
+
+```ts
+import { SHIFTED_RISE, SHIFTED_SIZE } from '@formancy/report-runtime'
+
+SHIFTED_SIZE // 0.58: the run's size, of its paragraph's, in the paragraph's face
+SHIFTED_RISE // { superscript: 0.75 * 0.58, subscript: -0.35 * 0.58 }: its baseline's move, of the paragraph's size, up positive
+```
+
+They are pdfmake 0.3.11's own figures, 0.435 up and 0.203 down, which
+the renderer has pdfmake draw and the corpus reads a PDF by: a renderer
+that drew another fails there. `BASELINE_SHIFTS` and `BaselineShift` are
+report-spec's, handed on, so that the format and the document name a
+shift alike.
+
 ## What else is exported
 
 Each stage is exported for a host or a tool that needs one alone:

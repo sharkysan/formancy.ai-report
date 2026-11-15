@@ -21,6 +21,7 @@ import type { PageSetup, ResolvedDocument } from '@formancy/report-runtime'
 
 export { REFUSAL_CODES, RenderRefusal } from '@formancy/report-runtime'
 export type {
+  BaselineShift,
   Block,
   Columns,
   ColumnSlot,

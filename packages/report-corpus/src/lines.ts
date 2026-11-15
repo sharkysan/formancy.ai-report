@@ -1,3 +1,4 @@
+import { BASELINE_SHIFTS, SHIFTED_RISE, SHIFTED_SIZE, type BaselineShift } from '@formancy/report-runtime'
 import { normalise } from './fixture.js'
 import { baselineOf, type PdfPage, type PdfTextItem } from './read-pdf.js'
 
@@ -6,6 +7,12 @@ import { baselineOf, type PdfPage, type PdfTextItem } from './read-pdf.js'
  * one baseline make one line, read left to right, and lines are read top to
  * bottom. An engine is free to draw a line as one run or as one per word, and
  * the checks must not depend on which.
+ *
+ * A run set below or above the line (0061) is drawn smaller and off its
+ * line's baseline, so by its baseline alone it is a line of its own. A run
+ * drawn exactly as the document says such a run prints -- at `SHIFTED_SIZE`
+ * of a run beside it, its baseline that run's moved by `SHIFTED_RISE` of
+ * that run's size -- is read into that run's line, and recorded there.
  */
 export interface Line {
   /** Whitespace as `normalise` leaves it: one space between words. */
@@ -13,6 +20,18 @@ export interface Line {
   readonly words: readonly string[]
   readonly top: number
   readonly bottom: number
+  /** The runs read into the line as set below or above it, left to right: none on a line that holds none. */
+  readonly shifted: readonly ShiftedRun[]
+}
+
+/** A run read into its line as set below or above it. */
+export interface ShiftedRun {
+  readonly text: string
+  readonly shift: BaselineShift
+  /** Its own size, as drawn, in points. */
+  readonly size: number
+  /** How far its baseline stands above its line's, in points: negative below it. */
+  readonly rise: number
 }
 
 /**
@@ -31,14 +50,37 @@ const SAME_LINE = 0.3
 const WORD_GAP = 0.15
 
 /**
+ * How far, in points, a run's size and its baseline's move may stand from
+ * what the document states and still be read as set below or above the
+ * line. PDF.js read both back within a millionth of a point of what pdfmake
+ * drew, in Roboto and Liberation Serif at 9, 10 and 13 points (15 November
+ * 2026); the nearest other geometry, the least move a report sets at the
+ * least size it prints (0.203 of `MIN_FONT_SIZE`'s 4 points), is 0.81
+ * points away.
+ */
+export const SHIFT_TOLERANCE = 0.01
+
+/**
+ * How far from the run beside it, as a fraction of that run's size, a run
+ * set below or above the line may start or end and still be read as its:
+ * one no-break space, which a footnote's mark is written with, is 0.248 em
+ * in Roboto and 0.25 in Liberation Serif, read from their PDFs on 15
+ * November 2026. The renderer prints such a run only inside a word that
+ * holds text on the line (`shifted.ts`), so none stands farther.
+ */
+const JOIN_GAP = 0.3
+
+/**
  * The page's lines, top to bottom, and after them each run that does not
  * read across the page as a line of its own: a caption up the side of a
  * code shares no baseline with the text beside it.
  */
 export function pageLines(page: PdfPage): Line[] {
   const across = page.items.filter((item) => item.angle === 0)
-  const byBaseline = across.sort((a, b) => baselineOf(a) - baselineOf(b) || a.x - b.x)
+  const joined = joins(across)
+  const byBaseline = across.filter((item) => !joined.has(item)).sort((a, b) => baselineOf(a) - baselineOf(b) || a.x - b.x)
   const lines: PdfTextItem[][] = []
+  const lineOf = new Map<PdfTextItem, PdfTextItem[]>()
   for (const item of byBaseline) {
     const current = lines.at(-1)
     const first = current?.[0]
@@ -47,24 +89,64 @@ export function pageLines(page: PdfPage): Line[] {
     } else {
       lines.push([item])
     }
+    lineOf.set(item, lines.at(-1)!)
   }
-  return [...lines, ...page.items.filter((item) => item.angle !== 0).map((item) => [item])].map(line)
+  for (const [item, { beside }] of joined) lineOf.get(beside)!.push(item)
+  return [...lines, ...page.items.filter((item) => item.angle !== 0).map((item) => [item])].map((items) => line(items, joined))
 }
 
-function line(items: PdfTextItem[]): Line {
+/** A run read as set below or above the line: the run beside it on the line, and which way it was set. */
+interface Join {
+  readonly beside: PdfTextItem
+  readonly shift: BaselineShift
+}
+
+/**
+ * Each run drawn as a run set below or above the line beside another: at
+ * `SHIFTED_SIZE` of that run's size, its baseline moved by `SHIFTED_RISE`,
+ * and no farther from it than `JOIN_GAP`, the nearest such run if there are
+ * two, as a lowered digit has between two letters. Only a run that is not
+ * itself read so stands on its line for another. Only a run of a size that
+ * `SHIFTED_SIZE` of another on the page makes is looked at, so a page of
+ * one size is read as it was, at no cost.
+ */
+function joins(across: readonly PdfTextItem[]): Map<PdfTextItem, Join> {
+  const sizes = [...new Set(across.map((item) => item.height))]
+  const found = new Map<PdfTextItem, Join & { readonly gap: number }>()
+  for (const item of across) {
+    if (!sizes.some((size) => Math.abs(item.height - SHIFTED_SIZE * size) <= SHIFT_TOLERANCE)) continue
+    for (const beside of across) {
+      if (beside === item || Math.abs(item.height - SHIFTED_SIZE * beside.height) > SHIFT_TOLERANCE) continue
+      const gap = Math.max(item.x - (beside.x + beside.width), beside.x - (item.x + item.width))
+      if (Math.abs(gap) > JOIN_GAP * beside.height) continue
+      const rise = baselineOf(beside) - baselineOf(item)
+      const shift = BASELINE_SHIFTS.find((each) => Math.abs(rise - SHIFTED_RISE[each] * beside.height) <= SHIFT_TOLERANCE)
+      const known = found.get(item)
+      if (shift !== undefined && (known === undefined || Math.abs(gap) < known.gap)) found.set(item, { beside, shift, gap: Math.abs(gap) })
+    }
+  }
+  return new Map([...found].filter(([, { beside }]) => !found.has(beside)))
+}
+
+function line(items: PdfTextItem[], joined: ReadonlyMap<PdfTextItem, Join>): Line {
   const ordered = items.sort((a, b) => a.x - b.x)
-  let joined = ''
+  let joinedText = ''
   ordered.forEach((item, index) => {
     const before = ordered[index - 1]
     const gap = before === undefined ? 0 : item.x - (before.x + before.width)
-    joined += (before !== undefined && gap > WORD_GAP * Math.min(item.height, before.height) ? ' ' : '') + item.text
+    joinedText += (before !== undefined && gap > WORD_GAP * Math.min(item.height, before.height) ? ' ' : '') + item.text
   })
-  const text = normalise(joined)
+  const text = normalise(joinedText)
+  const shifted = ordered.flatMap((item): ShiftedRun[] => {
+    const join = joined.get(item)
+    return join === undefined ? [] : [{ text: item.text, shift: join.shift, size: item.height, rise: baselineOf(join.beside) - baselineOf(item) }]
+  })
   return {
     text,
     words: text === '' ? [] : text.split(' '),
     top: Math.min(...ordered.map((item) => item.top)),
     bottom: Math.max(...ordered.map((item) => item.bottom)),
+    shifted,
   }
 }
 

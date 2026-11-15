@@ -1,4 +1,4 @@
-import type { Block, EpcQrCode, Image, Inline, RefusalCode, ResolvedDocument, Table, TableRow } from './document.js'
+import type { BaselineShift, Block, EpcQrCode, Image, Inline, Paragraph, RefusalCode, ResolvedDocument, Table, TableRow } from './document.js'
 
 /**
  * A fixture is a document an engine must render, or refuse, and what the PDF
@@ -61,6 +61,18 @@ export interface ExpectedImage {
 export interface ExpectedFontName {
   readonly text: string
   readonly postScriptName: string
+}
+
+/**
+ * A run the document sets below or above the line (0061): its text as one
+ * run of extracted text has it, which way it is set, and its paragraph's
+ * size where the paragraph states one, which it prints at `SHIFTED_SIZE`
+ * of; absent, the engine's default size, which the corpus does not know.
+ */
+export interface ExpectedShiftedRun {
+  readonly text: string
+  readonly shift: BaselineShift
+  readonly size?: number
 }
 
 export interface Expectation {
@@ -130,6 +142,14 @@ export interface Expectation {
   readonly images: readonly ExpectedImage[]
   /** The page header's and footer's images, each drawn on every page at this size. */
   readonly pageRegionImages: readonly ExpectedImage[]
+  /**
+   * The body's runs set below or above the line, each read so once, into
+   * the line it stands on (`lines.ts`); and no run read so that the
+   * document does not set, on any page (`shiftedRuns`).
+   */
+  readonly shiftedRuns: readonly ExpectedShiftedRun[]
+  /** The page header's and footer's runs set below or above the line, each read so on every page. */
+  readonly pageRegionShiftedRuns: readonly ExpectedShiftedRun[]
 }
 
 /** What a fixture states about itself; everything else in its expectation is derived. */
@@ -164,8 +184,36 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     fontNames: [],
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
+    shiftedRuns: shiftedRunsOf(document.body),
+    pageRegionShiftedRuns: shiftedRunsOf([...document.pageHeader, ...document.pageFooter]),
     ...stated,
   }
+}
+
+/**
+ * The runs `blocks` set below or above the line, in document order, in
+ * every paragraph however deep it stands -- a column, a section, a
+ * keep-together block -- each with its paragraph's size where the
+ * paragraph states one (0061). A run that prints nothing a reader sees, a
+ * space or nothing at all, is not among them: PDF.js extracts no run for
+ * it.
+ */
+export function shiftedRunsOf(blocks: readonly Block[]): ExpectedShiftedRun[] {
+  return paragraphsOf(blocks).flatMap(({ runs, style }) =>
+    runs.flatMap((run): ExpectedShiftedRun[] => {
+      if (!('text' in run) || run.baseline === undefined || normalise(run.text) === '') return []
+      return [{ text: normalise(run.text), shift: run.baseline, ...(style?.size === undefined ? {} : { size: style.size }) }]
+    }),
+  )
+}
+
+/** Every paragraph among `blocks` and inside each container, in document order. */
+function paragraphsOf(blocks: readonly Block[]): Paragraph[] {
+  return blocks.flatMap((block): Paragraph[] => {
+    if (block.kind === 'paragraph') return [block]
+    if (block.kind === 'columns') return block.columns.flatMap((column) => paragraphsOf(column.blocks))
+    return 'blocks' in block ? paragraphsOf(block.blocks) : []
+  })
 }
 
 /** The images among `blocks`, in document order: an SVG drawn as vectors, any other as an image. */

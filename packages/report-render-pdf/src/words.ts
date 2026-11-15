@@ -47,8 +47,8 @@ export interface WordRoom {
   readonly subject: string
 }
 
-/** How much wider than its room a word may measure and still be laid out unbroken: rounding, not layout. */
-const SLACK = 0.001
+/** How much wider than its room a word may measure and still be laid out unbroken: rounding, not layout. A word that holds a run set below or above the line is held to its line with it (`shifted.ts`). */
+export const SLACK = 0.001
 
 /** Refuses the first text node whose widest word, as pdfmake measured it, is wider than its room. Nodes pdfmake has not measured are passed over. */
 export function checkWords(rooms: readonly WordRoom[]): void {

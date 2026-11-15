@@ -1,7 +1,8 @@
-import { RenderRefusal, type Block, type Paragraph, type Table, type TextStyle } from '@formancy/report-runtime'
+import { RenderRefusal, SHIFTED_SIZE, type Block, type Paragraph, type Table, type TextStyle } from '@formancy/report-runtime'
 import type { RowKind } from './build.js'
 import { frameOf, runFace } from './content.js'
 import type { FaceWanted, RenderFonts } from './host-fonts.js'
+import { isShifted } from './shifted.js'
 import { DEFAULT_SIZE } from './style.js'
 import { cellFace, cellSize, PADDING_Y, styledRows } from './table.js'
 
@@ -72,14 +73,15 @@ function line(size: number, wanted: FaceWanted, fonts: Pick<RenderFonts, 'face'>
 /**
  * One line of the paragraph, as tall as its tallest run's, since pdfmake
  * lays a line out as tall as the tallest run on it; nothing for a paragraph
- * of no runs. It is the least a paragraph takes of the body, and a line of
- * it no page can hold, which check.ts refuses where it is taller than the
- * body.
+ * of no runs. A run set below or above the line is laid out at
+ * `SHIFTED_SIZE` of the paragraph's size, as pdfmake sets it (0061). It is
+ * the least a paragraph takes of the body, and a line of it no page can
+ * hold, which check.ts refuses where it is taller than the body.
  */
 export function paragraphLine(paragraph: Paragraph, fonts: Pick<RenderFonts, 'face'>): number {
   const size = paragraph.style?.size ?? DEFAULT_SIZE
   let tallest = 0
-  for (const run of paragraph.runs) tallest = Math.max(tallest, line(size, runFace(paragraph.style, run), fonts))
+  for (const run of paragraph.runs) tallest = Math.max(tallest, line(isShifted(run) ? SHIFTED_SIZE * size : size, runFace(paragraph.style, run), fonts))
   return tallest
 }
 

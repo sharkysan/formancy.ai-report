@@ -446,7 +446,8 @@ const formula = {
 
 What it does not check: whether the run prints beside a run on the line,
 which only the data and the engine's line breaks say, and the size and the
-move it prints at, which are not the format's.
+move it prints at, which are not the format's but the resolved document's,
+report-runtime's `SHIFTED_SIZE` and `SHIFTED_RISE`.
 
 ## A chart
 

@@ -5,6 +5,7 @@ import { startsOnPage, type Build, type Fields } from './build.js'
 import { epcContent } from './epc.js'
 import type { FaceWanted } from './host-fonts.js'
 import { qrContent } from './qr.js'
+import { isShifted } from './shifted.js'
 import { DEFAULT_SIZE, textProperties } from './style.js'
 import { svgContent } from './svg-content.js'
 import { tableContent } from './table.js'
@@ -179,6 +180,7 @@ function paragraphContent(paragraph: Paragraph, build: Build, scope: Scope): Con
   // check.ts walks every paragraph, and records where it stands, before anything is built.
   const at = build.paths.get(paragraph) as string
   if (scope.record) build.words.push({ node: content, width: scope.width, lines: MAX_WORD_LINES, what: at, subject: at })
+  if (scope.record && paragraph.runs.some(isShifted)) build.shifted.push({ node: content, width: scope.width, subject: at })
   return content
 }
 
@@ -193,8 +195,12 @@ export function runFace(style: TextStyle | undefined, run: Inline): FaceWanted {
   return { token: style?.font, bold: ('text' in run ? run.bold : undefined) ?? style?.bold ?? false, italic: style?.italic ?? false }
 }
 
-function inline(run: Inline, fields: Fields | undefined): { text: string; bold?: boolean } {
-  if ('text' in run) return run.bold === undefined ? { text: run.text } : { text: run.text, bold: run.bold }
+/** pdfmake's own property for a run set below or above the line (0061), which sets it at the size and the move the document states. */
+const SHIFT = { subscript: { sub: true }, superscript: { sup: true } } as const
+
+function inline(run: Inline, fields: Fields | undefined): { text: string; bold?: boolean; sub?: true; sup?: true } {
+  if ('text' in run)
+    return { text: run.text, ...(run.bold === undefined ? {} : { bold: run.bold }), ...(run.baseline === undefined ? {} : SHIFT[run.baseline]) }
   // The renderer refuses a page field outside a page region before building anything.
   if (fields === undefined) throw new Error(`a ${run.field} field outside a page region`)
   return { text: String(fields[run.field]) }

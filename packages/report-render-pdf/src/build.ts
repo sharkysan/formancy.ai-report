@@ -4,6 +4,7 @@ import type { CheckedImage } from './assets.js'
 import type { KeepBlock } from './breaks.js'
 import type { RenderFonts } from './host-fonts.js'
 import type { QrSymbol } from './qr.js'
+import type { ShiftedRoom } from './shifted.js'
 import type { WordRoom } from './words.js'
 
 /**
@@ -80,6 +81,8 @@ export interface Build {
   readonly familyOf: (token: FontFamily) => string
   /** Filled in: every text node whose widest word is held to its room once pdfmake has measured it (`words.ts`). */
   readonly words: WordRoom[]
+  /** Filled in: every paragraph that sets a run below or above the line, whose words are held to it once pdfmake has measured them (`shifted.ts`). */
+  readonly shifted: ShiftedRoom[]
   /** The next unused mark. */
   next: number
 }
@@ -110,6 +113,7 @@ export function newBuild(
     rules: new Map(),
     measuredRows: new Map(),
     words: [],
+    shifted: [],
     next: 1,
   }
 }

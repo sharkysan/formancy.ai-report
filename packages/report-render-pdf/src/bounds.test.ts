@@ -125,6 +125,25 @@ describe('the page limit', () => {
     ],
     // The empty text is a row pdfmake lays out, in place of detail rows, at the table's size.
     ['a table of no detail rows, its empty text', ledger('empty', []), 2 * (9 * LINE + 2 * PADDING_Y)],
+    // A run set below or above the line is laid out at 0.58 of its paragraph's size (0061), and its line beside a run on the line is that run's: one line of the paragraph's size.
+    [
+      'a paragraph with a run set below the line, one line of its size',
+      { kind: 'paragraph', runs: [{ text: 'H' }, { text: '2', baseline: 'subscript' }, { text: 'O' }], style: { size: 12 } },
+      12 * LINE,
+    ],
+    // Of nothing but such runs -- which the renderer refuses later, once pdfmake has measured its words -- its line is theirs, 0.58 of its size: counted at the paragraph's size, the bound would be more than pdfmake lays out, and a body that fits could be refused as too long first.
+    [
+      'a paragraph of nothing but runs set off the line, one line of their size',
+      {
+        kind: 'paragraph',
+        runs: [
+          { text: '2', baseline: 'subscript' },
+          { text: '3', baseline: 'superscript' },
+        ],
+        style: { size: 12 },
+      },
+      0.58 * 12 * LINE,
+    ],
   ])('counts %s', (_name, block, height) => {
     expect(leastHeight([block], ROBOTO)).toBeCloseTo(height, 6)
   })

@@ -85,7 +85,7 @@ async function measureSlip(engine: Engine, bill: CheckedBill, page: Page, setup:
       )
     const item: Content = { stack: informationContent(bill.bill, part), margin: [0, 0, page.paperWidth - width, 0] }
     const sheet = { width: page.paperWidth, height: height + 3 * SENTINEL_LINE + SECTION_SLACK, left: 0, right: 0 }
-    await measure(engine, sheet, [item], resources(fonts, {}), refusal, [], fonts.engine)
+    await measure(engine, sheet, [item], resources(fonts, {}), refusal, { words: [], shifted: [] }, fonts.engine)
   }
 }
 
@@ -103,7 +103,7 @@ async function measureRegions(engine: Engine, document: ResolvedDocument, checke
     items,
     resources(fonts, build.images),
     () => new RenderRefusal('content-too-large', 'the page header and footer are taller than the printable area'),
-    build.words,
+    build,
     fonts.engine,
   )
   const space = (blocks: readonly Block[]): number => (blocks.length === 0 ? 0 : heights[present.indexOf(blocks)]! + REGION_GAP)
@@ -131,7 +131,7 @@ async function measureBody(engine: Engine, checked: Checked, fonts: RenderFonts,
     items,
     resources(fonts, build.images),
     () => new RenderRefusal('too-many-pages', `the report needs more than ${maxPages} pages`),
-    build.words,
+    build,
     fonts.engine,
   )
   const plans = new Map<Table, TablePlan>()

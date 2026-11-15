@@ -53,6 +53,61 @@ describe('pageLines', () => {
   })
 })
 
+describe('pageLines, of a run set below or above the line (0061)', () => {
+  // pdfmake draws a lowered digit at 0.58 of its line's size, its baseline
+  // 0.203 of that size down: by baseline alone it is a line of its own, and
+  // "H2O" is found nowhere. Read into the line beside it, the formula is one
+  // word, and the run is recorded with how it was set.
+  test('reads a run at SHIFTED_SIZE of the run beside it, moved by SHIFTED_RISE, into its line', () => {
+    const lines = pageLines(page(run('H', 50, 100, 10, 7.13), run('2', 57.13, 102.03, 5.8, 3.26), run('O', 60.39, 100, 10, 6.88)))
+    expect(lines.map((line) => line.text)).toEqual(['H2O'])
+    expect(lines[0]!.shifted).toHaveLength(1)
+    expect(lines[0]!.shifted[0]).toMatchObject({ text: '2', shift: 'subscript', size: 5.8 })
+    expect(lines[0]!.shifted[0]!.rise).toBeCloseTo(-2.03, 6)
+  })
+
+  // A unit's power is raised 0.435 of the line's size, and a footnote's mark
+  // stands a no-break space from its text. Both are read on the line they
+  // belong to, the space as a reader sees it.
+  test('reads a raised run into its line, against its word or a no-break space from it', () => {
+    const lines = pageLines(
+      page(
+        run('area 12 m', 50, 200, 9, 40),
+        run('2', 90, 200 - 3.915, 5.22, 2.93),
+        run('total', 95.16, 200, 9, 18),
+        run('1', 50, 300 - 4.35, 5.8, 3.26),
+        run('Footnote text', 55.74, 300, 10, 59.19),
+      ),
+    )
+    expect(lines.map((line) => line.text)).toEqual(['area 12 m2 total', '1 Footnote text'])
+    expect(lines.map((line) => line.shifted.map(({ text, shift }) => `${text} ${shift}`))).toEqual([['2 superscript'], ['1 superscript']])
+    // The raised run's box reaches above the line's own text, and the line's top is that of its highest run.
+    expect(lines[0]!.top).toBeCloseTo(200 - 3.915 + 0.2 * 5.22 - 5.22, 6)
+  })
+
+  // A small run that is not where pdfmake sets one -- moved some other way,
+  // drawn at another size, or standing well apart -- is a line of its own,
+  // as it always was: the join reads exactly the geometry the document
+  // states, so that a run drawn wrong is not read as right.
+  test('keeps a small run moved otherwise, at another size or standing apart, a line of its own', () => {
+    const moved = pageLines(page(run('H', 50, 100, 10, 7.13), run('2', 57.13, 103, 5.8, 3.26)))
+    expect(moved.map((line) => line.text)).toEqual(['H', '2'])
+    const sized = pageLines(page(run('H', 50, 100, 10, 7.13), run('2', 57.13, 102.03, 6, 3.26)))
+    expect(sized.map((line) => line.text)).toEqual(['H', '2'])
+    const apart = pageLines(page(run('H', 50, 100, 10, 7.13), run('2', 61.13, 102.03, 5.8, 3.26)))
+    expect(apart.map((line) => line.text)).toEqual(['H', '2'])
+    expect([...moved, ...sized, ...apart].flatMap((line) => line.shifted)).toEqual([])
+  })
+
+  // A line of small text beside or under a larger one -- a caption, a
+  // footnote paragraph -- stays a line of its own and records nothing.
+  test('keeps a line of small text a line of its own', () => {
+    const lines = pageLines(page(run('Measured value', 50, 100, 10, 70), run('as read on site', 50, 110, 5.8, 40)))
+    expect(lines.map((line) => line.text)).toEqual(['Measured value', 'as read on site'])
+    expect(lines.flatMap((line) => line.shifted)).toEqual([])
+  })
+})
+
 describe('lineHas', () => {
   // An exact value is found as whole words: "0.00" must not pass because
   // "10.00" or "-0.00" is printed.

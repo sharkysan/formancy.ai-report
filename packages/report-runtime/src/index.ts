@@ -1,4 +1,4 @@
-export { REFUSAL_CODES, RenderRefusal } from './document.js'
+export { REFUSAL_CODES, RenderRefusal, SHIFTED_RISE, SHIFTED_SIZE } from './document.js'
 export type {
   Block,
   Columns,
@@ -60,6 +60,13 @@ export type { ResolveErrorCode, RuntimeError, RuntimeStage } from './resolve-err
 export type { AssetResolver, ImageBytes, ImageRef, ImageResolver } from './render-context.js'
 /** The definition `resolveReport` reads, so that a caller of the runtime names it without depending on report-spec itself. */
 export type { ReportDefinition } from '@formancy/report-spec'
+/**
+ * What report-spec names a run's place against its line (0061), handed on
+ * so that the document's run, an engine and the corpus name a shift as the
+ * format does: `subscript` below the line, `superscript` above it.
+ */
+export { BASELINE_SHIFTS } from '@formancy/report-spec'
+export type { BaselineShift } from '@formancy/report-spec'
 /**
  * What report-spec decides of a QR-bill that an engine needs to draw its
  * slip, handed on so that an engine, which depends on the runtime alone,
