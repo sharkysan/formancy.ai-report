@@ -766,6 +766,14 @@ describe("a render's charts, bounded in all", { timeout: TIMEOUT }, () => {
     expect(await refusedAll(tinies(Math.floor(MAX_CHART_DRAWING / TINY_UNITS)))).toBe('rendered')
   })
 
+  // ... and refused one more, at the chart that crossed the bound: a weight
+  // that let one more of them through would let the many-tiny render the
+  // weights were measured against past it.
+  test('refuses one more chart of one value than their weight fits, naming the count', async () => {
+    const most = Math.floor(MAX_CHART_DRAWING / TINY_UNITS)
+    expect(await refusedAll(tinies(most + 1))).toMatchObject(tooMany(`tiny-${String(most)}`, (most + 1) * TINY_UNITS))
+  })
+
   // The bound holds one layout pass, and a kept heading costs more than
   // one: pdfmake lays the whole document out again for each page it moves
   // a heading to (src/LayoutBuilder.js 137-141), every chart's share of a
@@ -787,13 +795,5 @@ describe("a render's charts, bounded in all", { timeout: TIMEOUT }, () => {
         10,
       ),
     ).toBe(1)
-  })
-
-  // ... and refused one more, at the chart that crossed the bound: a weight
-  // that let one more of them through would let the many-tiny render the
-  // weights were measured against past it.
-  test('refuses one more chart of one value than their weight fits, naming the count', async () => {
-    const most = Math.floor(MAX_CHART_DRAWING / TINY_UNITS)
-    expect(await refusedAll(tinies(most + 1))).toMatchObject(tooMany(`tiny-${String(most)}`, (most + 1) * TINY_UNITS))
   })
 })

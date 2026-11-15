@@ -126,15 +126,19 @@ export function checkChart(chart: Chart, at: string, place: Place, walk: Walk): 
  * packed as many to a render as the bound holds, in the densest grid each
  * draws in on A4 landscape pages without margins, across pages, and as
  * many as one page holds: charts of one category of each kind, of 1 and 8
- * series, bare, dressed and value-labelled; the largest of each kind Task
- * 25 tried; bars of 120 and 186 categories and lines of 8 × 200, every
+ * series, bare, dressed and value-labelled; the largest of each kind the
+ * earlier cost run tried (`MAX_CHART_CATEGORIES`'s comment); bars of 120 and 186 categories and lines of 8 × 200, every
  * value labelled at 4 points, report-spec's least size; pies of 200
  * slices, bare and with every slice in the legend; and a page of one
  * 8 × 200 line beside lines of 8 series and one category. At 5,000 the
- * costliest render, 263 dressed pies of one slice on 3 pages, took 878 ms
- * at its slowest, and the costliest page, one 8 × 200 line beside five
- * 8 × 1 lines, cost PDF.js 1,614 ms at its slowest and 723 at its median.
- * The bound rests on that one run, a spike: the page's other six stood at
+ * slowest render of the forms in that run, 263 dressed pies of one slice
+ * on 3 pages, took 878 ms at its slowest, and the slowest page, one
+ * 8 × 200 line beside five 8 × 1 lines, cost PDF.js 1,614 ms at its
+ * slowest and 723 at its median; a review's second run, at a load of 4.2
+ * to 5.5, put 17 value-labelled bars of 120 categories (1,258 ms) ahead
+ * of the pies (1,235) and nine 8 × 1 lines (1,255) ahead of that page
+ * (962). Neither measured the slowest the bound admits. The bound rests
+ * on that one run, a spike: the page's other six stood at
  * 0.66 to 1.10 times the reference render's in their rounds. At 0.332 ms
  * a unit it reaches 2 s at about 6,017 units, and 6,000 would leave about
  * 10 ms, so the bound is 5,000, which the run confirmed.
