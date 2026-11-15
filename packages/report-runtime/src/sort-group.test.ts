@@ -227,6 +227,42 @@ describe('orderKeys and orderTable', () => {
     ])
   })
 
+  // A table that selects its rows orders and groups those alone (0062),
+  // each still known by its index in the data: a total over a group and an
+  // error read a row by that index, and a row renumbered within the
+  // selection would total and name another row. Two selected rows with
+  // equal keys keep the provider's order.
+  test('order and group the rows a table selects, each keeping its index in the data', () => {
+    const report = sampleReport()
+    const rows = [
+      sampleRow({ site: 'Bern', sku: 'B-2' }),
+      sampleRow({ site: 'Thun', sku: 'A-1' }),
+      sampleRow({ site: 'Aarau', sku: 'C-3' }),
+      sampleRow({ site: 'Bern', sku: 'A-9' }),
+      sampleRow({ site: 'Bern', sku: 'A-9' }),
+    ]
+    const checked = checkData(report, sampleData(rows), { mode: 'final' })
+    if (!checked.ok) throw new Error('refused')
+    const detail = checked.data.detail
+    const selected = [0, 1, 3, 4].map((index) => ({ index, record: detail[index] as CheckedRecord }))
+    const ordered = orderTable(report, table(report), detail, selected)
+    expect(indices(ordered.rows)).toEqual([3, 4, 0, 1])
+    expect(ordered.rows.map(({ record }) => record)).toEqual([detail[3], detail[4], detail[0], detail[1]])
+    expect(ordered.groups?.map((group) => [group.key, indices(group.rows)])).toEqual([
+      ['Bern', [3, 4, 0]],
+      ['Thun', [1]],
+    ])
+  })
+
+  // A table that selects no row has no rows and no groups, never every
+  // row: an empty selection is not an absent one.
+  test('give no rows and no groups for a selection of none', () => {
+    const report = sampleReport()
+    const checked = checkData(report, sampleData([sampleRow({ site: 'Bern', sku: 'B-2' })]), { mode: 'final' })
+    if (!checked.ok) throw new Error('refused')
+    expect(orderTable(report, table(report), checked.data.detail, [])).toEqual({ rows: [], groups: [] })
+  })
+
   // A table without a group has its rows in order and no groups at all.
   test('give no groups for a table without one', () => {
     const report = sampleReport()

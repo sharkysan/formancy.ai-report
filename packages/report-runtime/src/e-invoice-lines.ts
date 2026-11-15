@@ -293,6 +293,9 @@ export function readLines(render: Reading, invoice: EInvoice): ReadLines | undef
   const lines: ReadLine[] = []
   const ids = new Set<string>()
   let whole = true
+  // Every detail row, never a selection: report-spec refuses a condition on
+  // the lines' table, and a second table, in a report that is an e-invoice
+  // (0062), so the page prints each line the XML holds, once.
   for (const row of orderTable(render.report, table, render.data.detail).rows) {
     if (render.problems.full) return undefined
     const line = readLine(render, invoice, table, columns, row)

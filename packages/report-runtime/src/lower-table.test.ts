@@ -1,8 +1,38 @@
 import { emptyReport } from '@formancy/report-spec'
-import type { FieldRef, ReportDefinition, TableComponent } from '@formancy/report-spec'
-import { describe, expect, test } from 'vitest'
+import type { FieldRef, ReportDefinition, TableComponent, TableFooterRow } from '@formancy/report-spec'
+import { describe, expect, test, vi } from 'vitest'
+import { MAX_DATA_ERRORS } from './data-errors.js'
 import type { Table, TableRow } from './document.js'
+import { prepareExpressions, RENDER_STEP_BUDGET } from './evaluate.js'
+import type { ReportExpressions } from './evaluate.js'
 import { resolveReport } from './resolve.js'
+
+// Counts the conditions a render reads, by path, to show where reading
+// stops; every reading is the real one, passed through.
+const conditions = vi.hoisted(() => new Map<string, number>())
+vi.mock('./evaluate.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./evaluate.js')>()
+  return {
+    ...original,
+    prepareExpressions: (definition: ReportDefinition) => {
+      const prepared = original.prepareExpressions(definition)
+      if (!prepared.ok) return prepared
+      const real = prepared.expressions
+      const counted: ReportExpressions = {
+        compilation: real.compilation,
+        get spent() {
+          return real.spent
+        },
+        evaluate: (path, values, row) => real.evaluate(path, values, row),
+        condition: (path, values, row) => {
+          conditions.set(path, (conditions.get(path) ?? 0) + 1)
+          return real.condition(path, values, row)
+        },
+      }
+      return { ok: true, expressions: counted }
+    },
+  }
+})
 
 const detail = (field: string): FieldRef => ({ dataset: 'detail', field })
 const CHF = (amount: string): string =>
@@ -259,5 +289,239 @@ describe('a preview that lacks the field grouped by', () => {
       'evaluation missing-value /regions/body/0/group/header/0/expression/cel',
       'evaluation missing-value /regions/body/0/group/footer/0/cells/0/value/expression/cel',
     ])
+  })
+})
+
+const FRANCS = { kind: 'currency', currency: { kind: 'code', code: 'CHF' }, scale: 2 } as const
+
+/** A footer cell of `column` printing the aggregate `aggregate` over `scope`, in francs in the value column. */
+const over = (aggregate: string, scope: 'report' | 'table' | 'group', column: string): TableFooterRow['cells'][number] => ({
+  column,
+  value: { kind: 'aggregate', aggregate, over: scope, ...(column === 'value' ? { format: FRANCS } : {}) },
+})
+
+/** A footer cell of `column` printing what `cel` gives. */
+const said = (column: string, cel: string): TableFooterRow['cells'][number] => ({ column, value: { kind: 'expression', expression: { cel } } })
+
+const text = (column: string, words: string): TableFooterRow['cells'][number] => ({ column, value: { kind: 'text', text: words } })
+
+const GROUP = TABLE.group as NonNullable<TableComponent['group']>
+const { group: _group, ...UNGROUPED } = TABLE
+
+/** Every table `definition` prints over `rows`, in a final render; the test fails with the errors where it is refused. */
+function tables(definition: ReportDefinition, rows: readonly Record<string, unknown>[] = ROWS): Table[] {
+  const outcome = resolveReport(
+    definition,
+    { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' },
+    { mode: 'final', creationDate: '2026-10-15T08:00:00Z' },
+  )
+  if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; ')}`)
+  return outcome.document.body.filter((block): block is Table => block.kind === 'table')
+}
+
+/** `report()` whose body holds `body`, and whose detail contract holds `fields` besides its own. */
+function holding(body: readonly TableComponent[], fields: NonNullable<ReportDefinition['datasets']['detail']>['fields'] = []): ReportDefinition {
+  const base = report()
+  const contract = base.datasets.detail as NonNullable<ReportDefinition['datasets']['detail']>
+  return { ...base, datasets: { detail: { ...contract, fields: [...contract.fields, ...fields] } }, regions: { ...base.regions, body } }
+}
+
+/** The rows tagged other than B-2, grouped by site as TABLE groups them, each group's header and footer saying how many rows the table holds. */
+const A_TAGS: TableComponent = {
+  ...TABLE,
+  id: 'a-tags',
+  rowsWhen: { cel: 'row.tag != "B-2"' },
+  group: {
+    ...GROUP,
+    header: [{ kind: 'expression', expression: { cel: '"Site " + group.key + ": " + string(group.items) + " of " + string(table.items)' } }],
+    footer: GROUP.footer.map((footer) => ({ ...footer, cells: [...footer.cells, over('items', 'table', 'count')] })),
+  },
+  totals: [{ cells: [text('tag', 'Total'), over('total', 'table', 'value'), over('items', 'table', 'count')] }],
+}
+
+/** The rows worth more than 2.00, largest first and ungrouped, with their own total and every row's. */
+const LARGE: TableComponent = {
+  ...UNGROUPED,
+  id: 'large',
+  rowsWhen: { cel: 'row.value > dec("2")' },
+  columns: TABLE.columns.slice(0, 3),
+  sort: [{ field: detail('value'), direction: 'desc' }],
+  totals: [
+    { cells: [text('tag', 'Large'), over('total', 'table', 'value'), over('items', 'table', 'count')] },
+    { cells: [text('tag', 'All'), over('total', 'report', 'value'), said('count', 'string(table.items) + " of " + string(totals.items)')] },
+  ],
+  emptyText: 'No large items.',
+}
+
+describe('a table that selects its rows (0062)', () => {
+  // The order's goods apart from its services: a table prints the rows its
+  // condition selects and no other, ordered and grouped among themselves,
+  // its subtotals over its groups and its total over its rows. A table
+  // that printed every row, or totalled every row under some of them,
+  // would print a total of rows it does not show.
+  test('prints, orders and groups the rows it selects, and totals them as its own', () => {
+    expect(cells(tables(holding([A_TAGS]))[0]?.rows)).toEqual([
+      ['groupHeader', 'Site Bern: 3 of 4'],
+      ['detail', 'A-1', CHF('1.10'), '1', '-'],
+      ['detail', 'A-1', CHF('2.20'), '1', '-'],
+      ['detail', 'A-2', CHF('0.05'), '1', '-'],
+      ['groupFooter', 'Subtotal Bern', CHF('3.35'), '4', 'n'],
+      ['groupHeader', 'Site Thun: 1 of 4'],
+      ['detail', 'A-1', CHF('5.50'), '1', '-'],
+      ['groupFooter', 'Subtotal Thun', CHF('5.50'), '4', 'n'],
+      ['total', 'Total', CHF('8.85'), '4', ''],
+    ])
+  })
+
+  // Two tables over the same rows: each in its own order and groups, each
+  // total its own, and `totals` every row's under either. The table that
+  // selects none prints what it printed as a report's one table.
+  test("prints beside another table over the same rows, with its own total and every row's", () => {
+    const [all, large] = tables(holding([TABLE, LARGE]))
+    expect(cells(all?.rows)).toEqual(cells(table()?.rows))
+    expect(cells(large?.rows)).toEqual([
+      ['detail', 'B-2', CHF('10.00'), '1'],
+      ['detail', 'A-1', CHF('5.50'), '1'],
+      ['detail', 'A-1', CHF('2.20'), '1'],
+      ['total', 'Large', CHF('17.70'), '3'],
+      ['total', 'All', CHF('18.85'), '3 of 5'],
+    ])
+  })
+
+  // A table without a condition is over every row, and its `table` is the
+  // report's totals: an existing table's total moved to `over: 'table'`,
+  // or read as `table.<id>`, prints what it printed as `totals`, in its
+  // total rows and its group's footer alike.
+  test("binds the report's totals as its own when it has no condition", () => {
+    const every: TableComponent = {
+      ...TABLE,
+      group: { ...GROUP, footer: [{ cells: [said('tag', 'string(group.items) + " of " + string(table.items)')] }] },
+      totals: [
+        {
+          cells: [
+            said('tag', 'string(table.items) + "/" + string(totals.items)'),
+            over('total', 'table', 'value'),
+            said('count', 'table.total == totals.total ? "one" : "two"'),
+          ],
+        },
+      ],
+    }
+    expect(cells(tables(holding([every]))[0]?.rows.filter((row) => row.kind !== 'detail' && row.kind !== 'groupHeader'))).toEqual([
+      ['groupFooter', '3 of 5', '', '', ''],
+      ['groupFooter', '2 of 5', '', '', ''],
+      ['total', '5/5', CHF('18.85'), 'one', ''],
+    ])
+  })
+
+  // A table whose condition selects no row prints its empty text, and its
+  // totals of nothing: a count and a sum 0, a greatest nothing (0007),
+  // while every row's total is still every row's.
+  test('prints its empty text and totals of nothing when it selects no row', () => {
+    const none: TableComponent = {
+      ...LARGE,
+      rowsWhen: { cel: 'row.value > dec("100")' },
+      totals: [...(LARGE.totals ?? []), { cells: [text('tag', 'Largest'), over('largest', 'table', 'value')] }],
+    }
+    const definition: ReportDefinition = {
+      ...holding([none]),
+      aggregates: [...report().aggregates, { id: 'largest', fn: 'max', of: { kind: 'field', field: detail('value') } }],
+    }
+    const [lowered] = tables(definition)
+    expect(lowered?.emptyText).toBe('No large items.')
+    expect(cells(lowered?.rows)).toEqual([
+      ['total', 'Large', CHF('0.00'), '0'],
+      ['total', 'All', CHF('18.85'), '0 of 5'],
+      ['total', 'Largest', '', ''],
+    ])
+  })
+
+  // A condition that fails for a row refuses the render, naming the row by
+  // its index in the data, never read as false and the row quietly left
+  // out. It is read before the table orders its rows, so the errors come
+  // in the data's order, though row 3 prints before row 1.
+  test("refuses a condition that fails for a row, naming each row by its index, in the data's order", () => {
+    const failing = 'divide(dec("1"), (row.value - dec("1.10")) * (row.value - dec("0.05")), 2) > dec("0")'
+    const outcome = resolveReport(
+      holding([{ ...TABLE, rowsWhen: { cel: failing } }]),
+      { detail: ROWS, completeness: { complete: true, captured: ROWS.length }, consistency: 'host-captured' },
+      { mode: 'final', creationDate: '2026-10-15T08:00:00Z' },
+    )
+    if (outcome.ok) throw new Error('resolved')
+    expect(outcome.errors.map((error) => ({ stage: error.stage, code: error.code, path: error.path, row: 'row' in error ? error.row : undefined }))).toEqual([
+      { stage: 'evaluation', code: 'expression-failed', path: '/regions/body/0/rowsWhen/cel', row: 1 },
+      { stage: 'evaluation', code: 'expression-failed', path: '/regions/body/0/rowsWhen/cel', row: 3 },
+    ])
+    expect(outcome.errors[0]?.message).toContain('component equipment, detail row 1:')
+  })
+
+  // A render whose error list is full is refused, and reads its condition
+  // no further: one that fails on every row stops at the row that fills
+  // the list, rather than spending the budget on every row there is.
+  test('reads its condition no further once the error list is full', () => {
+    const rows = Array.from({ length: 3 * MAX_DATA_ERRORS }, (_, index) => row('Bern', `T-${index}`, '1.10'))
+    conditions.clear()
+    const outcome = resolveReport(
+      holding([{ ...LARGE, rowsWhen: { cel: 'divide(dec("1"), row.value - dec("1.10"), 2) > dec("0")' } }]),
+      { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' },
+      { mode: 'final', creationDate: '2026-10-15T08:00:00Z' },
+    )
+    if (outcome.ok) throw new Error('resolved')
+    expect(outcome.errors.at(-1)?.code).toBe('too-many-errors')
+    expect(conditions.get('/regions/body/0/rowsWhen/cel')).toBe(MAX_DATA_ERRORS + 1)
+  })
+
+  // A preview whose data lacks a field the condition reads leaves those
+  // rows out of that table, as a component's condition over it does not
+  // hold, and says so once for the condition, not once a row; the rows
+  // that hold it print.
+  test('leaves out, in a preview, the rows that lack what its condition reads, and says so once', () => {
+    const definition = holding([{ ...LARGE, rowsWhen: { cel: 'row.checked' } }], [{ id: 'checked', type: 'boolean', label: 'Checked', nullable: false }])
+    const rows = ROWS.map((each, index) => (index === 0 || index === 3 ? { ...each, checked: true } : each))
+    const outcome = resolveReport(
+      definition,
+      { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' },
+      { mode: 'preview', creationDate: '2026-10-15T08:00:00Z' },
+    )
+    if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.code} ${error.path} ${error.message}`).join('; ')}`)
+    const lowered = outcome.document.body.find((block): block is Table => block.kind === 'table')
+    expect(cells(lowered?.rows.filter((each) => each.kind === 'detail'))).toEqual([
+      ['detail', 'B-2', CHF('10.00'), '1'],
+      ['detail', 'A-1', CHF('1.10'), '1'],
+    ])
+    expect(outcome.warnings.map((warning) => `${warning.stage} ${warning.code} ${warning.path}`)).toEqual([
+      'data missing-field /detail/1/checked',
+      'evaluation missing-value /regions/body/0/rowsWhen/cel',
+    ])
+  })
+
+  // Each table reads its condition once a row, and every reading counts
+  // against the render's budget: a condition that spends over half the
+  // budget across the rows resolves in one table and is refused in two,
+  // rather than costing time nothing bounds. The two renders spend the
+  // real budget and half of it again: about two seconds here, over five
+  // under coverage, hence its own timeout.
+  test("counts each table's condition, once a row, against the render's budget", { timeout: 60_000 }, () => {
+    const list = (length: number): string => `[${Array.from({ length }, (_, index) => index).join(',')}]`
+    const heavy = `size(${list(64)}.filter(x, ${list(24)}.exists(y, y == x))) > 0 && row.count > 0`
+    const one = holding([{ ...LARGE, rowsWhen: { cel: heavy } }])
+    const expressions = (prepareExpressions(one) as { readonly expressions: ReportExpressions }).expressions
+    expect(expressions.condition('/regions/body/0/rowsWhen/cel', { row: { count: 1n } }, 0)).toEqual({ ok: true, value: true })
+    // Each evaluation is charged its steps and one more.
+    const each = expressions.spent
+    const count = Math.floor(RENDER_STEP_BUDGET / each / 2) + 10
+    expect(count * each).toBeLessThan(RENDER_STEP_BUDGET)
+    expect(2 * count * each).toBeGreaterThan(RENDER_STEP_BUDGET)
+    const rows = Array.from({ length: count }, (_, index) => row('Bern', `T-${index}`, '1.00'))
+    expect(tables(one, rows)[0]?.rows.filter((printed) => printed.kind === 'detail')).toHaveLength(count)
+    const two = holding([
+      { ...LARGE, rowsWhen: { cel: heavy } },
+      { ...LARGE, id: 'again', rowsWhen: { cel: heavy } },
+    ])
+    const outcome = resolveReport(
+      two,
+      { detail: rows, completeness: { complete: true, captured: rows.length }, consistency: 'host-captured' },
+      { mode: 'final', creationDate: '2026-10-15T08:00:00Z' },
+    )
+    expect(outcome.ok ? [] : outcome.errors.map((error) => `${error.code} ${error.path}`)).toContain('render-budget /regions/body/1/rowsWhen/cel')
   })
 })

@@ -58,8 +58,16 @@ export const MAX_TABLE_COLUMNS = 32
  * render's budget does; a report of more lists than eight is several
  * reports. Ordering the runtime's `MAX_DETAIL_ROWS` once, by two keys,
  * took a median of 0.5 seconds (Node 24.21, an Intel i9-10900K, 15 October
- * 2026, as measured beside that bound); what eight tables with a condition
- * cost at that bound is measured where the runtime selects their rows.
+ * 2026, as measured beside that bound). What eight cost at that bound was
+ * measured on the same machine and Node on 15 November 2026, the median of
+ * five runs of the built runtime's `resolveReport` after one that warmed
+ * it, each table of two columns grouped by one field, sorted by another
+ * and totalling one sum over its rows: one table without a condition
+ * resolved in 1.4 seconds, eight each selecting an eighth of the rows by a
+ * condition of one read in 4.0, and eight each selecting every row,
+ * 800,000 rows lowered, in 12.2. A condition of one read is charged two
+ * steps, so eight read over every row spend 1,600,000 of the runtime's
+ * `RENDER_STEP_BUDGET`.
  */
 export const MAX_TABLES = 8
 

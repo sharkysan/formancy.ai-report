@@ -57,22 +57,39 @@
     the validator accepts.
   - **The runtime.** report-runtime's `src/lower-table.test.ts`: a table
     prints the rows its condition selects, in its own order and its own
-    groups, its total rows totalling them as `table` and every row as
-    `totals`; a table without a condition binds `table` to the report's
-    totals, the very values; a table whose condition selects no row prints
-    its empty text and the totals of nothing; a condition that gives null
-    is refused as `not-a-condition`, naming the row by its index in the
-    data; a preview whose data lacks a field the condition reads leaves
-    those rows out, warned once. `src/sort-group.test.ts` orders the
-    selected rows, each keeping its index in the data.
+    groups, its group's header and footer reading `table`; beside a table
+    of every row, which prints as it did alone, it totals its rows as
+    `table` and every row as `totals`; a table without a condition binds
+    `table` to the report's totals, in its total rows and its group's
+    footer; a table whose condition selects no row prints its empty text
+    and the totals of nothing; a condition that fails for a row refuses
+    the render, naming each row by its index in the data, in the data's
+    order; a preview whose data lacks a field the condition reads leaves
+    those rows out, warned once; a condition that spends over half the
+    render's step budget across the rows resolves in one table and is
+    refused in two; and a condition is read no further once the error
+    list is full.
+    `src/sort-group.test.ts` orders and groups the selected rows, each
+    keeping its index in the data, and a selection of none as no rows.
   - **On the PDF.** report-render-pdf's `src/several-tables.test.ts`
-    resolves a report of three tables over one detail dataset, renders it,
-    and proves on the PDF read back with PDF.js
-    ([0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)):
-    each table prints its own rows and no other under its header, in its
-    order and its groups; each subtotal and total is the sum of the rows
-    printed above it; the summary's total is every row's; and the table
-    that selects no row prints its empty text and a total of 0.
+    resolves an order of three tables over one detail dataset
+    (`src/testing/several-tables.ts`), renders it, and proves on the PDF
+    read back with PDF.js
+    ([0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)),
+    line by line against what the test selects, orders and totals from the
+    data itself: each table prints its own rows and no other under its
+    header, in its order and its groups; each subtotal and total is the
+    sum of the rows printed above it; the summary's total is every row's;
+    and the table that selects no row prints its empty text and a total
+    of 0. The corpus's checks hold the layout: every row once and in its
+    place, and no run over another.
+  - **What printed prints as before.** report-runtime's
+    `src/lower-table.test.ts` and `src/sort-group.test.ts` keep every case
+    they held, and its `src/lower.test.ts`, `src/resolve.test.ts` and
+    e-invoice suites are unchanged; so are report-render-pdf's
+    `src/corpus.test.ts`, `src/starters.test.ts`, `src/samples.test.ts`
+    and `src/e-invoice-samples.test.ts`, which pass with every table's
+    total rows read in the `table` scope.
   - **A form review.** report-forms' `src/review.test.ts` blocks a version
     that removes a field a table's condition reads, and the removal it
     offers takes that table and keeps the other.
@@ -145,8 +162,9 @@ container; the ninth is refused as `too-many` at its own path. The bound
 is chosen, not measured: each table orders the rows it selects, which no
 step budget counts, and reads its condition once per detail row, which
 the render's budget does; a report of more lists than eight is several
-reports. What eight tables cost at `MAX_DETAIL_ROWS` is measured where
-the runtime selects the rows, and written beside the constant.
+reports. What eight tables cost at `MAX_DETAIL_ROWS` was measured once
+the runtime selected the rows, and is written beside the constant and
+under the costs below.
 
 **The condition.** A table's `rowsWhen`, optional, is an expression:
 - **read once per detail row, in the row's scope**, the scope a column's
@@ -156,9 +174,11 @@ the runtime selects the rows, and written beside the constant.
   with a total of every row. It reads neither `group`, since groups are
   made of the rows it selects, nor `table`, which is totalled from them:
   report-core refuses either as `expression-out-of-scope`;
-- **a condition**, compiled as `visibleWhen` is, which gives a boolean: one
-  that gives null in a render is refused as `not-a-condition`, naming the
-  row, as every condition is;
+- **a condition**, compiled as `visibleWhen` is, which gives a boolean:
+  one that may give anything else, a nullable field read bare among it, is
+  refused before any row is read (0009), and one that fails for a row --
+  a division by zero -- refuses the render, naming the row by its index in
+  the data, as every expression read from a row does;
 - **read before the table orders its rows**, in the provider's order, so
   what a row is selected by never depends on where it prints;
 - **absent, every row.** A table without one prints every detail row, as
@@ -317,6 +337,14 @@ and a total over a table as `not-one-of`.
   render's step budget, so a report of several conditioned tables over many
   rows may be refused at the budget where one table would have printed;
   the ordering counts against nothing but `MAX_TABLES`, which is chosen.
+  Measured on 15 November 2026 and written beside that constant (an Intel
+  i9-10900K, Node 24.21, the median of five runs of `resolveReport` at
+  `MAX_DETAIL_ROWS` after one that warmed it, each table of two columns
+  grouped, sorted and totalled): one table without a condition resolved
+  in 1.4 seconds, eight each selecting an eighth of the rows in 4.0, and
+  eight each selecting every row in 12.2, a condition of one read charged
+  two steps a row, so that eight spend 1,600,000 of the runtime's
+  `RENDER_STEP_BUDGET`.
 - **A preview may print fewer rows.** Where a preview's data lacks a field
   a condition reads, the condition does not hold, as a component's does
   not, and those rows are left out of that table, said once in a warning.

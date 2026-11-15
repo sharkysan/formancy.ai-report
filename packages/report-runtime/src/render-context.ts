@@ -1,15 +1,18 @@
 /**
- * What one resolution knows while it lowers a report, and the three scopes
- * a value is read in (0007): the report, a group of rows, one detail row.
+ * What one resolution knows while it lowers a report, and the four scopes
+ * a value is read in (0007, 0062): the report, a table's total rows, a
+ * group of rows, one detail row.
  *
  * A scope is the values an expression is handed -- `params`, `header`,
- * `totals`, and `group` or `row` where there is one -- and where a currency
- * format finds a currency. Every expression is evaluated through `valueOf`
- * or `holds`, so an evaluation that fails is an error in one place, and a
- * preview that lacks a field degrades in one place: what reads it prints
- * nothing, and a condition over it does not hold, each said once as a
- * warning. In a final render a missing field never gets this far: the data
- * check refuses it.
+ * `totals`, and `table`, `group` or `row` where there is one -- and where a
+ * currency format finds a currency. `totals` is every detail row's in every
+ * scope; `table` is the rows one table prints, the report's totals
+ * themselves under a table without a condition. Every expression is
+ * evaluated through `valueOf` or `holds`, so an evaluation that fails is
+ * an error in one place, and a preview that lacks a field degrades in one
+ * place: what reads it prints nothing, and a condition over it does not
+ * hold, each said once as a warning. In a final render a missing field
+ * never gets this far: the data check refuses it.
  *
  * A code is the one place a value that prints as nothing is refused: in a
  * final render, a run whose value is null in a QR code's content or a
@@ -61,7 +64,7 @@ export type ImageResolver = AssetResolver
 /** Each aggregate's value over some rows, by id: a typed value, or null where it has none. */
 export type AggregateValues = ReadonlyMap<string, TypedValue | null>
 
-/** The totals of one render: each aggregate over every row, and the same over any group of them. */
+/** The totals of one render: each aggregate over every row, and the same over any of them -- a group's, or the rows a table selects -- each known by its index in the data. */
 export interface Totals {
   readonly report: AggregateValues
   over(rows: readonly OrderedRow[]): AggregateValues
@@ -106,6 +109,8 @@ export interface Render {
 export interface Scope {
   readonly values: ExpressionValues
   readonly currency: CurrencyScope
+  /** The current table's aggregates, over the rows it prints: in its total rows, and its group's header and footer. */
+  readonly table?: AggregateValues
   /** The current group's aggregates, in a group's header and footer. */
   readonly group?: AggregateValues
   /** The record a detail field is read from: the current row, or a group's first row, whose key every row of the group shares. */
@@ -134,18 +139,32 @@ export function reportScope(render: Pick<Render, 'params' | 'data' | 'invoice'>,
   return { values: { params: render.params, header, totals: raw(totals), ...invoiceNames(render) }, currency: { params: render.params, header } }
 }
 
+/** A table's total rows: the report's values, and the table's aggregates, over the rows it prints, as `table`. */
+export function tableScope(render: Render, table: AggregateValues): Scope {
+  const scope = reportScope(render, render.totals.report)
+  return { ...scope, values: { ...scope.values, table: raw(table) }, table }
+}
+
 /**
- * A group's header and footer: the report's values, and the group's
+ * A group's header and footer: the table's scope, and the group's
  * aggregates and key as `group`. `by` is the field grouped by; where a
  * preview's rows lack it the key is missing, as the field is, not null.
  */
-export function groupScope(render: Render, group: RowGroup, aggregates: AggregateValues, by: string): Scope {
+export function groupScope(render: Render, group: RowGroup, aggregates: AggregateValues, table: AggregateValues, by: string): Scope {
   const record = (group.rows[0] as OrderedRow).record
   const header = headerOf(render)
   const key = Object.hasOwn(record, by) ? { key: group.key } : {}
   return {
-    values: { params: render.params, header, totals: raw(render.totals.report), group: { ...raw(aggregates), ...key }, ...invoiceNames(render) },
+    values: {
+      params: render.params,
+      header,
+      totals: raw(render.totals.report),
+      table: raw(table),
+      group: { ...raw(aggregates), ...key },
+      ...invoiceNames(render),
+    },
     currency: { params: render.params, header, row: record },
+    table,
     group: aggregates,
     record,
   }

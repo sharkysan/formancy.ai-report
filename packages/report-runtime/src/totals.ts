@@ -1,6 +1,7 @@
 /**
  * The report's aggregates, computed exactly, once, here (0007): over every
- * detail row for `totals`, and over a group's rows for `group`.
+ * detail row for `totals`, over a group's rows for `group`, and over the
+ * rows a table's condition selects for `table` (0062).
  *
  * - **In report-core's order.** An aggregate's expression may read another
  *   aggregate's total, so each is computed after every one it reads, in the
@@ -8,19 +9,20 @@
  *   computed has already refused the report.
  * - **Each row read once.** What an aggregate reads from a row is read once
  *   per render, with the report's totals, and kept by the row's index; a
- *   group's aggregate is the same function over its rows' values. So a
- *   group's subtotal and the report's total are totals of the same values,
- *   and the subtotals of a sum that declares no rounding add up to the
- *   total. A declared rounding is applied to each group's exact sum and to
- *   the report's, once each, so rounded subtotals need not add up to the
- *   rounded total: two groups of 0.02, rounded to 0.05, print 0.00 and 0.00
- *   over 0.05.
+ *   group's aggregate, and a table's, is the same function over its rows'
+ *   values. So a group's subtotal and the report's total are totals of the
+ *   same values, and the subtotals of a sum that declares no rounding add
+ *   up to the total. A declared rounding is applied to each group's exact
+ *   sum and to the report's, once each, so rounded subtotals need not add
+ *   up to the rounded total: two groups of 0.02, rounded to 0.05, print
+ *   0.00 and 0.00 over 0.05.
  * - **Exact, and of one kind.** Integers as BigInt, decimals as `Decimal`,
  *   through `decimal.ts`; nothing passes through a JavaScript number. A
  *   total report-core compiled as a decimal is a decimal, its 0 too, and so
  *   is one whose kind the compiler could not tell (`dyn`) once it declares a
- *   rounding or meets a decimal; a group's total is of the report total's
- *   kind, so an expression reading `group.<id>` meets one type.
+ *   rounding or meets a decimal; a group's total, and a table's, is of the
+ *   report total's kind, so an expression reading `group.<id>` or
+ *   `table.<id>` meets one type.
  * - **Nulls are skipped**, and so is a value a preview's data lacks. Over no
  *   values a count and a sum are 0 and the rest null (0007).
  * - **Declared rounding is applied once**, to the exact result: an average
@@ -228,12 +230,13 @@ export function computeTotals(render: Omit<Render, 'totals'>): Totals | undefine
           group.length,
           collator,
         )
-        // Never refused: a group's values are some of those the report's
-        // total took, of the kinds it took, totalled as the same kind and
-        // rounded as it was, and a share of values has no kind the whole lacks.
+        // Never refused: a group's values, and a table's, are some of those
+        // the report's total took, of the kinds it took, totalled as the
+        // same kind and rounded as it was, and a share of values has no
+        // kind the whole lacks.
         if (!grouped.ok) {
           throw new RangeError(
-            `a group's total of aggregate ${aggregate.id} was refused as ${grouped.code} after the report's was not: a defect, refused rather than printed as nothing`,
+            `a total of some rows of aggregate ${aggregate.id} was refused as ${grouped.code} after the report's was not: a defect, refused rather than printed as nothing`,
           )
         }
         values.set(aggregate.id, grouped.value)

@@ -5,10 +5,11 @@
  * The one place each kind of inline gets its value: a field from the header
  * or the current record, a parameter from the checked parameters, an
  * expression from its evaluation in the scope it stands in, an aggregate
- * from the report's totals or the current group's. Every value is formatted
- * by `format.ts` with the inline's format, or printed plainly without one,
- * and null prints as nothing (0007). A page counter stays a field the
- * engine fills in, since only it knows the pages.
+ * from the report's totals, the current table's or the current group's
+ * (`OVER`). Every value is formatted by `format.ts` with the inline's
+ * format, or printed plainly without one, and null prints as nothing
+ * (0007). A page counter stays a field the engine fills in, since only it
+ * knows the pages.
  *
  * A QR code's content, and each text of a QR-bill or an EPC QR code, is
  * read run by run as a paragraph's is, and joined into the one text the
@@ -21,11 +22,11 @@
  * it (`e-invoice-lines.ts`); the table prints the value kept then, never
  * one read again, so that the page and the XML hold one evaluation.
  */
-import type { Inline as ReportInline } from '@formancy/report-spec'
+import type { AggregateScope, Inline as ReportInline } from '@formancy/report-spec'
 import type { Inline } from './document.js'
 import type { TypedValue } from './format.js'
 import { fieldValue, parameterType, valueOf } from './render-context.js'
-import type { Render, Scope } from './render-context.js'
+import type { AggregateValues, Render, Scope } from './render-context.js'
 import { placed } from './resolve-errors.js'
 
 /** What an error names besides the inline's path: the component, and in a table the column, or what holds it outside any component. */
@@ -38,6 +39,18 @@ export interface Owner {
 
 /** A run whose value is read: anything but literal text and a page counter. */
 export type BoundInline = Exclude<ReportInline, { kind: 'text' | 'pageNumber' | 'pageCount' }>
+
+/**
+ * The totals an aggregate run reads, by what it is over: every detail
+ * row's wherever it stands, or the current table's or group's. report-spec
+ * allows a table's only in its total rows and its group's rows, and a
+ * group's only in a group's (0062), where the scope holds them.
+ */
+const OVER: { readonly [S in AggregateScope]: (render: Pick<Render, 'totals'>, scope: Scope) => AggregateValues | undefined } = {
+  report: (render) => render.totals.report,
+  table: (_, scope) => scope.table,
+  group: (_, scope) => scope.group,
+}
 
 /** The value `inline`, at `path`, reads in `scope`, unformatted; undefined when its evaluation failed, which is recorded. */
 export function inlineValue(
@@ -56,8 +69,7 @@ export function inlineValue(
     case 'expression':
       return valueOf(render, scope, `${path}/expression/cel`)
     case 'aggregate':
-      // report-spec allows a group's aggregate only where there is a group.
-      return (inline.over === 'group' ? scope.group : render.totals.report)?.get(inline.aggregate) ?? null
+      return OVER[inline.over](render, scope)?.get(inline.aggregate) ?? null
   }
 }
 
