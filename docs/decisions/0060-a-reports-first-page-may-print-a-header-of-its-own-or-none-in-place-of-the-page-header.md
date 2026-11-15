@@ -209,22 +209,39 @@ before the pages are counted, and a number that is always 1 is text.
   up where it takes less or there is none. A positive one is the slip's
   reservation already (0022); a negative one moves the cursor up by
   pdfmake's arithmetic, which `pdfmake.test.ts` holds.
-- **Measured with the page regions.** Page 1's own header is measured in
-  the regions' pass beside the page header and footer, on a sheet that
-  holds all three, and its room is its height and `REGION_GAP`, or
-  nothing where it lowers to no block. Each page is held to having a body:
-  page 1 by its own header and the footer, every later page by the page
-  header and the footer, each refused as `content-too-large` naming the
-  header that leaves none.
-- **What must fit a page fits the later pages.** A keep-together block, a
-  block of fixed height, a line, and a table's line under its repeated
-  header are held to the body of the pages after the first, where
-  whatever does not fit page 1 goes; one that only page 1's taller body
-  could hold is refused. A table continues on later pages as before, and
-  where its first row stands on page 1 is read from the layout, as it is
-  now. Every rule that asks whether a node is first on its page reads page
-  1's top on page 1. The least height a body may have is held to page 1's
-  body and the later pages' bodies the page limit leaves.
+- **Measured as the page regions are.** Page 1's own header is measured
+  in a pass of its own, on a page as tall as the printable area, beside the
+  page header's and footer's pass, which every report has and which is not
+  changed; its room is its height and `REGION_GAP`, or nothing where it
+  lowers to no block. One taller than the printable area is refused as
+  `content-too-large` naming `firstPageHeader`. Each page is held to having
+  a body: every later page by the page header and the footer, as before,
+  and page 1 by its own header and the footer, refused as
+  `content-too-large` naming `firstPageHeader`.
+- **What a page must hold whole fits the later pages.** A keep-together
+  block and a table's line under its repeated header are held to the body
+  of the pages after the first: pdfmake moves a kept block, and a row it
+  keeps whole, past a page by its room alone, so one page 1 cannot hold
+  starts page 2, and one only page 1's taller body could hold is refused.
+  A table continues on later pages as before, and where its first row
+  stands on page 1 is read from the layout, as it is now. Every rule that
+  asks whether a node is first on its page reads page 1's top on page 1.
+  The least height a body may have is held to page 1's body and the later
+  pages' bodies the page limit leaves, and so is the page the body's
+  tables are measured on.
+- **A block of fixed height fits every page's body.** A block drawn at a
+  fixed height -- an image, a QR code, a rule, a rectangle, a frame -- and
+  a line are held to the shorter of page 1's body and the later pages'.
+  pdfmake 0.3.11 places an image or an SVG, which a QR code is drawn as,
+  on a page that holds no item yet whatever its room
+  (`ElementWriter.addImage` and `addSVG`), and page 1 under a header of
+  space alone -- room left for a letterhead printed on the paper -- holds
+  none: held to the later pages' body only, an image 600 pt tall under a
+  first page header of a 200 pt spacer was drawn from 242 pt to the
+  paper's foot, over the page footer at 797.5 pt, in a PDF of one page
+  that nothing refused (measured on 2026-11-15). The rule is one for
+  every block of fixed height, though pdfmake moves a rule or a rectangle
+  past a page by its room.
 - **A one-page report** prints its own header, or none, and the page
   header on no page. The page header is still measured and held, since
   how many pages there are is known only once they are laid out.
@@ -337,6 +354,21 @@ over the five it knows.
   separate word for it.
 - **Removing it removes what it holds.** Choosing the page header again
   takes the first page header's components with it, in one undo step.
+- **A block of fixed height page 1 cannot hold is refused.** Where page
+  1's own header takes more room than the page header, an image, a QR code
+  or a rectangle taller than page 1's body is refused, though a later page
+  could hold it and pdfmake would move it there where page 1 holds
+  anything else.
+- **A block page 1 cannot hold starts page 2.** Where page 1's own header
+  takes more room, a block kept together, or a table's first rows kept
+  with its column header, that page 1's body cannot hold and a later
+  page's can starts page 2, and page 1 prints its header and nothing under
+  it; a heading first on page 1 and kept with such a block stays on page
+  1, since a break before it would leave page 1 its header alone.
+- **A tall first page header is held above the slip on every report.** A
+  first page header that reaches into a QR-bill's slip is refused, though
+  the report runs to a later page whose page header leaves the slip its
+  room: which page is the last is known only once the pages are laid out.
 - **What only page 1 could hold is refused.** Where page 1's header takes
   less room than the page header, page 1's body is taller than the
   others, and a block that fits it but not a later page's body is refused,
@@ -349,11 +381,18 @@ over the five it knows.
   the renderer already uses to count pages; the page's body is moved by a
   margin pdfmake does not clamp. `pdfmake.test.ts` holds both on the
   exact release pinned; a pdfmake that changes either fails there before
-  a report prints otherwise. A background drawn under page 1 will have to
+  a report prints otherwise. It rests on two more that nothing of the
+  renderer's asks for: pdfmake hands the background's nodes to
+  `pageBreakBefore` with the body's, which asks nothing of a node the
+  renderer did not mark, and a page region marks none; and it inserts a
+  table's fill, a framed section's among them, at the count of the
+  background's positions rather than its items, which `pdfmake.test.ts`
+  holds only for a filled table first on page 1 under a background of
+  text, a rule and an image. A background drawn under page 1 will have to
   share the hook.
 - **No e-invoice variant draws one.** veraPDF and Mustang have not judged
-  a PDF/A-3b whose page 1 has its own header; what it adds to the page is
-  content of the kinds they judge elsewhere.
+  a PDF/A-3b whose page 1 has its own header, and nothing says what they
+  would make of one.
 - **An older renderer ignores it.** report-render-pdf 0.2.0, handed a
   document a later runtime resolved, prints the page header on page 1:
   it reads no property it does not know and refuses none. The packages

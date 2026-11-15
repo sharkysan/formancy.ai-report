@@ -644,12 +644,106 @@ describe('an XRechnung', () => {
     }
   })
 
+  // Page 1 prints its own header in the page header's place (0060), so
+  // the label heads it too, as the runtime writes it: without it page 1,
+  // the page a reader sees first, would say nothing of what the PDF is.
+  // Its header that is none is refused alike: page 1 would print no label.
+  test.each([
+    ['a first page header without it', [paragraph('Briefkopf')]],
+    ['a first page header that is none', []],
+  ] as const)('with %s is refused, naming it', async (_, firstPageHeader) => {
+    for (const [, render] of ENTRIES) {
+      expect(await outcome(render, { ...copy(), firstPageHeader })).toMatchObject({
+        code: 'unsupported',
+        subject: 'firstPageHeader',
+        message:
+          "an XRechnung's PDF is a copy of its XML, labelled so at the top of every page, and this document's first page header does not open with the label as the runtime writes it",
+      })
+    }
+    expect(await outcome(renderPdf, { ...copy(), firstPageHeader: [XRECHNUNG_COPY_PARAGRAPH, ...firstPageHeader] })).toBe('rendered')
+  })
+
   // The XRechnung the renderer knows is drawn in either entry, as a plain
   // PDF: its title reaches no XMP, so one with an ampersand is drawn too
   // (`xrechnung.test.ts` reads what is drawn).
   test.each(ENTRIES)('it knows is drawn %s, its title whatever it is', async (_, render) => {
     expect(await outcome(render, copy())).toBe('rendered')
     expect(await outcome(render, { ...copy(), info: { ...copy().info, title: 'Müller & Söhne <AG>' } })).toBe('rendered')
+  })
+})
+
+describe("page 1's own header (0060)", () => {
+  // A page number or count in page 1's own header has no value: it is
+  // drawn when page 1 is added, before the pages are counted, and pdfmake
+  // knows the count only in the header and footer it draws after the
+  // layout. A 1 printed there would be text; nothing, a field lost.
+  test.each([
+    ['at its top level', [paragraph('Letterhead'), { kind: 'paragraph', runs: [{ text: 'Page ' }, { field: 'pageNumber' }] }], 'firstPageHeader[1]'],
+    [
+      'in a column',
+      [{ kind: 'columns', columns: [{ width: 'fill', blocks: [{ kind: 'paragraph', runs: [{ field: 'pageCount' }] }] }] }],
+      'firstPageHeader[0].columns[0].blocks[0]',
+    ],
+  ] as const)('refuses a page field %s', async (_, firstPageHeader, subject) => {
+    expect(await refusal({ ...documentOf('Own field', [paragraph('Body')]), firstPageHeader })).toMatchObject({
+      code: 'unsupported',
+      subject,
+      message: `${subject} prints a page field; page 1's own header is drawn before the pages are counted, and page 1's number and count print in the page footer`,
+    })
+  })
+
+  // It is a page region: a page break in it asks for two things at once.
+  test('refuses a page break in it', async () => {
+    expect(await refusal({ ...documentOf('Own break', [paragraph('Body')]), firstPageHeader: [paragraph('Letterhead'), { kind: 'pageBreak' }] })).toMatchObject(
+      {
+        code: 'unsupported',
+        subject: 'firstPageHeader[1]',
+        message: 'firstPageHeader[1] is a page break inside a page region',
+      },
+    )
+  })
+
+  // Page 1's own header is measured as the page header is: one that with
+  // the page footer leaves page 1 no body would print over it, and one
+  // taller than the printable area would lose lines in the box it is drawn
+  // in. Each is refused, naming it.
+  test.each([
+    [80, 'the first page header and the page footer leave page 1 no room for its body (-1.49 pt)'],
+    [100, 'the first page header is taller than the printable area'],
+  ])('refuses a first page header of %i lines of 8 pt', async (lines, message) => {
+    const firstPageHeader = Array.from({ length: lines }, (_, index) => paragraph(`Letterhead line ${index + 1}`, { size: 8 }))
+    expect(await refusal({ ...documentOf('Tall own header', [paragraph('Body')]), firstPageHeader })).toMatchObject({
+      code: 'content-too-large',
+      subject: 'firstPageHeader',
+      message,
+    })
+  })
+
+  // How many pages a report has is known only once they are laid out, so
+  // the page header is held to leaving a body though a one-page report
+  // prints its own header in its place: the cost the record names.
+  test('still refuses a page header that leaves the later pages no body', async () => {
+    const pageHeader = Array.from({ length: 80 }, (_, index) => paragraph(`Header line ${index + 1}`, { size: 8 }))
+    expect(await refusal({ ...documentOf('Tall header', [paragraph('Body')]), pageHeader, firstPageHeader: [paragraph('Letterhead')] })).toMatchObject({
+      code: 'content-too-large',
+      message: expect.stringMatching(/^the page header and footer leave no room for the body/),
+    })
+  })
+
+  // pdfmake draws an image, an SVG or a QR code first on a page that holds
+  // nothing whatever its room, and page 1 under a header of space alone --
+  // room left for a letterhead printed on the paper -- holds nothing: an
+  // image only a later page holds would be drawn past page 1's body, over
+  // its footer. A block of fixed height is held to the shorter body.
+  test('refuses an image page 1’s shorter body cannot hold, and draws one it can', async () => {
+    const image: Image = { kind: 'image', asset: dot('tall'), width: 100, height: 600, fit: 'cover' }
+    const spaced = (height: number): ResolvedDocument => ({ ...documentOf('Spaced', [image]), firstPageHeader: [{ kind: 'spacer', height }] })
+    expect(await refusal(spaced(200))).toMatchObject({
+      code: 'content-too-large',
+      subject: 'tall',
+      message: 'the image tall is 600.00 pt tall; the body is 548.51 pt where it stands',
+    })
+    expect(await refusal(spaced(100))).toBe('rendered')
   })
 })
 

@@ -58,10 +58,16 @@ export interface Fields {
 
 export interface Build {
   readonly mode: 'measure' | 'render'
-  /** Where the body starts on every page, from the top of the paper. */
+  /** Where the body starts on every page, from the top of the paper: under the page header, and on page 1 too but where page 1 prints a header of its own (`firstShift`). */
   readonly bodyTop: number
   /** Where it ends. */
   readonly bodyBottom: number
+  /**
+   * How much lower page 1's body starts than `bodyTop`: the room page 1's
+   * own header takes less the page header's (0060), negative where it takes
+   * less; nothing where page 1 prints the page header.
+   */
+  readonly firstShift: number
   readonly plans: ReadonlyMap<Table, TablePlan>
   /** Each image asset as the asset checks read it. */
   readonly assets: ReadonlyMap<ImageAsset, CheckedImage>
@@ -92,7 +98,7 @@ export function newBuild(
     readonly paths: ReadonlyMap<Block, string>
   },
   fonts: RenderFonts,
-  body: { readonly top: number; readonly bottom: number } = { top: 0, bottom: 0 },
+  body: { readonly top: number; readonly bottom: number; readonly firstShift?: number } = { top: 0, bottom: 0 },
   plans: ReadonlyMap<Table, TablePlan> = new Map(),
 ): Build {
   const { assets, codes, paths } = checked
@@ -100,6 +106,7 @@ export function newBuild(
     mode,
     bodyTop: body.top,
     bodyBottom: body.bottom,
+    firstShift: body.firstShift ?? 0,
     plans,
     assets,
     codes,

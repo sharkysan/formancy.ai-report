@@ -2,9 +2,18 @@ import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { RenderRefusal, type Block, type PageSetup, type ResolvedDocument, type Table } from '@formancy/report-runtime'
 import { checkBill, refusePage, type CheckedBill } from './bill.js'
 import { refuseOversized } from './bound.js'
-import type { TablePlan } from './build.js'
+import type { Build, TablePlan } from './build.js'
 import { checkDocument, refuseTall, type Checked, type Page } from './check.js'
-import { bodyMeasurement, defaultStyle, layoutDefinition, REGION_GAP, regionsMeasurement, slipReservation, type Regions } from './definition.js'
+import {
+  bodyMeasurement,
+  defaultStyle,
+  firstPageHeaderMeasurement,
+  layoutDefinition,
+  REGION_GAP,
+  regionsMeasurement,
+  slipReservation,
+  type Regions,
+} from './definition.js'
 import type { Engine } from './engine.js'
 import { planFonts, type RenderFonts } from './host-fonts.js'
 import { FIT_SLACK, measure, refuseLineUnderHeader, rowPitches, SENTINEL_LINE, SENTINEL_ROOM, tablePlan } from './measure.js'
@@ -31,6 +40,17 @@ import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js
  * A document with a Factur-X e-invoice is drawn as a PDF/A-3b on the third
  * pass, which alone embeds its XML (`pdfa.ts`); one with an XRechnung as a
  * plain PDF, the copy its label says it is (0038).
+ *
+ * A document that gives page 1 a header of its own (0060) has one pass
+ * more, which measures it as the page header is measured, and two bodies:
+ * page 1's, under its own header, and every later page's, under the page
+ * header. What a page must hold whole -- a keep-together block, a table's
+ * line under its repeated header -- is held to the later pages' body,
+ * where pdfmake moves what page 1 cannot hold; a block of fixed height and
+ * a line to the shorter of the two, since pdfmake draws an image or an SVG
+ * on a page that holds nothing whatever its room, and page 1 under a
+ * header of space alone holds nothing; and the page limit to page 1's body
+ * and the later pages' it leaves.
  */
 
 export async function render(engine: Engine, document: ResolvedDocument, options: RenderOptions): Promise<Uint8Array> {
@@ -48,10 +68,18 @@ export async function render(engine: Engine, document: ResolvedDocument, options
   await stopIfCancelledSoon(signal)
   const bodyHeight = checked.page.height - regions.header - regions.footer
   if (bodyHeight <= 0) throw new RenderRefusal('content-too-large', `the page header and footer leave no room for the body (${bodyHeight.toFixed(2)} pt)`)
+  // Page 1's body, under its own header where it has one (0060): the same as every page's where it prints the page header.
+  const firstBody = checked.page.height - regions.first - regions.footer
+  if (firstBody <= 0)
+    throw new RenderRefusal(
+      'content-too-large',
+      `the first page header and the page footer leave page 1 no room for its body (${firstBody.toFixed(2)} pt)`,
+      'firstPageHeader',
+    )
   if (bill !== undefined) await measureSlip(engine, bill, checked.page, document.page, regions, fonts)
-  refuseTall(checked.tall, bodyHeight)
-  refuseOversized(document.body, bodyHeight, maxPages, fonts, bill === undefined ? 0 : slipReservation(checked.page, regions))
-  const plans = await measureBody(engine, checked, fonts, bodyHeight, maxPages)
+  refuseTall(checked.tall, Math.min(bodyHeight, firstBody))
+  refuseOversized(document.body, { first: firstBody, later: bodyHeight }, maxPages, fonts, bill === undefined ? 0 : slipReservation(checked.page, regions))
+  const plans = await measureBody(engine, checked, fonts, { first: firstBody, later: bodyHeight }, maxPages)
   await stopIfCancelledSoon(signal)
   const finish = checked.pdfa === undefined ? undefined : embedEInvoice(checked.pdfa, checked.creationDate)
   const pdf = await engine.run(layoutDefinition(document, checked, regions, plans, fonts, maxPages, bill), fonts.engine, finish)
@@ -71,10 +99,12 @@ const SECTION_SLACK = 0.01
  * information is laid out as the slip lays it out (`slip.ts`), on a sheet
  * as tall as its section and the three sentinels around it: what does not
  * fit on the sheet is taller than the section, and pdfmake's next page
- * refuses it.
+ * refuses it. The header is the taller of page 1's and the page header
+ * (0060): the slip prints on the last page, which is known only once the
+ * pages are laid out, and on a one-page report is page 1.
  */
 async function measureSlip(engine: Engine, bill: CheckedBill, page: Page, setup: PageSetup, regions: Regions, fonts: RenderFonts): Promise<void> {
-  refusePage(setup, regions.header + ABOVE_SLIP)
+  refusePage(setup, Math.max(regions.header, regions.first) + ABOVE_SLIP)
   for (const part of [PAYMENT_PART, RECEIPT]) {
     const { width, height, millimetres } = part.information
     const refusal = (): RenderRefusal =>
@@ -92,42 +122,84 @@ async function measureSlip(engine: Engine, bill: CheckedBill, page: Page, setup:
 /**
  * The page header's and footer's heights, measured once, on a page as tall
  * as the printable area: two regions that do not fit on it leave no body.
+ * Page 1's own header (0060) is measured on a page of its own, as tall:
+ * what does not fit on it is taller than the printable area.
  */
 async function measureRegions(engine: Engine, document: ResolvedDocument, checked: Checked, fonts: RenderFonts, maxPages: number): Promise<Regions> {
   const { present, items, build } = regionsMeasurement(document, checked, fonts, maxPages)
-  if (present.length === 0) return { header: 0, footer: 0 }
+  const heights =
+    present.length === 0
+      ? []
+      : (await measureOnPrintable(engine, checked, fonts, items, build, 'the page header and footer are taller than the printable area')).heights
+  const space = (blocks: readonly Block[]): number => (blocks.length === 0 ? 0 : heights[present.indexOf(blocks)]! + REGION_GAP)
+  const header = space(document.pageHeader)
+  const own = document.firstPageHeader
+  if (own === undefined) return { header, footer: space(document.pageFooter), first: header }
+  if (own.length === 0) return { header, footer: space(document.pageFooter), first: 0 }
+  const first = firstPageHeaderMeasurement(own, checked, fonts)
+  const measured = await measureOnPrintable(
+    engine,
+    checked,
+    fonts,
+    first.items,
+    first.build,
+    'the first page header is taller than the printable area',
+    'firstPageHeader',
+  )
+  return { header, footer: space(document.pageFooter), first: measured.heights[0]! + REGION_GAP }
+}
+
+/** `items` measured on a page as tall as the printable area and their sentinels, refused as `content-too-large` when they do not fit on it. */
+async function measureOnPrintable(
+  engine: Engine,
+  checked: Checked,
+  fonts: RenderFonts,
+  items: readonly Content[],
+  build: Pick<Build, 'images' | 'words'>,
+  overflow: string,
+  subject?: string,
+): Promise<{ readonly heights: readonly number[] }> {
   const { page } = checked
-  const { heights } = await measure(
+  return measure(
     engine,
     { width: page.paperWidth, height: page.height + SENTINEL_ROOM * (items.length + 2), left: page.margins.left, right: page.margins.right },
     items,
     resources(fonts, build.images),
-    () => new RenderRefusal('content-too-large', 'the page header and footer are taller than the printable area'),
+    () => new RenderRefusal('content-too-large', overflow, subject),
     build.words,
     fonts.engine,
   )
-  const space = (blocks: readonly Block[]): number => (blocks.length === 0 ? 0 : heights[present.indexOf(blocks)]! + REGION_GAP)
-  return { header: space(document.pageHeader), footer: space(document.pageFooter) }
 }
 
 /**
  * Measures the body's keep-together blocks and tables, refuses a block no
  * page can hold and a table's line no page holds under its repeated header
  * (`refuseLineUnderHeader`), and plans how each table breaks. On a page as tall as the
- * page limit's bodies and one more: content that does not fit on it needs
- * more pages than the limit, whatever else the body holds, so it is refused
- * here, after laying out at most that much of it.
+ * page limit's bodies and one more -- page 1's, under its own header where
+ * it has one (0060), and the later pages' -- content that does not fit on
+ * it needs more pages than the limit, whatever else the body holds, so it
+ * is refused here, after laying out at most that much of it. What a page
+ * must hold whole is held to the later pages' body, where pdfmake moves
+ * what page 1 cannot hold.
  *
  * A block inside framed sections has less of each page than the body: their
  * borders and padding above and below it, which is what `inset` holds.
  */
-async function measureBody(engine: Engine, checked: Checked, fonts: RenderFonts, bodyHeight: number, maxPages: number): Promise<ReadonlyMap<Table, TablePlan>> {
+async function measureBody(
+  engine: Engine,
+  checked: Checked,
+  fonts: RenderFonts,
+  bodies: { readonly first: number; readonly later: number },
+  maxPages: number,
+): Promise<ReadonlyMap<Table, TablePlan>> {
   const { measured, page } = checked
   if (measured.length === 0) return new Map()
+  const bodyHeight = bodies.later
   const { items, build } = bodyMeasurement(measured, checked, fonts)
+  const sheet = (maxPages + 1) * bodyHeight + (bodies.first - bodyHeight)
   const { heights, top, ends } = await measure(
     engine,
-    { width: page.paperWidth, height: (maxPages + 1) * bodyHeight + SENTINEL_ROOM * (items.length + 2), left: page.margins.left, right: page.margins.right },
+    { width: page.paperWidth, height: sheet + SENTINEL_ROOM * (items.length + 2), left: page.margins.left, right: page.margins.right },
     items,
     resources(fonts, build.images),
     () => new RenderRefusal('too-many-pages', `the report needs more than ${maxPages} pages`),

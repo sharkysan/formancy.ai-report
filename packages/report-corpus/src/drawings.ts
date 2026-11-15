@@ -1,4 +1,4 @@
-import { EDGE, plural, points } from './check-page.js'
+import { EDGE, plural, points, regionsOn } from './check-page.js'
 import type { Expectation, ExpectedImage } from './fixture.js'
 import type { PdfBox, PdfPage, PdfPath, ReadPdf } from './read-pdf.js'
 
@@ -17,7 +17,8 @@ import type { PdfBox, PdfPage, PdfPath, ReadPdf } from './read-pdf.js'
  *   could stand in for one. Clips nothing matches are not problems: a QR
  *   code's is one.
  * - **The order is the pages'.** A page region's drawings are found on each
- *   page first, then the body's in document order, each after the one
+ *   page that prints it first -- page 1's own header's on page 1 alone
+ *   (0060) -- then the body's in document order, each after the one
  *   before.
  * - **Inside the box is the pixels' to say.** A path painted inside a clip
  *   may reach past it -- `cover` does, and the clip hides the rest -- so
@@ -44,7 +45,7 @@ const LISTED = 5
 /** The SVG images `expected` holds, found among `pdf`'s clips. */
 export function placeDrawings(pdf: ReadPdf, expected: Expectation): PlacedDrawings {
   const vector = (images: readonly ExpectedImage[]): ExpectedImage[] => images.filter((image) => image.kind === 'vector')
-  const [regions, body] = [vector(expected.pageRegionImages), vector(expected.images)]
+  const body = vector(expected.images)
   const boxes: PdfBox[][] = pdf.pages.map(() => [])
   const clips: Clip[] = pdf.pages.flatMap((page) =>
     page.clips.map((box, index) => ({ page: page.number, box, painted: page.paths.some((path) => path.clip === index), used: false })),
@@ -56,7 +57,7 @@ export function placeDrawings(pdf: ReadPdf, expected: Expectation): PlacedDrawin
   }
   for (const page of pdf.pages) {
     const onPage = clips.filter((clip) => clip.page === page.number)
-    for (const [index, image] of regions.entries()) {
+    for (const [index, image] of vector(regionsOn(expected, page.number).regionImages).entries()) {
       const found = onPage.find((clip) => fits(clip, image))
       if (found === undefined) problems.push(`page ${page.number}: ${missing(`the SVG image ${index + 1} of the page regions`, image, onPage)}`)
       else take(found)

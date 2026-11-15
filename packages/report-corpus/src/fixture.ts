@@ -63,6 +63,17 @@ export interface ExpectedFontName {
   readonly postScriptName: string
 }
 
+/**
+ * What page 1 shows of its page regions where the document gives page 1 a
+ * header of its own (0060), in place of what every other page shows.
+ */
+export interface ExpectedFirstPage {
+  /** Page 1's own header's lines without page fields, in place of `pageHeaderLines` on page 1. */
+  readonly headerLines: readonly string[]
+  /** Page 1's own header's images and the page footer's, in place of `pageRegionImages` on page 1. */
+  readonly regionImages: readonly ExpectedImage[]
+}
+
 export interface Expectation {
   /** `render-or-refuse`: either a PDF that passes every check, or this refusal. */
   readonly outcome: 'render' | 'refuse' | 'render-or-refuse'
@@ -80,8 +91,10 @@ export interface Expectation {
    * continued below it -- and the header above the table on every page.
    */
   readonly tables: readonly ExpectedTable[]
-  /** The page header's lines without page fields: each a line of its own on every page, above all of the body. */
+  /** The page header's lines without page fields: each a line of its own on every page that prints the page header, above all of the body. */
   readonly pageHeaderLines: readonly string[]
+  /** Present exactly when the document gives page 1 a header of its own, none among them (0060): page 1's regions, which page 1 alone shows. */
+  readonly firstPage?: ExpectedFirstPage
   /** The page footer's lines without page fields: each a line of its own on every page, below all of the body. */
   readonly pageFooterLines: readonly string[]
   /**
@@ -128,7 +141,7 @@ export interface Expectation {
   readonly fontNames: readonly ExpectedFontName[]
   /** The body's images, in document order, each drawn once at this size. */
   readonly images: readonly ExpectedImage[]
-  /** The page header's and footer's images, each drawn on every page at this size. */
+  /** The page header's and footer's images, each drawn at this size on every page that prints them: on every page but page 1 where `firstPage` is present. */
   readonly pageRegionImages: readonly ExpectedImage[]
 }
 
@@ -139,8 +152,8 @@ export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expect
  * The expectation a document implies, with what the fixture states laid over
  * it: keys from the first cell of every table row and the lines of every
  * keep-together block, every table's header and rows, the page header's and
- * footer's lines, the body's and the page regions' images, and every layout
- * check on.
+ * footer's lines, and page 1's own header's where it has one, the body's
+ * and the page regions' images, and every layout check on.
  */
 export function expectation(document: ResolvedDocument, stated: Stated): Expectation {
   const footerEveryPage = footerPattern(document.pageFooter)
@@ -149,6 +162,7 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     keys: keysOf(document.body, false),
     tables: tables(document.body).map(expectedTable),
     pageHeaderLines: plainLines(document.pageHeader),
+    ...(document.firstPageHeader === undefined ? {} : { firstPage: firstPageOf(document.firstPageHeader, document.pageFooter) }),
     pageFooterLines: plainLines(document.pageFooter),
     ...(footerEveryPage === undefined ? {} : { footerEveryPage }),
     exactText: [],
@@ -166,6 +180,11 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
     ...stated,
   }
+}
+
+/** Page 1's regions under its own header, `firstPageHeader`, and the page footer every page prints. */
+function firstPageOf(firstPageHeader: readonly Block[], pageFooter: readonly Block[]): ExpectedFirstPage {
+  return { headerLines: plainLines(firstPageHeader), regionImages: imagesOf([...firstPageHeader, ...pageFooter]) }
 }
 
 /** The images among `blocks`, in document order: an SVG drawn as vectors, any other as an image. */

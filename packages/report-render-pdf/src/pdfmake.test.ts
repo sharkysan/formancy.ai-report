@@ -7,7 +7,7 @@ import { PassThrough } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 import pdfmake from 'pdfmake'
 import type { ContentSvg, TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { readAnnotations, readPdf, readPdfObjects, readXmp } from '@formancy/report-corpus'
+import { rasterPixels, readAnnotations, readPdf, readPdfObjects, readXmp } from '@formancy/report-corpus'
 import { describe, expect, test, vi } from 'vitest'
 import { collect, type PdfStream } from './engine.js'
 import { renderPdf } from './node.js'
@@ -18,7 +18,7 @@ import { readDrawing } from './testing/drawing.js'
 import { dataUrl, DECODED, imageOrder, SIDE } from './testing/decoding.js'
 import { invoiced } from './testing/e-invoice.js'
 import { encodePng } from './testing/images.js'
-import { MARK, svg, svgAsset } from './testing/svg.js'
+import { colourAt, MARK, svg, svgAsset } from './testing/svg.js'
 
 /**
  * pdfmake as the Node entry configures it, and the PDF read from it.
@@ -218,6 +218,130 @@ describe("pdfmake's footer, which a QR-bill's slip is drawn as", () => {
     const baseline = (item: (typeof drawn)[number]): number => item.bottom - 0.2 * item.height
     expect(baseline(drawn[0]!)).toBeCloseTo(841.89 - 40 - 320 + (1900 / 2048) * 10, 2)
     expect(baseline(drawn[29]!) - baseline(drawn[0]!)).toBeCloseTo(29 * (2400 / 2048) * 10, 2)
+  })
+})
+
+describe("pdfmake's page top, which page 1's own header is drawn by (0060)", () => {
+  const A4 = { width: 595.28, height: 841.89 } as const
+  const ROBOTO_LINE = 2400 / 2048
+  const tops = (pdf: Awaited<ReturnType<typeof readPdf>>, page: number, prefix: string): number[] =>
+    pdf.pages[page - 1]!.items.filter((item) => item.text.startsWith(prefix)).map((item) => item.top)
+
+  // Page 1's own header is drawn in page 1's background, because pdfmake's
+  // header box is the top margin, one for every page, and loses what does
+  // not fit it. The background is laid out from the paper's top left in a
+  // box as large as the page, so a header far taller than the margin is
+  // drawn whole there, at the margins it is given; and it is asked for once
+  // a page, with the page's number. Were pdfmake to cut the background to
+  // the margin, or stop asking for page 1's, a letterhead would lose lines
+  // without a word; this fails first.
+  test('lays page 1’s background out in a box as large as the page, whatever its top margin', async () => {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    const asked: number[] = []
+    const lines = Array.from({ length: 30 }, (_, index) => ({ text: `Letterhead line ${index}`, fontSize: 10 }))
+    const bytes = await pdfmake
+      .createPdf({
+        pageSize: A4,
+        pageMargins: [40, 50, 40, 40],
+        content: [{ text: 'Body', pageBreak: 'after' }, { text: 'More' }],
+        defaultStyle: { font: 'Roboto' },
+        background: (page) => {
+          asked.push(page)
+          return page === 1 ? { stack: lines, margin: [40, 30, 40, 0] } : null
+        },
+      })
+      .getBuffer()
+    expect(asked).toEqual([1, 2])
+    const pdf = await readPdf(new Uint8Array(bytes))
+    const drawn = tops(pdf, 1, 'Letterhead line')
+    expect(drawn).toHaveLength(30)
+    // Roboto's ascender is 1900 of its 2048 units, and a run's box stands 0.8 of its size above its baseline: the first line from 30 pt down, far past the 50 pt margin.
+    expect(drawn[0]).toBeCloseTo(30 + (1900 / 2048) * 10 - 0.8 * 10, 2)
+    expect(drawn[29]! - drawn[0]!).toBeCloseTo(29 * ROBOTO_LINE * 10, 2)
+    expect(tops(pdf, 2, 'Letterhead line')).toEqual([])
+  })
+
+  // pdfmake's top margin stays the page header's, which every later page
+  // needs, and page 1's body is moved by the difference: an empty node
+  // whose top margin is that difference, down or up. pdfmake moves its
+  // cursor by a top margin and clamps none, so a negative one starts the
+  // next line that much higher; were it to clamp, page 1's body would start
+  // under a header it does not print; this fails first.
+  test('moves the next line by an empty node’s top margin, up for a negative one', async () => {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    const first = async (shift: number | undefined): Promise<number> => {
+      const content = [
+        ...(shift === undefined ? [] : [{ stack: [], margin: [0, shift, 0, 0] as [number, number, number, number] }]),
+        { text: 'First line', fontSize: 10 },
+      ]
+      const bytes = await pdfmake.createPdf({ pageSize: A4, pageMargins: [40, 120, 40, 40], content, defaultStyle: { font: 'Roboto' } }).getBuffer()
+      return tops(await readPdf(new Uint8Array(bytes)), 1, 'First line')[0]!
+    }
+    const at = await first(undefined)
+    expect((await first(-80)) - at).toBeCloseTo(-80, 2)
+    expect((await first(25)) - at).toBeCloseTo(25, 2)
+  })
+
+  // On page 1 of a report with a first page header of its own, the page
+  // header's function returns nothing, and pdfmake draws no header there:
+  // nothing is laid out in the margin over page 1's own header. Were
+  // pdfmake to draw a default instead, the two would print over each other.
+  test('draws no header on a page whose header function returns nothing', async () => {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    const bytes = await pdfmake
+      .createPdf({
+        pageSize: A4,
+        pageMargins: [40, 60, 40, 40],
+        content: [{ text: 'Body', pageBreak: 'after' }, { text: 'More' }],
+        defaultStyle: { font: 'Roboto' },
+        header: (page) => (page === 1 ? undefined : { text: 'Running header', margin: [40, 40, 40, 0] }),
+      })
+      .getBuffer()
+    const pdf = await readPdf(new Uint8Array(bytes))
+    // In the order the page draws them: a header is laid out once every page is, after the body.
+    expect(pdf.pages.map((page) => page.items.map((item) => item.text))).toEqual([['Body'], ['More', 'Running header']])
+  })
+
+  // pdfmake paints a table's fill under its rows by inserting it after the
+  // page's background items, which it counts by the background's positions
+  // rather than by the items themselves. Under page 1's own header -- text,
+  // a rule, an image -- a filled table first on page 1 must still paint its
+  // fill under its own text, and lose nothing of the header: were the fill
+  // inserted after its text, the text would be painted over, which only the
+  // pixels show; this fails first.
+  test('paints a filled table first on page 1 under its own text, beneath a background of text, a rule and an image', async () => {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    const png = `data:image/png;base64,${Buffer.from(encodePng(4, 4, () => [0, 90, 0])).toString('base64')}`
+    const bytes = await pdfmake
+      .createPdf({
+        pageSize: A4,
+        pageMargins: [40, 120, 40, 40],
+        content: [{ table: { widths: [200], body: [[{ text: 'Filled cell', fontSize: 20, fillColor: '#ffd700' }]] }, layout: 'noBorders' }],
+        defaultStyle: { font: 'Roboto' },
+        images: { mark: png },
+        background: (page) =>
+          page === 1
+            ? {
+                stack: [
+                  { text: 'Letterhead', fontSize: 12 },
+                  { canvas: [{ type: 'line', x1: 0, y1: 1, x2: 300, y2: 1, lineWidth: 2 }] },
+                  { image: 'mark', width: 20, height: 20 },
+                  { text: 'Under the mark', fontSize: 9 },
+                ],
+                margin: [40, 40, 40, 0],
+              }
+            : null,
+      })
+      .getBuffer()
+    const pdf = await readPdf(new Uint8Array(bytes))
+    expect(pdf.pages[0]!.items.map((item) => item.text)).toEqual(['Letterhead', 'Under the mark', 'Filled cell'])
+    expect(pdf.pages[0]!.images).toHaveLength(1)
+    const cell = pdf.pages[0]!.items.find((item) => item.text === 'Filled cell')!
+    const pixels = await rasterPixels(new Uint8Array(bytes), 1, 4)
+    // The fill beside the text, and the text's own black where its first glyph's stem stands: painted over the fill.
+    expect(colourAt(pixels, 4, cell.x + cell.width + 20, cell.top + cell.height / 2)).toBe('#ffd700')
+    const inked = Array.from({ length: Math.ceil(cell.width * 4) }, (_, x) => colourAt(pixels, 4, cell.x + x / 4, cell.top + cell.height * 0.6))
+    expect(inked.some((colour) => colour === '#000000')).toBe(true)
   })
 })
 

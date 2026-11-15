@@ -5,6 +5,7 @@ import type { Block, ResolvedDocument } from '../document.js'
 import { flatten, normalise, plainText, tables } from '../fixture.js'
 import { ALL_FIXTURES } from './all.js'
 import { decimals } from './decimals.js'
+import { FIRST_PAGE_FIXTURES } from './first-page-header.js'
 import { fonts } from './fonts.js'
 import { BODY_HEIGHT, bodyHeight, BODY_SIZE, CHAR_EM_RANGE, LINE_FACTOR_RANGE, lineHeight, PRINTABLE_WIDTH, ROWS_PER_PAGE_RANGE } from './geometry.js'
 import { groupBoundary } from './group-boundary.js'
@@ -50,15 +51,15 @@ function occurrencesIn(haystack: readonly string[]): (sought: string) => number[
 
 /** The lines a document prints that are whole: paragraphs without page fields, table cells and headers. */
 function documentLines(document: ResolvedDocument): string[] {
-  return flatten([...document.pageHeader, ...document.body, ...document.pageFooter]).flatMap((block) => {
+  return flatten([...(document.firstPageHeader ?? []), ...document.pageHeader, ...document.body, ...document.pageFooter]).flatMap((block) => {
     if (block.kind === 'paragraph') return [plainText(block.runs) ?? '']
     if (block.kind === 'table') return [...block.header, block.emptyText, ...block.rows.flatMap((row) => row.cells)].map(normalise)
     return []
   })
 }
 
-/** Section 20's fixtures and the SVG ones: every fixture an engine answers to. */
-const EVERY = [...ALL_FIXTURES, ...SVG_FIXTURES]
+/** Section 20's fixtures, the SVG ones and the first page header's: every fixture an engine answers to. */
+const EVERY = [...ALL_FIXTURES, ...SVG_FIXTURES, ...FIRST_PAGE_FIXTURES]
 
 describe('the corpus', () => {
   // Section 20's list, spelled out once here: a fixture dropped from the
@@ -90,6 +91,14 @@ describe('the corpus', () => {
     expect(SVG_FIXTURES.map((fixture) => fixture.id)).toEqual(['svg-mark', 'svg-window', 'svg-as-saved'])
   })
 
+  // So do page 1's own headers (0060): one dropped would leave a letterhead,
+  // none or a shorter header unproved on the PDF. Each gives page 1 a header
+  // of its own, which its expectation holds page 1 to.
+  test('has the first page header fixtures beside them, each once, each holding page 1 to its own header', () => {
+    expect(FIRST_PAGE_FIXTURES.map((fixture) => fixture.id)).toEqual(['first-page-letterhead', 'first-page-none', 'first-page-shorter'])
+    for (const fixture of FIRST_PAGE_FIXTURES) expect(fixture.expect.firstPage, fixture.id).toBeDefined()
+  })
+
   // A refusal without a code would accept any refusal, and a code on a
   // fixture that must render would be ignored and mislead whoever reads it.
   test('names a refusal exactly where one is allowed, and page bounds inside the page limit', () => {
@@ -109,7 +118,7 @@ describe('the corpus', () => {
     for (const fixture of EVERY) {
       const { document, expect: expected } = fixture
       const inBody = occurrencesIn(bodyWords(document.body))
-      const inPageRegions = occurrencesIn(bodyWords([...document.pageHeader, ...document.pageFooter]))
+      const inPageRegions = occurrencesIn(bodyWords([...(document.firstPageHeader ?? []), ...document.pageHeader, ...document.pageFooter]))
       let previous = -1
       for (const key of expected.keys) {
         const found = inBody(key)

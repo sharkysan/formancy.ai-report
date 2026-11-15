@@ -26,7 +26,7 @@ export type {
   TableRow,
   TextStyle,
 } from './document.js'
-export type { Expectation, ExpectedCell, ExpectedImage, ExpectedRefusal, ExpectedRow, ExpectedTable, Fixture, Stated } from './fixture.js'
+export type { Expectation, ExpectedCell, ExpectedFirstPage, ExpectedImage, ExpectedRefusal, ExpectedRow, ExpectedTable, Fixture, Stated } from './fixture.js'
 export { epcCodes, expectation } from './fixture.js'
 export {
   SITE_VISIT_HIGH,
@@ -43,6 +43,7 @@ export type { StoredSubmission } from './forms/site-visit.js'
 export { ALL_FIXTURES } from './fixtures/all.js'
 export { IMAGE_KINDS } from './image-kinds.js'
 export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from './fixtures/svg.js'
+export { FIRST_PAGE_FIXTURES } from './fixtures/first-page-header.js'
 export { readPdf } from './read-pdf.js'
 export { drawingsOn } from './drawings.js'
 export type { Drawing } from './drawings.js'
