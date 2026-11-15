@@ -276,6 +276,11 @@ new child, the sheet's border, and a modified arrow taken by the toolbar.
 - **The place dialog's "nowhere" sentence** shows when a component has
   nowhere else to go. No report tried here has such a component. The test
   draws the dialog over a state that says so.
+- **Text that is not a number never reaches the editor from a number field.**
+  A browser empties an `<input type="number">` holding "tall" before any
+  change event fires, so the field says "This cannot be empty." rather than
+  "Enter a number.", and an optional one is emptied: the rows a group
+  header is kept with, emptied, are 1 again, the member's absence (0059).
 - Everything `report-builder-core` lists under *What it does not do*
   holds here too: the canvas is not the PDF, some properties have no
   editor yet, and two problems about the report as a whole share a name.

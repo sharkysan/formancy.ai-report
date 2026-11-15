@@ -80,17 +80,22 @@ export interface PlannedRow {
  * How many of its first rows each group header is kept with, one for every
  * other row (0059): the most, up to the number its row keeps, whose block
  * -- the header, those rows, and the footers and totals that close them
- * where they reach the group's last row and `closing` -- ends on a row
- * that prints and fits `room`, a page under the repeated header. A rule
- * finds a row on its page by its text alone, so a block that ended on one
- * that prints nothing could not be held to its page, and the plan, which
- * counts every row, would break where the rule does not. Where no number
- * above one does, one: the block every header has had, which `keepBlocks`
- * makes, `keptBlocks` drops where it does not fit, and a rule leaves where
- * it falls where its first row prints nothing. A header that prints
- * nothing keeps one too: no rule can find it, and the rows that move with
- * the column header, which read no text, would otherwise take its count
- * with them.
+ * where they reach the group's last row and `closing` -- fits `room`, a
+ * page under the repeated header, and has a row that prints from the last
+ * of those rows on. A rule finds a row on its page by its text alone, and
+ * holds the last of its block's rows that prints to the header's page
+ * (`tableRules`): a block short of its group, whose last row printed
+ * nothing, would be held to an earlier row, and the plan, which counts
+ * every row, would break where the rule does not. A block that runs into
+ * the group's footers is held by the last of them that prints, a footer
+ * row or a total after it that prints nothing standing in the block, as it
+ * stands in the closing rows' own block of the group's last row. Where no
+ * number above one does, one: the block every header has had, which
+ * `keepBlocks` makes, `keptBlocks` drops where it does not fit, and a rule
+ * leaves where it falls where its first row prints nothing. A header that
+ * prints nothing keeps one too: no rule can find it, and the rows that
+ * move with the column header, which read no text, would otherwise take
+ * its count with them.
  */
 export function keptCounts(rows: readonly PlannedRow[], closing: boolean, room: number): number[] {
   const kinds = rows.map((row) => row.kind)
@@ -98,7 +103,8 @@ export function keptCounts(rows: readonly PlannedRow[], closing: boolean, room: 
   return rows.map((row, index) => {
     for (let count = row.kind === 'groupHeader' && row.prints ? row.keep : 1; count > 1; count--) {
       const block = { first: index, last: closedAt(kinds, index + count, closing) }
-      if (rows[block.last]?.prints === true && blockHeight(pitches, block) <= room) return count
+      const held = rows.slice(index + count, block.last + 1).some((each) => each.prints)
+      if (held && blockHeight(pitches, block) <= room) return count
     }
     return 1
   })

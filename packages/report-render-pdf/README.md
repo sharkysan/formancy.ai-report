@@ -98,8 +98,11 @@ Every block of the resolved document:
   (`keepWithRows`) stands on the page of as many of them as fit there under
   the repeated column header, and of its first row where no more do: a
   group no longer than its count stands whole, with its footers, where it
-  fits; the block ends on the last of those rows that prints, since a
-  rule finds a row on its page by its text; and a count on a row that is
+  fits, held by the last of them that prints though a footer row after it
+  prints nothing; a block short of its group ends on the last of those
+  rows that prints, since a rule finds a row on its page by its text; a
+  header that prints nothing keeps no more than its first row; and a
+  count on a row that is
   no group header, outside 2 to `MAX_KEEP_WITH_ROWS`, or past the detail
   rows under the header is refused as `unsupported`, naming the table
   ([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).

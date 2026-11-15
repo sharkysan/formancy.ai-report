@@ -111,6 +111,29 @@ describe('a group header that keeps three rows', () => {
     TIMEOUT,
   )
 
+  // The room a header leaves at a page's foot is a page's room the report
+  // may not have. A page holds 48 one-line rows under the column header:
+  // 45 rows and a header keeping three leave the header two rows' room, so
+  // it moves to the second page with its group, and the second group, which
+  // filled that page to its foot, runs onto a third. Kept with its first row
+  // alone, the same report fits two pages. A count that passes the host's
+  // limit is refused, never printed without the count or cut short, and only
+  // once the body is laid out whole: its least height, which counts no
+  // such room, is within two pages.
+  test(
+    'is refused as too many pages where the rows it keeps take the report past its limit',
+    async () => {
+      const rows = [...details(1, 45), ...group('D13', 3, details(46, 49)), ...group('D14', undefined, details(50, 92))]
+      const document = documentOf('Kept past the limit', [ledger('deliveries', rows)])
+      await expect(renderPdf(document, { maxPages: 2 })).rejects.toMatchObject({ code: 'too-many-pages', message: 'the report needs more than 2 pages' })
+      const strip = (block: Block): Block => (block.kind === 'table' ? { ...block, rows: block.rows.map(({ keepWithRows: _keep, ...row }) => row) } : block)
+      const plain = await rendered({ ...document, body: document.body.map(strip) }, 2)
+      expect(plain.pages).toHaveLength(2)
+      expect(['Delivery D13', 'ROW-0048', 'Subtotal D14'].map((key) => pageOf(plain, key))).toEqual([1, 2, 2])
+    },
+    TIMEOUT,
+  )
+
   // The first group of a table moves with the column header, and takes the
   // rows it keeps with it (`keepWithHeaderRows`): left to the column
   // header's own rule, the header, the group header and one row would stay
@@ -219,6 +242,32 @@ describe('a group header over rows with no text', () => {
       const pdf = await rendered(document)
       expect(verify(fixtureOf('kept-to-blank', document, { minPagesExpected: 2, maxPagesExpected: 2 }), pdf)).toEqual([])
       expect(['Delivery D08', 'ROW-0046', 'ROW-0047', 'Subtotal D08'].map((key) => pageOf(pdf, key))).toEqual([2, 2, 2, 2])
+    },
+    TIMEOUT,
+  )
+
+  // A group whose subtotal prints and whose last footer row prints nothing,
+  // swept across the page's foot: the block ends on the subtotal, the last
+  // of its rows that prints, and the group stands whole on one page. Judged
+  // by its blank last row, the header would keep its first row alone, and
+  // stay at the foot of a page with it while the rest of the group, which
+  // fits on the next page whole, went there. The blank row stands in the
+  // block's height, as in the closing rows' own block of the group's last
+  // row: 44 rows before leave the header, its rows and the subtotal room,
+  // and not the blank row, and the group moves whole to the next page.
+  test(
+    'keeps a whole group with its subtotal, though a footer row after the subtotal prints nothing',
+    async () => {
+      const failures: string[] = []
+      for (let before = 42; before <= 50; before++) {
+        const own = [...group('D12', 2, details(before + 1, before + 2)), { kind: 'groupFooter', cells: ['', '', ''] } satisfies TableRow]
+        const document = documentOf('Kept past a blank footer', [ledger('deliveries', [...details(1, before), ...own])])
+        const pdf = await rendered(document)
+        expect(verify(fixtureOf(`kept-blank-footer-${before}`, document, { minPagesExpected: 1, maxPagesExpected: 2 }), pdf)).toEqual([])
+        const pages = ['Delivery D12', `ROW-${String(before + 2).padStart(4, '0')}`, 'Subtotal D12'].map((key) => pageOf(pdf, key))
+        if (new Set(pages).size !== 1 || (before === 44 && pages[0] !== 2)) failures.push(`${before} rows before: ${pages.join(', ')}`)
+      }
+      expect(failures).toEqual([])
     },
     TIMEOUT,
   )

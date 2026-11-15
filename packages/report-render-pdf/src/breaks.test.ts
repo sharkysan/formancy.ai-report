@@ -131,6 +131,29 @@ describe('keptCounts', () => {
     expect(keptCounts(group(3, [{}, {}, { prints: false }]), true, 100)[1]).toBe(3)
   })
 
+  // A whole group whose subtotal prints and whose last footer row, or the
+  // table's total under it, prints nothing: the rule holds the subtotal,
+  // the last of the block's rows that prints, to the header's page, as the
+  // closing rows' own block of the group's last row does, and the group
+  // stays whole. Judged by the block's very last row, the header would keep
+  // one row, and the rest of the group could go to the next page without
+  // it. Where nothing from the group's last row on prints, it keeps one.
+  test("ends a whole group's block on its subtotal, though a footer or a total after it prints nothing", () => {
+    const blankFooter = [...group(2, [{}, {}]), row('groupFooter', { prints: false })]
+    expect(keptCounts(blankFooter, true, 100)).toEqual([1, 2, 1, 1, 1, 1])
+    expect(
+      keepBlocks(
+        blankFooter.map(({ kind }) => kind),
+        true,
+        keptCounts(blankFooter, true, 100),
+      ),
+    ).toEqual([{ first: 1, last: 5 }])
+    const blankTotal = [...group(2, [{}, {}]), row('total', { prints: false })]
+    expect(keptCounts(blankTotal, true, 100)[1]).toBe(2)
+    const nothing = group(2, [{}, { prints: false }], [])
+    expect(keptCounts([...nothing, row('groupFooter', { prints: false })], true, 100)[1]).toBe(1)
+  })
+
   // A header that prints nothing has nothing for a rule to find, and keeps
   // what every header had: one row. Kept with three, a table's first group
   // header would still move them with the column header, which reads no

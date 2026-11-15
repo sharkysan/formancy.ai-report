@@ -27,6 +27,9 @@
       the page of its first three rows;
     - a group of two rows stating three printed whole with its subtotal on
       one page;
+    - a report whose stated count takes it past its page limit refused as
+      `too-many-pages` once its body is laid out whole, and the same report
+      without the count printed within it;
     - a table's first group header moved with the column header and the
       rows it keeps;
     - a header and three rows too tall for a page under the column header
@@ -34,20 +37,27 @@
       count above one fits, on the pages the arithmetic gives;
     - a row with no text among the stated rows counted, one with no text
       last among them ending nothing, a group whose last row prints
-      nothing kept whole to its subtotal, and a header over rows none of
-      which prints, and a header that prints nothing, left where they fall,
-      to the byte as without a count;
+      nothing kept whole to its subtotal, a group whose footer row after
+      its subtotal prints nothing kept whole too, that blank row standing
+      in its block's height, and a header over rows none of which prints,
+      and a header that prints nothing, left where they fall, to the byte
+      as without a count;
     - a table in a framed section, broken by its rules alone, and a table
       whose rows split, its last kept row starting on its header's page.
 
     `src/breaks.test.ts` holds the arithmetic apart from pdfmake: the
     blocks a count makes, a group no longer than its count merged with its
-    footers, the count that fits chosen where the stated one does not, and
-    a block ended on a row that prints, judged after the footers are
-    merged.
+    footers, the count that fits chosen where the stated one does not, a
+    block short of its group ended on a row that prints, and one that runs
+    into the group's footers held by the last of its rows from the group's
+    last row on that prints, a footer row or a total after the subtotal
+    printing nothing.
     `src/tables.test.ts` lays a 400-group table that keeps three rows out
-    at most three times, and renders tables that state counts to the same
-    bytes with the plan as with the rules alone. `src/refusals.test.ts`
+    at most three times, and renders to the same bytes with the plan as
+    with the rules alone, swept across a page's foot, tables whose headers
+    keep all three rows of their groups, running into the subtotals and
+    the total, three of four, and three of four whose third prints
+    nothing. `src/refusals.test.ts`
     refuses, as `unsupported` and naming the table, the member on a row
     that is not a group header, a count not whole or outside 2 to
     `MAX_KEEP_WITH_ROWS`, and a count past the detail rows under the
@@ -89,10 +99,11 @@
     emptied where none is stated, no edit, and the field reading one again
     in both builders; and the field absent from a table without a group.
     `src/properties.test.ts` holds the field's key, kind and value on the
-    grouped table of its report and its absence from the same table without
-    a group, one and nothing written as the member's absence, a count given
-    back as it reads or written otherwise left alone, and the validator's
-    own reason on the field for a count it refuses. The Studio's
+    grouped table of its report, on a group whose header has no text, and
+    its absence from the same table without a group, one and nothing
+    written as the member's absence, a count given back as it reads or
+    written otherwise left alone, and the validator's own reason on the
+    field for a count it refuses. The Studio's
     `parity.test.tsx` holds both builders' accessible trees alike over the
     grouped equipment starter's table, the one starter whose table has a
     group, in each of the editor's languages.
@@ -111,15 +122,26 @@
     - the runtime's: the member never written failed one of
       `lower-table.test.ts`'s cases, the count not held to the group's
       rows two, and the member written at one two;
-    - the renderer's: `keptCounts` keeping one row under every header
-      failed fourteen cases -- eight of `group-rows.test.ts`'s eleven, the
-      three that passed being those that expect the placement a header
-      had before, five of `breaks.test.ts`'s, and `corpus.test.ts`'s
-      `group-keep-with`; a block not held to end on a row that prints
-      failed three, its end judged before the footers were merged two, a
-      header that prints nothing not passed over two, and `keepBlocks`
-      ignoring the counts two; and `checkKeptRows`'s call removed failed
-      all nine of `refusals.test.ts`'s new cases that expect a refusal;
+    - the renderer's, run again against the files as they stand once a
+      review's findings were taken: `keptCounts` keeping one row under
+      every header failed seventeen cases -- ten of `group-rows.test.ts`'s,
+      the four that passed being those that expect the placement a header
+      had before (kept with its first row where no more fit, its rows
+      ended on the last that prints, nothing kept over rows or under a
+      header that print nothing, and a table's first group header that
+      prints nothing), six of `breaks.test.ts`'s, and `corpus.test.ts`'s
+      `group-keep-with`; a block not held to a row that prints failed
+      three; held to its very last row, as it was before the review, so
+      that a footer row after the subtotal that prints nothing ended the
+      count, two; its end judged before the footers were merged two; a
+      header that prints nothing not passed over two; `keepBlocks`
+      ignoring the counts thirteen, three of `breaks.test.ts`'s and ten of
+      `group-rows.test.ts`'s; a group header's rule holding its first row
+      alone made `tables.test.ts`'s planned sweep differ from the rules
+      alone in nine placements, eight of them in the two tables whose
+      counts are kept in full or run into the subtotal; and
+      `checkKeptRows`'s call removed failed all nine of
+      `refusals.test.ts`'s new cases that expect a refusal;
     - the corpus's: its orphan check as `main` has it failed "a group
       header with fewer of its rows under it than it keeps", and the count
       checked in place of the old check rather than beside it "an orphaned
@@ -136,7 +158,8 @@
       `main` has it, the given-back scenario in each language, its input
       left empty where it should read 1; and the field writing a count
       given back as it reads as an edit failed one case, writing one as one
-      eight, and the field on every table four.
+      eight, the field on every table four, and the field hidden on a group
+      whose header has no text the case that shows it there.
 
     The byte comparison, on the same day and machine: with the work
     stashed, the branch's format commit, whose runtime, renderer and corpus
@@ -244,8 +267,9 @@ is one, the rule every group header has had.**
 **In the PDF** (report-render-pdf). The existing blocks, rules and planned
 breaks keep the longer block; nothing beside them is built.
 - **How many are kept.** A group header is kept with the greatest number
-  of its first rows, up to the number its row carries, whose last row
-  prints and whose block fits on a page under the repeated column header:
+  of its first rows, up to the number its row carries, whose block a row
+  that prints can hold (below) and fits on a page under the repeated
+  column header:
   the header and those rows, and, where they are all of the group's rows
   and the table keeps closing rows, its footers and any totals that close
   it, as the closing rows' rule already merges them. Where no number above
@@ -255,11 +279,20 @@ breaks keep the longer block; nothing beside them is built.
 - **A row with no text** counts where it stands among the rows kept, but
   never ends them: a rule finds a row on its page by its text alone, so
   the block ends at the last of them that prints, and the plan is held to
-  that same block so that it breaks where the rules would; where the
-  block reaches the group's last row, its end is judged after its footers
-  are merged, so that a subtotal that prints ends it. Where none of them
-  prints, nothing is kept, as of a first row with no text today, and a
-  header that prints nothing keeps nothing either, whatever it states.
+  that same block so that it breaks where the rules would. Where the
+  block reaches the group's last row, it runs on through the footers and
+  totals that close the group, and is held by the last of its rows from
+  the group's last row on that prints: a subtotal that prints holds it,
+  though the group's last row, or a footer row or a total after the
+  subtotal, prints nothing. Those blank rows stand in the block, and in
+  its height, as they already stand in the closing rows' own block of the
+  group's last row. Where none of them prints, nothing is kept, as of a
+  first row with no text today.
+- **A header that prints nothing** is kept with no more than its first
+  row, whatever it states: a rule has nothing of it to find on the page. A
+  table's first group header still moves with that row under the column
+  header, as every first group header does, and any other is left where
+  it falls.
 - **Rows that may split.** Whether a table's rows split is decided as
   before, by each row and its group header alone, never by the count. In a
   table whose rows split, the last kept row starts on its header's page and
@@ -331,10 +364,18 @@ shows no such field.
 - **A row with no text ends no count.** A header whose last stated rows
   print nothing is kept with the rows before them that do, and the rows
   that print nothing may stand on the next page.
-- **A header with no text keeps nothing.** A group header may be empty,
-  or resolve to no text, and a rule has nothing of it to find on the page:
-  it is left where it falls whatever its count, and the builders still
-  show the count's field for its group.
+- **A blank row after a subtotal takes room.** A group no longer than its
+  count whose footer row or total after its subtotal prints nothing is
+  kept whole with that row: where a table's breaks are planned, in the
+  body outside a frame, it moves whole to the next page where the blank
+  row would not fit with it, as the closing rows' block of its last row
+  already moves that row and its footers.
+- **A header with no text keeps no more than its first row.** A group
+  header may be empty, or resolve to no text, and a rule has nothing of it
+  to find on the page: whatever its count, a table's first group header
+  still moves with its first row under the column header, as before, and
+  any other is left where it falls. The builders still show the count's
+  field for its group.
 - **In a table whose rows split**, the last kept row may continue on the
   next page.
 - **Older releases.** 0.2.0 refuses a report that states a count, whole, as

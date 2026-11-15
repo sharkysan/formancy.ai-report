@@ -517,6 +517,22 @@ describe('the rows a group header is kept with', () => {
     expect(keys).not.toContain(KEY)
   })
 
+  // A group whose header is no text at all still states its count, and the
+  // field shows it, though no page can hold such a header to its rows: the
+  // renderer keeps the first row with it at most (0059), and a field that
+  // vanished with the header's text would hide a member the report states.
+  test('is shown on a group whose header has no text', () => {
+    const report = withTable(3)
+    const body = report.regions.body.map((component): Component =>
+      component.kind === 'table' && component.group !== undefined ? { ...component, group: { ...component.group, header: [] } } : component,
+    )
+    const headerless = { ...report, regions: { ...report.regions, body } }
+    expect(validateReport(headerless).valid).toBe(true)
+    const { editor } = editorOver(headerless)
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    expect(field(editor.state().properties.fields, KEY)).toMatchObject({ kind: 'number', value: '3' })
+  })
+
   // The count is the group's, and nothing else of the group moves with it.
   // One, or nothing, is the rule every header already has, written as the
   // member's absence, as a boolean's default is: a report edited back to

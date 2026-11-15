@@ -26,8 +26,11 @@ import type { Cell, Row } from './table.js'
  * whose first row has no text, or none of whose other rows has, cannot be
  * kept: there is nothing on the page for the rule to find. One that has
  * holds the last of its rows that prints to the first one's page; a group
- * header that keeps more than one row has a block that ends on such a row
- * (`keptCounts`), so that the rule and the plan hold the same rows.
+ * header that keeps more than one row has a block in which such a row
+ * stands at or after the last row it counts (`keptCounts`), so that the
+ * rule holds every row the count names. Rows after it that print nothing
+ * -- a blank footer row under a subtotal -- stand in the block's height,
+ * as in a closing rows' block, though no rule holds them.
  *
  * In the body, outside any frame, a table whose rows are kept whole also
  * has its breaks planned. The first body row after those that move with

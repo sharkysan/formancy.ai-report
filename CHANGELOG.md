@@ -34,10 +34,13 @@ invoice sample was compared byte for byte on the day the renderer changed.
   first row where no more fit. **A count is a most, and nothing says when fewer were kept**:
   the heights are the data's, and refusing would refuse a report that loses nothing by printing.
   A row with no text counts but never ends the block, since a rule finds a row on its page by
-  its text, and a header that prints nothing keeps none of its count. A report that states a
-  count can need more pages, and is refused as `too-many-pages` where that passes the host's
-  limit. A count on a row that is no group header, outside 2 to the bound, or past the detail
-  rows under its header is refused as `unsupported`, naming the table.
+  its text; a whole group's block is held by its subtotal though a footer row after it prints
+  nothing, and that blank row stands in the block's height. A header that prints nothing keeps
+  no more than its first row: a table's first group header still moves with it under the column
+  header, and any other is left where it falls. A report that states a count can need more
+  pages, and is refused as `too-many-pages` where that passes the host's limit. A count on a row
+  that is no group header, outside 2 to the bound, or past the detail rows under its header is
+  refused as `unsupported`, naming the table.
 - **Both builders show *Rows kept with each group header*** on a grouped table's properties, a
   number reading 1 where none is stated; 1, or nothing, is written as the member's absence, and
   a count given back as it reads is no edit. The Angular builder now gives a typed field back

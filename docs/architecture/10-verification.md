@@ -179,11 +179,11 @@ corpus's fixture is built of rows that fit
 | An edit of it, a count out of range refused with nothing changed, undone | `report-core/src/commands/table.test.ts` |
 | The count on the group header row, at most the group's rows, written only above one, and a report that states none resolved as before | `report-runtime/src/lower-table.test.ts` |
 | The blocks a count makes and the count that fits, a whole group merged with its footers, a block ended on a row that prints | `report-render-pdf/src/breaks.test.ts` |
-| On the PDF: headers swept across page ends, a small group whole, fewer kept where the stated rows do not fit, rows with no text, a table in a framed section and one whose rows split | `report-render-pdf/src/group-rows.test.ts` |
+| On the PDF: headers swept across page ends, a small group whole, a count past the page limit refused as too many pages, fewer kept where the stated rows do not fit, rows with no text, a blank footer row after a subtotal among them, a table in a framed section and one whose rows split | `report-render-pdf/src/group-rows.test.ts` |
 | A long table planned in a few layouts, to the bytes the rules alone make | `report-render-pdf/src/tables.test.ts` |
 | A count the runtime would not write, refused naming the table | `report-render-pdf/src/refusals.test.ts` |
 | The orphan check holding a header to its count, and every other header as before; the fixture placed for every plausible number of rows a page | `report-corpus/src/checks.test.ts`, `report-corpus/src/fixtures/fixtures.test.ts`, rendered by `report-render-pdf/src/corpus.test.ts` and `browser.test.ts` |
-| The field in both builders, typed, refused, written as none and undone; given back as it reads, no edit; absent without a group | `report-builder-core/src/scenarios.test.ts` and `properties.test.ts`, React's `scenarios.test.tsx`, Angular's `scenarios.test.ts`, and the Studio's `parity.test.tsx` |
+| The field in both builders, typed, refused, written as none and undone; given back as it reads, no edit; shown on a group whose header has no text, absent without a group | `report-builder-core/src/scenarios.test.ts` and `properties.test.ts`, React's `scenarios.test.tsx`, Angular's `scenarios.test.ts`, and the Studio's `parity.test.tsx` |
 
 **What it does not see.** A rule or a border through a row, a shape over a
 line, a clipped glyph, white text on white: none is text or an image to

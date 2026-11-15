@@ -2309,7 +2309,7 @@
       ]
     },
     "0059": {
-      "reviewed": "sha256:84d4899c9e40ac3c4a590c465b0a29807b1e763f1f95326ade1061d0dbd63be7",
+      "reviewed": "sha256:238371799707aa0d3cb1088bceebad96950a481ab545cbc4fbc675c038b81095",
       "limitations": [
         {
           "area": "rendering",
@@ -2338,8 +2338,18 @@
         },
         {
           "area": "rendering",
-          "says": "A group header that prints nothing keeps none of its rows, whatever its count, and the builders still show the count's field for its group.",
+          "says": "A group no longer than its count whose footer row or total after its subtotal prints nothing is kept whole with that blank row, and, where the table's breaks are planned, in the body outside a frame, moves whole to the next page where the blank row would not fit with it.",
           "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group header that prints nothing is kept with no more than its first row, whatever its count: a table's first group header still moves with that row under the column header, and any other is left where it falls.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The builders show a group's count of kept rows on its table's properties though the group's header has no text, where the renderer keeps no more than the header's first row with it.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
         },
         {
           "area": "rendering",

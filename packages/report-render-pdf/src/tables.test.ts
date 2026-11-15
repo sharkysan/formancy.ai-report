@@ -203,12 +203,14 @@ describe("a table's planned breaks", () => {
     TIMEOUT,
   )
 
-  // The plan reads the block a count makes as the rules do, its last row
-  // one that prints: headers keeping three rows whose third prints
-  // nothing, swept by lines of text above the table across the page's
-  // foot, render to the same bytes planned and by the rules alone. A plan
-  // that counted to the blank row would break before a header where its
-  // two rows that print fit, and no rule asks it to.
+  // The plan reads the block a count makes as the rules do, swept by lines
+  // of text above the table across the page's foot, planned and by the
+  // rules alone to the same bytes: headers keeping all three of their
+  // group's rows, a block that runs into the subtotal and the total; three
+  // of four, a block short of its group; and three of four whose third
+  // prints nothing, which the count drops to two. A plan that counted a
+  // block otherwise than its rule holds it -- to its header's first row, or
+  // to a blank row -- would break before a header where no rule asks it to.
   test(
     'make exactly the breaks the rules alone would make for headers that keep three rows',
     async () => {
@@ -221,21 +223,27 @@ describe("a table's planned breaks", () => {
       vi.doUnmock('./breaks.js')
       vi.resetModules()
       const planned = (await import('./node.js')).renderPdf
-      // Each group's header, four rows of which the third is blank, and its subtotal.
-      const rows = keeping(
-        grouped(12, 4).map((row, index): TableRow => (index % 6 === 3 ? { kind: 'detail', cells: ['', '', ''] } : row)),
-        3,
-      )
-      const differing: number[] = []
-      for (let before = 1; before <= 10; before++) {
-        const lines = Array.from({ length: before }, (_, index) => paragraph(`Line ${index + 1} before the table`))
-        const document = documentOf('Kept groups', [...lines, ledger('groups', rows)])
-        const [a, b] = await Promise.all(
-          [planned(document, { maxPages: 40 }), unplanned(document, { maxPages: 40 })].map((rendering) =>
-            rendering.then((bytes) => Buffer.from(bytes).toString('base64')),
-          ),
-        )
-        if (a !== b) differing.push(before)
+      const tables: Record<string, TableRow[]> = {
+        whole: keeping(grouped(12, 3), 3),
+        short: keeping(grouped(12, 4), 3),
+        // Each group's header, four rows of which the third is blank, and its subtotal.
+        blank: keeping(
+          grouped(12, 4).map((row, index): TableRow => (index % 6 === 3 ? { kind: 'detail', cells: ['', '', ''] } : row)),
+          3,
+        ),
+      }
+      const differing: string[] = []
+      for (const [name, rows] of Object.entries(tables)) {
+        for (let before = 1; before <= 10; before++) {
+          const lines = Array.from({ length: before }, (_, index) => paragraph(`Line ${index + 1} before the table`))
+          const document = documentOf('Kept groups', [...lines, ledger('groups', rows)])
+          const [a, b] = await Promise.all(
+            [planned(document, { maxPages: 40 }), unplanned(document, { maxPages: 40 })].map((rendering) =>
+              rendering.then((bytes) => Buffer.from(bytes).toString('base64')),
+            ),
+          )
+          if (a !== b) differing.push(`${name} ${before}`)
+        }
       }
       expect(differing).toEqual([])
     },
