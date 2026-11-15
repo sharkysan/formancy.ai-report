@@ -448,7 +448,15 @@ export interface ResolvedDocument {
     readonly creationDate: string
   }
   readonly page: PageSetup
-  /** Repeated on every page, at the top of the printable area. */
+  /**
+   * Page 1's own header, which page 1 prints at the top of the printable
+   * area in the page header's place (0060); an empty list is none, and page
+   * 1's body then starts at the top margin. Absent, page 1 prints the page
+   * header, as every page does. It holds no page field: report-spec refuses
+   * one in it, and the renderer draws it before the pages are counted.
+   */
+  readonly firstPageHeader?: readonly Block[]
+  /** Repeated at the top of the printable area on every page, or on every page but the first where the document has `firstPageHeader`. */
   readonly pageHeader: readonly Block[]
   /** Repeated on every page, at the bottom of the printable area. */
   readonly pageFooter: readonly Block[]

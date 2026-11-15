@@ -32,6 +32,7 @@ import {
 } from './declarations.js'
 import { replaceDocument, setLocale, setPage, setTitle } from './document.js'
 import { putEInvoice, removeEInvoice, setPaymentAccount, updateEInvoice } from './e-invoice.js'
+import { putFirstPageHeader, removeFirstPageHeader } from './first-page-header.js'
 import { putPaymentPart, removePaymentPart, updatePaymentPart } from './payment-part.js'
 import { removeFieldWithReaders } from './readers.js'
 import { addLanguage, removeLanguage, translateExpression, translateWord } from './translations.js'
@@ -87,6 +88,8 @@ const STEPS = Object.freeze({
   updateFooterRow,
   putFooterCell,
   removeFooterCell,
+  putFirstPageHeader,
+  removeFirstPageHeader,
   putPaymentPart,
   updatePaymentPart,
   removePaymentPart,
@@ -227,6 +230,8 @@ export const ARGUMENTS: { readonly [N in CommandName]: readonly Shape[] } = {
   updateFooterRow: ['text', 'footer', 'index', 'object'],
   putFooterCell: ['text', 'footer', 'index', 'object'],
   removeFooterCell: ['text', 'footer', 'index', 'text'],
+  putFirstPageHeader: ['list'],
+  removeFirstPageHeader: [],
   putPaymentPart: ['object'],
   updatePaymentPart: ['object'],
   removePaymentPart: [],

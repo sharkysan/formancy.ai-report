@@ -43,11 +43,26 @@ import type { REPORT_SPEC_VERSION } from './version.js'
  * The report's regions, in the order a reader meets them. The body is flow
  * only in version 0: ordered blocks, so a growing table pushes what follows
  * down. Positioned elements in the page regions are deferred.
+ *
+ * The first page header stands beside the header it replaces: page 1
+ * prints it in place of the page header, which then prints from page 2 on
+ * ([0060](../../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
  */
-export const REGION_NAMES = ['reportHeader', 'pageHeader', 'body', 'pageFooter', 'summary'] as const
+export const REGION_NAMES = ['reportHeader', 'firstPageHeader', 'pageHeader', 'body', 'pageFooter', 'summary'] as const
 export type RegionName = (typeof REGION_NAMES)[number]
 
-export type Regions = { readonly [R in RegionName]: readonly Component[] }
+/**
+ * The regions a report may leave out, and what leaving one out means: the
+ * first page header absent, page 1 prints the page header as every page
+ * does; present and empty, page 1 prints no header (0060). Every other
+ * region every report holds.
+ */
+export const OPTIONAL_REGIONS = ['firstPageHeader'] as const satisfies readonly RegionName[]
+export type OptionalRegionName = (typeof OPTIONAL_REGIONS)[number]
+
+export type Regions = { readonly [R in Exclude<RegionName, OptionalRegionName>]: readonly Component[] } & {
+  readonly [R in OptionalRegionName]?: readonly Component[]
+}
 
 export const PROVENANCE_KINDS = ['blank', 'form', 'dataset'] as const
 export type ProvenanceKind = (typeof PROVENANCE_KINDS)[number]

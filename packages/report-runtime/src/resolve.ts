@@ -39,7 +39,7 @@ import { reportHash } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { checkData } from './data.js'
 import type { Completeness, Consistency, DataMode, ReportData } from './data.js'
-import type { Paragraph, ResolvedDocument } from './document.js'
+import type { Block, Paragraph, ResolvedDocument } from './document.js'
 import { createFormatter } from './format.js'
 import { localePath } from './languages.js'
 import { eInvoiceFile, resolveEInvoice } from './lower-e-invoice.js'
@@ -111,7 +111,7 @@ export type Resolution =
     }
   | { readonly ok: false; readonly errors: readonly RuntimeError[] }
 
-/** What every page of a preview that lacks data says, at the top of its page header. */
+/** What every page of a preview that lacks data says, at the top of its page header, and of page 1's own where it has one. */
 export const PREVIEW_LABEL = 'Preview of incomplete data: not a final report'
 
 /** What every page of a preview of an e-invoice says when it lacks nothing else: it writes no XML, and is not the invoice. */
@@ -127,8 +127,9 @@ const label = (text: string): Paragraph => ({ kind: 'paragraph', runs: [{ text }
  * The paragraph that opens every page's header of a final render of an
  * XRechnung, as the runtime writes it: `XRECHNUNG_COPY_LABEL` in the
  * labels' style. The renderer refuses an XRechnung's document whose page
- * header does not open with it, style and all, since the text in white or
- * at one point would say nothing to a reader (0038). Frozen, so that what
+ * header, or page 1's own where it has one (0060), does not open with it,
+ * style and all, since the text in white or at one point would say nothing
+ * to a reader (0038). Frozen, so that what
  * the renderer holds a copy to is not a host's to change; each document
  * carries a paragraph of its own.
  */
@@ -220,10 +221,13 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
       : invoice === undefined
         ? undefined
         : E_INVOICE_PREVIEW_LABEL
+  // Every header a page prints opens with the label, page 1's own among them, each with a paragraph of its own (0060).
+  const headed = (blocks: readonly Block[]): readonly Block[] => (labelled === undefined ? blocks : [label(labelled), ...blocks])
   const document: ResolvedDocument = {
     info: { title: valid.title, creationDate },
     page: valid.page,
-    pageHeader: labelled === undefined ? regions.pageHeader : [label(labelled), ...regions.pageHeader],
+    ...(regions.firstPageHeader === undefined ? {} : { firstPageHeader: headed(regions.firstPageHeader) }),
+    pageHeader: headed(regions.pageHeader),
     pageFooter: regions.pageFooter,
     body: regions.body,
     ...(paymentPart === undefined ? {} : { paymentPart }),

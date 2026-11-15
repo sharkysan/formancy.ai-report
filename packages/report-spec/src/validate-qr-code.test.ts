@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { QR_ERROR_CORRECTION } from './components.js'
 import { REGION_NAMES } from './definition.js'
 import { printableArea, squareRoom } from './page.js'
-import { append, edited, editable, getAt, refusals, removeAt, richReport, setAt } from './test-support.js'
+import { append, edited, editable, everyRegionReport, getAt, refusals, removeAt, richReport, setAt } from './test-support.js'
 import { validateReport } from './validate.js'
 
 /** Where the fixture's QR code is: last in the summary. */
@@ -69,7 +69,7 @@ describe('a QR code', () => {
   // code could not stand where the slip is.
   test('stands wherever an image does: in every region and in every container', () => {
     for (const region of REGION_NAMES) {
-      const report = editable(richReport())
+      const report = editable(everyRegionReport())
       append(report, `/regions/${region}`, qrCode())
       expect(refusals(report), region).toEqual([])
     }
@@ -92,7 +92,7 @@ describe('a QR code', () => {
     expect(refusals(edited((r) => setAt(r, `${CODE}/content/1`, site)))).toEqual([`misplaced-detail-field ${CODE}/content/1/field`])
     for (const region of REGION_NAMES) {
       for (const counter of [{ kind: 'pageNumber' }, { kind: 'pageCount' }]) {
-        const report = edited((r) => setAt(r, `/regions/${region}/0`, qrCode([{ kind: 'text', text: 'Page ' }, counter])))
+        const report = edited((r) => setAt(r, `/regions/${region}/0`, qrCode([{ kind: 'text', text: 'Page ' }, counter])), everyRegionReport())
         expect(refusals(report), `${counter.kind} in ${region}`).toEqual([`misplaced-page-counter /regions/${region}/0/content/1`])
       }
     }

@@ -1,7 +1,8 @@
 /**
- * The report's own properties, as fields: its title, its language and its
- * page; and its languages (0063), a group whose field adds one by its tag
- * and whose buttons remove each it has.
+ * The report's own properties, as fields: its title, its language, its
+ * page, and what page 1 prints at its top, a region's presence rather than
+ * a value (0060); and its languages (0063), a group whose field adds one by
+ * its tag and whose buttons remove each it has.
  *
  * In a language besides the report's own, the title's field writes the
  * title's translation, as every field at a word does (`word-fields.ts`);
@@ -18,7 +19,28 @@ import type { FieldContext, GroupSpec } from './property-fields.js'
 import type { EditorLocale, EditorText, MessageId } from './text.js'
 import { wordOrTextField } from './word-fields.js'
 
-/** The report's own fields: its title, in the language edited, its language and its page. */
+/** Where page 1's own header stands: what the choice of page 1's header puts in and takes away. */
+export const FIRST_PAGE_HEADER = '/regions/firstPageHeader'
+
+/**
+ * What page 1 prints at its top: the page header, while the report has no
+ * header of page 1's own, or that header, which prints none while it holds
+ * nothing (0060). Its options name the region page 1 prints; choosing the
+ * page header stores the region's absence, choosing its own an empty one.
+ * The option shown, chosen again, is left alone: a header of its own put in
+ * afresh would empty the one page 1 has.
+ */
+function firstPageField(report: ReportDefinition, t: EditorText): FieldSpec {
+  const current = report.regions.firstPageHeader === undefined ? 'pageHeader' : 'firstPageHeader'
+  const options = [
+    { value: 'pageHeader', label: t('option.runningHeader'), stored: null },
+    { value: 'firstPageHeader', label: t('option.ownHeader'), stored: [] },
+  ]
+  const choice = choiceField(FIRST_PAGE_HEADER, { id: 'field.firstPageHeader' }, 'select', options, current)
+  return { ...choice, write: (input) => (input === current ? UNCHANGED : choice.write(input)) }
+}
+
+/** The report's own fields: its title, in the language edited, its language and its page, then what page 1 prints at its top. */
 export function reportFields(report: ReportDefinition, t: EditorText, locale: EditorLocale, edited?: Edited): FieldSpec[] {
   const context: FieldContext = { report, t, locale, row: false, ...(edited === undefined ? {} : { edited }) }
   const sizes = (['A4', 'Letter'] as const).map((size) => ({ value: size, label: size, stored: size }))
@@ -38,6 +60,7 @@ export function reportFields(report: ReportDefinition, t: EditorText, locale: Ed
     margin('right', 'field.marginRight'),
     margin('bottom', 'field.marginBottom'),
     margin('left', 'field.marginLeft'),
+    firstPageField(report, t),
   ]
 }
 

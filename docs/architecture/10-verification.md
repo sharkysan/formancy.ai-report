@@ -220,6 +220,25 @@ corpus's fixture is built of rows that fit
 | The orphan check holding a header to its count, and every other header as before; the fixture placed for every plausible number of rows a page | `report-corpus/src/checks.test.ts`, `report-corpus/src/fixtures/fixtures.test.ts`, rendered by `report-render-pdf/src/corpus.test.ts` and `browser.test.ts` |
 | The field in both builders, typed, refused, written as none and undone; given back as it reads, no edit; shown on a group whose header has no text, absent without a group | `report-builder-core/src/scenarios.test.ts` and `properties.test.ts`, React's `scenarios.test.tsx`, Angular's `scenarios.test.ts`, and the Studio's `parity.test.tsx` |
 
+**A first page's own header, at every layer that reads it.** Which header
+a page prints is decided once, by the renderer, and every layer that reads
+the region is held where it reads it; a report without it is held to
+printing as it did, on the PDF, by the suites and the gates that already
+hold it
+([0060](../decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)):
+
+| Where | What holds it |
+|---|---|
+| The format: absent, empty and holding components, each read back and hashed apart; what stands in it, a page field refused; its own budget; one space of ids | `report-spec/src/validate-first-page-header.test.ts`; the every-region cases of `validate-placement.test.ts`, `validate-qr-code.test.ts` and `validate-epc-qr-code.test.ts`; the walk's order in `walk.test.ts`; its words the report's own, in `words.test.ts`, whose guard reads a fixture holding it (0063) |
+| The editing core: put and removed, one undo step each; a place in it refused while a report has none; `validLocations`, `fieldReaders` and `removeFieldWithReaders` reaching it | `report-core/src/commands/first-page-header.test.ts`, and both commands' shapes in `registry.test.ts` |
+| The runtime: no key for a report without it; its blocks, none an empty list; every label the page header carries heading it; printed in a translation's words, as the page header is (0063) | `report-runtime/src/first-page-header.test.ts`, `languages.test.ts` |
+| The renderer, on the PDF it produced: each of the corpus's `FIRST_PAGE_FIXTURES` read on page 1 as under a page header like its own and on every later page as under the page header alone; a one-page report, a QR-bill's slip under it and held below the taller header; a kept heading, a kept block, a table only page 1's taller body holds; its SVG counted once; no destination named for a heading in it | `report-render-pdf/src/first-page-header.test.ts` |
+| The renderer, refusing: a page field or a page break in it, one too tall, one leaving page 1 no body, a page header leaving the later pages none, an image page 1's shorter body cannot hold, and under a page header taller than page 1's own a kept block, an image and a table's line under its header that only page 1's taller body could hold, each beside one that prints; an XRechnung's without the copy paragraph; and drawing the copy label at the head of page 1 | `report-render-pdf/src/refusals.test.ts`, `xrechnung.test.ts` |
+| What it rests on in pdfmake 0.3.11: the background laid out in a box as large as the page, an empty node's top margin moving the next line, up for a negative one, a header function returning null, as the renderer's does, a table's fill painted under its text beneath the background | `report-render-pdf/src/pdfmake.test.ts`, "pdfmake's page top" |
+| The checks: page 1 printing the page header in its own's place or of none, page 2 printing page 1's, page 1's body above its own header's foot, each a real PDF watched failing; the fixtures apart from `ALL_FIXTURES`, and both trial adapters refusing a document with one | `report-corpus/src/checks.test.ts`, `fixtures/fixtures.test.ts`, `trial/undrawn.test.ts` |
+| Both builders: the choice in the report's properties, the region's group and band only where it is, a text placed in it by keyboard and a page number offered none of it, in three languages, with axe | `report-builder-core/src/scenario-first-page.ts`, run by `scenarios.test.ts` and by React's and Angular's runners; `properties.test.ts`, `targets.test.ts`, `outline.test.ts`, `geometry.test.ts`; the Studio's `parity.test.tsx`, both builders' trees compared as page 1 is given a header of its own and the page header back |
+| The packed packages | The install gate's `consume.ts`, through `scripts/install-fixture/first-page.ts`: both commands through a session as a proposal carries them, from JSON, each one undo step, the removal refused where there is none; a page number offered none of the region's places and refused in it by the validator; and a report with one resolved, the same report without it to no key, and drawn on two pages, page 1's own header's fill on page 1 alone and the page header's on page 2 alone, read from each page's content stream |
+
 **A report in several languages, from its words to the page.** Which
 strings are words is one walk in report-spec, and each layer that reads
 a language is held where it reads it; the claim that a translated render

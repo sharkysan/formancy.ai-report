@@ -39,6 +39,7 @@ export const EN = {
 
   // The report's regions and the kinds of thing in them.
   'region.reportHeader': 'Report header',
+  'region.firstPageHeader': 'First page header',
   'region.pageHeader': 'Page header',
   'region.body': 'Body',
   'region.pageFooter': 'Page footer',
@@ -159,6 +160,7 @@ export const EN = {
   'field.marginRight': 'Right margin',
   'field.marginBottom': 'Bottom margin',
   'field.marginLeft': 'Left margin',
+  'field.firstPageHeader': 'Header on page 1',
   'field.style': 'Style',
   'field.visibleWhen': 'Show only when',
   'field.keepWithNext': 'Keep with next',
@@ -238,6 +240,9 @@ export const EN = {
   'option.noBic': 'Empty: none, which a payer’s bank outside the EEA may need',
   'option.portrait': 'Portrait',
   'option.landscape': 'Landscape',
+  // The region's presence is the choice, and an empty one prints no header (0060).
+  'option.runningHeader': 'The page header',
+  'option.ownHeader': 'A header of its own (none while empty)',
   'option.contain': 'Fit inside',
   'option.cover': 'Fill and crop',
   'option.errorCorrectionL': 'Low ({share})',
@@ -309,6 +314,8 @@ export const EN = {
   'status.removed': 'Removed {name}.',
   'status.qrBillAdded': 'Added a QR-bill with SIX’s example values. Give the creditor’s own account and address before it is sent.',
   'status.qrBillDeleted': 'Deleted the QR-bill.',
+  'status.ownHeaderChosen': 'Page 1 prints a header of its own, the First page header, and none while it is empty. The page header prints from page 2 on.',
+  'status.pageHeaderChosen': 'Page 1 prints the page header again. Its own header is gone, with what it held. Undo brings it back.',
   'status.alreadyThere': '{name} is there already.',
   'status.notThere': '{name} is not there.',
   'status.notOptional': '{name} is part of every bill, and is not added or removed.',

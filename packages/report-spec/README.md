@@ -28,9 +28,10 @@ if (!outcome.valid) {
 - anything a shape does not have, and every reference to something the
   report does not declare;
 - a value standing where it has none: a detail field outside the table's
-  cells, a page number outside the page header and footer or anywhere in a
-  QR code, an EPC QR code or a QR-bill, whose content is resolved before
-  there are pages;
+  cells, a page number outside the page header and footer -- in the first
+  page's own header too, which is drawn before pages are counted -- or
+  anywhere in a QR code, an EPC QR code or a QR-bill, whose content is
+  resolved before there are pages;
 - a QR code of no runs, which would encode nothing;
 - a fixed size the page cannot hold, a QR code's and an EPC QR code's
   square measured against `squareRoom`;
@@ -841,7 +842,7 @@ validator refuses: only a valid report has a hash.
 ## Start, find and measure
 
 ```ts
-import { componentAt, emptyReport, mmToPt, printableArea, squareRoom, walkComponents } from '@formancy/report-spec'
+import { componentAt, emptyReport, heldRegions, mmToPt, printableArea, squareRoom, walkComponents } from '@formancy/report-spec'
 
 const blank = emptyReport('site-visit', 'Site visit', 'de-CH') // A4 portrait, 20 mm margins
 const margin = mmToPt(15) // 42.52: lengths are points, stored to the hundredth
@@ -849,7 +850,22 @@ const { width } = printableArea(blank.page) // what the margins leave
 const { side, length } = squareRoom(printableArea(blank.page)) // the largest square, a QR code's room
 for (const { component, path, depth } of walkComponents(blank)) console.log(depth, path, component.id)
 componentAt(blank, 'title') // where a component is, by id: the path its errors use
+heldRegions(blank.regions).map(([region]) => region) // ['reportHeader', 'pageHeader', 'body', 'pageFooter', 'summary']
 ```
+
+A report holds five regions, and may hold a sixth (`REGION_NAMES`, in the
+order a reader meets them): `firstPageHeader`, which page 1 prints in place
+of the page header, the page header then printing from page 2 on
+([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+Its presence is the choice: absent, page 1 prints the page header; present
+and empty, page 1 prints no header. `OPTIONAL_REGIONS` names it, and
+`Regions` holds it optionally, so `report.regions[name]` over
+`REGION_NAMES` may be `undefined`; `heldRegions` gives the regions a report
+holds, each with its components, and the walk visits those alone. What
+stands in it is what the page header holds -- no table, chart, page break
+or keep-together block -- but no page number or count, refused as
+`misplaced-page-counter`: page 1's number and count print in the page
+footer.
 
 `REPORT_SPEC_VERSION` is `0`, the draft: nothing written under it is promised
 to be read by a later release. Nor by an earlier one: a kind the draft gains
@@ -857,6 +873,6 @@ is refused as `unknown-kind` by a release that predates it, never skipped. A
 report with a `qrCode` or an `epcQrCode` is refused so by 0.1.0, and one
 with a `paymentPart` or an `eInvoice` as `unknown-property`; a report with
 a `chart` is refused so by 0.2.0, and one whose table's group states
-`keepWithRows` as `unknown-property`.
+`keepWithRows`, or with a `firstPageHeader`, as `unknown-property`.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).

@@ -2,6 +2,7 @@ import pdfmake from 'pdfmake'
 import {
   ALL_FIXTURES,
   E_INVOICE,
+  FIRST_PAGE_FIXTURES,
   KEEP_WITH_FIXTURES,
   pageDimensions,
   readPdf,
@@ -24,12 +25,13 @@ import { fixture, TIMEOUT } from './testing/documents.js'
  * was given (0003). These are the gate decision 0005 names: the trial chose
  * pdfmake on this corpus, and the renderer grown from its adapter is held to
  * it here, and to the corpus's SVG fixtures beside it (0030), which the
- * trial's engines never drew, and its kept rows' fixture (0059), which
- * they never kept.
+ * trial's engines never drew, its kept rows' fixture (0059), which they
+ * never kept, and its fixtures of page 1's own header (0060), which they
+ * never drew either.
  */
 
-/** Section 20's fixtures, the SVG ones and the kept rows' one. */
-const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES]
+/** Section 20's fixtures, the SVG ones, the kept rows' one and page 1's own header's. */
+const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES]
 
 /**
  * The fixtures the renderer cannot satisfy, each with what it cannot do and
@@ -85,6 +87,7 @@ describe('the renderer on the corpus', () => {
   test('runs a corpus that has fixtures, and excuses none of them', () => {
     expect(ALL_FIXTURES.length).toBeGreaterThan(0)
     expect(SVG_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
+    expect(FIRST_PAGE_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect([...CANNOT.keys()]).toEqual([])
   })
 })

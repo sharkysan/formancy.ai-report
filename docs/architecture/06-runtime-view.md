@@ -142,7 +142,8 @@ renderPdf(document, { maxPages, signal, pdfa })
    │ a chart, which this release does not draw yet (6.18) ───▶ unsupported
    ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
    │ browser its chunk imported
-   ├─ measure the page regions; the body's margins follow
+   ├─ measure the page regions, and page 1's own header in a pass of its
+   │ own (6.20); the body's margins follow
    ├─ a block of fixed height taller than the body ──────────▶ content-too-large
    ├─ least height already past maxPages ────────────────────▶ too-many-pages
    ├─ measure kept blocks and table rows; one no page holds,
@@ -463,8 +464,9 @@ no Factur-X file: `{ kind: 'xrechnung', xml, syntax, guideline, version
 }`, the invoice, which the host takes from the resolved document and
 sends, and the runtime heads every page with `XRECHNUNG_COPY_LABEL`. The
 renderer draws that document as a plain PDF, the copy, a CMYK image in it
-drawn, and refuses one whose page header does not open with the label as
-the runtime writes it, `XRECHNUNG_COPY_PARAGRAPH`, style and all
+drawn, and refuses one whose page header, or page 1's own header where it
+has one (6.20), does not open with the label as the runtime writes it,
+`XRECHNUNG_COPY_PARAGRAPH`, style and all
 ([0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
 
 ```
@@ -507,8 +509,9 @@ resolveReport: images through the host's lookup (6.2)
 renderPdf: checkSvg(bytes)                            report-spec's, through the runtime
    ├─ anything cleaning would change ──────────────────▶ invalid-asset, naming
    │                                                     the asset and the change
-   ├─ the SVGs past MAX_SVG_DRAWING, a page region's counted
-   │  on every page maxPages allows; the body's past one
+   ├─ the SVGs past MAX_SVG_DRAWING, the page header's and
+   │  footer's counted on every page maxPages allows, page
+   │  1's own header's once (6.20); the body's past one
    │  drawing's bounds, as though on one page ──────────▶ content-too-large
    ├─ in an e-invoice, numbers that at the image's box,
    │  anywhere on its page, could pass the PDF/A-3's
@@ -522,7 +525,7 @@ cover as xMidYMid slice, clipped to the box
    ├─ it would open an image, or it warns ─────────────▶ invalid-asset, from
    │                                                     its callbacks
    ▼
-vectors on the page, drawn again on every page in a page region
+vectors on the page, drawn again on every page in the page header or footer
 ```
 
 The rules are report-spec's alone, so the host's approval, a builder's
@@ -1060,3 +1063,51 @@ e-invoice gate draws every starter that is no e-invoice so, and has
 veraPDF judge them with its PDF/A-2b profile, `--flavour 2b` and never by
 what the file says it is
 ([0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
+
+## 6.20 A first page's own header, from the region to page 1's top
+
+```
+the definition's firstPageHeader, beside the page header      absent, [] or components
+   ├─ a table, a chart, a page break, a kept block ─────────▶ misplaced-flow-component
+   ├─ a page number or count ───────────────────────────────▶ misplaced-page-counter,
+   ▼                                                          sent to the page footer
+resolveReport: lowered as the page header is, each condition once
+   ├─ every component hidden, or none written ──▶ [], never the page header's blocks
+   ├─ a preview, an e-invoice preview, an XRechnung ──▶ its label heads both headers
+   ▼
+document.firstPageHeader                        present exactly when the report's is
+   ▼
+renderPdf: walked as a page region drawn once
+   ├─ a page field, a page break ───────────────────────────▶ unsupported
+   ├─ an XRechnung's that does not open with the copy ──────▶ unsupported, naming
+   │                                                          firstPageHeader
+   ├─ its SVGs counted once toward MAX_SVG_DRAWING
+   ├─ the page header and footer measured, as for every report
+   ├─ page 1's own header measured in a pass of its own
+   │  taller than the printable area, or leaving page 1
+   │  no body with the footer ──────────────────────────────▶ content-too-large,
+   │                                                          naming firstPageHeader
+   ├─ a block of fixed height past the shorter body ────────▶ content-too-large
+   ├─ kept blocks and table lines held to the later pages' body, the page
+   │  limit to page 1's body and the later pages' it leaves, the slip to
+   │  the taller header
+   ▼
+pdfmake, its top margin the page header's
+   page 1: no header; its background is page 1's own header, at the margins,
+           in a box as large as the page; the body opened by an empty node
+           whose top margin is the two rooms' difference, down or up
+   page 2 on: the page header, as before
+```
+
+Which header a page prints is decided by the renderer, which alone knows
+the pages, as the slip's page is (6.6); the runtime resolves every value
+once and evaluates nothing per page. Page 1's own header cannot stand in
+pdfmake's header, whose box is the top margin, one for every page: a
+taller one would lose lines there, and room given to it there would be
+taken from every later page. So it is drawn in page 1's background, and
+page 1's body is moved by the difference, on behaviours of pdfmake 0.3.11
+that `report-render-pdf/src/pdfmake.test.ts` holds. A report without the
+region is resolved to a document without the key, measured in the passes,
+on the sheets and with the messages it always was, and drawn object for
+object as before
+([0060](../decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).

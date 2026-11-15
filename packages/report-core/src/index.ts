@@ -46,6 +46,7 @@ export {
   updateFooterRow,
 } from './commands/table.js'
 export type { FooterRows } from './commands/table.js'
+export { putFirstPageHeader, removeFirstPageHeader } from './commands/first-page-header.js'
 export { putPaymentPart, removePaymentPart, updatePaymentPart } from './commands/payment-part.js'
 export type { PaymentPartPatch } from './commands/payment-part.js'
 export { putEInvoice, removeEInvoice, setPaymentAccount, updateEInvoice } from './commands/e-invoice.js'

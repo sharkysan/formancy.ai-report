@@ -19,7 +19,8 @@
  * and of the zoom and the panes are here. A subject with fixtures of its
  * own stands beside them: the payment codes (`scenario-payments.ts`), a
  * report's QR-bill selected and edited (`scenario-payment-part.ts`), its
- * e-invoice selected and edited (`scenario-e-invoice.ts`), a host's view
+ * e-invoice selected and edited (`scenario-e-invoice.ts`), what page 1
+ * prints at its top (`scenario-first-page.ts`), a host's view
  * (`scenario-host-view.ts`), images (`scenario-images.ts`), the rows a
  * table's group header is kept with (`scenario-table-group.ts`) and a
  * report's languages (`scenario-languages.ts`).
@@ -27,6 +28,7 @@
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { PROPERTY_ROLES } from './model-properties.js'
+import { firstPageScenarios } from './scenario-first-page.js'
 import { hostViewScenarios } from './scenario-host-view.js'
 import { imageScenarios } from './scenario-images.js'
 import { languageScenarios } from './scenario-languages.js'
@@ -286,6 +288,7 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
     ...paymentScenarios(locale),
     ...paymentPartScenarios(locale),
     ...eInvoiceScenarios(locale),
+    ...firstPageScenarios(locale),
     scenario('choose a style from a picker', [
       { do: 'click', ...tree('Introduction') },
       { do: 'choose', role: PROPERTY_ROLES.style, name: t('field.style'), option: 'heading' },

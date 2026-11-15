@@ -65,10 +65,9 @@ that lands it.
     numbers are the PDF's, and the same outline as the PDF's bookmarks.
 10. **Positioned elements in the page header and footer**, which the
     format's plan already names
-    ([0007](decisions/0007-a-report-definition-is-its-own-versioned-document.md));
-    and a first page's own page header, another or none in place of the
-    running one, which prints from the second page on, each given the
-    room it takes above the body.
+    ([0007](decisions/0007-a-report-definition-is-its-own-versioned-document.md)),
+    a first page's own page header among them as a page header is
+    ([0060](decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
 11. **More scripts**: right-to-left text, Arabic and Hebrew, and Chinese,
     Japanese and Korean, shaped as each script is written, with the
     fallback fonts the renderer's plan names

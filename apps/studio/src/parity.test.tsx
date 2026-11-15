@@ -217,7 +217,9 @@ const select = (node: OutlineNode | null): EditorAction =>
  * given its place back; the place chooser for every kind the palette
  * offers, each kind that has a place then placed there; every row
  * selected; a move's chooser; a condition naming no parameter, with its
- * problem; a top margin the page cannot hold, refused; the QR-bill --
+ * problem; page 1 given a header of its own, a text put in it from the
+ * place chooser, and the page header given back (0060); a top margin the
+ * page cannot hold, refused; the QR-bill --
  * the invoice's, or one added from SIX's example to a starter without one
  * -- selected, an IBAN its rules refuse refused on its field, its debtor
  * taken away and given back, the bill deleted and brought back (0039); the
@@ -272,6 +274,18 @@ async function walk({ editor, react, angular, app, release }: Mounted): Promise<
   if (condition === undefined) throw new Error('a text has no condition field')
   await dispatch({ type: 'setProperty', key: condition.key, value: 'params.missing' }, 'a condition naming no parameter')
   await dispatch(select(null), 'the report selected')
+  // Page 1 given a header of its own from the report's properties, which
+  // no starter has (0060): its group in the outline and its band in the
+  // design view, before the page header's, a place in it in the chooser, a
+  // text put there, and the page header given back, taking both away.
+  const choice = '/regions/firstPageHeader'
+  await dispatch({ type: 'setProperty', key: choice, value: 'firstPageHeader' }, 'page 1 given a header of its own')
+  await dispatch({ type: 'startDrag', subject: { kind: 'text' }, via: 'keyboard' }, 'the place chooser with page 1’s own header')
+  const own = editor.state().dropTargets.find((target) => target.location.region === 'firstPageHeader')
+  if (own === undefined) throw new Error('page 1’s own header offers a text no place')
+  await dispatch({ type: 'insert', kind: 'text', target: own.location }, 'a text in page 1’s own header')
+  await dispatch(select(null), 'the report selected, page 1 printing its own header')
+  await dispatch({ type: 'setProperty', key: choice, value: 'pageHeader' }, 'page 1 given the page header back')
   const margin = editor.state().properties.fields.find((field) => field.kind === 'length')
   if (margin === undefined) throw new Error('the report has no length field')
   await dispatch({ type: 'setProperty', key: margin.key, value: '400' }, 'a margin the page cannot hold, refused')
@@ -355,6 +369,9 @@ describe('the two builders, side by side over one editor', () => {
           expect.arrayContaining([
             'opened, the Preview in the design view’s place',
             'a condition naming no parameter',
+            'page 1 given a header of its own',
+            'a text in page 1’s own header',
+            'page 1 given the page header back',
             'a margin the page cannot hold, refused',
             'the QR-bill selected',
             'the QR-bill deleted',

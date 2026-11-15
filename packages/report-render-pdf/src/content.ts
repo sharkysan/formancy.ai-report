@@ -37,17 +37,24 @@ interface Scope {
   readonly width: number
   /** No rule may break inside: a keep-together block, a page region, a column. */
   readonly kept: boolean
-  /** Where a page's first line of these blocks would start: the body's top, below every frame around them. */
+  /** Where a page's first line of these blocks would start: the body's top, below every frame around them; on page 1, `Build.firstShift` lower. */
   readonly top: number
+  /** The page fields' values, in a page region pdfmake draws on every page; none in page 1's own header (0060), which holds none. */
   readonly fields?: Fields
   /** Whether its text nodes are recorded for the word check: not a page region's in the last pass, which pdfmake builds anew for each page and a measuring pass has checked. */
   readonly record: boolean
 }
 
-/** Content for the body's blocks, laid out `width` wide, or a page region's when `fields` are given. */
-export function contentOf(blocks: readonly Block[], build: Build, width: number, fields?: Fields): Content[] {
-  const record = fields === undefined || build.mode === 'measure'
-  return sequence(blocks, build, fields === undefined ? { width, kept: false, top: build.bodyTop, record } : { width, kept: true, top: 0, fields, record })
+/**
+ * Content for the body's blocks, laid out `width` wide, or a page region's
+ * when `region` is given: kept, so that no rule breaks it and no node of it
+ * gets an id, with the values of its page fields where it has them -- page
+ * 1's own header (0060) has none, and is a page region all the same.
+ */
+export function contentOf(blocks: readonly Block[], build: Build, width: number, region?: { readonly fields?: Fields }): Content[] {
+  const record = region === undefined || build.mode === 'measure'
+  if (region === undefined) return sequence(blocks, build, { width, kept: false, top: build.bodyTop, record })
+  return sequence(blocks, build, { width, kept: true, top: 0, record, ...(region.fields === undefined ? {} : { fields: region.fields }) })
 }
 
 /** Border and padding on each side of a section: what it takes from the width, and from a page's height above and below. */
@@ -83,7 +90,12 @@ function sequence(given: readonly Block[], build: Build, scope: Scope): Content[
     const ids = new Set([anchor.id])
     const own = build.next++
     ;(contents[index] as Anchor).headlineLevel = own
-    build.rules.set(own, (node, queries) => node.startPosition.top > scope.top + AT_TOP && !startsOnPage(queries, ids, node.startPosition.pageNumber))
+    build.rules.set(own, (node, queries) => {
+      const { top, pageNumber } = node.startPosition
+      // Page 1's body starts below its own header where it has one (0060), and a node first there is first on its page.
+      const first = scope.top + (pageNumber === 1 ? build.firstShift : 0)
+      return top > first + AT_TOP && !startsOnPage(queries, ids, pageNumber)
+    })
   })
   return contents
 }
@@ -198,8 +210,8 @@ export function runFace(style: TextStyle | undefined, run: Inline): FaceWanted {
 
 function inline(run: Inline, fields: Fields | undefined): { text: string; bold?: boolean } {
   if ('text' in run) return run.bold === undefined ? { text: run.text } : { text: run.text, bold: run.bold }
-  // The renderer refuses a page field outside a page region before building anything.
-  if (fields === undefined) throw new Error(`a ${run.field} field outside a page region`)
+  // The renderer refuses a page field outside the page header and footer before building anything, page 1's own header among them.
+  if (fields === undefined) throw new Error(`a ${run.field} field outside the page header and footer`)
   return { text: String(fields[run.field]) }
 }
 

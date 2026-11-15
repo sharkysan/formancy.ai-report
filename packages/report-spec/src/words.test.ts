@@ -76,6 +76,9 @@ function wholeReport(): ReportDefinition {
     iban: [{ kind: 'text', text: 'DE71 1102 2033 0123 4567 89' }],
     text: [{ kind: 'text', text: 'Orders' }],
   })
+  // Page 1's own header, which `richReport` leaves out (0060): a region no
+  // fixture holds is one whose strings the guard below never reads.
+  setAt(report, '/regions/firstPageHeader', [{ id: 'letterhead', kind: 'text', content: [{ kind: 'text', text: 'Orders, by site' }] }])
   // Every component conditioned and styled, as only some of the fixture's are.
   for (const { path } of walkComponents(report as unknown as ReportDefinition)) {
     const component = getAt(report, path) as Record<string, unknown>
@@ -169,6 +172,23 @@ describe('reportWords', () => {
       '/regions/summary/4/categoryTitle Site',
       '/regions/summary/4/valueTitle CHF',
       '/paymentPart/message/0/text Order from ',
+    ])
+  })
+
+  // Page 1's own header prints in the page header's place (0060), so its
+  // words are the report's own: a walk that skipped it would print page
+  // 1's letterhead in the report's own language in every other.
+  test("yields the words of page 1's own header, between the report header's and the body's", () => {
+    const report = editable(richReport())
+    setAt(report, '/regions/firstPageHeader', [{ id: 'letterhead', kind: 'text', content: [{ kind: 'text', text: 'Orders, by site' }] }])
+    expect(
+      reportWords(report as unknown as ReportDefinition)
+        .slice(1, 4)
+        .map(({ path, text, componentId }) => `${path} ${text} ${componentId}`),
+    ).toEqual([
+      '/regions/reportHeader/0/columns/1/components/0/content/0/text Orders for  title',
+      '/regions/firstPageHeader/0/content/0/text Orders, by site letterhead',
+      '/regions/body/0/content/0/text Ordered on  intro',
     ])
   })
 

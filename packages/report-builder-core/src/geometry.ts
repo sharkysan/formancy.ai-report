@@ -10,7 +10,7 @@
  * the sheet's foot, below all of them.
  * Every number in it is a rule of thumb named below, not a measurement.
  */
-import { pageDimensions, printableArea, QR_BILL_SIZE, REGION_NAMES, walkComponents } from '@formancy/report-spec'
+import { heldRegions, pageDimensions, printableArea, QR_BILL_SIZE, walkComponents } from '@formancy/report-spec'
 import type { Component, Inline, Margins, RegionName, ReportDefinition, Width } from '@formancy/report-spec'
 import { columnKey } from './labels.js'
 import type { PartKind } from './model.js'
@@ -207,8 +207,8 @@ export function layoutReport(report: ReportDefinition): Layout {
   const page = pageDimensions(report.page)
   const regions: { region: RegionName; box: Box; empty: boolean }[] = []
   let y = margins.top
-  for (const region of REGION_NAMES) {
-    const list = report.regions[region]
+  // A band for every region the report holds: a first page header only where it has one (0060).
+  for (const [region, list] of heldRegions(report.regions)) {
     const height = stack(list, region, margins.left, y, printable.width)
     regions.push({ region, box: { x: margins.left, y, width: printable.width, height }, empty: list.length === 0 })
     y += height + BAND_GAP

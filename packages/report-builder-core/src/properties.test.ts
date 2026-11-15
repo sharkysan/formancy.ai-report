@@ -36,8 +36,10 @@ const OF_KIND: { readonly [K in ComponentKind]: string } = {
 
 describe('the report’s own properties', () => {
   // With nothing selected the panel is the report's: its title, language
-  // and page, the page's margins in millimetres, then its languages' Add
-  // language, the way a report comes to be written in another (0063).
+  // and page, the page's margins in millimetres, and after them what page
+  // 1 prints at its top, the page header while the report has no first
+  // page header of its own (0060); then its languages' Add language, the
+  // way a report comes to be written in another (0063).
   test('are shown when nothing is selected', () => {
     const { editor } = editorOver()
     const { heading, fields } = editor.state().properties
@@ -51,6 +53,7 @@ describe('the report’s own properties', () => {
       ['/page/margins/right', 'Right margin (mm)', 'length', '20'],
       ['/page/margins/bottom', 'Bottom margin (mm)', 'length', '20'],
       ['/page/margins/left', 'Left margin (mm)', 'length', '20'],
+      ['/regions/firstPageHeader', 'Header on page 1', 'select', 'pageHeader'],
       ['/translations/-', 'Add language', 'text', ''],
     ])
   })
@@ -94,6 +97,78 @@ describe('the report’s own properties', () => {
     ok(editor.dispatch({ type: 'setProperty', key: '/height', value: ' 4.23 ' }))
     expect(session.revision()).toBe(0)
     expect(editor.state()).toBe(state)
+  })
+})
+
+describe('the choice of what page 1 prints at its top (0060)', () => {
+  const CHOICE = '/regions/firstPageHeader'
+
+  // The region's presence is the choice: a header of its own is put in
+  // empty, and the page header given back by taking it away with what it
+  // holds, one undo step each. Every key of the report's but its title and
+  // language is otherwise a page setting, so a choice that reached setPage
+  // would be refused, or write the region into the page; the page is the
+  // one the report had, before and after.
+  test('puts in a header of its own and takes it away, one undo step each, and leaves the page alone', () => {
+    const { editor, session } = editorOver()
+    const { page } = session.document()
+    ok(editor.dispatch({ type: 'setProperty', key: CHOICE, value: 'firstPageHeader' }))
+    expect(session.document().regions.firstPageHeader).toEqual([])
+    expect(session.document().page).toEqual(page)
+    expect(field(editor.state().properties.fields, CHOICE).value).toBe('firstPageHeader')
+    expect(editor.state().history.undoLabel).toBe('Change Header on page 1')
+    expect(editor.state().status.text).toBe(
+      'Page 1 prints a header of its own, the First page header, and none while it is empty. The page header prints from page 2 on.',
+    )
+    ok(editor.dispatch({ type: 'insert', kind: 'text', target: { region: 'firstPageHeader', index: 0 } }))
+    ok(editor.dispatch({ type: 'select', id: null }))
+    ok(editor.dispatch({ type: 'setProperty', key: CHOICE, value: 'pageHeader' }))
+    expect(Object.hasOwn(session.document().regions, 'firstPageHeader')).toBe(false)
+    expect(session.document().page).toEqual(page)
+    expect(field(editor.state().properties.fields, CHOICE).value).toBe('pageHeader')
+    expect(editor.state().status.text).toBe('Page 1 prints the page header again. Its own header is gone, with what it held. Undo brings it back.')
+    ok(editor.dispatch({ type: 'undo' }))
+    expect(session.document().regions.firstPageHeader?.map((component) => component.kind)).toEqual(['text'])
+    ok(editor.dispatch({ type: 'undo' }))
+    ok(editor.dispatch({ type: 'undo' }))
+    expect(session.document()).toEqual(richReport())
+  })
+
+  // Chosen again, the choice changes nothing: a header of its own put in
+  // afresh would empty the one page 1 has, and the page header chosen
+  // again where it prints already would be a refusal or an empty step.
+  test('leaves the report alone when the option it shows is chosen again', () => {
+    const plain = editorOver()
+    ok(plain.editor.dispatch({ type: 'setProperty', key: CHOICE, value: 'pageHeader' }))
+    expect(plain.session.revision()).toBe(0)
+    const report = richReport()
+    const sender = { id: 'sender', kind: 'text', content: [{ kind: 'text', text: 'Orders by site' }] } as const
+    const headed = editorOver({ ...report, regions: { ...report.regions, firstPageHeader: [sender] } })
+    ok(headed.editor.dispatch({ type: 'setProperty', key: CHOICE, value: 'firstPageHeader' }))
+    expect(headed.session.revision()).toBe(0)
+    expect(headed.session.document().regions.firstPageHeader).toEqual([sender])
+  })
+
+  // An option the field does not offer is a builder's mistake, refused
+  // before the report is touched, rather than read as either choice.
+  test('refuses an option it does not offer', () => {
+    const { editor, session } = editorOver()
+    expect(editor.dispatch({ type: 'setProperty', key: CHOICE, value: 'lastPageHeader' })).toMatchObject({ ok: false, code: 'invalid-value' })
+    expect(editor.dispatch({ type: 'setProperty', key: CHOICE, value: true })).toMatchObject({ ok: false, code: 'invalid-value' })
+    expect(session.revision()).toBe(0)
+  })
+
+  // A person choosing a header of its own and putting nothing in it gets no
+  // header on page 1: the option says so, in each of the editor's
+  // languages, since the format has no other word for none.
+  test('names its options in each language, a header of its own printing none while it is empty', () => {
+    const named = (locale: 'en' | 'de-CH' | 'fr-CH') => {
+      const shown = field(editorOver(richReport(), { locale }).editor.state().properties.fields, CHOICE)
+      return [shown.label, ...(shown.options ?? []).map((option) => `${option.value}: ${option.label}`)]
+    }
+    expect(named('en')).toEqual(['Header on page 1', 'pageHeader: The page header', 'firstPageHeader: A header of its own (none while empty)'])
+    expect(named('de-CH')).toEqual(['Kopf auf Seite 1', 'pageHeader: Der Seitenkopf', 'firstPageHeader: Ein eigener Kopf (keiner, solange leer)'])
+    expect(named('fr-CH')).toEqual(['En-tête de la page 1', 'pageHeader: L’en-tête de page', 'firstPageHeader: Un en-tête propre (aucun tant qu’il est vide)'])
   })
 })
 

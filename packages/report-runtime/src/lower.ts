@@ -9,9 +9,11 @@
  *
  * The report header is the start of the body and the summary its end, so
  * the document has three regions: the page header and footer, repeated on
- * every page, and the body.
+ * every page, and the body; and a fourth where the report gives page 1 a
+ * header of its own, which page 1 prints in the page header's place
+ * (0060).
  */
-import type { Component, ComponentKind, RegionName } from '@formancy/report-spec'
+import type { Component, ComponentKind, OptionalRegionName, RegionName } from '@formancy/report-spec'
 import type { Block, TextStyle } from './document.js'
 import { imageBlock } from './images.js'
 import { encodedText, runOf } from './inlines.js'
@@ -24,6 +26,8 @@ import { styled } from './styles.js'
 
 /** The document's regions, lowered. */
 export interface LoweredRegions {
+  /** Present exactly when the report has a first page header: what its components print, an empty list for none. */
+  readonly firstPageHeader?: readonly Block[]
   readonly pageHeader: readonly Block[]
   readonly pageFooter: readonly Block[]
   readonly body: readonly Block[]
@@ -95,13 +99,16 @@ function blocksOf(render: Render, components: readonly Component[], path: string
   return components.flatMap((component, index) => blockOf(render, component, `${path}/${index}`, inherited) ?? [])
 }
 
-function region(render: Render, name: RegionName): Block[] {
+/** A region every report holds, lowered. */
+function region(render: Render, name: Exclude<RegionName, OptionalRegionName>): Block[] {
   return blocksOf(render, render.report.regions[name], `/regions/${name}`, undefined)
 }
 
 /** Every region of `render`'s report, lowered: the report header, body and summary as the one body. */
 export function lowerRegions(render: Render): LoweredRegions {
+  const own = render.report.regions.firstPageHeader
   return {
+    ...(own === undefined ? {} : { firstPageHeader: blocksOf(render, own, '/regions/firstPageHeader', undefined) }),
     pageHeader: region(render, 'pageHeader'),
     pageFooter: region(render, 'pageFooter'),
     body: [...region(render, 'reportHeader'), ...region(render, 'body'), ...region(render, 'summary')],

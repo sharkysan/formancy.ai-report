@@ -91,8 +91,8 @@ export { CHART_CATEGORY_TYPES, CHART_KINDS, CHART_ORDERS, CHART_PALETTE, PIE_FUN
 export type { ChartCategory, ChartComponent, ChartKind, ChartOrder, ChartSeries } from './chart.js'
 export { SORT_DIRECTIONS } from './table.js'
 export type { SortDirection, SortKey, TableColumn, TableComponent, TableFooterCell, TableFooterRow, TableGroup } from './table.js'
-export { PROVENANCE_KINDS, REGION_NAMES } from './definition.js'
-export type { Provenance, ProvenanceKind, RegionName, Regions, ReportDefinition } from './definition.js'
+export { OPTIONAL_REGIONS, PROVENANCE_KINDS, REGION_NAMES } from './definition.js'
+export type { OptionalRegionName, Provenance, ProvenanceKind, RegionName, Regions, ReportDefinition } from './definition.js'
 
 export { PAYMENT_PART_KINDS, QR_BILL_CURRENCIES, QR_BILL_LANGUAGES } from './payment-part.js'
 export type { PaymentPart, PaymentPartKind, QrBillAddress, QrBillCurrency, QrBillLanguage, SwissQrBill } from './payment-part.js'
@@ -316,7 +316,7 @@ export type { FontEmbeddingRefusal, FontFormat, FontRefusal, FontRefusalCode } f
 
 export { reportHash } from './hash.js'
 export { emptyReport } from './empty.js'
-export { componentAt, walkComponents } from './walk.js'
+export { componentAt, heldRegions, walkComponents } from './walk.js'
 export type { ComponentLocation } from './walk.js'
 export { isWord, reportWords, wordExpressionSites } from './translation.js'
 export type { TranslatedExpression, TranslatedWord, Translation, WordExpressionSite, WordPlace } from './translation.js'

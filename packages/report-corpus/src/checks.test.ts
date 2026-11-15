@@ -370,6 +370,69 @@ describe('verify holds the page regions to their places', () => {
   })
 })
 
+describe("verify holds page 1's own header to page 1 (0060)", () => {
+  const LETTERHEAD = 'Letterhead of the checks'
+  const own = (firstPageHeader: NonNullable<ResolvedDocument['firstPageHeader']>): Fixture => ({
+    ...fixture,
+    expect: expectation({ ...fixture.document, firstPageHeader }, { minPagesExpected: 2, maxPagesExpected: 2 }),
+  })
+  const lettered = own([{ kind: 'paragraph', runs: [{ text: LETTERHEAD }] }])
+  const onPageOne =
+    (first: string | undefined): Region =>
+    (page) =>
+      page === 1 ? first : PAGE_HEADER
+
+  // Page 1 printing its own header and every later page the page header
+  // is what the document asks for: none of the checks below may complain
+  // of it, or each would pass on any PDF. Nor of page 1 printing no header
+  // where the document gives it none.
+  test('finds nothing wrong with page 1 under its own header, or none, and page 2 under the page header', async () => {
+    expect(await problems(definition(ROWS, { header: onPageOne(LETTERHEAD) }), lettered)).toEqual([])
+    expect(await problems(definition(ROWS, { header: onPageOne(undefined) }), own([]))).toEqual([])
+  })
+
+  // A renderer that ignored page 1's own header would print the page
+  // header there, which the page header's own checks pass: page 1 is held
+  // to its own header's lines, and to printing none of the page header's.
+  test('page 1 printing the page header in place of its own, or of none', async () => {
+    expect(await problems(definition(ROWS), lettered)).toEqual([
+      `checks: page 1: the first page header line '${LETTERHEAD}' is missing`,
+      `checks: page 1: the page header line '${PAGE_HEADER}' is printed, where page 1 prints its own header in the page header's place`,
+    ])
+    expect(await problems(definition(ROWS), own([]))).toEqual([
+      `checks: page 1: the page header line '${PAGE_HEADER}' is printed, where page 1 prints its own header in the page header's place`,
+    ])
+  })
+
+  // A renderer that drew page 1's header on every page would print a
+  // letterhead over every continuation: page 2 is held to the page
+  // header, and to printing none of page 1's own lines.
+  test("page 2 printing page 1's own header", async () => {
+    expect(await problems(definition(ROWS, { header: () => LETTERHEAD }), lettered)).toEqual([
+      `checks: page 2: the page header line '${PAGE_HEADER}' is missing`,
+      `checks: page 2: page 1's own header line '${LETTERHEAD}' is printed on page 2`,
+    ])
+  })
+
+  // A body that starts at the page header's top on page 1, where its own
+  // header is taller, runs under it: page 1's body is held to the foot of
+  // page 1's own header.
+  test("page 1's body starting above the foot of its own header", async () => {
+    const lines = pageLines((await readPdf(await pdfmakePdf(definition(ROWS)))).pages[0]!)
+    const [fifth, sixth] = ['ROW-0005', 'ROW-0006'].map((each) => lines.find((line) => line.text.startsWith(each))!)
+    const found = await problems(
+      definition(ROWS, {
+        header: onPageOne(undefined),
+        onPageOne: { text: LETTERHEAD, absolutePosition: { x: 300, y: (fifth!.top + sixth!.top) / 2 - 1.5 } },
+      }),
+      lettered,
+    )
+    expect(found).toEqual([
+      expect.stringMatching(/^checks: page 1: 'Key Description Amount' starts at [\d.]+ pt, above the foot of page 1's own header at [\d.]+$/),
+    ])
+  })
+})
+
 describe('verify finds headings left alone at the foot of a page', () => {
   // A group's heading at the foot of a page with its rows on the next: the
   // reader sees a heading over nothing.

@@ -99,8 +99,11 @@ const editor = createReportEditor(opening.session, {
 `editor.state()` returns one `EditorState`:
 
 - **`document`**: the title, in the language edited, the page in points
-  and in CSS pixels at the zoom, and each region with its label and how
-  many components it holds.
+  and in CSS pixels at the zoom, and each region the report holds with
+  its label and how many components it holds: a first page header, which
+  page 1 prints in place of the page header, only where the report has
+  one, before the page header
+  ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
 - **`languages`**: the language whose words the editor shows and edits,
   `edited`, the report's own until another is chosen, and every language
   the report is written in, `declared`, its own first: each with its tag,
@@ -108,12 +111,13 @@ const editor = createReportEditor(opening.session, {
   how many of its words are missing, and the label the bar's switch gives
   it ("French (Switzerland), words missing: 3"; *A report's languages*,
   below).
-- **`outline`**: the regions, then the components in each as a tree, with a
-  table's columns under it. Each row has its kind, its id, its depth,
-  whether it is selected, how many diagnostics are about it and the worst
-  of their severities, and whether it is wider than the space it stands
-  in. Its label is what a person calls it: a text by what it prints, a QR
-  code by its kind and what it encodes ("QR code: https://…"), an EPC
+- **`outline`**: the regions the report holds, in that order, then the
+  components in each as a tree, with a table's columns under it. Each row
+  has its kind, its id, its depth, whether it is selected, how many
+  diagnostics are about it and the worst of their severities, and whether
+  it is wider than the space it stands in. Its label is what a person
+  calls it: a text by what it prints, a QR code by its kind and what it
+  encodes ("QR code: https://…"), an EPC
   payment code by its kind and whom it pays ("EPC payment code: Franz
   Mustermänn"), a bound run by what it binds. Labels are unique in the
   report, so each can be an accessible name; where two would read the
@@ -221,8 +225,18 @@ const editor = createReportEditor(opening.session, {
   somewhere to go, `available`, and, where the keyboard goes elsewhere
   than the button once it is done, `then`: a button of a group by its key,
   or that group's first field); a builder draws `rows` and finds a field
-  in `fields`. Where the report has no bill, its own properties have a
-  group "Payment part" whose button is Add QR-bill, before Languages.
+  in `fields`. The report's own properties are its title, its language and
+  its page (`report-fields.ts`), then "Header on page 1", a choice of what
+  page 1 prints at its top: the page header, while the report has no header
+  of page 1's own, or "A header of its own (none while empty)". Choosing
+  its own puts an empty one in, by report-core's `putFirstPageHeader`, and
+  choosing the page header again takes it away with what it holds, by
+  `removeFirstPageHeader`, each one step, "Change Header on page 1", and
+  the live region says which page prints what; the option shown, chosen
+  again, changes nothing
+  ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+  Where the report has no bill, its own properties have a group "Payment
+  part" whose button is Add QR-bill, before Languages.
   An e-invoice's fields are every term of report-spec's `EInvoice`, of
   either kind, tables over each part (`invoice-fields.ts`): the invoice's
   own terms -- in an XRechnung its version, the buyer's reference and the
@@ -254,7 +268,8 @@ const editor = createReportEditor(opening.session, {
   `QR_BILL_EXAMPLE`; an IBAN typed over a QR reference takes it away; the
   live region says which. A reference the data gives is left as it is.
 - **`canvas`**: the design view. It is one sheet as wide as the page, with
-  the regions as bands and each component's flow box in its band, in points
+  the regions the report holds as bands, an empty one a band still, and
+  each component's flow box in its band, in points
   and in pixels, with the same severity and overflow its outline row has.
   It also carries rulers in millimetres. It is labelled as not the PDF,
   because it is not; see *What it does not do*. A box, and the payment
@@ -726,7 +741,13 @@ removed by emptying it. Three are about a table's group: the rows its
 header is kept with typed, a count out of range refused on its field,
 written back as 1 and undone; a count given back as it reads changing
 nothing, Undo then having nothing to undo; and no such count on a table
-without a group (0059). One is about a report's languages: a language
+without a group (0059). Two are about what page 1 prints at its top
+(0060): page 1 given a header of its own from the report's properties,
+its group in the outline once it is there, a text put in it by the place
+chooser and drawn in the design view, undone and redone, and the page
+header chosen again, the group and the text going with it, and undone;
+and a page number moved by keyboard, offered the page header and never
+page 1's own. One is about a report's languages: a language
 added by its tag, the report's own refused on the field, its words
 missing as problems that name it, the bar's switch choosing it, a box
 described as missing, a text's word written in it from its field, which
@@ -772,7 +793,8 @@ Where the scenarios stop, the two builders' whole accessible trees are
 compared with each other, in the Studio
 ([0012](../../docs/decisions/0012-the-builders-are-native-and-share-one-session.md)):
 side by side over one editor in jsdom, in all three languages, at each
-state of a walk by the editor's own actions (`apps/studio/src/parity.test.tsx`);
+state of a walk by the editor's own actions, page 1 given a header of its
+own among them, which no starter has (`apps/studio/src/parity.test.tsx`);
 and in Chromium, in the Studio's browser gate, for every starter at each
 state the same steps bring each builder to, as Playwright's snapshot and
 as Chromium's own tree read them (`apps/studio/scripts/gate-parity.mjs`).

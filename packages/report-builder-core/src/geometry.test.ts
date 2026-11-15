@@ -1,4 +1,4 @@
-import { pageDimensions, printableArea, REGION_NAMES } from '@formancy/report-spec'
+import { pageDimensions, printableArea } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { clampZoom, MAX_ZOOM, MIN_ZOOM, PX_PER_PT, zoomedIn, zoomedOut, ZOOM_STEPS } from './geometry.js'
@@ -82,6 +82,23 @@ describe('the page', () => {
       ['summary', 'Summary', 3],
     ])
   })
+
+  // A first page header is summarised only where the report has one, and
+  // before the page header, whose place on page 1 it takes (0060): one
+  // summarised for every report would show a region nobody chose.
+  test('summarises a first page header only where the report has one, before the page header', () => {
+    const report = richReport()
+    const headed = { ...report, regions: { ...report.regions, firstPageHeader: [{ id: 'sender', kind: 'text', content: [] }] } } as ReportDefinition
+    const { editor } = editorOver(headed)
+    expect(editor.state().document.regions.map((region) => [region.region, region.label, region.count])).toEqual([
+      ['reportHeader', 'Report header', 4],
+      ['firstPageHeader', 'First page header', 1],
+      ['pageHeader', 'Page header', 1],
+      ['body', 'Body', 10],
+      ['pageFooter', 'Page footer', 1],
+      ['summary', 'Summary', 3],
+    ])
+  })
 })
 
 describe('the canvas', () => {
@@ -94,13 +111,14 @@ describe('the canvas', () => {
   })
 
   // Each region is a band within the margins, in reading order, the next
-  // below the last: a region boundary is where one band ends.
+  // below the last: a region boundary is where one band ends. The fixture
+  // has no first page header, so it has no band for one (0060).
   test('stacks the regions as bands within the margins, in reading order', () => {
     const report = richReport()
     const { editor } = editorOver(report)
     const { regions, sheet } = editor.state().canvas
     const printable = printableArea(report.page)
-    expect(regions.map((region) => region.region)).toEqual([...REGION_NAMES])
+    expect(regions.map((region) => region.region)).toEqual(['reportHeader', 'pageHeader', 'body', 'pageFooter', 'summary'])
     let bottom = report.page.margins.top
     for (const region of regions) {
       expect(region.pt.x).toBe(report.page.margins.left)
@@ -111,6 +129,23 @@ describe('the canvas', () => {
     }
     expect(sheet.pt.width).toBe(595.28)
     expect(sheet.pt.height).toBeGreaterThanOrEqual(Math.max(841.89, bottom + report.page.margins.bottom) - 0.01)
+  })
+
+  // A first page header is a band where the report has one, before the
+  // page header's, and an empty one -- page 1 printing no header -- is a
+  // band still, so it can be seen and dropped into (0060).
+  test("draws a first page header as a band before the page header's, empty or not", () => {
+    const report = richReport()
+    for (const firstPageHeader of [[], [{ id: 'sender', kind: 'text', content: [{ kind: 'text', text: 'Orders by site' }] }]]) {
+      const { editor } = editorOver({ ...report, regions: { ...report.regions, firstPageHeader } } as ReportDefinition)
+      const { regions } = editor.state().canvas
+      expect(regions.map((region) => region.region)).toEqual(['reportHeader', 'firstPageHeader', 'pageHeader', 'body', 'pageFooter', 'summary'])
+      const [header, first, running] = regions
+      expect(first?.empty, JSON.stringify(firstPageHeader)).toBe(firstPageHeader.length === 0)
+      expect(first?.pt.height).toBeGreaterThan(0)
+      expect(first?.pt.y).toBeGreaterThanOrEqual((header?.pt.y ?? 0) + (header?.pt.height ?? 0))
+      expect(running?.pt.y).toBeGreaterThanOrEqual((first?.pt.y ?? 0) + (first?.pt.height ?? 0))
+    }
   })
 
   // An empty region is still a band, so it can be seen, and dropped into.

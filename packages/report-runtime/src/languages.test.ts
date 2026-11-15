@@ -304,6 +304,24 @@ describe('a render in a translation’s locale', () => {
     expect(tableOf(document).emptyText).toBe('Aucune position.')
   })
 
+  // Page 1's own header prints in the page header's place (0060), its
+  // words the report's own: lowered from the report as written in its own
+  // language, it would head a French render's first page in German.
+  test('prints page 1’s own header in the translation, as it prints the page header', () => {
+    const own = (id: string, text: string): Component => ({ id, kind: 'text', content: [{ kind: 'text', text }] })
+    const report = order()
+    const headed = { ...report, regions: { ...report.regions, firstPageHeader: [own('letterhead', 'Bestellungen')], pageHeader: [own('running', 'Gesamt')] } }
+    const { document } = resolved(translated(headed, FRENCH), orderData(), { ...FINAL, locale: 'fr-CH' })
+    const texts = (list: readonly Block[] | undefined): string[] =>
+      (list ?? [])
+        .filter((block): block is Paragraph => block.kind === 'paragraph')
+        .map((paragraph) => paragraph.runs.map((run) => ('text' in run ? run.text : '')).join(''))
+    expect({ firstPageHeader: texts(document.firstPageHeader), pageHeader: texts(document.pageHeader) }).toEqual({
+      firstPageHeader: ['Commandes'],
+      pageHeader: ['Total général'],
+    })
+  })
+
   // A word that follows a number is written as an expression, whole: one
   // line, one position, three positions, in French as in German.
   test('prints a translated expression, a plural, as that language writes it', () => {
