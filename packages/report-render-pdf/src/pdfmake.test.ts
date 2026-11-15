@@ -283,10 +283,12 @@ describe("pdfmake's page top, which page 1's own header is drawn by (0060)", () 
   })
 
   // On page 1 of a report with a first page header of its own, the page
-  // header's function returns nothing, and pdfmake draws no header there:
-  // nothing is laid out in the margin over page 1's own header. Were
-  // pdfmake to draw a default instead, the two would print over each other.
-  test('draws no header on a page whose header function returns nothing', async () => {
+  // header's function returns null (`definition.ts`), and pdfmake draws no
+  // header there: nothing is laid out in the margin over page 1's own
+  // header. Were pdfmake to draw a default instead, or to skip only an
+  // undefined, the two would print over each other. The function here
+  // returns what the renderer's does.
+  test('draws no header on a page whose header function returns null', async () => {
     await renderPdf(fixture('one-row').document, { maxPages: 5 })
     const bytes = await pdfmake
       .createPdf({
@@ -294,7 +296,7 @@ describe("pdfmake's page top, which page 1's own header is drawn by (0060)", () 
         pageMargins: [40, 60, 40, 40],
         content: [{ text: 'Body', pageBreak: 'after' }, { text: 'More' }],
         defaultStyle: { font: 'Roboto' },
-        header: (page) => (page === 1 ? undefined : { text: 'Running header', margin: [40, 40, 40, 0] }),
+        header: (page) => (page === 1 ? null : { text: 'Running header', margin: [40, 40, 40, 0] }),
       })
       .getBuffer()
     const pdf = await readPdf(new Uint8Array(bytes))

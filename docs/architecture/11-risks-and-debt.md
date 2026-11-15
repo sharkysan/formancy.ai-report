@@ -99,8 +99,8 @@ already reads the page limit in, and page 1's body is moved below it by an
 empty node's top margin, which pdfmake does not clamp
 ([0060](../decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
 `report-render-pdf/src/pdfmake.test.ts` holds both on the release the
-renderer pins, and that a page whose header function returns nothing is
-drawn without a header. Two more behaviours nothing of the renderer's asks
+renderer pins, and that a page whose header function returns null, as the
+renderer's does, is drawn without a header. Two more behaviours nothing of the renderer's asks
 for are held as far as one case each: pdfmake hands the background's
 nodes to `pageBreakBefore` with the body's, and no node of a page region
 is marked for a rule; and it inserts a table's fill at the count of the
@@ -111,6 +111,9 @@ share the hook. What it costs a report is page 1's: no page number or
 count in page 1's own header; a block page 1's taller header leaves no
 room for starts page 2, page 1 printing its header alone; an image page
 1's shorter body cannot hold refused, though a later page could hold it;
+where page 1's own header is shorter, or none, a kept block, a table's
+line under its repeated header or an image only page 1's taller body could
+hold refused, even in a report that would end on page 1;
 and a tall own header held above a QR-bill's slip, though the report may
 end under the page header. No e-invoice variant draws one, so veraPDF and
 Mustang have not judged a PDF/A-3b whose page 1 prints its own header; and

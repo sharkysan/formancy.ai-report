@@ -81,7 +81,7 @@ function addVector(total: { units: number; segments: number; groups: number }, v
   if (total.units > MAX_SVG_DRAWING) {
     throw new RenderRefusal(
       'content-too-large',
-      `the SVG images up to ${id} cost ${total.units} units to draw, each in a page region counted on every page the report may have; a render may draw ${MAX_SVG_DRAWING}`,
+      `the SVG images up to ${id} cost ${total.units} units to draw, each in the page header or footer counted on every page the report may have, one in page 1's own header once; a render may draw ${MAX_SVG_DRAWING}`,
       id,
     )
   }

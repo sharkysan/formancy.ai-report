@@ -2362,7 +2362,7 @@
       ]
     },
     "0060": {
-      "reviewed": "sha256:c89e390a394ce48d981d62cd5e670f68a610877873b375bea59b5dfefb88a016",
+      "reviewed": "sha256:206665d182ce7c4a8d5c4333fe1befae1afacefd5cb9ff904a1e068dfa15a3db",
       "limitations": [
         {
           "area": "format",
@@ -2396,7 +2396,8 @@
         },
         {
           "area": "rendering",
-          "says": "Where page 1's own header takes less room than the page header, a kept block that only page 1's taller body could hold is refused, even in a report that would end on page 1."
+          "says": "Where page 1's own header takes less room than the page header, a kept block, a table's line under its repeated header or an image that only page 1's taller body could hold is refused, even in a report that would end on page 1.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
         },
         {
           "area": "rendering",

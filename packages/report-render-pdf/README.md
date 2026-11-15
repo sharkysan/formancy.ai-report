@@ -155,7 +155,7 @@ Every block of the resolved document:
 | Code | When |
 |---|---|
 | `too-many-pages` | The report needs more pages than `maxPages`, a QR-bill's page included. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more, the room a bill's slip keeps included, is refused before pdfmake measures it. |
-| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body, and page 1's own header that leaves page 1 none or is taller than the printable area, naming `firstPageHeader` (0060); where page 1 has a header of its own, a block of fixed height or a line taller than the shorter of page 1's body and the later pages'; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
+| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body, and page 1's own header that leaves page 1 none or is taller than the printable area, naming `firstPageHeader` (0060); where page 1 has a header of its own, a block of fixed height or a line taller than the shorter of page 1's body and the later pages', and a keep-together block or a table's line under its repeated header that the later pages' body cannot hold, though page 1's taller body could; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
 | `invalid-asset` | An image's bytes are not the PNG, JPEG or SVG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side, and for an SVG a mebibyte; a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031); an SVG is not exactly the drawing report-spec's `cleanSvg` writes (below). A PNG's or a JPEG's structure is read by report-spec's `imageHeader`, which a builder refuses an image a person adds by too, in the same words (0033); whether a PNG's image data inflates to the scanlines its header promises is read here alone, since it needs the platform's decompressor. A host's font `readFont` refuses, one PDFKit would draw as another face, or one asset id handed in two byte strings, naming the asset (0043). |
 | `cancelled` | The signal was aborted. |
 | `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, page 1's own header among them, which is drawn before the pages are counted, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or one its PDF/A-3b cannot hold, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them (below); a chart, which this release does not draw yet, wherever it stands ([0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)). |
@@ -612,8 +612,12 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
   pages are counted, and page 1 prints the page footer every page prints.
   Where page 1's own header is taller than the page header, a block page
   1's body cannot hold whole starts page 2, page 1 printing its header
-  alone; and where a report has one, the page header is still measured and
-  held to leaving a body, though a report of one page prints it on no page
+  alone; where it is shorter, or none, a kept block, a table's line under
+  its repeated header or an image that only page 1's taller body could
+  hold is refused, even in a report that would end on page 1, since where
+  a block lands is known only once the body is laid out; and where a
+  report has one, the page header is still measured and held to leaving a
+  body, though a report of one page prints it on no page
   ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
 - **Draw an SVG as a browser does, compared.** That the PDF shows what a
   browser draws of the same cleaned drawing is held by report-spec's allow
@@ -685,7 +689,7 @@ corpus's reader through the transparency groups a clip path draws into,
 `contain`'s proportions, and from the pixels `cover` and a
 root's transform painting nothing outside the box, each beside the same
 drawing as it came, which does; and the budget at its bound and one past
-it, an image in a page region counted on every page. `svg-threats.test.ts`
+it, an image in the page header or footer counted on every page. `svg-threats.test.ts`
 refuses each hazard svg-to-pdfkit meets in an SVG as it came -- a local
 image, text, a style sheet, an entity, a `use` fan-out, a link -- before
 pdfmake runs, and shows each guard behind the check hold without it; holds
@@ -715,8 +719,9 @@ a kept block page 1 cannot hold starts page 2 whole, and the slip is held
 below the taller header; its SVG counts once, and a heading in it names no
 destination. `pdfmake.test.ts` pins what that rests on: the background laid
 out in a box as large as the page, an empty node's top margin moving the
-next line up or down by itself, a header function returning nothing, and a
-table's fill painted under its own text beneath the background.
+next line up or down by itself, a header function returning null, as the
+renderer's does, and a table's fill painted under its own text beneath the
+background.
 
 `fonts.test.ts` reads the faces the package embeds, Roboto's four and
 Liberation Sans's two, through report-spec's reader to the values measured

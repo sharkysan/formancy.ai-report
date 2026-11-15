@@ -56,7 +56,12 @@ digest it had.
   another block of fixed height taller than the shorter of page 1's and the
   later pages' bodies is refused, though a later page could hold it,
   because pdfmake draws an image on a page that holds nothing yet whatever
-  its room, and would draw it past page 1's foot;
+  its room, and would draw it past page 1's foot; where page 1's own
+  header is shorter, or none, a block kept together, a table's line under
+  its repeated header or an image that only page 1's taller body could hold
+  is refused, even in a report that would end on page 1, because where a
+  block lands is known only once the body is laid out, and a later page
+  could not hold it whole;
   a tall own header is held above a QR-bill's slip though the report may
   end on a later page; and the page header is still measured and held in a
   report of one page that prints it nowhere.

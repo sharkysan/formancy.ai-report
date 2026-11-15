@@ -71,20 +71,26 @@
     pdfmake 0.3.11 the drawing rests on: page 1's background laid out in
     a box as large as the page, whatever its top margin; an empty node's
     top margin moving the next line by that margin, up for a negative
-    one; a page whose header function returns nothing drawn without a
-    header; and a filled table first on page 1 painting its fill under its
-    own text, beneath a background of text, a rule and an image.
+    one; a page whose header function returns null, as the renderer's
+    does, drawn without a header; and a filled table first on page 1
+    painting its fill under its own text, beneath a background of text, a
+    rule and an image.
     `src/refusals.test.ts`, "page 1's own header (0060)", refuses a page
     number or count in it, at its top level and in a column, as
     `unsupported`, saying the page footer prints page 1's; a page break in
     it; as `content-too-large` naming `firstPageHeader`, one that with the
     page footer leaves page 1 no body and one taller than the printable
     area; still refuses a page header that leaves the later pages no body;
-    and refuses an image page 1's shorter body cannot hold, drawing one it
-    can. Beside them, an XRechnung's document whose first page header does
-    not open with the copy paragraph, or is none, is refused naming
-    `firstPageHeader`, and `src/xrechnung.test.ts` draws the copy label at
-    the head of page 1 under a header of its own, and of every later page.
+    refuses an image page 1's shorter body cannot hold, drawing one it
+    can; and, under a page header taller than page 1's own, which is none,
+    refuses a kept block, an image and a table's line under its repeated
+    header that only page 1's taller body could hold, each naming it, at
+    the head of the body and after a page 1 of text, and prints each of a
+    size a later page holds, read from the PDF. Beside them, an
+    XRechnung's document whose first page header does not open with the
+    copy paragraph, or is none, is refused naming `firstPageHeader`, and
+    `src/xrechnung.test.ts` draws the copy label at the head of page 1
+    under a header of its own, and of every later page.
   - **The corpus's checks.** report-corpus's `src/checks.test.ts`, "verify
     holds page 1's own header to page 1 (0060)", finds nothing wrong with
     page 1 under its own header, or none, and page 2 under the page header,
@@ -120,6 +126,15 @@
     walk, over every starter in three languages, and compares both
     builders' trees as it is chosen, as a text is placed in it and as it
     is taken away again.
+  - **The packed packages.** The install gate's `consume.ts`, through
+    `scripts/install-fixture/first-page.ts`, in `pnpm test:e2e:install`:
+    both commands through a session as a proposal carries them, from
+    JSON, each one undo step, the removal refused as `not-found` where
+    there is none; a page number offered none of the region's places and
+    refused in it by the validator as `misplaced-page-counter`; and a
+    report with one resolved, the same report without it to no key, and
+    drawn on two pages, page 1's own header's fill on page 1 alone and the
+    page header's on page 2 alone, read from each page's content stream.
   - **Nothing else moved.** Every suite passes as it did; the corpus's
     starters and samples render as they did; the e-invoice gate judges
     its recorded corpus, which digests the PDF the renderer draws of
@@ -160,6 +175,26 @@
       that keeps a page field out of the region, and the Angular builder's
       built outline naming the region otherwise, which the Studio's parity
       walk found;
+    - **the bounds where page 1's body is the taller:** each of
+      `src/refusals.test.ts`'s three cases under a page header taller than
+      page 1's own failed with one piece of `render.ts` changed and put
+      back: with the body pass's bound taken as the taller of the two
+      bodies, the kept block's case and the table's, a 20-line kept block
+      after a page 1 of text printing nothing on page 2 and the table's
+      second row gone, page 2 printing its header alone, both renders a
+      success; with a block of fixed height held to page 1's body, the
+      image's case, a 250 pt image after the text drawn on page 2 49.75 pt
+      past the body's foot;
+    - **the packed packages:** `scripts/install-fixture/first-page.ts`,
+      run under Node against the workspace's built packages, failed with
+      the renderer's built header function drawing the page header on
+      page 1 too, "page 1 did not print its own header alone, and page 2
+      the page header alone", and passed with it put back; the whole
+      install gate passed with it;
+    - **the refusal's words:** `src/svg.test.ts`'s budget case failed
+      against `check-images.ts`'s message that counted every page region
+      on every page, until it said the page header or footer, and page 1's
+      own header once;
     - **the paperwork:** `scripts/architecture.test.mjs` and
       `scripts/release-report/limitations.test.mjs` failed on this record
       until a section linked it and the register read it.

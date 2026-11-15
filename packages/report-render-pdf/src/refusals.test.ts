@@ -7,7 +7,7 @@ import { describe, expect, test, vi } from 'vitest'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { MAX_DEPTH } from './check.js'
 import { renderPdf } from './node.js'
-import { BODY_HEIGHT, details, documentOf, ledger, PAGE, paragraph, PRINTABLE_WIDTH } from './testing/documents.js'
+import { bareDocument, BODY_HEIGHT, details, documentOf, ledger, PAGE, paragraph, PRINTABLE_WIDTH, SMALL_SIZE } from './testing/documents.js'
 import { copied, E_INVOICE_FILE, invoiced, XRECHNUNG_FILE } from './testing/e-invoice.js'
 import { encodePng } from './testing/images.js'
 import { pageLines } from './testing/lines.js'
@@ -744,6 +744,104 @@ describe("page 1's own header (0060)", () => {
       message: 'the image tall is 600.00 pt tall; the body is 548.51 pt where it stands',
     })
     expect(await refusal(spaced(100))).toBe('rendered')
+  })
+
+  describe('under a page header taller than its own', () => {
+    /**
+     * `body` on a printable area 300 pt tall, under a page header of ten
+     * 8 pt lines, which takes 99.75 pt of every later page, and a first
+     * page header that is none: page 1's body is the whole 300 pt, every
+     * later page's 200.25, ending at 570.95 pt.
+     */
+    const tallerPageOne = (title: string, body: readonly Block[]): ResolvedDocument => ({
+      ...bareDocument(title, body),
+      page: { ...PAGE, margins: { ...PAGE.margins, top: 270.945, bottom: 270.945 } },
+      pageHeader: Array.from({ length: 10 }, (_, index) => paragraph(`Header line ${index + 1}`, { size: SMALL_SIZE })),
+      firstPageHeader: [],
+    })
+    /** Twenty lines of 9 pt Roboto, 210.94 pt: page 1's body holds them, and not a block of 90 pt more. */
+    const filler = Array.from({ length: 20 }, (_, index) => paragraph(`Filler line ${index + 1}`))
+    const kept = (lines: number): Block => ({ kind: 'keepTogether', blocks: Array.from({ length: lines }, (_, index) => paragraph(`Kept line ${index + 1}`)) })
+    /** Each page as the PDF prints it, the page header's lines left out: its lines' text, and its images' boxes. */
+    const printed = async (document: ResolvedDocument): Promise<{ lines: string[]; images: { top: number; bottom: number }[] }[]> =>
+      (await readPdf(await renderPdf(document, { maxPages: 5 }))).pages.map((page) => ({
+        lines: pageLines(page)
+          .map((line) => line.text)
+          .filter((text) => !text.startsWith('Header line')),
+        images: page.images.map(({ top, bottom }) => ({ top, bottom })),
+      }))
+
+    // Page 1's body is taller than the later pages' where its own header
+    // takes less room than the page header, and where a kept block lands
+    // is known only once pdfmake has laid the body out, so it is held to
+    // the later pages' body: a block only page 1 could hold, moved past
+    // page 1 by what stands before it, reaches a page that cannot hold it
+    // whole. With it held to page 1's body (measured on 2026-11-15), 20
+    // kept lines, 210.94 pt, after the filler printed the filler on page 1
+    // and nothing on page 2, the block gone and the render a success. It
+    // is refused there, and at the head of a report that would end on page
+    // 1, as the record's cost says; 18 lines, 189.84 pt, print whole.
+    test('refuses a kept block only page 1’s taller body could hold, naming it', async () => {
+      const message = (at: string): string => `the keep-together block ${at} is 210.94 pt tall; a page's body is 200.25 pt where it stands`
+      expect(await refusal(tallerPageOne('Kept', [kept(20)]))).toMatchObject({ code: 'content-too-large', subject: 'body[0]', message: message('body[0]') })
+      expect(await refusal(tallerPageOne('Kept after', [...filler, kept(20)]))).toMatchObject({
+        code: 'content-too-large',
+        subject: 'body[20]',
+        message: message('body[20]'),
+      })
+      const pages = await printed(tallerPageOne('Kept after', [...filler, kept(18)]))
+      expect(pages.map((page) => page.lines.filter((line) => line.startsWith('Kept line')).length)).toEqual([0, 18])
+    })
+
+    // An image, or any block of fixed height, is held to the shorter body
+    // whichever page that is, here a later page's. With it held to page
+    // 1's body (measured on 2026-11-15), a 250 pt image after the filler
+    // was drawn on page 2 from 370.70 pt to 620.70, 49.75 pt past the
+    // body's foot, and nothing refused it. Refused there and alone, where
+    // page 1 would hold it; one of 200 pt is drawn within page 2's body.
+    test('refuses an image only page 1’s taller body could hold, naming it', async () => {
+      const image = (height: number): Image => ({ kind: 'image', asset: dot('tall'), width: 100, height, fit: 'cover' })
+      const refused = { code: 'content-too-large', subject: 'tall', message: 'the image tall is 250.00 pt tall; the body is 200.25 pt where it stands' }
+      expect(await refusal(tallerPageOne('Image', [image(250)]))).toMatchObject(refused)
+      expect(await refusal(tallerPageOne('Image after', [...filler, image(250)]))).toMatchObject(refused)
+      const [first, second] = await printed(tallerPageOne('Image after', [...filler, image(200)]))
+      expect(first?.images).toEqual([])
+      expect(second?.images).toHaveLength(1)
+      expect(second!.images[0]!.bottom).toBeLessThanOrEqual(570.945 + 0.01)
+    })
+
+    // A table's line must fit under its column header on every page the
+    // table continues on, which is a later page's body: a 96 pt row under
+    // a 96 pt header needs 234.50 pt and a point more, which page 1's 300
+    // pt holds and a later page's 200.25 does not. With the line held to
+    // page 1's body (measured on 2026-11-15), the table's first row printed
+    // on page 1 and its second was gone, page 2 printing the header alone.
+    // 40 pt rows under a 40 pt header need 103.25 pt, and print.
+    test('refuses a table whose line only page 1’s taller body could hold under its header, naming it', async () => {
+      const columns: TableColumn[] = [
+        { width: 'fill', align: 'left' },
+        { width: 'fill', align: 'left' },
+      ]
+      const table = (size: number): Table => ({
+        kind: 'table',
+        id: 'under',
+        columns,
+        header: ['H1', 'H2'],
+        headerStyle: { size },
+        rows: [
+          { kind: 'detail', cells: ['BIG', 'x'], style: { size } },
+          { kind: 'detail', cells: ['BIG2', 'y'], style: { size } },
+        ],
+        emptyText: 'none',
+      })
+      expect(await refusal(tallerPageOne('Table', [table(96)]))).toMatchObject({
+        code: 'content-too-large',
+        subject: 'under',
+        message:
+          "row 0 of table under, a detail row, has a line that needs 234.50 pt of a page under the table's repeated header, and a point more for rounding; a page's body is 200.25 pt where it stands",
+      })
+      expect((await printed(tallerPageOne('Table', [table(40)]))).map((page) => page.lines)).toEqual([['H1 H2', 'BIG x', 'BIG2 y']])
+    })
   })
 })
 
