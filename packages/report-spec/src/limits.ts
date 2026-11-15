@@ -177,6 +177,33 @@ export const MAX_FORM_MEMBER_LENGTH = 200
  */
 export const MAX_FORM_OVERRIDES = 64
 
+/**
+ * Languages a report is written in, its own among them (0063). Chosen, not
+ * measured: the European Union's official languages are twenty-four, and a
+ * report is validated once for each language it declares.
+ */
+export const MAX_LANGUAGES = 24
+
+/**
+ * Words one translation holds, and expressions that print words: each list
+ * bounded by it (0063). 1,024, the least power of two that is at least
+ * sixteen times the most a report the corpus exports holds of both: the
+ * XRechnung sample, 36 distinct words and 13 expression runs where words
+ * stand, 49 (measured on 2026-11-15 on an Intel i9-10900K under Windows 11
+ * and Node 24.21.0, as the distinct texts `reportWords` gives and the
+ * distinct sources `wordExpressionSites` gives). That sample written in
+ * `MAX_LANGUAGES` languages, each translation as long as its word, is
+ * 91,113 bytes, inside `MAX_REPORT_BYTES`.
+ *
+ * The format admits far more words than this: every region may hold
+ * `MAX_REGION_COMPONENTS` texts of `MAX_INLINES` runs. Such a report
+ * validates and cannot be translated whole: each word past the bound stays
+ * missing in that language, said as report-core's `word-missing`, and a
+ * render in it is refused. The corpus's `report-size.test.ts` holds the
+ * bound to this factor.
+ */
+export const MAX_WORDS = 1024
+
 /** Characters in a CEL expression. An expression is a formula, not a program; the runtime bounds its evaluation too. */
 export const MAX_EXPRESSION_LENGTH = 1024
 

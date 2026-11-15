@@ -1,5 +1,5 @@
 import type { ReportDefinition } from '@formancy/report-runtime'
-import { MAX_REPORT_BYTES } from '@formancy/report-spec'
+import { MAX_LANGUAGES, MAX_REPORT_BYTES, MAX_WORDS, reportWords, wordExpressionSites } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { SITE_VISIT_REPORT } from './forms/site-visit.js'
 import { E_INVOICE_SAMPLES, EURO_INVOICE_SAMPLES, INVOICE_SAMPLES, STARTERS, XRECHNUNG_SAMPLES } from './starters/index.js'
@@ -36,5 +36,39 @@ describe('the size a report may have as a draft', () => {
   test('leaves the factor limits.ts states over the largest report the corpus holds', () => {
     const largest = Math.max(...[...REPORTS.values()].map(serialisedBytes))
     expect(MAX_REPORT_BYTES).toBeGreaterThanOrEqual(largest * MARGIN)
+  })
+})
+
+/** The words and word expressions a report would ask a translation for: its distinct words, and the distinct sources of the expression runs where words stand. */
+function wordsOf(report: ReportDefinition): { readonly words: readonly string[]; readonly expressions: readonly string[] } {
+  return {
+    words: [...new Set(reportWords(report).map(({ text }) => text))],
+    expressions: [...new Set(wordExpressionSites(report).map(({ cel }) => cel))],
+  }
+}
+
+describe('the words a translation may hold', () => {
+  // MAX_WORDS's comment in report-spec's limits.ts states the factor it
+  // leaves over the corpus's report with the most words. A starter grown
+  // toward it, or a bound lowered toward the starters, would leave a
+  // report the Studio offers that no language could be written in whole.
+  test('leaves the factor limits.ts states over the report the corpus holds with the most words', () => {
+    const most = Math.max(...[...REPORTS.values()].map((report) => wordsOf(report).words.length + wordsOf(report).expressions.length))
+    expect(MAX_WORDS).toBeGreaterThanOrEqual(most * MARGIN)
+  })
+
+  // The same comment says the richest report written in every language a
+  // report may have still fits a draft: one that did not would be a report
+  // a server refuses to keep once its last language is added.
+  test('keeps every report written in MAX_LANGUAGES languages inside MAX_REPORT_BYTES', () => {
+    for (const report of REPORTS.values()) {
+      const { words, expressions } = wordsOf(report)
+      const translations = Array.from({ length: MAX_LANGUAGES - 1 }, (_, index) => ({
+        locale: `x${String.fromCharCode(97 + Math.floor(index / 26))}${String.fromCharCode(97 + (index % 26))}`,
+        words: words.map((word) => ({ word, text: word })),
+        expressions: expressions.map((cel) => ({ cel, expression: { cel } })),
+      }))
+      expect(serialisedBytes({ ...report, translations })).toBeLessThanOrEqual(MAX_REPORT_BYTES)
+    }
   })
 })

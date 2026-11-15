@@ -259,6 +259,7 @@ export {
   MAX_INLINES,
   MAX_KEY_LENGTH,
   MAX_LABEL_LENGTH,
+  MAX_LANGUAGES,
   MAX_LENGTH_PT,
   MAX_NESTING_DEPTH,
   MAX_PARAMETERS,
@@ -282,6 +283,7 @@ export {
   MAX_TABLE_COLUMNS,
   MAX_TEXT_LENGTH,
   MAX_VAT_CATEGORIES,
+  MAX_WORDS,
   MIN_CHART_SIDE,
   MIN_COLUMNS,
   MIN_FONT_LINE,
@@ -315,6 +317,10 @@ export { reportHash } from './hash.js'
 export { emptyReport } from './empty.js'
 export { componentAt, walkComponents } from './walk.js'
 export type { ComponentLocation } from './walk.js'
+export { isWord, reportWords, wordExpressionSites } from './translation.js'
+export type { TranslatedExpression, TranslatedWord, Translation, WordExpressionSite, WordPlace } from './translation.js'
+export { declaredLocales, renderLocale, reportIn, writtenIn } from './report-in.js'
+export type { LocaleChoice } from './report-in.js'
 export { MILLIMETRES_PER_INCH, mmToPt, POINTS_PER_INCH, ptToMm, roundPt } from './units.js'
 export { PAGE_SIZES, pageDimensions, printableArea, squareRoom } from './page.js'
 export type { PageDimensions } from './page.js'
