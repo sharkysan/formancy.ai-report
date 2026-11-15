@@ -136,19 +136,20 @@ report's own faces. ECharts decides nothing a reader reads.
 - **A render's charts are bounded together**, by `MAX_CHART_DRAWING`, and
   a render past it is refused as `content-too-large` before any chart is
   laid out, naming the chart that crossed it. ECharts lays out every chart
-  of a render three times before the body is paginated, and a reader draws
-  every one, and nothing bounded how many a document packs onto its pages:
-  32 line charts of 8 series and 200 categories, in four columns, printed
-  on one page in 17.2 s on a machine at a load average of 8 to 10. Each
-  chart now weighs its kind's weight, a unit for each series at each
-  category or each slice, and each word it places by what the word is,
-  measured on the render and on PDF.js; the bound, 5,000 units, keeps the
-  costliest render and page tried under 2 s on the quiet machine it was
-  measured on. **A document of many dense charts is refused**, to be split
-  across renders: two line charts of 8 series and 200 categories fit in
-  one, and three do not. A heading kept with a chart makes pdfmake lay the
-  document out again for each page it moves the heading to, which the
-  bound does not count.
+  of a render three times, a pie twice, before the body is paginated, and
+  a reader draws every one, and nothing bounded how many a document packs
+  onto its pages: 32 line charts of 8 series and 200 categories, their
+  labels empty, as blocks built by hand, in four columns, printed on one
+  page in 17.2 s on a machine at a load average of 8 to 10. Each chart now
+  weighs its kind's weight, a unit for each series at each category or
+  each slice, and each word it places by what the word is, measured on the
+  render and on PDF.js at a load of 12 to 20; and the bound, 5,000 units,
+  was confirmed at a quiet load of 3.3 to 5.6, where every render and page
+  of the forms tried stayed under 2 s at its slowest. **A document of many
+  dense charts is refused**, to be split across renders: two line charts
+  of 8 series and 200 categories fit in one, and three do not. A heading
+  kept with a chart makes pdfmake lay the document out again for each page
+  it moves the heading to, which the bound does not count.
 - **What the renderer cannot draw as written is refused** as
   `unsupported`, before anything is laid out: a chart in a page region,
   one past the runtime's bounds on its ticks or its series, a word with a

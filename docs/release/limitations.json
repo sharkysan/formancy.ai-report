@@ -2340,7 +2340,7 @@
       ]
     },
     "0058": {
-      "reviewed": "sha256:2999883b7b4195b4c20ad5e80e9025ed45e10bd81509e1ac25ebe05642928bbd",
+      "reviewed": "sha256:34bd9948d17a7af6c83b21a770290661da69e19697eac84ab97998749486d99c",
       "limitations": [
         {
           "area": "rendering",
@@ -2384,7 +2384,7 @@
         },
         {
           "area": "rendering",
-          "says": "The chart bound was measured on one Apple M2, the weights on the render and on PDF.js at scale 1 at a load average of 12 to 20 and the bound by the slowest of seven runs of the costliest form tried at 3.3 to 5.6, where the costliest render it admits took 878 ms and the costliest page 1,614 ms at their slowest; at a load of 10 to 18.6 documents it admits took up to 9.45 s.",
+          "says": "The chart bound was measured on one Apple M2, the weights on the render and on PDF.js at scale 1 at a load average of 12 to 20 and the bound by the slowest of seven runs of the forms tried at 3.3 to 5.6, where the slowest render of them took 878 ms and the slowest page 1,614 ms, and a second run at 4.2 to 5.5 found two others slowest, at 1,258 and 1,255 ms; nothing measured the slowest the bound admits, and at a load of 10 to 18.6 documents it admits took up to 9.45 s.",
           "heldBy": "packages/report-render-pdf/src/charts.test.ts"
         },
         {

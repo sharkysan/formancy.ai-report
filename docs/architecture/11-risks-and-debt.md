@@ -114,10 +114,11 @@ chart rather than measure it through another copy of zrender than its
 own, which a host's bundle may give ECharts.
 
 What a render's charts may cost together is bounded by
-`MAX_CHART_DRAWING`, and the bound is a measurement on one quiet machine:
-its weights are the medians of seven rounds that spread widely, its value
-the slowest of seven runs of one page, a spike, and the 2 s it keeps
-holds at the load it was confirmed at, where at a load of 10 to 18.6 the
+`MAX_CHART_DRAWING`, and the bound is a measurement on one machine: its
+weights are the medians of seven rounds, at a load of 12 to 20, that
+spread widely; its value the slowest of seven runs of one page, a spike,
+at a quiet load of 3.3 to 5.6; and the 2 s it keeps holds at that load,
+where at a load of 10 to 18.6 the
 documents it admits took up to 9.45 s. A heading kept with a chart makes
 pdfmake lay the whole document out again for each page it moves, which
 the bound does not count, and a line chart's eight clips cost a reader

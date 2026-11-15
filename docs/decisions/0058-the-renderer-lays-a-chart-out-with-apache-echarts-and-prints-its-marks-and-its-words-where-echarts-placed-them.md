@@ -167,14 +167,13 @@
       tied to their marks;
     - `MIN_BAR_WIDTH`'s gap case at a `BAR_GAP` of 0.3, and the e-invoice
       variant's two cases before the variant was listed;
-    - the bound's cases with each chart weighed by its kind and its points
-      alone, four of seven; then with its words unweighed, five, its
-      missing values uncounted, one, the title's and the legend's weights
-      swapped, five, the bound let through at `>=`, four, and an empty
-      chart weighed, one; and the count of kept headings' layouts with the
-      renderer's rule for kept headings switched off, and the alignment
-      case with the alignment read into the size, each in the working
-      tree on 15 November 2026.
+    - the bound's cases with each chart weighed by its points alone, four of
+      seven; then with its words unweighed, five, its missing values
+      uncounted, one, the title's and the legend's weights swapped, five,
+      the bound let through at `>=`, four, and an empty chart weighed, one;
+      and the count of kept headings' layouts with the renderer's rule for
+      kept headings switched off, and the alignment case with the alignment
+      read into the size, each in the working tree on 15 November 2026.
 
 ## Context
 
@@ -533,12 +532,12 @@ render and on a reader.** In order:
     whose only charts are empty loads no ECharts.
 12. **A render's charts are weighed together, and bounded**
     (`check-chart.ts`'s `checkChartDrawing`). ECharts lays out every chart
-    of a render, three times, before the body is paginated, and a reader
-    draws every one, and nothing else bounded how many a document packs
-    onto its pages. So before any chart is laid out, a render whose charts
-    together weigh more than `MAX_CHART_DRAWING`, 5,000 units, is refused
-    as `content-too-large` at the chart that crossed it, naming the count
-    and the bound and quoting none of its words.
+    of a render, three times, a pie twice, before the body is paginated, and
+    a reader draws every one, and nothing else bounded how many a document
+    packs onto its pages. So before any chart is laid out, a render whose
+    charts together weigh more than `MAX_CHART_DRAWING`, 5,000 units, is
+    refused as `content-too-large` at the chart that crossed it, naming the
+    count and the bound and quoting none of its words.
     - **The unit** is what one more point of a line chart of 8 series and
       200 categories costs a render.
     - **A chart weighs** its kind's weight (`CHART_WEIGHT`: a bar 40, a
@@ -577,14 +576,19 @@ render and on a reader.** In order:
       Each was packed as many to a render as the bound holds, in the
       densest grid it draws in on A4 landscape pages without margins,
       across pages, and as many as one page holds.
-    - **What it admits.** At 5,000 the costliest render, 263 dressed pies
-      of one slice on 3 pages, took 878 ms at its slowest and 859 at its
-      median; the costliest page, one 8 × 200 line beside five 8 × 1
-      lines, cost PDF.js 1,614 ms at its slowest and 723 at its median.
-      That slowest run is one spike: the page's other six stood at 0.66
-      to 1.10 times the reference render's in their rounds. At 0.332 ms a
-      unit it reaches 2 s at about 6,017 units, and 6,000 would leave about
-      10 ms, so the bound is 5,000, which the same run confirmed.
+    - **What the runs found.** At 5,000, in the run that set the bound, the
+      slowest render of the forms tried was 263 dressed pies of one slice on
+      3 pages, 878 ms at its slowest and 859 at its median, and the slowest
+      page one 8 × 200 line beside five 8 × 1 lines, which cost PDF.js 1,614
+      ms at its slowest and 723 at its median. A second run, a review's, at
+      a load of 4.2 to 5.5, ordered them otherwise: 17 value-labelled bars
+      of 120 categories took 1,258 ms at their slowest against the pies'
+      1,235, and a page of nine 8 × 1 lines 1,255 against that page's 962.
+      Neither run's slowest is the slowest the bound admits, which nothing
+      measured. The 1,614 ms is one spike: the page's other six stood at
+      0.66 to 1.10 times the reference render's in their rounds. At 0.332 ms
+      a unit it reaches 2 s at about 6,017 units, and 6,000 would leave
+      about 10 ms, so the bound is 5,000, which the same run confirmed.
     - **It holds one layout pass.** pdfmake lays the whole document out
       again for each page where a kept heading moves to the next, which no
       bound before the layout can count. Behind a keep-with-next heading
@@ -706,8 +710,9 @@ to `check-chart.ts` and draws it.
   measure as they did between the renderer's; but a host whose bundle
   gives ECharts another zrender than the renderer's has every chart with
   something to draw refused.
-- **A render's charts are bounded on one quiet machine.** The weights and
-  the bound were measured on one Apple M2, and the 2 s the bound keeps
+- **A render's charts are bounded by one machine's measure, confirmed at
+  a quiet load.** The weights and the bound were measured on one Apple
+  M2, the weights at a load of 12 to 20, and the 2 s the bound keeps
   holds at the load it was confirmed at, 3.3 to 5.6. At a load of 10 to
   18.6 the documents it admits ran far slower at their slowest: a page of
   nine line charts of 8 series and one category 5.5 s, the page that set
@@ -846,10 +851,10 @@ weighs nearly four times that bound, so it would refuse one such chart,
 where the chart bound admits two to a page, rendered in 627 ms at their
 slowest.
 
-**A chart weighed by its kind and its points alone, or one weight for
-every word.** The first form of the chart bound weighed a unit a point
-and nothing for a word, and under it value-labelled bars and lines cost
-1.4 to 1.65 times its costliest render, and pies of 200 slices with every
-slice in the legend 2.3 to 2.44 times. One weight for every word would
-have to be a legend entry's, at least 5, five times a category label's,
-and would refuse a labelled 8 × 200 line on its own, at 10,120 units.
+**A chart weighed by its kind and its points alone, or one weight for every
+word.** The first form of the chart bound weighed a unit a point and nothing
+for a word, and under it value-labelled bars and lines cost 1.4 to 1.65
+times the slowest render its own run had found, and pies of 200 slices with
+every slice in the legend 2.3 to 2.44 times. One weight for every word would
+have to be a legend entry's, at least 5, five times a category label's, and
+would refuse a labelled 8 × 200 line on its own, at 10,120 units.

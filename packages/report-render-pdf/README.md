@@ -259,12 +259,13 @@ render past `MAX_CHART_DRAWING`, 5,000 units, is refused as
 `content-too-large` at the chart that crossed it. A chart weighs its
 kind's weight, a unit for each series at each category or each slice of a
 pie, and each word it places by what the word is; one with nothing to
-draw weighs nothing. The weights and the bound were measured on the
-render and on PDF.js, on one quiet machine, as the constant's comment
-says: two line charts of 8 series and 200 categories fit in a render,
-and three do not. The bound holds one layout pass, and a heading kept
-with a chart makes pdfmake lay the document out again for each page it
-moves the heading to, which it does not count.
+draw weighs nothing. The weights were measured on the render and on
+PDF.js at a load of 12 to 20, and the bound confirmed at a quiet load of
+3.3 to 5.6, on one machine, as the constant's comment says: two line
+charts of 8 series and 200 categories fit in a render, and three do not.
+The bound holds one layout pass, and a heading kept with a chart makes
+pdfmake lay the document out again for each page it moves the heading
+to, which it does not count.
 
 What ECharts writes is held, before anything of it is used, to what
 6.1.0 was seen to write, and refused otherwise as `unsupported`: the
