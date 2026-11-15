@@ -179,22 +179,70 @@ the one walk that lays them out (`styledRows`), and refuses a face the
 family does not map and a character the face lacks, a page field's digits
 included; the QR-bill's slip and the EPC caption keep Liberation Sans
 ([0043](docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
-A chart, a component, is known to report-spec and report-core, refused by
-the runtime, and not offered by the builders yet: its rules are
-report-spec's `chart.ts`, the palette `CHART_PALETTE` and the lists beside
-it, and `validate-chart.ts`, which holds its category and each series to
-the detail fields' types and the kinds' own rules, a bar's or a line's
-palette to its series among them, as `invalid-chart`, its bounds
-`MAX_CHART_SERIES`, derived from the palette, and `MIN_CHART_SIDE` in
-`limits.ts`; the core names what it reads in `parts.ts`'s `READERS.chart`,
-takes a series alone where a removed field is what it totals
-(`readers.ts`), and says of a series rounded with no places, or twice, as
-of an aggregate (`diagnostics/chart.ts`); the runtime refuses a report
-that would print one as `chart-not-resolved` until it resolves charts; and
-builder-core's palette withholds it (`NOT_OFFERED`) until the builders
-edit a chart's own properties, its default, which labels the rows without
-a category, held to the validator meanwhile
+A chart, a component, is known to report-spec, report-core and the
+runtime, refused by the renderer, and not offered by the builders yet: its
+rules are report-spec's `chart.ts`, the palette `CHART_PALETTE` and the
+lists beside it, and `validate-chart.ts`, which holds its category and
+each series to the detail fields' types and the kinds' own rules, a bar's
+or a line's palette to its series among them, as `invalid-chart`, its
+bounds `MAX_CHART_SERIES`, derived from the palette, and `MIN_CHART_SIDE`
+in `limits.ts`; the core names what it reads in `parts.ts`'s
+`READERS.chart`, takes a series alone where a removed field is what it
+totals (`readers.ts`), and says of a series rounded with no places, or
+twice, as of an aggregate (`diagnostics/chart.ts`), typing it by
+`seriesType`, the compiler's `fieldTotalType`; and builder-core's palette
+withholds it (`NOT_OFFERED`) until the builders edit a chart's own
+properties, its default, which labels the rows without a category, held to
+the validator meanwhile
 ([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+The runtime resolves a chart into the `chart` block of
+`chart-document.ts`, which holds every word it prints and each value's
+exact digits beside its text (`lower-chart.ts`): its categories grouped
+where a table's rows are (`sort-group.ts`'s `categoryGroups`), at most
+`MAX_CHART_CATEGORIES` and a pie no more than its palette's colours, both
+refused as `chart-too-many-categories` before anything is totalled; each
+series totalled by `totals.ts`'s `totalOf`, the function every aggregate
+and group is, in the decimals `seriesType` gives it, so rounded and
+refused as an aggregate is; its value axis one, two or five times a power
+of ten, exactly, at most `MAX_TICK_INTERVALS` intervals
+(`chart-ticks.ts`); a pie's negative value refused as
+`chart-negative-share`, and its shares ratios rounded once to
+`SHARE_PLACES` (`decimal.ts`'s `ratioRounded`) and printed by
+`format.ts`'s `percent`, which refuses rather than rounds again; and the
+renderer's `check.ts` refuses the block as `unsupported` until it draws
+charts
+([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
+`@formancy/report-documents` is the one reader of PDFs, beside report-spec,
+which holds no PDF engine, and nothing calls it yet: `readDocument`, in
+`read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
+of its own (`model.ts`) that no pdf-lib type leaves, which
+`scripts/documents-declarations.test.mjs` holds of its built declarations,
+or refuses them with
+one of `DOCUMENT_REFUSAL_CODES` in its own words, a page and an annotation
+by its own count and never a byte of the file, and never throws. It drives
+`@pdfme/pdf-lib` 6.2.4's object grammar with a strict loop of its own
+(`parse.ts`, `xref.ts`), every token but the keywords, both containers and
+a cross-reference stream's rows read by its own code (`grammar.ts`,
+`reading.ts`), and inflates with `pako` 3.0.2 from one budget a document
+(`inflate.ts`); every bound is `limits.ts`'s, held before the work it
+bounds and measured at it and one past it in Node, the costliest in
+Chromium too, one count of values a document, on which each decoder, each
+annotation a page lists, the encryption peek and each walk the closure
+makes again are counted. The pages are read
+as a viewer shows them (`page-tree.ts`, `pages.ts`), their annotations
+flattened by the print rule (`annotations.ts`), every object they draw
+with collected (`closure.ts`), an image held to its pixels and passed on
+undecoded (`images.ts`), an inline image ended only where the PDF.js the
+corpus pins ends it (`inline-images.ts`, `inline-end.ts`, `MIRRORED_PDFJS`,
+which `scripts/mirrored-pdfjs.test.mjs` holds), and what does not survive
+printing counted and never named (`notices.ts`); an encrypted, damaged,
+shadowed or layered file, XFA, NeedAppearances, an annotation that would
+print otherwise than a viewer shows it, a filter it does not decode (LZW,
+Crypt, a TIFF predictor), a stream in another file, and a form or an image
+that names one to print in its place (`/Ref`, `/OPI`) are refused;
+pdf-lib's own name pool is never fed a file's names, and its PNG decoder,
+UPNG, never called (`read.test.ts`)
+([0054](docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
 `@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
@@ -314,6 +362,9 @@ before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical
    hashing and migrations. No framework, no driver, no PDF engine, no Node.
+   Beside it, `report-documents` -- the one PDF reader, on the parser and
+   pako alone, depending on no package of this repository; no framework,
+   no Node, no DOM, no network (0054).
 2. `report-core` -- pure document commands, atomic history, diagnostics.
 3. `report-builder-core` -- selection, palette, properties, geometry, review
    state, the images a person adds, a report's QR-bill and e-invoice edited
@@ -453,8 +504,8 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
 - **Nothing in a package reads configuration.** The composition root reads it,
   once. A connection string, a token or a row of customer data in a log line,
   an error message or a test fixture is a defect.
-- **Templates, expressions, datasets, fonts, images, and a formancy form's
-  versions and their submissions are untrusted**, even when an
+- **Templates, expressions, datasets, fonts, images, PDFs, and a formancy
+  form's versions and their submissions are untrusted**, even when an
   administrator wrote them or the host kept them. Expressions are typed, bounded and run no
   code. Assets are referenced by approved identifier and never fetched by
   address. Nothing in a package reaches the network.
@@ -569,6 +620,18 @@ What holds this section:
   wrote, no WebSocket (`gate-images.mjs`, 0033), and no request or
   connection hint to any origin but the built Studio's, its faces included
   ([0023](docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
+- **The pages' browser gate**, `apps/pages/scripts/browser-test.mjs`, run
+  as `pnpm --filter @formancy/report-pages test:browser` in the same job,
+  with the pages served under `/report/` and the demo's headers and the
+  Studio's reads from `gate-measure.mjs`: in Chromium, every page of the
+  built sitemap answering as itself, at 320 pixels with and without the
+  web fonts, a phone, one pixel past each breakpoint the built stylesheet
+  writes in rem, a laptop and a screen, with no sideways scroll and
+  nothing past either edge, axe finding nothing, the first Tab from the
+  load on the skip link and Enter on it putting the keyboard on `<main>`,
+  the room's variables, every face loaded, nothing fetched or hinted
+  outside the built pages and nothing the policy refused
+  ([0053](docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 - **The pages' stylesheet**, `apps/pages/src/stylesheet.test.ts`: it
   imports formancy's `room.css` first, the Studio's `room.css` second and
   only the Studio's stylesheets besides, and declares no colour and no
@@ -587,12 +650,11 @@ What holds this section:
 
 What nothing holds yet, said: `builder.css`'s geometry, and the colours
 admin.css's rules type that the room does not carry, are copied from
-`admin.css` by hand, and nothing fails when upstream's move; the gate runs
-Chromium alone, where Formancy Data's runs Firefox and WebKit too; no gate
-measures the product's pages in a browser, whose reflow and contrast were
-measured by hand when each page arrived (0021, 0024, 0028); and what
-a README picture looks like, and whether a caption's quote is painted in it
-rather than scrolled out of its part, which review alone holds.
+`admin.css` by hand, and nothing fails when upstream's move; the gates run
+Chromium alone, where Formancy Data's run Firefox and WebKit too; and what
+a product page or a README picture looks like, and whether a caption's
+quote is painted in its picture rather than scrolled out of its part,
+which review alone holds.
 
 ## Branch names
 
@@ -697,7 +759,12 @@ pnpm --filter @formancy/report-spec exec vitest run src/version.test.ts    # one
 pnpm --filter @formancy/report-spec exec vitest run -t "a test's name"     # one case
 pnpm lint                                                                  # every file, after pnpm build: the typed rules read dist/
 pnpm format                                                                # Prettier writes every file, before a commit
+pnpm test:repo                                                             # the repository's guards, after pnpm build
 ```
+
+`pnpm test:repo` needs `pnpm build` first, as CI's `verify` runs it:
+`scripts/documents-declarations.test.mjs` reads report-documents' built
+`dist/index.d.mts`, and without a build it fails and says so (0054).
 
 `verify` fails a TypeScript or JavaScript file that breaks a lint rule or
 that Prettier would write otherwise (0050). A finding is fixed, not
@@ -719,9 +786,13 @@ exactly what CI does:
 - **`browser`** runs the Studio's browser gate and its README pictures'
   check in Chromium, as `pnpm exec turbo run test:browser` and
   `test:pictures` for `@formancy/report-studio`, which build what they
-  measure first. Locally, `pnpm build`, `pnpm --filter
+  measure first, then the product pages' browser gate, `test:browser` for
+  `@formancy/report-pages`, even when the steps before it failed (0053).
+  Locally, `pnpm build`, `pnpm --filter
   @formancy/report-studio exec playwright install chromium` once, then
-  `pnpm --filter @formancy/report-studio test:browser` and `test:pictures`.
+  `pnpm --filter @formancy/report-studio test:browser` and `test:pictures`,
+  and `pnpm --filter @formancy/report-pages test:browser`, which needs the
+  Studio's install but not its build.
   A change to what a picture shows is retaken with `node
   scripts/pictures.mjs`, never by hand.
 - **`install`** runs `pnpm test:e2e:install`.

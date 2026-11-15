@@ -33,34 +33,59 @@ that lands it.
    scan, as a QR code is
    ([0020](decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
 2. **Nested groups**: a table grouped at several levels, each with its own
-   header, footer and totals, grouped and aggregated once in the runtime.
+   header, footer and totals, grouped and aggregated once in the runtime;
+   and a group's header kept on its page with as many of the group's
+   first rows as the report states, or with all of them where the group
+   has fewer, at every level. A record decides what is kept where the
+   header and those rows do not fit on one page under the column header.
 3. **More than one dataset**: a second detail dataset, a subreport, and a
    detail nested in a detail -- an order's lines under each order -- each
-   resolved by the runtime as the one detail is.
-4. **Running totals**: a page's subtotal, carried forward at its foot and
+   resolved by the runtime as the one detail is; and more than one table,
+   each over a dataset of its own or over the detail rows a condition
+   selects, with its own columns, order, groups and totals. A record
+   decides what a report's totals read once it holds several tables, and
+   which one an e-invoice's lines are held to. Until then a second table
+   is refused.
+4. **One template in several languages**: a report whose own words -- its
+   text, its columns' headers, a table's empty text and its PDF's title --
+   are written in each language it declares, and a render that names one
+   of them, which then decides how its numbers and dates are written, the
+   order its rows sort in and a formancy form's labels. A word missing in
+   the language a render names is refused, never printed in another. A
+   record decides how a QR-bill's slip, whose language may differ from
+   the report's, follows it. Until then a report has the one locale it
+   names, and the invoice's samples are a report for each language
+   ([0024](decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)).
+5. **Running totals**: a page's subtotal, carried forward at its foot and
    brought forward at the next page's head, as a German or Swiss invoice
    of many pages prints it.
-5. **Crosstabs**: a dataset pivoted by two of its fields, with exact row,
+6. **Crosstabs**: a dataset pivoted by two of its fields, with exact row,
    column and grand totals, refused where its columns would pass the page
    rather than cut at its edge.
-6. **Columns and labels**: a body that flows in columns, and sheets of
+7. **Columns and labels**: a body that flows in columns, and sheets of
    labels or cards on a stated grid.
-7. **Rich text from data**: a field that holds formatted text -- emphasis,
-   lists, headings -- printed in the report's fonts, in a format a record
-   fixes and checks, never markup run as it arrives.
-8. **Watermarks and backgrounds**: text or an image under every page or a
+8. **Rich text from data**: a field that holds formatted text -- emphasis,
+   sub- and superscript, lists, headings -- printed in the report's fonts,
+   in a format a record fixes and checks, never markup run as it arrives;
+   and a run of a template's own text set below or above the line, a
+   formula's digits or a unit's power, in any character its face draws
+   and not only those Unicode gives a raised or lowered form.
+9. **Watermarks and backgrounds**: text or an image under every page or a
    range of pages, a letterhead or a "Draft".
-9. **A table of contents and bookmarks**: a contents page whose page
-   numbers are the PDF's, and the same outline as the PDF's bookmarks.
-10. **Positioned elements in the page header and footer**, which the
+10. **A table of contents and bookmarks**: a contents page whose page
+    numbers are the PDF's, and the same outline as the PDF's bookmarks.
+11. **Positioned elements in the page header and footer**, which the
     format's plan already names
-    ([0007](decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
-11. **More scripts**: right-to-left text, Arabic and Hebrew, and Chinese,
+    ([0007](decisions/0007-a-report-definition-is-its-own-versioned-document.md));
+    and a first page's own page header, another or none in place of the
+    running one, which prints from the second page on, each given the
+    room it takes above the body.
+12. **More scripts**: right-to-left text, Arabic and Hebrew, and Chinese,
     Japanese and Korean, shaped as each script is written, with the
     fallback fonts the renderer's plan names
     ([0011](decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
     Until then a report refuses them, as it does now.
-12. **Code in a report**: a script the template carries for what an
+13. **Code in a report**: a script the template carries for what an
     expression cannot say -- a function of its own, a value carried from
     row to row, a step as a page or a group begins -- run in a sandbox
     with no network, no files, no clock and no randomness, held to a

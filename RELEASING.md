@@ -156,11 +156,12 @@ holds and what fails it). In short:
   builder's React or Angular as declared, as its suites ran it, and as each
   install host resolved it at both ends of its peer range; upstream
   `@formancy/*`; Node, pnpm, TypeScript and PDF.js; the Chromium the browser
-  gate launched and the Playwright that pins it;
+  gates launched and the Playwright that pins it;
 - each package's results, held to every test file the checkout holds for
   it;
-- the Studio's browser gate, held to every pass it planned and a check in
-  each, and its README pictures' check, held to every scene
+- each app's browser gate, the Studio's and the product pages', held to
+  every pass it planned and a check in each, and the Studio's README
+  pictures' check, held to every scene
   `scripts/pictures/scenes.json` gives the Studio, each launched as
   `scripts/browsers.mjs` launches the build Playwright pins;
 - the install gate host by host, held to the hosts it plans;
@@ -179,7 +180,7 @@ To build one on a machine, from that machine's own runs:
 since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 pnpm build && pnpm test:repo
 pnpm exec turbo run test:coverage --force --summarize   # every package, fresh, with its wall time
-pnpm test:browser && pnpm test:pictures                  # the Studio in Chromium, and its README pictures
+pnpm test:browser && pnpm test:pictures                  # the Studio and the product pages in Chromium, and the Studio's README pictures
 node scripts/install-test.mjs
 node scripts/e-invoice.mjs --java "$JAVA_HOME/bin/java"   # Mustang and KoSIT over the samples' XML, veraPDF and Mustang over their PDFs
 node scripts/release-report/collect.mjs --local --since "$since"
@@ -192,10 +193,15 @@ run that wrote its suite's results, and every test file of a package must
 have run: a report after one file run alone fails, by design. `--allow-missing
 install` is for G1, which rests on the install job, and a job's result exists
 only in a gates run; the install gate's own record is read whatever it
-allows. The browser gate needs Chromium once on the machine (`pnpm --filter
-@formancy/report-studio exec playwright install chromium`); its file and the
-pictures' check's are read as in CI, and G3, which rests on the browser gate,
-is judged from them. The e-invoice gate needs a Java at least as new as
+allows. The browser gates need Chromium once on the machine (`pnpm --filter
+@formancy/report-studio exec playwright install chromium`); their files and
+the pictures' check's are read as in CI, and G3, which rests on the Studio's,
+is judged from them. The root's `pnpm test:browser` runs the two gates
+through turbo at once, where CI's `browser` job runs them one after the
+other. On a busy machine the Studio's gate can fail with "Failed to fetch":
+the Preview may revoke a Download PDF's address between the gate reading
+it and fetching it. Such a run is worth repeating with the Studio's gate
+alone, `pnpm --filter @formancy/report-studio test:browser`. The e-invoice gate needs a Java at least as new as
 each JAR's `java` in `docs/release/e-invoice-tools.json`, and fetches its
 tools into `.e-invoice-cache/` the first time. On a machine that did not
 run them, `--allow-missing install,browser,e-invoice` (or `verify`)

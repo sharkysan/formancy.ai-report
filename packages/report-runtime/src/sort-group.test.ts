@@ -1,10 +1,10 @@
 import { compareDecimal, decimalFromString, decimalToString } from '@formancy/expressions'
 import type { Decimal } from '@formancy/expressions'
 import type { ReportDefinition, TableComponent } from '@formancy/report-spec'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { checkData } from './data.js'
 import type { CheckedRecord } from './data.js'
-import { groupRows, orderKeys, orderRows, orderTable } from './sort-group.js'
+import { canonicalKey, categoryGroups, groupRows, orderKeys, orderRows, orderTable, sameKey } from './sort-group.js'
 import type { OrderKey, OrderedRow } from './sort-group.js'
 import { below, sampleData, sampleReport, sampleRow, seeded } from './test-support.js'
 
@@ -17,6 +17,21 @@ const indices = (rows: readonly OrderedRow[]): number[] => rows.map(({ index }) 
 const key = (type: OrderKey['type'], direction: OrderKey['direction'] = 'asc'): OrderKey => ({ field: 'value', type, direction })
 
 const dec = decimalFromString
+
+// Counts the value comparisons of decimals, which a quadratic grouping makes
+// by the million and a keyed one not at all.
+const comparisons = vi.hoisted(() => ({ count: 0, limit: Infinity }))
+vi.mock('@formancy/expressions', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@formancy/expressions')>()
+  return {
+    ...original,
+    compareDecimal: (a: Decimal, b: Decimal) => {
+      comparisons.count += 1
+      if (comparisons.count > comparisons.limit) throw new RangeError('more comparisons than linear grouping makes')
+      return original.compareDecimal(a, b)
+    },
+  }
+})
 
 describe('orderRows', () => {
   // Decimals compare by value: as strings, 10.00 sorts before 9.5, and 1.5
@@ -229,5 +244,117 @@ describe('orderKeys and orderTable', () => {
     expect(() => orderKeys(report, table(report))).toThrow(RangeError)
     const { detail: _detail, ...noDetail } = report.datasets
     expect(() => orderKeys({ ...report, datasets: noDetail }, table(report))).toThrow(RangeError)
+  })
+})
+
+describe('categoryGroups', () => {
+  const by = { field: 'value', type: 'string' } as const
+  const keys = (groups: ReturnType<typeof categoryGroups>) => groups.map((group) => group.key)
+  const rowsOf = (groups: ReturnType<typeof categoryGroups>) => groups.map((group) => indices(group.rows))
+
+  // A chart that re-sorted the author's months alphabetically would put April first.
+  test('keeps the order the data gives its categories, each once, every row under its own', () => {
+    const groups = categoryGroups(records(['B', 'A', 'B', 'C']), by, 'data', 'en')
+    expect(keys(groups)).toEqual(['B', 'A', 'C'])
+    expect(rowsOf(groups)).toEqual([[0, 2], [1], [3]])
+    const sorted = categoryGroups(records(['B', 'A', 'B', 'C']), by, 'asc', 'en')
+    expect(keys(sorted)).toEqual(['A', 'B', 'C'])
+    expect(keys(categoryGroups(records(['B', 'A', 'C']), by, 'desc', 'en'))).toEqual(['C', 'B', 'A'])
+  })
+
+  // 1.0 and 1.00 are one value; drawn as two bars they would split one total in two.
+  test('holds decimals of one value as one category, as a group does', () => {
+    const decimal = { field: 'value', type: 'decimal' } as const
+    const rows = records([dec('1.0'), dec('2'), dec('1.00')])
+    expect(rowsOf(categoryGroups(rows, decimal, 'data', 'en'))).toEqual([[0, 2], [1]])
+    expect(rowsOf(categoryGroups(rows, decimal, 'asc', 'en'))).toEqual([[0, 2], [1]])
+  })
+
+  // Rows without a category are a category, last when sorted, never dropped.
+  test('puts the rows without a category in one group, last when sorted, at their first row when not', () => {
+    const rows = records([null, 'B', 'A', null])
+    expect(keys(categoryGroups(rows, by, 'data', 'en'))).toEqual([null, 'B', 'A'])
+    expect(rowsOf(categoryGroups(rows, by, 'data', 'en'))).toEqual([[0, 3], [1], [2]])
+    expect(keys(categoryGroups(rows, by, 'asc', 'en'))).toEqual(['A', 'B', null])
+    expect(keys(categoryGroups(rows, by, 'desc', 'en'))).toEqual(['B', 'A', null])
+    expect(rowsOf(categoryGroups(rows, by, 'desc', 'en'))).toEqual([[1], [2], [0, 3]])
+  })
+
+  // 1 and 1.00, 0 and 0.00, -1.5 and -1.50 are each one value: held apart, a
+  // chart would split one total across bars that read alike.
+  test('holds a value as one category at every scale it is spelled in', () => {
+    const decimal = { field: 'value', type: 'decimal' } as const
+    const rows = records(['1', '1.0', '1.00', '0', '0.0', '0.00', '-1.50', '-1.5'].map(dec))
+    for (const order of ['data', 'asc'] as const)
+      expect(rowsOf(categoryGroups(rows, decimal, order, 'en')).map((g) => g.length)).toEqual(order === 'data' ? [3, 3, 2] : [2, 3, 3])
+  })
+
+  // A group is keyed as its first row spells it (RowGroup's promise); a key
+  // normalised for lookup must not leak into the answer.
+  test("keeps the first row's spelling as the key", () => {
+    const decimal = { field: 'value', type: 'decimal' } as const
+    const rows = records([dec('1.00'), dec('1.0')])
+    for (const order of ['data', 'asc'] as const) expect(decimalToString(categoryGroups(rows, decimal, order, 'en')[0]?.key as Decimal)).toBe('1.00')
+  })
+
+  // A grouping that compares each row with every category so far is
+  // quadratic: 100,000 distinct keys would spin for seconds, and it would
+  // have to be refused before the chart's own bound is reached. Two counts
+  // hold it, whatever does the comparing: the decimal comparisons such a
+  // scan makes, and the reads of a decimal's units, which a scan over
+  // canonical keys makes for every category at every row, where one key a
+  // row reads each row's once.
+  test("finds each row's category by one key, not by comparing it with every category", () => {
+    const decimal = { field: 'value', type: 'decimal' } as const
+    const length = 100_000
+    let reads = 0
+    const counted = (value: Decimal): Decimal =>
+      new Proxy(value, {
+        get(target, property, receiver) {
+          if (property === 'units' && ++reads > 2 * length) throw new RangeError('more reads of a decimal than linear grouping makes')
+          return Reflect.get(target, property, receiver) as unknown
+        },
+      })
+    const rows = records(Array.from({ length }, (_, at) => counted(dec(String(at)))))
+    comparisons.count = 0
+    comparisons.limit = length
+    try {
+      expect(categoryGroups(rows, decimal, 'data', 'en')).toHaveLength(length)
+    } finally {
+      comparisons.limit = Infinity
+    }
+    expect(reads).toBeLessThanOrEqual(2 * length)
+  })
+})
+
+describe('canonicalKey', () => {
+  // The Map that groups a chart's categories and the comparison that groups a
+  // table's rows are one decision: if they ever disagreed, a chart and its
+  // table would count different categories.
+  test('is equal for two values exactly when sameKey says they are one', () => {
+    const decimals = ['0', '0.0', '0.00', '1', '1.0', '1.00', '10', '10.0', '1.5', '1.50', '-1.5', '-1.50', '-0.0', '100', '1.05'].map(dec)
+    const pairs: [OrderKey['type'], unknown][] = [
+      ...decimals.map((value): [OrderKey['type'], unknown] => ['decimal', value]),
+      ['string', 'a'],
+      ['string', 'A'],
+      ['string', ''],
+      ['string', '1'],
+      ['string', 'null'],
+      ['integer', 1n],
+      ['integer', 2n],
+      ['integer', 9007199254740993n],
+      ['integer', 9007199254740992n],
+      ['boolean', true],
+      ['boolean', false],
+    ]
+    for (const [type, a] of pairs) {
+      for (const [other, b] of pairs) {
+        if (type !== other) continue
+        const [x, y] = [a, b] as [never, never]
+        expect(canonicalKey(type, x) === canonicalKey(type, y), `${String(type)} ${String(a)} ${String(b)}`).toBe(sameKey(type, x, y))
+      }
+      expect(canonicalKey(type, a as never) === canonicalKey(type, null)).toBe(sameKey(type, a as never, null))
+    }
+    expect(canonicalKey('string', null)).toBe(canonicalKey('decimal', null))
   })
 })

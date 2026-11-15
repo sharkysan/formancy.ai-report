@@ -50,6 +50,12 @@ function roundRatio(numerator: bigint, denominator: bigint, rounding: Rounding):
   return new Decimal(steps * step.units * 10n ** BigInt(rounding.scale - step.scale), rounding.scale)
 }
 
+/** The exact ratio of two decimals rounded once as `rounding` declares: a share, never computed through a double. Throws a RangeError for a denominator of 0 or less, which `roundQuotient` does not divide by. */
+export function ratioRounded(numerator: Decimal, denominator: Decimal, rounding: Rounding): Decimal {
+  if (denominator.units <= 0n) throw new RangeError('a ratio is of a denominator more than 0')
+  return roundRatio(numerator.units * 10n ** BigInt(denominator.scale), denominator.units * 10n ** BigInt(numerator.scale), rounding)
+}
+
 /**
  * `value` rounded as `rounding` declares, at exactly its scale. A negative
  * value that rounds to nothing is zero, never minus zero. Throws a

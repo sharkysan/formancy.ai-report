@@ -44,6 +44,7 @@ import type {
   XRechnungTerms,
   XRechnungVersion,
 } from '@formancy/report-spec'
+import type { Chart } from './chart-document.js'
 
 /**
  * A run of text, or a number only the engine knows when it lays out the
@@ -292,7 +293,8 @@ export interface Section {
   readonly padding?: number
 }
 
-export type Block = Paragraph | Table | Image | QrCode | EpcQrCode | Rule | Rectangle | Spacer | PageBreak | KeepTogether | Columns | Section
+/** Every block a region holds; a chart's types are `chart-document.ts`'s. */
+export type Block = Paragraph | Table | Image | QrCode | EpcQrCode | Chart | Rule | Rectangle | Spacer | PageBreak | KeepTogether | Columns | Section
 
 export interface PageSetup {
   readonly size: PageSizeName
