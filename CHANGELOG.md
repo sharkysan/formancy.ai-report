@@ -10,6 +10,45 @@ later.
 
 ## Unreleased
 
+**A table's group header may be kept on its page with as many of its group's first rows as the
+report states, or as many as fit**
+([0059](docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+Every group header was kept with its first row, and no more, so an order grouped by delivery
+could start a group at the foot of a page with its heading and one line, and the rest of the
+group on the next; nothing in the format could ask for more. A report that states no count
+resolves to the same document and prints to the same bytes: every corpus fixture, starter and
+invoice sample was compared byte for byte on the day the renderer changed.
+- **report-spec's `TableGroup.keepWithRows`**, a whole number from 1 to `MAX_KEEP_WITH_ROWS`,
+  32, chosen and not measured, on the group so that each level states its own once groups nest.
+  Absent, it is 1, the rule every header already had. 0 and 33 are refused as `out-of-range`,
+  2.5 as `not-an-integer`, at `/group/keepWithRows`; `keepWithRows: 1` is accepted and hashes
+  otherwise than its absence. It changes through `setGroup` and `updateComponent`, with no
+  command of its own.
+- **The runtime counts the group**: a `groupHeader` row carries `keepWithRows`, the stated
+  number or the group's rows where it has fewer, and only where that is more than one, so a
+  document of a report that states none has no such member. `MAX_KEEP_WITH_ROWS` is
+  re-exported for an engine to hold the row to.
+- **The renderer keeps the longer block** by the blocks, rules and planned breaks that kept the
+  first row: the header stands on the page of as many of its stated rows as fit there under the
+  repeated column header, a group no longer than its count whole with its subtotal, and of its
+  first row where no more fit. **A count is a most, and nothing says when fewer were kept**:
+  the heights are the data's, and refusing would refuse a report that loses nothing by printing.
+  A row with no text counts but never ends the block, since a rule finds a row on its page by
+  its text; a whole group's block is held by its subtotal though a footer row after it prints
+  nothing, and that blank row stands in the block's height. A header that prints nothing keeps
+  no more than its first row: a table's first group header still moves with it under the column
+  header, and any other is left where it falls. A report that states a count can need more
+  pages, and is refused as `too-many-pages` where that passes the host's limit. A count on a row
+  that is no group header, outside 2 to the bound, or past the detail rows under its header is
+  refused as `unsupported`, naming the table.
+- **Both builders show *Rows kept with each group header*** on a grouped table's properties, a
+  number reading 1 where none is stated; 1, or nothing, is written as the member's absence, and
+  a count given back as it reads is no edit. The Angular builder now gives a typed field back
+  what it reads once a commit is taken as no edit, as the React builder already did.
+- **0.2.0 refuses a report that states a count** as `unknown-property`, never printing it
+  without the count, and a 0.2.0 renderer handed this runtime's document keeps each header with
+  its first row alone.
+
 **The product pages are measured in a browser on every pull request**
 ([0053](docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 Their reflow down to 320 pixels and their contrast were measured by hand in Chromium when each
@@ -183,9 +222,9 @@ AI, each in order, code a report carries run in a sandbox among them,
 and the three things Report does not mean to do -- connect to a
 database, fetch by address, drill down -- with the reason for each. What
 a report can hold takes in more than one table, each over rows of its
-own with columns of its own, one template in several languages, a
-group's header kept with a stated number of its rows, a first page's own
-page header, and sub- and superscript. It promises nothing: an item is
+own with columns of its own, one template in several languages, a first
+page's own page header, and sub- and superscript; a group's header kept
+with a stated number of its rows has since been built (0059). It promises nothing: an item is
 built when its record is written, and that record may narrow it or turn
 it down.
 

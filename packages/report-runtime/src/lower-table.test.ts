@@ -175,6 +175,56 @@ describe('a grouped table', () => {
   })
 })
 
+describe("a group header's kept rows", () => {
+  const GROUP = TABLE.group as NonNullable<TableComponent['group']>
+  /** The report with its group stating `keepWithRows`, or nothing. */
+  const keeping = (keepWithRows?: number): ReportDefinition =>
+    report({ ...TABLE, group: { ...GROUP, ...(keepWithRows === undefined ? {} : { keepWithRows }) } })
+  /** Five rows in Bern, two in Thun, one in Zug. */
+  const SITES = [
+    ...['A-1', 'A-2', 'A-3', 'A-4', 'A-5'].map((tag) => row('Bern', tag, '1.00')),
+    row('Thun', 'B-1', '2.00'),
+    row('Thun', 'B-2', '2.00'),
+    row('Zug', 'C-1', '3.00'),
+  ]
+  /** Each row's kind, with what it keeps where it keeps anything. */
+  const kept = (lowered: Table | undefined): string[] =>
+    (lowered?.rows ?? []).map((each) => `${each.kind}${'keepWithRows' in each ? ` ${each.keepWithRows}` : ''}`)
+
+  // How many rows a group has is the runtime's grouping, decided here once
+  // (0059): a renderer handed the stated number would have to count the
+  // group from the order of its rows' kinds, a second time, and keep a
+  // header of two rows with three -- the next group's header among them.
+  test('keeps each group header with as many of its first rows as the group states, or with all of them where it has fewer', () => {
+    expect(kept(table(SITES, {}, keeping(3)))).toEqual([
+      'groupHeader 3',
+      ...Array.from({ length: 5 }, () => 'detail'),
+      'groupFooter',
+      'groupHeader 2',
+      'detail',
+      'detail',
+      'groupFooter',
+      'groupHeader',
+      'detail',
+      'groupFooter',
+      'total',
+    ])
+  })
+
+  // One row kept is the rule every group header has had, and the old
+  // documents carry no member for it: a header of one row, a count of
+  // one, and a report that states nothing each resolve to the row that
+  // was resolved before 0059, so a renderer that predates the member
+  // prints them as it did and the bytes of every existing report stay.
+  test('writes no count where a header is kept with one row, or the report states none', () => {
+    const stated = table(SITES)
+    expect(stated?.rows.filter((each) => Object.keys(each).includes('keepWithRows'))).toEqual([])
+    expect(table(SITES, {}, keeping(1))).toEqual(stated)
+    expect(Object.keys(table(SITES, {}, keeping(1))?.rows[0] ?? {})).toEqual(Object.keys(stated?.rows[0] ?? {}))
+    expect(kept(table([row('Zug', 'C-1', '3.00')], {}, keeping(3)))).toEqual(['groupHeader', 'detail', 'groupFooter', 'total'])
+  })
+})
+
 describe('columns', () => {
   // A column the author hides prints nothing at all: not its header, not
   // its cells, not its footer cells; the fill column takes its width.

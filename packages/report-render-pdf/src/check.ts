@@ -25,6 +25,7 @@ import { frameOf, RULE_GAP, runFace } from './content.js'
 import { epcSymbol } from './epc.js'
 import { codePoint, missingGlyph } from './glyphs.js'
 import type { FaceWanted, RenderFonts } from './host-fonts.js'
+import { checkKeptRows } from './kept-rows.js'
 import { checkPdfA, refuseCmyk } from './pdfa-check.js'
 import type { PdfA } from './pdfa.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
@@ -484,6 +485,7 @@ function checkTable(table: Table, width: number, fonts: RenderFonts): void {
     }
     for (const style of [row.style, ...(row.cellStyles ?? [])]) checkStyle(style ?? undefined, table.id, fonts)
   })
+  checkKeptRows(table)
   checkStyle(table.headerStyle, table.id, fonts)
   const narrow = table.columns.find((column) => column.width !== 'fill' && !(column.width > 2 * PADDING_X && Number.isFinite(column.width)))
   if (narrow !== undefined)

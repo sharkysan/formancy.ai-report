@@ -81,7 +81,12 @@ clamps when what it names is not there:
   gives `epc-qr-code`;
 - **the table:** `insertColumn`, `removeColumn` (with its footer cells),
   `moveColumn`, `updateColumn`, `setGroup`, `setSort`, and the footer rows
-  under the table and under each group, row by row and cell by cell;
+  under the table and under each group, row by row and cell by cell. How
+  many of its first rows a group header is kept with, the group's
+  `keepWithRows`, has no command of its own: `setGroup` and
+  `updateComponent` carry it with the rest of the group, and the session
+  holds it to the validator, as every edit
+  ([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md));
 - **the payment part**, the report's Swiss QR-bill: `putPaymentPart` (the
   bill whole, added or in place of one), `updatePaymentPart` (a patch of
   its properties, never its kind) and `removePaymentPart`, which judge

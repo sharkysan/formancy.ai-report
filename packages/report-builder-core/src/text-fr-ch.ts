@@ -193,6 +193,7 @@ export const FR_CH: Catalogue = {
   'field.columnWidth': 'Largeur de la colonne {n}',
   'field.emptyText': 'Texte sans lignes',
   'field.headerStyle': 'Style de l’en-tête',
+  'field.keepWithRows': 'Lignes gardées avec chaque en-tête de groupe',
   'field.header': 'Titre de colonne',
   'field.align': 'Alignement',
   'field.value': 'Valeur',

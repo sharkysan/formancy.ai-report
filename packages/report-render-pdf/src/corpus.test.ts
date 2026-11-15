@@ -2,6 +2,7 @@ import pdfmake from 'pdfmake'
 import {
   ALL_FIXTURES,
   E_INVOICE,
+  KEEP_WITH_FIXTURES,
   pageDimensions,
   readPdf,
   starterImages,
@@ -23,11 +24,12 @@ import { fixture, TIMEOUT } from './testing/documents.js'
  * was given (0003). These are the gate decision 0005 names: the trial chose
  * pdfmake on this corpus, and the renderer grown from its adapter is held to
  * it here, and to the corpus's SVG fixtures beside it (0030), which the
- * trial's engines never drew.
+ * trial's engines never drew, and its kept rows' fixture (0059), which
+ * they never kept.
  */
 
-/** Section 20's fixtures, and the SVG ones. */
-const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES]
+/** Section 20's fixtures, the SVG ones and the kept rows' one. */
+const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES]
 
 /**
  * The fixtures the renderer cannot satisfy, each with what it cannot do and

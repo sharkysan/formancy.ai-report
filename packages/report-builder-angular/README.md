@@ -265,7 +265,8 @@ a host's own page is its own to measure.
 - **Text that is not a number never reaches the editor from a number field.**
   A browser empties an `<input type="number">` holding "tall" before any
   change event fires, so the field says "This cannot be empty." rather than
-  "Enter a number.".
+  "Enter a number.", and an optional one is emptied: the rows a group
+  header is kept with, emptied, are 1 again, the member's absence (0059).
 - **Most touch browsers fire no HTML drag and drop.** There, as everywhere,
   the place chooser is the path to every place.
 - **No measured cost.** Rendering a long report's outline and design view has

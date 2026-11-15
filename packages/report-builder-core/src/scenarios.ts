@@ -20,7 +20,8 @@
  * own stands beside them: the payment codes (`scenario-payments.ts`), a
  * report's QR-bill selected and edited (`scenario-payment-part.ts`), its
  * e-invoice selected and edited (`scenario-e-invoice.ts`), a host's view
- * (`scenario-host-view.ts`) and images (`scenario-images.ts`).
+ * (`scenario-host-view.ts`), images (`scenario-images.ts`) and the rows a
+ * table's group header is kept with (`scenario-table-group.ts`).
  */
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
@@ -31,6 +32,7 @@ import { eInvoiceScenarios } from './scenario-e-invoice.js'
 import { paymentPartScenarios } from './scenario-payment-part.js'
 import { paymentScenarios } from './scenario-payments.js'
 import { body, scenarioReport } from './scenario-report.js'
+import { tableGroupScenarios } from './scenario-table-group.js'
 import type { BuilderScenario, ScenarioQuery, ScenarioStep } from './scenario-steps.js'
 import { contentLocale, editorText, formatZoom } from './text.js'
 import type { EditorLocale } from './text.js'
@@ -293,6 +295,7 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
     ]),
     ...hostViewScenarios(locale),
     ...imageScenarios(locale),
+    ...tableGroupScenarios(locale),
   ]
 }
 
