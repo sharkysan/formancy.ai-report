@@ -273,6 +273,31 @@ by too. `glyphs.test.ts` holds it unchanged, and `fonts.test.ts` holds each
 face's map to fontkit's, and glyphs.ts's map of a face whose maps disagree
 to the reader's, which the parser glyphs.ts had read otherwise.
 
+**Added 2026-11-15: a run set below or above the line.** The document's
+run may carry a baseline
+([0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)),
+and the renderer hands pdfmake its own `sub` or `sup` for it, and nothing
+else: no offset of the renderer's, since pdfmake takes none and its
+figures are the document's. pdfmake lays such a run's line out at its
+reduced size and moves it only when it draws it, so a line of nothing but
+such runs would be drawn above its own top, into the line before: text
+over text. So once pdfmake has measured a paragraph that holds one, in the
+moment `words.ts` reads its widest word, `shifted.ts` reads pdfmake's own
+words, the inlines it chains with `noNewLine`, and refuses as
+`unsupported`, naming the block, a word that holds such a run and no run
+on the line printing a character other than a space; and as
+`content-too-large` one that holds such a run and is wider than its line,
+measured as pdfmake measures a word that starts one, since pdfmake would
+break it anywhere. A baseline the renderer does not know, or one on a
+page field, is refused before anything is laid out. `bound.ts` counts a
+line of such runs alone at their size, never more than pdfmake lays out.
+Only a paragraph that holds such a run is read, so every other is laid
+out as it was. *Every word fits where it stands* is narrowed for such a
+word alone: a paragraph breaks it across no line, where it may break
+another across sixteen. pdfmake's fields read here are not its API:
+`pdfmake.test.ts` pins them at 0.3.11, and `shifted.test.ts` holds the
+geometry and the refusals on the PDF.
+
 **Fixed 2026-10-22: a row's line under the repeated header.** *Nothing is
 taller than the body* held a table's line to the body alone, and a row
 stands under its column header, which pdfmake 0.3.11 repeats at the top of

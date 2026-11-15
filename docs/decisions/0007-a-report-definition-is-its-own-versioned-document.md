@@ -425,6 +425,24 @@ the kind, 0.2.0 among them, refuses a report that holds one as
 `unknown-kind`. `validate-chart.test.ts` and `chart.test.ts` hold the
 shape, the placement, the palette and the refusals.
 
+**Added 2026-11-15: a run's baseline.** A run of literal text, a field, a
+parameter, an expression or an aggregate may carry `baseline`, one of
+`BASELINE_SHIFTS`, `subscript` or `superscript`, and stands on the line
+without one, as
+[0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)
+decides. A print style still attaches to a component or a cell, never to
+a run. Only a text component's runs, in any region, may carry one;
+anywhere else a run
+is read -- what a QR code, an EPC QR code, a QR-bill or an e-invoice
+encodes, and a table's column value, group header and footer cells and
+totals -- it is refused as `misplaced-baseline`, whatever its value, and
+on a page number or count as `unknown-property`. It is part of what the
+hash names. It is a draft-format addition: `reportSpecVersion` is
+unchanged, and so is every report that sets none, its hash among it. A
+release that predates it, 0.2.0 among them, refuses a report that sets
+one as `unknown-property`. `validate-baseline.test.ts` holds the shape,
+the places and the refusals.
+
 ## Alternatives considered
 
 **Extend the formancy form spec with pages and tables.** Refused by 0002 and

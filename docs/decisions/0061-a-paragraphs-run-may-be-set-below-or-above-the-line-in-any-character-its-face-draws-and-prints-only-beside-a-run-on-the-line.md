@@ -17,27 +17,54 @@
       `unknown-property`;
     - `misplaced-baseline` in a QR code's content, an EPC QR code's
       texts, a QR-bill's texts, an e-invoice's texts, a table column's
-      value, a footer cell and a group header.
+      value, a group's header and footer cells and the table's totals,
+      whatever its value, once.
 
-    report-forms' `src/review.test.ts` holds a relabel of a run set above
-    the line to keeping it there.
+    `src/validate.test.ts` holds `misplaced-baseline` among every code's
+    refusal and nearest valid edit; the typecheck holds
+    `validate-inline.ts`'s column of the kinds that take one to the run
+    types, and `validate-baseline.test.ts` a page counter's baseline to
+    not compiling. report-core's `src/session.test.ts` carries a run set
+    below the line as one undo step, its diagnostics those of the run on
+    the line, and refuses one in a table's cell, changing nothing.
+    report-forms' `src/review.test.ts`
+    holds a relabel of a run set above the line to keeping it there. The
+    install gate's node consumer, `scripts/install-fixture/consume.ts`,
+    reads `BASELINE_SHIFTS` from the packed report-spec, a paragraph's
+    lowered run validated and a cell's refused as `misplaced-baseline`.
   - **The runtime.** report-runtime's `src/lower.test.ts`: a paragraph's
-    literal and bound runs carry their baseline into the document, and a
-    run that sets none carries no key, so a document of a report that
-    sets none is the one it was.
+    literal and bound runs carry their baseline into the document, a run
+    that sets none carries no key, so a document of a report that sets
+    none is the one it was, and the runtime hands on report-spec's
+    `BASELINE_SHIFTS` and states `SHIFTED_SIZE` and `SHIFTED_RISE`.
   - **The renderer, on the PDF.** report-render-pdf's
     `src/shifted.test.ts`, read back with PDF.js:
-    - in Roboto and in the corpus's Liberation Serif, each run set below
-      or above the line drawn at `SHIFTED_SIZE` of its paragraph's size,
-      its baseline moved by `SHIFTED_RISE` of that size, to a hundredth
-      of a point, on the line of the text beside it, its characters as
-      typed;
-    - a paragraph wrapped so that a raised and a lowered run stand on
-      its second line, overlapping nothing above or below them;
-    - refused as `unsupported`, naming the block: a paragraph whose every
-      run is set below or above the line, and one whose run so set
-      follows a space at its end; refused as `content-too-large`: a word
-      that holds one and is wider than its line.
+    - in Roboto at 10 and 13 pt and in the corpus's Liberation Serif,
+      each run set below or above the line drawn at `SHIFTED_SIZE` of its
+      paragraph's size, its baseline moved by `SHIFTED_RISE` of that
+      size, to a hundredth of a point, on the line of the text beside it,
+      its characters as typed; and a paragraph that sets none drawn on
+      its line as before;
+    - a paragraph wrapped so that raised and lowered runs stand on a line
+      with a line above and below, overlapping nothing on another line,
+      in Roboto alone: that a lowered run's box in Liberation Serif
+      reaches 0.012 of the size into the next line's is computed in the
+      costs below, not proved;
+    - refused as `unsupported`, naming the block and pointing to U+00A0:
+      a word of nothing but such runs, a footnote's mark after a space
+      and one before a space, whose word holds the space alone, a run
+      beside one that prints nothing, before it and after it, and a run
+      whose value leads with a space; one in the page footer, naming the
+      region's block; and a baseline the renderer does not know, on a run
+      of text or on a page field, before anything is laid out. Refused as
+      `content-too-large`: a word that holds one and is wider than its
+      column, though every piece of it is narrower;
+    - pdfmake's words read directly: a word with a run on the line
+      printing a character passed, and one still chained where pdfmake's
+      words end read whole; a word held to its line as pdfmake measures
+      it, its leading and trailing cuts left out; and a node pdfmake wrote
+      no words onto, or a word without its width and cuts, stopping the
+      render rather than passing it.
 
     `src/bounds.test.ts` counts a run so set at its own line, never more
     than pdfmake lays out; `src/pdfmake.test.ts` holds that pdfmake
@@ -46,14 +73,23 @@
     where the renderer reads them, and chains a mark before a space to
     that space alone;
     `src/corpus.test.ts` renders the corpus's `SHIFTED_FIXTURES` and
-    passes every check.
+    passes every check, and every fixture of `ALL_FIXTURES` and
+    `SVG_FIXTURES` with no run read off its line. The install gate's
+    `scripts/install-fixture/shifted.ts` prints a formula through the
+    packed runtime and renderer, refuses a word of nothing but a lowered
+    run naming its block, and sets a run below the line through the
+    packed editor's `setBaseline`.
   - **The proof's reader.** report-corpus's `src/lines.test.ts`: a run
     drawn at `SHIFTED_SIZE` of the run beside it and moved by
-    `SHIFTED_RISE` joins that run's line; a small run moved otherwise,
-    and a line of small text of its own, stay lines of their own.
-    `src/check-text.test.ts`: `shiftedRuns` fails a run expected below
-    or above the line that is drawn on it, at another size, or moved
-    otherwise.
+    `SHIFTED_RISE` joins that run's line; a small run moved otherwise, at
+    another size or standing apart, and a line of small text of its own,
+    stay lines of their own. `src/check-text.test.ts`: `shiftedRuns`
+    fails a run expected below or above the line that is drawn on it, at
+    another size, or moved otherwise, and a run read below the line that
+    the document does not set. `src/fixture.test.ts` derives the runs a
+    document sets so, a page region's apart, and
+    `src/fixtures/fixtures.test.ts` lists `SHIFTED_FIXTURES` with the
+    corpus's others.
   - **The builders.** report-builder-core's `src/baselines.test.ts`:
     - the selected text split from its run and set, snapped to whole
       graphemes -- an accent with its letter, an emoji's surrogate pair
@@ -88,6 +124,49 @@
     server-drawn buttons to the state's words, name and pressed state; the
     Studio's `parity.test.tsx` and the browser gate's `gate-parity.mjs`
     compare the two builders' trees, which hold the buttons.
+  - **Seen failing, on 15 November 2026.** Each case was run before the
+    code it holds, or with that code removed in the working tree and
+    restored:
+    - the format's: six of `validate-baseline.test.ts`'s seven cases
+      before the code, the hash's throwing on `BASELINE_SHIFTS` undefined,
+      every misplaced run refused as `unknown-property` and an unknown
+      value as `unknown-property` where `not-one-of` was asked; the page
+      counters' case passed, since it holds what was true before.
+      `validate.test.ts`'s case of the new code failed its three tests,
+      report-forms' relabel wrote its run without the baseline, and
+      report-core's case was refused as `unknown-property` with
+      report-spec's change stashed and rebuilt. The `shifts` column set
+      against its run's type, either way, did not compile;
+    - the runtime's four cases with its source as the format's stage left
+      it: the document differed, `SHIFTED_SIZE` was undefined and
+      `BASELINE_SHIFTS` not handed on;
+    - the renderer's: nineteen of `shifted.test.ts`'s and
+      `bounds.test.ts`'s cases against a `shifted.ts` that checked
+      nothing, before `content.ts` and `bound.ts` changed -- each run drawn
+      at its paragraph's size, each refusal rendered, and a paragraph of
+      such runs alone counted at its full size; the eight
+      `SHIFTED_FIXTURES` in `corpus.test.ts` with `content.ts`'s `sub` and
+      `sup` removed; the missing cuts' case without its check that the
+      numbers are finite; and the wrapped paragraph's, which found an
+      overlap once each such run's box was grown by 0.06 of the size;
+    - the reader's: thirteen of the corpus's new cases, in
+      `lines.test.ts`, `check-text.test.ts`, `fixture.test.ts` and
+      `fixtures.test.ts`, against the committed `lines.ts`,
+      `check-text.ts` and `fixture.ts`;
+    - the builders': `baselines.test.ts` before the module; four of
+      `properties.test.ts`'s cases without the run groups and the binding
+      kept, and its case of a paragraph alone with the groups put on a QR
+      code; the six cases of the editor's action without its handler; the
+      core's scenario before its driver knew `selectText`; React's and
+      Angular's scenarios without `selectText` in their runners, React's
+      without `aria-pressed`, and the keyboard's place in each without
+      the outcome's `then` followed; each accessibility case without
+      `aria-label` in React or `aria-pressed` in Angular; and `css.test.ts`
+      until it admitted `aria-pressed`;
+    - the install gate's modules, run against packages built without
+      the code: `shifted.ts` threw on a renderer whose check passed a word
+      of nothing but a lowered run, and on an editor without the handler,
+      and `structure.ts` on React's markup drawn without `aria-pressed`.
 
 ## Context
 
@@ -100,9 +179,10 @@ fewer: read with fontkit 2.0.4 on 15 November 2026, Roboto 3.014 maps
 the digits and the signs but no lowered letter (U+2090–209C) and no
 raised i (U+2071), which the renderer refuses as `unsupported`
 (`glyphs.ts`); Liberation Serif 2.1.5, the corpus's host face, maps no
-raised zero (U+2070) and no raised or lowered sign (U+207A–207E,
-U+208A–208E). A lowered x, a raised n or a raised minus could not be
-printed in every face, and a raised letter in none of Roboto's.
+raised zero (U+2070), no raised i (U+2071), no raised or lowered sign
+(U+207A–207E, U+208A–208E) and no lowered letter past the schwa
+(U+2095–209C). Both map a raised n (U+207F). A lowered x or a raised minus
+could not be printed in every face, and a raised i in neither.
 
 What the format, the runtime and the renderer had to build it from:
 - **Runs without a style.** A paragraph's content is runs -- literal

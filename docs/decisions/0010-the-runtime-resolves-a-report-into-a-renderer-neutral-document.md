@@ -280,6 +280,22 @@ own check, so the two cannot read an id differently. The data check
 itself is unchanged, and still runs when the report resolves.
 `data.test.ts` holds that `isSubmissionId` accepts what a source accepts.
 
+**Added 2026-11-15: a run's baseline, and what it prints as.** A
+paragraph's run may be set below or above the line
+([0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)),
+and the document's run of text carries the `baseline` its source run set,
+a literal's or a bound value's, and no key where it set none, so a
+report that sets none resolves to the document it did. The document is
+renderer-neutral, so it states what such a run prints as, for any
+engine: `SHIFTED_SIZE`, 0.58 of its paragraph's size, its baseline moved
+by `SHIFTED_RISE` of that size, 0.435 up or 0.203 down, which are pdfmake
+0.3.11's own figures and which the renderer's bound and the corpus's
+reader read from here. The runtime re-exports report-spec's
+`BASELINE_SHIFTS`, so the format and the document cannot name different
+ones; nothing is refused here that was not before, since the format
+refuses a baseline wherever the runtime joins runs into one string.
+`lower.test.ts` holds it.
+
 ## Alternatives considered
 
 **Convert decimals through `Number` where they are small.** Rejected:

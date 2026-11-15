@@ -183,6 +183,24 @@ so another drawing of the same size, a QR code, could stand in for one.
 `src/read-pdf.test.ts`, `src/drawings.test.ts` and `src/check-ink.test.ts`
 hold them.
 
+**Added 2026-11-15: a run set below or above the line, read into its
+line.** A paragraph's run may be set below or above the line
+([0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)),
+drawn smaller and with its baseline moved, so `lines` would have made it a
+line of its own and "H2O" would be found nowhere. `lines` now joins a run
+drawn at exactly `SHIFTED_SIZE` of a run beside it, its baseline that
+run's moved by `SHIFTED_RISE` of that size, within a hundredth of a point
+and standing within 0.3 of the size from it, into that run's line, and
+records it on the line with its text, its size and its move; every line
+carries the list, empty where it joined nothing, and no other run is
+grouped otherwise. `shiftedRuns` holds each run a document sets so to
+its size and its baseline on the PDF, and fails a run read so that the
+document does not set, so that every fixture of `ALL_FIXTURES` and
+`SVG_FIXTURES` shows the join reads nothing new. The run's box is still
+computed from its baseline and its size: what its glyphs touch on the
+line above or below is not seen, as no touching accent is.
+`src/lines.test.ts` and `src/check-text.test.ts` hold them.
+
 ## Alternatives considered
 
 **Assert on the engine's input document.** Rejected: it records what was

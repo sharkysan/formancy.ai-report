@@ -51,7 +51,14 @@ version
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
 [0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)),
 and 0.2.0 one with a chart
-([0052](../decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+([0052](../decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md))
+or with a run set below or above the line, rather than print that run on
+the line
+([0061](../decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+A property that means nothing where it is written is refused there too,
+rather than accepted and ignored: a run's baseline in what a code encodes
+or in a table's cell is `misplaced-baseline`, and on a page counter
+`unknown-property` (0061).
 An SVG construct the cleaner's tables do not name is refused, named, never
 dropped: a construct nobody decided about is one a browser may draw and
 the converter not (0030).
@@ -124,6 +131,10 @@ The validator's refusals of a chart are located by their path, and say
 runtime's refusal name the chart, and a series, by id. Each says what is
 wrong by a count, a size, a type, a function or a colour, never quoting a
 label, a title or the empty text, which may be a customer's words (0052).
+A paragraph refused for a run set below or above the line that could
+stand alone on a line is named by its block, and the refusal says what to
+write -- the run against its word, or a no-break space -- never quoting
+the paragraph's text (0061).
 An SVG's refusal names the element path and the construct, and what
 cleaning removed a kind, a name and a count: a link's address, a script's
 text and a style's content are never repeated, and a name is repeated
@@ -424,6 +435,14 @@ caption is drawn in that face or the render fails: where pdfmake's SVG
 converter cannot open a face it would warn and draw the text in the last
 face it used, and the renderer refuses the warning instead (0022, 0025).
 
+A run of a paragraph set below or above the line -- a formula's digits, a
+unit's power, a footnote's mark -- is the paragraph's own characters in
+the paragraph's own face, drawn smaller and moved, so it prints in any
+character that face draws, where Unicode's raised and lowered forms are a
+few, and fewer in any one face. It prints only inside a word that holds
+a run on the line, as pdfmake breaks words, and is refused otherwise,
+whether the template's text or the data decides it ([0061](../decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+
 ## 8.9 Accessibility
 
 Of the builders, by construction: every drag has a keyboard path, which
@@ -455,6 +474,9 @@ The EPC means its code to be printed so, beside the details it holds, and
 the euro invoice does, which its test reads; nothing checks that any other
 template does. An EPC QR code's caption is text, which a reader finds
 ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
+A run set below or above the line is text a reader finds as it was typed,
+on the line: "H2O", not "H₂O", and nothing in an untagged PDF says where
+it was set (0061).
 
 ## 8.10 The room
 

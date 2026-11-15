@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:e6f2d8c459335d773e1b768c78ea900d8bbed9b8c96055b2e2d90f125e4631d7",
+      "reviewed": "sha256:02b1363f1cbacb09be775f1af627c3bed8a14177e1132db1efb6c3c393be33a4",
       "limitations": [
         {
           "area": "testing",
@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:6e36b3e78c78f8e66734806c1fbfce16c2be1286dd782b547dfa8c0a37174931",
+      "reviewed": "sha256:a0f5590140159dd5c1abf569c83c9d6f84292866e245f05d4353b3a9f38b1f53",
       "limitations": [
         {
           "area": "format",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:216ccb336389de622adf0260112e3429125700607627916fb63a31f63348fff6",
+      "reviewed": "sha256:33b08286520bf3563fbc91ab9683dc8e183e9a63c0fbebb58159e3dc0660c9c7",
       "limitations": [
         {
           "area": "runtime",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:358a559280561418d1bafe9fe9f0cc201f522ceeb621729c28bc67651f7069a2",
+      "reviewed": "sha256:2466ac54d248265d058a68f98f7ab4675f2d841a2a3da40e03afb80e597dc66c",
       "limitations": [
         {
           "area": "rendering",
@@ -296,7 +296,7 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:f3a9d8ddfbcc523d096dbc4c69c2ed58613a3942e8c54ee4ab59d63f28638e31",
+      "reviewed": "sha256:38b075e34be0388182f5c03fd4d0cfb30898e4938108a8bd9977fd0c449b1419",
       "limitations": [
         {
           "area": "builders",
@@ -2305,6 +2305,83 @@
           "area": "data",
           "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
           "heldBy": "packages/report-forms/src/review.test.ts"
+        }
+      ]
+    },
+    "0061": {
+      "reviewed": "sha256:78bb2de7f7a76e5b2e52b704f25ad480403ef72cd0568aa98d6a37ac8ba31a51",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A run is set below or above the line only in a text component’s paragraph: a table’s column value, group header and footer cells and totals, and what a QR code, an EPC QR code, a QR-bill or an e-invoice encodes refuse a `baseline` as `misplaced-baseline`, and a page number or count as `unknown-property`, so a unit’s power in a cell is printed as Unicode’s raised form where the face maps it, or not at all.",
+          "heldBy": "packages/report-spec/src/validate-baseline.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "No text format lowers a formula’s digits read from a field, so C6H12O6 from the data prints on the line unless the data carries Unicode’s lowered digits, U+2080 to U+2089, which Roboto and Liberation Serif both map."
+        },
+        {
+          "area": "release",
+          "says": "A report that sets a run below or above the line is refused whole by 0.2.0 as `unknown-property`, so a report saved with one opens only in a release that has the property, and a host that maps every refusal code to its own message meets `misplaced-baseline`, which it has none for."
+        },
+        {
+          "area": "rendering",
+          "says": "A run set below or above the line prints at pdfmake’s one size and move, 58 % of its paragraph’s size, raised 43.5 % of the size or lowered 20.3 %; a face’s own superscript and subscript metrics are not read, and a run cannot be set smaller, larger, higher or lower.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Such a run prints only inside a word that holds text on the line, as pdfmake breaks words: a footnote’s mark after a space or before one, a run beside a value that prints nothing, a run whose value leads with a space and a word of nothing but such runs refuse the render as `unsupported`, a preview as a final one, the data deciding as the template does, and a mark is written against its word or with a no-break space, U+00A0.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A word that holds such a run and is wider than its line is refused as `content-too-large`, where a paragraph breaks another word across up to sixteen lines.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "pdfmake makes no room in a line for such a run, so a raised run reaches above its line’s text and a lowered one below: in Roboto the boxes the corpus computes stay apart from the lines above and below, but in Liberation Serif a lowered run’s box reaches 0.012 of the size into the next line’s, and by their glyphs a lowered g can touch an Ä on the line below in either face, computed and not proved, and not proved at all in a host face of a shorter line."
+        },
+        {
+          "area": "rendering",
+          "says": "The PDF’s text reads such a run as typed, on the line: a search or a copy finds “H2O”, not “H₂O”, and an untagged PDF tells a screen reader nothing of where it was set."
+        },
+        {
+          "area": "rendering",
+          "says": "The renderer reads pdfmake’s words of a paragraph that holds such a run -- `_inlines`, `noNewLine`, `sup`, `sub`, `width`, `leadingCut` and `trailingCut` -- which are not pdfmake’s API, at pdfmake 0.3.11, so an upgrade reads them again.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Every run of a text is a group of its own in both builders’ properties, with Subscript and Superscript named after the run and its name drawn above its field’s label, which says it again, so every text’s properties are longer.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The design view draws a run set below or above the line on the line, labelled with its text as every text is, and neither builder foresees a run that would stand alone on a line: the Preview is refused, naming the paragraph."
+        },
+        {
+          "area": "builders",
+          "says": "While a run’s field shows a value the session refused, its Subscript and Superscript are refused until the field is committed or given back with Escape, even with nothing selected in it.",
+          "heldBy": "packages/report-builder-core/src/baselines.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A selection is split from its run at whole characters, adding up to two runs, so a text near `MAX_INLINES` refuses a split that would pass it, with nothing changed.",
+          "heldBy": "packages/report-builder-core/src/baselines.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A host that draws the properties itself reads a run’s field’s selection and its text into the editor’s `setBaseline`, draws a button’s `text` and `pressed`, and follows the outcome’s `then` over a button’s own, as both builders do."
+        },
+        {
+          "area": "testing",
+          "says": "No test presses Shift with the arrows: neither jsdom runner’s keyboard extends a selection, so the scenarios select a run’s characters with its field’s own `setSelectionRange`, and that a browser’s Shift and arrows leave the selection a builder reads is the platform’s."
+        },
+        {
+          "area": "testing",
+          "says": "No browser gate sets a run below or above the line through the Studio and reads it from its Download PDF: the scenarios hold both builders in jsdom, the parity checks compare their trees in Chromium too, and the renderer’s tests hold the PDF."
         }
       ]
     }
