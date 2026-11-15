@@ -214,7 +214,9 @@ of ten, exactly, at most `MAX_TICK_INTERVALS` intervals
 The renderer draws the block, laid out by Apache ECharts 6.1.0 and drawn
 by pdfmake ([0058](docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)): `check-chart.ts` holds it, before anything is laid out, to
 where it stands, the runtime's bounds, its parts, its words and its
-numbers; `chart-draw.ts`, the one module that imports ECharts' code, which
+numbers, and weighs a render's charts together, refusing them past
+`MAX_CHART_DRAWING`; `chart-draw.ts`, the one module that imports
+ECharts' code, which
 `render.ts` loads through `loadOnce` for the first chart with marks, so
 that a browser loads it as a chunk of its own, lays it out three times, a
 pie twice, the plot only snapped, and refuses as `content-too-large` words
