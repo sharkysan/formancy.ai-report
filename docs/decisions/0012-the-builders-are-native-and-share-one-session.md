@@ -23,7 +23,13 @@
   is such a part too, a group of fields carries a list of buttons, each
   saying whether it has somewhere to go and where the keyboard goes once
   it is done, and a list of groups is edited item by item, both builders
-  following the model.
+  following the model. Extended by
+  [0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md):
+  each run of a paragraph is a group of its own, whose two buttons say
+  whether they are pressed and set the text selected in its field, or the
+  whole run, below or above the line; a builder adds that selection, read
+  from the field, to the action, and the scenarios select text from the
+  keyboard.
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** each package's `test:coverage` job in CI, the `verify` job
