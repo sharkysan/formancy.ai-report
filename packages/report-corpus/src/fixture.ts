@@ -67,6 +67,14 @@ export type ExpectedDrawing =
   | { readonly kind: 'image'; readonly width: number; readonly height: number }
   | { readonly kind: 'chart'; readonly id: string; readonly width: number; readonly height: number }
 
+/** A series or a slice of a chart (`ExpectedChart.marks`). */
+export interface ExpectedMark {
+  readonly paint: string
+  readonly values: readonly (string | null)[]
+  /** Present where the chart labels its values: one per value, the text its label prints, null where it prints none. */
+  readonly labels?: readonly (string | null)[]
+}
+
 /** A run of text and the PostScript name of the face it must print in (0043), after any subset prefix. */
 export interface ExpectedFontName {
   readonly text: string
@@ -98,8 +106,16 @@ export interface ExpectedChart {
   readonly categories: readonly string[]
   /** Each tick, lowest first, its value exactly, which places the axis, and its label: the chart prints every k-th label from the lowest, which the layout chooses. */
   readonly ticks: readonly ChartValue[]
-  /** A bar or a line chart's series, each its colour and its values exactly (`ChartValue.exact`), one per category, null where it has none; a pie's slices, each its colour and its one value. */
-  readonly marks: readonly { readonly paint: string; readonly values: readonly (string | null)[] }[]
+  /**
+   * A bar or a line chart's series, each its colour and its values exactly
+   * (`ChartValue.exact`), one per category, null where it has none, and,
+   * where the chart labels its values, the text each value's label prints,
+   * null where it prints none; a pie's slices, each its colour and its one
+   * value, whose label prints in its legend entry alone.
+   */
+  readonly marks: readonly ExpectedMark[]
+  /** Its legend's entries, in order, each its words as PDF.js extracts them -- '' where they print nothing -- and the paint of what it names, its swatch's; none where it has no legend. */
+  readonly legend: readonly { readonly text: string; readonly paint: string }[]
   /** The face each of its words prints in, ticks included, by the face's PostScript name after any subset prefix: its token's host face, or Roboto's where the sans token maps none. */
   readonly faces: readonly ExpectedFontName[]
   /** Whether it has nothing to draw: its words are then all it prints. */
@@ -322,7 +338,12 @@ function expectedChart(chart: Chart, fonts: ResolvedFonts | undefined): Expected
     marks:
       chart.chart === 'pie'
         ? chart.slices.map(({ color, value }) => ({ paint: color, values: [value.exact] }))
-        : chart.series.map(({ color, values: each }) => ({ paint: color, values: each.map((value) => value?.exact ?? null) })),
+        : chart.series.map(({ color, values: each }) => ({
+            paint: color,
+            values: each.map((value) => value?.exact ?? null),
+            ...(chart.valueLabels ? { labels: each.map((value) => (value === null ? null : (printed([value.text])[0] ?? null))) } : {}),
+          })),
+    legend: chart.legend.map(({ text, color }) => ({ text: normalise(text), paint: color })),
     faces: [...named(title, titleFace), ...named([...words, ...printed(ticks.map(({ text }) => text))], wordsFace)],
     empty: chart.empty !== undefined,
   }

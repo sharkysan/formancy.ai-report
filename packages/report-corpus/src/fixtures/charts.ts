@@ -9,20 +9,19 @@ import { hostFonts } from './host-fonts.js'
  * written as the runtime writes them, every colour its palette's. Each
  * stands in the corpus's document, and is proved on the PDF the renderer
  * draws of it by the corpus's checks (`check-charts.ts`): each word in its
- * box, and in its face where a host's font prints it, each bar its
- * value's length, each line through its points, each slice its share's
- * sector, and nothing past its box.
+ * box and its face, each bar its value's length, each line through its
+ * points, each slice its share's sector, each legend entry's words beside
+ * the swatch of what it names, each value's label at its mark's end, and
+ * nothing past its box.
  *
  * Between them they hold what the drawing must and must not do: a bar
- * below zero labelled under its end, at the lowest tick, which the
- * renderer draws only where it keeps room for the label below the plot
- * (Task 21), though no check here proves where a value's label stands,
- * only that it prints inside the box and meets no other word; a line
- * broken where a value is missing, and a series with no value at all,
- * which draws no mark and prints its legend's entry; a pie with a slice of
- * nothing, which
- * draws no path and keeps its legend's entry, and one of 9999 and 1,
- * which draws both; charts with nothing to draw; a chart that does not
+ * below zero labelled under its end at the lowest tick, its label held
+ * below the plot's foot and above the categories' labels, where the
+ * renderer keeps room for it (Task 21); a line broken where a value is
+ * missing, and a series with no value at all, which draws no mark and
+ * prints its legend's swatch and entry; a pie with a slice of nothing,
+ * which draws no path and keeps its legend's swatch and entry, and one of
+ * 9999 and 1, which draws both; charts with nothing to draw; a chart that does not
  * fit at the page's foot, moved whole with the heading kept with it, and
  * one in a keep-together block; charts side by side in columns, an empty
  * one beside a drawn one; a chart's words in a host's font; and words
@@ -64,8 +63,9 @@ function refusedOf(id: string, title: string, chart: Chart, code: ExpectedRefusa
 /**
  * Two series of bars over four regions, each labelled: one bar at each end
  * of the axis, the one below zero at its lowest tick, labelled under its
- * end; a zero, which stands along zero; and a value missing, which draws
- * nothing.
+ * end, between the plot's foot and the region's label; a zero, which
+ * stands along zero, labelled above it; and a value missing, which draws
+ * nothing and prints no label.
  */
 const SALES: AxisChart = {
   kind: 'chart',
@@ -114,7 +114,7 @@ export const chartLine = fixtureOf('chart-line', 'Line chart', [heading('Line ch
  * Two lines and a legend naming both: one with a lone value and a stretch
  * after a gap, which ECharts draws as a marker alone and a line of two
  * points; one with no value at all, which draws no mark, and whose
- * legend's entry still prints.
+ * legend's swatch and entry still print, beside each other.
  */
 const LEDGER: AxisChart = {
   kind: 'chart',

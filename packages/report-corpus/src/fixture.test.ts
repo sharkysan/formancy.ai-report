@@ -322,7 +322,9 @@ describe('chartsOf', () => {
   // a blank category, an empty legend entry -- is none to find, and its
   // slot stays; a pie's labels print in its legend alone, so it has no
   // category or tick to find. A value prints only where the chart labels
-  // values, as its text; it is placed by its exact value.
+  // values, as its text, its label held at its mark; it is placed by its
+  // exact value. Each legend entry is held beside its swatch in the paint
+  // of what it names, which an entry that prints nothing keeps.
   test("derives each chart's words, categories, ticks and marks from its block", () => {
     const [sales, shares] = chartsOf(documentOf([bars, pie]))
     expect(sales).toEqual({
@@ -334,8 +336,13 @@ describe('chartsOf', () => {
       categories: ['North', '', 'A B'],
       ticks: ['-5', '0', '5', '10', '15'].map((exact) => value(exact)),
       marks: [
-        { paint: '#1f77b4', values: ['10.25', null, '0'] },
-        { paint: '#ff7f0e', values: ['-5', '15', null] },
+        { paint: '#1f77b4', values: ['10.25', null, '0'], labels: ['10.25', null, '0'] },
+        { paint: '#ff7f0e', values: ['-5', '15', null], labels: ['−5', '15', null] },
+      ],
+      // An entry that prints nothing keeps its swatch, which is held.
+      legend: [
+        { text: 'Plan', paint: '#1f77b4' },
+        { text: '', paint: '#ff7f0e' },
       ],
       faces: [
         { text: 'Sales', postScriptName: 'Roboto-Medium' },
@@ -355,10 +362,17 @@ describe('chartsOf', () => {
         { paint: '#1f77b4', values: ['3'] },
         { paint: '#ff7f0e', values: ['0'] },
       ],
+      legend: [
+        { text: 'North: 3 (100.0 %)', paint: '#1f77b4' },
+        { text: 'East: 0 (0.0 %)', paint: '#ff7f0e' },
+      ],
       faces: ['North: 3 (100.0 %)', 'East: 0 (0.0 %)'].map((text) => ({ text, postScriptName: 'Roboto-Regular' })),
       empty: false,
     })
-    expect(chartsOf(documentOf([{ ...bars, valueLabels: false }]))[0]!.words).toEqual(['Sales', 'Region', 'North', 'A B', 'Plan'])
+    // Values not labelled print no label, and none is held.
+    const unlabelled = chartsOf(documentOf([{ ...bars, valueLabels: false }]))[0]!
+    expect(unlabelled.words).toEqual(['Sales', 'Region', 'North', 'A B', 'Plan'])
+    expect(unlabelled.marks.map(({ labels }) => labels)).toEqual([undefined, undefined])
     expect(chartsOf(documentOf([empty('nothing')]))[0]).toMatchObject({ words: ['Balance', 'No data'], categories: [], ticks: [], marks: [], empty: true })
   })
 

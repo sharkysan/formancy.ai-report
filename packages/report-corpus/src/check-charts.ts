@@ -1,5 +1,6 @@
 import { axisProblems, AXIS_PAINT, categoryProblems, GRID_PAINT } from './check-chart-marks.js'
 import { described, meet, MEET, times, within, type ChartRead } from './check-chart-read.js'
+import { labelProblems, legendProblems } from './check-chart-labels.js'
 import { pieProblems } from './check-chart-pie.js'
 import { EDGE, OVERLAP, points, quoted, type Page } from './check-page.js'
 import { SUBSET_PREFIX } from './check-text.js'
@@ -23,14 +24,18 @@ import type { PdfBox, PdfPage, PdfTextItem, ReadPdf } from './read-pdf.js'
  *    clip, and what a mask hides is not seen.
  * 2. **Its words.** The runs that meet its box are its own: every word one
  *    run's text, inside the box, as many times as its words hold it, in
- *    its face, across the page, no two meeting. A word is sought as PDF.js
+ *    its face -- its token's host face, or Roboto's -- across the page, no
+ *    two meeting. A word is sought as PDF.js
  *    extracts it, which is as the corpus compares extracted text
  *    (`normalise`): it reads a no-break space back as a space, and two
  *    spaces as one (measured on the renderer's legend entries). A label
  *    that prints nothing -- empty once trimmed -- is no word, and is not
  *    proved.
  * 3-6. **Its marks**: the axes, the bars and the lines
- *    (`check-chart-marks.ts`), and the slices (`check-chart-pie.ts`).
+ *    (`check-chart-marks.ts`), and the slices (`check-chart-pie.ts`); and
+ *    the words tied to them, each legend entry's beside its swatch in the
+ *    paint of what it names, and each value's label at its bar's end or
+ *    above its marker (`check-chart-labels.ts`).
  * 7. **Nothing to draw.** A chart with nothing to draw is no drawing (R7,
  *    R8): it has no clip, so its box is not proved, which 0058 says. Its
  *    empty text is sought after the box of the chart drawn before it in
@@ -105,6 +110,10 @@ const normalised = (chart: ExpectedChart): ExpectedChart => ({
   categories: chart.categories.map(normalise),
   ticks: chart.ticks.map(({ exact, text }) => ({ exact, text: normalise(text) })),
   faces: chart.faces.map(({ text, postScriptName }) => ({ text: normalise(text), postScriptName })),
+  marks: chart.marks.map((mark) =>
+    mark.labels === undefined ? mark : { ...mark, labels: mark.labels.map((label) => (label === null ? null : normalise(label))) },
+  ),
+  legend: chart.legend.map(({ text, paint }) => ({ text: normalise(text), paint })),
 })
 
 /** A drawn chart's clip, its marks and its words. */
@@ -120,16 +129,18 @@ function drawnProblems(chart: ExpectedChart, page: PdfPage, { box, clips }: Plac
   }
   const cut = read.paths.filter((path) => !within(path, page.clips[path.clip!]!)).map((path) => say(`paints a path its clip cuts: ${described(path)}`))
   const runs = itemProblems(say, read.items, chart.faces, box)
-  if (chart.chart === 'pie') return [...cut, ...pieProblems(read), ...wordProblems(read, read.items, new Set()), ...runs]
+  if (chart.chart === 'pie') return [...cut, ...pieProblems(read), ...legendProblems(read), ...wordProblems(read, read.items, new Set()), ...runs]
   const axes = axisProblems(read)
   const words = read.items.filter((item) => !axes.ticks.has(item))
   // Without a plot no run is known for a tick's label, and a tick's text printed more often than the words hold it is not said to be.
   const lenient = new Set(axes.plot === undefined ? chart.ticks.map(({ text }) => text) : [])
+  const { plot, place, marks } = axes
   return [
     ...cut,
     ...axes.problems,
+    ...legendProblems(read),
     ...wordProblems(read, words, lenient),
-    ...(axes.plot === undefined ? [] : categoryProblems(read, axes.plot, words)),
+    ...(plot === undefined || place === undefined ? [] : [...categoryProblems(read, plot, words), ...labelProblems(read, { plot, place, marks }, words)]),
     ...runs,
   ]
 }

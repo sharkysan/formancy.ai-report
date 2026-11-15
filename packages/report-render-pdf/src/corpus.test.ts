@@ -5,6 +5,7 @@ import {
   CHART_FIXTURES,
   E_INVOICE,
   GRID_PAINT,
+  LABEL_DISTANCE,
   pageDimensions,
   readPdf,
   SHARE_UNIT,
@@ -14,11 +15,12 @@ import {
   verifyInk,
   verifyRefusal,
   type Fixture,
+  type PdfPage,
   type ReadPdf,
 } from '@formancy/report-corpus'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
-import { AXIS, GRID, QUOTIENT_UNIT } from './chart-option.js'
+import { AXIS, GRID, QUOTIENT_UNIT, VALUE_LABEL_DISTANCE } from './chart-option.js'
 import { renderPdf } from './node.js'
 import type { RenderOptions } from './options.js'
 import { BARS } from './testing/charts.js'
@@ -167,6 +169,124 @@ describe("the corpus's checks on a chart the renderer drew", () => {
   )
 })
 
+describe("the corpus's checks on a chart's legend and labels, on the renderer's PDF", () => {
+  /** A chart fixture rendered and read back. */
+  const drawn = async (id: string): Promise<{ readonly each: Fixture; readonly pdf: ReadPdf }> => {
+    const each = CHART_FIXTURES.find((fixture) => fixture.id === id)!
+    return { each, pdf: await readPdf(await renderPdf(each.document, { maxPages: each.maxPages })) }
+  }
+  /** `pdf` with its first page's runs and paths changed. */
+  const changed = (
+    pdf: ReadPdf,
+    items: (items: PdfPage['items']) => PdfPage['items'],
+    paths: (paths: PdfPage['paths']) => PdfPage['paths'] = (each) => each,
+  ): ReadPdf => ({
+    ...pdf,
+    pages: pdf.pages.map((page, index) => (index === 0 ? { ...page, items: items(page.items), paths: paths(page.paths) } : page)),
+  })
+  /** The runs of `a` and `b` with each other's texts and widths. */
+  const swapped =
+    (a: string, b: string) =>
+    (items: PdfPage['items']): PdfPage['items'] => {
+      const [first, second] = [items.find(({ text }) => text === a)!, items.find(({ text }) => text === b)!]
+      return items.map((item) =>
+        item === first ? { ...item, text: b, width: second.width } : item === second ? { ...item, text: a, width: first.width } : item,
+      )
+    }
+  /** The run of `text` moved to `x` across, or its top to `top`. */
+  const placed =
+    (text: string, to: { readonly x?: number; readonly top?: number }) =>
+    (items: PdfPage['items']): PdfPage['items'] =>
+      items.map((item) => (item.text === text ? { ...item, x: to.x ?? item.x, top: to.top ?? item.top, bottom: (to.top ?? item.top) + item.height } : item))
+  const swatch = ({ paint }: PdfPage['paths'][number]): boolean => paint === 'fillStroke'
+
+  // Every word of a chart's legend and every value's label printed once
+  // inside its box passed, wherever it printed: a legend naming each
+  // series or slice by another's colour, a legend with no swatch, or a
+  // number at another bar (r6, r14). Each is the renderer's PDF of a
+  // chart fixture, doctored as a renderer that drew it so would, and each
+  // is now said.
+  test(
+    "finds a legend naming its marks by each other's colours, or by none, and a label away from its mark",
+    async () => {
+      const bars = await drawn('chart-bars')
+      const pie = await drawn('chart-pie')
+      const ledger = await drawn('chart-line-no-value')
+      const line = await drawn('chart-line')
+      const said = ({ each, pdf }: { readonly each: Fixture; readonly pdf: ReadPdf }, doctored: ReadPdf): string[] => {
+        expect(verify(each, pdf), each.id).toEqual([])
+        return verify(each, doctored)
+      }
+      expect(said(bars, changed(bars.pdf, swapped('Plan', 'Actual')))).toContainEqual(
+        expect.stringMatching(/prints 'Actual' beside the swatch of legend entry 1, which names 'Plan'$/),
+      )
+      expect(said(pie, changed(pie.pdf, swapped('North: 45 (45.0 %)', 'South: 30 (30.0 %)')))).toContainEqual(
+        expect.stringMatching(/prints 'South: 30 \(30\.0 %\)' beside the swatch of legend entry 1, which names 'North: 45 \(45\.0 %\)'$/),
+      )
+      const owed = (path: PdfPage['paths'][number]): boolean => swatch(path) && path.fill === '#ff7f0e'
+      expect(
+        said(
+          ledger,
+          changed(
+            ledger.pdf,
+            (items) => items,
+            (paths) => paths.filter((path) => !owed(path)),
+          ),
+        ),
+      ).toEqual(['chart-line-no-value: page 1: the chart ledger draws no swatch of legend entry 2 in its colour #ff7f0e'])
+      expect(
+        said(
+          ledger,
+          changed(
+            ledger.pdf,
+            (items) => items,
+            (paths) => paths.filter((path) => !swatch(path)),
+          ),
+        ),
+      ).toHaveLength(2)
+      const repainted = (paths: PdfPage['paths']): PdfPage['paths'] =>
+        paths.map((path) =>
+          !swatch(path) ? path : owed(path) ? { ...path, fill: '#1f77b4', stroke: '#1f77b4' } : { ...path, fill: '#ff7f0e', stroke: '#ff7f0e' },
+        )
+      expect(
+        said(
+          ledger,
+          changed(ledger.pdf, (items) => items, repainted),
+        ),
+      ).toContainEqual(expect.stringMatching(/prints 'Owed' beside the swatch of legend entry 1, which names 'Paid'$/))
+      expect(
+        said(
+          bars,
+          changed(
+            bars.pdf,
+            (items) => items,
+            (paths) => paths.filter((path) => !swatch(path)),
+          ),
+        ),
+      ).toHaveLength(2)
+      // South's plan, -5.00, at the lowest tick: at North's bar, in West's slot, above zero, and at the plot's top.
+      expect(said(bars, changed(bars.pdf, swapped('10.25', '-5.00')))).toContainEqual(
+        expect.stringMatching(/prints the label '10\.25' of series 1 at category 1 centred at/),
+      )
+      expect(said(bars, changed(bars.pdf, placed('-5.00', { x: 330 })))).toContainEqual(
+        expect.stringMatching(/prints the label '-5\.00' of series 1 at category 2 centred at/),
+      )
+      for (const top of [195.3, 128])
+        expect(said(bars, changed(bars.pdf, placed('-5.00', { top })))).toContainEqual(
+          expect.stringMatching(
+            /prints the label '-5\.00' of series 1 at category 2 from [\d.]+ to [\d.]+ pt down the page; it stands 5 pt below its value's end at/,
+          ),
+        )
+      // A line's label is held above its marker: February's 12, printed under it.
+      const twelve = line.pdf.pages[0]!.items.find(({ text }) => text === '12')!
+      expect(said(line, changed(line.pdf, placed('12', { top: twelve.top + 24 })))).toContainEqual(
+        expect.stringMatching(/prints the label '12' of series 1 at category 2 from .* it stands 5 pt above its marker at/),
+      )
+    },
+    TIMEOUT,
+  )
+})
+
 describe("the faces the corpus holds a chart's words to", () => {
   // A chart's words print in its style's face and its title bold in it
   // (0058), Roboto's where its token maps no host font: the corpus names
@@ -197,13 +317,15 @@ describe("the faces the corpus holds a chart's words to", () => {
 
 describe("the corpus's copies of the renderer's constants", () => {
   // The corpus depends on no renderer, so it reads a chart by copies of
-  // three of the renderer's constants: its gridlines and its category
-  // axis's line are found by their colours, and a pie's slice of no share
-  // by the parts the renderer hands ECharts a share in. A copy that drifted
-  // would find no axis on any chart, or expect a sliver drawn that the
-  // renderer draws nothing of, or none of one it draws.
-  test("are the renderer's grid and axis colours and its share unit", () => {
-    expect([GRID_PAINT, AXIS_PAINT, SHARE_UNIT]).toEqual([GRID.color, AXIS.color, QUOTIENT_UNIT])
+  // four of the renderer's constants: its gridlines and its category
+  // axis's line are found by their colours, a pie's slice of no share by
+  // the parts the renderer hands ECharts a share in, and a value's label
+  // by how far from its mark's end the renderer has ECharts set it. A
+  // copy that drifted would find no axis on any chart, expect a sliver
+  // drawn that the renderer draws nothing of, or none of one it draws, or
+  // hold every label to a place it never stands.
+  test("are the renderer's grid and axis colours, its share unit and its labels' distance", () => {
+    expect([GRID_PAINT, AXIS_PAINT, SHARE_UNIT, LABEL_DISTANCE]).toEqual([GRID.color, AXIS.color, QUOTIENT_UNIT, VALUE_LABEL_DISTANCE])
   })
 })
 

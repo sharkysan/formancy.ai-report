@@ -191,8 +191,12 @@ const SALES: ExpectedChart = {
   categories: ['North', 'South', 'East'],
   ticks: ['-5', '0', '5', '10', '15'].map((exact) => tick(exact)),
   marks: [
-    { paint: '#1f77b4', values: ['10.25', null, '0'] },
-    { paint: '#ff7f0e', values: ['15', '-5', '7.5'] },
+    { paint: '#1f77b4', values: ['10.25', null, '0'], labels: ['10.25', null, '0'] },
+    { paint: '#ff7f0e', values: ['15', '-5', '7.5'], labels: ['15', '-5', '7.5'] },
+  ],
+  legend: [
+    { text: 'Plan', paint: '#1f77b4' },
+    { text: 'Actual', paint: '#ff7f0e' },
   ],
   faces: [],
   empty: false,
@@ -261,6 +265,10 @@ const BALANCE: ExpectedChart = {
     { paint: '#2ca02c', values: ['6', null, '12', '9'] },
     { paint: '#d62728', values: [null, null, null, null] },
   ],
+  legend: [
+    { text: 'Paid', paint: '#2ca02c' },
+    { text: 'Owed', paint: '#d62728' },
+  ],
   faces: [],
   empty: false,
 }
@@ -314,6 +322,11 @@ const SHARES: ExpectedChart = {
     { paint: '#ff7f0e', values: ['1'] },
     { paint: '#2ca02c', values: ['0'] },
   ],
+  legend: [
+    { text: 'North: 3 (75.0 %)', paint: '#1f77b4' },
+    { text: 'South: 1 (25.0 %)', paint: '#ff7f0e' },
+    { text: 'East: 0 (0.0 %)', paint: '#2ca02c' },
+  ],
   faces: [],
   empty: false,
 }
@@ -366,6 +379,7 @@ const NOTHING: ExpectedChart = {
   categories: [],
   ticks: [],
   marks: [],
+  legend: [],
   faces: [],
   empty: true,
 }
@@ -554,10 +568,12 @@ describe("a chart's words", () => {
     expect(problemsOf([SALES], sales({ items: replaced(SALES_READ.items, EAST) }))).toEqual(["page 1: the chart sales does not print 'East' inside its box"])
   })
 
-  // A word half in the box is the chart's, and cut where its box ends.
+  // A word half in the box is the chart's, and cut where its box ends;
+  // a legend entry's, it stands away from its swatch too.
   test('finds a word that reaches past the box', () => {
     const past = run('Actual', 330, 233.194, 22.73)
     expect(problemsOf([SALES], sales({ items: replaced(SALES_READ.items, ACTUAL, past) }))).toEqual([
+      "page 1: the chart sales prints 'Actual' 131.23 pt right of the swatch of legend entry 2; its words start 5 pt from it",
       "page 1: the chart sales prints 'Actual' past its box, from 330, 233.19 to 352.73, 241.19 pt",
     ])
   })
@@ -632,15 +648,19 @@ describe("a chart's words", () => {
   })
 
   // Two words over each other print neither legibly, though each is in its
-  // box and printed once.
+  // box and printed once; two legend entries' words so stand away from
+  // the swatch of one, and the first beside the other's.
   test('finds two words that meet', () => {
     const over = run('Plan', 200, 233.194, 15.762)
     expect(problemsOf([SALES], sales({ items: replaced(SALES_READ.items, PLAN, over) }))).toEqual([
+      "page 1: the chart sales prints 'Plan' 38.25 pt right of the swatch of legend entry 1; its words start 5 pt from it",
+      "page 1: the chart sales prints 'Plan' beside the swatch of legend entry 2, which names 'Actual'",
       "page 1: the chart sales prints 'Plan' and 'Actual' over each other",
     ])
     // Half a point over is under the page's overlap allowance, and still two words that meet, which the renderer refuses.
     const touching = run('Plan', 188.504, 233.194, 15.762)
     expect(problemsOf([SALES], sales({ items: replaced(SALES_READ.items, PLAN, touching) }))).toEqual([
+      "page 1: the chart sales prints 'Plan' 26.75 pt right of the swatch of legend entry 1; its words start 5 pt from it",
       "page 1: the chart sales prints 'Plan' and 'Actual' over each other",
     ])
   })
@@ -660,6 +680,150 @@ describe("a chart's words", () => {
     expect(problemsOf([SALES], sales({ items: replaced(replaced(SALES_READ.items, NORTH, north), SOUTH, south) }))).toEqual([
       "page 1: the chart sales prints category 1's label 'North' nowhere under its slot, centred at 106.67 pt",
       "page 1: the chart sales prints category 2's label 'South' nowhere under its slot, centred at 200 pt",
+    ])
+  })
+})
+
+describe("a chart's legend and its values' labels", () => {
+  /** The run of `text` right of the plot's left, at 60 pt: a value's label or a legend entry's words, never a tick's label of the same text. */
+  const runOf = (read: Drawn, text: string): PdfTextItem => read.items.find((item) => item.text === text && item.x > 60)!
+  /** `read` with the texts of the runs `a` and `b` swapped, each keeping its place and taking the other's width. */
+  const swapped = (read: Drawn, a: string, b: string): Drawn => {
+    const [first, second] = [runOf(read, a), runOf(read, b)]
+    return {
+      ...read,
+      items: read.items.map((item) =>
+        item === first ? { ...item, text: b, width: second.width } : item === second ? { ...item, text: a, width: first.width } : item,
+      ),
+    }
+  }
+  /** `read` with the run of `text` moved by `across` and `down`. */
+  const moved = (read: Drawn, text: string, across: number, down: number): Drawn => {
+    const run = runOf(read, text)
+    return {
+      ...read,
+      items: read.items.map((item) => (item === run ? { ...item, x: item.x + across, top: item.top + down, bottom: item.bottom + down } : item)),
+    }
+  }
+  const swatches = (read: Drawn): PdfPath[] => read.paths.filter(({ paint }) => paint === 'fillStroke')
+
+  // A legend is a chart's only key from a colour to what it names, a
+  // pie's from a slice to its category: words that print once inside the
+  // box but beside another's swatch name each series by the other's
+  // colour (r6), and pass a check that counts words. Each entry's words
+  // are the nearest run right of its swatch on its row. The reads are the
+  // renderer's, their entries' words swapped.
+  test("finds a legend entry's words beside another's swatch, on a bar chart and on a pie", () => {
+    expect(problemsOf([SALES], swapped(SALES_READ, 'Plan', 'Actual'))).toEqual([
+      "page 1: the chart sales prints 'Actual' beside the swatch of legend entry 1, which names 'Plan'",
+      "page 1: the chart sales prints 'Plan' beside the swatch of legend entry 2, which names 'Actual'",
+    ])
+    expect(problemsOf([SHARES], swapped(SHARES_READ, 'North: 3 (75.0 %)', 'South: 1 (25.0 %)'))).toEqual([
+      "page 1: the chart shares prints 'South: 1 (25.0 %)' beside the swatch of legend entry 1, which names 'North: 3 (75.0 %)'",
+      "page 1: the chart shares prints 'North: 3 (75.0 %)' beside the swatch of legend entry 2, which names 'South: 1 (25.0 %)'",
+    ])
+  })
+
+  // A swatch is the legend's colour: one missing leaves its words naming
+  // nothing -- the series of no value's among them, whose swatch is all
+  // it draws (Task 20) -- and two whose paints are swapped name each
+  // series by the other's colour. One no entry names is a legend drawn
+  // where the chart has none.
+  test('finds a swatch missing, one in another paint, and one no entry names', () => {
+    const [paid, owed] = swatches(BALANCE_READ) as [PdfPath, PdfPath]
+    expect(problemsOf([BALANCE], balance({ paths: replaced(BALANCE_READ.paths, owed) }))).toEqual([
+      'page 1: the chart balance draws no swatch of legend entry 2 in its colour #d62728',
+    ])
+    expect(problemsOf([BALANCE], balance({ paths: BALANCE_READ.paths.filter(({ paint }) => paint !== 'fillStroke') }))).toEqual([
+      'page 1: the chart balance draws no swatch of legend entry 1 in its colour #2ca02c',
+      'page 1: the chart balance draws no swatch of legend entry 2 in its colour #d62728',
+    ])
+    const repainted = replaced(replaced(BALANCE_READ.paths, paid, { ...paid, fill: '#d62728', stroke: '#d62728' }), owed, {
+      ...owed,
+      fill: '#2ca02c',
+      stroke: '#2ca02c',
+    })
+    expect(problemsOf([BALANCE], balance({ paths: repainted }))).toEqual([
+      "page 1: the chart balance prints 'Owed' beside the swatch of legend entry 1, which names 'Paid'",
+      "page 1: the chart balance prints 'Paid' beside the swatch of legend entry 2, which names 'Owed'",
+    ])
+    expect(
+      problemsOf(
+        [{ ...SALES, legend: [], words: SALES.words.filter((word) => word !== 'Plan' && word !== 'Actual') }],
+        sales({ items: SALES_READ.items.filter(({ text }) => text !== 'Plan' && text !== 'Actual') }),
+      ),
+    ).toEqual([
+      "page 1: the chart sales draws a swatch at 153.75, 232.86, which is no legend entry's",
+      "page 1: the chart sales draws a swatch at 190.77, 232.86, which is no legend entry's",
+    ])
+  })
+
+  // An entry drawn twice is two swatches of one colour, one of them
+  // naming nothing.
+  test('finds a legend entry drawn twice', () => {
+    expect(problemsOf([SALES], sales({ paths: [...SALES_READ.paths, swatch('#1f77b4', 260, 232.859)] }))).toEqual([
+      'page 1: the chart sales draws 2 swatches of legend entry 1 in its colour #1f77b4',
+    ])
+  })
+
+  // An entry's words stand where ECharts sets them, 5 pt right of their
+  // swatch: words beside the right swatch but a gap away stand nearer
+  // the next entry's, and would be read as naming it.
+  test("finds an entry's words away from their swatch", () => {
+    expect(problemsOf([SALES], moved(SALES_READ, 'Plan', 4, 0))).toEqual([
+      "page 1: the chart sales prints 'Plan' 9 pt right of the swatch of legend entry 1; its words start 5 pt from it",
+    ])
+  })
+
+  // A value's label is a number the report prints: at another bar, above
+  // zero for a value below it (r14), at the plot's top, or in another
+  // category's slot, it misstates the data while every word prints once
+  // inside the box. The read is the renderer's; the label of South's
+  // actual, -5, at the lowest tick, stands under its bar's end.
+  test("finds a value's label away from its mark's end", () => {
+    // Above zero, where a value of zero or more is labelled: 5 pt and the label's 8 above zero's gridline.
+    expect(problemsOf([SALES], moved(SALES_READ, '-5', 0, 156.047 - 13.4 - 179.069))).toEqual([
+      "page 1: the chart sales prints the label '-5' of series 2 at category 2 from 142.65 to 150.65 pt down the page; it stands 5 pt below its value's end at 173.05",
+    ])
+    expect(problemsOf([SALES], moved(SALES_READ, '-5', 0, 105.047 - 179.069))).toEqual([
+      "page 1: the chart sales prints the label '-5' of series 2 at category 2 from 105.05 to 113.05 pt down the page; it stands 5 pt below its value's end at 173.05",
+    ])
+    // Below the categories' labels, too far under its bar's end.
+    expect(problemsOf([SALES], moved(SALES_READ, '-5', 0, 20))).toEqual([
+      "page 1: the chart sales prints the label '-5' of series 2 at category 2 from 199.07 to 207.07 pt down the page; it stands 5 pt below its value's end at 173.05",
+    ])
+    // In East's slot, beside the zero labelled there.
+    expect(problemsOf([SALES], moved(SALES_READ, '-5', 93.3, 0))).toEqual([
+      "page 1: the chart sales prints the label '-5' of series 2 at category 2 centred at 314.04 pt across; its bar is centred at 220.7",
+    ])
+  })
+
+  // Two values of one text each print a label of it: each label is the
+  // run nearest where it belongs, whatever order the page draws them in,
+  // or the first label read would take the other's run and both be said
+  // to stand off their bars. East's actual, labelled 15 here as North's
+  // is, the page's runs read in reverse.
+  test('takes, of two labels of one text, the one at each mark', () => {
+    const twice: ExpectedChart = {
+      ...SALES,
+      words: SALES.words.map((word) => (word === '7.5' ? '15' : word)),
+      marks: [SALES.marks[0]!, { ...SALES.marks[1]!, labels: ['15', '-5', '15'] }],
+    }
+    // Narrowed to 15's width about its middle, as the renderer centres a label on its bar.
+    const relabelled = SALES_READ.items
+      .map((item) => (item.text === '7.5' ? { ...item, text: '15', x: item.x + (item.width - 8.992) / 2, width: 8.992 } : item))
+      .reverse()
+    expect(problemsOf([twice], sales({ items: relabelled }))).toEqual([])
+  })
+
+  // Two labels swapped are two numbers printed at each other's bars: each
+  // is the run of its text nearest where it stands, and is held there.
+  test("finds two labels printed at each other's bars", () => {
+    expect(problemsOf([SALES], swapped(SALES_READ, '10.25', '-5'))).toEqual([
+      "page 1: the chart sales prints the label '10.25' of series 1 at category 1 centred at 227.43 pt across; its bar is centred at 85.9",
+      "page 1: the chart sales prints the label '10.25' of series 1 at category 1 from 179.07 to 187.07 pt down the page; it stands 5 pt above its value's end at 121.2",
+      "page 1: the chart sales prints the label '-5' of series 2 at category 2 centred at 79.23 pt across; its bar is centred at 220.7",
+      "page 1: the chart sales prints the label '-5' of series 2 at category 2 from 107.84 to 115.84 pt down the page; it stands 5 pt below its value's end at 173.05",
     ])
   })
 })
@@ -762,11 +926,13 @@ describe("a bar chart's bars", () => {
 
   // A legend's swatch is filled and stroked, a bar filled alone (0058): a
   // check that counted a swatch as a bar would see one too many; one that
-  // lost its stroke is a bar of the series' colour outside the plot.
+  // lost its stroke is a bar of the series' colour outside the plot, and
+  // no swatch of its legend entry.
   test('finds a swatch drawn as a bar', () => {
     const unstroked = filled('#1f77b4', 153.754, 232.859, 8, 8)
     expect(problemsOf([SALES], sales({ paths: replaced(SALES_READ.paths, PLAN_SWATCH, unstroked) }))).toEqual([
       "page 1: the chart sales paints a filled path in series 1's colour outside its plot: fill #1f77b4 at 153.75, 232.86, 8 × 8 pt",
+      'page 1: the chart sales draws no swatch of legend entry 1 in its colour #1f77b4',
     ])
   })
 
@@ -796,28 +962,34 @@ describe("a bar chart's bars", () => {
 
   // A bar stands in its category's slot: one across a slot's edge stands
   // between two categories and names neither, as a group ECharts widened
-  // past its slot would.
+  // past its slot would; its label, where ECharts set it, then stands
+  // off its middle.
   test("finds a bar across its slot's edge", () => {
     const across = filled('#ff7f0e', 140, 156.047, 33.2, 17)
     expect(problemsOf([SALES], sales({ paths: replaced(SALES_READ.paths, ACTUAL_SOUTH, across) }))).toEqual([
       'page 1: the chart sales draws the bar of series 2 at category 2 from 140 to 173.2 pt across, past its slot from 153.33 to 246.67',
+      "page 1: the chart sales prints the label '-5' of series 2 at category 2 centred at 220.74 pt across; its bar is centred at 156.6",
     ])
   })
 
   // Two series' bars drawn over each other show one value where two
-  // stand, each in its slot and of its length.
+  // stand, each in its slot and of its length, and leave a label beside
+  // neither.
   test('finds two bars over each other', () => {
     const over = filled('#ff7f0e', 69.3, 105.047, 33.2, 51)
     expect(problemsOf([SALES], sales({ paths: replaced(SALES_READ.paths, ACTUAL_NORTH, over) }))).toEqual([
       'page 1: the chart sales draws the bars of series 1 at category 1 and series 2 at category 1 over each other',
+      "page 1: the chart sales prints the label '15' of series 2 at category 1 centred at 127.4 pt across; its bar is centred at 85.9",
     ])
   })
 
-  // Every bar of a chart is one width: a narrower one reads as another kind.
+  // Every bar of a chart is one width: a narrower one reads as another
+  // kind, and its label stands off its middle.
   test('finds a bar of another width', () => {
     const narrow = filled('#ff7f0e', 204.1, 156.047, 20, 17)
     expect(problemsOf([SALES], sales({ paths: replaced(SALES_READ.paths, ACTUAL_SOUTH, narrow) }))).toEqual([
       'page 1: the chart sales draws the bar of series 2 at category 2 20 pt wide; its first bar is 33.2',
+      "page 1: the chart sales prints the label '-5' of series 2 at category 2 centred at 220.74 pt across; its bar is centred at 214.1",
     ])
   })
 
@@ -891,6 +1063,7 @@ describe("a line chart's marks", () => {
       categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
       ticks: ['0', '1', '2', '3'].map((exact) => tick(exact)),
       marks: [{ paint: '#1f77b4', values: ['1', '2', null, '3', '2'] }],
+      legend: [],
       faces: [],
       empty: false,
     }
@@ -966,6 +1139,7 @@ describe("a line chart's marks", () => {
       categories: ['Q1', 'Q2'],
       ticks: ticks.map((exact) => tick(exact)),
       marks: [{ paint: '#9467bd', values: ['1000000000000001.06', '1000000000000003'] }],
+      legend: [],
       faces: [],
       empty: false,
     }
@@ -1010,7 +1184,8 @@ describe("a line chart's marks", () => {
       words: ['Q1', 'Q2', "1'500", "2'750.50"],
       categories: ['Q1', 'Q2'],
       ticks: [tick('0'), tick('1000', "1'000"), tick('2000', "2'000"), tick('3000', "3'000")],
-      marks: [{ paint: '#8c564b', values: ['1500', '2750.5'] }],
+      marks: [{ paint: '#8c564b', values: ['1500', '2750.5'], labels: ["1'500", "2'750.50"] }],
+      legend: [],
       faces: [],
       empty: false,
     }
@@ -1059,6 +1234,7 @@ describe('a series in any colour', () => {
     categories: ['Jan', 'Feb', 'Mar'],
     ticks: ['0', '1', '2', '3'].map((exact) => tick(exact)),
     marks: [{ paint, values }],
+    legend: [],
     faces: [],
     empty: false,
   })
@@ -1129,6 +1305,11 @@ const MIX: ExpectedChart = {
     { paint: '#1f77b4', values: ['3'] },
     { paint: '#ff7f0e', values: ['1'] },
     { paint: '#2ca02c', values: ['2'] },
+  ],
+  legend: [
+    { text: 'S1 3', paint: '#1f77b4' },
+    { text: 'S2 1', paint: '#ff7f0e' },
+    { text: 'S3 2', paint: '#2ca02c' },
   ],
   faces: [],
   empty: false,
@@ -1257,6 +1438,11 @@ describe("a pie's slices", () => {
         { paint: '#1f77b4', values: ['99999999999999998001'] },
         { paint: '#ff7f0e', values: ['999'] },
         { paint: '#2ca02c', values: ['1000'] },
+      ],
+      legend: [
+        { text: 'Most', paint: '#1f77b4' },
+        { text: 'Least', paint: '#ff7f0e' },
+        { text: 'Less', paint: '#2ca02c' },
       ],
       faces: [],
       empty: false,
@@ -1460,6 +1646,7 @@ describe("a pie's slices", () => {
       categories: [],
       ticks: [],
       marks: values.map((value, index) => ({ paint: (['#1f77b4', '#ff7f0e', '#2ca02c'] as const)[index]!, values: [value] })),
+      legend: words.map((text, index) => ({ text, paint: (['#1f77b4', '#ff7f0e', '#2ca02c'] as const)[index]! })),
       faces: [],
       empty: false,
     })

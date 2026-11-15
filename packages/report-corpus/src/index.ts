@@ -1,6 +1,7 @@
 export { verify, verifyRefusal } from './checks.js'
 export { AXIS_PAINT, GRID_PAINT } from './check-chart-marks.js'
 export { SHARE_UNIT } from './check-chart-pie.js'
+export { LABEL_DISTANCE } from './check-chart-labels.js'
 export { inkAround, verifyInk } from './check-ink.js'
 export { pageDimensions, RenderRefusal } from './document.js'
 export type {

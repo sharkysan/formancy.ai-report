@@ -12,7 +12,10 @@ import type { PdfBox, PdfPath, PdfTextItem } from './read-pdf.js'
  * names no part of a chart by. The paint is the renderer's
  * (`chart-option.ts`): bars and line markers filled in their colour; a
  * series' line, gridlines and the category axis's line stroked; legend
- * swatches filled and stroked; nothing else.
+ * swatches filled and stroked, which `check-chart-labels.ts` holds to
+ * their entries; nothing else. The plot, where each value stands on it,
+ * and each value's bar or marker found are handed to that check, which
+ * holds each value's label to them (`Axes`).
  *
  * What it rests on, and what it does not see:
  * - **Geometry and colour together.** A series may be painted in any
@@ -55,7 +58,7 @@ export const AXIS_PAINT = '#000000'
  * above it in Liberation Mono. A face whose ascent and descent differ by
  * more than 0.7 em, or by less than 0.5, stands farther off.
  */
-const LINE_OFFSET = 0.05
+export const LINE_OFFSET = 0.05
 
 /** A plot as its gridlines draw it: its sides, and each tick's gridline down the page, the lowest tick's first. */
 export interface Plot {
@@ -64,12 +67,17 @@ export interface Plot {
   readonly gridlines: readonly number[]
 }
 
-/** What the axes say of a bar or a line chart: its plot, where its gridlines draw one, the runs that are its ticks' labels, and what is wrong. */
+/** What the axes say of a bar or a line chart: its plot, where its gridlines draw one, with where a value stands on it and each value's bar or marker found, by `${series}/${category}`; the runs that are its ticks' labels; and what is wrong. */
 export interface Axes {
   readonly plot?: Plot
+  readonly place?: (exact: string) => number
+  readonly marks: ReadonlyMap<string, PdfPath>
   readonly ticks: ReadonlySet<PdfTextItem>
   readonly problems: readonly string[]
 }
+
+/** The key a value's mark is found by in `Axes.marks`. */
+export const markKey = (series: number, category: number): string => `${String(series)}/${String(category)}`
 
 /**
  * Where a value of `chart` stands on its value axis: its distance from the
@@ -93,7 +101,7 @@ function placesOf(chart: ExpectedChart): (exact: string) => number {
 }
 
 /** The height down the page at `place`, set between the gridlines of the ticks either side of it. */
-function heightAt({ gridlines }: Plot, place: number): number {
+export function heightAt({ gridlines }: Plot, place: number): number {
   const below = Math.min(Math.max(Math.floor(place), 0), gridlines.length - 2)
   return gridlines[below]! + (place - below) * (gridlines[below + 1]! - gridlines[below]!)
 }
@@ -105,7 +113,7 @@ const plotBox = ({ left, right, gridlines }: Plot): PdfBox => {
 }
 
 /** Category `index`'s slot across the plot: from its left edge to its right. */
-const slotAt = (plot: Plot, chart: ExpectedChart, index: number): readonly [number, number] => {
+export const slotAt = (plot: Plot, chart: ExpectedChart, index: number): readonly [number, number] => {
   const width = (plot.right - plot.left) / chart.categories.length
   return [plot.left + index * width, plot.left + (index + 1) * width]
 }
@@ -137,6 +145,7 @@ export function axisProblems(read: ChartRead): Axes {
   const [lowest] = grid
   if (lowest === undefined || grid.length !== expected.ticks.length)
     return {
+      marks: new Map(),
       ticks: new Set(),
       problems: [say(`draws ${plural(grid.length, 'gridline')} in the grid's colour across its plot; its ticks are ${expected.ticks.length}`)],
     }
@@ -148,14 +157,15 @@ export function axisProblems(read: ChartRead): Axes {
   const own = (paint: string): PdfPath[] => read.paths.filter((path) => path !== axis && !grid.includes(path) && inPaint(path, paint))
   const labels = tickLabels(read, plot)
   const named = (path: PdfPath): boolean => path === axis || grid.includes(path) || expected.marks.some(({ paint }) => inPaint(path, paint))
+  const marks = new Map<string, PdfPath>()
   const problems = [
     ...gridProblems(read, grid),
     ...(axis === undefined ? [say(`draws no line in the axis's colour along its plot's foot at ${points(lowest.top)} pt`)] : []),
     ...labels.problems,
-    ...(expected.chart === 'bar' ? barProblems(read, plot, place, own) : lineProblems(read, plot, place, own)),
+    ...(expected.chart === 'bar' ? barProblems(read, plot, place, own, marks) : lineProblems(read, plot, place, own, marks)),
     ...read.paths.filter((path) => !named(path)).map((path) => say(`paints ${described(path)}, which is no part of a chart`)),
   ]
-  return { plot, ticks: labels.items, problems }
+  return { plot, place, marks, ticks: labels.items, problems }
 }
 
 /** The gridlines, lowest first, where the lowest stands across, and as far apart as the lowest two. */
@@ -243,7 +253,7 @@ function filledIn(
  * a zero, which ECharts draws along zero -- shows nothing, and may be left
  * out. A series paints its bars and its swatch, and nothing else.
  */
-function barProblems(read: ChartRead, plot: Plot, place: (exact: string) => number, own: (paint: string) => PdfPath[]): string[] {
+function barProblems(read: ChartRead, plot: Plot, place: (exact: string) => number, own: (paint: string) => PdfPath[], marks: Map<string, PdfPath>): string[] {
   const { expected, say } = read
   const zero = heightAt(plot, place('0'))
   const area = plotBox(plot)
@@ -263,6 +273,7 @@ function barProblems(read: ChartRead, plot: Plot, place: (exact: string) => numb
       const [left, right] = slotAt(plot, expected, category)
       const [first] = drawn
       drawn.push({ bar, of: of(category) })
+      marks.set(markKey(series, category), bar)
       return [
         ...(near(bar.top, top) && near(bar.bottom, bottom)
           ? []
@@ -320,7 +331,7 @@ const listed = (each: readonly (readonly [number, number])[]): string => each.ma
  * neither (Task 20's ruling). A series paints its markers, its line and
  * its swatch, and nothing else.
  */
-function lineProblems(read: ChartRead, plot: Plot, place: (exact: string) => number, own: (paint: string) => PdfPath[]): string[] {
+function lineProblems(read: ChartRead, plot: Plot, place: (exact: string) => number, own: (paint: string) => PdfPath[], marks: Map<string, PdfPath>): string[] {
   const { expected, say } = read
   const area = plotBox(plot)
   const centre = (path: PdfPath): PdfBox => ({
@@ -342,6 +353,7 @@ function lineProblems(read: ChartRead, plot: Plot, place: (exact: string) => num
       const [marker] = markers
       if (marker === undefined || markers.length > 1)
         return problems.push(say(`draws ${markers.length === 0 ? 'no marker' : plural(markers.length, 'marker')} of ${at}`))
+      marks.set(markKey(series, category), marker)
       const [[x, y], [middle, height]] = [[centre(marker).x, centre(marker).top], pointOf(value, category)]
       if (!near(marker.width, marker.height))
         problems.push(say(`draws the marker of ${at} ${points(marker.width)} × ${points(marker.height)} pt, which is no square`))
