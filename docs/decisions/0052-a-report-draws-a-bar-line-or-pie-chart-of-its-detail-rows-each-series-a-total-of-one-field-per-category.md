@@ -1,6 +1,6 @@
 # 0052 — A report draws a bar, line or pie chart of its detail rows, each series a total of one field per category
 
-- **Status:** accepted; extends [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose components gain the chart
+- **Status:** accepted; extends [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose components gain the chart; extended by [0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md), which resolves a chart: its interim refusal ended on 2026-11-11, and a pie's palette is held to its slices when it renders
 - **Date:** 2026-11-01
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -62,7 +62,10 @@
   - **The interim refusal.** report-runtime's `src/lower.test.ts` refuses a
     report holding a chart, in a final render and in a preview, as
     `chart-not-resolved` at the chart's path, naming it by its id, and
-    prints one whose chart its condition hides.
+    prints one whose chart its condition hides. Since 11 November 2026 the
+    refusal is gone, and that case with it: the runtime resolves a chart
+    (0055), and `lower.test.ts` prints one where it stands and nothing
+    where its condition hides it.
   - **The palette.** report-builder-core's `src/palette.test.ts` offers
     every kind but a chart, and refuses a chart inserted or dragged. It
     holds the default chart to the validator: summing the first number,
@@ -247,7 +250,9 @@ to them where it is written.
   no places to round, `rounding-not-decimal`; and one whose rounding keeps
   more places than `valueFormat` prints is rounded twice,
   `format-rounds-again`, as an aggregate's is (`diagnostics/chart.ts`).
-  `diagnose()` lists both.
+  `diagnose()` lists both. A series whose rounding has no places to round
+  is said to be that alone: `format-rounds-again` is never said of it
+  too, since an integer is never rounded.
 - **No command of its own.** A chart, its series included, changes through
   `updateComponent`, its id and its kind never.
 
@@ -259,7 +264,8 @@ render is. A chart its condition hides prints nothing, as any component,
 so a report whose every chart is hidden prints. The code goes when the
 runtime resolves charts. What a chart prints -- its categories in their
 order, its rows without a category under their label, each series' totals
--- is decided here and resolved there.
+-- is decided here and resolved there. The code went on 11 November 2026,
+when the runtime resolved charts (0055, below).
 
 **The builders do not offer one yet.** Neither palette has Chart until the
 builders edit a chart's own properties: one inserted now would be a box
@@ -334,14 +340,17 @@ them, refuses a report that holds one as `unknown-kind`, never skipping it.
   has is the data's, so the validator holds a pie's own palette to one to
   eight distinct colours and to nothing else, and what a slice past its
   end is drawn in is undecided until the runtime resolves charts. A bar
-  or a line chart's palette has a colour for each series.
+  or a line chart's palette has a colour for each series. Since 0055 a
+  pie of more categories than its palette has colours is refused when it
+  renders.
 - **No rotated label is promised.** Nothing here decides how a category's
   label that does not fit its room is drawn. The renderer's record does,
   under 0003's rule: refused rather than cut or drawn over another.
 - **A report that would print a chart is refused, for now.** Until the
   runtime resolves charts, such a report is refused, a preview as a final
   render, naming the chart; one whose chart its condition hides prints.
-  The runtime's cases hold both.
+  The runtime's cases hold both. Since 0055 the runtime resolves it, and
+  the renderer refuses it until it draws charts.
 - **Written as JSON, for now.** Until the builders offer a chart and edit
   its own properties, a chart is written into the report by a host or a
   proposal; a builder shows one a report holds, moves it and removes it.
@@ -363,6 +372,21 @@ them, refuses a report that holds one as `unknown-kind`, never skipping it.
 **What it forecloses.** Nothing that cannot be undone: the format is a
 draft's. A chart of an expression, a colour on a series and a component
 kind for each kind of chart would each be another record's.
+
+**Added 2026-11-11: the runtime resolves a chart.**
+[0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)
+decides how: its categories grouped where a table's rows are, each
+series totalled by the function every aggregate is, `totalOf`, its value
+axis one, two or five times a power of ten, and every word it prints held
+in the block the runtime hands a renderer. `chart-not-resolved` is gone,
+and with it this record's interim refusal and its case in `lower.test.ts`;
+a report that would print a chart is refused now by the renderer, as
+`unsupported`, until it draws charts.
+Two things this record left open are decided there. A series that
+declares a rounding of an integer total is refused by the runtime too,
+past report-core's check, as an aggregate's is. A pie's palette is held
+to its slices when it renders: a pie of more categories than its palette
+has colours is refused as `chart-too-many-categories`, never cycled.
 
 ## Alternatives considered
 

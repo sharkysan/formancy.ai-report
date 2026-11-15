@@ -93,6 +93,64 @@ and the three things Report does not mean to do -- connect to a
 database, fetch by address, drill down -- with the reason for each. It promises nothing: an item is built when its
 record is written, and that record may narrow it or turn it down.
 
+**The runtime resolves a chart exactly, and the renderer refuses one
+until it draws charts**
+([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
+A chart is read for its numbers as a table is, and a chart that grouped,
+totalled or printed by rules of its own would print another number than
+the table beside it, with nothing to say which is right. So a chart is
+resolved by the runtime's own rules into a `chart` block, which holds
+every number and every word it prints; a renderer is handed strings to
+print and the digits of each coordinate. **Nothing prints a chart yet**:
+the renderer refuses a report that would print one, a preview as a final
+render, as `unsupported`, naming the chart, until it draws charts.
+- **Its categories are grouped where a table's rows are**: sorted, by the
+  table's own order, or in the order the data first gives each, one key
+  each, so that 1.0 and 1.00 are one category and grouping costs what a
+  table's does. The rows without a category are one category under its
+  `nullLabel`, last when sorted. A decimal category with no format prints
+  as its first row in the data's order spells it, which a table sorted
+  otherwise may spell differently; a category `format` with a scale
+  prints both alike.
+- **Each series is totalled by the function every aggregate is**, in the
+  decimals the compiler types an aggregate of the same function over the
+  same field in (report-core's `seriesType`, now exported). A series and
+  a group footer's aggregate of one definition, over the same rows and in
+  one format, print the same text, a declared rounding applied once as an
+  aggregate's is, and a rounding declared on a count or on a sum of
+  integers is refused by the runtime too, past the editor's check. A
+  series with no value at a category is null there, never zero.
+- **The value axis is chosen exactly**, by one rule: one, two or five
+  times a power of ten, at most `MAX_TICK_INTERVALS` (five) intervals,
+  no finer than the value format prints, over every series, computed in
+  BigInt so that a 40-digit total is ticked to its last digit. A bar's
+  axis holds zero, and so does a flat line's; any other line's is ticked
+  over its own values' range. **An author cannot set the axis's range or
+  its step.**
+- **A pie's shares are exact ratios rounded once**, to `SHARE_PLACES` (one)
+  place of a percentage, of the whole its slices make as they are drawn,
+  and printed by the formatter's new `percent`, which refuses a fraction
+  Intl would round again (`percent-rounds-again`, a new format code), as
+  no pie's share is. **Shares need not add up to 100.0 %**: three equal
+  slices print 33.3 % each, as `lower-chart.test.ts` holds. A percentage
+  is written as the engine's ICU writes one, and a pie entry that labels
+  its value reads `label: value (share)` in every language. A slice's
+  value prints only in its legend entry, never on the slice, and a pie
+  whose values its format cannot print is refused though it labels none
+  of them.
+- **Two new codes refuse what would be drawn wrong**, each naming the chart
+  and quoting nothing of the data: `chart-too-many-categories`, for a chart
+  of more than `MAX_CHART_CATEGORIES` (200, chosen) categories, or for a
+  pie of more categories than its palette has colours, since two slices of
+  one colour are told apart by nothing, either checked before anything is
+  totalled; and `chart-negative-share`, for a pie with a negative value,
+  even one that cancels to zero. A chart with nothing to draw -- no rows,
+  no value, a pie of zeros -- holds its title and its empty text alone.
+- **The runtime exports** the block's types (`Chart`, `AxisChart`,
+  `PieChart`, `ChartValue`, `ChartLegendEntry`, `ChartSeriesValues`) and
+  `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and `SHARE_PLACES`, so that
+  a host that tells an author a bound reads it rather than a copy.
+
 **A report may hold a bar, line or pie chart of its detail rows, which no
 release prints yet**
 ([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
@@ -100,9 +158,10 @@ Reports are often read for a shape -- which month was up, which category
 is most of the total -- and Report could print numbers only in tables. A
 chart arrives a stage at a time, the format and the editing core first,
 and a stage that does not handle one yet refuses it rather than print the
-report without it: **the runtime refuses a report that would print a
-chart, a preview as a final render, as `chart-not-resolved`**, naming the
-chart, until it resolves charts; and **neither builder offers one yet**.
+report without it: **the renderer refuses a report that would print a
+chart, a preview as a final render**, naming the chart, until it draws
+charts, the runtime resolving it (above); and **neither builder offers one
+yet**.
 - **report-spec's `chart` component.** `chart` is `bar`, `line` or `pie`
   (`CHART_KINDS`), a property, so a bar chart becomes a line chart in
   place; `dataset` is `'detail'`; `width` and `height` are a box of at
@@ -141,15 +200,15 @@ chart, until it resolves charts; and **neither builder offers one yet**.
   says of a series too that it is printed at fewer places than its
   rounding keeps, and `rounding-not-decimal` that it declares a rounding
   of an integer -- a count, or a sum, a least or a greatest of integers --
-  which the runtime will refuse. A chart changes through
+  which the runtime refuses too. A chart changes through
   `updateComponent`, with no command of its own.
-- **`chart-not-resolved`**, a new code of the runtime's, is the refusal
-  above. A chart its condition hides prints nothing, so its report is not
-  refused. The code goes when the runtime resolves charts.
+- **The renderer's `unsupported`** is the refusal above, naming the chart
+  wherever it stands, in either entry. A chart its condition hides prints
+  nothing, so its report is not refused.
 - **Neither builder's palette offers Chart yet**, and an insert or a drag
   of one is refused as `unavailable`: until the builders edit a chart's
   own properties, a chart inserted from the palette would be a box nobody
-  could edit, in a report the runtime refuses to render. A chart a report
+  could edit, in a report the renderer refuses to print. A chart a report
   holds is drawn in the design view as a box of its size, moved and
   removed, with the properties every component has, so a chart is a
   host's or a proposal's to write in the JSON for now.
