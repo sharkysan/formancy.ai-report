@@ -11,7 +11,9 @@
   renders any; its room by import of the Studio's copy superseded by
   [0034](0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md): the pages import
   formancy's released `@formancy/themes/room.css` first, then the Studio's
-  stylesheets
+  stylesheets; extended by [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md),
+  whose gate measures its pages in a browser, where this record measured
+  them by hand
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -90,7 +92,8 @@
   - **By hand, on 17 October 2026.**
     - The built pages, served under `/report/`, in the Chromium of
       Playwright 1.64.1, measured by the Studio's browser gate's own
-      `measureWidth` and `audit` (`apps/studio/scripts/gate-page.mjs`).
+      `measureWidth` and `audit`, then in `gate-page.mjs` and now in
+      `apps/studio/scripts/gate-measure.mjs`.
       All eight pages at 320, 360, 641, 1280 and 1920 pixels: no sideways
       scroll and nothing past either edge; axe's default rules and target
       size found nothing; colour contrast and target size were measured,

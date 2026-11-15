@@ -33,7 +33,8 @@
 // toolbar's Undo is unavailable, `aria-disabled`.
 
 import { elementsAt, readCii, readCodes, readPdf, readPdfObjects, textAt } from '@formancy/report-corpus'
-import { describeFocus, pdfBytes } from './gate-page.mjs'
+import { describeFocus } from './gate-measure.mjs'
+import { pdfBytes } from './gate-page.mjs'
 import { editorOf, open, previewInView, previewOf, said, settled, showing, WITHIN } from './gate-steps.mjs'
 
 const STT = 'rsm:SupplyChainTradeTransaction'

@@ -413,24 +413,28 @@ describe('gates.yml', () => {
     }
   })
 
-  // The browser job's results are the files the Studio's gate and its
-  // pictures' check write, so both run before the collect step; the
-  // pictures run when the gate failed, so a red gate does not hide their
-  // answer, and every app's test:pictures is the check, never a retake.
-  // The gate's own files are kept whole beside the results, for whoever
-  // reads a red run.
-  test('runs the Studio’s gate and its pictures’ check before it collects, and keeps their files', () => {
+  // The browser job's results are the files the Studio's gate, its
+  // pictures' check and the pages' gate write, so all three run before the
+  // collect step; the pictures and the pages' gate run when the one before
+  // failed, so a red gate does not hide their answer, and every app's
+  // test:pictures is the check, never a retake. The gates' own files are
+  // kept whole beside the results, for whoever reads a red run. A gate CI
+  // never runs is a comment, and its file uploaded nowhere is a red run
+  // nobody can read.
+  test('runs the Studio’s gate, its pictures’ check and the pages’ gate before it collects, and keeps their files', () => {
     const browser = gates.jobs.browser.steps
     const at = (command) => browser.findIndex((step) => step.run === command)
     const gate = at('pnpm exec turbo run test:browser --filter=@formancy/report-studio')
     const pictures = at('pnpm exec turbo run test:pictures --filter=@formancy/report-studio')
+    const pages = at('pnpm exec turbo run test:browser --filter=@formancy/report-pages')
     const collect = browser.indexOf(collectStep(gates.jobs.browser))
-    expect([gate, pictures].every((index) => index !== -1 && index < collect)).toBe(true)
+    expect([gate, pictures, pages].every((index) => index !== -1 && index < collect)).toBe(true)
     expect(browser[pictures].if).toContain('!cancelled()')
+    expect(browser[pages].if).toContain('!cancelled()')
     expect(collectStep(gates.jobs.browser).run).toBe('node scripts/release-report/collect.mjs --job browser')
     expect(browser.find((step) => step.with?.name === 'browser-results')?.with).toEqual({
       name: 'browser-results',
-      path: 'apps/studio/test-results/',
+      path: 'apps/studio/test-results/\napps/pages/test-results/\n',
       'if-no-files-found': 'error',
       overwrite: true,
     })

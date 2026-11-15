@@ -124,6 +124,6 @@ describe('the README block', () => {
     const table = readmeTable(facts)
     const react = facts.peers.find((entry) => entry.name === 'react')
     expect(table).toContain(`| \`react\`, a peer of \`${react.package}\` | ${react.loaded}, in its suites | \`${react.range}\` |`)
-    expect(table).toContain('and the Chromium the browser gate launched -- is in the release report every CI run produces and every release attaches, signed.')
+    expect(table).toContain('and the Chromium the browser gates launched -- is in the release report every CI run produces and every release attaches, signed.')
   })
 })
