@@ -305,7 +305,9 @@ item for each thing the version did that the report meets:
     resolution says.
   - `remove`: the field removed with everything that reads it -- report-core's
     `removeFieldWithReaders` -- what it takes listed in `removes` by
-    pointers into the report.
+    pointers into the report: a table whose condition reads the field
+    goes whole, since without its condition it would print every row
+    ([0062](../../docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
   - `relabel`: a batch saying the version's new label wherever the report
     still says an old one -- the field's own label, a line's label before
     the run that prints it, a column's heading over it. Offered, never
@@ -380,6 +382,11 @@ printed of a field never null, and none at all are refused, and at most
   prints that field's answers as the report's; a review says so only
   against a version the report names that printed nothing of the field
   there.
+- **Say which rows change table.** Printing nothing of a field a table's
+  condition reads makes it null in that version's rows, so those rows
+  leave a table that selects by the field's value and go into one that
+  selects by any other; the review says the field prints nothing from
+  that version, and not that (0062).
 - **Judge a retype by the answers.** A version that holds the field as
   text, retyped to a number, refuses each of its submissions whose answer
   spells none.

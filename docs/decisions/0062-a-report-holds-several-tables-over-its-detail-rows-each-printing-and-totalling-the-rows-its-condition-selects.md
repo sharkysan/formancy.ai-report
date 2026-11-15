@@ -52,9 +52,17 @@
     `src/diagnostics/tables.test.ts` warns of a total row, in a table that
     selects its rows, that prints a total over every detail row, and says
     nothing of the same row in a table that selects none, or of an
-    expression that reads the table's total beside the report's.
+    expression that reads the table's total beside the report's;
+    `src/diagnostics/diagnose.test.ts` lists that warning among every
+    code's, and counts neither an aggregate read only as `table.<id>` nor
+    a field read only by a condition as unused.
+    `src/expressions/members.test.ts` holds `table` and `group` to the
+    aggregates alone, and each grouping table's key in
+    `members.groupKeys` by the table's id.
     `src/commands/components.test.ts` duplicates a table into a second one
-    the validator accepts.
+    the validator accepts, and `src/locations.test.ts` finds a second
+    table the first one's places, and none in a report that is an
+    e-invoice.
   - **The runtime.** report-runtime's `src/lower-table.test.ts`: a table
     prints the rows its condition selects, in its own order and its own
     groups, its group's header and footer reading `table`; beside a table
@@ -89,7 +97,11 @@
     e-invoice suites are unchanged; so are report-render-pdf's
     `src/corpus.test.ts`, `src/starters.test.ts`, `src/samples.test.ts`
     and `src/e-invoice-samples.test.ts`, which pass with every table's
-    total rows read in the `table` scope.
+    total rows read in the `table` scope. The e-invoice gate, run without
+    `--record` on 15 November 2026, on Java 17, judged every file as its
+    recorded corpus holds it, which fails a run whose XML, or whose PDF's
+    inflated digest, a sample, a variant or a starter drawn as one, is not
+    the one recorded.
   - **A form review.** report-forms' `src/review-tables.test.ts` blocks a
     version that removes a field two tables' conditions read, and the
     removal it offers takes both tables whole and keeps a third that only
@@ -116,8 +128,35 @@
     where it used to find none, and compares the two builders' trees at
     each state.
   - **The install gate.** `scripts/install-fixture/consume.ts` holds the
-    packed validator to refusing a table past `MAX_TABLES`, where it held
-    it to refusing a second.
+    packed validator to refusing a table past `MAX_TABLES` as `too-many`
+    at its own path, and to giving that report no hash, where it held it
+    to refusing a second table.
+  - **Seen failing, on 15 November 2026.** Each case was run before its
+    code existed, or with its code put back or broken alone and restored,
+    in the branch's working tree:
+    - report-spec's new cases failed before the format read a condition,
+      a table's scope or the bound; with the second table's old refusal
+      put back, report-core's `components.test.ts`, `locations.test.ts`
+      and the two tables' case of `readers.test.ts` failed;
+    - report-runtime's new cases in `lower-table.test.ts` and
+      `sort-group.test.ts` failed with the runtime's sources put back to
+      the format's commit, and the three that print `over: 'table'` with
+      `inlines.ts` alone put back;
+    - report-render-pdf's `several-tables.test.ts` failed against that
+      runtime, against one that ignores the condition, where both of its
+      cases failed, and against one that totals every row as the table's,
+      where the line-by-line comparison did;
+    - report-builder-core's properties cases failed before the field, and
+      its scenarios failed to load before the words; with the field alone
+      removed, both scenarios failed in the model, in React and in Angular,
+      in all three languages, for want of "Show rows only when";
+    - report-forms' `review-tables.test.ts` failed with the condition taken
+      out of report-core's `READERS.table`: the removal no longer took the
+      selecting tables, and the render was refused as
+      `unknown-expression`;
+    - `consume.ts`'s former check, a second table refused, fails against
+      the validator built for the packing, which accepts one, where its
+      new one passes.
 
 ## Context
 
@@ -150,6 +189,9 @@ What it had ([0007](0007-a-report-definition-is-its-own-versioned-document.md)):
   first, since there was one.
 - **Charts read every detail row**
   ([0052](0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)),
+  each series totalled over them by `totalOf`, the function every
+  aggregate is
+  ([0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)),
   and so do a QR-bill's and an EPC QR code's amounts, through `totals`.
 
 The roadmap's third item asks for more than one dataset: a second detail

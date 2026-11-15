@@ -50,6 +50,16 @@ parties and words, and recomputes its total in BigInt
 engine ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
 [`../renderer-trial.md`](../renderer-trial.md)).
 
+**Several tables over one detail dataset.**
+`report-render-pdf/src/several-tables.test.ts` resolves an order printed
+as three tables, each selecting its lines by a condition, through the
+runtime, draws it, and holds the PDF line by line to what the test itself
+selects, orders and totals from the data: each table's rows under its own
+header, its groups' subtotals and its total, the summary's total of every
+row, and the empty table's text and total of 0. The corpus's checks hold
+the layout, every row once and in its place and no run over another
+([0062](../decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
+
 **The payment codes, at every layer that reads them.** Each code's rules
 are report-spec's alone, held there by suites of their own, and every
 reader of them is held where it reads them. What the two codes share, an
