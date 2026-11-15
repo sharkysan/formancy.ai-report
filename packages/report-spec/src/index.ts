@@ -29,6 +29,7 @@ export { BIDI_CONTROLS, PRINTED_BLOCKS, refusedCharacter, UNICODE_VERSION } from
 export type { CharacterRefusal, PrintedBlock } from './font-scripts.js'
 export {
   AGGREGATE_SCOPES,
+  BASELINE_SHIFTS,
   CURRENCY_SOURCE_KINDS,
   DATE_STYLES,
   EXPRESSION_NAMES,
@@ -41,6 +42,7 @@ export {
 export type {
   AggregateInline,
   AggregateScope,
+  BaselineShift,
   CurrencyFormat,
   CurrencySource,
   CurrencySourceKind,

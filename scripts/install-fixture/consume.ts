@@ -7,6 +7,7 @@
  * shipped.
  */
 import {
+  BASELINE_SHIFTS,
   checkSpecVersion,
   emptyReport,
   QR_BILL_TOP,
@@ -122,6 +123,29 @@ try {
   unhashed = error instanceof RangeError
 }
 if (!unhashed) throw new Error('a refused report was given a hash')
+
+// A run set below or above the line (0061) travels with the published
+// types and validator: a paragraph's run takes one, and a table's cell,
+// which prints one string at one size, refuses one where it is written.
+const formula: TextComponent = {
+  id: 'formula',
+  kind: 'text',
+  content: [
+    { kind: 'text', text: 'H' },
+    { kind: 'text', text: '2', baseline: 'subscript' },
+    { kind: 'text', text: 'O' },
+  ],
+}
+if (BASELINE_SHIFTS.join() !== 'subscript,superscript') throw new Error(`the published baselines are ${BASELINE_SHIFTS.join(', ')}`)
+const lowered = validateReport({ ...report, regions: { ...report.regions, summary: [formula] } })
+if (!lowered.valid) throw new Error(`a paragraph's run set below the line was refused: ${lowered.errors.map((error) => error.code).join(', ')}`)
+const shiftedCell: TableComponent = {
+  ...table,
+  columns: table.columns.map((column) => ({ ...column, value: { kind: 'field', field: { dataset: 'detail', field: 'amount' }, baseline: 'superscript' } })),
+}
+const misplaced = validateReport({ ...report, regions: { ...report.regions, body: [shiftedCell] } })
+if (misplaced.valid || !misplaced.errors.some((error) => error.code === 'misplaced-baseline'))
+  throw new Error("a table's cell set above the line was not refused")
 
 // The blank report an author starts from is empty, and valid.
 const blank = emptyReport('blank', 'Blank', 'en')
@@ -568,5 +592,5 @@ const fromData = await (async () => {
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
 
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved with its mark and rendered to a ${rendered.length}-byte PDF that draws it, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; its manifest named the form submission its lines came from, and a source holding a name was refused; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; ${eInvoiced}; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, its manifest naming the forms it read, and it rendered to a ${fromData.length}-byte PDF; ${await addedImages()}; ${await imagesInOrder()}; ${fontsRead()}; ${await hostFontRendered()}; ${await formsRead()}`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; a paragraph's run set below the line read and a table's cell set above it refused; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved with its mark and rendered to a ${rendered.length}-byte PDF that draws it, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; its manifest named the form submission its lines came from, and a source holding a name was refused; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; ${eInvoiced}; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, its manifest naming the forms it read, and it rendered to a ${fromData.length}-byte PDF; ${await addedImages()}; ${await imagesInOrder()}; ${fontsRead()}; ${await hostFontRendered()}; ${await formsRead()}`,
 )

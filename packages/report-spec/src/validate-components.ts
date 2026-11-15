@@ -153,7 +153,7 @@ const KINDS: { readonly [K in ComponentKind]: KindRule<Extract<Component, { kind
     required: ['content'],
     optional: ['keepWithNext'],
     read: (c, o, path, scope, base) => {
-      const content = readInlines(c, o.content, at(path, 'content'), { region: scope.region, reads: 'report' })
+      const content = readInlines(c, o.content, at(path, 'content'), { region: scope.region, reads: 'report', paragraph: true })
       const keepWithNext = flag(c.f, o.keepWithNext, at(path, 'keepWithNext'))
       return base && content && { ...base, kind: 'text', content, ...optional('keepWithNext', keepWithNext) }
     },

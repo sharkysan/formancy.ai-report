@@ -135,6 +135,8 @@ export const REPORT_ERROR_CODES = [
   'misplaced-detail-field',
   /** A group's aggregate outside a group header or footer. */
   'misplaced-group-aggregate',
+  /** A run set below or above the line outside a text component's runs: in what a QR code, an EPC QR code, a QR-bill or an e-invoice encodes, or in a table's cell, footer cell or group header (0061). */
+  'misplaced-baseline',
   /** A second table over the detail dataset. */
   'second-detail-table',
   'nesting-too-deep',

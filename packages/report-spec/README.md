@@ -30,7 +30,9 @@ if (!outcome.valid) {
 - a value standing where it has none: a detail field outside the table's
   cells, a page number outside the page header and footer or anywhere in a
   QR code, an EPC QR code or a QR-bill, whose content is resolved before
-  there are pages;
+  there are pages; and a run set below or above the line anywhere but in a
+  text's paragraph (`misplaced-baseline`): see
+  [A run below or above the line](#a-run-below-or-above-the-line);
 - a QR code of no runs, which would encode nothing;
 - a fixed size the page cannot hold, a QR code's and an EPC QR code's
   square measured against `squareRoom`;
@@ -407,6 +409,45 @@ What it does not do:
   anything EN 16931's terms here do not hold.
 - That a Leitweg-ID belongs to a buyer, or that a portal takes the file.
 
+## A run below or above the line
+
+A run of a text's paragraph may be set below the line, a formula's digit,
+or above it, a unit's power, an exponent or a footnote's mark, in any
+character its face draws
+([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)):
+
+```ts
+import { BASELINE_SHIFTS } from '@formancy/report-spec'
+
+BASELINE_SHIFTS // ['subscript', 'superscript']
+const formula = {
+  id: 'formula', kind: 'text',
+  content: [
+    { kind: 'text', text: 'H' },
+    { kind: 'text', text: '2', baseline: 'subscript' },
+    { kind: 'text', text: 'O, 10' },
+    { kind: 'field', field: { dataset: 'header', field: 'exponent' }, baseline: 'superscript' },
+  ],
+} as const
+// In a table column's value: misplaced-baseline at /regions/body/0/columns/0/value/baseline.
+```
+
+- **A property of the run.** Literal text, a field, a parameter, an
+  expression and an aggregate take an optional `baseline`, one of
+  `BASELINE_SHIFTS`; absent, the run stands on the line. A page number and
+  a page count take none (`unknown-property`).
+- **In a paragraph alone**, in any region. What a QR code, an EPC QR code,
+  a QR-bill or an e-invoice encodes is its text alone, and a table's cell,
+  footer cell, totals cell or group header prints one string at one size,
+  so a `baseline` there is refused as `misplaced-baseline`, whatever its
+  value.
+- **Part of the hash.** A report that sets none validates and hashes as it
+  did.
+
+What it does not check: whether the run prints beside a run on the line,
+which only the data and the engine's line breaks say, and the size and the
+move it prints at, which are not the format's.
+
 ## A chart
 
 A component, `chart`, is a bar, line or pie chart of the detail rows
@@ -759,6 +800,7 @@ to be read by a later release. Nor by an earlier one: a kind the draft gains
 is refused as `unknown-kind` by a release that predates it, never skipped. A
 report with a `qrCode` or an `epcQrCode` is refused so by 0.1.0, and one
 with a `paymentPart` or an `eInvoice` as `unknown-property`; a report with
-a `chart` is refused so by 0.2.0.
+a `chart` is refused so by 0.2.0, and one with a run's `baseline` as
+`unknown-property`.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).

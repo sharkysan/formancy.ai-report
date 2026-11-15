@@ -70,7 +70,12 @@ export function relabelSteps(
       if (component.content.some(said))
         steps.push({
           command: 'updateComponent',
-          args: [component.id, 'text', { content: component.content.map((run, index) => (said(run, index) ? { kind: 'text', text: labelled(now) } : run)) }],
+          // A run keeps all but its words: set above the line, it stays there (0061).
+          args: [
+            component.id,
+            'text',
+            { content: component.content.map((run, index) => (run.kind === 'text' && said(run, index) ? { ...run, text: labelled(now) } : run)) },
+          ],
         })
     }
     if (component.kind !== 'table') continue
