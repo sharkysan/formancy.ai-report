@@ -92,9 +92,10 @@ export interface TableColumn {
  * the row, so that a row's first line holds its first cell.
  *
  * A `groupHeader` is never the last row on a page: it moves to the next page
- * with the row it heads. A `detail` row may be taller than a page; the engine
- * then continues it on the next one, or refuses with `content-too-large`, and
- * never clips it.
+ * with the row it heads, or with as many of its group's first rows as it
+ * keeps (`keepWithRows`). A `detail` row may be taller than a page; the
+ * engine then continues it on the next one, or refuses with
+ * `content-too-large`, and never clips it.
  */
 export interface TableRow {
   readonly kind: 'detail' | 'groupHeader' | 'groupFooter' | 'total'
@@ -114,6 +115,15 @@ export interface TableRow {
    * style, or one of its conditional styles that held for this row.
    */
   readonly cellStyles?: readonly (TextStyle | null)[]
+  /**
+   * On a `groupHeader` alone: how many of its group's first rows it stands
+   * on its page with, from 2 to `MAX_KEEP_WITH_ROWS` and never more than
+   * the detail rows under it -- the count its group states, or the group's
+   * rows where it has fewer (0059). Absent, it is kept with its first row.
+   * An engine keeps it with as many of them as fit on a page under the
+   * repeated header, and with its first row where no more do.
+   */
+  readonly keepWithRows?: number
 }
 
 export interface Table {

@@ -27,42 +27,58 @@
       the page of its first three rows;
     - a group of two rows stating three printed whole with its subtotal on
       one page;
+    - a table's first group header moved with the column header and the
+      rows it keeps;
     - a header and three rows too tall for a page under the column header
       kept with two, and a header kept with its first row alone where no
       count above one fits, on the pages the arithmetic gives;
     - a row with no text among the stated rows counted, one with no text
-      last among them ending nothing, and a header over rows none of which
-      prints left where it falls;
+      last among them ending nothing, a group whose last row prints
+      nothing kept whole to its subtotal, and a header over rows none of
+      which prints, and a header that prints nothing, left where they fall,
+      to the byte as without a count;
     - a table in a framed section, broken by its rules alone, and a table
       whose rows split, its last kept row starting on its header's page.
 
     `src/breaks.test.ts` holds the arithmetic apart from pdfmake: the
     blocks a count makes, a group no longer than its count merged with its
-    footers, and the count that fits chosen where the stated one does not.
+    footers, the count that fits chosen where the stated one does not, and
+    a block ended on a row that prints, judged after the footers are
+    merged.
     `src/tables.test.ts` lays a 400-group table that keeps three rows out
     at most three times, and renders tables that state counts to the same
     bytes with the plan as with the rules alone. `src/refusals.test.ts`
     refuses, as `unsupported` and naming the table, the member on a row
-    that is not a group header, a count not whole or outside 1 to
+    that is not a group header, a count not whole or outside 2 to
     `MAX_KEEP_WITH_ROWS`, and a count past the detail rows under the
     header.
   - **The corpus.** report-corpus's `src/checks.test.ts` holds its orphan
     check generalised: a group header with fewer of its rows under it on
-    its page than its row keeps is reported, and with one it reports what
-    it always has. `src/fixtures/fixtures.test.ts` holds the
+    its page than its row keeps is reported; one that keeps none is held as
+    it always was, over a row without a key too; and one whose kept rows
+    have no key, which no count can find, is still held to not ending its
+    page. `src/fixtures/fixtures.test.ts` holds the
     `group-keep-with` fixture to what it is built for: for every plausible
     number of rows a page, a group header placed where one and where two
     of its rows would be left room on its page, and a group of fewer rows
     than it states. report-render-pdf's `src/corpus.test.ts` and
     `src/browser.test.ts` render it beside section 20's fixtures, which it
-    is kept apart from, as the SVG fixtures are, so that neither the
-    renderer trial nor the `e-invoice` gate's recorded corpus changes.
+    is kept apart from, as the SVG fixtures are, so that the corpus the
+    renderer trial chose an engine on stays the one it ran on.
   - **Nothing else prints otherwise.** Every corpus fixture's and starter's
     PDF, each invoice sample's final and preview among them, compared byte
     for byte with what `main`'s renderer wrote of it, on the day the
-    renderer's change is made; `corpus.test.ts` and `starters.test.ts`
-    unchanged, and the `e-invoice` gate passing on its recorded corpus
-    without `--record`.
+    renderer's change is made -- a script's comparison, made once and kept
+    nowhere. What holds it after that day: report-runtime's
+    `src/lower-table.test.ts`, which resolves a report that states no
+    count, or one, to rows without the member; the existing cases of
+    `breaks.test.ts`, `flow.test.ts`, `tables.test.ts`, `corpus.test.ts`
+    and `starters.test.ts`, unchanged; `group-rows.test.ts`, where a
+    header keeps none of its count, printing the bytes it prints without
+    one; and the `e-invoice` gate passing on its recorded corpus without
+    `--record`, whose digests (`inflatedDigest`) cover the e-invoice
+    samples and the variants it draws -- every starter among them, and of
+    section 20's fixtures `fonts` and `host-fonts` alone.
   - **The builders.** report-builder-core's `src/scenario-table-group.ts`,
     in `BUILDER_SCENARIOS`, run against the model by `src/scenarios.test.ts`
     in English, Swiss German and Swiss French, and by React's
@@ -186,8 +202,11 @@ breaks keep the longer block; nothing beside them is built.
 - **A row with no text** counts where it stands among the rows kept, but
   never ends them: a rule finds a row on its page by its text alone, so
   the block ends at the last of them that prints, and the plan is held to
-  that same block so that it breaks where the rules would. Where none of
-  them prints, nothing is kept, as of a first row with no text today.
+  that same block so that it breaks where the rules would; where the
+  block reaches the group's last row, its end is judged after its footers
+  are merged, so that a subtotal that prints ends it. Where none of them
+  prints, nothing is kept, as of a first row with no text today, and a
+  header that prints nothing keeps nothing either, whatever it states.
 - **Rows that may split.** Whether a table's rows split is decided as
   before, by each row and its group header alone, never by the count. In a
   table whose rows split, the last kept row starts on its header's page and
@@ -197,11 +216,11 @@ breaks keep the longer block; nothing beside them is built.
   they already take any block that starts among them.
 - **Refused, not guessed.** Before pdfmake sees the document, and as
   `unsupported`, naming the table: the member on a row that is not a group
-  header, a number that is not whole or not from 1 to
-  `MAX_KEEP_WITH_ROWS`, and a number past the detail rows under the header
-  before the next row of another kind. A document the runtime did not
-  resolve is held to what the runtime writes; if the two ever disagree,
-  the render says so.
+  header, a number that is not whole or not from 2 to
+  `MAX_KEEP_WITH_ROWS` -- one row kept is no member, as the runtime writes
+  it -- and a number past the detail rows under the header before the next
+  row of another kind. A document the runtime did not resolve is held to
+  what the runtime writes; if the two ever disagree, the render says so.
 - **Where nothing breaks a table.** A table in a keep-together block or a
   page region stands whole, as before, and the count changes nothing
   there.
@@ -252,6 +271,10 @@ A table without a group shows no such field.
 - **A row with no text ends no count.** A header whose last stated rows
   print nothing is kept with the rows before them that do, and the rows
   that print nothing may stand on the next page.
+- **A header with no text keeps nothing.** A group header may be empty,
+  or resolve to no text, and a rule has nothing of it to find on the page:
+  it is left where it falls whatever its count, and the builders still
+  show the count's field for its group.
 - **In a table whose rows split**, the last kept row may continue on the
   next page.
 - **Older releases.** 0.2.0 refuses a report that states a count, whole, as
@@ -288,6 +311,14 @@ the heights are the data's: a report that printed yesterday would be
 refused today for a long description, for data its author could not
 foresee, and nothing would have been lost by printing it, since moving a
 break drops no content. 0011 refuses what cannot be drawn whole; this can.
+
+**Count only the rows that print**, so that a row with no text lengthens
+the block rather than ending it. It would keep the number of rows a reader
+sees. But the block would then hold more rows than the report stated, and
+one run of rows with no text, which the data decides, could pull any
+number of them onto the header's page; and a block must still end on a row
+a rule can find there. Counting every row where it stands keeps the count
+the report's, and ending on the last that prints keeps it findable.
 
 **A flag that keeps a whole group together.** A group longer than a page
 can never be kept whole, so the flag would need a rule for that case in

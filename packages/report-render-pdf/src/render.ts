@@ -155,7 +155,7 @@ async function measureBody(engine: Engine, checked: Checked, fonts: RenderFonts,
       plans.set(
         block,
         tablePlan(
-          rows.map((row, at) => ({ kind: row.kind, pitch: pitches[at]! })),
+          rows.map((row, at) => ({ kind: row.kind, pitch: pitches[at]!, keep: row.keep, prints: row.prints })),
           room,
         ),
       )

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import type { RowKind } from './build.js'
-import { blockHeight, keepBlocks, naturalLayout, plannedBreaks, type Geometry } from './breaks.js'
+import { blockHeight, keepBlocks, keptCounts, naturalLayout, plannedBreaks, type Geometry, type PlannedRow } from './breaks.js'
 
 /**
  * The arithmetic of a table's page breaks, apart from pdfmake: which rows
@@ -40,6 +40,104 @@ describe('keepBlocks', () => {
 
   test('measures a block as its rows', () => {
     expect(blockHeight([10, 11, 12, 13], { first: 1, last: 2 })).toBe(23)
+  })
+})
+
+describe('keepBlocks, for a group header that keeps more than one row', () => {
+  // Rows: the column header 0; a group of four details (1 to 6), of which
+  // its header keeps three; a group of two (7 to 10), of which its header
+  // keeps both; the table's total, 11.
+  const rows = kinds('groupHeader', 'detail', 'detail', 'detail', 'detail', 'groupFooter', 'groupHeader', 'detail', 'detail', 'groupFooter', 'total')
+  const counts = Object.assign([], { 1: 3, 7: 2 })
+
+  // The block a count makes is the header and that many rows, the rule a
+  // header of one row has always had, longer; and where it reaches the
+  // group's last row it runs into the footers and the totals that close
+  // it, as the closing rows' block of that row already does.
+  test('keeps a header with the rows it keeps, and a whole group with what closes it', () => {
+    expect(keepBlocks(rows, true, counts)).toEqual([
+      { first: 1, last: 4 },
+      { first: 5, last: 6 },
+      { first: 7, last: 11 },
+    ])
+  })
+
+  // In a table whose rows may split there is no block of closing rows to
+  // run into: the header is kept with its rows alone.
+  test('keeps a header with its rows alone where closing rows cannot be kept', () => {
+    expect(keepBlocks(rows, false, counts)).toEqual([
+      { first: 1, last: 4 },
+      { first: 7, last: 9 },
+    ])
+  })
+
+  // No count, or a count of one, is the block every header had before.
+  test('keeps a header with its first row where it keeps one', () => {
+    expect(keepBlocks(rows, true, Object.assign([], { 1: 1 }))).toEqual(keepBlocks(rows, true))
+  })
+})
+
+describe('keptCounts', () => {
+  /** A row of 10pt that prints, keeping one row. */
+  const row = (kind: RowKind, more: Partial<PlannedRow> = {}): PlannedRow => ({ kind, pitch: 10, keep: 1, prints: true, ...more })
+  /** The column header, a group header keeping `keep` over `details` rows, and its subtotal. */
+  const group = (keep: number, details: readonly Partial<PlannedRow>[], closing: readonly RowKind[] = ['groupFooter']): PlannedRow[] => [
+    row('header'),
+    row('groupHeader', { keep }),
+    ...details.map((each) => row('detail', each)),
+    ...closing.map((kind) => row(kind)),
+  ]
+  const five = Array.from({ length: 5 }, () => ({}))
+
+  // A header and the rows it keeps that fit under the repeated header are
+  // kept so; any other row keeps one.
+  test('keeps a header with the rows it keeps where they fit', () => {
+    expect(keptCounts(group(3, five), true, 100)).toEqual([1, 3, 1, 1, 1, 1, 1, 1])
+  })
+
+  // Where they do not, as many as fit, down to the one row every header
+  // is kept with: a header and three rows of 10pt need 40pt, and two 30.
+  test('keeps as many as fit where the rows it keeps do not, and one where no more do', () => {
+    expect(keptCounts(group(3, five), true, 35)[1]).toBe(2)
+    expect(keptCounts(group(3, five), true, 25)[1]).toBe(1)
+  })
+
+  // A count that reaches its group's last row keeps the group's footers
+  // and the totals under it too, so they must fit with it: a group of two
+  // and its subtotal and total need 50pt, and kept with its first row
+  // alone, the header leaves its last row to the closing rows' rule.
+  test('counts the footers and totals that close a whole group in what must fit', () => {
+    const small = group(2, [{}, {}], ['groupFooter', 'total'])
+    expect(keptCounts(small, true, 50)[1]).toBe(2)
+    expect(keptCounts(small, true, 45)[1]).toBe(1)
+    // Where rows may split, nothing closes a block, and the header and its two rows fit in 30.
+    expect(keptCounts(small, false, 30)[1]).toBe(2)
+  })
+
+  // A rule finds a row on its page by its text alone: a block whose last
+  // row prints nothing could never be held to its page, and the plan,
+  // which counts every row, would break where the rule does not. A row
+  // with no text before the last is counted where it stands.
+  test('ends a block on a row that prints, counting a row with no text before it', () => {
+    expect(keptCounts(group(3, [{}, { prints: false }, {}, {}]), true, 100)[1]).toBe(3)
+    expect(keptCounts(group(3, [{}, {}, { prints: false }, {}]), true, 100)[1]).toBe(2)
+    expect(keptCounts(group(3, [{ prints: false }, { prints: false }, { prints: false }, {}]), true, 100)[1]).toBe(1)
+  })
+
+  // A whole group's block ends on what closes it, which prints: the last
+  // row with no text does not end it, and the subtotal is kept with the
+  // rows it adds up.
+  test("ends a whole group's block on its subtotal, though its last row prints nothing", () => {
+    expect(keptCounts(group(3, [{}, {}, { prints: false }]), true, 100)[1]).toBe(3)
+  })
+
+  // A header that prints nothing has nothing for a rule to find, and keeps
+  // what every header had: one row. Kept with three, a table's first group
+  // header would still move them with the column header, which reads no
+  // text, and the count of a header with no text would print otherwise.
+  test('keeps one row with a header that prints nothing', () => {
+    const rows = group(3, five)
+    expect(keptCounts([rows[0]!, { ...rows[1]!, prints: false }, ...rows.slice(2)], true, 100)[1]).toBe(1)
   })
 })
 

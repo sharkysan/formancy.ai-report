@@ -60,6 +60,8 @@ export type { ResolveErrorCode, RuntimeError, RuntimeStage } from './resolve-err
 export type { AssetResolver, ImageBytes, ImageRef, ImageResolver } from './render-context.js'
 /** The definition `resolveReport` reads, so that a caller of the runtime names it without depending on report-spec itself. */
 export type { ReportDefinition } from '@formancy/report-spec'
+/** report-spec's bound on the rows a group header is kept with, handed on so that an engine holds a group header row's `keepWithRows` to it rather than to a copy (0059). */
+export { MAX_KEEP_WITH_ROWS } from '@formancy/report-spec'
 /**
  * What report-spec decides of a QR-bill that an engine needs to draw its
  * slip, handed on so that an engine, which depends on the runtime alone,

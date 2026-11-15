@@ -94,7 +94,16 @@ Every block of the resolved document:
   column aligned as it says unless a cell says otherwise. A group header
   `across` the table is one cell over every column. A group header is never
   the last row on a page, and a row that fits on a page is never split. A
-  group's footers and the totals under the last row stand on the page of
+  group header row that keeps more of its group's first rows
+  (`keepWithRows`) stands on the page of as many of them as fit there under
+  the repeated column header, and of its first row where no more do: a
+  group no longer than its count stands whole, with its footers, where it
+  fits; the block ends on the last of those rows that prints, since a
+  rule finds a row on its page by its text; and a count on a row that is
+  no group header, outside 2 to `MAX_KEEP_WITH_ROWS`, or past the detail
+  rows under the header is refused as `unsupported`, naming the table
+  ([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+  A group's footers and the totals under the last row stand on the page of
   the row before them, and with its group header when that row is its
   group's first: a subtotal or a total never stands alone at the top of a
   page. Every column is as wide as it says, a fill column its share of
@@ -151,7 +160,7 @@ Every block of the resolved document:
 | `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
 | `invalid-asset` | An image's bytes are not the PNG, JPEG or SVG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side, and for an SVG a mebibyte; a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031); an SVG is not exactly the drawing report-spec's `cleanSvg` writes (below). A PNG's or a JPEG's structure is read by report-spec's `imageHeader`, which a builder refuses an image a person adds by too, in the same words (0033); whether a PNG's image data inflates to the scanlines its header promises is read here alone, since it needs the platform's decompressor. A host's font `readFont` refuses, one PDFKit would draw as another face, or one asset id handed in two byte strings, naming the asset (0043). |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or one its PDF/A-3b cannot hold, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them (below). |
+| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or one its PDF/A-3b cannot hold, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them (below); a count of kept rows (`keepWithRows`) on a table row that is no group header, outside 2 to `MAX_KEEP_WITH_ROWS`, or past the detail rows under its header, naming the table (0059). |
 
 ## SVG images
 
@@ -588,6 +597,10 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
   keep-together block, a column or a page region, and not past the end of a
   framed section: a heading that ends a framed section is not kept with
   what follows it.
+- **Say when a group header keeps fewer rows than its row says.** Where
+  the rows it keeps do not fit on a page with it under the repeated column
+  header, it is kept with as many as fit, and nothing says so: the heights
+  are the data's, and a render has no warning to give (0059).
 - **Refuse a spacer at the foot of a page.** One that does not fit what is
   left of a page moves to the next and starts there, without its space.
 - **Measure page regions per page.** They are measured once, every page
@@ -613,7 +626,10 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
 `@formancy/report-corpus` and proves each PDF with the corpus's checks, or
 holds a refusal to the one the fixture allows
 ([0003](../../docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)).
-These are the tests decision 0005 names. Each block kind is read back from
+These are the tests decision 0005 names; the corpus's kept rows' fixture
+(`KEEP_WITH_FIXTURES`), which the trial never drew, is rendered beside
+them, and `group-rows.test.ts` holds a group header to the rows its row
+keeps, or as many as fit, on the PDFs (0059). Each block kind is read back from
 the PDF it produced: its text and images with PDF.js, through the corpus's
 reader, and its lines, rectangles, clips and text colours from the PDF's own
 content streams (`src/testing/drawing.ts`), which PDF.js's text does not

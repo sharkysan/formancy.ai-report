@@ -27,6 +27,7 @@ import { epcSymbol } from './epc.js'
 import { checkCopyLabel, checkEInvoice, checkEInvoiceTitle } from './e-invoice.js'
 import { codePoint, missingGlyph } from './glyphs.js'
 import type { FaceWanted, RenderFonts } from './host-fonts.js'
+import { checkKeptRows } from './kept-rows.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
 import { COLOR } from './style.js'
 import { checkSvgInEInvoice } from './svg-pdfa.js'
@@ -489,6 +490,7 @@ function checkTable(table: Table, width: number, fonts: RenderFonts): void {
     }
     for (const style of [row.style, ...(row.cellStyles ?? [])]) checkStyle(style ?? undefined, table.id, fonts)
   })
+  checkKeptRows(table)
   checkStyle(table.headerStyle, table.id, fonts)
   const narrow = table.columns.find((column) => column.width !== 'fill' && !(column.width > 2 * PADDING_X && Number.isFinite(column.width)))
   if (narrow !== undefined)

@@ -11,6 +11,7 @@ import {
   ALL_FIXTURES,
   E_INVOICE,
   inflatedDigest,
+  KEEP_WITH_FIXTURES,
   readAnnotations,
   readCodes,
   readPdf,
@@ -113,7 +114,7 @@ describe('the browser entry', () => {
   test(
     'hands pdfmake the definitions the Node entry does, for every fixture',
     async () => {
-      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES]) {
+      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES]) {
         const options = { maxPages: each.maxPages }
         const inNode = await definitions(nodePdfmake, () => renderInNode(each.document, options))
         const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(each.document, options))
@@ -130,7 +131,7 @@ describe('the browser entry', () => {
   test(
     'renders every fixture of the corpus as its checks expect, or refuses it as they allow',
     async () => {
-      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES]) {
+      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES]) {
         const rendered = await renderInBrowser(each.document, { maxPages: each.maxPages }).then(
           (bytes) => ({ bytes }),
           (error: unknown) => ({ error }),

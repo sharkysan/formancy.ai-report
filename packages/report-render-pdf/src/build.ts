@@ -50,6 +50,14 @@ export const UNPLANNED: TablePlan = { dontBreakRows: false, keepWithHeaderRows: 
 /** What a row of a table is, as pdfmake lays it out: the column header, the empty text, or one of the document's rows. */
 export type RowKind = TableRow['kind'] | 'header' | 'empty'
 
+/** A table's row as the body pass measures it: its kind, the mark on its first cell, the rows it keeps and whether it prints, as its plan reads them. */
+export interface MeasuredRow {
+  readonly kind: RowKind
+  readonly mark: number
+  readonly keep: number
+  readonly prints: boolean
+}
+
 /** The values of the page fields, known only in a page region and only to pdfmake's header and footer functions. */
 export interface Fields {
   readonly pageNumber: number
@@ -72,8 +80,8 @@ export interface Build {
   readonly images: Record<string, string>
   /** Filled in: the rules for marked nodes, by mark. */
   readonly rules: Map<number, BreakRule>
-  /** Filled in, in measure mode: each table's rows as pdfmake lays them out, with the mark on each one's first cell. */
-  readonly measuredRows: Map<Table, readonly { readonly kind: RowKind; readonly mark: number }[]>
+  /** Filled in, in measure mode: each table's rows as pdfmake lays them out, with the mark on each one's first cell, how many rows each keeps and whether it prints (`breaks.ts`). */
+  readonly measuredRows: Map<Table, readonly MeasuredRow[]>
   /** Where each paragraph stands in the document, `body[2]`, for a refusal to name. */
   readonly paths: ReadonlyMap<Block, string>
   /** The pdfmake family a font token prints in (0043): Roboto, or the host family the report maps it to. */

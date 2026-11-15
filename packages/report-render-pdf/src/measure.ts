@@ -1,7 +1,7 @@
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { RenderRefusal, type Table } from '@formancy/report-runtime'
-import { keepBlocks, keptBlocks } from './breaks.js'
-import type { RowKind, TablePlan } from './build.js'
+import { keepBlocks, keptBlocks, keptCounts, type PlannedRow } from './breaks.js'
+import type { TablePlan } from './build.js'
 import type { RowLine } from './check.js'
 import type { Engine } from './engine.js'
 import type { HostFontFiles } from './host-fonts.js'
@@ -185,10 +185,12 @@ export function refuseLineUnderHeader(table: Table, under: RowLine, headerPitch:
  *   a one-line quotation's totals; not when they do not fit on a page
  *   together, for the same reason;
  * - the rows kept together (`breaks.ts`) are the blocks that fit on a page
- *   under the header and start after the rows that move with it. A table
- *   whose rows may split keeps only its group headers with what they head.
+ *   under the header and start after the rows that move with it, a group
+ *   header's with as many of the rows it keeps as fit there (`keptCounts`).
+ *   A table whose rows may split keeps only its group headers with what
+ *   they head.
  */
-export function tablePlan(rows: readonly { readonly kind: RowKind; readonly pitch: number }[], bodyHeight: number): TablePlan {
+export function tablePlan(rows: readonly PlannedRow[], bodyHeight: number): TablePlan {
   const [header, ...body] = rows
   const room = underHeader(header?.pitch ?? 0, bodyHeight)
   const under = (index: number): number => (body[index - 1]?.kind === 'groupHeader' ? body[index - 1]!.pitch : 0)
@@ -197,6 +199,7 @@ export function tablePlan(rows: readonly { readonly kind: RowKind; readonly pitc
   const blocks = keepBlocks(
     rows.map((row) => row.kind),
     dontBreakRows,
+    keptCounts(rows, dontBreakRows, room),
   )
   const first = body[0]?.kind === 'groupHeader' && body.length > 1 ? 2 : 1
   let lead = first
