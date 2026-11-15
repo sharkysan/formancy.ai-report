@@ -228,8 +228,8 @@ that a browser loads it as a chunk of its own, lays it out three times, a
 pie twice, the plot only snapped, and refuses as `content-too-large` words
 that would meet, leave the box or stand in the plot, category labels that
 do not fit across, which are never turned, a plot too short for two tick
-labels and bars under `MIN_BAR_WIDTH`, measured, by the words' one
-rule, `chart-held.ts`, which an empty chart's words meet too;
+labels and bars under `MIN_BAR_WIDTH`, measured, its words held by
+their one rule, `chart-held.ts`, which an empty chart's words meet too;
 `chart-measure.ts`
 replaces zrender's platform for one layout, answering in the widths each
 engine's `widths` measures in the faces the render embeds
@@ -874,7 +874,8 @@ exactly what CI does:
   ECharts (0058) -- Mustang by its PDF part too,
   never its exit status alone; veraPDF alone, with its PDF/A-2b profile
   and `--flavour 2b`, the PDF/A-2b of every starter that is no e-invoice
-  and of the corpus's image, SVG and font pages, and two controls (0057);
+  and of the corpus's image, SVG, chart and font pages, and two controls
+  (0057, 0058);
   each control is judged exactly as the corpus expects, at least one tool
   refusing it and each tool refusing at least one control of its format;
   and report-spec's code lists and rule ids are held to the schematrons
