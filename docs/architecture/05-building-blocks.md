@@ -474,7 +474,8 @@ only what is the Studio's own -- the text's two font stacks and the page --
 and the builder is recoloured only through the workbench's variables
 ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md),
 [0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).
-Its `scripts/` hold the browser gate and the README pictures' walk.
+Its `scripts/` hold the browser gate and the README pictures' walk, and
+the gate's unit tests, which the Studio's suite runs.
 
 **`apps/pages`** is the product's pages, prerendered by React's
 `renderToStaticMarkup` into static HTML in German, French, Italian and

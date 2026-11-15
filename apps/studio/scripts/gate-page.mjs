@@ -2,8 +2,9 @@
 // that brings the page to each state (browser-test.mjs): the widths worth
 // measuring, the rules that reach the paper and the Preview, the Preview's
 // controls a pane cuts, PDF.js's pages and the drawings of the PDF the page
-// offers. The reads that need no package built -- width, axe, focus, the web
-// fonts, the room's variables -- are gate-measure.mjs's. formancy.ai-data's
+// offers, which gate-download.mjs downloads. The reads that need no
+// package built -- width, axe, focus, the web fonts, the room's variables
+// -- are gate-measure.mjs's. formancy.ai-data's
 // apps/studio/scripts/browser-test.mjs and scripts/browser-gate.mjs, where
 // these first ran.
 //
@@ -11,7 +12,6 @@
 // because the tree has no geometry, no pixels, no stylesheets and no fonts.
 
 import { readFileSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -353,36 +353,16 @@ export async function drawnPages(page, { within }) {
 }
 
 /**
- * The bytes of the PDF at `href`, a Download PDF link's, as a person
- * downloading it gets them: the link clicked in the page and the download
- * read. Not fetched from its `blob:` address in the page, which the demo's
- * `connect-src 'none'` refuses (0051); clicked by the element's own
- * `click()`, which moves no focus a check after it measures.
+ * The PDF Download PDF gave, `bytes`, downloaded from the page
+ * (gate-download.mjs) and read back with PDF.js in Node: its first five
+ * characters, which say whether it is a PDF at all, and the drawings of
+ * its page `number`, read by report-corpus's `drawingsOn`, the reader
+ * report-render-pdf's pictures.json is written with (0030, 0032) -- each
+ * clip a painted path stands inside, with its box, its paints and each of
+ * its paths -- so that the firm's mark and a code drawn by the browser
+ * entry are held to those the Node entry drew for the picture.
  */
-export async function pdfBytes(page, href) {
-  const [download] = await Promise.all([
-    page.waitForEvent('download'),
-    page.evaluate((address) => {
-      const link = [...document.querySelectorAll('a[download]')].find((anchor) => anchor.href === address)
-      if (link === undefined) throw new Error(`no link downloads ${address}`)
-      link.click()
-    }, href),
-  ])
-  return new Uint8Array(await readFile(await download.path()))
-}
-
-/**
- * The PDF at `href`, which Download PDF points at, downloaded from the page
- * (pdfBytes) and read back with PDF.js in Node: its first five characters, which say
- * whether it is a PDF at all, and the drawings of its page `number`, read
- * by report-corpus's `drawingsOn`, the reader report-render-pdf's
- * pictures.json is written with (0030, 0032) -- each clip a painted path
- * stands inside, with its box, its paints and each of its paths -- so that
- * the firm's mark and a code drawn by the browser entry are held to those
- * the Node entry drew for the picture.
- */
-export async function downloaded(page, href, number) {
-  const bytes = await pdfBytes(page, href)
+export async function downloaded(bytes, number) {
   const head = new TextDecoder().decode(bytes.subarray(0, 5))
   const sheet = head === '%PDF-' ? (await readPdf(bytes)).pages[number - 1] : undefined
   return { head, drawings: sheet === undefined ? [] : drawingsOn(sheet) }
