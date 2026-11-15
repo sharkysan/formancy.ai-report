@@ -2513,7 +2513,7 @@
       ]
     },
     "0058": {
-      "reviewed": "sha256:b34256a39f41821e36e1b6a6f8e6c59fdea93690364b05ac1bab22ad641568c4",
+      "reviewed": "sha256:59ac6a9db1eb289ae9b3aaabce796a20d8b4fc627a750539dabc6c12f034ee45",
       "limitations": [
         {
           "area": "rendering",
@@ -2568,6 +2568,11 @@
         {
           "area": "rendering",
           "says": "A chart's paint counts against no SVG budget: one line chart of 8 series and 200 categories, as wide as an A4 landscape page and a third of its height, weighs nearly four times the segments the body's SVG images may cost together, and the chart bound admits two of them on a page."
+        },
+        {
+          "area": "rendering",
+          "says": "Installing the renderer installs Apache ECharts 6.1.0 and zrender 6.1.0, 62,176 KiB and 5,168 KiB by `du -sk` on 15 November 2026, for a host that never draws a chart too; a browser loads the chart chunk, 189.00 kB gzipped by the Studio's build on that day, only with the first document that holds a chart with marks.",
+          "heldBy": "packages/report-render-pdf/src/browser.test.ts"
         },
         {
           "area": "licence",

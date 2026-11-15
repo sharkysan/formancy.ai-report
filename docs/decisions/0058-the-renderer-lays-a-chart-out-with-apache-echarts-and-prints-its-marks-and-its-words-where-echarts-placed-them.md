@@ -258,7 +258,11 @@ A spike, on a branch never merged, answered nine questions on
   accepted it (run 43040837572, 11 November 2026).
 - **Q8, the weight: the chart's code a chunk of its own.** Counted from a
   fresh module graph, it was loaded for no document without a chart, once
-  after the first chart, and still once after a second.
+  after the first chart, and still once after a second. The Studio's
+  build, on 11 November 2026, made the chart chunk 540.53 kB minified and
+  184.87 kB gzipped, left the page's chunk at 891.54 kB and 287.78 kB, and
+  installed echarts at 62,176 KiB and zrender at 5,168 KiB; this record's
+  Cost gives the figures of the built renderer.
 - **Q9, the axis: held, if the plot is snapped.** Over nine ranges, a
   40-digit total among them, ECharts drew one gridline and one label for
   each tick and no other. zrender moves a thin gridline onto a half point,
@@ -700,9 +704,18 @@ to `check-chart.ts` and draws it.
   would be narrower is refused, though a reader zoomed further in would
   draw them apart.
 - **Installed with every renderer.** ECharts and zrender are installed
-  with report-render-pdf, for a host that never draws a chart too; a
-  browser loads them only with the first document that holds a chart
-  with something to draw.
+  with report-render-pdf, for a host that never draws a chart too:
+  `du -sk` on their package directories under `node_modules/.pnpm`
+  measured 62,176 KiB for echarts 6.1.0 and 5,168 KiB for zrender 6.1.0,
+  on 15 November 2026. A browser loads them only with the first document
+  that holds a chart with something to draw, in a chunk of 550.73 kB
+  minified and 189.00 kB gzipped by the Studio's build (Vite 8.3.5, an
+  Apple M2, Node 22.23.4, the same day), which also holds the renderer's
+  drawing. The renderer's own chunk, which every preview loads, is
+  1,989.15 kB and 871.06 kB gzipped, and was over the Studio's old
+  warning limit before any chart; 4,269 bytes of it are the drawing's
+  option, which only the chart chunk uses (`chart-option.ts`), measured
+  from the build's source map and not moved out.
 - **A chart's words stay in the process.** zrender keeps the widths it
   measured, by the words and the font string, up to 500 words for each
   of 100 font strings, after the render; nothing zrender exports clears
