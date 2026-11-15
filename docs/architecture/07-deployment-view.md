@@ -275,7 +275,20 @@ serve the Studio under the same function of their own address
   or the font chunk that a slip and a captioned EPC QR code print from
   lands in every page
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
-  0025).
+  0025), and so does the chunk a chart is laid out by, which holds ECharts
+  and zrender and is imported the first time a document holds a chart
+  with something to draw.
+- **For a chart:** nothing to configure, and nothing to install beside the
+  renderer, which depends on ECharts and zrender at exactly 6.1.0. A
+  host's bundle gives ECharts the renderer's own zrender, or every chart
+  is refused, naming it: the renderer measures a chart's words by
+  replacing zrender's platform, and through another copy ECharts would
+  measure them in widths nobody chose. A host that also draws charts of
+  its own with ECharts shares that platform with the renderer, which
+  replaces it for one synchronous layout and puts it back. A host that
+  bundles the renderer's browser entry carries ECharts' `NOTICE` and d3's
+  licence, for the code ECharts took from d3, among its notices, as the
+  Studio's build does [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 - **A worker it can terminate**, if a render must stop at once: an abort is
   read only between pdfmake's passes
   ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).

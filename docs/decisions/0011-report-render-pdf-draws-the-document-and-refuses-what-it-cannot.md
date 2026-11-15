@@ -1,6 +1,6 @@
 # 0011 — `report-render-pdf` draws the whole resolved document with pdfmake, and refuses what it cannot draw whole
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refused every e-invoice until the renderer drew the PDF/A-3 that carries one, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which draws an SVG asset as vectors, only in the form report-spec's `cleanSvg` writes, and bounds what SVGs cost a render and a page, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which draws an e-invoice as a PDF/A-3b and refuses what that cannot hold, and by [0035](0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md), which has the images PDFKit decodes before it embeds them written in the order pdfmake opened them, so that a document with such images renders to the same bytes too, held on the PDF in both entries by `image-order.test.ts`, and by [0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), under which the faces' character maps are read by report-spec's font reader, through the runtime, as fontkit reads them, and by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), under which it embeds a host's fonts and refuses what it cannot draw in them
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which draws QR codes, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's slip, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code and its caption, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which refused every e-invoice until the renderer drew the PDF/A-3 that carries one, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which draws an SVG asset as vectors, only in the form report-spec's `cleanSvg` writes, and bounds what SVGs cost a render and a page, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which draws an e-invoice as a PDF/A-3b and refuses what that cannot hold, and by [0035](0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md), which has the images PDFKit decodes before it embeds them written in the order pdfmake opened them, so that a document with such images renders to the same bytes too, held on the PDF in both entries by `image-order.test.ts`, and by [0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), under which the faces' character maps are read by report-spec's font reader, through the runtime, as fontkit reads them, and by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), under which it embeds a host's fonts and refuses what it cannot draw in them, and by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), under which it draws a chart that Apache ECharts laid out, and refuses one whose words would meet, leave its box or stand in its plot, or whose ticks, labels or bars would not read
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-render-pdf`, run by its
@@ -317,6 +317,35 @@ row's line, and two printed it whole within the point kept for rounding --
 the ten written before the refusal among them. Every corpus fixture's and
 starter's PDF, each invoice sample's final and preview among them, is
 byte for byte what it was before (22 October 2026).
+
+**Added 2026-11-15: charts.** The resolved document's `chart` block,
+which 0055 had the renderer refuse as `unsupported` until it drew one, is
+drawn
+([0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)).
+`check-chart.ts` holds a chart, before anything is laid out, to where it
+stands, its kind, its box, the runtime's bounds, its colours, its style,
+its parts, its words and its numbers. Apache ECharts lays it out, its
+words measured in the widths pdfmake prints them in; the drawing reads
+back where every word went, and the chart is refused as
+`content-too-large`, naming it and its box, where two words would meet, a
+word would leave its box or stand in its plot but a value's label, a
+category label would not fit across its slot, two tick labels would stand
+closer than a line and a quarter, or a bar would be narrower than
+`MIN_BAR_WIDTH`. A label is never turned, wrapped or cut, and a tick, a
+category or a bar is never dropped. What ECharts wrote that the reader
+does not hold to is refused as `unsupported`. The chart prints as one
+unbreakable stack, its marks through the converter and its words as
+pdfmake's text, moved whole to the next page where it does not fit, and
+held as *Nothing is taller than the body* holds an image. *Every
+character is held to its face* holds of its words, a chart's title in its
+token's bold among them, and so does *Every word fits where it stands*:
+once pdfmake has measured a chart's word, it is held to the advance it
+was placed by (`words.ts`). A chart with nothing to draw prints its title
+and its empty text without ECharts.
+`check-chart.ts` and the drawing are held by `charts.test.ts`,
+`chart-draw.test.ts` and `chart-content.test.ts`, and on the corpus's
+chart fixtures by `corpus.test.ts`; `refusals.test.ts`'s case of the
+interim refusal is gone with it.
 
 ## Alternatives considered
 

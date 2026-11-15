@@ -91,6 +91,44 @@ group of the element's own size, and a callback for links, would be
 svg-to-pdfkit's to add; neither has been asked of it
 ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
+### The renderer leans on ECharts' and zrender's internals, and on pdfmake's detached nodes
+
+A chart is laid out by Apache ECharts 6.1.0, which draws through zrender
+6.1.0, and the renderer reads more of both than their API offers
+[0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md). It replaces zrender's process-wide `platformApi` around each layout
+to measure in pdfmake's widths, and answers its `国` probe with the face's
+line; it leans on zrender's width cache, keyed by the whole font string,
+to keep one face's widths apart from another's; a pie's label layout is
+null, which ECharts reads and its types do not admit; a slice of no share
+rests on ECharts' filter of a pie's negative values, and its legend entry
+on the legend reading the data before that filter; two words of one text
+are told apart by the order ECharts writes a chart's words in; the SVG it
+writes is held, element by element, to what 6.1.0 was seen to write; and
+the plot is snapped where zrender moves a thin line. `echarts.test.ts`,
+`chart-svg.test.ts` and `chart-draw.test.ts` pin each, and
+`scripts/dependency-licences.mjs` admits both at one exact version, so an
+upgrade is a diff somebody reads, a second vendor's release notes with
+it, before those tests run on it; what a new release lays out
+differently, if nothing pinned sees it, prints. The renderer refuses a
+chart rather than measure it through another copy of zrender than its
+own, which a host's bundle may give ECharts.
+
+pdfmake is leant on further for it. A chart's words are detached nodes
+inside one unbreakable stack, and pdfmake 0.3.11 lays a detached node out
+where the flow stands, taking none of its room, and fits nothing inside
+an unbreakable block, whose room it reads as `NaN`; `pdfmake.test.ts`
+pins both, and a pdfmake that fitted them would fit each word against the
+room at the stack's top. The heading kept with a chart is kept with its
+first word, whose page pdfmake corrects when it moves the block, and with
+its drawing where it prints no word, whose page pdfmake does not: that
+heading is left behind, which `flow.test.ts` holds as it stands.
+
+zrender keeps what it measured. Its width cache outlives the render, up
+to 500 words for each of 100 font strings, in the Node process or the
+page, and nothing zrender exports clears it: a chart's categories, legend
+entries and title, a customer's words, stay there, beside the digest of
+the face they were measured in.
+
 ### An SVG logo costs every reader, and some files are refused
 
 Every recipient's viewer, and the Studio's Preview on every edit, pays to

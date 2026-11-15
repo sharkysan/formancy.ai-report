@@ -18,7 +18,7 @@ passes through a JavaScript number, as in Formancy Data
 | Printing | Intl is handed the exact digits, already rounded half away from zero to the places shown. A format that would round a rounded total again is a diagnostic ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) |
 | A payment code's amount | A QR-bill's and an EPC QR code's alike: written from its own digits and never rounded; a third decimal is refused, so rounding stays where the total is computed. An EPC QR code's is written as short as it can be, as Austria's PSA asks ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
 | An e-invoice's totals | Computed once, in `Decimal`, from the very values the table prints: each VAT category's tax is its basis times its rate over 100, rounded once, half away from zero, and never per line; a line's net amount and a paid amount are whole cents, refused rather than rounded, and a net amount other than its quantity times its net price rounded once is refused; a rate is compared by value, so `19` and `19.00` are one rate. The XML writes each amount from its own digits at two places, and the page reads the totals by name, so that it prints what the XML holds ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) |
-| A chart | Each series totalled by the function every aggregate is, `totalOf`, in the decimals the compiler types it in, so a bar and the table's subtotal of one definition, over the same rows, are one value; its value axis one, two or five times a power of ten, found by BigInt division on a decimal's units; a pie's share the exact ratio of its value to the sum of its slices, rounded once, half away from zero, and printed by `percent`, which refuses a fraction Intl would round again. The block holds each value twice, its exact digits and its text: a renderer is handed strings to print and makes a coordinate of the digits, never a number to print ([0055](../decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)) |
+| A chart | Each series totalled by the function every aggregate is, `totalOf`, in the decimals the compiler types it in, so a bar and the table's subtotal of one definition, over the same rows, are one value; its value axis one, two or five times a power of ten, found by BigInt division on a decimal's units; a pie's share the exact ratio of its value to the sum of its slices, rounded once, half away from zero, and printed by `percent`, which refuses a fraction Intl would round again. The block holds each value twice, its exact digits and its text: a renderer is handed strings to print and makes a coordinate of the digits, never a number to print ([0055](../decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)). The renderer places a value by its distance from the lowest tick in the ticks' interval, and a slice by its share of the slices' sum, each worked out in BigInt on the decimals' units to 17 places, `QUOTIENT_UNIT`, and made a double only as the coordinate ECharts is handed; ECharts is handed no value, so it rounds and formats none [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md) |
 | Lengths | Points, on the hundredth of a point; a finer one is refused, not rounded, so one layout has one stored value and one hash ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
 
 ## 8.2 Refusals
@@ -72,15 +72,16 @@ that total numbers or count rows, a pie the shares of one sum or count --
 and refuses the rest as `invalid-chart`, or by the code every component's
 fields are refused by; the editing core names what it reads, so a removed
 field takes its series. The runtime resolves one (0055), and the renderer
-does not draw one yet: it refuses a report that would print one as
-`unsupported`, naming it, in a preview as in a final render, rather than
-print the report without it; and the builders' palettes do not offer one
-until the builders edit a chart's own properties (0052).
+draws one (0058); the builders' palettes do not offer one until the
+builders edit a chart's own properties (0052).
 What only the data can say is left to the stages that resolve and draw a
 chart, to be refused there, never cut to fit: the runtime refuses more
 categories than `MAX_CHART_CATEGORIES` and a pie of more slices than its
-palette has colours, before anything is totalled, and whether the
-categories fit the box is the renderer's to say.
+palette has colours, before anything is totalled; the renderer refuses,
+as `content-too-large`, a chart whose words would meet, leave its box or
+stand in its plot, whose category labels do not fit across their slots,
+or whose bars would be narrower than `MIN_BAR_WIDTH`, and never cuts,
+hides or turns a word to make it fit [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 
 **A code is read from a closed list.** An e-invoice's units, countries, VAT
 prefixes and schemes are lists someone chose (`UNIT_CODES`,
@@ -127,6 +128,9 @@ The validator's refusals of a chart are located by their path, and say
 runtime's refusals name the chart, and a series, by id. Each says what is
 wrong by a count, a size, a type, a function or a colour, never quoting a
 label, a title or the empty text, which may be a customer's words (0052).
+The renderer's refusals of a chart name it, and its box where it does not
+fit, and say the sizes that do not hold, a slot's width or a bar's, never
+a word of it (0058).
 An SVG's refusal names the element path and the construct, and what
 cleaning removed a kind, a name and a count: a link's address, a script's
 text and a style's content are never repeated, and a name is repeated
@@ -182,6 +186,7 @@ administrator wrote them ([`SECURITY.md`](../../SECURITY.md)).
 | A formancy form and its submission | Read once through their descriptors, own members only, a getter never run, an own `__proto__` refused in a form and unknown in a submission; the form validated by the pinned `@formancy/spec` and named by the hash computed of it, never one handed over; the submission walked by the version's model, an answer under no data path of it refused, a matrix's answer held whole to the version, and only the answers the report reads inspected; lists bounded by `MAX_DETAIL_ROWS` before an item is read, a string answer by `MAX_STRING_LENGTH` before it is read and a rich text before formancy's parser reads it, nothing nested past `MAX_DOCUMENT_DEPTH`; a host's `labels` that throws refused, its exception kept from the read; each version's scopes and options indexed once, so a read is linear in what it is handed; no answer in a message or a path, a refusal of what an answer holds at the field's own path ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)) |
 | An image | An approved asset's id and digest, resolved by the host, never an address; its bytes checked as the PNG or JPEG they say they are, a JPEG's frame header read where PDFKit reads it, or, for an SVG, as exactly the drawing report-spec's `cleanSvg` writes, before pdfmake sees them, and bounded per asset and per render ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md), [0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
 | An SVG | Read once, where it is approved, by report-spec's own tokenizer on bytes, which is iterative, so that no nesting reaches the stack before the depth bound is checked; the passes after it recurse, to `MAX_SVG_DEPTH` levels at most. What never draws is removed and listed, text, embedded pictures, `use`, references out of the file and entities beyond XML's own refused, the rest written in one canonical form that every reader between it and the page reads alike; bounded in bytes, depth, elements, stops, dashes, rules, the cascade's work, what it costs to paint and the page-sized groups it makes, and read in time linear in its bytes. Every refusal says what was found and what to do. The renderer draws that form alone, behind its own list of elements and the converter's callbacks; in an e-invoice it also refuses one whose numbers, at the image's box, could pass the integers a PDF/A-3 holds, or whose nesting its graphics state, by a bound from the extent the cleaner measured ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
+| A chart's drawing | ECharts' SVG, made of the data's words, read as untrusted: held whole to what ECharts 6.1.0 was seen to write before anything of it is used -- its elements, attributes and values, zrender's five entities, every number within its box's reach, its nesting to PDF/A's, every colour one the option named -- and refused, quoting nothing of it, otherwise; each `<text>` taken out and its one style sheet of `:hover` rules removed, so the converter is handed marks alone, under callbacks that refuse rather than open an image or draw past a warning [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md) |
 | A file a person adds | Its size held to `MAX_ASSET_BYTES` before it is read; recognised from its bytes by report-spec's `sniffImage`, never by its name or a type a browser guessed; a PNG's or a JPEG's structure, every chunk's CRC and its sides read by `imageHeader`, the renderer's own reader, a PNG's image data held in one array however many chunks it holds, a CMYK JPEG refused in a Factur-X invoice, and an SVG cleaned whole by `cleanSvg`; kept by the host before the report declares it, the store keyed by digest since the id it is handed is the one the add means, and its id, folded from its name, the one thing of the name the report holds. A PNG's image data and a JPEG's scan are first read when it prints ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)) |
 | A host's token | Verified offline by Formancy Data's verifier, under the algorithm the key's kind pins, `iss`, `aud`, `exp` and `sub` required, its tenant claim required; nothing else a request carries -- a body, a query, another header -- contributes to who is asking. Every bad token is the one 401, its reason in the log naming a check or a claim and never the token or a claim's value; no audit event holds either, who asked named by keyed hash ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)) |
 | A request to the server | A path that is not plain -- an escape, one that does not decode, a dot or empty segment -- refused before any route, by formancy.ai-data 0037's rule; a method or a path the API does not hold answered before its body is read, counted, its connection closed; a preflight with a body refused unread; what Node's parser cannot read, and an error of the server's own, each answered with a fixed refusal that quotes nothing of the request; a request that takes over 300 s to arrive cut; the log names a request by its method and route, never the path, the query or the Host header it was sent with ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)) |
@@ -282,6 +287,15 @@ stream inflated, which `browser.test.ts` holds with report-corpus's
 `inflatedDigest`; and the e-invoice gate records each PDF by that digest,
 so that another zlib, which may deflate them otherwise, does not fail it
 ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+A document of charts renders to the same bytes twice in a process and
+once more in another, though zrender numbers the ids and classes of its
+SVG by counters that run on through the process, which the PDF does not
+carry; `report-render-pdf/src/chart-content.test.ts` holds it, and
+`browser.test.ts` holds the browser entry's charts to the Node entry's
+objects, every stream inflated. ECharts lays a chart out by the widths it
+is answered, which are the faces' own, and by those zrender kept from an
+earlier render, keyed by the digest of the face they were measured in, so
+a width it kept is that face's [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 
 What it does not cover: the characters Intl prints are the engine's ICU's,
 so the same report can print differently under another Node
@@ -347,6 +361,11 @@ anything:
   review read its MIT licence on 17 October 2026, and the guard judges it
   by pdfmake's field alone
   ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
+  ECharts holds code it took from d3.js, under d3's BSD-3-Clause, which
+  its `LICENSE` names and the review of 12 November 2026 read; d3's text
+  lies in a directory the Studio's notices plugin does not read, so the
+  Studio names it (`embedded-notices.ts`), which its `notices.test.ts`
+  holds [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 - **What the e-invoice gate runs, and what was copied from it.** Its
   downloads carry works under their own licences -- Saxon in both, veraPDF
   under the GPL or the MPL in Mustang's, CEN/TC 434's EUPL-1.2 schematron
@@ -375,6 +394,17 @@ and Data's identity verifier at exactly 0.3.0 for the server
 ([0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)), each by the digest of the licence file a
 review read; Data reached from any other package is refused. Running either
 package in production needs a production licence for Data as well.
+
+**ECharts and zrender are confined to the renderer.** Both are
+permissive, and the policy judges them as any package. `CONFINED`, in
+`scripts/dependency-licences/reviews.mjs`, further admits each at exactly
+6.1.0, by the digests of the licence files a review read, for
+`@formancy/report-render-pdf` alone: another version, a licence file of
+other bytes, and any other package that depends on either itself,
+ECharts on zrender aside, are refused, so that no builder depends on a
+charting library. The tslib 2.3.0
+both pin is judged by the policy alone, since the Angular builder and
+rxjs depend on a tslib of their own [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 
 A built app carries the licence and notice texts of everything it bundles
 (`scripts/third-party-notices.mjs`, after

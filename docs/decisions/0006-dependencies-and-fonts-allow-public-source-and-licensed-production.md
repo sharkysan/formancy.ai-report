@@ -1,6 +1,6 @@
 # 0006 — Dependencies and fonts allow public source and licensed production
 
-- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which admits an ICC profile by the digest of its bytes and the licence sentence a review read, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose host fonts are outside this guard, their licence the customer's, and by [0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), which admits Data's identity verifier for the server
+- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which admits an ICC profile by the digest of its bytes and the licence sentence a review read, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose host fonts are outside this guard, their licence the customer's, by [0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), which admits Data's identity verifier for the server, and by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), which confines Apache ECharts and zrender to the renderer, each at one version, by the digests of the licence files a review read
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `scripts/dependency-licences.mjs`, run as a step of
@@ -317,6 +317,40 @@ report-spec's `@formancy/spec` under Apache-2.0, and data-identity -- and
 no font and no ICC profile. `dependency-licences.test.mjs`
 holds the admission, the refusals and the real tree's three admissions,
 each reached from its own package.
+
+**Added 2026-11-15: ECharts and zrender, confined to the renderer.**
+`@formancy/report-render-pdf` lays a chart out with Apache ECharts 6.1.0,
+which draws through zrender 6.1.0
+([0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)).
+Both are permissive, so the policy admits them as it admits any package;
+the renderer's chart is a layout and a measurer nobody here read but at
+those releases, and no builder is to carry a charting library, so they
+are admitted further by a table of their own, `CONFINED`, in
+`scripts/dependency-licences/reviews.mjs`, as `FORMANCY_DATA` admits
+Data's packages:
+- each at one version, by the SHA-256 of the licence file a review read
+  on 12 November 2026: ECharts' `LICENSE`, the Apache License 2.0 with its
+  section on the code it took from d3.js, and beside it its `NOTICE` and
+  `licenses/LICENSE-d3`, d3's BSD-3-Clause; zrender's `LICENSE`, the BSD
+  3-Clause License, Copyright (c) 2017, Baidu Inc.;
+- for `@formancy/report-render-pdf` alone: any other package that
+  depends on either itself, but ECharts on zrender, is refused, each
+  dependent judged and not the first route the walk finds, while a
+  package that depends on the renderer reaches them through it, which is
+  allowed;
+- another version of either name is refused, and so is an entry nothing
+  installs.
+
+The tslib 2.3.0 both pin is not confined. Its `LICENSE.txt`, 0BSD,
+Copyright (c) Microsoft Corporation, was read with them, and the policy
+judges it as any package: the Angular builder and rxjs depend on a tslib
+of their own, 2.8.1, which confining the name would refuse.
+ECharts' `NOTICE` is one a host that bundles it carries, and d3's licence
+lies in a directory the Studio's notices plugin does not read, so the
+Studio names it (`apps/studio/src/embedded-notices.ts`), which its
+`notices.test.ts` holds. `dependency-licences.test.mjs` holds each rule,
+the route behind the renderer among them, and the real tree's two
+confined packages.
 
 ## Alternatives considered
 

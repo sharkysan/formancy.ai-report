@@ -1,6 +1,6 @@
 # 0052 — A report draws a bar, line or pie chart of its detail rows, each series a total of one field per category
 
-- **Status:** accepted; extends [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose components gain the chart; extended by [0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md), which resolves a chart: its interim refusal ended on 2026-11-11, and a pie's palette is held to its slices when it renders
+- **Status:** accepted; extends [0007](0007-a-report-definition-is-its-own-versioned-document.md), whose components gain the chart; extended by [0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md), which resolves a chart: its interim refusal ended on 2026-11-11, and a pie's palette is held to its slices when it renders; and by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), which draws it, a category label that does not fit across refused and never turned
 - **Date:** 2026-11-01
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -328,6 +328,9 @@ them, refuses a report that holds one as `unknown-kind`, never skipping it.
 - **Eight series**, because the palette has eight colours. The bound is
   derived from the palette, not measured: nothing here shows that eight
   series are legible in a chart's box, which is the renderer's to say.
+  Since 0058 the renderer refuses a chart whose words would meet or whose
+  bars would be too thin to see; that eight colours read apart in a
+  chart is still measured by nothing.
 - **A pie of one sum or one count.** Narrower than the functions a bar or
   a line takes; no pie of averages and no rings of several series.
 - **Colours follow places, not series.** Removing a series from the middle
@@ -345,12 +348,14 @@ them, refuses a report that holds one as `unknown-kind`, never skipping it.
   renders.
 - **No rotated label is promised.** Nothing here decides how a category's
   label that does not fit its room is drawn. The renderer's record does,
-  under 0003's rule: refused rather than cut or drawn over another.
+  under 0003's rule: refused rather than cut or drawn over another. Since
+  0058, a chart whose category labels do not fit across their slots is
+  refused, and no label is turned.
 - **A report that would print a chart is refused, for now.** Until the
   runtime resolves charts, such a report is refused, a preview as a final
   render, naming the chart; one whose chart its condition hides prints.
   The runtime's cases hold both. Since 0055 the runtime resolves it, and
-  the renderer refuses it until it draws charts.
+  since 0058 the renderer draws it.
 - **Written as JSON, for now.** Until the builders offer a chart and edit
   its own properties, a chart is written into the report by a host or a
   proposal; a builder shows one a report holds, moves it and removes it.
@@ -387,6 +392,21 @@ declares a rounding of an integer total is refused by the runtime too,
 past report-core's check, as an aggregate's is. A pie's palette is held
 to its slices when it renders: a pie of more categories than its palette
 has colours is refused as `chart-too-many-categories`, never cycled.
+
+**Added 2026-11-15: the renderer draws a chart.**
+[0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)
+decides how: Apache ECharts lays it out, handed the runtime's axis and
+words and measuring in the report's faces, pdfmake's converter draws its
+marks, and its words print as pdfmake's text where ECharts placed them.
+Two things this record left to the renderer are decided there. A
+category label that does not fit across its slot refuses the chart,
+naming it and its box, and no label is turned, wrapped or cut, so a long
+label is the author's to shorten or the box's to widen. And whether a box
+holds a chart legibly is held, so far as the renderer can read it, by its
+refusals: words that would meet, leave the box or stand in the plot, two
+tick labels closer than a line and a quarter, and bars narrower than
+`MIN_BAR_WIDTH`, measured. The interim refusal 0055 left in the renderer,
+`unsupported`, is gone.
 
 ## Alternatives considered
 
