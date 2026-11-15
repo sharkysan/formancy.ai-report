@@ -33,7 +33,8 @@
 // toolbar's Undo is unavailable, `aria-disabled`.
 
 import { elementsAt, readCii, readCodes, readPdf, readPdfObjects, textAt } from '@formancy/report-corpus'
-import { describeFocus, pdfBytes } from './gate-page.mjs'
+import { describeFocus } from './gate-measure.mjs'
+import { offeredPdf } from './gate-download.mjs'
 import { editorOf, open, previewInView, previewOf, said, settled, showing, WITHIN } from './gate-steps.mjs'
 
 const STT = 'rsm:SupplyChainTradeTransaction'
@@ -67,11 +68,10 @@ const printedAmount = (amount) => spaced(`${new Intl.NumberFormat('de-DE', { min
  */
 async function readInvoice(page, read) {
   await previewInView(page)
-  const link = previewOf(page).getByRole('link', { name: 'Download PDF', exact: true })
-  const href = (await link.count()) === 1 ? await link.evaluate((anchor) => anchor.href) : null
-  if (href === null || href === read.href) return null
-  read.href = href
-  const bytes = await pdfBytes(page, href)
+  const offered = await offeredPdf(page, previewOf(page), { besides: read.href })
+  if (offered === null) return null
+  read.href = offered.href
+  const { bytes } = offered
   const embedded = (await readPdfObjects(bytes)).associatedFiles.find((file) => file.f === 'factur-x.xml')?.embedded
   const pdf = await readPdf(bytes)
   const lines = pdf.pages.flatMap((sheet) => sheet.items.map((item) => item.text))

@@ -1,5 +1,5 @@
-import { COMPONENT_KINDS, componentAt, emptyReport, mmToPt, ptToMm, validateReport } from '@formancy/report-spec'
-import type { Component, ComponentKind, PageSettings, QrCodeComponent, ReportDefinition } from '@formancy/report-spec'
+import { COMPONENT_KINDS, componentAt, emptyReport, MAX_KEEP_WITH_ROWS, mmToPt, ptToMm, validateReport } from '@formancy/report-spec'
+import type { Component, ComponentKind, PageSettings, QrCodeComponent, ReportDefinition, TableComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { EditorOutcome } from './model-actions.js'
 import type { PropertyField } from './model-properties.js'
@@ -223,7 +223,7 @@ describe('a component’s properties', () => {
     expect(keys('gap')).toEqual(['/height'])
     expect(keys('heading')).toEqual(['/columns/0/width', '/columns/1/width'])
     expect(keys('notes')).toEqual(['/fill', '/padding', '/border/thickness', '/border/color'])
-    expect(keys('lines')).toEqual(['/emptyText', '/headerStyle'])
+    expect(keys('lines')).toEqual(['/emptyText', '/headerStyle', '/group/keepWithRows'])
     expect(keys('break')).toEqual([])
     expect(keys('keep')).toEqual([])
   })
@@ -478,5 +478,119 @@ describe('a table column’s properties', () => {
     ok(editor.dispatch({ type: 'setProperty', key: '/align', value: 'center' }))
     const table = componentAt(session.document(), 'lines')?.component as Extract<Component, { kind: 'table' }>
     expect(table.columns[1]).toMatchObject({ header: 'Total', align: 'center' })
+  })
+})
+
+describe('the rows a group header is kept with', () => {
+  const KEY = '/group/keepWithRows'
+
+  /** The rich report's table, as the session holds it. */
+  const table = (report: ReportDefinition): TableComponent => componentAt(report, 'lines')?.component as TableComponent
+
+  /** The rich report with its table's group stating `count`, or with no group where `count` is null. */
+  function withTable(count: number | null): ReportDefinition {
+    const report = richReport()
+    const body = report.regions.body.map((component): Component => {
+      if (component.kind !== 'table') return component
+      const { group, ...rest } = component
+      return count === null || group === undefined ? rest : { ...rest, group: { ...group, keepWithRows: count } }
+    })
+    return { ...report, regions: { ...report.regions, body } }
+  }
+
+  // A count on a table with no group would be a group of one member, which
+  // the format refuses; and a field that read nothing where the report
+  // states none would say the header is kept with no row, when it is kept
+  // with its first, as every group header is.
+  test('is a number on a grouped table alone, reading one where the report states none', () => {
+    const { editor } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    expect(field(editor.state().properties.fields, KEY)).toEqual({
+      key: KEY,
+      label: 'Rows kept with each group header',
+      kind: 'number',
+      value: '1',
+      required: false,
+    })
+    const { editor: ungrouped } = editorOver(withTable(null))
+    ok(ungrouped.dispatch({ type: 'select', id: 'lines' }))
+    const keys = ungrouped.state().properties.fields.map((candidate) => candidate.key)
+    expect(keys).toContain('/emptyText')
+    expect(keys).not.toContain(KEY)
+  })
+
+  // A group whose header is no text at all still states its count, and the
+  // field shows it, though no page can hold such a header to its rows: the
+  // renderer keeps the first row with it at most (0059), and a field that
+  // vanished with the header's text would hide a member the report states.
+  test('is shown on a group whose header has no text', () => {
+    const report = withTable(3)
+    const body = report.regions.body.map((component): Component =>
+      component.kind === 'table' && component.group !== undefined ? { ...component, group: { ...component.group, header: [] } } : component,
+    )
+    const headerless = { ...report, regions: { ...report.regions, body } }
+    expect(validateReport(headerless).valid).toBe(true)
+    const { editor } = editorOver(headerless)
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    expect(field(editor.state().properties.fields, KEY)).toMatchObject({ kind: 'number', value: '3' })
+  })
+
+  // The count is the group's, and nothing else of the group moves with it.
+  // One, or nothing, is the rule every header already has, written as the
+  // member's absence, as a boolean's default is: a report edited back to
+  // one hashes as one never edited.
+  test('writes a count into the group, and one or nothing as no count', () => {
+    const { editor, session } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    const group = table(session.document()).group
+    ok(editor.dispatch({ type: 'setProperty', key: KEY, value: '3' }))
+    expect(table(session.document()).group).toStrictEqual({ ...group, keepWithRows: 3 })
+    expect(field(editor.state().properties.fields, KEY).value).toBe('3')
+    expect(editor.state().history.undoLabel).toBe('Change Rows kept with each group header')
+    ok(editor.dispatch({ type: 'setProperty', key: KEY, value: '1' }))
+    expect(table(session.document()).group).toStrictEqual(group)
+    ok(editor.dispatch({ type: 'setProperty', key: KEY, value: '4' }))
+    ok(editor.dispatch({ type: 'setProperty', key: KEY, value: '' }))
+    expect(table(session.document()).group).toStrictEqual(group)
+    expect(field(editor.state().properties.fields, KEY).value).toBe('1')
+    ok(editor.dispatch({ type: 'undo' }))
+    expect(table(session.document()).group).toStrictEqual({ ...group, keepWithRows: 4 })
+  })
+
+  // A field that reads one where nothing is stated, given one back or
+  // emptied -- a person tabbing through it -- would otherwise be an edit
+  // that changes nothing, with an Undo of its own and "Changed" said; and
+  // so would a stated count given back as it reads, or written otherwise.
+  test('leaves the count alone when given back as it reads', () => {
+    const { editor, session } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    const state = editor.state()
+    for (const value of ['1', ' 1 ', '', '01']) ok(editor.dispatch({ type: 'setProperty', key: KEY, value }))
+    expect([session.revision(), session.canUndo()]).toEqual([0, false])
+    expect(editor.state()).toBe(state)
+    const { editor: stated, session: holding } = editorOver(withTable(3))
+    ok(stated.dispatch({ type: 'select', id: 'lines' }))
+    for (const value of ['3', ' 3 ', '3.0']) ok(stated.dispatch({ type: 'setProperty', key: KEY, value }))
+    expect([holding.revision(), holding.canUndo()]).toEqual([0, false])
+  })
+
+  // What is no number at all is the field's to refuse; a number out of
+  // range or not whole is the validator's, and the validator's own reason
+  // stands on the field, the group as it was (0008). A field that clamped
+  // or rounded it would keep a count nobody typed.
+  test('refuses what is no number, and shows the validator’s reason for a count it refuses', () => {
+    const { editor, session } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    expect(editor.dispatch({ type: 'setProperty', key: KEY, value: 'three' })).toMatchObject({ ok: false, code: 'invalid-value' })
+    expect(field(editor.state().properties.fields, KEY)).toMatchObject({ value: 'three', error: 'Enter a number.' })
+    expect(editor.dispatch({ type: 'setProperty', key: KEY, value: true })).toMatchObject({ ok: false, code: 'invalid-value' })
+    for (const count of [0, MAX_KEEP_WITH_ROWS + 1, 2.5]) {
+      const verdict = validateReport(withTable(count))
+      const reason = verdict.valid ? undefined : verdict.errors.find((error) => error.path.endsWith(KEY))?.message
+      expect(reason, String(count)).toBeDefined()
+      expect(editor.dispatch({ type: 'setProperty', key: KEY, value: String(count) })).toMatchObject({ ok: false, code: 'refused' })
+      expect(field(editor.state().properties.fields, KEY), String(count)).toMatchObject({ value: String(count), error: reason })
+    }
+    expect(session.revision()).toBe(0)
   })
 })

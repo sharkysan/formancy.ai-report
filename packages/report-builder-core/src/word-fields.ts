@@ -12,9 +12,10 @@
 import { translateExpression, translateWord } from '@formancy/report-core'
 import { isWord } from '@formancy/report-spec'
 import type { Expression, Translation } from '@formancy/report-spec'
+import { refused, textField, UNCHANGED, value } from './field-specs.js'
+import type { FieldSpec, FieldWords } from './field-specs.js'
 import type { Edited } from './languages.js'
-import { refused, textField, UNCHANGED, value } from './property-fields.js'
-import type { FieldContext, FieldSpec, FieldWords } from './property-fields.js'
+import type { FieldContext } from './property-fields.js'
 
 /** The language edited, where it is one a translation declares, which stands where `at` says. */
 export type InTranslation = Edited & { readonly translation: Translation; readonly at: string }

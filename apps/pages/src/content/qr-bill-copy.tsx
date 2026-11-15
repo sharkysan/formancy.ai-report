@@ -13,12 +13,68 @@
  * guidelines and in the eyebrow, QR-facture and QR-fattura (IG, Annex C,
  * Table 24); the titles' are Switzerland's, facture QR, fattura QR. A
  * Studio word the page names, the starter "Invoice" under "Starter", is
- * the Studio's picker's, which nothing here reads (0024). Reviewed by a
- * person, not a test, for meaning; the suite holds what can be measured
- * (checks/).
+ * the Studio's picker's, held to its recorded pictures by
+ * checks/studio-words.ts (0056). Each card names the tests it rests on
+ * (`EVIDENCE`). Reviewed by a person, not a test, for meaning; the suite
+ * holds what can be measured (checks/).
  */
 import type { Language } from '../languages.js'
-import type { PageMeta, Teaser } from '../pages.js'
+import type { Card, Evidence, PageMeta, Teaser } from '../pages.js'
+
+/**
+ * The tests each card of "What it does" rests on, one list a card, which
+ * the card shares in every language (checks/evidence.ts).
+ */
+const EVIDENCE = {
+  // SIX's account, reference and text rules, the IBAN's and the creditor
+  // reference's check digits, each applied where a literal is written, and
+  // the same rules held over what the data brings once it has resolved.
+  rules: [
+    'packages/report-spec/src/qr-bill.test.ts',
+    'packages/report-spec/src/payment-reference.test.ts',
+    'packages/report-spec/src/validate-payment-part.test.ts',
+    'packages/report-runtime/src/lower-payment-part.test.ts',
+  ],
+  // A mistyped account refused when the report is validated, on its field
+  // and in the rule's words, never quoting it; the same of a text the data
+  // brings, in the runtime; and the editor model refusing it on its field,
+  // in the validator's words, the bill unchanged.
+  typo: [
+    'packages/report-spec/src/validate-payment-part.test.ts',
+    'packages/report-runtime/src/lower-payment-part.test.ts',
+    'packages/report-builder-core/src/payment-part.test.ts',
+  ],
+  // The amount written from its exact digits with two decimals, more
+  // refused rather than rounded, a value that is no decimal refused, null
+  // left to the payer, whose blank field the slip marks; and the invoice
+  // paid for its exact total.
+  amount: [
+    'packages/report-spec/src/qr-bill.test.ts',
+    'packages/report-runtime/src/lower-payment-part.test.ts',
+    'packages/report-corpus/src/starters/starters.test.ts',
+    'packages/report-render-pdf/src/qr-bill.test.ts',
+  ],
+  // The slip's size and place, its cross, its cut lines, its scissors, its
+  // instruction and its face, read from the PDF; at the foot of the last
+  // page, and on a page of its own where the last has no room.
+  layout: ['packages/report-render-pdf/src/qr-bill.test.ts', 'packages/report-render-pdf/src/qr-bill-pages.test.ts'],
+  // SIX's examples decoded from the page's pixels byte for byte at level M,
+  // and the invoice starter and every sample paid for exactly the total its
+  // page prints, under its slip's headings.
+  proved: [
+    'packages/report-render-pdf/src/qr-bill.test.ts',
+    'packages/report-render-pdf/src/starters.test.ts',
+    'packages/report-render-pdf/src/samples.test.ts',
+  ],
+  // SIX's headings in its five languages, from the bill's own language and
+  // nothing of the report's; the bill's language one of SIX's five; and each
+  // sample's slip in its own language and no other's.
+  language: [
+    'packages/report-runtime/src/qr-bill.test.ts',
+    'packages/report-spec/src/validate-payment-part.test.ts',
+    'packages/report-render-pdf/src/samples.test.ts',
+  ],
+} satisfies Record<string, Evidence>
 
 export interface QrBillCopy {
   readonly meta: PageMeta
@@ -30,7 +86,7 @@ export interface QrBillCopy {
   /** Where the bill stands, in a sentence: said in the hero and after the teaser, where a reader decides to try it. */
   readonly standing: string
   readonly actions: { readonly studio: string; readonly samples: string }
-  readonly does: { readonly heading: string; readonly cards: readonly { readonly title: string; readonly text: string }[] }
+  readonly does: { readonly heading: string; readonly cards: readonly Card[] }
   readonly samples: { readonly heading: string; readonly intro: string }
   readonly tryIt: {
     readonly heading: string
@@ -78,26 +134,32 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         {
           title: 'Die Regeln von SIX, an einem Ort',
           text: 'Konto, Referenz und jeder Text werden nach den Implementation Guidelines von SIX für die QR-Rechnung geprüft, Versionen 2.3 und 2.4: eine IBAN oder QR-IBAN aus der Schweiz oder Liechtenstein, eine QR-Referenz oder Creditor Reference, jede mit ihren Prüfziffern, die Zeichen und Längen, die jedes Feld zulässt, und welches Konto zu welcher Referenz und Währung passt. Dieselben Prüfungen gelten für das, was im Bericht steht, und für das, was aus den Daten kommt.',
+          evidence: EVIDENCE.rules,
         },
         {
           title: 'Ein Tippfehler fällt vor dem PDF auf',
           text: 'Eine falsch eingegebene IBAN wird schon bei der Validierung des Berichts abgelehnt, bevor etwas gerendert wird, mit dem Feld und der verletzten Regel. Kommt ein Text aus den Daten, prüft ihn die Laufzeit nach denselben Regeln, bevor das PDF entsteht. Keine Meldung nennt den Wert selbst, also nie einen Namen, eine Adresse oder ein Konto.',
+          evidence: EVIDENCE.typo,
         },
         {
           title: 'Der Betrag, auf den Rappen genau',
           text: 'Der Betrag der QR-Rechnung ist ein Ausdruck über die Werte des Berichts, in der Beispielrechnung ihr Total: exakt berechnet, einmal auf den Rappen gerundet und nie als JavaScript-Zahl weitergegeben. Ein Betrag, der nicht auf den Rappen genau ist, wird abgelehnt, nicht gerundet. Ohne Betrag druckt der Zahlteil das leere Feld, in das die zahlende Person ihn schreibt.',
+          evidence: EVIDENCE.amount,
         },
         {
           title: 'Das Layout von SIX, am Fuss der letzten Seite',
           text: 'Empfangsschein und Zahlteil haben die Grösse und Lage, die SIX vorschreibt, über die ganze Breite am Fuss der letzten A4-Seite, oder auf einer eigenen Seite, wenn auf der letzten kein Platz mehr ist. Der Swiss QR Code trägt das Schweizerkreuz, und die Linien zum Abtrennen tragen die Schere oder den Hinweis, vor der Einzahlung abzutrennen. Empfangsschein und Zahlteil werden in Liberation Sans gedruckt, einer der Schriften, die SIX zulässt; der Renderer bringt sie mit.',
+          evidence: EVIDENCE.layout,
         },
         {
           title: 'Am erzeugten PDF bewiesen',
           text: 'Die Tests lesen den Code aus den Pixeln der Seite zurück, die PDF.js aus dem erzeugten PDF zeichnet, und decodieren ihn mit ZXing: die Beispiele von SIX Byte für Byte, die Beispielrechnungen bis zum Betrag, den sie drucken. Jede Überschrift und jeder Wert des Zahlteils wird dort zurückgelesen, wo SIX ihn hinsetzt.',
+          evidence: EVIDENCE.proved,
         },
         {
           title: 'In der Sprache der Rechnung',
           text: 'Die Überschriften des Zahlteils sind die Begriffe von SIX, auf Deutsch, Französisch, Italienisch, Rätoromanisch oder Englisch, und der Zahlteil kann in einer anderen Sprache stehen als die Rechnung.',
+          evidence: EVIDENCE.language,
         },
       ],
     },
@@ -163,26 +225,32 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         {
           title: 'Les règles de SIX, en un seul endroit',
           text: "Le compte, la référence et chaque texte sont vérifiés selon les Implementation Guidelines suisses pour QR-facture de SIX, versions 2.3 et 2.4 : un IBAN ou un QR-IBAN suisse ou liechtensteinois, une référence QR ou une Creditor Reference, chacun avec ses chiffres de contrôle, les caractères et les longueurs que chaque champ admet, et quel compte va avec quelle référence et quelle monnaie. Les mêmes contrôles s'appliquent à ce que dit le rapport et à ce qu'apportent les données.",
+          evidence: EVIDENCE.rules,
         },
         {
           title: 'Une faute de frappe repérée avant le PDF',
           text: 'Un IBAN mal saisi est refusé dès la validation du rapport, avant tout rendu, avec le champ et la règle enfreinte. Un texte qui vient des données est vérifié par le runtime selon les mêmes règles, avant que le PDF soit produit. Aucun message ne cite la valeur elle-même : jamais un nom, une adresse ou un compte.',
+          evidence: EVIDENCE.typo,
         },
         {
           title: 'Le montant, exact au centime',
           text: "Le montant de la facture QR est une expression sur les valeurs du rapport ; dans la facture d'exemple, son total : calculé de manière exacte, arrondi une seule fois au centime, et jamais converti en nombre JavaScript. Un montant qui n'est pas exact au centime est refusé, pas arrondi. Sans montant, la section paiement imprime le champ vide que remplit la personne qui paie.",
+          evidence: EVIDENCE.amount,
         },
         {
           title: 'La mise en page de SIX, au pied de la dernière page',
           text: "Le récépissé et la section paiement ont la taille et la place que SIX prescrit, sur toute la largeur au pied de la dernière page A4, ou sur une page à part s'il ne reste plus de place sur la dernière. Le Swiss QR Code porte la croix suisse, et les lignes de découpe portent les ciseaux ou la consigne de détacher avant le versement. Le récépissé et la section paiement sont en Liberation Sans, l'une des polices que SIX admet, et le moteur de rendu la fournit.",
+          evidence: EVIDENCE.layout,
         },
         {
           title: 'Prouvé sur le PDF produit',
           text: "Les tests relisent le code dans les pixels de la page que PDF.js dessine à partir du PDF produit, et le décodent avec ZXing : les exemples de SIX octet par octet, les factures d'exemple jusqu'au montant qu'elles impriment. Chaque titre et chaque valeur de la section paiement sont relus là où SIX les place.",
+          evidence: EVIDENCE.proved,
         },
         {
           title: 'Dans la langue de la facture',
           text: 'Les titres de la section paiement sont les termes de SIX, en allemand, en français, en italien, en romanche ou en anglais, et la section paiement peut être dans une autre langue que la facture.',
+          evidence: EVIDENCE.language,
         },
       ],
     },
@@ -248,26 +316,32 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         {
           title: 'Le regole di SIX, in un solo posto',
           text: 'Il conto, il riferimento e ogni testo vengono verificati secondo le Implementation Guidelines di SIX per la QR-fattura, versioni 2.3 e 2.4: un IBAN o un QR-IBAN svizzero o del Liechtenstein, un riferimento QR o una Creditor Reference, ciascuno con le sue cifre di controllo, i caratteri e le lunghezze che ogni campo ammette, e quale conto va con quale riferimento e quale valuta. Gli stessi controlli valgono per ciò che dice il report e per ciò che portano i dati.',
+          evidence: EVIDENCE.rules,
         },
         {
           title: 'Un errore di battitura scoperto prima del PDF',
           text: 'Un IBAN digitato male viene rifiutato già alla validazione del report, prima di qualsiasi rendering, con il campo e la regola violata. Un testo che viene dai dati è verificato dal runtime secondo le stesse regole, prima che il PDF venga prodotto. Nessun messaggio cita il valore stesso: mai un nome, un indirizzo o un conto.',
+          evidence: EVIDENCE.typo,
         },
         {
           title: "L'importo, esatto al centesimo",
           text: "L'importo della fattura QR è un'espressione sui valori del report; nella fattura d'esempio, il suo totale: calcolato in modo esatto, arrotondato una sola volta al centesimo, e mai convertito in un numero JavaScript. Un importo che non è esatto al centesimo viene rifiutato, non arrotondato. Senza importo, la sezione pagamento stampa il campo vuoto che compila chi paga.",
+          evidence: EVIDENCE.amount,
         },
         {
           title: "L'impaginazione di SIX, in fondo all'ultima pagina",
           text: "La ricevuta e la sezione pagamento hanno la dimensione e la posizione che SIX prescrive, su tutta la larghezza in fondo all'ultima pagina A4, o su una pagina propria se nell'ultima non c'è più posto. Lo Swiss QR Code porta la croce svizzera, e le linee da tagliare portano le forbici o l'indicazione di staccare prima del versamento. La ricevuta e la sezione pagamento sono in Liberation Sans, uno dei caratteri che SIX ammette, e il renderer lo fornisce.",
+          evidence: EVIDENCE.layout,
         },
         {
           title: 'Dimostrato sul PDF generato',
           text: "I test rileggono il codice dai pixel della pagina che PDF.js disegna a partire dal PDF prodotto, e lo decodificano con ZXing: gli esempi di SIX byte per byte, le fatture d'esempio fino all'importo che stampano. Ogni titolo e ogni valore della sezione pagamento viene riletto là dove SIX lo colloca.",
+          evidence: EVIDENCE.proved,
         },
         {
           title: 'Nella lingua della fattura',
           text: 'I titoli della sezione pagamento sono i termini di SIX, in tedesco, francese, italiano, romancio o inglese, e la sezione pagamento può essere in una lingua diversa da quella della fattura.',
+          evidence: EVIDENCE.language,
         },
       ],
     },
@@ -333,26 +407,32 @@ export const QR_BILL_COPY: Readonly<Record<Language, QrBillCopy>> = {
         {
           title: "SIX's rules, in one place",
           text: "The account, the reference and every text are checked against SIX's Swiss Implementation Guidelines for the QR-bill, versions 2.3 and 2.4: an IBAN or QR-IBAN of Switzerland or Liechtenstein, a QR reference or a creditor reference, each with its check digits, the characters and lengths each field allows, and which account goes with which reference and currency. The same checks hold what the report says and what the data brings.",
+          evidence: EVIDENCE.rules,
         },
         {
           title: 'A typo caught before the PDF',
           text: 'A mistyped IBAN is refused when the report is validated, before anything renders, naming the field and the rule it breaks. A text that comes from the data is checked by the runtime under the same rules before the PDF is made. No message quotes the value itself: never a name, an address or an account.',
+          evidence: EVIDENCE.typo,
         },
         {
           title: 'The amount, exact to the centime',
           text: "The bill's amount is an expression over the report's values; in the sample invoice, its total: computed exactly, rounded once to the centime, and never passed through a JavaScript number. An amount that is not exact to the centime is refused, not rounded. A bill without an amount prints the blank field the payer fills in.",
+          evidence: EVIDENCE.amount,
         },
         {
           title: "SIX's layout, at the foot of the last page",
           text: 'The receipt and the payment part stand at the size and place SIX prescribes, across the foot of the last A4 page, or on a page of their own when the last one has no room left. The Swiss QR Code carries the Swiss cross, and the lines to cut along carry the scissors or the instruction to separate before paying in. The slip is set in Liberation Sans, one of the fonts SIX allows, which the renderer ships.',
+          evidence: EVIDENCE.layout,
         },
         {
           title: 'Proved on the PDF it produced',
           text: "The tests read the code back from the pixels of the page PDF.js draws from the PDF produced, and decode it with ZXing: SIX's own examples byte for byte, and the sample invoices down to the amount they print. Every heading and value of the slip is read back where SIX puts it.",
+          evidence: EVIDENCE.proved,
         },
         {
           title: "In the bill's language",
           text: "The slip's headings are SIX's own words, in German, French, Italian, Romansh or English, and the slip may be in a different language from the invoice.",
+          evidence: EVIDENCE.language,
         },
       ],
     },

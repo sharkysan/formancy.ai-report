@@ -70,7 +70,7 @@
       ]
     },
     "0005": {
-      "reviewed": "sha256:c25a62ca9a3c112b80f6aaaa7ac267870ff11cde01f4776d85d11beb8b4f2f97",
+      "reviewed": "sha256:2bc54ba2021b4cd2cf44fb8c9f54001b95c88e52d1de45ded470b04cce2a5c4e",
       "limitations": [
         {
           "area": "rendering",
@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:9aa302bebb9713fcf99b72a29eb6f5f8c3a9346fabc261258d24a1b18ecaeee1",
+      "reviewed": "sha256:c30f43961eac53f46eaf689cd83fb15adc20c2932494e6f27ccde589d63a7753",
       "limitations": [
         {
           "area": "licence",
@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:7506a1c6d10b1d97304640047fb6e1c191ec343e4b9be35b1bb55c47388a413c",
+      "reviewed": "sha256:c5bd28ae85d1100c529583b7138e7c5fe9a816fde4d66be4ec61b317bd28f830",
       "limitations": [
         {
           "area": "format",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:72814974a8b34b20c50697a006ed8f0b784da4ac82aac5d936bf51e2ef9a669c",
+      "reviewed": "sha256:cf6f3ea423fb6cd37453d8d2efba9058ed0d6379f2df0b937d3d7c04132e7336",
       "limitations": [
         {
           "area": "runtime",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:358a559280561418d1bafe9fe9f0cc201f522ceeb621729c28bc67651f7069a2",
+      "reviewed": "sha256:4db48fefdc785675b9d91b5e3fadf587a437aca10940a9d07d9eda82a70d93a1",
       "limitations": [
         {
           "area": "rendering",
@@ -342,7 +342,7 @@
       ]
     },
     "0014": {
-      "reviewed": "sha256:06a03ba759bb15bfef91b3487f2989dce887509ace25f045510166ef1778a7e5",
+      "reviewed": "sha256:28c1efdab03ae332a6680afb0010adad1e9c2460eaab507b3f000f7507982079",
       "limitations": [
         {
           "area": "release",
@@ -477,7 +477,7 @@
       ]
     },
     "0021": {
-      "reviewed": "sha256:43dc56586f86950b410b4bea7888ad831fe14b7d60f05027be54f823c0cb9da1",
+      "reviewed": "sha256:852ea6de826aea9284caff3bd56cff1696b427b600a93c1f4e9e49a7802da321",
       "limitations": [
         {
           "area": "release",
@@ -490,7 +490,7 @@
         },
         {
           "area": "testing",
-          "says": "The pages' reflow down to 320 pixels and their colour contrast were measured in Chromium by hand, not by a gate, so a change to the pages or to the Studio's stylesheets they import is not measured in a browser in CI."
+          "says": "What formancy.ai/report/<lang>/ serves is opened in a browser by nothing here: the pages' gate measures them as each pull request and each push to main builds them, under the headers the deploy writes, and nothing here reads the pages the Studio's Worker serves."
         },
         {
           "area": "testing",
@@ -579,7 +579,7 @@
       ]
     },
     "0023": {
-      "reviewed": "sha256:396cf1d85ca9ff616a09d10a938a01896d1501ac810c3616c070d5ab136b4876",
+      "reviewed": "sha256:700cb1257e70fca0b03e74957447cad4171cff3c15e50952f8345472a527fb38",
       "limitations": [
         {
           "area": "release",
@@ -591,12 +591,12 @@
         },
         {
           "area": "testing",
-          "says": "That a product page asks no other site for anything rests on the suite reading its HTML and stylesheet, not on a browser watching its requests, which only the Studio has."
+          "says": "That a product page asks no other site for anything is watched in Chromium alone by the pages' browser gate since 0053, so in another browser it rests on the suite reading the page's HTML and stylesheet, and on the demo's policy, which refuses such a request first."
         }
       ]
     },
     "0024": {
-      "reviewed": "sha256:439b5d45d170ad4a31ba758ec523d1f47096cb49934a9624c4bd0995394af1f9",
+      "reviewed": "sha256:999b293306959499755457928aa826fa0603fa9076bd9218b8956ff8458a7b49",
       "limitations": [
         {
           "area": "release",
@@ -886,7 +886,7 @@
       ]
     },
     "0028": {
-      "reviewed": "sha256:e5aaeac0ae3d71ee9ec9f35f79a3da31c86254126b7b21026721b0bf5dbbc2aa",
+      "reviewed": "sha256:56bc6a6ac2a3a24a6a194f372cc4d69f96e8598afc07cda5a133c713944ea50e",
       "limitations": [
         {
           "area": "release",
@@ -918,7 +918,8 @@
         },
         {
           "area": "release",
-          "says": "The EPC QR code page names the Studio's starter \"Euro invoice\", its picker's \"Starter\" and its palette's \"EPC payment code\" as words nothing here reads, and its hero opens the Studio at its first starter, not at the euro invoice."
+          "says": "The EPC QR code page names the Studio's starter \"Euro invoice\", its picker's \"Starter\" and its palette's \"EPC payment code\" as the Studio's recorded pictures say them, not as the Studio says them as it runs, and its hero opens the Studio at its first starter, not at the euro invoice.",
+          "heldBy": "apps/pages/src/studio-words.test.ts"
         },
         {
           "area": "testing",
@@ -939,7 +940,7 @@
         },
         {
           "area": "testing",
-          "says": "The EPC QR code page's reflow down to 320 pixels and its colour contrast were measured in Chromium by hand on 17 October 2026, with every other page's, and by no gate, so a later change to a page is measured in a browser by nobody."
+          "says": "The EPC QR code page's reflow down to 320 pixels and its colour contrast were measured by hand on 17 October 2026, with every other page's, while the bar held three topic names, and are measured since 0053 by the pages' browser gate, which reads numbers and takes no picture of the page."
         }
       ]
     },
@@ -1024,7 +1025,7 @@
       ]
     },
     "0030": {
-      "reviewed": "sha256:c64937d3fb7ac564b9eb61a2a27edeb159d2e71ff0008609840f9c5ec5a85f37",
+      "reviewed": "sha256:0947af8b1931833abdcbcd32d01c923e1cc8a9614a03b65cc5958a25672cd335",
       "limitations": [
         {
           "area": "format",
@@ -1111,7 +1112,7 @@
         },
         {
           "area": "testing",
-          "says": "An e-invoice's SVG is held to PDF/A by a bound on the numbers the converter will write, never by reading its PDF back at print, and the bound assumes the converter's arithmetic strays from the cleaner's by no more than its margin, which matrices built to cancel one another term by term could defeat, and which nothing holds; the tests and the e-invoice gate read the numbers back, veraPDF none in a soft mask's group, a clip's."
+          "says": "A PDF/A's SVG, an e-invoice's or a PDF/A-2b's, is held to PDF/A by a bound on the numbers the converter will write, never by reading its PDF back at print, and the bound assumes the converter's arithmetic strays from the cleaner's by no more than its margin, which matrices built to cancel one another term by term could defeat, and which nothing holds; the tests and the e-invoice gate read the numbers back, veraPDF none in a soft mask's group, a clip's."
         },
         {
           "area": "testing",
@@ -1121,7 +1122,7 @@
       ]
     },
     "0031": {
-      "reviewed": "sha256:6710aabd88c105f8e8f501fef033acf5ce854a9d77234fe9e0c320e82feba0fd",
+      "reviewed": "sha256:f0e255ec7c8a57fa61a982cb7a262f0c5eaa7cfbd2551736b5c8d3b1e0b2e2b8",
       "limitations": [
         {
           "area": "rendering",
@@ -1309,7 +1310,7 @@
       ]
     },
     "0034": {
-      "reviewed": "sha256:e576dcad38ebb3e93bcbcf8f76b2b46855a1b892c0e4e549f8c4ead95b3f766f",
+      "reviewed": "sha256:9f566cf6b11fb9e88c3bcec6a7ddd830c70273ff1d8adda4c564fbccb76f5a56",
       "limitations": [
         {
           "area": "data",
@@ -1399,7 +1400,7 @@
       ]
     },
     "0038": {
-      "reviewed": "sha256:c004c5e3dbade806092187a42896bd13c1e9a6c7fe0f29af725f99d6ced24210",
+      "reviewed": "sha256:3241ff5eee759216395cadd47db1ae9c166a37f0c9f818e804be9855829da813",
       "limitations": [
         {
           "area": "format",
@@ -2254,7 +2255,7 @@
       ]
     },
     "0051": {
-      "reviewed": "sha256:7a2e8d8fac71014d3055c3e9a9b95e747cad4657143cdd8ef8875542387786fb",
+      "reviewed": "sha256:e6d41adec55697f20287ff0385e9bb004f94927caede05060d40464028cb8d25",
       "limitations": [
         {
           "area": "release",
@@ -2296,6 +2297,105 @@
           "area": "data",
           "says": "A form version that removes the field a chart groups by is offered printing nothing of it only where the chart labels its rows without a category; a chart written without that label, over a field that may not be null, is offered the removal alone, which takes the chart.",
           "heldBy": "packages/report-forms/src/review.test.ts"
+        }
+      ]
+    },
+    "0053": {
+      "reviewed": "sha256:2b8c07bb462cd10e97b6c22c026442c4749b9ac6990fd3681a971ff47eb3d921",
+      "limitations": [
+        {
+          "area": "testing",
+          "says": "The pages' browser gate runs in Chromium alone, as every browser gate here does, so a page's reflow, contrast, keyboard path and requests in Firefox or WebKit are measured by nobody."
+        },
+        {
+          "area": "testing",
+          "says": "The pages' browser gate serves the pages without the Studio beside them, so a link from a page to the Studio is never followed in a browser, and the demo as the deploy stages it is held by scripts/demo.test.mjs reading the files it stages, not opened."
+        },
+        {
+          "area": "testing",
+          "says": "The pages' browser gate asserts numbers and computed results and takes no screenshot, so nothing measures what a page looks like: a page laid out badly but within the window, legible and reached by the keyboard, passes."
+        }
+      ]
+    },
+    "0054": {
+      "reviewed": "sha256:1e71d0a639e827143e14ab2ee5ddc621d37f62670f9180ee72e1af69fa2d041a",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A PDF that holds optional content is refused, even where every layer would print, as 116 of 1,484 PDFs that carry no person's data were when the reader was measured on 8 November 2026.",
+          "heldBy": "packages/report-documents/src/pages.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF that is encrypted, cut short or damaged, whose cross-reference names an earlier definition of an object than the last one written, or that holds bytes between its objects is refused, never repaired.",
+          "heldBy": "packages/report-documents/src/parse.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF past 20 MiB, 1,000 pages or 100,000 objects is refused, so a tagged report as dense as the densest measured is refused past about 700 pages and is to be added in parts.",
+          "heldBy": "packages/report-documents/src/limits.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF that holds more than 2,000,000 values -- numbers, names, strings, arrays, dictionaries and references, its last trailer counted twice since it is read twice -- is refused.",
+          "heldBy": "packages/report-documents/src/grammar.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The same count holds what each decoder a PDF's streams build costs, so a file of many short compressed streams or inline images is refused sooner than its values alone would be.",
+          "heldBy": "packages/report-documents/src/inflate.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "The same count holds three values for each annotation a PDF's pages list, every page together, so a thousand pages that share one list of more than about 660 annotations are refused.",
+          "heldBy": "packages/report-documents/src/annotations.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF with a stream behind a filter the reader does not decode where it must -- LZW, Crypt, a TIFF predictor, an image's own filter anywhere but last, or a name PDF does not define -- is refused, so an old file compressed with LZW is to be saved again.",
+          "heldBy": "packages/report-documents/src/inflate.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF that holds a form standing in for a page of another file (a reference XObject's /Ref), or an image or a form naming another file a printer may print in its place (/OPI), is refused, as one whose stream keeps its data in another file is, since Report fetches nothing by its address.",
+          "heldBy": "packages/report-documents/src/closure.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A PDF whose form is XFA or asks the viewer to draw its fields, or that holds an annotation that prints with no appearance, a link whose border a viewer would draw, or an annotation that stays upright on a turned page, is refused.",
+          "heldBy": "packages/report-documents/src/annotations.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An inline image is refused wherever PDF.js 6.4.299 could end or begin its data otherwise than the reader does, which binary data holding `EI` and a white-space byte can do, and how many real files that refuses is not measured: none of the sample held an inline image.",
+          "heldBy": "packages/report-documents/src/inline-images.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Links, JavaScript, actions, attachments, form fields and signatures in a PDF are read as counts alone, never named, since a print of its pages keeps none of them.",
+          "heldBy": "packages/report-documents/src/notices.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "`readDocument` takes a Uint8Array of the host's own realm and nothing else, so a host holding an ArrayBuffer, or an iframe's or a vm's array, copies it into a Uint8Array of its own first.",
+          "heldBy": "packages/report-documents/src/read.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A read is synchronous and was measured within a second at its bounds on one laptop, files at several bounds at once among them, so a PDF at the bounds holds the thread it is read on for up to about a second there, and longer on battery or a slower machine."
+        },
+        {
+          "area": "runtime",
+          "says": "pdf-lib and pako come with the reader into every bundle that reads a PDF, which added 234,035 bytes gzipped to the Studio's renderer chunk as measured of the spike's code that chose them, not measured again on the package."
+        },
+        {
+          "area": "server",
+          "says": "What a read leaves in its process after it returns is not measured on this reader: it feeds pdf-lib's pools of names and references nothing of a file, which spies hold, and what those pools keep was measured on the spike's loop alone, so a long-running process that reads untrusted PDFs cannot yet rely on keeping nothing.",
+          "heldBy": "packages/report-documents/src/read.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "pdf-lib's stream decoders are ports of PDF.js's and XPDF's under Apache-2.0, which its dist and its MIT licence file do not say and the licence guard judges by pdf-lib's MIT field alone, so a bundle that holds the reader owes Apache-2.0's text and the ports' attribution, which only an entry of the Studio's embedded notices would carry and nothing fails without."
         }
       ]
     },
@@ -2341,6 +2441,138 @@
           "area": "rendering",
           "says": "Until the renderer draws charts, a report that would print one is refused when it renders.",
           "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        }
+      ]
+    },
+    "0056": {
+      "reviewed": "sha256:75982876d3032b721818ddb05fabbda9e7184b5f07d4bc9f5ca7ebe965486c8b",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "A release commit fails the pages' suite until the start page's status is written again beside the QR-bill and EPC QR code pages': what the release holds, said in the start page's hero, what Formancy Report does not do yet, what its totals do not do and that the report format is still a draft, each true of the release and of main, in four languages; and the release commit opens a new, empty Unreleased in CHANGELOG.md, whose heading the start page links, or the pages' link check refuses the site.",
+          "heldBy": "apps/pages/src/product.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "What the start page says Formancy Report does not do yet fails the pages' suite in the pull request that changes the code it rests on, but for one detail table grouped by one field at most; that sentence, the hero's standing and the totals' limits are read again only by a release commit, so between releases the start page at formancy.ai/report/, which is main's, can still say one of them after main has made it false. The other absences match packages by name and report-spec's lists, so a renderer, a viewer or a server published under another name passes them, and so do a barcode added as a property of an existing component kind and a new output format inside report-render-pdf.",
+          "heldBy": "apps/pages/src/limits.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The start page's topic cards, its exact totals and what it says Formancy Report does not do yet are no native speaker's words in French or Italian, and no review of them is recorded."
+        },
+        {
+          "area": "testing",
+          "says": "Every card on the product pages names the tests it rests on, each a test file or a gate's entry of the checkout, which the pages' suite holds; whether each still tests what its card says, whether a card's list holds every test its claim needs, and every sentence outside a card, the healthcare page's title, h1, description and lead among them, are held by review.",
+          "heldBy": "apps/pages/src/evidence.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "A word the product pages name as the Studio's, a starter's, the picker's or a button's, is held to the Studio's recorded pictures in docs/images/readme/captured.json, which the README pictures' check compares with the Studio's own text, and not to the Studio as it runs: the pages pass a starter renamed in the Studio until its pictures are taken again.",
+          "heldBy": "apps/pages/src/studio-words.test.ts"
+        }
+      ]
+    },
+    "0057": {
+      "reviewed": "sha256:9e5492d7d7b68b0f19be4f85fe6cc5a20a6ba5bfdd8c671845780651e483f684",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A PDF/A-2b, which a host asks for with `pdfa: '2b'`, is level b alone, so it has no structure tree and is no tagged, accessible PDF, and a receiver who asks for PDF/A-2a or 2u gets level b.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-2b.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Whether a render is a PDF/A-2b is the host's choice at that render and no report says it, so a CMYK JPEG, an SVG whose box carries its numbers past what a PDF/A holds, or a title holding `&`, `<` or `>` is refused only by a render asked for as one, and neither the builders nor the validator warn of it beforehand.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-check.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A Factur-X e-invoice, an XRechnung's copy and a preview the runtime labels so are refused as `unsupported` when asked for as a PDF/A-2b, each to be rendered without `pdfa`, so a host that sets it on every render drops it for them.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-check.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A PDF/A-2b's render in Node reads PDFKit's ICC profile from `data/sRGB_IEC61966_2_1.icc` beside PDFKit's own code, as an e-invoice's does, so a host that bundles the Node entry ships that file where the bundled PDFKit's `__dirname` points, or every PDF/A-2b render fails with the file system's error, which nobody here has tried.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A preview that lacks nothing and is of no e-invoice carries no label, so it is drawn as a PDF/A-2b like its final render, which the renderer cannot tell it from and the tests show to be the same document for the quotation alone.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-2b.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The starters that are no e-invoice, drawn as a PDF/A-2b, were 4,243 to 4,262 bytes larger than drawn plain, 25,037 to 77,558 bytes against 20,791 to 73,297, and the quotation's and grouped-equipment's medians of nine renders, the two timed, within 2 ms of the plain ones, within the noise of a machine at a load average about 6 from other work, measured on 11 November 2026 from the built packages on Node 22.23.3 and an Apple M2."
+        },
+        {
+          "area": "testing",
+          "says": "veraPDF judges as PDF/A-2b the starters that are no e-invoice, three variant pages on the quotation's and the corpus's two fonts fixtures, so a customer's template is held by the renderer's refusals and not by a validator.",
+          "heldBy": "scripts/e-invoice/pdfa-2b.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "The e-invoice gate records every PDF/A-2b by the digest of its objects inflated, so a change to what a starter draws fails CI's `e-invoice` job and the judges' tests until somebody with a Java retakes the record with `--record` on a passing run.",
+          "heldBy": "scripts/e-invoice/record.test.mjs"
+        }
+      ]
+    },
+    "0059": {
+      "reviewed": "sha256:238371799707aa0d3cb1088bceebad96950a481ab545cbc4fbc675c038b81095",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A group header that states how many of its rows it is kept with moves to the next page with them where fewer would fit at the foot of one, leaving that room blank, so a report that states a count can need more pages than without, and is refused as too-many-pages where that passes the host's limit, once it is measured whole.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group header's count is a most: where its stated rows do not fit on a page under the table's repeated column header, it is kept with as many as fit, or with its first row alone, and nothing says that fewer were kept.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A count of one and no count print alike and hash differently: the builders write the absence, and a host or a proposal may write either.",
+          "heldBy": "packages/report-spec/src/validate-table.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A group header is kept with at most 32 of its rows, MAX_KEEP_WITH_ROWS, a bound chosen, not measured.",
+          "heldBy": "packages/report-spec/src/validate-table.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A row with no text ends no count: a group header whose last stated rows print nothing is kept with the rows before them that do, and those that print nothing may stand on the next page.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group no longer than its count whose footer row or total after its subtotal prints nothing is kept whole with that blank row, and, where the table's breaks are planned, in the body outside a frame, moves whole to the next page where the blank row would not fit with it.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group header that prints nothing is kept with no more than its first row, whatever its count: a table's first group header still moves with that row under the column header, and any other is left where it falls.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The builders show a group's count of kept rows on its table's properties though the group's header has no text, where the renderer keeps no more than the header's first row with it.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "In a table whose rows may split across pages, the last row a group header keeps starts on the header's page and may continue on the next.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "A report that states a count is refused whole by 0.2.0 as an unknown property, and a 0.2.0 renderer handed a document this release's runtime resolved keeps each group header with its first row alone, reading no member of a row it does not know."
+        },
+        {
+          "area": "testing",
+          "says": "The corpus's fixture for kept rows is built of rows that fit, so a header kept with fewer rows than its count, where they do not, is proved by the renderer's own cases alone, each stating the count it expects from the heights it computes.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
         }
       ]
     },

@@ -1,8 +1,10 @@
-import { componentAt } from '@formancy/report-spec'
-import type { ReportDefinition, TableColumn, TableComponent, TableFooterRow } from '@formancy/report-spec'
+import { componentAt, MAX_KEEP_WITH_ROWS } from '@formancy/report-spec'
+import type { ReportDefinition, TableColumn, TableComponent, TableFooterRow, TableGroup } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
+import type { CommandOutcome } from '../outcome.js'
 import { openReportSession } from '../session.js'
-import { accepted, eInvoiceSample, frozen, frozenSample, refused } from '../test-support.js'
+import type { ReportSession } from '../session.js'
+import { accepted, eInvoiceSample, frozen, frozenSample, refused, sampleReport } from '../test-support.js'
 import { updateComponent } from './components.js'
 import {
   insertColumn,
@@ -125,6 +127,81 @@ describe('grouping and sorting', () => {
   test('refuse a component that is not a table', () => {
     expect(refused(setGroup(frozenSample(), 'gap', null))).toMatchObject({ code: 'kind-mismatch', componentId: 'gap' })
     expect(refused(setSort(frozenSample(), 'nowhere', []))).toMatchObject({ code: 'not-found' })
+  })
+})
+
+describe("a group's kept rows", () => {
+  /** A session over the sample, whose group keeps three rows. */
+  function session(): ReportSession {
+    const opening = openReportSession(sampleReport())
+    if (!opening.ok) throw new Error('the sample did not open')
+    return opening.session
+  }
+
+  /** The sample's group, as `report` has it. */
+  const groupOf = (report: ReportDefinition): TableGroup => {
+    const group = table(report).group
+    if (group === undefined) throw new Error("the sample's table has no group")
+    return group
+  }
+
+  /** The validator's errors a session refused an edit with, as code and path. */
+  const errorsOf = (outcome: CommandOutcome): string[] => refused(outcome).errors?.map(({ code, path }) => `${code} ${path}`) ?? []
+
+  // The count is a member of the group, which setGroup replaces whole: a
+  // regrouping that the session committed without it would print each
+  // header with one row where the report stated more (0059).
+  test('is committed with the group setGroup sets', () => {
+    const editing = session()
+    const group = { ...groupOf(editing.document()), keepWithRows: 5 }
+    accepted(editing.apply((report) => setGroup(report, 'lines', group)))
+    expect(groupOf(editing.document())).toEqual(group)
+  })
+
+  // The builders write the count by patching the group through
+  // updateComponent, and its absence by a group without it: either one
+  // lost on the way would leave the field reading what the document does
+  // not say.
+  test('is set and removed through updateComponent, as a member of the group', () => {
+    const editing = session()
+    const { keepWithRows: _three, ...without } = groupOf(editing.document())
+    accepted(editing.apply((report) => updateComponent(report, 'lines', 'table', { group: { ...without, keepWithRows: 4 } })))
+    expect(groupOf(editing.document()).keepWithRows).toBe(4)
+    accepted(editing.apply((report) => updateComponent(report, 'lines', 'table', { group: without })))
+    expect(Object.hasOwn(groupOf(editing.document()), 'keepWithRows')).toBe(false)
+  })
+
+  // A count the validator refuses is the session's to refuse, with the
+  // validator's reason at the member, and a refused edit changes nothing
+  // (0008): no new document, no revision, no undo step.
+  test.each([
+    ['none', 0, 'out-of-range'],
+    ['one past the bound', MAX_KEEP_WITH_ROWS + 1, 'out-of-range'],
+    ['a fraction', 2.5, 'not-an-integer'],
+  ])('refuses %s, and changes nothing', (_name, count, code) => {
+    const editing = session()
+    const before = editing.document()
+    const outcome = editing.apply((report) => setGroup(report, 'lines', { ...groupOf(report), keepWithRows: count }))
+    expect(errorsOf(outcome)).toEqual([`${code} ${TABLE}/group/keepWithRows`])
+    expect(editing.document()).toBe(before)
+    expect(editing.revision()).toBe(0)
+    expect(editing.canUndo()).toBe(false)
+  })
+
+  // A count typed, or removed, is one edit, and one undo takes it back to
+  // what the report stated before it -- six where the removal is undone,
+  // then the sample's three where the six is -- so that a person who typed
+  // a count by mistake is never left with another.
+  test('is taken back by one undo for each edit', () => {
+    const editing = session()
+    const { keepWithRows: _three, ...without } = groupOf(editing.document())
+    accepted(editing.apply((report) => setGroup(report, 'lines', { ...without, keepWithRows: 6 })))
+    accepted(editing.apply((report) => setGroup(report, 'lines', without)))
+    expect(editing.undo()).toBe(true)
+    expect(groupOf(editing.document()).keepWithRows).toBe(6)
+    expect(editing.undo()).toBe(true)
+    expect(groupOf(editing.document()).keepWithRows).toBe(3)
+    expect(editing.canUndo()).toBe(false)
   })
 })
 

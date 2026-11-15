@@ -33,11 +33,10 @@ that lands it.
    scan, as a QR code is
    ([0020](decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
 2. **Nested groups**: a table grouped at several levels, each with its own
-   header, footer and totals, grouped and aggregated once in the runtime;
-   and a group's header kept on its page with as many of the group's
-   first rows as the report states, or with all of them where the group
-   has fewer, at every level. A record decides what is kept where the
-   header and those rows do not fit on one page under the column header.
+   header, footer and totals, grouped and aggregated once in the runtime,
+   and each level's header kept with as many of its first rows as it
+   states, as one group's is
+   ([0059](decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
 3. **More than one dataset**: a second detail dataset, a subreport, and a
    detail nested in a detail -- an order's lines under each order -- each
    resolved by the runtime as the one detail is; and more than one table,
@@ -99,19 +98,14 @@ that lands it.
 
 ## What a render can be
 
-1. **PDF/A for any report**, not only an e-invoice, judged by veraPDF as
-   an e-invoice's PDF/A-3b is
-   ([0031](decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
-   Formancy Health's documents for Switzerland's electronic patient record
-   wait for it.
-2. **An accessible PDF**: tagged, its headings, tables, reading order and
+1. **An accessible PDF**: tagged, its headings, tables, reading order and
    images' alternative text taken from the report's own structure, and
    held to PDF/UA by a gate.
-3. **Excel and CSV**: a report's tables as a workbook and as text, every
+2. **Excel and CSV**: a report's tables as a workbook and as text, every
    value exact -- a decimal written as a decimal, never through a binary
    number.
-4. **Word and HTML**, after Excel.
-5. **A signed PDF**: a final render signed (PAdES) with a key the host
+3. **Word and HTML**, after Excel.
+4. **A signed PDF**: a final render signed (PAdES) with a key the host
    holds and hands to the renderer for that render. Report keeps no key.
 
 ## The editor

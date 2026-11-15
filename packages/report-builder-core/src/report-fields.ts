@@ -10,10 +10,11 @@
  */
 import { addLanguage } from '@formancy/report-core'
 import type { ReportDefinition } from '@formancy/report-spec'
+import { choiceField, lengthField, refused, textField, UNCHANGED, value } from './field-specs.js'
+import type { FieldSpec } from './field-specs.js'
 import type { Edited } from './languages.js'
 import { languageName } from './languages.js'
-import { choiceField, lengthField, refused, textField, UNCHANGED, value } from './property-fields.js'
-import type { FieldContext, FieldSpec, GroupSpec } from './property-fields.js'
+import type { FieldContext, GroupSpec } from './property-fields.js'
 import type { EditorLocale, EditorText, MessageId } from './text.js'
 import { wordOrTextField } from './word-fields.js'
 

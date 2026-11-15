@@ -71,6 +71,14 @@ if (resolution.ok) {
 
 It never returns part of a document.
 
+A table's group header row carries `keepWithRows`, how many of its group's
+first rows an engine keeps it on its page with: the number its group
+states, or the group's rows where it has fewer, and only where that is
+more than one. How many rows a group has is this package's grouping,
+counted once, and a report that states no count resolves to the document
+it did before
+([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+
 ## The data
 
 One header record and one detail list, with what the provider says about
@@ -395,7 +403,8 @@ against the printed copy, told the report's own locale by
 the renderer's contract, declared here so that no engine defines them; a
 chart's among them, and `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and
 `SHARE_PLACES`, the runtime's bounds on a chart, which a host that tells an
-author of them reads rather than copies (0055).
+author of them reads rather than copies (0055); and `MAX_KEEP_WITH_ROWS`, report-spec's bound on the rows a group header
+row keeps, is handed on for an engine to hold that row to (0059).
 What report-spec decides of a QR-bill that an engine needs to draw its
 slip is handed on as report-spec's own objects: `QR_BILL_SIZE` and
 `QR_BILL_TOP`, the slip's size and place; `qrBillPageBreak` and its type

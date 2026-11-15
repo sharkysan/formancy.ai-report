@@ -190,6 +190,7 @@ export const DE_CH: Catalogue = {
   'field.columnWidth': 'Breite der Spalte {n}',
   'field.emptyText': 'Text ohne Zeilen',
   'field.headerStyle': 'Stil der Kopfzeile',
+  'field.keepWithRows': 'Zeilen mit jedem Gruppenkopf zusammenhalten',
   'field.header': 'Überschrift',
   'field.align': 'Textausrichtung',
   'field.value': 'Wert',

@@ -12,8 +12,8 @@
 // page draws them.
 
 import { readPdf } from '@formancy/report-corpus'
-import { pdfBytes } from './gate-page.mjs'
-import { builder, editorOf, open, present, selectRow, setField, settled, showing, untilLine, WITHIN } from './gate-steps.mjs'
+import { offeredPdf } from './gate-download.mjs'
+import { builder, editorOf, open, present, previewOf, selectRow, setField, settled, showing, untilLine, WITHIN } from './gate-steps.mjs'
 
 /** The quotation's payment line, and what the switch check makes of it. */
 const PAYMENT = 'Zahlbar innert 30 Tagen netto.'
@@ -24,7 +24,14 @@ const EDITED = 'Zahlbar innert 10 Tagen netto.'
  * first frame it is not -- what its text layer holds then, and where
  * Download PDF points then -- and the bytes at that address, read in Node.
  * A paper that settled on the earlier PDF, or a link to bytes the paper
- * does not show, is found here.
+ * does not show, is found here. Where the Preview printed again before
+ * the download and took that address away, the PDF the link offers then
+ * is read (offeredPdf), and counted among the pass's rereads: nothing is
+ * edited after the edit, so it is a PDF of the same edit. What that loses:
+ * a link that never moves off an earlier PDF is still found, but a link
+ * one render behind the paper is not, in a pass where a later render
+ * lands before the download, since that render's PDF is read in its
+ * place. In every other pass the settled frame's own bytes are read.
  */
 async function firstSettled(page) {
   await page.waitForFunction(() => document.querySelector('.paper')?.getAttribute('aria-busy') === 'true', undefined, { timeout: WITHIN })
@@ -40,7 +47,7 @@ async function firstSettled(page) {
     { timeout: WITHIN },
   )
   const { text, href } = await handle.jsonValue()
-  const bytes = href === null ? new Uint8Array() : await pdfBytes(page, href)
+  const bytes = (await offeredPdf(page, previewOf(page), { href }))?.bytes ?? new Uint8Array()
   const read = bytes.length === 0 ? { pages: [] } : await readPdf(bytes)
   return {
     text,

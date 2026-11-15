@@ -50,7 +50,7 @@ describe('a report with translations', () => {
   // Every report saved before translations is the report it was: a hash
   // that moved would unpin every published report.
   test('leaves a report without them valid and hashed as before', () => {
-    expect(reportHash(richReport())).toBe('1fdf839ae4b33aa85ca19cfa74459b4be6261afc5fd6e954f1509f97b6fc4375')
+    expect(reportHash(richReport())).toBe('2982668d5dbe692bab65f10c49abdb09e01e9f72d5422fd97f113758274aba44')
     expect(validateReport(richReport())).toEqual({ valid: true, report: richReport() })
   })
 

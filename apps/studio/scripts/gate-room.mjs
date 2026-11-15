@@ -7,7 +7,7 @@
 // promise -- the middle pane grows, and nothing goes past the window's
 // edge -- is layout, which jsdom does not do.
 
-import { describeFocus, measureWidth } from './gate-page.mjs'
+import { describeFocus, measureWidth } from './gate-measure.mjs'
 import { designViewOf, editorOf, previewInView, previewOf, settled, showing, standing, toggleOf } from './gate-steps.mjs'
 
 /** The middle pane: its width, and, where it is the design view, how much wider the sheet in it is than it shows. */

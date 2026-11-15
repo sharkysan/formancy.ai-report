@@ -2,12 +2,13 @@
  * The properties each component has, and each table column, as fields:
  * derived from report-spec's types, kind by kind, as a table over every
  * kind, so a kind added to the format without its fields does not compile.
- * How each field turns what is typed into a value is `property-fields.ts`'s.
+ * How each field turns what is typed into a value is `field-specs.ts`'s.
  */
 import { EPC_CAPTIONS, QR_ERROR_CORRECTION } from '@formancy/report-spec'
 import type { Component, ComponentKind, QrErrorCorrection, TableColumn } from '@formancy/report-spec'
-import { booleanField, choiceField, colorField, expressionField, lengthField, pointsField, styleField, textField, value } from './property-fields.js'
-import type { FieldContext, FieldSpec } from './property-fields.js'
+import { booleanField, choiceField, colorField, countField, expressionField, lengthField, pointsField, styleField, textField, value } from './field-specs.js'
+import type { FieldSpec } from './field-specs.js'
+import type { FieldContext } from './property-fields.js'
 import { contentFields, codeTextFields, optionalCodeTextFields, refToken, runField } from './run-fields.js'
 import { formatPercent } from './text.js'
 import type { EditorText } from './text.js'
@@ -123,6 +124,8 @@ const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { 
   table: (component, context) => [
     wordOrTextField('/emptyText', { id: 'field.emptyText' }, component.emptyText, context),
     styleField('/headerStyle', { id: 'field.headerStyle' }, context.report.styles, component.headerStyle, context.t),
+    // The group's own, as the format has it: a table without a group has no header to keep with its rows (0059).
+    ...(component.group === undefined ? [] : [countField('/group/keepWithRows', { id: 'field.keepWithRows' }, component.group.keepWithRows)]),
   ],
   chart: () => [], // R10: only the fields every component has, until the builders edit a chart's own
   pageBreak: () => [],

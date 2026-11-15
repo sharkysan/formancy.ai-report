@@ -2,9 +2,12 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
 import { siteProblems } from './checks/index.js'
+import { EPC_QR_CODE_STATUS } from './content/epc-qr-code.js'
+import { START_STATUS } from './content/product.js'
+import { QR_BILL_STATUS } from './content/qr-bill.js'
 import { GROUPS } from './groups.js'
 import { renderSite } from './site.js'
-import { builtOf, inputs, repo, site } from './test-site.js'
+import { atNextRelease, builtOf, inputs, nextRelease, repo, site } from './test-site.js'
 
 /**
  * The site as the build writes it, against every check: what 0021 says of
@@ -51,26 +54,32 @@ describe('the site the build writes (0021)', () => {
   })
 
   // A page whose feature no release had when it was written says where it
-  // stands, against the release the changelog names (0024). With two such
-  // pages, each refusing on its own as the QR-bill page once did, a release
-  // commit would rewrite the QR-bill page's sentences, build again, and
-  // only then meet the EPC QR code page's refusal. The site reads every
-  // page's status before it renders any, and says each in one error. Each
-  // line is matched whole, to the constant it names: matched only to its
-  // start, a page's line could drop a sentence to say again, or name a
-  // constant that is not there, and qr-bill.test.ts's patterns, which the
-  // EPC QR code page's line matches too, would not see it.
+  // stands, against the release the changelog names (0024), and the start
+  // page says what that release holds and what Formancy Report does not do
+  // yet. With three such pages, each refusing on its own as the QR-bill
+  // page once did, a release commit would rewrite the start page's
+  // sentences, build again, and only then meet the QR-bill page's refusal,
+  // and then the EPC QR code page's. The site reads every page's status
+  // before it renders any, and says each in one error. Each line is matched
+  // whole, to the constant it names: matched only to its start, a page's
+  // line could drop a sentence to say again, or name a constant that is
+  // not there, and qr-bill.test.ts's patterns, which the EPC QR code page's
+  // line matches too, would not see it; nor would a page's line asking
+  // another page's question. The later release is derived from the
+  // newest the changelog names, and each line from its page's status, so
+  // the release commit that writes the statuses again edits no line here.
   test('refuses to render, in one error, every page whose status a later release outdates', () => {
-    const released = { ...inputs, release: { ...inputs.release, version: '0.3.0', anchor: '030--2026-11-02' } }
+    const later = nextRelease.version
     let said = ''
     try {
-      renderSite(released)
+      renderSite(atNextRelease)
     } catch (error) {
       said = error instanceof Error ? error.message : String(error)
     }
     expect(said.split('\n')).toEqual([
-      "the QR-bill page's status was written when 0.2.0 was the newest release, and CHANGELOG.md now names 0.3.0: say whether that release has the QR-bill in each sentence of qr-bill-copy.tsx that says where it stands -- `standing`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change QR_BILL_STATUS with them",
-      "the EPC QR code page's status was written when 0.2.0 was the newest release, and CHANGELOG.md now names 0.3.0: say whether that release has the EPC QR code in each sentence of epc-qr-code-copy.tsx that says where it stands -- `standing`, which the hero and the product page's teaser say, `tryIt.text` and `status.text` -- then change EPC_QR_CODE_STATUS with them",
+      `the start page's status was written when ${START_STATUS.release} was the newest release, and CHANGELOG.md now names ${later}: say what that release holds and what Formancy Report does not do yet in each sentence of product-copy.tsx, limits-copy.tsx and totals-copy.tsx that says where it stands -- \`standing\`, which the hero says, and \`status.format\` in product-copy.tsx, \`items\` in limits-copy.tsx and \`limits.items\` in totals-copy.tsx -- then change START_STATUS with them`,
+      `the QR-bill page's status was written when ${QR_BILL_STATUS.release} was the newest release, and CHANGELOG.md now names ${later}: say whether that release has the QR-bill in each sentence of qr-bill-copy.tsx that says where it stands -- \`standing\`, which the hero and the product page's teaser say, \`tryIt.text\` and \`status.text\` -- then change QR_BILL_STATUS with them`,
+      `the EPC QR code page's status was written when ${EPC_QR_CODE_STATUS.release} was the newest release, and CHANGELOG.md now names ${later}: say whether that release has the EPC QR code in each sentence of epc-qr-code-copy.tsx that says where it stands -- \`standing\`, which the hero and the product page's teaser say, \`tryIt.text\` and \`status.text\` -- then change EPC_QR_CODE_STATUS with them`,
     ])
   })
 

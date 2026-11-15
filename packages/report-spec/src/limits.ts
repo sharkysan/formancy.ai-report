@@ -57,6 +57,16 @@ export const MAX_SORT_KEYS = 8
 /** Rows under a group or under the table: a subtotal, a discount, two tax lines and a total fit with room to spare. */
 export const MAX_FOOTER_ROWS = 8
 
+/**
+ * The most of its group's first rows a group header may be kept on its
+ * page with (0059). Chosen, not measured: well above the two or three rows
+ * that keep a group from starting at the foot of a page. A count past what
+ * a page holds keeps what fits, so the bound protects no page: it refuses
+ * a count nobody means, and bounds what the renderer adds up for each
+ * group header.
+ */
+export const MAX_KEEP_WITH_ROWS = 32
+
 /** Fields in one dataset contract: a report prints a fraction of any source table's columns. */
 export const MAX_DATASET_FIELDS = 64
 

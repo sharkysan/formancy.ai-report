@@ -4,7 +4,7 @@ import type { CheckedBill } from './bill.js'
 import { newBuild, type Build, type Fields, type TablePlan } from './build.js'
 import type { Checked, Measured, Page } from './check.js'
 import { contentOf } from './content.js'
-import { PDF_A_3B } from './pdfa.js'
+import { pdfaOptions } from './pdfa.js'
 import { ABOVE_SLIP, slipContent } from './slip.js'
 import type { RenderFonts } from './host-fonts.js'
 import { DEFAULT_SIZE } from './style.js'
@@ -98,10 +98,12 @@ export function slipReservation(page: Page, regions: Regions): number {
  * less room left, pdfmake moves to a new page and starts it without the
  * space, and the slip has that page to itself.
  *
- * A document with an e-invoice is a PDF/A-3b, whose version and subset are
- * the definition's (`PDF_A_3B`); its file and XMP are the final pass's hook
- * (`render.ts`). Neither moves a line: the measuring passes, which have
- * neither, lay the page out as this one does.
+ * A document drawn as a PDF/A -- an e-invoice's PDF/A-3b, or the PDF/A-2b
+ * a host asked for (`pdfa-check.ts`) -- has its version and subset in the
+ * definition (`pdfaOptions`); a PDF/A-3b's file and XMP are the final
+ * pass's hook (`render.ts`), and a PDF/A-2b has none. Neither moves a
+ * line: the measuring passes, which have neither, lay the page out as this
+ * one does.
  */
 export function layoutDefinition(
   document: ResolvedDocument,
@@ -131,7 +133,7 @@ export function layoutDefinition(
     slip === undefined ? footer : (pageNumber, pageCount, size) => (pageNumber === pageCount ? slip() : footer?.(pageNumber, pageCount, size))
   const reserved = bill === undefined ? [] : [{ stack: [], margin: [0, slipReservation(page, regions), 0, 0] } satisfies Content]
   return {
-    ...(checked.pdfa === undefined ? {} : PDF_A_3B),
+    ...(checked.pdfa === undefined ? {} : pdfaOptions(checked.pdfa)),
     info: { title: document.info.title, creationDate: checked.creationDate },
     pageSize: { width: page.paperWidth, height: page.paperHeight },
     pageMargins: [margins.left, bodyTop, margins.right, page.paperHeight - bodyBottom],

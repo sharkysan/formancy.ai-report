@@ -169,6 +169,7 @@ const REPORT: ReportDefinition = {
             { kind: 'expression', expression: { cel: '" (" + string(group.lines) + ")"' } },
           ],
           headerStyle: 'strong',
+          keepWithRows: 3,
           footer: [
             {
               cells: [

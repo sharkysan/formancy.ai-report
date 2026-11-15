@@ -188,6 +188,12 @@ p {
   color: var(--muted);
 }
 
+/* A topic card holds its teaser, where its page stands and its link, each a
+   paragraph of its own, which run together without a gap between them. */
+.topic p + p {
+  margin-top: 0.75rem;
+}
+
 /* ------------------------------------------------------------- actions */
 
 .actions {
@@ -343,5 +349,20 @@ p {
   h1,
   h2 {
     hyphens: auto;
+  }
+
+  /* The terms table splits the width in half, and a word wider than its
+     column breaks inside it rather than widening the page. In the web
+     fonts every word stays whole down to 320 pixels, in every language;
+     a wider face breaks the longest German ones. With the web fonts
+     refused, the fallback face of CI's Linux runner put the German table
+     8 pixels past a 320-pixel window (the pages' gate, 11 November 2026). */
+  .terms {
+    table-layout: fixed;
+  }
+
+  .terms th,
+  .terms td {
+    overflow-wrap: break-word;
   }
 }

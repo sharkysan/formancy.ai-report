@@ -381,6 +381,49 @@ describe('verify finds headings left alone at the foot of a page', () => {
     expect(await problems(orphaned)).toEqual(["checks: page 1: the last table row is the group header 'Region South'"])
   })
 
+  // A group header that keeps three rows (0059), with two of them under it
+  // and the third on the next page: no page ends on it, so the check that
+  // holds every other header passes it, and only the count it carries
+  // sees the group start with fewer rows than the report asked for.
+  test('a group header with fewer of its rows under it than it keeps', async () => {
+    const south = ROWS.findIndex((row) => row.cells[0] === 'Region South')
+    const keeping = ROWS.map((row, index) => (index === south ? { ...row, keepWithRows: 3 } : row))
+    const kept = fixtureOf('checks', keeping, { minPagesExpected: 2, maxPagesExpected: 2 })
+    const broken = definition(ROWS.slice(0, south + 3), {
+      extra: [{ ...(table(ROWS.slice(south + 3), true, [0, 1, 2]) as object), pageBreak: 'before' } as Content],
+    })
+    expect(await problems(broken, fixture)).toEqual([])
+    expect(await problems(broken, kept)).toEqual(["checks: page 1: the group header 'Region South' has 2 of its first 3 rows under it"])
+    expect(await problems(definition(ROWS), kept)).toEqual([])
+  })
+
+  // A row without a key cannot be found on its page, so a count could not
+  // see it under its header. A header that keeps no count is held as it
+  // always was, by what is below it on its page, and a row it heads that
+  // prints no key is still what is below it.
+  test('passes a group header over a row without a key, as it always has', async () => {
+    const south = ROWS.findIndex((row) => row.cells[0] === 'Region South')
+    const unkeyed: TableRow = { kind: 'detail', cells: ['', 'An item without a key', '1.00'] }
+    const rows = [...ROWS.slice(0, south + 1), unkeyed, ...ROWS.slice(south + 1)]
+    expect(await problems(definition(rows), fixtureOf('checks', rows, { minPagesExpected: 2, maxPagesExpected: 2 }))).toEqual([])
+  })
+
+  // A header that keeps rows none of which has a key has no row the count
+  // can find, and is still held to what every header is: it never ends its
+  // page. Held to its count alone, it would pass at the foot of a page with
+  // all its rows on the next.
+  test('an orphaned group header that keeps rows without keys', async () => {
+    const south = ROWS.findIndex((row) => row.cells[0] === 'Region South')
+    const unkeyed = Array.from({ length: 3 }, (_, index): TableRow => ({ kind: 'detail', cells: ['', `An item without a key ${index + 1}`, '1.00'] }))
+    const rows = [...ROWS.slice(0, south), { ...ROWS[south]!, keepWithRows: 3 }, ...unkeyed, ...ROWS.slice(south + 1)]
+    const orphaned = definition(rows.slice(0, south + 1), {
+      extra: [{ ...(table(rows.slice(south + 1), true, [0, 1, 2]) as object), pageBreak: 'before' } as Content],
+    })
+    expect(await problems(orphaned, fixtureOf('checks', rows, { minPagesExpected: 2, maxPagesExpected: 2 }))).toEqual([
+      "checks: page 1: the last table row is the group header 'Region South'",
+    ])
+  })
+
   // The column header at the foot of a page, its first row on the next:
   // pdfmake does this unless told to keep the header with a row.
   test('an orphaned column header', async () => {

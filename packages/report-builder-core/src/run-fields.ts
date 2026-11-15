@@ -14,8 +14,9 @@
 import { isWord } from '@formancy/report-spec'
 import type { FieldRef, Inline } from '@formancy/report-spec'
 import type { PropertyOption } from './model-properties.js'
-import { choiceField, expressionField, refused, textField, UNCHANGED, value } from './property-fields.js'
-import type { FieldContext, FieldSpec, FieldWords, TextName } from './property-fields.js'
+import { choiceField, expressionField, refused, textField, UNCHANGED, value } from './field-specs.js'
+import type { FieldSpec, FieldWords } from './field-specs.js'
+import type { FieldContext, TextName } from './property-fields.js'
 import type { MessageId } from './text.js'
 import { translating, wordExpressionField, wordField } from './word-fields.js'
 
