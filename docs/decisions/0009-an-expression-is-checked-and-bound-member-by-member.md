@@ -1,6 +1,6 @@
 # 0009 — An expression is checked and bound member by member, by one compilation the editor and the runtime share
 
-- **Status:** accepted; extended by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which binds an e-invoice's totals member by member, in a report that is one and in no other
+- **Status:** accepted; extended by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which binds an e-invoice's totals member by member, in a report that is one and in no other, and by [0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), which binds `table`, the totals of a table's own rows, and types `group.key` by the table a group stands in
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-core`, run by its
@@ -237,6 +237,20 @@ runtime binds the very totals it writes into the XML (0010).
 `expressions/e-invoice.test.ts` holds the members and where they are
 refused, and `diagnostics/e-invoice.test.ts` the totals a page must print
 and how.
+
+**Added 2026-11-15: a table's own totals, and a group's key per table.**
+A report may hold several tables, each printing the detail rows its
+condition selects
+([0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
+`compileReport` declares `table` member by member, as it declares
+`totals`, in a table's total rows and in its group's header and footer;
+a read of it anywhere else is `expression-out-of-scope`. A table's
+condition is compiled in the row's scope as a condition, where `group` and
+`table` are out of scope. And `group.key` is declared with the type of the
+field the group's own table groups by, where this record declared the
+report's one table's: two tables grouped by a text and by a date each
+check their group's key as theirs. `compile-report.test.ts` holds the
+three.
 
 ## Alternatives considered
 

@@ -1,6 +1,6 @@
 # 0007 — A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which adds an e-invoice and the names its totals are read by, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which adds an SVG asset in the one form report-spec's `cleanSvg` writes, by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose dataset contract says where a formancy form's submission holds each field, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose font map the report's hash covers, and by [0052](0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md), which adds the chart
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which adds an e-invoice and the names its totals are read by, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which adds an SVG asset in the one form report-spec's `cleanSvg` writes, by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose dataset contract says where a formancy form's submission holds each field, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose font map the report's hash covers, by [0052](0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md), which adds the chart, and by [0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), under which a report holds several tables over its one detail dataset, each printing and totalling the rows its condition selects, so that where this record says one table it describes the format before that one
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `@formancy/report-spec` tests that fail when it is
@@ -424,6 +424,28 @@ unchanged, and so is every report that was valid. A release that predates
 the kind, 0.2.0 among them, refuses a report that holds one as
 `unknown-kind`. `validate-chart.test.ts` and `chart.test.ts` hold the
 shape, the placement, the palette and the refusals.
+
+**Added 2026-11-15: several tables, and a table's own totals.** A report
+may hold more than one table over its detail dataset, as
+[0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)
+decides, at most `MAX_TABLES`, each wherever a table may stand; a table
+past the bound is `too-many`, and `second-detail-table` now refuses a
+second table only in a report that is an e-invoice, whose lines are its
+one table's rows. A table's `rowsWhen`, an optional expression read once
+per detail row in the row's scope, selects the rows it prints, orders,
+groups and totals; absent, it prints every row. A table's total rows are
+read in a scope of their own, `table`, which binds what the report's scope
+binds and `table`, each aggregate over the rows the table prints; a
+group's header and footer read `table` too, and an aggregate run may be
+taken `over: 'table'` there and nowhere else (`misplaced-table-aggregate`).
+`totals` is still every detail row's, everywhere. So `EXPRESSION_NAMES`
+gains a scope and `group` a name, and every name it listed is read where
+it was. It is a draft-format addition: `reportSpecVersion` is unchanged,
+and so is every report that was valid. A release that predates it, 0.2.0
+among them, refuses a second table as `second-detail-table`, a condition
+as `unknown-property` and a total over a table as `not-one-of`.
+`validate-tables.test.ts` holds the shape, the bound and the refusals, and
+`validate-placement.test.ts` the names.
 
 ## Alternatives considered
 

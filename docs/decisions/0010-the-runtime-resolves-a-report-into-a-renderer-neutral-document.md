@@ -1,6 +1,6 @@
 # 0010 — The runtime resolves a report into a renderer-neutral document, exactly, or refuses it
 
-- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which computes an e-invoice's totals once for the page and its XML, writes the XML, and refuses one EN 16931's rules refuse, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which fetches an SVG asset, drawn again wherever it prints rather than embedded once, and corrects this record's reason for trusting digests, by [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose manifest names where the data came from, by identifiers alone, by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose form bridge holds each answer to its type by the runtime's own `readValue` and a submission's id by its `isSubmissionId`, and by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose asset resolver is widened to a host's fonts
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which resolves a QR-bill and refuses one SIX's rules refuse, in a preview too, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which writes an EPC QR code's payload and refuses one the EPC's rules refuse, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which computes an e-invoice's totals once for the page and its XML, writes the XML, and refuses one EN 16931's rules refuse, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which fetches an SVG asset, drawn again wherever it prints rather than embedded once, and corrects this record's reason for trusting digests, by [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose manifest names where the data came from, by identifiers alone, by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose form bridge holds each answer to its type by the runtime's own `readValue` and a submission's id by its `isSubmissionId`, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose asset resolver is widened to a host's fonts, and by [0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), under which each table prints the detail rows its condition selects, ordered, grouped and totalled as its own
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-runtime`, run by its
@@ -279,6 +279,21 @@ there, as the runtime refuses it here; and a submission's id by
 own check, so the two cannot read an id differently. The data check
 itself is unchanged, and still runs when the report resolves.
 `data.test.ts` holds that `isSubmissionId` accepts what a source accepts.
+
+**Added 2026-11-15: several tables, each of the rows it selects.** A
+report may hold several tables over its detail rows
+([0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
+Each table reads its condition once per detail row, in the row's scope and
+the provider's order, before it orders anything; `sort-group.ts` orders
+and groups the rows it selected, each keeping its index in the data, so
+an error names the row the provider gave; and its total rows, and its
+group's header and footer, read `table`, the aggregates over those rows by
+the function a group's are computed with, rounded once. A table without a
+condition binds the report's totals themselves as `table`. `totals` is
+still every detail row's, for every table and everything else that reads
+it. The document is unchanged: a table is the rows it prints, its empty
+text where it selected none. `lower-table.test.ts` and
+`sort-group.test.ts` hold it.
 
 ## Alternatives considered
 
