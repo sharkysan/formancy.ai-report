@@ -304,7 +304,8 @@ the release's number and date and the licence's terms are read from
 `CHANGELOG.md` and `LICENSE.md` when they are built; what a release
 holds, and what Formancy Report does not do yet, is said under a page's
 status, which stops the build once the changelog names a later release;
-every card names the tests it rests on; the start page's absences are
+every card names the tests it rests on; every absence on the start page
+but one detail table and one level of grouping, which review holds, is
 held by `limits.test.ts` to report-spec's built `dist`, a devDependency
 no page imports, and to the published packages' manifests
 ([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md));
