@@ -413,4 +413,5 @@ export const FR_CH: Catalogue = {
   'status.onTheLine': `Retour sur la ligne${NB}: {name}.`,
   'status.selectionStale': `{name} montre ce qui a été saisi, pas ce que le rapport contient${NB}: validez-le, ou appuyez sur Échap, avant d’en mettre une partie en indice ou en exposant.`,
   'status.baselineUnchanged': '{name} est déjà ainsi.',
+  'status.notOptionalRun': `{name} fait partie du texte${NB}: il se modifie dans son champ, sans ajout ni retrait.`,
 }

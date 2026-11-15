@@ -451,6 +451,7 @@ export const EN = {
   'status.selectionStale':
     '{name} shows what was typed, not what the report holds: commit it, or press Escape, before setting part of it below or above the line.',
   'status.baselineUnchanged': '{name} is set so already.',
+  'status.notOptionalRun': '{name} is part of the text: it is edited in its field, never added or removed.',
 } as const
 
 export type MessageId = keyof typeof EN

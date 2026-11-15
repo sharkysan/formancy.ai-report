@@ -6,13 +6,14 @@ import { hostFonts } from './host-fonts.js'
 
 /**
  * Runs set below or above the line (0061): a formula's digits, a unit's
- * power, an exponent, a lowered letter and a footnote's mark, each in a
- * word with text on the line, as the renderer prints them; in a column, in
- * a paragraph that wraps so that such runs stand under a line and over
- * another, in the page footer on every page, and in a host's Liberation
- * Serif. The checks read each run into the line it stands on, hold its
- * size and its move (`shiftedRuns`), and see that nothing is drawn over
- * anything (`noOverlaps`).
+ * power, an exponent, a lowered letter, a charge after its count and a
+ * footnote's mark, each in a word with text on the line, as the renderer
+ * prints them; in a column, in a paragraph that wraps so that such runs
+ * stand under a line and over another, a lowered run over a raised one on
+ * the next line, in the page footer on every page, and in a host's
+ * Liberation Serif. The checks read each run into the line it stands on,
+ * hold its size and its move (`shiftedRuns`), and see that nothing is
+ * drawn over anything (`noOverlaps`).
  *
  * And the paragraphs the renderer refuses, naming them: a word of nothing
  * but such runs, a run after a space or before one, a run whose only
@@ -48,12 +49,16 @@ const FOOTNOTE = paragraph([run('1', 'superscript'), run('\u00a0As read on site,
 /** A run beside the lowered digit prints nothing, as an empty field does; the letter before it is the word's text on the line. */
 const EMPTY_BESIDE = paragraph([run('H'), run('2', 'subscript'), run(''), run('O with an empty run beside its digit.')])
 const IN_COLUMN = paragraph([run('In a column, SO'), run('4', 'subscript'), run(' and m'), run('3', 'superscript'), run('.')])
+/** A charge after its count, at the paragraph's end: the raised run's only neighbour is the lowered digit, a digit's width from the letter. */
+const ION = paragraph([run('The sulphate ion is SO'), run('4', 'subscript'), run('2−', 'superscript')])
 
 /**
  * Long enough to wrap across lines of the page, each of its raised and
  * lowered runs in a word of its own text, so that some stand on a line with
  * a line above them and below: the boxes of such runs reach past their
- * line's text, and must still overlap nothing.
+ * line's text, and must still overlap nothing. Its last lines hold no
+ * lowered run, so that a line given room for one stands beside a line that
+ * is not.
  */
 const WRAPPED = paragraph([
   run('Over the day the readings rose from 2 × 10'),
@@ -68,7 +73,9 @@ const WRAPPED = paragraph([
   run('3', 'superscript'),
   run(', and its square, m'),
   run('2', 'superscript'),
-  run(', on the lines that follow the first.'),
+  run(
+    ', on the lines that follow the first; a line that holds no lowered run is laid out as any line of its face is, and so the last lines of this paragraph are set as the paragraphs before it.',
+  ),
 ])
 
 /** "Volumes in m³", under the page numbers, on every page. */
@@ -83,6 +90,7 @@ const formulasDocument = ((): ResolvedDocument => {
     MARKED,
     FOOTNOTE,
     EMPTY_BESIDE,
+    ION,
     {
       kind: 'columns',
       columns: [
@@ -97,12 +105,13 @@ const formulasDocument = ((): ResolvedDocument => {
 
 export const shiftedFormulas: Fixture = {
   id: 'shifted-formulas',
-  title: "Runs set below and above the line: a formula's digits, a unit's power, an exponent, a lowered letter and a footnote's mark, each read on its line",
+  title:
+    "Runs set below and above the line: a formula's digits, a unit's power, an exponent, a lowered letter, a charge after its count and a footnote's mark, each read on its line",
   document: formulasDocument,
   maxPages: 2,
   expect: expectation(formulasDocument, {
     maxPagesExpected: 1,
-    exactText: [WATER, ROOM, RATE, MARKED, FOOTNOTE, EMPTY_BESIDE, IN_COLUMN].map(lineOf),
+    exactText: [WATER, ROOM, RATE, MARKED, FOOTNOTE, EMPTY_BESIDE, ION, IN_COLUMN].map(lineOf),
     wrappedText: [lineOf(WRAPPED)],
   }),
 }
@@ -148,6 +157,39 @@ export const shiftedHostFonts: Fixture = {
       { text: 'SERIFBOLDSHIFT', postScriptName: postScriptNameOf('SERIFBLD') },
     ],
   }),
+}
+
+/**
+ * "H₂O m²." in a column narrow enough that "H₂O" and "m²." wrap one under
+ * the other, the lowered digit over the raised one: in a host's Liberation
+ * Serif at 10 points and in Roboto at 24, the corpus's boxes of the two
+ * met by more than a point until the renderer made room below a line that
+ * holds a lowered run (`shifted.ts`).
+ */
+const stacked = (style: TextStyle): Paragraph => paragraph([run('H'), run('2', 'subscript'), run('O m'), run('2', 'superscript'), run('.')], style)
+const STACKED_SERIF = stacked({ font: 'serif', size: 10 })
+const STACKED_SANS = stacked({ size: 24 })
+
+/** `block` alone in a column `width` wide, the rest of the line empty. */
+const inColumn = (width: number, block: Block): Block => ({
+  kind: 'columns',
+  columns: [
+    { width, blocks: [block] },
+    { width: 'fill', blocks: [] },
+  ],
+})
+
+const stackedDocument: ResolvedDocument = {
+  ...documentOf('A lowered run over a raised one', [heading('Over the next line'), inColumn(30, STACKED_SERIF), inColumn(70, STACKED_SANS)]),
+  fonts: hostFonts.document.fonts!,
+}
+
+export const shiftedStacked: Fixture = {
+  id: 'shifted-stacked',
+  title: "A lowered digit on one line over a raised one on the next, in a host's Liberation Serif and in Roboto, each clear of the other",
+  document: stackedDocument,
+  maxPages: 1,
+  expect: expectation(stackedDocument, { maxPagesExpected: 1, wrappedText: [STACKED_SERIF, STACKED_SANS].map(lineOf) }),
 }
 
 /** A document under its heading that the renderer refuses: as `unsupported`, naming the paragraph after the heading, `body[1]`, unless `refusal` says otherwise. */
@@ -199,6 +241,7 @@ export const shiftedTooWide = refused(
 export const SHIFTED_FIXTURES: readonly Fixture[] = [
   shiftedFormulas,
   shiftedHostFonts,
+  shiftedStacked,
   shiftedAlone,
   shiftedAfterSpace,
   shiftedBeforeSpace,

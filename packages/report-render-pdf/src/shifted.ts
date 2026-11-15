@@ -1,4 +1,4 @@
-import { BASELINE_SHIFTS, RenderRefusal, type Inline, type Paragraph } from '@formancy/report-runtime'
+import { BASELINE_SHIFTS, RenderRefusal, SHIFTED_RISE, SHIFTED_SIZE, type Inline, type Paragraph } from '@formancy/report-runtime'
 import { SLACK } from './words.js'
 
 /**
@@ -34,7 +34,36 @@ import { SLACK } from './words.js'
  * laid out as it was. `_inlines`, `noNewLine`, `sup`, `sub`, `width`,
  * `leadingCut` and `trailingCut` are pdfmake's own, not part of its API;
  * `pdfmake.test.ts` holds that 0.3.11 still writes them where this reads.
+ *
+ * And a line that holds a run set below the line is given room below it,
+ * `LOWERED_LINE`, for a raised run on the line under it.
  */
+
+/**
+ * How tall a line that holds a run set below the line is laid out, at
+ * least, as a fraction of its paragraph's size: the lowered run's drop, a
+ * raised run's rise on the next line and the small run's own size, 1.218,
+ * so that a lowered run and a raised one under it are set solid, their
+ * baselines the small run's size apart, and their boxes as the corpus draws
+ * them -- one size tall, a fifth below the baseline -- meet nowhere. A
+ * face's own line of 1.218 ems or more needs none. pdfmake lays a line out
+ * as tall as its runs' own lines, its baseline its tallest ascender down,
+ * and moves a run set off it only when it draws it (`Line.js`,
+ * `Renderer.js`), so the room is asked as the lowered run's own line,
+ * `loweredLineHeight`, and falls below the baseline. Room above a raised
+ * run cannot be asked of pdfmake at all.
+ */
+export const LOWERED_LINE = SHIFTED_SIZE + SHIFTED_RISE.superscript - SHIFTED_RISE.subscript
+
+/**
+ * pdfmake's `lineHeight` for a run set below the line in a face whose line
+ * is `lineFactor` of its size: what makes that run's line, at
+ * `SHIFTED_SIZE` of its paragraph's size, `LOWERED_LINE` of the
+ * paragraph's size (`TextInlines.js` multiplies a run's line by it).
+ */
+export function loweredLineHeight(lineFactor: number): number {
+  return LOWERED_LINE / (SHIFTED_SIZE * lineFactor)
+}
 
 /** A paragraph holding a run set below or above the line, as handed to pdfmake, and the width of its lines. */
 export interface ShiftedRoom {

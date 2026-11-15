@@ -229,8 +229,6 @@ describe('the accessible tree', () => {
     expect(await audit()).toEqual([])
   })
 
-  // Every row of a report holding every kind, named and audited with a
-  // landmark around it, in one walk: the states the scenarios never reach.
   // A run's two buttons show only the word they set, and are named after
   // the run, so that two runs' are never one name and a screen reader
   // hears which text a button sets; each says whether it is on (0061). A
@@ -273,6 +271,8 @@ describe('the accessible tree', () => {
     expect(await audit()).toEqual([])
   })
 
+  // Every row of a report holding every kind, named and audited with a
+  // landmark around it, in one walk: the states the scenarios never reach.
   test('names every part with each row of every kind selected', async () => {
     const { settle } = await mountBuilder(createReportEditor(richSession()))
     for (const row of screen.getAllByRole('treeitem')) {

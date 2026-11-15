@@ -5,7 +5,7 @@ import { startsOnPage, type Build, type Fields } from './build.js'
 import { epcContent } from './epc.js'
 import type { FaceWanted } from './host-fonts.js'
 import { qrContent } from './qr.js'
-import { isShifted } from './shifted.js'
+import { isShifted, loweredLineHeight } from './shifted.js'
 import { DEFAULT_SIZE, textProperties } from './style.js'
 import { svgContent } from './svg-content.js'
 import { tableContent } from './table.js'
@@ -173,7 +173,7 @@ function blockContent(block: Block, build: Build, scope: Scope): Content {
 function paragraphContent(paragraph: Paragraph, build: Build, scope: Scope): Content {
   const style = paragraph.style ?? {}
   const content = {
-    text: paragraph.runs.length === 0 ? '' : paragraph.runs.map((run) => inline(run, scope.fields)),
+    text: paragraph.runs.length === 0 ? '' : paragraph.runs.map((run) => inline(run, scope.fields, () => build.lineOf(runFace(paragraph.style, run)))),
     alignment: style.align ?? 'left',
     ...textProperties(style, { size: DEFAULT_SIZE }, build.familyOf),
   }
@@ -198,9 +198,15 @@ export function runFace(style: TextStyle | undefined, run: Inline): FaceWanted {
 /** pdfmake's own property for a run set below or above the line (0061), which sets it at the size and the move the document states. */
 const SHIFT = { subscript: { sub: true }, superscript: { sup: true } } as const
 
-function inline(run: Inline, fields: Fields | undefined): { text: string; bold?: boolean; sub?: true; sup?: true } {
+/** A run as pdfmake takes it; one set below the line asks for its line's room, `lineOf` being the line of the face it prints in (`shifted.ts`). */
+function inline(run: Inline, fields: Fields | undefined, lineOf: () => number): { text: string; bold?: boolean; sub?: true; sup?: true; lineHeight?: number } {
   if ('text' in run)
-    return { text: run.text, ...(run.bold === undefined ? {} : { bold: run.bold }), ...(run.baseline === undefined ? {} : SHIFT[run.baseline]) }
+    return {
+      text: run.text,
+      ...(run.bold === undefined ? {} : { bold: run.bold }),
+      ...(run.baseline === undefined ? {} : SHIFT[run.baseline]),
+      ...(run.baseline === 'subscript' ? { lineHeight: loweredLineHeight(lineOf()) } : {}),
+    }
   // The renderer refuses a page field outside a page region before building anything.
   if (fields === undefined) throw new Error(`a ${run.field} field outside a page region`)
   return { text: String(fields[run.field]) }

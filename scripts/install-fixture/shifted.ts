@@ -100,5 +100,5 @@ export async function shiftedRendered(): Promise<string> {
     opening.session.undoLabel() !== 'Set below the line'
   )
     throw new Error(`the editor did not set the selected digit below the line in one step: ${written}, the keyboard sent to ${JSON.stringify(then)}`)
-  return `a formula's digit set below the line and a unit's power above it resolved with their baselines and rendered to a ${pdf.length}-byte PDF, at the runtime's ${SHIFTED_SIZE} of the paragraph's size, and a word of nothing but such a run was refused, naming its paragraph; the editor set a digit selected in its field below the line in one step, its button pressed and the keyboard sent to it`
+  return `a formula's digit set below the line and a unit's power above it resolved with their baselines and rendered to a ${pdf.length}-byte PDF, the runtime stating ${SHIFTED_SIZE} of the paragraph's size for such a run, and a word of nothing but such a run was refused, naming its paragraph; the editor set a digit selected in its field below the line in one step, its button pressed and the keyboard sent to it`
 }

@@ -168,15 +168,21 @@ describe('the setBaseline action', () => {
   // A value the session refused stays in its field as typed, and the
   // selection a builder reads is of that text: applied to the report's,
   // its offsets would set the wrong characters below the line. Refused,
-  // and said why, the report unchanged -- as is a selection no field
-  // could give, from a caller tsc never saw.
+  // and said why, the report unchanged, with nothing selected in it too,
+  // where the whole run would be set from a field that shows other text --
+  // as is a selection no field could give, from a caller tsc never saw.
   test('refuses a selection of other text than the report holds', () => {
     const { editor, session } = opened([text('H2O')])
-    const stale = editor.dispatch({ type: 'setBaseline', key: '/content/0', baseline: 'subscript', selected: { start: 1, end: 2, text: 'H2SO4' } })
-    expect(stale).toMatchObject({ ok: false, code: 'invalid-value' })
-    expect(editor.state().status.text).toBe(
-      'Text shows what was typed, not what the report holds: commit it, or press Escape, before setting part of it below or above the line.',
-    )
+    for (const selected of [
+      { start: 2, end: 2, text: 'H2SO4' },
+      { start: 1, end: 2, text: 'H2SO4' },
+    ]) {
+      const stale = editor.dispatch({ type: 'setBaseline', key: '/content/0', baseline: 'subscript', selected })
+      expect(stale, JSON.stringify(selected)).toMatchObject({ ok: false, code: 'invalid-value' })
+      expect(editor.state().status.text).toBe(
+        'Text shows what was typed, not what the report holds: commit it, or press Escape, before setting part of it below or above the line.',
+      )
+    }
     for (const selected of [null, 'H2O', { start: 2, end: 1, text: 'H2O' }, { start: 0, end: 9, text: 'H2O' }, { start: 0.5, end: 2, text: 'H2O' }]) {
       const action = { type: 'setBaseline', key: '/content/0', baseline: 'subscript', selected } as unknown as EditorAction
       expect(editor.dispatch(action), JSON.stringify(selected)).toMatchObject({ ok: false, code: 'invalid-value' })
@@ -185,9 +191,32 @@ describe('the setBaseline action', () => {
     expect(editor.state().history.canUndo).toBe(false)
   })
 
+  // A text field gives back a line broken by CR LF, or by CR alone, as LF,
+  // as the platform reads a textarea's value: a run a host, a paste or a
+  // proposal wrote so -- which the format takes and the renderer prints as
+  // a line break -- never showed its field the text the report holds, and
+  // every press on it was refused as a stale value no commit or Escape
+  // could change. The field's text is read as the run's, and its offsets
+  // counted back into the run's, CR LF two units there.
+  test('sets the characters selected in a run that breaks its line with CR LF, as its field shows it', () => {
+    const { editor, session } = opened([text('Water:\r\nH2O\rCO2')])
+    const lowered = editor.dispatch({ type: 'setBaseline', key: '/content/0', baseline: 'subscript', selected: { start: 8, end: 9, text: 'Water:\nH2O\nCO2' } })
+    expect(lowered).toEqual({ ok: true, then: { group: '/content/1', button: 0 } })
+    expect(intro(session)).toEqual([text('Water:\r\nH'), text('2', 'subscript'), text('O\rCO2')])
+    // After the lone CR, which the field shows as one LF as well.
+    expect(editor.dispatch({ type: 'setBaseline', key: '/content/2', baseline: 'subscript', selected: { start: 4, end: 5, text: 'O\nCO2' } }).ok).toBe(true)
+    expect(intro(session)).toEqual([text('Water:\r\nH'), text('2', 'subscript'), text('O\rCO'), text('2', 'subscript')])
+    // A selection that ends after a line break takes its CR LF whole, never half of it.
+    const { editor: other, session: second } = opened([text('a\r\nb')])
+    expect(other.dispatch({ type: 'setBaseline', key: '/content/0', baseline: 'superscript', selected: { start: 0, end: 2, text: 'a\nb' } }).ok).toBe(true)
+    expect(intro(second)).toEqual([text('a\r\n', 'superscript'), text('b')])
+  })
+
   // A key that names no run with a baseline to set -- past the content's
   // end, a page counter's, nothing at all, or of no text component -- and
-  // a baseline the format does not have are refused, never thrown on.
+  // a baseline the format does not have are refused, never thrown on, the
+  // latter as a value that is none of the options, not as a name that
+  // names nothing.
   test('refuses what names no run with a baseline, and a baseline the format lacks', () => {
     const { editor, session } = editorOver()
     expect(editor.dispatch({ type: 'select', id: 'page-of' }).ok).toBe(true)
@@ -197,10 +226,25 @@ describe('the setBaseline action', () => {
     }
     const sideways = { type: 'setBaseline', key: '/content/0', baseline: 'sideways' } as unknown as EditorAction
     expect(editor.dispatch(sideways)).toMatchObject({ ok: false, code: 'invalid-value' })
+    expect(editor.state().status.text).toBe('Choose one of the options.')
     expect(editor.dispatch({ type: 'select', id: 'order-code' }).ok).toBe(true)
     expect(editor.dispatch({ type: 'setBaseline', key: '/content/0', baseline: 'superscript' })).toMatchObject({ ok: false, code: 'not-found' })
     expect(editor.dispatch({ type: 'select', id: null }).ok).toBe(true)
     expect(editor.dispatch({ type: 'setBaseline', key: '/content/0', baseline: 'superscript' })).toMatchObject({ ok: false, code: 'not-found' })
+    expect(session.canUndo()).toBe(false)
+  })
+
+  // A run's group is part of every text, and holds no Add or Remove: a
+  // host that sends either for it is told so, about the text. Before 0061
+  // a text had no groups and both were refused as naming nothing; the
+  // refusal that followed the groups was the QR-bill's, which says a part
+  // is part of every bill.
+  test("refuses to add or remove a run's group, saying it is part of the text", () => {
+    const { editor, session } = opened([text('H2O'), text(' and more')])
+    for (const type of ['addGroup', 'removeGroup'] as const) {
+      expect(editor.dispatch({ type, key: '/content/1' }), type).toMatchObject({ ok: false, code: 'unavailable' })
+      expect(editor.state().status.text).toBe('Part 2: Text is part of the text: it is edited in its field, never added or removed.')
+    }
     expect(session.canUndo()).toBe(false)
   })
 

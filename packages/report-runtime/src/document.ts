@@ -75,8 +75,9 @@ export const SHIFTED_SIZE = 0.58
  * its paragraph's size, up positive: 0.75 of the reduced size up for a run
  * set above the line, 0.35 of it down for one below, 0.435 and 0.203 of the
  * paragraph's size. pdfmake 0.3.11's own figures (`Renderer.js`'s
- * `offsetText`), as `SHIFTED_SIZE` is. The line is laid out as though the
- * run stood on it: the move takes no room of its own.
+ * `offsetText`), as `SHIFTED_SIZE` is. The move itself takes no room in
+ * the line: what room a line makes for such a run, below or above it, is
+ * the engine's.
  */
 export const SHIFTED_RISE: Readonly<Record<BaselineShift, number>> = { superscript: 0.75 * SHIFTED_SIZE, subscript: -0.35 * SHIFTED_SIZE }
 

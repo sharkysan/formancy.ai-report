@@ -94,24 +94,25 @@ group of the element's own size, and a callback for links, would be
 svg-to-pdfkit's to add; neither has been asked of it
 ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
-### A run set below or above the line makes no room of its own
+### A raised run makes no room of its own, and a lowered one spaces its line
 
 pdfmake lays a line out as though such a run stood on it, and moves the
 run only when it draws it, so a raised run reaches above its line's text
-and a lowered one below. Computed from the faces' lines, by the corpus's
-box, one size tall and a fifth below the baseline, a raised run's reaches
-0.899 of its paragraph's size above the baseline and a lowered one's
-0.319 below, against the line's own 0.8 and 0.2. In Roboto, whose line is
-1.172 ems, the boxes stay apart from the lines above and below, which
-`report-render-pdf/src/shifted.test.ts` holds on the PDF of a wrapped
-paragraph; in Liberation Serif, 1.107 ems, a lowered run's box reaches
-0.012 of the size into the next line's, which no test draws. By
-the glyphs, read with fontkit 2.0.4 on 15 November 2026, a lowered g can
-touch an Ä on the line below, and a raised Ä a g on the line above, which
-the corpus's boxes do not see, as they see no touching accent. A host
-face of a shorter line is not proved. Room in the line would have to be
-pdfmake's to make, or the line drawn outside pdfmake's text
-([0061](../decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+and a lowered one below. The renderer makes room below a line that holds
+a lowered run, `LOWERED_LINE` of the size to the next line's baseline,
+which `report-render-pdf/src/shifted.test.ts` holds on the PDF, so a
+wrapped paragraph's lines stand apart unevenly, 0.046 of the size in
+Roboto and 0.111 in Liberation Serif. Room above a raised run cannot be
+asked of pdfmake. By the corpus's box, one size tall and a fifth below the
+baseline, a raised run's reaches 0.899 of its paragraph's size above the
+baseline, against the line's own 0.8, clear of the line above in Roboto,
+whose line is 1.172 ems, and in Liberation Serif, 1.107, by 0.008 of the
+size. By the glyphs, read with fontkit 2.0.4 on 16 November 2026, a
+lowered g still reaches a raised Ä under it, and a raised Ä a g on the
+line above, which the corpus's boxes do not see, as they see no touching
+accent. A host face whose line is shorter than 1.099 ems is not proved.
+Room above would have to be pdfmake's to make, or the line drawn outside
+pdfmake's text ([0061](../decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
 
 ### An SVG logo costs every reader, and some files are refused
 

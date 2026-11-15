@@ -89,13 +89,14 @@ export function partActions(lent: PartLent, t: EditorText, locale: EditorLocale)
   }
 
   /**
-   * Why `group`, no optional one, is not added or removed: a bill's is part
-   * of every bill (0039); an e-invoice's is part of every invoice of its
-   * kind, or, an item of a list, is added and removed by the list's buttons
-   * (0044).
+   * Why `group`, no optional one, is not added or removed: a text's run is
+   * part of the text, edited in its field (0061); a bill's is part of every
+   * bill (0039); an e-invoice's is part of every invoice of its kind, or,
+   * an item of a list, is added and removed by the list's buttons (0044).
    */
   function notOptional(group: GroupSpec, target: PropertyTarget): string {
     const name = groupName(group, t)
+    if (target.kind === 'component') return t('status.notOptionalRun', { name })
     if (target.kind !== 'part' || target.part !== 'eInvoice') return t('status.notOptional', { name })
     if (group.item !== undefined) return t('status.notOptionalItem', { name })
     return t('status.notOptionalInvoice', { name, kind: t(target.invoice.kind === 'xrechnung' ? 'kind.xrechnung' : 'kind.facturX') })

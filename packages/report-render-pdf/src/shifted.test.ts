@@ -2,8 +2,8 @@ import { baselineOf, readPdf, SHIFTED_FIXTURES, type PdfTextItem } from '@forman
 import { RenderRefusal, SHIFTED_RISE, SHIFTED_SIZE, type BaselineShift, type Inline, type Paragraph, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { renderPdf } from './node.js'
-import { checkShifted } from './shifted.js'
-import { bareDocument, documentOf, TIMEOUT } from './testing/documents.js'
+import { checkShifted, LOWERED_LINE } from './shifted.js'
+import { bareDocument, documentOf, LINE, TIMEOUT } from './testing/documents.js'
 
 /**
  * A run set below or above the line (0061), on the PDF pdfmake produced and
@@ -65,6 +65,40 @@ function setIn(document: ResolvedDocument): { text: string; shift: BaselineShift
     block.kind === 'paragraph'
       ? block.runs.flatMap((each) => ('text' in each && each.baseline !== undefined ? [{ text: each.text, shift: each.baseline }] : []))
       : [],
+  )
+}
+
+/** Liberation Serif 2.1.5's line, as a multiple of the font size: its ascender and descender, 1825 and 443 of 2048 units, as the renderer reads a host face's (`host-fonts.ts`). */
+const SERIF_LINE = (1825 + 443) / 2048
+
+/**
+ * The lines of a paragraph of `size` on `items`, top to bottom, by the
+ * baselines of its runs on the line, and the line each run stands on: a run
+ * set off the line by the nearest baseline, within half the size.
+ */
+function linesOf(items: readonly PdfTextItem[], size: number): { readonly baselines: readonly number[]; readonly lineOf: (item: PdfTextItem) => number } {
+  const onLine = items.filter((item) => Math.abs(item.height - size) <= POINT)
+  const baselines = [...new Set(onLine.map((item) => Math.round(baselineOf(item) * 100) / 100))].sort((a, b) => a - b)
+  return { baselines, lineOf: (item) => baselines.findIndex((baseline) => Math.abs(baseline - baselineOf(item)) < 0.5 * size) }
+}
+
+/**
+ * Every pair of runs on different lines whose boxes, as the corpus draws a
+ * run's, share more than `POINT` both ways: none may. Two runs set solid,
+ * one under the other, touch, which rounding leaves a little either side.
+ */
+function overlapping(items: readonly PdfTextItem[], lineOf: (item: PdfTextItem) => number): string[] {
+  const shared = (from: number, to: number, otherFrom: number, otherTo: number): boolean => Math.min(to, otherTo) - Math.max(from, otherFrom) > POINT
+  return items.flatMap((item, index) =>
+    items
+      .slice(index + 1)
+      .filter(
+        (other) =>
+          lineOf(other) !== lineOf(item) &&
+          shared(item.top, item.bottom, other.top, other.bottom) &&
+          shared(item.x, item.x + item.width, other.x, other.x + other.width),
+      )
+      .map((other) => `'${item.text}' on line ${lineOf(item) + 1} and '${other.text}' on line ${lineOf(other) + 1}`),
   )
 }
 
@@ -135,12 +169,15 @@ describe('a run set below or above the line, on the PDF', () => {
   )
 
   // pdfmake makes no room for a run set off the line: a raised run's box
-  // reaches above its line's text, a lowered one's below. In Roboto, whose
-  // line is 1.172 ems, 0061 computes that each stays clear of the lines
-  // above and below; drawn closer, a formula's digit would print over the
-  // line before. The corpus's wrapped paragraph, whose runs set both ways
-  // stand on lines with a line above and a line below, is read where it
-  // was drawn, each run's box against every run of another line.
+  // reaches above its line's text, a lowered one's below. The renderer
+  // makes room below a line that holds a lowered run, `LOWERED_LINE` of the
+  // size to the next line's baseline where the face's own line is less,
+  // and leaves every other line its face's: without it, a formula's digit
+  // would print over a raised run on the line below. The corpus's wrapped
+  // paragraph, whose runs set both ways stand on lines with a line above
+  // and a line below, is read where it was drawn: each run's box against
+  // every run of another line, set off it or not, and each line's
+  // distance from the next.
   test(
     'stands clear of the lines above and below it where its paragraph wraps',
     async () => {
@@ -148,9 +185,7 @@ describe('a run set below or above the line, on the PDF', () => {
       const wrapped = formulas.document.body.at(-1) as Paragraph
       const size = wrapped.style!.size!
       const items = await rendered(bareDocument('Wrapped', [wrapped]))
-      const onLine = items.filter((item) => Math.abs(item.height - size) <= POINT)
-      const baselines = [...new Set(onLine.map((item) => Math.round(baselineOf(item) * 100) / 100))].sort((a, b) => a - b)
-      const lineOf = (item: PdfTextItem): number => baselines.findIndex((baseline) => Math.abs(baseline - baselineOf(item)) < 0.5 * size)
+      const { baselines, lineOf } = linesOf(items, size)
       const shifted = items
         .filter((item) => item.height < size - POINT)
         .map((item) => ({ item, line: lineOf(item), raised: baselineOf(item) < baselines[lineOf(item)]! }))
@@ -158,13 +193,47 @@ describe('a run set below or above the line, on the PDF', () => {
       // Some line between the first and the last holds a raised run and a lowered one.
       const inner = shifted.filter(({ line }) => line > 0 && line < baselines.length - 1)
       expect(new Set(inner.map(({ raised }) => raised))).toEqual(new Set([true, false]))
-      for (const { item, line } of shifted) {
-        const touched = onLine.filter(
-          (other) =>
-            lineOf(other) !== line && item.top < other.bottom && other.top < item.bottom && item.x < other.x + other.width && other.x < item.x + item.width,
-        )
-        expect(touched, `'${item.text}' on line ${line + 1}`).toEqual([])
-      }
+      expect(overlapping(items, lineOf)).toEqual([])
+      // Some lines hold a lowered run and some do not: each is as far from the next as it needs, and no farther.
+      const lowered = new Set(shifted.filter(({ raised }) => !raised).map(({ line }) => line))
+      const above = baselines.slice(0, -1).map((_, index) => lowered.has(index))
+      expect(new Set(above)).toEqual(new Set([true, false]))
+      baselines.slice(1).forEach((baseline, index) => {
+        const pitch = lowered.has(index) ? Math.max(LINE, LOWERED_LINE) : LINE
+        expect(baseline - baselines[index]!, `line ${index + 1} to the next`).toBeCloseTo(pitch * size, 2)
+      })
+    },
+    TIMEOUT,
+  )
+
+  // A lowered digit on one line over a raised one on the next: by the
+  // corpus's boxes the two met, in Liberation Serif at 10 points and in
+  // Roboto at 24 by 1.11 pt, though each stood clear of the text on the
+  // line. The line that holds the lowered run is `LOWERED_LINE` of the size
+  // to the next line's baseline -- a lowered run's drop, a raised one's
+  // rise and the small run's own size -- so the two are set solid, one
+  // under the other, their boxes apart.
+  test.each<[string, number]>([
+    ['Liberation Serif', SERIF_LINE],
+    ['Roboto', LINE],
+  ])(
+    'makes room below a line that holds a lowered run for a raised run on the next, in %s',
+    async (face, line) => {
+      const stacked = SHIFTED_FIXTURES.find((each) => each.id === 'shifted-stacked')!
+      const columns = stacked.document.body.flatMap((block) => (block.kind === 'columns' ? [block] : []))
+      const column = columns.find((block) => ((block.columns[0]!.blocks[0] as Paragraph).style!.font === 'serif') === (face === 'Liberation Serif'))!
+      const size = (column.columns[0]!.blocks[0] as Paragraph).style!.size!
+      // That column alone: the corpus's page header and footer print smaller than the body, and no run of theirs is set off the line.
+      const items = await rendered({ ...stacked.document, body: [column], pageHeader: [], pageFooter: [] })
+      const { baselines, lineOf } = linesOf(items, size)
+      expect(baselines).toHaveLength(2)
+      expect(line).toBeLessThan(LOWERED_LINE)
+      expect(baselines[1]! - baselines[0]!).toBeCloseTo(LOWERED_LINE * size, 2)
+      expect(items.filter((item) => item.height < size - POINT).map((item) => [item.text, lineOf(item)])).toEqual([
+        ['2', 0],
+        ['2', 1],
+      ])
+      expect(overlapping(items, lineOf)).toEqual([])
     },
     TIMEOUT,
   )

@@ -44,8 +44,11 @@ is set so, in the paragraph's own face, at pdfmake's own size and move.
   naming the paragraph -- a footnote's mark after a space or before one,
   or beside a field that prints nothing, the data deciding too -- and one
   wider than its line as `content-too-large`. A mark is written against
-  its word, or with a no-break space, U+00A0. A paragraph that sets no
-  baseline is drawn as it was.
+  its word, or with a no-break space, U+00A0. **A line that holds a run
+  set below the line is given room under it** for a raised run on the
+  next, 1.218 of the size to the next line's baseline, so a formula over
+  a unit's power stands clear of it, and a wrapped paragraph's lines stand
+  apart unevenly. A paragraph that sets no baseline is drawn as it was.
 - **In either builder, each run of a text is a group of its own** with
   two buttons, Subscript and Superscript, named after the run and pressed
   while it is set so. A press sets the characters selected in the run's

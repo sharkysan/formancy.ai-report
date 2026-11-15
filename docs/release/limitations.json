@@ -2309,7 +2309,7 @@
       ]
     },
     "0061": {
-      "reviewed": "sha256:78bb2de7f7a76e5b2e52b704f25ad480403ef72cd0568aa98d6a37ac8ba31a51",
+      "reviewed": "sha256:59e77ef5c63b8b0fec9d088329211566732d3caeb53d0a83d60d4aad9957b569",
       "limitations": [
         {
           "area": "format",
@@ -2322,7 +2322,7 @@
         },
         {
           "area": "release",
-          "says": "A report that sets a run below or above the line is refused whole by 0.2.0 as `unknown-property`, so a report saved with one opens only in a release that has the property, and a host that maps every refusal code to its own message meets `misplaced-baseline`, which it has none for."
+          "says": "A report that sets a run below or above the line is refused whole by 0.2.0 as `unknown-property`, so a report saved with one opens only in a release that has the property, and a host that maps every one of report-spec’s error codes to its own message meets `misplaced-baseline`, which it has none for."
         },
         {
           "area": "rendering",
@@ -2341,7 +2341,8 @@
         },
         {
           "area": "rendering",
-          "says": "pdfmake makes no room in a line for such a run, so a raised run reaches above its line’s text and a lowered one below: in Roboto the boxes the corpus computes stay apart from the lines above and below, but in Liberation Serif a lowered run’s box reaches 0.012 of the size into the next line’s, and by their glyphs a lowered g can touch an Ä on the line below in either face, computed and not proved, and not proved at all in a host face of a shorter line."
+          "says": "A line that holds a run set below the line is given room under it, 1.218 of its paragraph’s size to the next line’s baseline, so a wrapped paragraph’s lines stand apart unevenly, 0.046 of the size in Roboto and 0.111 in Liberation Serif; a raised run makes no room above, and by their glyphs a lowered g still reaches a raised Ä under it and a raised Ä a g on the line above, which the corpus’s boxes do not see, computed and not proved, and nothing is proved in a host face whose line is shorter than 1.099 ems.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
         },
         {
           "area": "rendering",

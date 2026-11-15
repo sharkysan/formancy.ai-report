@@ -414,4 +414,5 @@ export const DE_CH: Catalogue = {
   'status.selectionStale':
     'In {name} steht, was eingegeben wurde, nicht was der Bericht enthält: Übernehmen Sie es oder drücken Sie Escape, bevor Sie einen Teil davon tief- oder hochstellen.',
   'status.baselineUnchanged': '{name} ist schon so gesetzt.',
+  'status.notOptionalRun': '{name} gehört zum Text: Er wird in seinem Feld bearbeitet, nie hinzugefügt oder entfernt.',
 }

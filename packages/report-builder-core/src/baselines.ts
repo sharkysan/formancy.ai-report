@@ -10,8 +10,8 @@
  * baseline, so the content stays in as few runs as it can -- and no other
  * run is touched. A builder adds only what the DOM knows, the field's
  * selection and the text it showed, which is applied only to the text the
- * report holds: a refused value left typed in the field is other text, and
- * its offsets would set the wrong characters. Whether the result is a
+ * report holds, as its field shows it: a refused value left typed in the
+ * field is other text, and its offsets would set the wrong characters. Whether the result is a
  * report -- a split past `MAX_INLINES` -- is the validator's to say, when
  * the session applies it (0008).
  *
@@ -114,6 +114,22 @@ const SAID = {
   line: { step: 'history.onTheLine', announce: 'status.onTheLine' },
 } as const
 
+/**
+ * A literal run's text as its field shows it: a line broken by CR LF, or
+ * by CR alone, reads as LF, as the platform gives back a textarea's value.
+ * The format takes either, and the renderer prints both as a line break.
+ */
+function shownText(text: string): string {
+  return text.replace(/\r\n?/gu, '\n')
+}
+
+/** The offset into `text` of `offset` into its field's text, `shownText(text)`: a CR LF is one unit there and two here, and is never cut. */
+function heldOffset(text: string, offset: number): number {
+  let held = 0
+  for (let shown = 0; shown < offset; shown += 1) held += text.startsWith('\r\n', held) ? 2 : 1
+  return held
+}
+
 /** Whether `selected`, from a caller tsc never saw, is a field's selection of `text`: whole offsets, in order, within it. */
 function selects(selected: unknown, text: string): selected is FieldSelection {
   if (typeof selected !== 'object' || selected === null) return false
@@ -137,8 +153,8 @@ function selects(selected: unknown, text: string): selected is FieldSelection {
  * pressed button of the group of the run that holds the text it set,
  * which a split or a join has moved. Refused, the report unchanged, for a
  * key that names no run with a baseline to set -- a page counter's among
- * them -- a selection of text the report does not hold, and a press that
- * would change nothing.
+ * them -- a baseline the format does not have, a selection of text the
+ * report does not hold, and a press that would change nothing.
  */
 export function setRunBaseline(
   lent: BaselineLent,
@@ -161,11 +177,12 @@ export function setRunBaseline(
   if (group === undefined || component === undefined || run === undefined || run.kind === 'pageNumber' || run.kind === 'pageCount')
     return lent.refuse('not-found', t('status.notFound', { name: String(key) }))
   const name = groupName(group, t)
-  if (baseline !== null && !(BASELINE_SHIFTS as readonly unknown[]).includes(baseline))
-    return lent.refuse('invalid-value', t('status.notFound', { name: JSON.stringify(baseline) }))
+  if (baseline !== null && !(BASELINE_SHIFTS as readonly unknown[]).includes(baseline)) return lent.refuse('invalid-value', t('input.option'))
   const shift = baseline as BaselineShift | null
-  if (run.kind === 'text' && selected !== undefined && !selects(selected, run.text)) return lent.refuse('invalid-value', t('status.selectionStale', { name }))
-  const range = run.kind === 'text' && selected !== undefined ? { start: selected.start, end: selected.end } : undefined
+  if (run.kind === 'text' && selected !== undefined && !selects(selected, shownText(run.text)))
+    return lent.refuse('invalid-value', t('status.selectionStale', { name }))
+  const range =
+    run.kind === 'text' && selected !== undefined ? { start: heldOffset(run.text, selected.start), end: heldOffset(run.text, selected.end) } : undefined
   const made = setBaseline(component.content, index, shift, range)
   if (JSON.stringify(made.content) === JSON.stringify(component.content)) return lent.refuse('unavailable', t('status.baselineUnchanged', { name }))
   const said = SAID[shift ?? 'line']

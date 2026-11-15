@@ -101,6 +101,7 @@ describe('the corpus', () => {
     expect(SHIFTED_FIXTURES.map((fixture) => fixture.id)).toEqual([
       'shifted-formulas',
       'shifted-host-fonts',
+      'shifted-stacked',
       'shifted-alone',
       'shifted-after-space',
       'shifted-before-space',

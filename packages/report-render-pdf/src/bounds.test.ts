@@ -5,6 +5,7 @@ import { describe, expect, test, vi } from 'vitest'
 import { leastHeight } from './bound.js'
 import { planFonts } from './host-fonts.js'
 import { renderPdf } from './node.js'
+import { LOWERED_LINE } from './shifted.js'
 import { PADDING_Y } from './table.js'
 import { bareDocument, BODY_HEIGHT, details, documentOf, fixture, ledger, LINE, PAGE, paragraph, TIMEOUT } from './testing/documents.js'
 import { idat, ihdr, NONE, pngOf } from './testing/images.js'
@@ -125,19 +126,25 @@ describe('the page limit', () => {
     ],
     // The empty text is a row pdfmake lays out, in place of detail rows, at the table's size.
     ['a table of no detail rows, its empty text', ledger('empty', []), 2 * (9 * LINE + 2 * PADDING_Y)],
-    // A run set below or above the line is laid out at 0.58 of its paragraph's size (0061), and its line beside a run on the line is that run's: one line of the paragraph's size.
+    // A run set above the line is laid out at 0.58 of its paragraph's size (0061), and its line beside a run on the line is that run's: one line of the paragraph's size.
     [
-      'a paragraph with a run set below the line, one line of its size',
-      { kind: 'paragraph', runs: [{ text: 'H' }, { text: '2', baseline: 'subscript' }, { text: 'O' }], style: { size: 12 } },
+      'a paragraph with a run set above the line, one line of its size',
+      { kind: 'paragraph', runs: [{ text: 'm' }, { text: '2', baseline: 'superscript' }], style: { size: 12 } },
       12 * LINE,
     ],
-    // Of nothing but such runs -- which the renderer refuses later, once pdfmake has measured its words -- its line is theirs, 0.58 of its size: counted at the paragraph's size, the bound would be more than pdfmake lays out, and a body that fits could be refused as too long first.
+    // A run set below it asks pdfmake for room under its line, LOWERED_LINE of the size, more than Roboto's line: counted at the run's own small line, the bound would be less than pdfmake lays out, and a line no page can hold could pass it.
     [
-      'a paragraph of nothing but runs set off the line, one line of their size',
+      'a paragraph with a run set below the line, one line with room under it',
+      { kind: 'paragraph', runs: [{ text: 'H' }, { text: '2', baseline: 'subscript' }, { text: 'O' }], style: { size: 12 } },
+      12 * LOWERED_LINE,
+    ],
+    // Of nothing but runs set above it -- which the renderer refuses later, once pdfmake has measured its words -- its line is theirs, 0.58 of its size: counted at the paragraph's size, the bound would be more than pdfmake lays out, and a body that fits could be refused as too long first.
+    [
+      'a paragraph of nothing but runs set above the line, one line of their size',
       {
         kind: 'paragraph',
         runs: [
-          { text: '2', baseline: 'subscript' },
+          { text: '2', baseline: 'superscript' },
           { text: '3', baseline: 'superscript' },
         ],
         style: { size: 12 },

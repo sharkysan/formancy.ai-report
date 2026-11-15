@@ -2,7 +2,7 @@ import type { Node, NodeQueries } from 'pdfmake/interfaces.js'
 import type { Block, EpcQrCode, FontFamily, ImageAsset, QrCode, Table, TableRow } from '@formancy/report-runtime'
 import type { CheckedImage } from './assets.js'
 import type { KeepBlock } from './breaks.js'
-import type { RenderFonts } from './host-fonts.js'
+import type { FaceWanted, RenderFonts } from './host-fonts.js'
 import type { QrSymbol } from './qr.js'
 import type { ShiftedRoom } from './shifted.js'
 import type { WordRoom } from './words.js'
@@ -79,6 +79,8 @@ export interface Build {
   readonly paths: ReadonlyMap<Block, string>
   /** The pdfmake family a font token prints in (0043): Roboto, or the host family the report maps it to. */
   readonly familyOf: (token: FontFamily) => string
+  /** The line of the face a run prints in, as a fraction of its size: check.ts resolved every face a block prints in before anything is built. */
+  readonly lineOf: (wanted: FaceWanted) => number
   /** Filled in: every text node whose widest word is held to its room once pdfmake has measured it (`words.ts`). */
   readonly words: WordRoom[]
   /** Filled in: every paragraph that sets a run below or above the line, whose words are held to it once pdfmake has measured them (`shifted.ts`). */
@@ -108,6 +110,7 @@ export function newBuild(
     codes,
     paths,
     familyOf: fonts.familyOf,
+    lineOf: (wanted) => fonts.face(wanted.token, wanted.bold, wanted.italic, '').lineFactor,
     imageKeys: new Map(),
     images: {},
     rules: new Map(),

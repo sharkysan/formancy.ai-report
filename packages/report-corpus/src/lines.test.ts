@@ -85,6 +85,29 @@ describe('pageLines, of a run set below or above the line (0061)', () => {
     expect(lines[0]!.top).toBeCloseTo(200 - 3.915 + 0.2 * 5.22 - 5.22, 6)
   })
 
+  // A charge after its count, SO₄²⁻, is a lowered run and a raised one side
+  // by side, and the raised run stands a lowered digit's width from the
+  // letter, past JOIN_GAP of it: read against its neighbour alone it was a
+  // line of its own, and the formula was found nowhere. It is read against
+  // the run on the line its lowered neighbour was read against, which it
+  // is drawn at the size and the move of.
+  test('reads a run beside another run set off the line against the run on the line that one was read against', () => {
+    const lines = pageLines(
+      page(
+        run('The ion is SO', 50, 100, 9, 60),
+        run('4', 110, 100 + 1.827, 5.22, 2.94),
+        run('2−', 112.94, 100 - 3.915, 5.22, 6.03),
+        run('Next line', 50, 111.7, 9, 40),
+      ),
+    )
+    expect(lines.map((line) => line.text)).toEqual(['The ion is SO42−', 'Next line'])
+    expect(lines[0]!.shifted.map(({ text, shift }) => `${text} ${shift}`)).toEqual(['4 subscript', '2− superscript'])
+    expect(lines[0]!.shifted[1]!.rise).toBeCloseTo(3.915, 6)
+    // Drawn at another move from the letter, the second run is not read so, whatever its neighbour.
+    const moved = pageLines(page(run('The ion is SO', 50, 100, 9, 60), run('4', 110, 100 + 1.827, 5.22, 2.94), run('2−', 112.94, 100 - 3, 5.22, 6.03)))
+    expect(moved.map((line) => line.text)).toEqual(['2−', 'The ion is SO4'])
+  })
+
   // A small run that is not where pdfmake sets one -- moved some other way,
   // drawn at another size, or standing well apart -- is a line of its own,
   // as it always was: the join reads exactly the geometry the document

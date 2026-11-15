@@ -374,8 +374,6 @@ describe('every part of the builder', () => {
     expect(await violations()).toEqual([])
   })
 
-  // A table's column has no place to be moved to on its own, so the tool
-  // that would open the dialog for it says it is unavailable, and opens none.
   // A run's two buttons show only the word they set, and are named after
   // the run, so that two runs' are never one name and a screen reader
   // hears which text a button sets; each says whether it is on (0061). A
@@ -418,6 +416,8 @@ describe('every part of the builder', () => {
     expect(await violations()).toEqual([])
   })
 
+  // A table's column has no place to be moved to on its own, so the tool
+  // that would open the dialog for it says it is unavailable, and opens none.
   test('offers no place dialog for a table’s column', async () => {
     const { user } = mount(everyKind())
     await user.click(screen.getByRole('treeitem', { name: 'SKU' }))

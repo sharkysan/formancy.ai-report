@@ -503,6 +503,17 @@ face, and moves its baseline 0.435 of that size up or 0.203 down, the
 runtime's `SHIFTED_SIZE` and `SHIFTED_RISE`. The page bound counts its
 line at that size.
 
+pdfmake makes no room for such a run in its line. The renderer makes room
+below a line that holds a run set below the line, for a raised run on the
+next: it asks pdfmake for that run's own line as `LOWERED_LINE` of the
+paragraph's size, 1.218 -- the lowered run's drop, a raised run's rise
+and the small run's own size -- through its `lineHeight`, which pdfmake
+lays out below the baseline, so the two are set solid and their boxes
+meet nowhere. A face whose line is that tall needs none, and a line that
+holds no lowered run is laid out as it was, so a wrapped paragraph's lines
+stand apart unevenly: in Roboto 0.046 of the size farther under such a
+line, in Liberation Serif 0.111. The page bound counts the room.
+
 pdfmake lays a line out as tall as its runs' own lines and moves such a
 run only when it draws it, so a line of nothing but such runs would be
 laid out small and drawn into the line before. Once pdfmake has measured a
@@ -630,13 +641,13 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
 - **Measure page regions per page.** They are measured once, every page
   field printed as `maxPages`, so a region that wraps only for some page
   numbers is measured at its widest.
-- **Make room for a run set below or above the line.** pdfmake lays the
-  line out as though the run stood on it, so a raised run reaches above its
-  line's text and a lowered one below. 0061 computes, from the faces'
-  lines, that the corpus's boxes of such runs stay apart from the lines
-  above and below in Roboto, and that a lowered run's reaches 0.012 of the
-  size into the next line's in Liberation Serif; the glyphs themselves can
-  touch an accent, which the boxes do not see.
+- **Make room above a raised run.** pdfmake places a line's baseline its
+  tallest ascender down, and room above cannot be asked of it, so a raised
+  run reaches above its line's text: by the corpus's boxes it stays clear
+  of the line above in Roboto and Liberation Serif, and in a host face
+  whose line is shorter than 1.099 ems it is not proved. A line that holds
+  a lowered run is given room below it (above); the glyphs themselves can
+  still touch an accent, which the boxes do not see.
 - **Draw an SVG as a browser does, compared.** That the PDF shows what a
   browser draws of the same cleaned drawing is held by report-spec's allow
   lists and by review; no browser's rendering is compared with the PDF.

@@ -66,7 +66,9 @@ export const SHIFT_TOLERANCE = 0.01
  * one no-break space, which a footnote's mark is written with, is 0.248 em
  * in Roboto and 0.25 in Liberation Serif, read from their PDFs on 15
  * November 2026. The renderer prints such a run only inside a word that
- * holds text on the line (`shifted.ts`), so none stands farther.
+ * holds text on the line (`shifted.ts`), so none stands farther from the
+ * nearest run of its word: the run on the line, or another run set off it
+ * that is read against that one, as a charge's after its count, SO₄²⁻.
  */
 const JOIN_GAP = 0.3
 
@@ -106,26 +108,55 @@ interface Join {
  * `SHIFTED_SIZE` of that run's size, its baseline moved by `SHIFTED_RISE`,
  * and no farther from it than `JOIN_GAP`, the nearest such run if there are
  * two, as a lowered digit has between two letters. Only a run that is not
- * itself read so stands on its line for another. Only a run of a size that
- * `SHIFTED_SIZE` of another on the page makes is looked at, so a page of
- * one size is read as it was, at no cost.
+ * itself read so stands on its line for another. Then a run beside one read
+ * so -- a charge after its count, SO₄²⁻ -- is read against the run on the
+ * line that one was, at its size and its move, and no farther from its
+ * neighbour than `JOIN_GAP` of it, until no run is added. Only a run of a
+ * size that `SHIFTED_SIZE` of another on the page makes is looked at, so a
+ * page of one size is read as it was, at no cost.
  */
 function joins(across: readonly PdfTextItem[]): Map<PdfTextItem, Join> {
   const sizes = [...new Set(across.map((item) => item.height))]
+  const small = across.filter((item) => sizes.some((size) => Math.abs(item.height - SHIFTED_SIZE * size) <= SHIFT_TOLERANCE))
   const found = new Map<PdfTextItem, Join & { readonly gap: number }>()
-  for (const item of across) {
-    if (!sizes.some((size) => Math.abs(item.height - SHIFTED_SIZE * size) <= SHIFT_TOLERANCE)) continue
+  for (const item of small) {
     for (const beside of across) {
-      if (beside === item || Math.abs(item.height - SHIFTED_SIZE * beside.height) > SHIFT_TOLERANCE) continue
-      const gap = Math.max(item.x - (beside.x + beside.width), beside.x - (item.x + item.width))
-      if (Math.abs(gap) > JOIN_GAP * beside.height) continue
-      const rise = baselineOf(beside) - baselineOf(item)
-      const shift = BASELINE_SHIFTS.find((each) => Math.abs(rise - SHIFTED_RISE[each] * beside.height) <= SHIFT_TOLERANCE)
+      if (beside === item) continue
+      const join = joinOf(item, beside, beside)
       const known = found.get(item)
-      if (shift !== undefined && (known === undefined || Math.abs(gap) < known.gap)) found.set(item, { beside, shift, gap: Math.abs(gap) })
+      if (join !== undefined && (known === undefined || join.gap < known.gap)) found.set(item, join)
     }
   }
-  return new Map([...found].filter(([, { beside }]) => !found.has(beside)))
+  const joined = new Map<PdfTextItem, Join>([...found].filter(([, { beside }]) => !found.has(beside)))
+  for (let added = true; added;) {
+    added = false
+    for (const item of small) {
+      if (joined.has(item)) continue
+      for (const [neighbour, { beside }] of joined) {
+        const join = joinOf(item, neighbour, beside)
+        if (join === undefined) continue
+        joined.set(item, join)
+        added = true
+        break
+      }
+    }
+  }
+  return joined
+}
+
+/**
+ * `item` read as set below or above the line of `beside`, standing within
+ * `JOIN_GAP` of `neighbour` -- `beside` itself, or a run already read
+ * against it: at `SHIFTED_SIZE` of `beside`'s size and its baseline moved
+ * by `SHIFTED_RISE` of it. Undefined where it is drawn otherwise.
+ */
+function joinOf(item: PdfTextItem, neighbour: PdfTextItem, beside: PdfTextItem): (Join & { readonly gap: number }) | undefined {
+  if (Math.abs(item.height - SHIFTED_SIZE * beside.height) > SHIFT_TOLERANCE) return undefined
+  const gap = Math.abs(Math.max(item.x - (neighbour.x + neighbour.width), neighbour.x - (item.x + item.width)))
+  if (gap > JOIN_GAP * beside.height) return undefined
+  const rise = baselineOf(beside) - baselineOf(item)
+  const shift = BASELINE_SHIFTS.find((each) => Math.abs(rise - SHIFTED_RISE[each] * beside.height) <= SHIFT_TOLERANCE)
+  return shift === undefined ? undefined : { beside, shift, gap }
 }
 
 function line(items: PdfTextItem[], joined: ReadonlyMap<PdfTextItem, Join>): Line {

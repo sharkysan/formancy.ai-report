@@ -46,10 +46,14 @@
       its characters as typed; and a paragraph that sets none drawn on
       its line as before;
     - a paragraph wrapped so that raised and lowered runs stand on a line
-      with a line above and below, overlapping nothing on another line,
-      in Roboto alone: that a lowered run's box in Liberation Serif
-      reaches 0.012 of the size into the next line's is computed in the
-      costs below, not proved;
+      with a line above and below, in Roboto: each run's box against every
+      run of another line, set off it or not, overlapping none, and each
+      line `LOWERED_LINE` of the size from the next where it holds a
+      lowered run and its face's line where it holds none; and a lowered
+      digit on one line over a raised one on the next, the corpus's
+      `shifted-stacked`, in Liberation Serif at 10 points and in Roboto at
+      24, the two lines `LOWERED_LINE` of the size apart and the boxes
+      apart;
     - refused as `unsupported`, naming the block and pointing to U+00A0:
       a word of nothing but such runs, a footnote's mark after a space
       and one before a space, whose word holds the space alone, a run
@@ -66,8 +70,9 @@
       no words onto, or a word without its width and cuts, stopping the
       render rather than passing it.
 
-    `src/bounds.test.ts` counts a run so set at its own line, never more
-    than pdfmake lays out; `src/pdfmake.test.ts` holds that pdfmake
+    `src/bounds.test.ts` counts a run set above the line at its own line
+    and one set below it with its room, as pdfmake lays them out, never
+    more; `src/pdfmake.test.ts` holds that pdfmake
     0.3.11 still writes a text node's words as `_inlines`, each with
     `sup`, `sub`, `noNewLine`, `width`, `leadingCut` and `trailingCut`,
     where the renderer reads them, and chains a mark before a space to
@@ -81,9 +86,11 @@
     packed editor's `setBaseline`.
   - **The proof's reader.** report-corpus's `src/lines.test.ts`: a run
     drawn at `SHIFTED_SIZE` of the run beside it and moved by
-    `SHIFTED_RISE` joins that run's line; a small run moved otherwise, at
-    another size or standing apart, and a line of small text of its own,
-    stay lines of their own. `src/check-text.test.ts`: `shiftedRuns`
+    `SHIFTED_RISE` joins that run's line, and a run beside one read so --
+    a charge after its count, SO₄²⁻ -- joins it read against the run on
+    the line that one was; a small run moved otherwise, at another size or
+    standing apart, and a line of small text of its own, stay lines of
+    their own. `src/check-text.test.ts`: `shiftedRuns`
     fails a run expected below or above the line that is drawn on it, at
     another size, or moved otherwise, and a run read below the line that
     the document does not set. `src/fixture.test.ts` derives the runs a
@@ -97,19 +104,25 @@
       the literal runs beside it there, runs the press did not set left as
       they were, and no run of nothing;
     - the editor's action: one undo step, whose outcome sends the keyboard
-      to the pressed button of the run that holds the text; refused, the
-      report unchanged, for a selection of other text than the report
-      holds or none a field could give, a key that names no run with a
-      baseline -- a page counter's among them -- a baseline the format
-      lacks, a press that would change nothing, and, by the validator, a
-      split past `MAX_INLINES`.
+      to the pressed button of the run that holds the text; a run that
+      breaks its line with CR LF or CR set from the text its field shows,
+      its offsets counted back into the run's; refused, the report
+      unchanged, for a selection of other text than the report holds,
+      with nothing selected in it too, or none a field could give, a key
+      that names no run with a baseline -- a page counter's among them --
+      a baseline the format lacks, said as none of the options, a press
+      that would change nothing, and, by the validator, a split past
+      `MAX_INLINES`; and an Add or a Remove of a run's group refused,
+      saying it is part of the text.
 
     `src/properties.test.ts`: each run of a paragraph a group of its own
     with its two buttons, named after the run in the editor's three
     languages, pressed as the run is set, none for a page counter, a QR
     code's content, an EPC code's, a QR-bill's or an e-invoice's texts or
     a table's values, and a bound run rebound keeping its baseline.
-    `src/css.test.ts` admits `aria-pressed`. `BUILDER_SCENARIOS`' two
+    `src/css.test.ts` holds the pressed rule's `aria-pressed` selector to
+    `parts.ts`'s `REPORT_ATTRIBUTES`, which admits it, and its colour to
+    the workbench's variables. `BUILDER_SCENARIOS`' two
     scenarios (`src/scenario-baselines.ts`) -- the digit of H2O selected in
     its field and set below the line from the keyboard, the keyboard
     following it to the run that holds it, undone and redone, and set back
@@ -166,7 +179,19 @@
     - the install gate's modules, run against packages built without
       the code: `shifted.ts` threw on a renderer whose check passed a word
       of nothing but a lowered run, and on an editor without the handler,
-      and `structure.ts` on React's markup drawn without `aria-pressed`.
+      and `structure.ts` on React's markup drawn without `aria-pressed`;
+    - after review, on 16 November 2026: `shifted-stacked` in
+      `corpus.test.ts`, its lowered digit's box over the raised one's by
+      1.11 pt in Liberation Serif at 10 points and in Roboto at 24, and
+      the three cases of `shifted.test.ts` that hold the room, with
+      `content.ts` and `bound.ts` as they were; `bounds.test.ts`'s lowered
+      run without `bound.ts`'s room; the charge, SO₄²⁻, in `lines.test.ts`
+      and in `shifted-formulas` against the committed `lines.ts`, the
+      formula on no page; and in `baselines.test.ts`, a run with CR LF
+      refused as a stale value, a stale field with nothing selected in it
+      passed with the comparison of its text removed, a baseline the
+      format lacks said as a name that names nothing, and a run's group's
+      Add refused as part of every bill.
 
 ## Context
 
@@ -267,9 +292,20 @@ the corpus read the geometry from the runtime, which both depend on.
   document's, held on the PDF by `shifted.test.ts`, so a pdfmake release
   that moved them fails a test before it moves a printed formula.
 - **Measured as pdfmake measures it.** `bound.ts` counts such a run's line
-  at `SHIFTED_SIZE` of the paragraph's, as pdfmake lays it out, so the
-  least height stays never more than pdfmake's. The face's glyph check is
-  the paragraph's, as any run's (`check.ts`).
+  at `SHIFTED_SIZE` of the paragraph's, as pdfmake lays it out, and a
+  lowered run's with its room, below, so the least height stays never
+  more than pdfmake's. The face's glyph check is the paragraph's, as any
+  run's (`check.ts`).
+- **Room below a lowered run.** A line that holds a run set below the
+  line is laid out at least `LOWERED_LINE` of its paragraph's size tall,
+  1.218: the lowered run's drop, a raised run's rise on the next line and
+  the small run's own size, so that a lowered run and a raised one under
+  it are set solid, their baselines the small run's size apart, and
+  their boxes, as the corpus draws them, meet nowhere. It is asked of
+  pdfmake as the lowered run's own line, its `lineHeight`
+  (`loweredLineHeight`), which pdfmake lays out below the baseline. A
+  face whose own line is that tall needs none, and every line that holds
+  no lowered run is laid out as it was.
 - **Never alone on a line.** Once pdfmake has measured a paragraph that
   holds such a run, and before it lays out a line -- where `words.ts`
   reads its widest word -- the renderer reads pdfmake's own words, the
@@ -292,9 +328,10 @@ the corpus read the geometry from the runtime, which both depend on.
 
 **In the proof.** The corpus's line reader joins a run drawn at
 `SHIFTED_SIZE` of a run beside it, its baseline that run's moved by
-`SHIFTED_RISE`, to that run's line, and records it there with its text,
-its size and its move, so that "H2O" is read as one line and a check finds
-it. `expectation` derives the runs a document sets below or above the
+`SHIFTED_RISE`, to that run's line -- and a run beside one so joined, a
+charge after its count, read against the run on the line that one was --
+and records it there with its text, its size and its move, so that "H2O"
+is read as one line and a check finds it. `expectation` derives the runs a document sets below or above the
 line, and `shiftedRuns` holds each, on the PDF, to its size and its
 baseline. The fixtures that do are `SHIFTED_FIXTURES`, beside
 `SVG_FIXTURES` and outside `ALL_FIXTURES`, the corpus the renderer trial
@@ -325,10 +362,14 @@ chose an engine against.
   (`property-fields.ts`, `property-groups.ts`); a builder adds only the
   selection, which only the DOM knows, read from the group's own field
   when its button is pressed, with the text it is of. builder-core
-  applies it only to the text the report holds: a value the session
-  refused stays typed in the field, and offsets into it would set the
-  wrong characters, so the press is refused, saying to commit the field
-  or press Escape. It says where the keyboard goes once the press is
+  applies it only to the text the report holds, as its field
+  shows it -- a line broken by CR LF or by CR alone read as LF, as a
+  textarea gives its value back, its offsets counted back into the run's
+  -- since a value the session refused stays typed in the field, and
+  offsets into it would set the wrong characters: the press is refused,
+  saying to commit the field or press Escape. A run's group is part of
+  the text, so an Add or a Remove sent for it is refused as
+  `unavailable`, saying so. It says where the keyboard goes once the press is
   done, the pressed button of the run that now holds the text, which a
   split or a join moved and which only the press knows: the action's
   outcome carries it (`then`), as a button's own `then` says it where it
@@ -357,9 +398,12 @@ roadmap item 8's other half, and another record's.
   raised minus in Liberation Serif.
 - **A value too.** An exponent, a footnote's number or a unit read from
   the data is raised as a template's own text is.
-- **Nothing printed over the line before.** A run so set always shares
-  its line with a run on the line, which keeps the line its full height,
-  or the paragraph is refused; it is never drawn into the line above.
+- **Nothing printed over the line before, nor over a raised run on the
+  line after.** A run so set always shares its line with a run on the
+  line, which keeps the line its full height, or the paragraph is
+  refused; it is never drawn into the line above. A line that holds a
+  lowered run leaves room under it for a raised run on the next, so a
+  formula over a unit's power on the line below stands clear of it.
 - **One geometry, proved.** The size and the move are stated once, in the
   document, read by the renderer's bound and by the corpus, and held to
   what pdfmake draws on the PDF.
@@ -378,23 +422,27 @@ roadmap item 8's other half, and another record's.
   size and moved 43.5 % up or 20.3 % down, pdfmake's numbers. A face's
   own superscript and subscript metrics (its OS/2 table's) are not read,
   and a run cannot be set smaller, larger, higher or lower.
-- **No room of its own.** pdfmake lays the line out as though the run
-  stood on it, so a raised run reaches above its line's text and a
-  lowered one below. By the corpus's box -- one size tall, a fifth below
-  the baseline -- a raised run reaches 0.899 of the paragraph's size
-  above the baseline where the line's own text reaches 0.8, and a lowered
-  one 0.319 below where it reaches 0.2. Computed from the faces' lines,
-  read with fontkit 2.0.4 on 15 November 2026, and not measured on a
-  PDF: in Roboto, whose line is 1.172 ems, the boxes stay apart
-  from the lines above and below; in Liberation Serif, 1.107 ems, a
-  lowered run's box reaches 0.012 of the size into the next line's, under
-  the corpus's one-point allowance at any size below 83 points. By the
-  glyphs, a lowered g can touch an Ä on the line below, by 0.026 ems in
-  Roboto and 0.031 in Liberation Serif, and a raised Ä a g on the line
-  above, by 0.014 ems in Liberation Serif, each read from the glyphs'
-  boxes with fontkit; the corpus's boxes do not see it, as they see no
-  touching accent (0003). A host face of a shorter line is not proved
-  (0043).
+- **Room below a lowered run, none above a raised one, and lines apart
+  unevenly.** A line that holds a run set below the line stands
+  `LOWERED_LINE` of the size from the next, 0.046 of the size farther
+  than Roboto's own line and 0.111 farther than Liberation Serif's, so a
+  wrapped paragraph's lines stand apart unevenly, and a paragraph that
+  ends on one is that much taller. A raised run takes no room: pdfmake
+  places a line's baseline its tallest ascender down, and room above
+  cannot be asked of it. By the corpus's box -- one size tall, a fifth
+  below the baseline -- a raised run reaches 0.899 of the paragraph's size
+  above the baseline where the line's own text reaches 0.8, clear of the
+  line above in Roboto, whose line is 1.172 ems, and in Liberation Serif,
+  1.107, by 0.008 of the size; a lowered one reaches 0.319 below, clear of
+  the next line's text with the room made, and touching a raised run's
+  box under it, set solid. `shifted.test.ts` holds the boxes on the PDF
+  in Roboto and Liberation Serif. By the glyphs, read with fontkit 2.0.4
+  on 16 November 2026, a lowered g still reaches a raised Ä under it, by
+  0.048 ems in Roboto and 0.015 in Liberation Serif, and a raised Ä a g
+  on the line above, by 0.014 ems in Liberation Serif; the corpus's boxes
+  do not see it, as they see no touching accent (0003). In a host face
+  whose line is shorter than 1.099 ems a raised run's box reaches into
+  the line above's, which is not proved (0043).
 - **Joined to a run on the line, or refused.** A run set below or above
   the line prints only inside a word with a run on the line, as pdfmake
   breaks words (Unicode's line-breaking rules, by the `linebreak` package
@@ -473,12 +521,22 @@ pdfmake takes `sup` and `sub` and no offset: another geometry would mean
 drawing the run outside pdfmake's text, or a patched pdfmake, which is
 0002's copy.
 
-**Room made for the run in its line**, as CSS and word processors make
-it. pdfmake lays a line out by its runs' own lines and ascenders, and
-moves a run only when it draws it, so room above a raised run cannot be
-asked of it. A taller line for the whole paragraph that holds one would
-set its lines apart from the paragraphs around it, and still leave a
+**Room made for the run in its line, above as below**, as CSS and word
+processors make it. pdfmake lays a line out by its runs' own lines and
+ascenders, and moves a run only when it draws it, so room above a raised
+run cannot be asked of it; room below a lowered run can, as that run's own
+line, and is made. A taller line for the whole paragraph that holds one
+would set every one of its lines apart from the paragraphs around it,
+where only a line that holds a lowered run needs it, and still leave a
 line of nothing but such runs drawn above its own top.
+
+**A lowered run over a raised one refused, or accepted.** Which run stands
+over which is known only once pdfmake has laid out the lines, and nothing
+of a line's runs comes back to the renderer then; refused before, every
+paragraph that holds both and wraps would be. Accepted, it is text over
+text, which the corpus finds by its boxes and the repository refuses
+rather than prints (0003). Room costs only the spacing of the lines that
+need it.
 
 **The join held by the format.** The validator sees literal text alone:
 a field's value, a run that prints nothing and where pdfmake breaks a
