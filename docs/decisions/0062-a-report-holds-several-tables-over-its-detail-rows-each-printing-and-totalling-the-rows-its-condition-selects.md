@@ -35,7 +35,9 @@
     case refuses a table's total in a paragraph beside the same total in
     the table's total row. `src/validate-e-invoice.test.ts` refuses the
     lines' table that selects its rows, as `invalid-e-invoice` at
-    `/eInvoice/lines/table`. `src/validate-placement.test.ts` pins
+    `/eInvoice/lines/table`, and a second table where it stands, beside a
+    component that breaks its region as well, where the lines' columns go
+    unchecked. `src/validate-placement.test.ts` pins
     `EXPRESSION_NAMES` with the `table` scope and `group` reading `table`.
   - **The editing core.** report-core's `src/diagnostics/parts.test.ts`
     names a table's condition as an expression of the row's scope, a
@@ -75,8 +77,9 @@
     order; a preview whose data lacks a field the condition reads leaves
     those rows out, warned once; a condition that spends over half the
     render's step budget across the rows resolves in one table and is
-    refused in two; and a condition is read no further once the error
-    list is full.
+    refused in two; a condition is read no further once the error list is
+    full; and a table every column of which is hidden reads no condition,
+    so one that would fail for a row refuses nothing.
     `src/sort-group.test.ts` orders and groups the selected rows, each
     keeping its index in the data, and a selection of none as no rows.
   - **On the PDF.** report-render-pdf's `src/several-tables.test.ts`
@@ -89,8 +92,13 @@
     header, in its order and its groups; each subtotal and total is the
     sum of the rows printed above it; the summary's total is every row's;
     and the table that selects no row prints its empty text and a total
-    of 0. The corpus's checks hold the layout: every row once and in its
-    place, and no run over another.
+    of 0. The corpus's checks hold that order's layout: every row once and
+    in its place, and no run over another. A fourth table, the lines over
+    100 francs, all of them services, prints each of them a second time
+    under its own total, proved line by line alone: the corpus's checks
+    know a row by its key, once on the page, and cannot hold a row two
+    tables print, so the layout of tables whose conditions overlap is held
+    by the lines the PDF reads and by none of them.
   - **What printed prints as before.** report-runtime's
     `src/lower-table.test.ts` and `src/sort-group.test.ts` keep every case
     they held, and its `src/lower.test.ts`, `src/resolve.test.ts` and
@@ -118,15 +126,19 @@
     text, shows the compiler's reason on it for a condition that reads
     `group`, takes the condition away when it is emptied, and refuses one
     on an e-invoice's lines with the validator's reason on the field.
+    `src/outline.test.ts` names each column of a duplicated table by its
+    key, every label in the outline distinct.
     `BUILDER_SCENARIOS` (`src/scenario-tables.ts`) inserts a second table
     into the summary from the keyboard, gives it a condition and undoes
     both, and duplicates a table whose copy, once given a condition, the
-    problems warn of. React's `src/scenarios.test.tsx` and Angular's
+    problems warn of, then selects the copy's Amount column by its name
+    beside the table's own. React's `src/scenarios.test.tsx` and Angular's
     `src/scenarios.test.ts` run both scenarios in three languages, with
-    axe over the end of each. The Studio's `src/parity.test.tsx` now
-    places a table in every starter with detail rows but the e-invoice's,
-    where it used to find none, and compares the two builders' trees at
-    each state.
+    axe over the end of each. The Studio's `src/parity.test.tsx` places a
+    table in every starter with detail rows but the e-invoice's, and
+    finds it none there or in a starter without detail rows: a walk that
+    reaches the other fails. It compares the two builders' trees at each
+    state.
   - **The install gate.** `scripts/install-fixture/consume.ts` holds the
     packed validator to refusing a table past `MAX_TABLES` as `too-many`
     at its own path, and to giving that report no hash, where it held it
@@ -157,6 +169,20 @@
     - `consume.ts`'s former check, a second table refused, fails against
       the validator built for the packing, which accepts one, where its
       new one passes.
+
+    And on 16 November 2026, in the same way:
+    - builder-core's `outline.test.ts` case failed against the labels
+      that followed a column by its id alone, which read "SKU (sku)" in
+      both tables;
+    - the Studio's `parity.test.tsx` failed in the quotation starter with
+      the second table's old refusal put back in report-spec, and passed
+      for every English starter with it taken out again;
+    - report-runtime's hidden-columns case failed, the render refused,
+      with the rows selected before the columns were shown;
+    - report-spec's case of a second table beside a broken region failed
+      with the second table said only where the regions were read whole;
+    - report-render-pdf's overlapping case failed with the fourth table's
+      condition taken out.
 
 ## Context
 
@@ -339,8 +365,13 @@ It is named as the component's condition is, "Show rows only when",
 table has it, an e-invoice's lines' table among them, where every
 condition typed is refused with the validator's reason on the field, as
 the table's own `visibleWhen` is: whether a table may select is the
-validator's to say, in one place. Two scenarios of `BUILDER_SCENARIOS`
-hold both builders to it.
+validator's to say, in one place. A duplicate keeps its columns' ids,
+which are its table's alone, so where a column's label and id still read
+as another table's column's, builder-core's `reportLabels` names it by
+its key, its table's id and its own, "Amount (lines-2/amount)": an
+outline row, a properties heading and a problem's place name it, and two
+of one name could be told apart by no screen reader and found by no
+test. Two scenarios of `BUILDER_SCENARIOS` hold both builders to it.
 
 **What does not change.** One detail dataset, one level of grouping per
 table, and the renderer, which already draws any number of tables, each

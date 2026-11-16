@@ -72,6 +72,8 @@ export function tablesScenarios(locale: EditorLocale): readonly BuilderScenario[
   const button = (name: string): ScenarioQuery => ({ role: 'button', name })
   /** A table's outline row once two read the same: its kind and its id. */
   const copy = (id: string): string => t('outline.duplicate', { label: table, id })
+  /** A column's outline row once a copy of its table repeats it: its heading, and its table's id beside its own. */
+  const column = (tableId: string, id: string, header: string): string => t('outline.duplicate', { label: header, id: `${tableId}/${id}` })
   const condition: ScenarioQuery = { role: PROPERTY_ROLES.expression, name: t('field.rowsWhen') }
   const chooser: ScenarioQuery = { role: 'dialog', name: t('places.insert', { kind: table }) }
   const problems: ScenarioQuery = { role: 'status', name: t('pane.problems') }
@@ -110,7 +112,10 @@ export function tablesScenarios(locale: EditorLocale): readonly BuilderScenario[
     // A duplicate keeps everything its table had, its total row of every
     // line among it, which no builder edits yet: given a condition, the
     // copy prints some lines over a total of all of them, and the problems
-    // say so of the copy, a warning, until the condition is undone.
+    // say so of the copy, a warning, until the condition is undone. Its
+    // columns keep their ids too, and each is still a row of its own name,
+    // its table's id beside its own: the copy's Amount is selected by name
+    // and the table's own is not.
     scenario('duplicate a table, and a condition on the copy warns of its total of every row', [
       { do: 'click', ...tree(table) },
       { do: 'press', key: 'd', modifiers: ['Control'] },
@@ -123,6 +128,9 @@ export function tablesScenarios(locale: EditorLocale): readonly BuilderScenario[
       { do: 'click', ...undo },
       { expect: 'absent', ...warned },
       { expect: 'document', says: 'the copy prints every row again', check: (report) => tables(report) === 'lines:every row, lines-2:every row' },
+      { do: 'click', ...tree(column('lines-2', 'amount', 'Amount')) },
+      { expect: 'focused', ...tree(column('lines-2', 'amount', 'Amount'), true) },
+      { expect: 'present', ...tree(column('lines', 'amount', 'Amount'), false) },
     ]),
   ]
 }

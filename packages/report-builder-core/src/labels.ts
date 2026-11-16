@@ -101,9 +101,20 @@ function columnLabel(header: string, t: EditorText): string {
   return tidy(header) || kindLabel('tableColumn', t)
 }
 
+/** The labels that occur more than once among `labels`. */
+function repeated(labels: readonly string[]): ReadonlySet<string> {
+  const seen = new Set<string>()
+  const again = new Set<string>()
+  for (const label of labels) (seen.has(label) ? again : seen).add(label)
+  return again
+}
+
 /**
  * Every component's and every table column's label, by key, unique in the
- * report: where two would read the same, each is followed by its id.
+ * report: where two would read the same, each is followed by its id. A
+ * column's id is its table's alone, and a duplicated table keeps its
+ * columns' (0062), so where a column's label and id still read as
+ * another's, it is followed by its key, its table's id and its own.
  */
 export function reportLabels(report: ReportDefinition, t: EditorText): ReadonlyMap<string, string> {
   const raw: (readonly [key: string, id: string, label: string])[] = []
@@ -112,7 +123,8 @@ export function reportLabels(report: ReportDefinition, t: EditorText): ReadonlyM
     if (component.kind === 'table')
       for (const column of component.columns) raw.push([columnKey(component.id, column.id), column.id, columnLabel(column.header, t)])
   }
-  const counts = new Map<string, number>()
-  for (const [, , label] of raw) counts.set(label, (counts.get(label) ?? 0) + 1)
-  return new Map(raw.map(([key, id, label]) => [key, (counts.get(label) ?? 0) > 1 ? t('outline.duplicate', { label, id }) : label]))
+  const twice = repeated(raw.map(([, , label]) => label))
+  const named = raw.map(([key, id, label]) => [key, id, label, twice.has(label) ? t('outline.duplicate', { label, id }) : label] as const)
+  const still = repeated(named.map(([, , , unique]) => unique))
+  return new Map(named.map(([key, id, label, unique]) => [key, key !== id && still.has(unique) ? t('outline.duplicate', { label, id: key }) : unique]))
 }

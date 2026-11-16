@@ -173,7 +173,7 @@ function flatten(draft: Draft, fields: readonly FieldDef[], place: Place, list: 
         draft,
         'repeater-excluded',
         where,
-        `${named(`${place.target}${def.key}`)} is left out: a report has one detail table, and its rows are one per submission`,
+        `${named(`${place.target}${def.key}`)} is left out: a report has one detail dataset, and its rows are one per submission`,
       )
     else into.push(...leaf(draft, def, place, where, 'detail'))
   }
@@ -207,7 +207,7 @@ function blocksOf(
           draft,
           'repeater-excluded',
           where,
-          `${named(path)} is left out: a report has one detail table, and ${detail?.kind === 'repeater' ? 'another repeater is its rows' : 'none was asked for'}`,
+          `${named(path)} is left out: a report has one detail dataset, and ${detail?.kind === 'repeater' ? 'another repeater is its rows' : 'none was asked for'}`,
         )
         continue
       }

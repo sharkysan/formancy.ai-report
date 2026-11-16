@@ -167,6 +167,43 @@ export const SEVERAL_TABLES: ReportDefinition = {
   },
 }
 
+/**
+ * The same order with a fourth table whose condition overlaps another's:
+ * **Largest lines**, every line over 100 francs, largest first, closed by
+ * its own total. The order's largest lines are services, so each prints
+ * twice, once in each table, and each table totals it as its own.
+ */
+export const OVERLAPPING_TABLES: ReportDefinition = {
+  ...SEVERAL_TABLES,
+  id: 'order-largest-lines',
+  regions: {
+    ...SEVERAL_TABLES.regions,
+    body: [
+      ...SEVERAL_TABLES.regions.body,
+      { id: 'largest-heading', kind: 'text', style: 'heading', content: [text('Largest lines')], keepWithNext: true },
+      {
+        id: 'largest',
+        kind: 'table',
+        dataset: 'detail',
+        rowsWhen: { cel: 'row.amount > dec("100")' },
+        columns: columns('Line', 'Qty'),
+        sort: [{ field: detail('amount'), direction: 'desc' }],
+        totals: [
+          {
+            cells: [
+              { column: 'item', value: text('Largest total') },
+              { column: 'amount', value: net('table') },
+            ],
+            style: 'strong',
+          },
+        ],
+        emptyText: 'No line over 100 francs.',
+        repeatHeader: true,
+      },
+    ],
+  },
+}
+
 /** One line of the order, as the provider gives it. */
 export interface OrderLine {
   readonly item: string

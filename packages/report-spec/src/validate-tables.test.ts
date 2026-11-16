@@ -168,6 +168,12 @@ describe("a total over a table's rows", () => {
     expect(refusals(report)).toEqual([])
   })
 
+  // A paragraph stands under no table, so a table's total there would be
+  // some table's, or the report's, with nothing to say whose; a cell is
+  // read row by row, where the condition and every row value the table is
+  // totalled from are read, so its total there would be read before it is
+  // known. Each is `misplaced-table-aggregate` where it stands, as an
+  // aggregate over a group is outside a group's rows.
   test('is refused in a paragraph and in a cell', () => {
     const paragraph = editable(richReport())
     setAt(paragraph, '/regions/body/0/content/2', { kind: 'aggregate', aggregate: 'lines', over: 'table' })

@@ -57,7 +57,12 @@ runtime, draws it, and holds the PDF line by line to what the test itself
 selects, orders and totals from the data: each table's rows under its own
 header, its groups' subtotals and its total, the summary's total of every
 row, and the empty table's text and total of 0. The corpus's checks hold
-the layout, every row once and in its place and no run over another
+the layout, every row once and in its place and no run over another. A
+fourth table over lines another prints too, the order's largest lines,
+is held line by line alone: the corpus's checks know a row by its key,
+once on the page, and cannot hold a row printed in two tables, so where
+two tables' conditions overlap, nothing but the lines the PDF reads
+holds the layout
 ([0062](../decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
 
 **The payment codes, at every layer that reads them.** Each code's rules

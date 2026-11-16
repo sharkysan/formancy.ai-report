@@ -1,10 +1,10 @@
 import { readPdf, verify } from '@formancy/report-corpus'
-import { resolveReport, type ResolvedDocument } from '@formancy/report-runtime'
+import { resolveReport, type ReportDefinition, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { renderPdf } from './node.js'
 import { fixtureOf, normalise, TIMEOUT } from './testing/documents.js'
 import { pageLines } from './testing/lines.js'
-import { ORDER_LINES, orderData, SEVERAL_TABLES, type OrderLine } from './testing/several-tables.js'
+import { ORDER_LINES, orderData, OVERLAPPING_TABLES, SEVERAL_TABLES, type OrderLine } from './testing/several-tables.js'
 
 /**
  * Several tables over one detail dataset (0062), end to end: the order's
@@ -15,7 +15,9 @@ import { ORDER_LINES, orderData, SEVERAL_TABLES, type OrderLine } from './testin
  * where its table prints, nothing over a margin or over other text. What
  * each table prints is proved apart from the runtime: its lines selected,
  * ordered and grouped here from the data, each total recomputed in plain
- * BigInt and formatted with Intl, and the PDF must read exactly that.
+ * BigInt and formatted with Intl, and the PDF must read exactly that. A
+ * fourth table over lines the services print too is proved by its lines
+ * alone, since the corpus's checks hold each row's key to one place.
  */
 
 const CREATED = '2026-11-15T08:00:00Z'
@@ -56,8 +58,18 @@ function serviceLines(): string[] {
   return [...services.map(printed), `Services total ${francs(sum(services))}`, `Service lines ${services.length} of ${ORDER_LINES.length}`]
 }
 
-async function rendered(): Promise<{ readonly document: ResolvedDocument; readonly lines: string[]; readonly pdf: Awaited<ReturnType<typeof readPdf>> }> {
-  const outcome = resolveReport(SEVERAL_TABLES, orderData(), { mode: 'final', creationDate: CREATED })
+/** The lines over 100 francs, largest first, then the table's total. */
+function largestLines(): string[] {
+  const largest = ORDER_LINES.filter((row) => cents(row.amount) > 10000n).sort((a, b) =>
+    cents(a.amount) > cents(b.amount) ? -1 : cents(a.amount) < cents(b.amount) ? 1 : 0,
+  )
+  return [...largest.map(printed), `Largest total ${francs(sum(largest))}`]
+}
+
+async function rendered(
+  report: ReportDefinition = SEVERAL_TABLES,
+): Promise<{ readonly document: ResolvedDocument; readonly lines: string[]; readonly pdf: Awaited<ReturnType<typeof readPdf>> }> {
+  const outcome = resolveReport(report, orderData(), { mode: 'final', creationDate: CREATED })
   if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.stage} ${error.code} ${error.path} ${error.message}`).join('; ')}`)
   const pdf = await readPdf(await renderPdf(outcome.document, { maxPages: 5 }))
   return { document: outcome.document, lines: pdf.pages.flatMap((page) => pageLines(page).map((line) => line.text)), pdf }
@@ -103,6 +115,42 @@ describe('several tables over one detail dataset', () => {
       const { document, pdf } = await rendered()
       expect(document.body.filter((block) => block.kind === 'table').map((block) => block.id)).toEqual(['goods', 'services', 'returns'])
       expect(verify(fixtureOf('several-tables', document, { maxPagesExpected: 1, exactText: ['No returns on this order.'] }), pdf)).toEqual([])
+    },
+    TIMEOUT,
+  )
+
+  // Two tables whose conditions overlap: a line over 100 francs is a
+  // service and one of the largest lines, and prints in both tables, each
+  // in its own order and under its own total. A runtime that handed a row
+  // to the first table that selects it, and no other, would print the
+  // largest lines empty here, or the services short. Proved line by line
+  // alone: the corpus's checks know a row by its key, once on the page,
+  // and cannot hold a row printed twice.
+  test(
+    'prints a row in every table whose condition selects it',
+    async () => {
+      const { lines } = await rendered(OVERLAPPING_TABLES)
+      const largest = ORDER_LINES.filter((row) => cents(row.amount) > 10000n)
+      expect(largest.length).toBeGreaterThan(1)
+      expect(largest.every((row) => row.kind === 'service')).toBe(true)
+      expect(lines).toEqual([
+        'Order 4711',
+        'Goods delivered',
+        'Item Qty Amount',
+        ...goodsLines(),
+        'Services rendered',
+        'Service Hours Amount',
+        ...serviceLines(),
+        'Returns',
+        'Returned item Qty Amount',
+        'No returns on this order.',
+        `Returns total ${francs(0n)}`,
+        'Return lines 0',
+        'Largest lines',
+        'Line Qty Amount',
+        ...largestLines(),
+        `Order total ${francs(sum(ORDER_LINES))} for ${ORDER_LINES.length} lines`,
+      ])
     },
     TIMEOUT,
   )

@@ -109,7 +109,9 @@ const editor = createReportEditor(opening.session, {
   payment code by its kind and whom it pays ("EPC payment code: Franz
   Mustermänn"), a bound run by what it binds. Labels are unique in the
   report, so each can be an accessible name; where two would read the
-  same, each gets its id.
+  same, each gets its id, and a column that still reads as another
+  table's column, a duplicate's keeping its ids, gets its table's id
+  before its own ("Amount (lines-2/amount)", 0062).
 - **`outlineParts`**: a row for each part of the report's own level, after
   the regions: a report's payment part, its Swiss QR-bill, named as SIX
   names the part ("Payment part", "Zahlteil", "Section paiement"), with

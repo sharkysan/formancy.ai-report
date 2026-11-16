@@ -67,16 +67,27 @@ recording holds them.
 - **The renderer is unchanged**, and proved on the PDF it draws of an order
   in three tables, `several-tables.test.ts`: each table's rows, order,
   groups and totals line by line, the summary's total of every row, and the
-  empty table's text and total.
+  empty table's text and total. A fourth table over lines the services
+  print too prints each of them in both, held line by line alone, since the
+  corpus's checks know a row by its key, once on the page.
 - **Both builders add a further table and give it its condition.** The
   palette's Table is placed beside a table the report holds, and nowhere in
   a report that is an e-invoice, so the Studio's palette now places one in
   every starter with detail rows but the e-invoice; a table's properties
   gain "Show rows only when" ("Zeilen nur anzeigen, wenn", "Afficher les
-  lignes seulement si"), after its empty text. **`BUILDER_SCENARIOS` gains
-  two scenarios**, a second table inserted and given its condition and a
-  duplicate's condition warned of, which every host's runner of the
-  scenarios now runs.
+  lignes seulement si"), after its empty text. A duplicate keeps its
+  columns' ids, so a column whose label and id read as another table's
+  column's is named by its table's id and its own, "Amount
+  (lines-2/amount)", in its outline row, its properties heading and a
+  problem's place: two of one name could be told apart by no screen reader.
+  A label its id already made unique is unchanged. **`BUILDER_SCENARIOS`
+  gains two scenarios**, a second table inserted and given its condition
+  and a duplicate's condition warned of, its copied column selected by
+  name, which every host's runner of the scenarios now runs.
+- **report-forms' `repeater-excluded` note** gives its reason as "a report
+  has one detail dataset", where it said one detail table, which a report
+  may now hold several of; the code and what the generator leaves out are
+  unchanged.
 - **What it costs.** One detail dataset still: two lists from two sources, a
   subreport and a nested detail are the roadmap's. A table's own total
   prints inside the table alone, and a cell cannot read it. In a builder a

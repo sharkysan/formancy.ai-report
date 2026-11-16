@@ -108,6 +108,30 @@ describe('the outline', () => {
     expect(body?.slice(0, 2)).toEqual(['Introduction (intro)', 'Introduction (intro-2)'])
   })
 
+  // A duplicated table keeps its columns' ids (0062), so its id alone would
+  // name each copied column as it names the original's: a problem on the
+  // copy's Amount would read as one on the table's own, and neither row
+  // could be found by its name. Where a column's label and id still repeat,
+  // it says its table's id too.
+  test('makes a duplicated table’s columns unique with their table’s id', () => {
+    const { editor } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    ok(editor.dispatch({ type: 'duplicate' }))
+    const labels = editor
+      .state()
+      .outline.flatMap((region) => flat(region.nodes))
+      .map((node) => [node.key, node.label] as const)
+    expect(labels.filter(([key]) => key.startsWith('lines'))).toEqual([
+      ['lines', 'Table (lines)'],
+      ['lines/sku', 'SKU (lines/sku)'],
+      ['lines/amount', 'Amount (lines/amount)'],
+      ['lines-2', 'Table (lines-2)'],
+      ['lines-2/sku', 'SKU (lines-2/sku)'],
+      ['lines-2/amount', 'Amount (lines-2/amount)'],
+    ])
+    expect(new Set(labels.map(([, label]) => label)).size).toBe(labels.length)
+  })
+
   // A long paragraph is not an outline row; it is cut where a person can
   // still recognise it, and says it was cut.
   test('cuts a long text’s label short, and collapses its spaces', () => {

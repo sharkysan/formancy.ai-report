@@ -470,6 +470,24 @@ describe('a table that selects its rows (0062)', () => {
     expect(conditions.get('/regions/body/0/rowsWhen/cel')).toBe(MAX_DATA_ERRORS + 1)
   })
 
+  // A table every column of which is hidden prints nothing, and selects
+  // nothing either: its condition is not read for any row, so one that
+  // would fail for a row refuses no render that prints no such table. A
+  // runtime that selected the rows first would refuse a report over a
+  // table nobody sees.
+  test('reads no condition, and refuses nothing for it, when every column is hidden', () => {
+    const failing = 'divide(dec("1"), (row.value - dec("1.10")) * (row.value - dec("0.05")), 2) > dec("0")'
+    const hidden: TableComponent = {
+      ...TABLE,
+      rowsWhen: { cel: failing },
+      columns: TABLE.columns.map((column) => ({ ...column, visibleWhen: { cel: 'params.notes' } })),
+    }
+    conditions.clear()
+    expect(table(ROWS, { notes: false }, holding([hidden]))).toBeUndefined()
+    expect(conditions.get('/regions/body/0/rowsWhen/cel')).toBeUndefined()
+    expect(conditions.get('/regions/body/0/columns/0/visibleWhen/cel')).toBe(1)
+  })
+
   // A preview whose data lacks a field the condition reads leaves those
   // rows out of that table, as a component's condition over it does not
   // hold, and says so once for the condition, not once a row; the rows

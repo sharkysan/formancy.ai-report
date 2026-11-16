@@ -35,14 +35,16 @@ later release: a report written now may need re-authoring or migrating when
 the format freezes. 0.2.0's additions — the QR code, the payment
 part, the EPC QR code, the e-invoice and the SVG asset — went into the same
 draft version, and 0.1.0 refuses a report that uses any of them, whole;
-0.3.0's binding of a dataset to a formancy form went in too, and 0.2.0
-refuses a report that carries one
+0.3.0's binding of a dataset to a formancy form went in too, and so did
+a second table over the detail rows, a table's condition and its own
+totals, and 0.2.0 refuses a report that carries any of them
 ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md),
 [0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md),
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
 [0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md),
-[0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
+[0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md),
+[0062](../decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
 
 ### The renderer leans on pdfmake's defaults and internals
 

@@ -510,6 +510,23 @@ describe('the lines', () => {
     )
   })
 
+  // The second table is known where the validation found it, not from the
+  // regions read whole: beside a component that breaks its region, so that
+  // the lines' columns cannot be checked, it is still refused where it
+  // stands. Read from the regions alone, it would go unsaid until the
+  // broken component was mended, and the next save would refuse it anew.
+  test('refuses a second table where the regions could not be read whole', () => {
+    const second = { ...(getAt(eInvoiceReport(), '/regions/body/2') as object), id: 'lines-again' }
+    const broken = { id: 'broken', kind: 'text', content: 'not a list of runs' }
+    // A column the table lacks, which the lines' check says once the regions are read whole, and only then.
+    const unchecked = { '/regions/summary/5': second, [`${EI}/lines/name`]: 'no-such-column' }
+    expect(refusals(report(unchecked))).toEqual(['second-detail-table /regions/summary/5', `unknown-column ${EI}/lines/name`])
+    expect(refusals(report({ ...unchecked, '/regions/summary/6': broken }))).toEqual([
+      'wrong-type /regions/summary/6/content',
+      'second-detail-table /regions/summary/5',
+    ])
+  })
+
   // Every row is a line of the XML, so the lines' table prints every row: a
   // condition on its rows would leave lines off the page that the XML
   // holds, as a table that may be hidden would.
