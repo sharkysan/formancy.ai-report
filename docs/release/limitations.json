@@ -2656,7 +2656,7 @@
       ]
     },
     "0060": {
-      "reviewed": "sha256:1058803f8ce803090286576cbd49d5f2fdbe9ed2c73eb2b2bb76cb47d3f376a4",
+      "reviewed": "sha256:251d2492a2c237a4c91d4b7fcde1f1abcf0629d1da3103f6cf9c4625f636255a",
       "limitations": [
         {
           "area": "format",
@@ -2702,10 +2702,6 @@
           "area": "rendering",
           "says": "The page header of a report with a header of page 1's own is measured and held to leaving the later pages' body room, even where the report has one page and no page prints it.",
           "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "No e-invoice gate variant draws a header of page 1's own, so veraPDF and Mustang have not judged a PDF/A-3b whose page 1 prints one."
         },
         {
           "area": "release",
@@ -2996,6 +2992,29 @@
           "area": "data",
           "says": "A form review judges a field's new type in every language a report declares, so a resolution one language's expression could not take is withheld for every language.",
           "heldBy": "packages/report-forms/src/review.test.ts"
+        }
+      ]
+    },
+    "0064": {
+      "reviewed": "sha256:f8cb4ce78a292bf6c416bfa5ffad13af4462604183aaa5207cf28ee9e27b9294",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A heading kept with what follows it over a table that runs past its page moves to the next page with the whole table, leaving its own page without either, so the order confirmation's goods heading is not kept with its table, and nothing fixes that yet."
+        },
+        {
+          "area": "testing",
+          "says": "The order confirmation shows a delivery's header kept at the foot of page 1 only at the renderer's row heights, margins and faces as they are, so a change to any of them fails its test until its lines are counted again.",
+          "heldBy": "packages/report-render-pdf/src/order-confirmation.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The Studio's browser gate reads a run set below or above the line into its line by its size and where it stands beside a run, not by how far it is moved, which the text layer does not say, so a run of that size moved otherwise is read into its line there and two lines in Node, and the pictured page's check fails."
+        },
+        {
+          "area": "release",
+          "says": "The product data sheet's board, values and class are invented and claim no test of any board, its French, Italian and English have been reviewed by no native speaker, and its English, written as `en`, dates the sheet as ICU's English does, \"November 2, 2026\".",
+          "heldBy": "packages/report-render-pdf/src/product-data-sheet.test.ts"
         }
       ]
     }
