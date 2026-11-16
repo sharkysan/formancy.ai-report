@@ -439,6 +439,12 @@ group, declared, with submissions of each and
 a report of them (`forms/site-visit.ts`), the site visit starter the
 generator writes of its version 2, held as data and held to the generator
 by its hash in report-forms' `starter.test.ts` (`starters/site-visit.ts`),
+the order confirmation and the product data sheet, the starters that print
+what 0059 to 0063 added (`starters/order-confirmation.ts`,
+`starters/product-data-sheet.ts`,
+[0064](docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)),
+`offLine`, the rule a run set off the line is read into its line by,
+which the renderer's tests' line reader takes,
 Liberation Serif and Mono 2.1.5 as a host's fonts (`fixtures/host-fonts/`)
 and the face each run is drawn in, read from the PDF (`PdfTextItem.font`,
 held by `fontNames`), `expectation`, which derives

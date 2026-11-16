@@ -13,6 +13,8 @@ import {
   INVOICE_FR,
   INVOICE_IT,
   drawingsOn,
+  ORDER_CONFIRMATION,
+  PRODUCT_DATA_SHEET,
   QUOTATION,
   rasterPage,
   readPdf,
@@ -111,6 +113,28 @@ export const PICTURES: readonly PictureSpec[] = [
     caption:
       'The site visit starter, generated from version 2 of a formancy form: a line for each answer, from Objekt: Bahnhofplatz 1, 3011 Bern, the inspector, the ticked boxes and the matrix under their headings, Elektrik: [x] among them, the findings one table under Befunde, and the page counted, 1 / 1',
     shows: ['Objekt: Bahnhofplatz 1, 3011 Bern', 'Elektrik: [x]', 'Befunde', '1 / 1'],
+  },
+  {
+    file: 'starter-order-confirmation.png',
+    starter: ORDER_CONFIRMATION,
+    page: 2,
+    caption:
+      "The order confirmation starter, page 2: under its running header, Auftragsbestätigung AB-2026-1107, the third delivery's header, Lieferung vom 11. Januar 2027, kept with its lines, then the services down to Total Leistungen CHF 7'342.00 and the returns down to Total Rücknahmen CHF-606.40, each table totalling its own lines, and under them the order's Total CHF 51'704.28 over every line",
+    shows: [
+      'Auftragsbestätigung AB-2026-1107',
+      'Lieferung vom 11. Januar 2027',
+      "Total Leistungen CHF 7'342.00",
+      'Total Rücknahmen CHF-606.40',
+      "Total CHF 51'704.28",
+    ],
+  },
+  {
+    file: 'starter-product-data-sheet.png',
+    starter: PRODUCT_DATA_SHEET,
+    page: 1,
+    caption:
+      "The product data sheet starter, a Produktdatenblatt under the firm's mark: its Technische Daten and its Ökobilanz, each value beside its label, the units' powers, CO₂'s index and the footnotes' marks set as runs above and below the line, as in 30 kg/m³, 1.11 W/(m²·K) and 2.9 kg CO₂-Äq. pro m²",
+    shows: ['Produktdatenblatt', 'Technische Daten', 'Ökobilanz'],
   },
 ]
 

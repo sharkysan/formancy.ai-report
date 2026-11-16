@@ -1,4 +1,4 @@
-import type { PdfPage, PdfTextItem, ReadPdf } from '@formancy/report-corpus'
+import { offLine, type PdfPage, type PdfTextItem, type ReadPdf } from '@formancy/report-corpus'
 import { expect } from 'vitest'
 import { normalise } from './documents.js'
 
@@ -6,10 +6,12 @@ import { normalise } from './documents.js'
  * A page's text as lines a reader sees, rebuilt from PDF.js's runs: a copy
  * of `@formancy/report-corpus`'s `lines.ts`, which its index does not export,
  * and goes once it does. Runs on one baseline make one line, read left to
- * right, and lines are read top to bottom. Unlike the corpus's reader, it
- * does not join a run set below or above the line to its line (0061), so
- * no test of such a run reads lines through it: `shifted.test.ts` reads
- * PDF.js's runs, and the corpus's checks read lines through the corpus's.
+ * right, and lines are read top to bottom. A run set below or above the
+ * line (0061) is read into the line of the run beside it, as the corpus's
+ * reader reads it and by its rule, `offLine`: so that a page that prints a
+ * formula, the product data sheet's among them, reads "kg/m3" on the line
+ * it stands on, here, in the README's pictures and in the Studio's browser
+ * gate alike (0064). `shifted.test.ts` reads PDF.js's runs themselves.
  */
 export interface Line {
   readonly text: string
@@ -32,7 +34,8 @@ function baselineOf(item: PdfTextItem): number {
 
 /** A page's runs as the lines `pageLines` reads, each line's runs left to right: for a test that reads a line's runs where they stand, as a table's cells. */
 export function runLines(page: PdfPage): PdfTextItem[][] {
-  const byBaseline = [...page.items].sort((a, b) => baselineOf(a) - baselineOf(b) || a.x - b.x)
+  const off = offLine(page)
+  const byBaseline = page.items.filter((item) => !off.has(item)).sort((a, b) => baselineOf(a) - baselineOf(b) || a.x - b.x)
   const lines: PdfTextItem[][] = []
   for (const item of byBaseline) {
     const current = lines.at(-1)
@@ -43,6 +46,7 @@ export function runLines(page: PdfPage): PdfTextItem[][] {
       lines.push([item])
     }
   }
+  for (const [item, beside] of off) lines.find((line) => line.includes(beside))?.push(item)
   return lines.map((items) => items.sort((a, b) => a.x - b.x))
 }
 

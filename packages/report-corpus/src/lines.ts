@@ -97,6 +97,17 @@ export function pageLines(page: PdfPage): Line[] {
   return [...lines, ...page.items.filter((item) => item.angle !== 0).map((item) => [item])].map((items) => line(items, joined))
 }
 
+/**
+ * The runs of `page` that `pageLines` reads into another run's line as set
+ * below or above it, each with the run on the line it is read against: for
+ * a reader of lines of its own -- the renderer's tests' copy, which the
+ * README's pictures are read with (0064) -- to read them so by this rule,
+ * stated once here.
+ */
+export function offLine(page: PdfPage): ReadonlyMap<PdfTextItem, PdfTextItem> {
+  return new Map([...joins(page.items.filter((item) => item.angle === 0))].map(([item, { beside }]) => [item, beside]))
+}
+
 /** A run read as set below or above the line: the run beside it on the line, and which way it was set. */
 interface Join {
   readonly beside: PdfTextItem

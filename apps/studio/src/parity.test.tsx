@@ -226,13 +226,13 @@ const select = (node: OutlineNode | null): EditorAction =>
  * e-invoice, where the starter has one, selected, its seller's name typed,
  * a rate refused on its field, a VAT category taken away, added, moved and
  * the three undone, its IBAN typed once for every payment code and undone,
- * and the e-invoice deleted and brought back (0044); a language added at
- * the report's level, chosen in the bar, a row of each kind selected in
- * it, a word written in it, and the language removed (0063); an
- * image being added, Add image… pressed while it is, and the image listed,
- * then removed; undo and redo; each pane; the zoom; and the Preview shown in
- * the middle again, a pane hidden and shown beside it, the Preview placed
- * beside the builder and back, and hidden.
+ * and the e-invoice deleted and brought back (0044); a language the
+ * report is not written in added at the report's level, chosen in the
+ * bar, a row of each kind selected in it, a word written in it, and the
+ * language removed (0063); an image being added, Add image… pressed while
+ * it is, and the image listed, then removed; undo and redo; each pane; the
+ * zoom; and the Preview shown in the middle again, a pane hidden and shown
+ * beside it, the Preview placed beside the builder and back, and hidden.
  */
 async function walk({ editor, react, angular, app, release }: Mounted): Promise<string[]> {
   const states: string[] = []
@@ -318,16 +318,23 @@ async function walk({ editor, react, angular, app, release }: Mounted): Promise<
   }
   // A language added and chosen: the switch in the bar, the boxes marked
   // missing and described so, and the fields at words with their notes,
-  // in a form of each kind (0063).
+  // in a form of each kind (0063). French where the report is not written
+  // in it, and Romansh where it is, as the product data sheet is (0064):
+  // added to a report that declares it, the language would be refused,
+  // and the walk would compare a refusal it names an addition.
   await dispatch(select(null), 'the report selected for its languages')
-  await dispatch({ type: 'setProperty', key: '/translations/-', value: 'fr-CH' }, 'a language added')
-  await dispatch({ type: 'setLanguage', locale: 'fr-CH' }, 'the language added shown')
+  const declared = new Set(editor.state().languages.declared.map(({ locale }) => locale))
+  const language = ['fr-CH', 'rm-CH'].find((locale) => !declared.has(locale))
+  if (language === undefined) throw new Error('the report is written in every language the walk adds')
+  await dispatch({ type: 'setProperty', key: '/translations/-', value: language }, 'a language added')
+  if (editor.state().languages.declared.length !== declared.size + 1) throw new Error(`${language} was not added`)
+  await dispatch({ type: 'setLanguage', locale: language }, 'the language added shown')
   for (const node of kinds.values()) await dispatch(select(node), `${node.label} selected in the language added`)
   await dispatch(select(text), 'a text selected in the language added')
   const word = editor.state().properties.fields.find((field) => field.missing === true)
   if (word === undefined) throw new Error('a text in the language added shows no word to write')
   await dispatch({ type: 'setProperty', key: word.key, value: 'Mot' }, 'a word written in the language added')
-  await dispatch({ type: 'removeLanguage', locale: 'fr-CH' }, 'the language removed')
+  await dispatch({ type: 'removeLanguage', locale: language }, 'the language removed')
   await dispatch(select(null), 'the report selected again')
   const file = { name: 'logo.png', size: SCENARIO_PNG.length, arrayBuffer: async () => Uint8Array.from(SCENARIO_PNG).buffer }
   let adding: Promise<unknown> = Promise.resolve()

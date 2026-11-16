@@ -424,7 +424,18 @@ describe('the Studio', () => {
       within(picker())
         .getAllByRole('option')
         .map((option) => option.textContent),
-    ).toEqual(['Service inspection', 'Quotation', 'Grouped equipment', 'Invoice', 'Euro invoice', 'E-invoice', 'Site visit', 'Blank'])
+    ).toEqual([
+      'Service inspection',
+      'Quotation',
+      'Grouped equipment',
+      'Invoice',
+      'Euro invoice',
+      'E-invoice',
+      'Site visit',
+      'Order confirmation',
+      'Product data sheet',
+      'Blank',
+    ])
   })
 
   // Final runs a final render, which refuses what a preview shows with a

@@ -890,7 +890,17 @@ to its EPC QR code, decoded from the page, asking for that total and
 standing beside the payment details it holds, each printed in plain
 text, and the site visit generated from a formancy form down to each
 answer's line, each box and each finding's row, over pages at 80 of
-them. `samples.test.ts` does the same for the corpus's invoice samples,
+them. `order-confirmation.test.ts` proves the order confirmation's three
+tables line by line across its page break, each total recomputed in
+BigInt, its letterhead on page 1 alone and its running header from page
+2, and its third delivery's header kept on page 2 with its first three
+lines where kept with one it stands at the foot of page 1; and
+`product-data-sheet.test.ts` the product data sheet in each of its four
+languages, its powers, index and marks off the line by the corpus's
+`shiftedRuns`, every line of the page in that language and its values as
+that locale writes them
+([0064](../../docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)).
+`samples.test.ts` does the same for the corpus's invoice samples,
 the invoice in German, French, Italian and English: one page each, its
 totals in its locale's format, its slip's headings in its language and in
 no other's, and its code asking for the total it prints.

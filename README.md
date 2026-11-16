@@ -164,8 +164,9 @@ data and drawn by PDF.js. `report-render-pdf`'s `pictures.test.ts` fails
 when a page stops printing or drawing what its picture shows, or its
 caption quotes what the page does not print. It does not see a drawing
 changed inside its own box, a rule, a border, an image or the colour of
-text. The quotation and the invoices print an invented firm's mark, an SVG
-your application hands over like any other asset
+text. The quotation, the invoices, the order confirmation and the product
+data sheet print an invented firm's mark, an SVG your application hands
+over like any other asset
 ([0032](./docs/decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md)).
 
 ![The quotation starter, an Offerte under the firm's mark: line items in Swiss francs, then Zwischensumme, MWST 8.1 %, Rundung and Total CHF 3'143.00](docs/images/starter-quotation.png)
@@ -238,6 +239,36 @@ report's language, a group a section, the repeater asked for its table,
 and a submission of that version read into it. Its notes, which no page
 shows, list what it left out and assumed
 ([0045](./docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
+
+![The order confirmation starter, page 2: under its running header, Auftragsbestätigung AB-2026-1107, the third delivery's header, Lieferung vom 11. Januar 2027, kept with its lines, then the services down to Total Leistungen CHF 7'342.00 and the returns down to Total Rücknahmen CHF-606.40, each table totalling its own lines, and under them the order's Total CHF 51'704.28 over every line](docs/images/starter-order-confirmation.png)
+
+The order confirmation and the product data sheet print what the report
+format gained since 0.2.0
+([0064](./docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)).
+The order confirmation is one list of order lines printed as three tables,
+each picking its lines by their kind -- the goods, grouped by delivery, the
+services and the returns -- each with its own columns and its own total,
+and the order's total under them over every line
+([0062](./docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
+Each delivery's header is kept with its first three lines, so the third
+starts page 2 with them rather than at the foot of page 1
+([0059](./docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md));
+page 1 prints the firm's letterhead, and page 2 a running header with the
+order's number in its place
+([0060](./docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+
+![The product data sheet starter, a Produktdatenblatt under the firm's mark: its Technische Daten and its Ökobilanz, each value beside its label, the units' powers, CO₂'s index and the footnotes' marks set as runs above and below the line, as in 30 kg/m³, 1.11 W/(m²·K) and 2.9 kg CO₂-Äq. pro m²](docs/images/starter-product-data-sheet.png)
+
+The product data sheet sets its units' powers, CO₂'s index and its
+footnotes' marks as runs below and above the line, never as Unicode's
+small digits
+([0061](./docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+It is written in Swiss German with its words in French, Italian and
+English, and the Studio's language switch prints it in each, its values as
+each locale writes them
+([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+The board it describes and its values are invented, and no native speaker
+has reviewed its French, Italian or English.
 
 ## Render a report
 

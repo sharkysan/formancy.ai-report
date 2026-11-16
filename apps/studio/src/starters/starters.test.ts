@@ -22,6 +22,8 @@ describe("the Studio's starters", () => {
       'Euro invoice',
       'E-invoice',
       'Site visit',
+      'Order confirmation',
+      'Product data sheet',
       'Blank',
     ])
   })

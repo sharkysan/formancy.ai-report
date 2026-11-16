@@ -63,6 +63,7 @@ export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from '.
 export { CHART_FIXTURES } from './fixtures/charts.js'
 export { FIRST_PAGE_FIXTURES } from './fixtures/first-page-header.js'
 export { SHIFTED_FIXTURES } from './fixtures/shifted.js'
+export { offLine } from './lines.js'
 export { baselineOf, readPdf } from './read-pdf.js'
 export { curvePoints, curveSamples, onCurve } from './curves.js'
 export { drawingsOn } from './drawings.js'
@@ -121,11 +122,18 @@ export {
   lineAmount,
   LOGO,
   LOGO_ASSET,
+  ORDER_CONFIRMATION,
+  orderConfirmationData,
+  orderConfirmationLines,
+  PRODUCT_DATA_SHEET,
+  productDataSheetAlone,
+  productDataSheetData,
   QUOTATION,
   quotationData,
   quotationLines,
   reverseChargeData,
   SERVICE_INSPECTION,
+  SHEET_EDITIONS,
   SITE_VISIT_STARTER,
   SITE_VISIT_STARTER_OPTIONS,
   STARTER_IMAGES,
@@ -135,5 +143,5 @@ export {
   XRECHNUNG_SAMPLES,
   xrechnungData,
 } from './starters/index.js'
-export type { Edition, Starter, StarterImage } from './starters/index.js'
+export type { Edition, OrderConfirmationLine, SheetWords, Starter, StarterImage } from './starters/index.js'
 export type { PdfAttachment, PdfBox, PdfCurve, PdfFont, PdfPage, PdfPaint, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'

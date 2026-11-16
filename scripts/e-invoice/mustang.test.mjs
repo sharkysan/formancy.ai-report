@@ -289,6 +289,8 @@ describe('Mustang’s verdict on a PDF', () => {
       ['variant-euro-invoice.pdf', 'as expected', 0],
       ['variant-e-invoice.pdf', 'as expected', 0],
       ['variant-site-visit.pdf', 'as expected', 0],
+      ['variant-order-confirmation.pdf', 'as expected', 0],
+      ['variant-product-data-sheet.pdf', 'as expected', 0],
       ['control-plain.pdf', 'as expected', run.mustang['control-plain.pdf']],
       ['control-pdfa.pdf', 'as expected', 0],
       ['control-xmp.pdf', 'as expected', 0],

@@ -59,6 +59,8 @@ describe('the preview pipeline', () => {
       'euro-invoice': 'Rechnung',
       'e-invoice': 'Rechnung',
       'site-visit': 'Site visit',
+      'order-confirmation': 'Auftragsbestätigung',
+      'product-data-sheet': 'Produktdatenblatt',
     }
     if (id !== 'blank') expect(pdf.pages.flatMap((page) => page.items.map((item) => item.text)).join(' ')).toContain(titles[id] ?? `(no title for ${id})`)
     expect(outcome.manifest.mode).toBe('preview')
