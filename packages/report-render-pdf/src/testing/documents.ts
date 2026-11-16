@@ -2,6 +2,7 @@ import {
   ALL_FIXTURES,
   chartsOf,
   drawingsOf,
+  shiftedRunsOf,
   type Expectation,
   type ExpectedCell,
   type ExpectedImage,
@@ -150,7 +151,13 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     // Page 1's own header (0060), as the corpus derives it: page 1 is held to its lines and images in place of the page header's.
     ...(document.firstPageHeader === undefined
       ? {}
-      : { firstPage: { headerLines: plainLines(document.firstPageHeader), regionImages: imagesOf([...document.firstPageHeader, ...document.pageFooter]) } }),
+      : {
+          firstPage: {
+            headerLines: plainLines(document.firstPageHeader),
+            regionImages: imagesOf([...document.firstPageHeader, ...document.pageFooter]),
+            shiftedRuns: shiftedRunsOf([...document.firstPageHeader, ...document.pageFooter]),
+          },
+        }),
     pageFooterLines: plainLines(document.pageFooter),
     ...(footerEveryPage === undefined ? {} : { footerEveryPage }),
     exactText: [],
@@ -169,6 +176,9 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     fontNames: [],
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
+    // The corpus's own: which runs a document sets below or above the line is no copy's to decide again (0061).
+    shiftedRuns: shiftedRunsOf(document.body),
+    pageRegionShiftedRuns: shiftedRunsOf([...document.pageHeader, ...document.pageFooter]),
     ...stated,
     // Derived together and never stated, so that a drawing is never sought apart from the chart it proves (N3).
     drawings: drawingsOf(document.body),

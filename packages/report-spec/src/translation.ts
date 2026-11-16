@@ -212,6 +212,7 @@ export const NOT_WORDS: readonly { readonly why: string; readonly at: readonly s
       '**/transform',
       '**/code',
       '**/align',
+      '**/baseline',
       '**/width',
       '**/fit',
       '**/errorCorrection',

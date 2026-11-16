@@ -466,6 +466,24 @@ export const EN = {
   'status.languageRemoved': 'Removed {name} and its words.',
   'status.languageShown': 'Showing the words in {name}.',
   'status.notWrittenIn': 'The report is not written in {name}.',
+
+  // A run of a paragraph set below or above the line, or back on it (0061).
+  'action.subscript': 'Subscript',
+  'action.superscript': 'Superscript',
+  'action.subscriptOf': '{name}, subscript',
+  'action.superscriptOf': '{name}, superscript',
+  'history.subscript': 'Set below the line',
+  'history.superscript': 'Set above the line',
+  'history.onTheLine': 'Set back on the line',
+  'status.subscript': 'Set {name} below the line.',
+  'status.superscript': 'Set {name} above the line.',
+  'status.onTheLine': 'Set {name} back on the line.',
+  'status.selectionStale':
+    '{name} shows what was typed, not what the report holds: commit it, or press Escape, before setting part of it below or above the line.',
+  'status.baselineUnchanged': '{name} is set so already.',
+  'status.baselineInOwnLanguage':
+    "Part of {name} is set below or above the line in the report's own language: switch to it, or select nothing to set all of {name}.",
+  'status.notOptionalRun': '{name} is part of the text: it is edited in its field, never added or removed.',
 } as const
 
 export type MessageId = keyof typeof EN

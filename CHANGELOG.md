@@ -10,6 +10,70 @@ later.
 
 ## Unreleased
 
+**A run of a text may be set below or above the line, in any character
+its face draws**
+([0061](docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+A formula's digits, a unit's power, an exponent and a footnote's mark
+could be printed only as Unicode's raised and lowered characters, which
+are digits, a few signs and a handful of letters, and fewer in any one
+face: Roboto has no lowered letter and Liberation Serif no raised zero or
+sign, so a formula printed in one face was refused in another. Now a run
+is set so, in the paragraph's own face, at pdfmake's own size and move.
+- **report-spec's `baseline`**, `subscript` or `superscript`
+  (`BASELINE_SHIFTS`), on a run of literal text, a field, a parameter, an
+  expression or an aggregate, in a text component alone, in any region; a
+  value from the data is raised as the template's own text is. It is
+  part of the report's hash, and a report that sets none hashes as
+  before.
+- **`misplaced-baseline`**, a new error code, refuses one where it would
+  mean nothing: in what a QR code, an EPC QR code, a QR-bill or an
+  e-invoice encodes, whose text alone counts, and in a table's column
+  value, group header and footer cells and totals, which print one string
+  at one size. A page number or count refuses one as `unknown-property`.
+- **The runtime's document carries the baseline** on a paragraph's run,
+  and no key where none is set, so a report that sets none resolves to
+  the document it did. It states what such a run prints as, for any
+  engine: `SHIFTED_SIZE`, 0.58 of the paragraph's size, its baseline
+  moved by `SHIFTED_RISE`, 0.435 of that size up or 0.203 down, which are
+  pdfmake 0.3.11's own figures; and re-exports `BASELINE_SHIFTS`.
+- **The renderer hands pdfmake its own `sub` and `sup`**, and nothing
+  else, and refuses what would print over the line before: pdfmake makes
+  no room for such a run, so a line of nothing but such runs would be
+  drawn above its own top. Read from pdfmake's own words, **a word that
+  holds such a run and no text on the line is refused as `unsupported`**,
+  naming the paragraph -- a footnote's mark after a space or before one,
+  or beside a field that prints nothing, the data deciding too -- and one
+  wider than its line as `content-too-large`. A mark is written against
+  its word, or with a no-break space, U+00A0. **A line that holds a run
+  set below the line is given room under it** for a raised run on the
+  next, 1.218 of the size to the next line's baseline, so a formula over
+  a unit's power stands clear of it, and a wrapped paragraph's lines stand
+  apart unevenly. A paragraph that sets no baseline is drawn as it was.
+- **In either builder, each run of a text is a group of its own** with
+  two buttons, Subscript and Superscript, named after the run and pressed
+  while it is set so. A press sets the characters selected in the run's
+  field, split from their run at whole characters, or the whole run when
+  nothing is selected or the run is bound, in one undo step, and the
+  keyboard goes to the run that holds them. Each run's field keeps its key
+  and its name, now inside its group, so a text's properties are longer.
+  The design view draws such a run on the line; the Preview is the PDF.
+  `EditorAction` gains `setBaseline`, with the field's selection as a
+  `FieldSelection`; an editor's outcome may say where the keyboard goes
+  (`then`, a `GroupFocus`); and a group's button, a `PropertyAction`, may
+  be `pressed` and show a `text` shorter than its name. A host that draws
+  the properties itself reads the selection, draws both and follows the
+  outcome.
+- **The PDF's text reads it as typed**: a search or a copy finds "H2O",
+  not "H₂O", and an untagged PDF says nothing of where a run was set.
+- **Not here**: a text format that lowers a formula's digits read from a
+  field, which would guess -- A4 and B12 are no formulas, m2 asks for its
+  digit raised and ¹⁴C for digits before its letter -- and is rich text
+  from data, another record's; a baseline in a table's cell; and a size or
+  a move of a run's own.
+- **0.2.0 refuses a report with a baseline**, whole, as
+  `unknown-property`, never printing the run on the line: the format is
+  still the draft, version "0".
+
 **A report's first page may print a header of its own, or none, in place of
 the page header**
 ([0060](docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
@@ -317,10 +381,10 @@ AI, each in order, code a report carries run in a sandbox among them,
 and the three things Report does not mean to do -- connect to a
 database, fetch by address, drill down -- with the reason for each. What
 a report can hold takes in more than one table, each over rows of its
-own with columns of its own, and sub- and superscript; a group's header
-kept with a stated number of its rows (0059), a first page's own page
-header (0060) and one template in several languages (0063) have since
-been built. It promises nothing: an item is
+own with columns of its own; a group's header kept with a stated number
+of its rows (0059), a first page's own page header (0060), sub- and
+superscript (0061) and one template in several languages (0063) have
+since been built. It promises nothing: an item is
 built when its record is written, and that record may narrow it or turn
 it down.
 

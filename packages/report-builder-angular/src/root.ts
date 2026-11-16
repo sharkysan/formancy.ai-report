@@ -122,15 +122,18 @@ export class ReportEditorRoot {
   }
 
   /**
-   * Sends `action`, and moves focus as `focus` says only when it was done:
-   * a refused one leaves the keyboard where the person pressed, the live
-   * region saying why -- a Remove of an image something draws (0033). The
-   * render the action causes comes after this returns, so it finds the
-   * focus asked for.
+   * Sends `action`, and moves focus as `focus` says only when it was done,
+   * or where the outcome says, where the action decided it only once done
+   * -- a run's button, whose run a split moved (0061): a refused one leaves
+   * the keyboard where the person pressed, the live region saying why -- a
+   * Remove of an image something draws (0033). The render the action
+   * causes comes after this returns, so it finds the focus asked for.
    */
-  attempt(action: EditorAction, focus: FocusAfter): EditorOutcome {
+  attempt(action: EditorAction, focus?: FocusAfter): EditorOutcome {
     const outcome = this.editor().dispatch(action)
-    if (outcome.ok) this.focusAfter = focus
+    if (!outcome.ok) return outcome
+    const then: FocusAfter | undefined = outcome.then === undefined ? focus : { to: 'group', ...outcome.then }
+    if (then !== undefined) this.focusAfter = then
     return outcome
   }
 

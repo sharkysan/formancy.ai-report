@@ -427,4 +427,21 @@ export const DE_CH: Catalogue = {
   'status.languageRemoved': '{name} mit ihren Wörtern entfernt.',
   'status.languageShown': 'Die Wörter werden auf {name} gezeigt.',
   'status.notWrittenIn': 'Der Bericht ist nicht auf {name} geschrieben.',
+
+  'action.subscript': 'Tiefgestellt',
+  'action.superscript': 'Hochgestellt',
+  'action.subscriptOf': '{name}, tiefgestellt',
+  'action.superscriptOf': '{name}, hochgestellt',
+  'history.subscript': 'Tiefstellen',
+  'history.superscript': 'Hochstellen',
+  'history.onTheLine': 'Auf die Zeile zurücksetzen',
+  'status.subscript': '{name} tiefgestellt.',
+  'status.superscript': '{name} hochgestellt.',
+  'status.onTheLine': '{name} auf die Zeile zurückgesetzt.',
+  'status.selectionStale':
+    'In {name} steht, was eingegeben wurde, nicht was der Bericht enthält: Übernehmen Sie es oder drücken Sie Escape, bevor Sie einen Teil davon tief- oder hochstellen.',
+  'status.baselineUnchanged': '{name} ist schon so gesetzt.',
+  'status.baselineInOwnLanguage':
+    'Einen Teil von {name} stellen Sie in der eigenen Sprache des Berichts tief oder hoch: Wechseln Sie zu ihr, oder wählen Sie nichts aus, um {name} ganz zu setzen.',
+  'status.notOptionalRun': '{name} gehört zum Text: Er wird in seinem Feld bearbeitet, nie hinzugefügt oder entfernt.',
 }

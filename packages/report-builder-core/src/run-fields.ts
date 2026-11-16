@@ -10,13 +10,18 @@
  * literal text that holds a letter, and an expression that prints words,
  * as report-core's `wordExpressions` says. A code's runs -- a QR code's
  * content, a payment code's account -- hold no words.
+ *
+ * A paragraph's runs are each a group of their own, holding the run's
+ * field and its Subscript and Superscript (0061), in the report's own
+ * language and in every other: a baseline is the run's, which a
+ * translation's text prints at.
  */
-import { isWord } from '@formancy/report-spec'
+import { BASELINE_SHIFTS, isWord } from '@formancy/report-spec'
 import type { FieldRef, Inline } from '@formancy/report-spec'
 import type { PropertyOption } from './model-properties.js'
 import { choiceField, expressionField, refused, textField, UNCHANGED, value } from './field-specs.js'
 import type { FieldSpec, FieldWords } from './field-specs.js'
-import type { FieldContext, TextName } from './property-fields.js'
+import type { FieldContext, GroupButton, GroupSpec, TextName } from './property-fields.js'
 import type { MessageId } from './text.js'
 import { translating, wordExpressionField, wordField } from './word-fields.js'
 
@@ -66,8 +71,9 @@ export function runField(
       return textField(`${key}/text`, words, lines, () => run.text)
     case 'field':
     case 'parameter': {
-      const format = 'format' in run && run.format !== undefined ? { format: run.format } : {}
-      const options = bindings(context).map((option) => ({ ...option, stored: { ...option.stored, ...format } }))
+      // Rebound, a run keeps how it is displayed and where it stands against its line (0061).
+      const kept = { ...(run.format === undefined ? {} : { format: run.format }), ...(run.baseline === undefined ? {} : { baseline: run.baseline }) }
+      const options = bindings(context).map((option) => ({ ...option, stored: { ...option.stored, ...kept } }))
       return choiceField(key, words, 'binding', options, run.kind === 'field' ? refToken(run.field) : `parameter:${run.parameter}`)
     }
     case 'expression':
@@ -84,9 +90,10 @@ export function runField(
 }
 
 /**
- * The runs of a text at `key`, a field each. A lone run is named by what
- * it is, or by `name`, the text's own where it has one; one of several by
- * its place and kind, after the text's name.
+ * The runs of a text at `key`, the field of each at its place, none for a
+ * page counter. A lone run is named by what it is, or by `name`, the
+ * text's own where it has one; one of several by its place and kind, after
+ * the text's name.
  */
 function runsFields(
   runs: readonly Inline[],
@@ -95,24 +102,57 @@ function runsFields(
   name?: TextName,
   lines?: 'text' | 'multiline',
   standing: Standing = 'code',
-): FieldSpec[] {
+): (FieldSpec | undefined)[] {
   const single = runs.length === 1
   const id = typeof name === 'object' ? name.id : name
   const item = typeof name === 'object' ? { item: name.item } : {}
-  return runs.flatMap((run, index) => {
+  return runs.map((run, index) => {
     const part = { n: index + 1, run: run.kind }
     const words: FieldWords = single
       ? { id: id ?? (run.kind === 'text' ? 'field.text' : `run.${run.kind}`), ...item }
       : id === undefined
         ? { id: 'field.part', ...part }
         : { id: 'field.textPart', of: id, ...part, ...item }
-    return runField(run, `${key}/${index}`, words, context, lines, standing) ?? []
+    return runField(run, `${key}/${index}`, words, context, lines, standing)
   })
 }
 
-/** A content's runs: a lone run named by what it is, one of several by its place and kind; a text's stand where words do, a QR code's in a code. */
-export function contentFields(content: readonly Inline[], context: FieldContext, standing: Standing = 'code'): FieldSpec[] {
-  return runsFields(content, '/content', context, undefined, undefined, standing)
+/** The fields of the runs that have one. */
+const editable = (fields: readonly (FieldSpec | undefined)[]): FieldSpec[] => fields.filter((field): field is FieldSpec => field !== undefined)
+
+/** A content's runs: a lone run named by what it is, one of several by its place and kind; a QR code's stand in a code. */
+export function contentFields(content: readonly Inline[], context: FieldContext): FieldSpec[] {
+  return editable(runsFields(content, '/content', context))
+}
+
+/** What each of a run's two buttons is named by, and shows. */
+const SHIFT_WORDS = {
+  subscript: { name: 'action.subscriptOf', text: 'action.subscript' },
+  superscript: { name: 'action.superscriptOf', text: 'action.superscript' },
+} as const
+
+/**
+ * A paragraph's runs, which stand where words do, each a group of its own
+ * named as its field is, holding that field and its two buttons, Subscript
+ * and Superscript, each named after the run and pressed while the run is
+ * set so: pressed, it sets the run back on the line (0061). A page
+ * counter, which has nothing to edit and takes no baseline, has none.
+ */
+export function paragraphRuns(content: readonly Inline[], context: FieldContext): GroupSpec[] {
+  return runsFields(content, '/content', context, undefined, undefined, 'words').flatMap((field, index): GroupSpec[] => {
+    const run = content[index]
+    if (field === undefined || run === undefined || run.kind === 'pageNumber' || run.kind === 'pageCount') return []
+    const key = `/content/${String(index)}`
+    const buttons = BASELINE_SHIFTS.map((shift): GroupButton => ({
+      words: SHIFT_WORDS[shift].name,
+      of: field.words,
+      text: SHIFT_WORDS[shift].text,
+      action: { type: 'setBaseline', key, baseline: run.baseline === shift ? null : shift },
+      available: true,
+      pressed: run.baseline === shift,
+    }))
+    return [{ key, words: field.words, fields: [field], buttons }]
+  })
 }
 
 /**
@@ -122,7 +162,7 @@ export function contentFields(content: readonly Inline[], context: FieldContext,
  * line break stands (BT-20), are `multiline`.
  */
 export function codeTextFields(runs: readonly Inline[], key: string, name: TextName, context: FieldContext, lines: 'text' | 'multiline' = 'text'): FieldSpec[] {
-  return runsFields(runs, key, context, name, lines)
+  return editable(runsFields(runs, key, context, name, lines))
 }
 
 /**
@@ -174,5 +214,5 @@ export function translatedTextFields(runs: readonly Inline[] | undefined, key: s
   if (!holds) return undefined
   const [only, ...rest] = runs
   if (only?.kind === 'text' && rest.length === 0) return [wordField(key, { id: name }, 'text', only.text, edited)]
-  return runsFields(runs, key, context, name, 'text', 'words')
+  return editable(runsFields(runs, key, context, name, 'text', 'words'))
 }

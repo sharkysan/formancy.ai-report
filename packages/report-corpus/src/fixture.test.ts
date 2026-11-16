@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import type { Block, ResolvedDocument } from './document.js'
+import type { Block, Inline, ResolvedDocument } from './document.js'
 import type { ReadPdf } from './read-pdf.js'
 import { verify } from './checks.js'
 import { chartsOf, drawingsOf, epcCodes, expectation, footerPattern, type Expectation, type Fixture, type Stated } from './fixture.js'
@@ -152,6 +152,38 @@ describe('expectation', () => {
       { kind: 'vector', width: 30, height: 20 },
       { kind: 'raster', width: 40, height: 20 },
     ])
+  })
+
+  // A run the document sets below or above the line (0061) is expected
+  // read so, wherever its paragraph stands -- a column, a framed section, a
+  // kept block -- with its paragraph's size; a page region's on every page,
+  // as its images are. Missed in a container, a run printed on the line
+  // there would pass; a run that prints nothing a reader sees is not looked
+  // for, and a document that sets none expects none, so that the check
+  // holds every other fixture to reading nothing so.
+  test('expects each run set below or above the line, with its size, the page regions apart', () => {
+    const run = (text: string, baseline?: 'subscript' | 'superscript'): Inline => (baseline === undefined ? { text } : { text, baseline })
+    const formula: Block = { kind: 'paragraph', runs: [run('H'), run('2', 'subscript'), run('O')], style: { size: 9 } }
+    const regions: ResolvedDocument = {
+      ...document,
+      pageFooter: [{ kind: 'paragraph', runs: [run('Note'), run('1', 'superscript')] }],
+      body: [
+        { kind: 'columns', columns: [{ width: 'fill', blocks: [formula] }] },
+        {
+          kind: 'section',
+          blocks: [
+            { kind: 'keepTogether', blocks: [{ kind: 'paragraph', runs: [run('m'), run('2', 'superscript'), run(' ', 'subscript')], style: { size: 11 } }] },
+          ],
+        },
+      ],
+    }
+    const derived = expectation(regions, { maxPagesExpected: 2 })
+    expect(derived.shiftedRuns).toEqual([
+      { text: '2', shift: 'subscript', size: 9 },
+      { text: '2', shift: 'superscript', size: 11 },
+    ])
+    expect(derived.pageRegionShiftedRuns).toEqual([{ text: '1', shift: 'superscript' }])
+    expect(expectation(document, { maxPagesExpected: 2 })).toMatchObject({ shiftedRuns: [], pageRegionShiftedRuns: [] })
   })
 
   // A spacer or a rule prints nothing the checks can read, and a page can

@@ -183,9 +183,17 @@ const editor = createReportEditor(opening.session, {
   report-spec's `mmToPt`; a length given back as it was shown is left
   alone, and a length too large for the page is refused in millimetres,
   with the room the margins leave: for a QR code's size, `squareRoom`'s,
-  against which report-spec measures a square. A QR code's
-  content is edited run by run as a text's is, and each of its levels of
-  error correction says the share of the code it restores.
+  against which report-spec measures a square. Each run of a paragraph
+  is a group of its own, named as its field is ("Text", "Part 2: Text"),
+  holding that field and two buttons, Subscript and Superscript, each
+  showing its own word and named after the run ("Part 2: Text,
+  subscript"), so that two runs' are never one name, and pressed while the
+  run is set so; pressed, it sets the run back on the line. A page
+  counter, which takes no baseline, has neither field nor group
+  ([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)). A QR code's
+  content is edited run by run as a text's is, with no buttons, as the
+  format refuses a baseline in what a code encodes, and each of its levels
+  of error correction says the share of the code it restores.
   A table with a group has one field more, after its heading style: how
   many of the group's first rows its header is kept on its page with,
   `/group/keepWithRows`, a `number` written into the group through
@@ -220,10 +228,12 @@ const editor = createReportEditor(opening.session, {
   first example's debtor where there is none. The panel's `rows` are its
   `fields` as the form draws them, each by itself or in a group
   (`PropertyGroup`: its key, its name, its fields and its buttons,
-  `actions`, each with its label, the action to dispatch, whether it has
-  somewhere to go, `available`, and, where the keyboard goes elsewhere
-  than the button once it is done, `then`: a button of a group by its key,
-  or that group's first field); a builder draws `rows` and finds a field
+  `actions`, each with its label, what it shows where that is less than
+  its name, `text`, the action to dispatch, whether it has somewhere to
+  go, `available`, whether it is pressed, `pressed`, for a button that is
+  on or off, and, where the keyboard goes elsewhere than the button once
+  it is done, `then`: a button of a group by its key, or that group's
+  first field); a builder draws `rows` and finds a field
   in `fields`. The report's own properties are its title, its language and
   its page (`report-fields.ts`), then "Header on page 1", a choice of what
   page 1 prints at its top: the page header, while the report has no header
@@ -329,8 +339,11 @@ const editor = createReportEditor(opening.session, {
 ## Actions
 
 `dispatch(action)` never throws on the action it is given, even one a
-JavaScript caller made up. It returns `{ ok: true }`, or a refusal with a
-stable code (`EDITOR_REFUSAL_CODES`) and a message in the editor's language.
+JavaScript caller made up. It returns `{ ok: true }` -- with `then`, where
+the action decided only once it was done where the keyboard goes, a group's
+button or first field as a `PropertyAction`'s `then` says one -- or a
+refusal with a stable code (`EDITOR_REFUSAL_CODES`) and a message in the
+editor's language.
 A refusal from report-core carries report-core's refusal, with the
 validator's errors in it. The one exception is a listener that throws,
 this editor's or another's on the same session: its error surfaces from
@@ -358,9 +371,10 @@ session's do.
 | `chooseImage` | Sent by Add image… before it opens the file chooser, in the same activation. Changes nothing; refused, and said why, when the editor would take no file now: no store (`unavailable`), an image being added (`busy`), or a report that holds `MAX_ASSETS` images (`unavailable`). |
 | `removeImage(asset)` | Removes an image the report declares and nothing draws, in one undo step. Refused (`unavailable`) for one something draws, naming what draws it, before the session is asked. |
 | `addPart(part)` | Adds a QR-bill to a report without one, SIX's third example (IG 2.4, Table 19), its headings in the report's language where SIX prints in it, else English -- in a report with an e-invoice, in the e-invoice's currency to its account (0044) -- in one step, "Add QR-bill", and selects it; refused (`unavailable`) where the report has one, with report-spec's reason where it cannot take one, and (`not-found`) for a part it has none of, which a caller tsc never saw may send. An e-invoice is never added: refused (`unavailable`), "An e-invoice is edited here, never made from nothing" (0044). |
-| `addGroup(key)`, `removeGroup(key)` | Adds the selection's optional group of fields at `key` from its example values, or removes it, in one step: a bill's debtor, "Add debtor", "Remove debtor"; an e-invoice's contact and its payment instructions. Refused (`unavailable`) with nothing to do, and for a group that is no optional one, saying it is part of every bill or every invoice of its kind, or, an item of a list, that the list's buttons add and remove it; refused by the validator, it says what was not added or removed ("Did not remove Payment instructions: …"). |
+| `addGroup(key)`, `removeGroup(key)` | Adds the selection's optional group of fields at `key` from its example values, or removes it, in one step: a bill's debtor, "Add debtor", "Remove debtor"; an e-invoice's contact and its payment instructions. Refused (`unavailable`) with nothing to do, and for a group that is no optional one, saying it is part of every bill or every invoice of its kind, or, an item of a list, that the list's buttons add and remove it, or, a text's run, that it is part of the text (0061); refused by the validator, it says what was not added or removed ("Did not remove Payment instructions: …"). |
 | `setLanguage(locale)` | Shows and edits the words of `locale`, the report's own or one a translation declares; the editor's own, never the report's, kept as the zoom is. Refused (`not-found`) for a language the report is not written in. |
 | `removeLanguage(locale)` | Removes the report's translation into `locale`, with its words, in one step, "Remove language", and shows the report's own words if it was the one edited. Refused (`not-found`) for a language the report has no translation in. |
+| `setBaseline(key, baseline, selected?)` | Sets the run at `key` of the selected text below or above the line (`'subscript'`, `'superscript'`), or back on it (`null`), in one step, "Set below the line": the characters `selected` in its field -- their start and end in UTF-16 code units, and the text the field showed -- snapped to whole graphemes by `Intl.Segmenter` and split from the run, or the whole run where none, or all of them, are selected, or the run is bound -- the field's text read as the run's with a line broken by CR LF or by CR alone as LF, as a textarea gives it back, and its offsets counted back into the run's; then that run joined to the literal runs beside it on its baseline, and no other. Its outcome's `then` is the pressed button of the run that holds the text now, which a split or a join moved. Refused (`invalid-value`) for a selection of other text than the report holds -- a refused value left typed in the field, with nothing selected in it too -- and a baseline the format lacks, as none of the options, (`not-found`) for a key that names no run with a baseline to set, a page counter's among them, (`unavailable`) for a press that would change nothing, and by the validator past `MAX_INLINES`, the report unchanged ([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)). |
 | `addItem(key)`, `removeItem(key)`, `moveItem(key, to)` | Adds an item to the end of the selection's list at `key`, removes the item at `key` (its list's pointer and its index, "/vat/1"), or moves it to the position `to`, each one step: an e-invoice's VAT categories, "Add VAT category", "Remove VAT category", "Move VAT category". Refused (`at-edge`) past either end, (`unavailable`) for an Add the state marks unavailable, saying why, and (`not-found`) for a key that names no list or item, a key that is no string among them. |
 
 `editor.addImage(file)` is no action: reading a file and a host keeping it
@@ -649,9 +663,16 @@ so the choices are made here.
   `actions`, each a button after them named by its label,
   `aria-disabled` where it is not `available` and still sent, which keeps
   the keyboard as its words change, Add to Remove and back -- unless its
-  `then` says where the keyboard goes once the action is done, which the
-  builder follows once the change is drawn: the button at that index of
-  the group with that key, or that group's first field (0044).
+  `then` says where the keyboard goes once the action is done, or the
+  outcome's does, which wins, and which the builder follows once the
+  change is drawn: the button at that index of the group with that key,
+  or that group's first field (0044). An action with `text` shows it and
+  is named by its `label` (`aria-label`); one with `pressed` says so,
+  `aria-pressed`. A `setBaseline` button sends its action with
+  `selected` added: the `selectionStart`, `selectionEnd` and `value` of
+  its group's `input` or `textarea`, read from the element as it is
+  pressed, the one thing a builder reads from the DOM to send; a group
+  whose field is a `select` has no selection, and adds none (0061).
   Add QR-bill takes its own button away with the report's properties, and
   the keyboard goes to the first field, the bill's IBAN, as it does when a
   Remove takes its row. While nothing is selected and
@@ -721,7 +742,10 @@ the report's properties from a selection, refuse an invalid property with
 its error visible, move by keyboard, delete with focus moving on,
 duplicate, undo and redo, follow a diagnostic to its component, count the
 problems as they change, press a tool with nothing to do, zoom, choose
-a style, open a report with a payment part, whose band is drawn and
+a style, set part of a text below the line from the keyboard -- the digit
+of H2O selected in its field and lowered, the keyboard following it to the
+run that holds it, undone and redone, and set back on the line by its
+pressed button, the runs joined again -- raise a bound run whole, open a report with a payment part, whose band is drawn and
 which an edit, and a page refused for it, leave whole, select the QR-bill
 by its band and edit it field by field -- an IBAN with a wrong check digit
 refused on its field, one typed, its debtor added from SIX's example,
@@ -769,7 +793,13 @@ while one something draws stays, and removed again by a redo pressed on
 its Remove; and no Add image… where the host keeps none. Their editor is made
 with the store `scenarioStore` gives the scenario (`store`), which keeps
 each image or refuses each, and records what it kept for a `kept`
-expectation. An `upload` step clicks Add image… and hands the scenario's
+expectation. A query may say `pressed`, which finds a button only in that
+state. A `selectText` step selects characters of a field with its own
+`setSelectionRange`: a DOM write, which each runner's header names, since
+neither jsdom runner's keyboard extends a selection with Shift and an
+arrow -- user-event's leaves Shift unimplemented, and the Angular runner
+fires keys alone -- so no test presses Shift with the arrows (0061). An
+`upload` step clicks Add image… and hands the scenario's
 file to the input beside it -- the one element a runner finds by reading
 the DOM, since a hidden input has no role -- with no filter of `accept` in
 the way, and fails when the editor never took the file. The files are
@@ -805,8 +835,8 @@ rule here; those it found are the naming rule above and the problems' key.
 `@formancy/report-builder-core/report-builder.css` dresses what is specific
 to reports: the bars above and below the panes, the sheet, its region
 bands and a payment part's band, rulers, the selection, drop indicators,
-outline rows, badges, an unavailable tool, property rows and groups, the
-problems list, the grid without the panes the person hid, and the one-pane
+outline rows, badges, an unavailable tool, property rows and groups, a
+run's button while it is pressed, the problems list, the grid without the panes the person hid, and the one-pane
 layout on a narrow screen. The host imports `@formancy/themes`'
 `workbench.css` first. It dresses nothing in a host's view, which is the
 host's.
@@ -865,7 +895,10 @@ the other's steps in English.
   (average character width, 10 pt when no style sets a size). A table is
   drawn as one row of each kind it has. A QR code and an EPC payment code
   are drawn as the square each prints, with no modules in it, and no frame
-  or caption. Every region is one flow on one
+  or caption. A run set below or above the line is labelled on it, "H2O",
+  as every text is labelled with what it says, and nothing in either
+  builder foresees a run the renderer would refuse to set alone on a line
+  ([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)). Every region is one flow on one
   sheet, without pagination. The renderer measures text and lays out
   pages, and the PDF preview shows what prints.
 - **A payment part's texts are edited, not its slip drawn.** The editor
@@ -908,8 +941,10 @@ the other's steps in English.
   - adding or removing a run in a text, a QR code's content or an EPC
     payment code's text, a text of several runs or a bound one included
     (only an optional text that is absent or one literal run is added by
-    typing it and removed by emptying it), or a column in a columns block
-    or a table (a table column can be duplicated and deleted);
+    typing it and removed by emptying it, and only the runs a press of a
+    run's Subscript or Superscript splits off and joins again), or a
+    column in a columns block or a table (a table column can be duplicated
+    and deleted);
   - declarations: styles, datasets, parameters, aggregates, and of assets
     all but an image a person adds and the removal of one nothing draws.
 

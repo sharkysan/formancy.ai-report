@@ -99,7 +99,8 @@ after a report, the renderer's configuration is in place.
 Every block of the resolved document:
 
 - **Paragraphs**, in their size, weight, slant, colour and alignment, and
-  a run in bold inside a paragraph that is not.
+  a run in bold inside a paragraph that is not, or set below or above the
+  line (below).
 - **Tables**, their header row repeated on every page they span, each row
   in its kind's style or its own, each cell in its own when it has one, each
   column aligned as it says unless a cell says otherwise. A group header
@@ -181,10 +182,10 @@ Every block of the resolved document:
 | Code | When |
 |---|---|
 | `too-many-pages` | The report needs more pages than `maxPages`, a QR-bill's page included. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more, the room a bill's slip keeps included, is refused before pdfmake measures it. |
-| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body, and page 1's own header that leaves page 1 none or is taller than the printable area, naming `firstPageHeader` (0060); where page 1 has a header of its own, a block of fixed height or a line taller than the shorter of page 1's body and the later pages', and a keep-together block or a table's line under its repeated header that the later pages' body cannot hold, though page 1's taller body could; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below); a chart whose words would meet, leave its box or stand in its plot, whose category labels do not fit across their slots, whose plot is too short for two tick labels, whose bars would be narrower than 3.5 pt, or whose pie would be narrower than 24.75 pt, and a bar or a line chart of more than `MAX_CHART_CATEGORIES` categories; a render whose charts together weigh more than `MAX_CHART_DRAWING`, at the chart that crossed it (below). |
+| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body, and page 1's own header that leaves page 1 none or is taller than the printable area, naming `firstPageHeader` (0060); where page 1 has a header of its own, a block of fixed height or a line taller than the shorter of page 1's body and the later pages', and a keep-together block or a table's line under its repeated header that the later pages' body cannot hold, though page 1's taller body could; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below); a chart whose words would meet, leave its box or stand in its plot, whose category labels do not fit across their slots, whose plot is too short for two tick labels, whose bars would be narrower than 3.5 pt, or whose pie would be narrower than 24.75 pt, and a bar or a line chart of more than `MAX_CHART_CATEGORIES` categories; a render whose charts together weigh more than `MAX_CHART_DRAWING`, at the chart that crossed it (below); a word that holds a run set below or above the line and is wider than its line (below). |
 | `invalid-asset` | An image's bytes are not the PNG, JPEG or SVG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side, and for an SVG a mebibyte; a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031); an SVG is not exactly the drawing report-spec's `cleanSvg` writes (below). A PNG's or a JPEG's structure is read by report-spec's `imageHeader`, which a builder refuses an image a person adds by too, in the same words (0033); whether a PNG's image data inflates to the scanlines its header promises is read here alone, since it needs the platform's decompressor. A host's font `readFont` refuses, one PDFKit would draw as another face, or one asset id handed in two byte strings, naming the asset (0043). |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, page 1's own header among them, which is drawn before the pages are counted, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or what a PDF/A cannot hold, an e-invoice's PDF/A-3b or a PDF/A-2b, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them; as a PDF/A-2b, a Factur-X, an XRechnung's copy and a labelled preview (below); a count of kept rows (`keepWithRows`) on a table row that is no group header, outside 2 to `MAX_KEEP_WITH_ROWS`, or past the detail rows under its header, naming the table (0059); and a chart it cannot draw as written: in a page region, page 1's own header among them, past `MAX_TICK_INTERVALS` or `MAX_CHART_SERIES`, with a control character in any of its words, or whose drawing ECharts writes otherwise than it was read to write, or that ECharts lays out through another copy of zrender than the renderer's (below). |
+| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, page 1's own header among them, which is drawn before the pages are counted, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a run set below or above the line in a word with no text on the line, or set in a way it does not know (below); a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or what a PDF/A cannot hold, an e-invoice's PDF/A-3b or a PDF/A-2b, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them; as a PDF/A-2b, a Factur-X, an XRechnung's copy and a labelled preview (below); a count of kept rows (`keepWithRows`) on a table row that is no group header, outside 2 to `MAX_KEEP_WITH_ROWS`, or past the detail rows under its header, naming the table (0059); and a chart it cannot draw as written: in a page region, page 1's own header among them, past `MAX_TICK_INTERVALS` or `MAX_CHART_SERIES`, with a control character in any of its words, or whose drawing ECharts writes otherwise than it was read to write, or that ECharts lays out through another copy of zrender than the renderer's (below). |
 
 ## SVG images
 
@@ -680,6 +681,53 @@ there, an SVG at every bound among the variants, and nothing here. The fx namesp
 transcription of the specification, which no validator reads; the tests
 compare them with the transcription's values, and say so.
 
+## Runs below or above the line
+
+A paragraph's run set below or above the line
+([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md))
+is handed to pdfmake with pdfmake's own `sub` or `sup`, and nothing
+else: pdfmake sets it at 0.58 of its paragraph's size, in the paragraph's
+face, and moves its baseline 0.435 of that size up or 0.203 down, the
+runtime's `SHIFTED_SIZE` and `SHIFTED_RISE`. The page bound counts its
+line at that size.
+
+pdfmake makes no room for such a run in its line. The renderer makes room
+below a line that holds a run set below the line, for a raised run on the
+next: it asks pdfmake for that run's own line as `LOWERED_LINE` of the
+paragraph's size, 1.218 -- the lowered run's drop, a raised run's rise
+and the small run's own size -- through its `lineHeight`, which pdfmake
+lays out below the baseline, so the two are set solid and their boxes
+meet nowhere. A face whose line is that tall needs none, and a line that
+holds no lowered run is laid out as it was, so a wrapped paragraph's lines
+stand apart unevenly: in Roboto 0.046 of the size farther under such a
+line, in Liberation Serif 0.111. The page bound counts the room.
+
+pdfmake lays a line out as tall as its runs' own lines and moves such a
+run only when it draws it, so a line of nothing but such runs would be
+laid out small and drawn into the line before. Once pdfmake has measured a
+paragraph that holds one, and before it lays out a line, the renderer
+reads pdfmake's own words -- the runs it chains with `noNewLine`, which
+no line break separates -- and refuses, naming the paragraph:
+
+- **as `unsupported`**, a word that holds such a run and no run on the
+  line that prints a character other than a space: a footnote's mark
+  after a space, or at the head of its text before one, a word of nothing
+  but such runs, and one whose only neighbour prints nothing, as an empty
+  field does. A mark is written against its word, or with a no-break
+  space, U+00A0. A value read from the data decides it too, in a preview
+  as in a final render.
+- **as `content-too-large`**, a word that holds one and is wider than its
+  line, measured as pdfmake measures a word that starts one, its leading
+  and trailing spaces left out: pdfmake would break it anywhere.
+
+A page region's paragraph is read in the pass that measures the regions,
+and a baseline the renderer does not know, or one on a page field, is
+refused as `unsupported` before anything is laid out. The text layer reads
+such a run on the line: PDF.js extracts "H2O", and a search or a copy finds
+the digit as typed. `_inlines`, `noNewLine`, `sup`, `sub`, `width`,
+`leadingCut` and `trailingCut` are pdfmake's own, not its API;
+`pdfmake.test.ts` holds 0.3.11 to them.
+
 ## Fonts
 
 A report prints its own text in **Roboto 3.014** by default, from pdfmake's
@@ -798,6 +846,13 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
   report has one, the page header is still measured and held to leaving a
   body, though a report of one page prints it on no page
   ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+- **Make room above a raised run.** pdfmake places a line's baseline its
+  tallest ascender down, and room above cannot be asked of it, so a raised
+  run reaches above its line's text: by the corpus's boxes it stays clear
+  of the line above in Roboto and Liberation Serif, and in a host face
+  whose line is shorter than 1.099 ems it is not proved. A line that holds
+  a lowered run is given room below it (above); the glyphs themselves can
+  still touch an accent, which the boxes do not see.
 - **Draw an SVG as a browser does, compared.** That the PDF shows what a
   browser draws of the same cleaned drawing is held by report-spec's allow
   lists and by review; no browser's rendering is compared with the PDF.
@@ -913,6 +968,19 @@ out in a box as large as the page, an empty node's top margin moving the
 next line up or down by itself, a header function returning null, as the
 renderer's does, and a table's fill painted under its own text beneath the
 background.
+
+`shifted.test.ts` proves a run set below or above the line on its PDF,
+read from PDF.js's runs and not through a line reader: drawn at
+`SHIFTED_SIZE` of its paragraph's size and moved by `SHIFTED_RISE`, to a
+hundredth of a point, in Roboto at two sizes and in the corpus's
+Liberation Serif; clear of the lines above and below where its paragraph
+wraps; in page 1's own header, page 1's body starting below the room its
+lowered run takes (0060); in the language a render names, the translation's
+word at the baseline the report's run sets (0063); and each way a word
+could leave it alone on a line refused, naming the paragraph, a page
+region's and page 1's own header's among them. The corpus's
+`SHIFTED_FIXTURES` are rendered and proved with the rest, page 1 held to
+its own header's runs and every later page to the page header's.
 
 `fonts.test.ts` reads the faces the package embeds, Roboto's four and
 Liberation Sans's two, through report-spec's reader to the values measured

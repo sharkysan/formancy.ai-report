@@ -159,6 +159,75 @@ describe("pdfmake's measuring, which the renderer reads", () => {
     expect(typeof seen[0]).toBe('number')
     expect(seen[0]).toBeCloseTo(seen[1] as number, 6)
   })
+
+  // The check of a run set below or above the line reads a text node's
+  // words, `_inlines`, by the same function, before a line takes any of
+  // them (shifted.ts, 0061): each word's `sub` and `sup`, its `width`, its
+  // `leadingCut` and `trailingCut`, and `noNewLine` on a word chained to
+  // the next, which `TextBreaker` sets where the two runs' words make one.
+  // Were pdfmake to stop writing any of them where the renderer reads it,
+  // or to chain words otherwise -- "H" to the lowered "2" and the "2" to
+  // "O", a mark to the word a no-break space starts, and a mark before a
+  // space to that space alone, a word that prints nothing, but no word
+  // after a space -- a run could be left alone on a line unchecked; this
+  // fails first.
+  test("has written a text node's words, chained, with their shift, width and cuts, by the time it asks for the first background", async () => {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    const node = {
+      text: [
+        { text: 'Water H' },
+        { text: '2', sub: true },
+        { text: 'O, a mark' },
+        { text: '1', sup: true },
+        { text: '\u00a0read, ' },
+        { text: '2', sup: true },
+        { text: ' then.' },
+      ],
+    }
+    const seen: unknown[] = []
+    await pdfmake
+      .createPdf({
+        content: [node],
+        defaultStyle: { font: 'Roboto', fontSize: 10 },
+        background: (page) => {
+          if (page === 1) seen.push(...((node as { _inlines?: readonly object[] })._inlines ?? []).map((inline) => ({ ...inline })))
+          return null
+        },
+      })
+      .getBuffer()
+    const words = seen as readonly {
+      text: string
+      sub: boolean
+      sup: boolean
+      noNewLine?: boolean
+      width: number
+      leadingCut: number
+      trailingCut: number
+      fontSize: number
+    }[]
+    expect(words.map(({ text, sub, sup, noNewLine }) => [text, sub, sup, noNewLine === true])).toEqual([
+      ['Water ', false, false, false],
+      ['H', false, false, true],
+      ['2', true, false, true],
+      ['O, ', false, false, false],
+      ['a ', false, false, false],
+      ['mark', false, false, true],
+      ['1', false, true, true],
+      ['\u00a0read, ', false, false, false],
+      ['2', false, true, true],
+      [' ', false, false, false],
+      ['then.', false, false, false],
+    ])
+    for (const each of words) {
+      expect(typeof each.width).toBe('number')
+      expect(typeof each.leadingCut).toBe('number')
+      expect(typeof each.trailingCut).toBe('number')
+    }
+    // The size pdfmake sets such a word at, which the document states as SHIFTED_SIZE, and a word's spaces at its end as its trailing cut.
+    expect(words[2]!.fontSize).toBeCloseTo(5.8, 9)
+    expect(words[0]!.trailingCut).toBeGreaterThan(0)
+    expect(words[1]!.trailingCut).toBe(0)
+  })
 })
 
 describe("PDFKit's images that decode before they embed, which the renderer writes in order", () => {

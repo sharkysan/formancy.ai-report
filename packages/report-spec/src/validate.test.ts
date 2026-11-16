@@ -372,6 +372,14 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     accept: set('/regions/body/0/content/1', { kind: 'field', field: { dataset: 'header', field: 'customer' } }),
     at: ['/regions/body/0/content/1/field'],
   },
+  // A table's cell prints one string at one size: a column's value set
+  // below the line would move the whole cell, or print on the line, where
+  // a paragraph's run sets only itself (0061).
+  'misplaced-baseline': {
+    refuse: set('/regions/body/2/columns/0/value/baseline', 'subscript'),
+    accept: set('/regions/body/0/content/0/baseline', 'subscript'),
+    at: ['/regions/body/2/columns/0/value/baseline'],
+  },
   // Under the table there is no current group: a group's subtotal there
   // would be the last group's, printed as though it were the whole table's.
   'misplaced-group-aggregate': {

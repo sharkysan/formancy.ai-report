@@ -29,6 +29,14 @@
   outline and the design view hold page 1's own header only where the
   report has one, held by scenarios of their own and by the Studio's
   parity walk. Extended by
+  [0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md):
+  each run of a paragraph is a group of its own, whose two buttons, named
+  after the run, say whether they are pressed and set the text selected in
+  its field, or the whole run, below or above the line; a builder adds that
+  selection, read from the field, to the action, and follows the action's
+  outcome to the run that holds the text, and the scenarios select the
+  text with the field's own `setSelectionRange`, as neither jsdom runner's
+  keyboard selects with Shift. Extended by
   [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md): the editor keeps the language a person edits as view state, as the
   zoom is, a switch in the bar while the report declares more than one,
   and a field at a word writes its translation in the language shown,

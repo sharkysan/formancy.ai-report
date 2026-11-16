@@ -2,7 +2,7 @@ import { chartProblems } from './check-charts.js'
 import { emptyPages, footers, images, keptByRoom, keptTogether, outsidePrintable, overlaps, pageCount, pageSizes, regions } from './check-layout.js'
 import { capped, pagesOf } from './check-page.js'
 import { headers, orphans, readTables, rowProblems } from './check-tables.js'
-import { exactText, fontNames, glyphs, keys, wrappedText } from './check-text.js'
+import { exactText, fontNames, glyphs, keys, shiftedRuns, wrappedText } from './check-text.js'
 import { RenderRefusal } from './document.js'
 import { placeDrawings } from './drawings.js'
 import type { Fixture } from './fixture.js'
@@ -38,6 +38,7 @@ export function verify(fixture: Fixture, pdf: ReadPdf): string[] {
     ...capped(wrappedText(pages, expected.wrappedText)),
     ...capped(glyphs(pages)),
     ...capped(fontNames(pages, expected.fontNames)),
+    ...shiftedRuns(pages, expected),
     ...capped(rowProblems(tables)),
     ...capped(expected.keptTogether.flatMap((group) => keptTogether(pages, group))),
     ...(expected.keptTogetherByRoom ? keptByRoom(pages, expected.keptTogether) : []),

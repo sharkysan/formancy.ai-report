@@ -9,6 +9,7 @@ import { pdfaOptions } from './pdfa.js'
 import { ABOVE_SLIP, slipContent } from './slip.js'
 import type { RenderFonts } from './host-fonts.js'
 import { DEFAULT_SIZE } from './style.js'
+import { checkShifted } from './shifted.js'
 import { checkWords } from './words.js'
 
 /**
@@ -181,7 +182,10 @@ export function layoutDefinition(
     ...(last === undefined ? {} : { footer: last }),
     background: (number) => {
       // pdfmake has measured every word, and laid out no line yet.
-      if (number === 1) checkWords(build.words)
+      if (number === 1) {
+        checkWords(build.words)
+        checkShifted(build.shifted)
+      }
       if (number > maxPages) throw new RenderRefusal('too-many-pages', `the report needs more than ${maxPages} pages`)
       // Page 1's own header, in a box as large as the page; its words were held to their room when it was measured.
       return number === 1 && firstPage !== undefined ? firstPage() : null

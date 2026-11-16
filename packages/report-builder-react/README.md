@@ -110,6 +110,17 @@ own, a field at a word writes its translation, its note drawn under it
 and describing it, and a box or a field whose word is missing there is
 marked `data-missing`, the box described as missing by its `title`.
 
+**A run of a paragraph is set below or above the line from its group**
+([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)): each run is a group with two buttons, Subscript and
+Superscript, each showing its word, named after the run by `aria-label`
+("Part 2: Text, subscript") and `aria-pressed` as the run is set.
+Pressed, one reads the selection of its group's text field and the text it
+is of from the element, the one thing it reads from the DOM to send, and
+adds them to the action; the editor decides what it sets, and the
+keyboard goes where the outcome's `then` says, the pressed button of the
+run that holds the text now. A run bound to a value is a select, and is
+set whole.
+
 **`useEditorState(editor)`** is the subscription on its own, for a host
 that shows something of the editor's state outside the builder.
 
@@ -227,7 +238,9 @@ jsdom with Testing Library and user-event:
 
 - **Every one of `BUILDER_SCENARIOS`, in all three languages.** Each
   scenario runs step by step, with axe over its end state. A last test
-  fails when a scenario was skipped or lost.
+  fails when a scenario was skipped or lost. A `selectText` step selects
+  characters with the field's own `setSelectionRange`, since user-event's
+  keyboard extends no selection with Shift and an arrow (0061).
 - **axe** holds the builder to WCAG 2.2 AA by its tags (`wcag2a` through
   `wcag22aa`). `best-practice` is left out, as formancy.ai's builders leave
   it out. Two rules are off because jsdom cannot decide them:
@@ -241,7 +254,10 @@ jsdom with Testing Library and user-event:
   property. Each group, the form, the list, the statuses and the dialog
   are named in the editor's words, never after text on the page, which
   Chromium would read in the stylesheet's capitals; jsdom applies no
-  stylesheet, so that test reads from the DOM how each name is given.
+  stylesheet, so that test reads from the DOM how each name is given. A
+  run's buttons show their word, are named after the run and say whether
+  they are pressed, which that test reads from the DOM too, as no query
+  by role and name returns what a button shows (0061).
 - **The keyboard, focus and the pointer** beyond the scenarios: the
   toolbar's tab stop and its arrows, focus after each action, the dialog's
   way out, the panes, a text field's own keys, every pointer drag above,

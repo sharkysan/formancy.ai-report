@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:60266b133f898cda16acfff6bfd514f8908662f31f40f2d3f1e4c2312fc738d6",
+      "reviewed": "sha256:135a7c25bb9e387d993c7b1c4ced1b0dd1d1abaaa6fd1519d0c1e3af275c33f5",
       "limitations": [
         {
           "area": "testing",
@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:8c74652e2126654bb1556fb1bf232a8b90eb55284961b9929a4f0d8a06f5af3b",
+      "reviewed": "sha256:89be0d58d8bdbe1933a69e2643655e0fbab49b8bfc97d54f6d24e0e99a0a89d3",
       "limitations": [
         {
           "area": "format",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:2736bf69d3713e0a59ed139cc538f5b856dfad8e9b9f4c70489c2c9b57bc1912",
+      "reviewed": "sha256:8b4c3b737777ea5ed15b482b9643af1f8d6bf21240bf317a83ba5da63d7e981c",
       "limitations": [
         {
           "area": "runtime",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:e5a07ef16d5def8918dfcb3b410f7cdf0355fea5018035df1265ddfaa40545e3",
+      "reviewed": "sha256:fb643d2417e18c0825ca43c158827a11b04d79c782000c3474fa126f09afe4e5",
       "limitations": [
         {
           "area": "rendering",
@@ -296,7 +296,7 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:296cc6bfc17ef4b248872e28408bac84a5fb97228e381a407c232cc236c0f368",
+      "reviewed": "sha256:60ad9f36ef82b59ca9905036382319855880eab1fd1ab317b81eda7332c75f1c",
       "limitations": [
         {
           "area": "builders",
@@ -2710,6 +2710,84 @@
         {
           "area": "release",
           "says": "A report that holds a first page header is refused whole by 0.2.0 as an unknown property, so a report saved with one opens only in a release that has the region; and a 0.2.0 renderer handed a document this runtime resolved prints the page header on page 1 without a word, so the runtime and the renderer must be of one release."
+        }
+      ]
+    },
+    "0061": {
+      "reviewed": "sha256:451ab5fe113a6810aa047435c76a5e3e3cb7d22415fd4f696ec2b5485e374eb2",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A run is set below or above the line only in a text component’s paragraph: a table’s column value, group header and footer cells and totals, and what a QR code, an EPC QR code, a QR-bill or an e-invoice encodes refuse a `baseline` as `misplaced-baseline`, and a page number or count as `unknown-property`, so a unit’s power in a cell is printed as Unicode’s raised form where the face maps it, or not at all.",
+          "heldBy": "packages/report-spec/src/validate-baseline.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "No text format lowers a formula’s digits read from a field, so C6H12O6 from the data prints on the line unless the data carries Unicode’s lowered digits, U+2080 to U+2089, which Roboto and Liberation Serif both map."
+        },
+        {
+          "area": "release",
+          "says": "A report that sets a run below or above the line is refused whole by 0.2.0 as `unknown-property`, so a report saved with one opens only in a release that has the property, and a host that maps every one of report-spec’s error codes to its own message meets `misplaced-baseline`, which it has none for."
+        },
+        {
+          "area": "rendering",
+          "says": "A run set below or above the line prints at pdfmake’s one size and move, 58 % of its paragraph’s size, raised 43.5 % of the size or lowered 20.3 %; a face’s own superscript and subscript metrics are not read, and a run cannot be set smaller, larger, higher or lower.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Such a run prints only inside a word that holds text on the line, as pdfmake breaks words: a footnote’s mark after a space or before one, a run beside a value that prints nothing, a run whose value leads with a space and a word of nothing but such runs refuse the render as `unsupported`, a preview as a final one, the data deciding as the template does, and a mark is written against its word or with a no-break space, U+00A0.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A word that holds such a run and is wider than its line is refused as `content-too-large`, where a paragraph breaks another word across up to sixteen lines.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A line that holds a run set below the line is given room under it, 1.218 of its paragraph’s size to the next line’s baseline, so a wrapped paragraph’s lines stand apart unevenly, 0.046 of the size in Roboto and 0.111 in Liberation Serif; a raised run makes no room above, and by their glyphs a lowered g still reaches a raised Ä under it and a raised Ä a g on the line above, which the corpus’s boxes do not see, computed and not proved, and nothing is proved in a host face whose line is shorter than 1.099 ems.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The PDF’s text reads such a run as typed, on the line: a search or a copy finds “H2O”, not “H₂O”, and an untagged PDF tells a screen reader nothing of where it was set."
+        },
+        {
+          "area": "rendering",
+          "says": "The renderer reads pdfmake’s words of a paragraph that holds such a run -- `_inlines`, `noNewLine`, `sup`, `sub`, `width`, `leadingCut` and `trailingCut` -- which are not pdfmake’s API, at pdfmake 0.3.11, so an upgrade reads them again.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Every run of a text is a group of its own in both builders’ properties, with Subscript and Superscript named after the run and its name drawn above its field’s label, which says it again, so every text’s properties are longer.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The design view draws a run set below or above the line on the line, labelled with its text as every text is, and neither builder foresees a run that would stand alone on a line: the Preview is refused, naming the paragraph."
+        },
+        {
+          "area": "builders",
+          "says": "While a run’s field shows a value the session refused, its Subscript and Superscript are refused until the field is committed or given back with Escape, even with nothing selected in it.",
+          "heldBy": "packages/report-builder-core/src/baselines.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A selection is split from its run at whole characters, adding up to two runs, so a text near `MAX_INLINES` refuses a split that would pass it, with nothing changed.",
+          "heldBy": "packages/report-builder-core/src/baselines.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A host that draws the properties itself reads a run’s field’s selection and its text into the editor’s `setBaseline`, draws a button’s `text` and `pressed`, and follows the outcome’s `then` over a button’s own, as both builders do."
+        },
+        {
+          "area": "testing",
+          "says": "No test presses Shift with the arrows: neither jsdom runner’s keyboard extends a selection, so the scenarios select a run’s characters with its field’s own `setSelectionRange`, and that a browser’s Shift and arrows leave the selection a builder reads is the platform’s."
+        },
+        {
+          "area": "testing",
+          "says": "No browser gate sets a run below or above the line through the Studio and reads it from its Download PDF: the scenarios hold both builders in jsdom, the parity checks compare their trees in Chromium too, and the renderer’s tests hold the PDF."
         }
       ]
     },

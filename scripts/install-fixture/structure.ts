@@ -31,11 +31,18 @@ export function reportToDraw(): ReportDefinition {
 
 /**
  * `editor`, over reportToDraw(), with one text inserted after the clock and
- * selected, so the properties drawn are a component's and not the report's.
+ * selected, so the properties drawn are a component's and not the report's,
+ * its run a group with two buttons that say whether they are pressed (0061).
  */
 export function insertAndSelect(editor: ReportEditor): ReportEditor {
   if (!editor.dispatch({ type: 'insert', kind: 'text', target: { region: 'body', index: 1 } }).ok) throw new Error('the editor did not insert a text')
   if (editor.state().diagnostics.length === 0) throw new Error('the clock was not diagnosed, so there is no problem to see drawn')
+  // The text's one run is a group with its Subscript and Superscript, which structureProblems holds what is drawn to (0061).
+  const shifts = editor
+    .state()
+    .properties.rows.flatMap((row) => ('group' in row ? row.group.actions : []))
+    .filter((action) => action.action.type === 'setBaseline' && action.pressed === false)
+  if (shifts.length !== 2) throw new Error('the inserted text has not its run’s two buttons to draw')
   return editor
 }
 
@@ -376,9 +383,12 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
   )
   // Each group of fields the state draws -- a QR-bill's party, the report's
   // Add of a bill (0039), an e-invoice's party, VAT category or list
-  // (0044) -- a group named by its label, hooked as one, holding its
-  // fields' rows and its buttons, each named by what it says and
-  // aria-disabled exactly where the state says it has nowhere to go.
+  // (0044), a paragraph's run (0061) -- a group named by its label, hooked
+  // as one, holding its fields' rows and its buttons, each saying its
+  // `text` and named by its label where it has one, else named by what it
+  // says, aria-disabled exactly where the state says it has nowhere to go,
+  // and aria-pressed exactly where the state says it is on or off: the
+  // inserted text's run, with its Subscript and Superscript, among them.
   const fieldGroups = state.properties.rows.flatMap((row) => ('group' in row ? [row.group] : []))
   const drawnGroups = form === undefined ? [] : parts('property-group', form)
   expect(
@@ -391,14 +401,21 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
           nameOf(drawn) === group.label &&
           parts('property', drawn).length === group.fields.length &&
           buttons.length === group.actions.length &&
-          buttons.every(
-            (button, index) =>
-              spokenText(button) === group.actions[index]?.label && (attribute(button, 'aria-disabled') === 'true') === !group.actions[index]?.available,
-          )
+          buttons.every((button, index) => {
+            const action = group.actions[index]
+            return (
+              action !== undefined &&
+              spokenText(button) === (action.text ?? action.label) &&
+              (action.text === undefined || nameOf(button) === action.label) &&
+              attribute(button, 'aria-pressed') === (action.pressed === undefined ? undefined : String(action.pressed)) &&
+              (attribute(button, 'aria-disabled') === 'true') === !action.available
+            )
+          })
         )
       }),
-    'the properties have not a group per group of fields, named by its label, with its rows and its buttons, each unavailable where the state says',
+    'the properties have not a group per group of fields, named by its label, with its rows and its buttons, each named, unavailable and pressed where the state says',
   )
+
   const [library] = form === undefined ? [] : withRole('group', form).filter((group) => nameOf(group) === t('images.heading'))
   const imageRows = library === undefined ? [] : parts('property', library)
   expect(

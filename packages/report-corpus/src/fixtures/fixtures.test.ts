@@ -17,6 +17,7 @@ import { longTable } from './long-table.js'
 import { oversized } from './oversized.js'
 import { BOUNDARY, OVERFLOW, summaryFits, summaryOverflows, SWEEP, SWEEP_STEP } from './summary.js'
 import { SVG_AS_SAVED, SVG_BOUND, SVG_FIXTURES, SVG_MARK, SVG_WINDOW, svgAsSaved, svgMark, svgWindow } from './svg.js'
+import { SHIFTED_FIXTURES, shiftedFormulas } from './shifted.js'
 import { DESCRIPTION_WORDS, tallRow } from './tall-row.js'
 
 /**
@@ -51,17 +52,20 @@ function occurrencesIn(haystack: readonly string[]): (sought: string) => number[
   }
 }
 
-/** The lines a document prints that are whole: paragraphs without page fields, table cells and headers. */
+/** The lines a document prints that are whole: paragraphs without page fields, a column's among them, table cells and headers. */
 function documentLines(document: ResolvedDocument): string[] {
-  return flatten([...(document.firstPageHeader ?? []), ...document.pageHeader, ...document.body, ...document.pageFooter]).flatMap((block) => {
-    if (block.kind === 'paragraph') return [plainText(block.runs) ?? '']
-    if (block.kind === 'table') return [...block.header, block.emptyText, ...block.rows.flatMap((row) => row.cells)].map(normalise)
-    return []
-  })
+  const blocks = flatten([...(document.firstPageHeader ?? []), ...document.pageHeader, ...document.body, ...document.pageFooter])
+  return [...blocks, ...blocks.flatMap((block) => (block.kind === 'columns' ? block.columns.flatMap((column) => flatten(column.blocks)) : []))].flatMap(
+    (block) => {
+      if (block.kind === 'paragraph') return [plainText(block.runs) ?? '']
+      if (block.kind === 'table') return [...block.header, block.emptyText, ...block.rows.flatMap((row) => row.cells)].map(normalise)
+      return []
+    },
+  )
 }
 
-/** Section 20's fixtures, the SVG ones, the kept rows' one, the first page header's and the chart ones: every fixture an engine answers to. */
-const EVERY = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES]
+/** Section 20's fixtures, the SVG ones, the kept rows' one, the first page header's, the chart ones and those of runs set below or above the line: every fixture an engine answers to. */
+const EVERY = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES, ...SHIFTED_FIXTURES]
 
 describe('the corpus', () => {
   // Section 20's list, spelled out once here: a fixture dropped from the
@@ -128,6 +132,24 @@ describe('the corpus', () => {
       'chart-bars-too-thin-labelled',
       'chart-too-short',
       'chart-unprintable-label',
+    ])
+  })
+
+  // The fixtures of runs set below or above the line stand beside them too
+  // (0061): one dropped would leave a way such a run prints, or a way the
+  // renderer refuses one, unproved on the PDF.
+  test('has the fixtures of runs set below or above the line beside them, each once', () => {
+    expect(SHIFTED_FIXTURES.map((fixture) => fixture.id)).toEqual([
+      'shifted-formulas',
+      'shifted-host-fonts',
+      'shifted-stacked',
+      'shifted-first-page',
+      'shifted-alone',
+      'shifted-after-space',
+      'shifted-before-space',
+      'shifted-empty-before',
+      'shifted-empty-after',
+      'shifted-too-wide',
     ])
   })
 
@@ -200,6 +222,35 @@ describe('the corpus', () => {
       expect(match?.groups, fixture.id).toEqual({ pageNumber: '3', pageCount: '7' })
       expect(fixture.expect.footerEveryPage?.test('Page 3 of'), fixture.id).toBe(false)
     }
+  })
+})
+
+describe('the runs set below or above the line', () => {
+  /** The block a refusal names, by the path the renderer names it by: `body[1]`, or `body[1].columns[0].blocks[0]` in a column. */
+  function blockAt(document: ResolvedDocument, path: string): Block | undefined {
+    const [, first, column, inner] = /^body\[(\d+)\](?:\.columns\[(\d+)\]\.blocks\[(\d+)\])?$/.exec(path) ?? []
+    const block = document.body[Number(first)]
+    if (column === undefined) return block
+    return block?.kind === 'columns' ? block.columns[Number(column)]?.blocks[Number(inner)] : undefined
+  }
+
+  // A fixture that renders and expects no run so set, or only one way,
+  // would prove nothing of the other; one refused for a paragraph that
+  // sets none would be refused for something else. Each fixture refused
+  // names a paragraph that holds such a run, and every one that renders
+  // expects both ways, the page footer's on every page.
+  test('expect runs set both ways where they render, and name a paragraph that sets one where they are refused', () => {
+    for (const fixture of SHIFTED_FIXTURES) {
+      const { outcome, refusal, shiftedRuns } = fixture.expect
+      if (outcome === 'render') {
+        expect(new Set(shiftedRuns.map((run) => run.shift)), fixture.id).toEqual(new Set(['subscript', 'superscript']))
+        continue
+      }
+      const block = blockAt(fixture.document, refusal!.subject!)
+      expect(block?.kind, fixture.id).toBe('paragraph')
+      expect(block?.kind === 'paragraph' && block.runs.some((run) => 'text' in run && run.baseline !== undefined), fixture.id).toBe(true)
+    }
+    expect(shiftedFormulas.expect.pageRegionShiftedRuns).toEqual([{ text: '3', shift: 'superscript', size: 8 }])
   })
 })
 

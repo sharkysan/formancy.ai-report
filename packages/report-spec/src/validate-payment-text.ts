@@ -2,8 +2,9 @@
  * The texts a payment code holds, read one way for every code -- a
  * QR-bill's, an EPC QR code's, and an e-invoice's, the XML a payment is
  * made from: runs, one at least, read as a paragraph's in the report's
- * scope and encoded in the code; and, when every run is literal, the text
- * they make held to the code's own rule where it is written.
+ * scope, but for a baseline, which has no place in a code (0061), and
+ * encoded in the code; and, when every run is literal, the text they make
+ * held to the code's own rule where it is written.
  *
  * A text of literal runs prints the same in every render, so its code's
  * rule is applied to it here; any other is checked by the runtime with the

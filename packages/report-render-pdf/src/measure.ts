@@ -6,6 +6,7 @@ import type { RowLine } from './check-table.js'
 import type { Engine } from './engine.js'
 import type { HostFontFiles } from './host-fonts.js'
 import { LINE_FACTOR, ROBOTO } from './style.js'
+import { checkShifted, type ShiftedRoom } from './shifted.js'
 import { checkWords, type WordRoom } from './words.js'
 import { PADDING_Y, RULE } from './table.js'
 
@@ -55,8 +56,9 @@ export const SENTINEL_LINE = LINE_FACTOR
 /**
  * Lays `items` out on one page `height` tall, between those side margins,
  * and measures them; `overflow` is what to throw when they do not fit on it.
- * Before a line is laid out, the `words` of the items are held to their
- * room, so that pdfmake never breaks one too wide for it.
+ * Before a line is laid out, the words of the items are held to their
+ * room, so that pdfmake never breaks one too wide for it, and those of a run
+ * set below or above the line to a run on the line (`shifted.ts`).
  */
 export async function measure(
   engine: Engine,
@@ -64,7 +66,7 @@ export async function measure(
   items: readonly Content[],
   resources: Required<Pick<TDocumentDefinitions, 'defaultStyle' | 'images'>>,
   overflow: () => Error,
-  words: readonly WordRoom[],
+  rooms: { readonly words: readonly WordRoom[]; readonly shifted: readonly ShiftedRoom[] },
   host: HostFontFiles,
 ): Promise<Measured> {
   const definition: TDocumentDefinitions = {
@@ -73,8 +75,11 @@ export async function measure(
     ...resources,
     content: [sentinel(0), sentinel(1), ...items.flatMap((item, index) => [item, sentinel(index + 2)])],
     background: (number) => {
-      // pdfmake has measured every word, and laid out no line yet (`words.ts`).
-      if (number === 1) checkWords(words)
+      // pdfmake has measured every word, and laid out no line yet (`words.ts`, `shifted.ts`).
+      if (number === 1) {
+        checkWords(rooms.words)
+        checkShifted(rooms.shifted)
+      }
       if (number > 1) throw overflow()
       return null
     },

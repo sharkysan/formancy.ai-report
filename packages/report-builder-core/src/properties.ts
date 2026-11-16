@@ -42,7 +42,7 @@ import type { Selection } from './model.js'
 import type { PropertyField, PropertyGroup, PropertyPanel, PropertyRow } from './model-properties.js'
 import { pairedReference } from './payment-part.js'
 import { paymentPartFields } from './payment-part-fields.js'
-import { flatFields, isGroup } from './property-fields.js'
+import { buttonName, flatFields, groupName, isGroup } from './property-fields.js'
 import type { GroupSpec, PanelSpec } from './property-fields.js'
 import { FIRST_PAGE_HEADER, languagesGroup, reportFields } from './report-fields.js'
 import { selected } from './selection.js'
@@ -150,12 +150,14 @@ export function propertyPanel(
   }
   const groupOf = (spec: GroupSpec): PropertyGroup => ({
     key: spec.key,
-    label: t(spec.words, spec.item === undefined ? {} : { item: spec.item }),
+    label: groupName(spec, t),
     fields: spec.fields.map(fieldOf),
     actions: spec.buttons.map((button) => ({
-      label: t(button.words, { ...(button.item === undefined ? {} : { item: button.item }), ...(button.name === undefined ? {} : { name: button.name }) }),
+      label: buttonName(button, t),
+      ...(button.text === undefined ? {} : { text: t(button.text) }),
       action: button.action,
       available: button.available,
+      ...(button.pressed === undefined ? {} : { pressed: button.pressed }),
       ...(button.then === undefined ? {} : { then: button.then }),
     })),
   })

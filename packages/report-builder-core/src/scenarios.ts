@@ -22,12 +22,14 @@
  * e-invoice selected and edited (`scenario-e-invoice.ts`), what page 1
  * prints at its top (`scenario-first-page.ts`), a host's view
  * (`scenario-host-view.ts`), images (`scenario-images.ts`), the rows a
- * table's group header is kept with (`scenario-table-group.ts`) and a
- * report's languages (`scenario-languages.ts`).
+ * table's group header is kept with (`scenario-table-group.ts`), a
+ * report's languages (`scenario-languages.ts`) and a run set below or
+ * above the line (`scenario-baselines.ts`).
  */
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { PROPERTY_ROLES } from './model-properties.js'
+import { baselineScenarios } from './scenario-baselines.js'
 import { firstPageScenarios } from './scenario-first-page.js'
 import { hostViewScenarios } from './scenario-host-view.js'
 import { imageScenarios } from './scenario-images.js'
@@ -302,6 +304,7 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
     ...imageScenarios(locale),
     ...tableGroupScenarios(locale),
     ...languageScenarios(locale),
+    ...baselineScenarios(locale),
   ]
 }
 

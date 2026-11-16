@@ -187,6 +187,24 @@ the one walk that lays them out (`styledRows`), and refuses a face the
 family does not map and a character the face lacks, a page field's digits
 included; the QR-bill's slip and the EPC caption keep Liberation Sans
 ([0043](docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
+A run of a paragraph may be set below or above the line, in any character
+its face draws: report-spec's `BASELINE_SHIFTS` on a run of literal text,
+a field, a parameter, an expression or an aggregate in a text component
+alone, refused as `misplaced-baseline` wherever else a run is read and as
+`unknown-property` on a page counter (`validate-inline.ts`); the runtime's
+document carries it and states what it prints as, `SHIFTED_SIZE` and
+`SHIFTED_RISE`, pdfmake 0.3.11's own (`document.ts`); the renderer hands
+pdfmake its `sub` and `sup` (`content.ts`), gives a line that holds a
+lowered run `LOWERED_LINE` of room and counts it (`bound.ts`), and from
+pdfmake's own words refuses a word that holds such a run and no run on the
+line printing a character as `unsupported`, and one wider than its line as
+`content-too-large` (`shifted.ts`); the corpus's `lines.ts` reads such a
+run into its line and `shiftedRuns` holds its size and its move on the
+PDF; and builder-core's `baselines.ts` sets the characters a builder says
+were selected in a run's field, or the whole run, in one undo step, the
+whole run alone from another language, each run a group with its Subscript
+and Superscript
+([0061](docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
 A chart, a component, runs through report-spec, report-core, the
 runtime and the renderer, and is not offered by the builders yet: its
 rules are report-spec's `chart.ts`, the palette `CHART_PALETTE` and the

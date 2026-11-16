@@ -11,6 +11,7 @@ import {
   pageDimensions,
   readPdf,
   SHARE_UNIT,
+  SHIFTED_FIXTURES,
   starterImages,
   SVG_FIXTURES,
   verify,
@@ -35,12 +36,13 @@ import { documentOf, fixture, fixtureOf, paragraph, TIMEOUT, type Stated } from 
  * pdfmake on this corpus, and the renderer grown from its adapter is held to
  * it here, and to the corpus's SVG fixtures beside it (0030), which the
  * trial's engines never drew, its kept rows' fixture (0059), which they
- * never kept, and its fixtures of page 1's own header (0060), which they
- * never drew either.
+ * never kept, its fixtures of page 1's own header (0060), which they
+ * never drew either, and its runs set below or above the line (0061),
+ * which they never set.
  */
 
-/** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's and the chart ones. */
-const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES]
+/** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's, the chart ones and those of runs set below or above the line. */
+const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES, ...SHIFTED_FIXTURES]
 
 /**
  * Why each chart fixture the renderer refuses is refused, by its message,
@@ -139,6 +141,7 @@ describe('the renderer on the corpus', () => {
     expect(FIRST_PAGE_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect(CHART_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect([...CHART_REFUSALS.keys()]).toEqual(CHART_FIXTURES.filter((fixture) => fixture.expect.outcome === 'refuse').map((fixture) => fixture.id))
+    expect(SHIFTED_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect([...CANNOT.keys()]).toEqual([])
   })
 })

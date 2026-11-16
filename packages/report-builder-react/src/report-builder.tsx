@@ -197,13 +197,19 @@ export function ReportBuilder({ editor, hostView }: ReportBuilderProps): ReactEl
     if (lastInProperties.current && last instanceof Node && !last.isConnected && dropped) focus('properties')
   }, [state, focus])
 
-  /** Dispatches `action`; when it succeeds, focus goes to `then` -- at once if nothing changed, else once the change is drawn. */
+  /**
+   * Dispatches `action`; when it succeeds, focus goes to `then` -- at once
+   * if nothing changed, else once the change is drawn -- or where the
+   * outcome says, where the action decided it only once done: a run's
+   * button, whose run a split moved (0061).
+   */
   function act(action: EditorAction, then?: FocusAfter): EditorOutcome {
     const before = editor.state()
     const outcome = editor.dispatch(action)
-    if (then === undefined || !outcome.ok) return outcome
-    if (editor.state() === before) focus(then)
-    else wanted.current = then
+    const where = outcome.ok ? (outcome.then ?? then) : undefined
+    if (where === undefined) return outcome
+    if (editor.state() === before) focus(where)
+    else wanted.current = where
     return outcome
   }
 

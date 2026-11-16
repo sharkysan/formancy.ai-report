@@ -110,6 +110,8 @@ export const REPORT_ATTRIBUTES = [
   'aria-invalid',
   /** On a tool or a palette entry with nothing to act on, which stays focusable. */
   'aria-disabled',
+  /** On a run's Subscript or Superscript: "true" while the run is set so (0061). */
+  'aria-pressed',
 ] as const
 
 /**

@@ -38,11 +38,12 @@ export type {
   ExpectedImage,
   ExpectedRefusal,
   ExpectedRow,
+  ExpectedShiftedRun,
   ExpectedTable,
   Fixture,
   Stated,
 } from './fixture.js'
-export { chartsOf, drawingsOf, epcCodes, expectation } from './fixture.js'
+export { chartsOf, drawingsOf, epcCodes, expectation, shiftedRunsOf } from './fixture.js'
 export {
   SITE_VISIT_HIGH,
   SITE_VISIT_REPORT,
@@ -61,7 +62,8 @@ export { IMAGE_KINDS } from './image-kinds.js'
 export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from './fixtures/svg.js'
 export { CHART_FIXTURES } from './fixtures/charts.js'
 export { FIRST_PAGE_FIXTURES } from './fixtures/first-page-header.js'
-export { readPdf } from './read-pdf.js'
+export { SHIFTED_FIXTURES } from './fixtures/shifted.js'
+export { baselineOf, readPdf } from './read-pdf.js'
 export { curvePoints, curveSamples, onCurve } from './curves.js'
 export { drawingsOn } from './drawings.js'
 export type { Drawing } from './drawings.js'

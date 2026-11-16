@@ -86,24 +86,39 @@ export interface TextFormat {
 /** How a value is displayed. Display only: calculation precision is the runtime's, with its declared rounding. */
 export type Format = NumberFormat | CurrencyFormat | DateFormat | TextFormat
 
+/**
+ * Where a run of a paragraph stands against its line (0061): set below it,
+ * a formula's digit, or above it, a unit's power, an exponent or a
+ * footnote's mark, smaller than the paragraph's text and moved, in any
+ * character its face draws. Absent, the run stands on the line. Only a
+ * text component's runs take one; a page counter takes none, and what a
+ * code encodes and a table's cells refuse one as `misplaced-baseline`.
+ */
+export const BASELINE_SHIFTS = ['subscript', 'superscript'] as const
+export type BaselineShift = (typeof BASELINE_SHIFTS)[number]
+
 export interface TextInline {
   readonly kind: 'text'
   readonly text: string
+  readonly baseline?: BaselineShift
 }
 export interface FieldInline {
   readonly kind: 'field'
   readonly field: FieldRef
   readonly format?: Format
+  readonly baseline?: BaselineShift
 }
 export interface ParameterInline {
   readonly kind: 'parameter'
   readonly parameter: string
   readonly format?: Format
+  readonly baseline?: BaselineShift
 }
 export interface ExpressionInline {
   readonly kind: 'expression'
   readonly expression: Expression
   readonly format?: Format
+  readonly baseline?: BaselineShift
 }
 
 /** Whose rows an aggregate is taken over where it is printed: the current group's, or every detail row. */
@@ -116,10 +131,13 @@ export interface AggregateInline {
   readonly aggregate: string
   readonly over: AggregateScope
   readonly format?: Format
+  readonly baseline?: BaselineShift
 }
+/** The page's number, which the engine fills on each page; it takes no baseline. */
 export interface PageNumberInline {
   readonly kind: 'pageNumber'
 }
+/** How many pages the document has, which the engine fills; it takes no baseline. */
 export interface PageCountInline {
   readonly kind: 'pageCount'
 }

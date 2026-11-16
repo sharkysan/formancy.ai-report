@@ -79,6 +79,14 @@ function wholeReport(): ReportDefinition {
   // Page 1's own header, which `richReport` leaves out (0060): a region no
   // fixture holds is one whose strings the guard below never reads.
   setAt(report, '/regions/firstPageHeader', [{ id: 'letterhead', kind: 'text', content: [{ kind: 'text', text: 'Orders, by site' }] }])
+  // A baseline on each kind of run that takes one, in a paragraph, where
+  // alone the format admits one (0061): a key no fixture holds is one
+  // whose string the guard below never judges.
+  setAt(report, '/regions/body/0/content/0/baseline', 'superscript')
+  setAt(report, '/regions/body/0/content/1/baseline', 'subscript')
+  setAt(report, '/regions/body/0/content/2/baseline', 'superscript')
+  setAt(report, '/regions/pageHeader/0/content/0/baseline', 'subscript')
+  setAt(report, '/regions/summary/0/components/1/content/0/baseline', 'superscript')
   // Every component conditioned and styled, as only some of the fixture's are.
   for (const { path } of walkComponents(report as unknown as ReportDefinition)) {
     const component = getAt(report, path) as Record<string, unknown>

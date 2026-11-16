@@ -24,6 +24,7 @@ import type { RenderFonts } from './host-fonts.js'
 import { checkPdfA } from './pdfa-check.js'
 import type { PdfA } from './pdfa.js'
 import { qrSymbol, type QrSymbol } from './qr.js'
+import { checkBaselines } from './shifted.js'
 import { fillWidth, fixedWidth } from './widths.js'
 
 /**
@@ -164,6 +165,7 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
       checkStyle(block.style, at, walk.fonts)
       if (block.runs.some((run) => !('text' in run) && run.field !== 'pageNumber' && run.field !== 'pageCount'))
         throw new RenderRefusal('unsupported', `${at} prints a field the renderer does not know`, at)
+      checkBaselines(block, at)
       for (const run of block.runs) {
         if ('text' in run) checkText(run.text, runFace(block.style, run), walk, at)
       }

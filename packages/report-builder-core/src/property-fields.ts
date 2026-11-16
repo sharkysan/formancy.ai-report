@@ -1,31 +1,48 @@
 /**
- * The panel's own shapes: the groups fields are drawn in, what a text is
- * named by, and what fields are built from.
+ * The panel's own shapes: the groups fields are drawn in and their
+ * buttons -- a QR-bill's parties (0039), an e-invoice's parties, its VAT
+ * categories and their list (0044), the report's languages (0063), and
+ * each run of a paragraph, with its Subscript and Superscript (0061) --
+ * what a text is named by, and what fields are built from.
  *
  * How a field is shown, and how what is typed becomes a value, is
  * `field-specs.ts`'s. Which fields each thing has is
  * `component-fields.ts`'s, a component's runs of text `run-fields.ts`'s,
- * the report's own `report-fields.ts`'s, and a word written in another
- * language `word-fields.ts`'s (0063).
+ * a paragraph's runs' groups among them, the report's own
+ * `report-fields.ts`'s, and a word written in another language
+ * `word-fields.ts`'s (0063).
  */
 import type { ReportDefinition } from '@formancy/report-spec'
-import type { FieldSpec } from './field-specs.js'
+import { fieldWords } from './field-specs.js'
+import type { FieldSpec, FieldWords } from './field-specs.js'
 import type { Edited } from './languages.js'
-import type { EditorAction } from './model-actions.js'
+import type { EditorAction, GroupFocus } from './model-actions.js'
 import type { EditorLocale, EditorText, MessageId } from './text.js'
 
 /** What a text is named by: its words, or its words and the number of the list's item it is of. */
 export type TextName = MessageId | { readonly id: MessageId; readonly item: number }
 
-/** A group's button: its words -- with the item's number, for an item of a list -- the action it sends, whether it has somewhere to go, and where the keyboard goes once it is done (`PropertyAction`'s `then`). */
+/**
+ * A group's button: its words -- with the item's number, for an item of a
+ * list, what they name, the language a Remove takes away, or the field
+ * they are about, `of`, a run's -- and, where it shows less than its name
+ * says, the words it shows (`text`); the action it sends, whether it has
+ * somewhere to go, whether it is pressed, for a button that is on or off
+ * (0061), and where the keyboard goes once it is done (`PropertyAction`'s
+ * `then`).
+ */
 export interface GroupButton {
   readonly words: MessageId
   readonly item?: number
   /** What the words name, where they name something: the language a Remove takes away (0063). */
   readonly name?: string
+  /** The field the words name, where they name one: the run a Subscript sets (0061). */
+  readonly of?: FieldWords
+  readonly text?: MessageId
   readonly action: EditorAction
   readonly available: boolean
-  readonly then?: { readonly group: string; readonly button?: number }
+  readonly pressed?: boolean
+  readonly then?: GroupFocus
 }
 
 /**
@@ -53,11 +70,12 @@ export interface ListSpec {
  * Add while it is absent, when it has no fields, and Remove while it is
  * there. A list's own group has no fields and its Add, and says what its
  * list is (`list`); each item of it is a group of its own, numbered `n`
- * from 1, with Move up, Move down and Remove.
+ * from 1, with Move up, Move down and Remove. A run of a paragraph is a
+ * group named as its one field is, by the field's words (0061).
  */
 export interface GroupSpec {
   readonly key: string
-  readonly words: MessageId
+  readonly words: MessageId | FieldWords
   readonly item?: number
   readonly fields: readonly FieldSpec[]
   readonly buttons: readonly GroupButton[]
@@ -110,6 +128,21 @@ export function optionalGroup(key: string, words: MessageId, fields: readonly Fi
     ],
     optional: { present, value, added: said.added, removed: said.removed, ...(said.announced === undefined ? {} : { announced: said.announced }) },
   }
+}
+
+/** A group's name, in a language: "VAT category 2", or a run's, as its field is named, "Part 2: Text". */
+export function groupName(group: GroupSpec, t: EditorText): string {
+  if (typeof group.words === 'object') return fieldWords(group.words, t)
+  return t(group.words, group.item === undefined ? {} : { item: group.item })
+}
+
+/** A button's name, in a language: "Remove VAT category 2", "Remove French", "Part 2: Text, subscript". */
+export function buttonName(button: GroupButton, t: EditorText): string {
+  return t(button.words, {
+    ...(button.item === undefined ? {} : { item: button.item }),
+    ...(button.name === undefined ? {} : { name: button.name }),
+    ...(button.of === undefined ? {} : { name: fieldWords(button.of, t) }),
+  })
 }
 
 /** What fields are built from: the report, the editor's words and language, and what each name reads where the thing stands. */

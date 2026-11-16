@@ -5,7 +5,7 @@
  * state (`EditorState`), apart because the pane changes for reasons of its
  * own.
  */
-import type { EditorAction } from './model-actions.js'
+import type { EditorAction, GroupFocus } from './model-actions.js'
 
 export const PROPERTY_KINDS = ['text', 'multiline', 'number', 'length', 'select', 'boolean', 'color', 'expression', 'binding', 'style'] as const
 /**
@@ -77,9 +77,14 @@ export interface PropertyField {
  * so the editor says why nothing happened.
  */
 export interface PropertyAction {
+  /** Its accessible name: "Remove VAT category 2", "Part 2: Text, subscript". */
   readonly label: string
+  /** What it shows, where that is less than its name says: "Subscript", named "Part 2: Text, subscript" (0061). Absent, it shows its name. */
+  readonly text?: string
   readonly action: EditorAction
   readonly available: boolean
+  /** For a button that is on or off -- a run's Subscript, while the run is set below the line (0061) -- whether it is on: `aria-pressed`. */
+  readonly pressed?: boolean
   /**
    * Where the keyboard goes once the action is done and drawn, where it
    * goes elsewhere than the button it is on: the button at `button` of the
@@ -88,17 +93,21 @@ export interface PropertyAction {
    * group the item stands in now, one removed to the list's Add, and one
    * added to the new item's first field. Absent, it stays on the button,
    * whatever the button says now. Decided here, so that neither builder
-   * works it out (0044).
+   * works it out (0044). Where the action itself decides it -- a run's
+   * button, whose run a split or a join moved (0061) -- the outcome's
+   * `then` says, and wins.
    */
-  readonly then?: { readonly group: string; readonly button?: number }
+  readonly then?: GroupFocus
 }
 
 /**
  * Fields drawn together under one name -- a party of a QR-bill or of an
- * e-invoice, one of an e-invoice's VAT categories -- and the buttons the
- * group has, in order: Add where an optional group is absent, and has no
- * fields, and Remove where it is there; Move up, Move down and Remove for
- * an item of a list, and Add for the list (0044).
+ * e-invoice, one of an e-invoice's VAT categories, a run of a paragraph --
+ * and the buttons the group has, in order: Add where an optional group is
+ * absent, and has no fields, and Remove where it is there; Move up, Move
+ * down and Remove for an item of a list, and Add for the list (0044);
+ * Subscript and Superscript for a run, each named after it and pressed
+ * while the run is set so (0061).
  */
 export interface PropertyGroup {
   /** A JSON Pointer from the selection to what the group edits: "/debtor", "/vat/1", "/vat". */

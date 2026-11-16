@@ -6,7 +6,10 @@ import { normalise } from './documents.js'
  * A page's text as lines a reader sees, rebuilt from PDF.js's runs: a copy
  * of `@formancy/report-corpus`'s `lines.ts`, which its index does not export,
  * and goes once it does. Runs on one baseline make one line, read left to
- * right, and lines are read top to bottom.
+ * right, and lines are read top to bottom. Unlike the corpus's reader, it
+ * does not join a run set below or above the line to its line (0061), so
+ * no test of such a run reads lines through it: `shifted.test.ts` reads
+ * PDF.js's runs, and the corpus's checks read lines through the corpus's.
  */
 export interface Line {
   readonly text: string

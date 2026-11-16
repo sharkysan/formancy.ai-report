@@ -8,8 +8,8 @@ import { EPC_CAPTIONS, QR_ERROR_CORRECTION } from '@formancy/report-spec'
 import type { Component, ComponentKind, QrErrorCorrection, TableColumn } from '@formancy/report-spec'
 import { booleanField, choiceField, colorField, countField, expressionField, lengthField, pointsField, styleField, textField, value } from './field-specs.js'
 import type { FieldSpec } from './field-specs.js'
-import type { FieldContext } from './property-fields.js'
-import { contentFields, codeTextFields, optionalCodeTextFields, refToken, runField } from './run-fields.js'
+import type { FieldContext, PanelSpec } from './property-fields.js'
+import { contentFields, codeTextFields, optionalCodeTextFields, paragraphRuns, refToken, runField } from './run-fields.js'
 import { formatPercent } from './text.js'
 import type { EditorText } from './text.js'
 import { wordOrTextField } from './word-fields.js'
@@ -36,12 +36,12 @@ const CAPTION_OPTIONS = (t: EditorText) => [
   ...EPC_CAPTIONS.map((caption) => ({ value: caption, label: t(`option.${caption}`), stored: caption })),
 ]
 
-type Fields<C> = (component: C, context: FieldContext) => FieldSpec[]
+type Fields<C> = (component: C, context: FieldContext) => PanelSpec[]
 
 /** Each kind's own fields, in the order the panel shows them; the ones every component has follow. */
 const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { kind: K }>> } = {
   text: (component, context) => [
-    ...contentFields(component.content, context, 'words'),
+    ...paragraphRuns(component.content, context),
     booleanField('/keepWithNext', { id: 'field.keepWithNext' }, component.keepWithNext),
   ],
   image: (component, { report, t }) => {
@@ -132,8 +132,8 @@ const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { 
   keepTogether: () => [],
 }
 
-/** A component's fields: its kind's own, then its style and its condition. */
-export function componentFields(component: Component, context: FieldContext): FieldSpec[] {
+/** A component's fields: its kind's own, a paragraph's runs in groups, then its style and its condition. */
+export function componentFields(component: Component, context: FieldContext): PanelSpec[] {
   const own = (KIND_FIELDS[component.kind] as Fields<Component>)(component, context)
   return [
     ...own,

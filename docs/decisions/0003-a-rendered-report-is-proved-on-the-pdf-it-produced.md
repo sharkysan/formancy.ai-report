@@ -1,6 +1,6 @@
 # 0003 — A rendered report is proved on the PDF it produced
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which reads a run turned on the page, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which reads an SVG image from its painted paths, its clip and its pixels, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which reads the files a PDF embeds and what it says of itself with a second reader, pdf-lib, and its XMP with saxes, by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), which reads a chart by its clip, its paths and its words, and by [0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md), whose checks read page 1 by its own header where the document gives it one, and every later page by the page header
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which reads a run turned on the page, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which reads an SVG image from its painted paths, its clip and its pixels, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which reads the files a PDF embeds and what it says of itself with a second reader, pdf-lib, and its XMP with saxes, by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), which reads a chart by its clip, its paths and its words, and by [0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md), whose checks read page 1 by its own header where the document gives it one, and every later page by the page header, and by [0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md), which reads a run set below or above the line into the line it stands on, and holds its size and its baseline
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `packages/report-corpus`, whose suite runs in its own job of
@@ -228,6 +228,24 @@ holds the check on real renders and on reads doctored to show each fault;
 `read-pdf.test.ts` holds each path's subpaths and each curve with its
 control points, which the reader now gives; and `curves.test.ts` the one
 sampler of a curve that the check and the renderer's tests share.
+
+**Added 2026-11-15: a run set below or above the line, read into its
+line.** A paragraph's run may be set below or above the line
+([0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)),
+drawn smaller and with its baseline moved, so `lines` would have made it a
+line of its own and "H2O" would be found nowhere. `lines` now joins a run
+drawn at exactly `SHIFTED_SIZE` of a run beside it, its baseline that
+run's moved by `SHIFTED_RISE` of that size, within a hundredth of a point
+and standing within 0.3 of the size from it, into that run's line, and
+records it on the line with its text, its size and its move; every line
+carries the list, empty where it joined nothing, and no other run is
+grouped otherwise. `shiftedRuns` holds each run a document sets so to
+its size and its baseline on the PDF, and fails a run read so that the
+document does not set, so that every fixture of `ALL_FIXTURES` and
+`SVG_FIXTURES` shows the join reads nothing new. The run's box is still
+computed from its baseline and its size: what its glyphs touch on the
+line above or below is not seen, as no touching accent is.
+`src/lines.test.ts` and `src/check-text.test.ts` hold them.
 
 ## Alternatives considered
 

@@ -1,6 +1,7 @@
 /**
  * Values: what a paragraph, a table cell or a footer is made of, where each
- * kind of value has one, and how it is displayed.
+ * kind of value has one, how it is displayed, and where a run may be set
+ * below or above the line.
  *
  * Kinds are tables, not switches, as components are: an inline, format or
  * currency source added to its list without a reader here does not compile.
@@ -17,8 +18,8 @@ import type { StyleRule } from './styles.js'
 import { CURRENCY } from './syntax.js'
 import { resolve } from './validate-context.js'
 import type { Ctx } from './validate-context.js'
-import { AGGREGATE_SCOPES, CURRENCY_SOURCE_KINDS, DATE_STYLES, FORMAT_KINDS, INLINE_KINDS, TEXT_TRANSFORMS } from './values.js'
-import type { CurrencySource, CurrencySourceKind, Expression, Format, FormatKind, Inline, InlineKind, ValueScope } from './values.js'
+import { AGGREGATE_SCOPES, BASELINE_SHIFTS, CURRENCY_SOURCE_KINDS, DATE_STYLES, FORMAT_KINDS, INLINE_KINDS, TEXT_TRANSFORMS } from './values.js'
+import type { BaselineShift, CurrencySource, CurrencySourceKind, Expression, Format, FormatKind, Inline, InlineKind, ValueScope } from './values.js'
 
 /** Where a value is read: the region decides page counters, the scope decides detail fields and a group's aggregates. */
 export interface InlineScope {
@@ -29,6 +30,8 @@ export interface InlineScope {
   readonly groupBy?: string | undefined
   /** What the runs are encoded in, when they are: resolved whole, once, before there are pages to count. */
   readonly encoded?: 'a QR code' | 'an EPC QR code' | 'a QR-bill' | 'an e-invoice'
+  /** Whether the runs are a paragraph's, a text component's content: the one place a run may be set below or above the line (0061). */
+  readonly paragraph?: true
 }
 
 /** The regions drawn once per page, the only ones in which a page number or count has a value. */
@@ -224,15 +227,37 @@ function readCounter(c: Ctx, path: string, scope: InlineScope, kind: 'pageNumber
   return { kind }
 }
 
+/**
+ * A run's baseline (0061), read where a paragraph is. Anywhere else a run
+ * is read, the property is refused whatever its value: what a code encodes
+ * is its text alone, and a table's cell prints one string at one size.
+ */
+function readBaseline(c: Ctx, value: unknown, path: string, scope: InlineScope): BaselineShift | undefined {
+  if (value === undefined) return undefined
+  if (scope.paragraph === true) return oneOf(c.f, value, path, BASELINE_SHIFTS)
+  const said =
+    scope.encoded === undefined
+      ? "a table's cell, footer cell or group header prints one string at one size; a run is set below or above the line only in a text's paragraph"
+      : `what ${scope.encoded} encodes is its text alone, and a run's place below or above the line is no part of it`
+  c.f.report(path, 'misplaced-baseline', said)
+  return undefined
+}
+
 interface InlineRule {
   readonly required: readonly string[]
   readonly optional?: readonly string[]
+  /** Whether a run of the kind may be set below or above the line: every kind that prints a value, and no page counter, which the engine fills. */
+  readonly shifts: boolean
   readonly read: (c: Ctx, o: Record<string, unknown>, path: string, scope: InlineScope) => Inline | undefined
 }
 
-const INLINES: { readonly [K in InlineKind]: InlineRule } = {
+/** Whether the type of a run of kind `K` has a baseline, which its rule must say: the table and the types cannot disagree. */
+type Shifts<K extends InlineKind> = 'baseline' extends keyof Extract<Inline, { readonly kind: K }> ? true : false
+
+const INLINES: { readonly [K in InlineKind]: InlineRule & { readonly shifts: Shifts<K> } } = {
   text: {
     required: ['text'],
+    shifts: true,
     read: (c, o, path) => {
       const literal = text(c.f, o.text, at(path, 'text'), MAX_TEXT_LENGTH)
       return literal === undefined ? undefined : { kind: 'text', text: literal }
@@ -241,6 +266,7 @@ const INLINES: { readonly [K in InlineKind]: InlineRule } = {
   field: {
     required: ['field'],
     optional: ['format'],
+    shifts: true,
     read: (c, o, path, scope) => {
       const field = readFieldRef(c, o.field, at(path, 'field'), scope)
       // An image is drawn by an image component; printed, it would be an asset id.
@@ -252,6 +278,7 @@ const INLINES: { readonly [K in InlineKind]: InlineRule } = {
   parameter: {
     required: ['parameter'],
     optional: ['format'],
+    shifts: true,
     read: (c, o, path, scope) => {
       const parameter = reference(c.f, o.parameter, at(path, 'parameter'))
       const type = resolve(c.f, c.declared.parameters, parameter, at(path, 'parameter'), 'unknown-parameter', 'parameter')
@@ -262,6 +289,7 @@ const INLINES: { readonly [K in InlineKind]: InlineRule } = {
   expression: {
     required: ['expression'],
     optional: ['format'],
+    shifts: true,
     read: (c, o, path, scope) => {
       const expression = readExpression(c.f, o.expression, at(path, 'expression'))
       const format = readCheckedFormat(c, o.format, at(path, 'format'), scope, undefined)
@@ -271,6 +299,7 @@ const INLINES: { readonly [K in InlineKind]: InlineRule } = {
   aggregate: {
     required: ['aggregate', 'over'],
     optional: ['format'],
+    shifts: true,
     read: (c, o, path, scope) => {
       const aggregate = reference(c.f, o.aggregate, at(path, 'aggregate'))
       const type = resolve(c.f, c.declared.aggregates, aggregate, at(path, 'aggregate'), 'unknown-aggregate', 'aggregate')
@@ -286,8 +315,8 @@ const INLINES: { readonly [K in InlineKind]: InlineRule } = {
       return aggregate === undefined || over === undefined ? undefined : { kind: 'aggregate', aggregate, over, ...optional('format', format) }
     },
   },
-  pageNumber: { required: [], read: (c, _o, path, scope) => readCounter(c, path, scope, 'pageNumber') },
-  pageCount: { required: [], read: (c, _o, path, scope) => readCounter(c, path, scope, 'pageCount') },
+  pageNumber: { required: [], shifts: false, read: (c, _o, path, scope) => readCounter(c, path, scope, 'pageNumber') },
+  pageCount: { required: [], shifts: false, read: (c, _o, path, scope) => readCounter(c, path, scope, 'pageCount') },
 }
 
 export function readInline(c: Ctx, value: unknown, path: string, scope: InlineScope): Inline | undefined {
@@ -295,8 +324,11 @@ export function readInline(c: Ctx, value: unknown, path: string, scope: InlineSc
   const kind = o && kindOf(c.f, o, path, INLINE_KINDS)
   if (o === undefined || kind === undefined) return undefined
   const rule = INLINES[kind]
-  strictKeys(c.f, o, path, ['kind', ...rule.required], rule.optional)
-  return rule.read(c, o, path, scope)
+  strictKeys(c.f, o, path, ['kind', ...rule.required], [...(rule.optional ?? []), ...(rule.shifts ? ['baseline'] : [])])
+  const inline = rule.read(c, o, path, scope)
+  if (!rule.shifts) return inline
+  const baseline = readBaseline(c, o.baseline, at(path, 'baseline'), scope)
+  return inline && { ...inline, ...optional('baseline', baseline) }
 }
 
 /** Runs, at least `min` of them: none is an empty line in a paragraph, and nothing at all in a QR code. */

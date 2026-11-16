@@ -10,10 +10,11 @@
  *
  * Here are the editor's state, its listeners and the actions that edit the
  * report or walk it. Its views -- the panes, the host's view and the zoom
- * -- are `views.ts`'s, its drag `dragging.ts`'s, its images `images.ts`'s
- * and what adds or removes a part or a group `part-actions.ts`'s: each is
- * lent what it needs of the editor, and every action of each runs through
- * the one `dispatch` here.
+ * -- are `views.ts`'s, its drag `dragging.ts`'s, its images `images.ts`'s,
+ * what adds or removes a part or a group `part-actions.ts`'s and what sets
+ * a run below or above the line `baselines.ts`'s: each is lent what it
+ * needs of the editor, and every action of each runs through the one
+ * `dispatch` here.
  *
  * `state()` is the same frozen object until something changes, which is
  * what React's `useSyncExternalStore` and an Angular signal compare by. An
@@ -25,6 +26,7 @@ import { insertComponent, moveComponent } from '@formancy/report-core'
 import type { Command, CommandOutcome, Location, ReportSession } from '@formancy/report-core'
 import { componentAt } from '@formancy/report-spec'
 import type { ComponentKind } from '@formancy/report-spec'
+import { setRunBaseline } from './baselines.js'
 import { dragActions } from './dragging.js'
 import { duplicate, indent, moveBy, outdent, remove } from './edits.js'
 import type { Edit, Planned } from './edits.js'
@@ -466,6 +468,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     moveItem: (action) => parts.moveItem(action.key, action.to),
     setLanguage: (action) => languages.setLanguage(action.locale),
     removeLanguage: (action) => languages.removeLanguage(action.locale),
+    setBaseline: (action) => setRunBaseline({ current, local: () => local, refuse, applyEdit }, t, locale, action.key, action.baseline, action.selected),
   }
 
   return {

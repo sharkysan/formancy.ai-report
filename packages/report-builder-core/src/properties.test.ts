@@ -5,7 +5,8 @@ import type { EditorOutcome } from './model-actions.js'
 import type { PropertyField } from './model-properties.js'
 import { PROPERTY_KINDS, PROPERTY_ROLES } from './model-properties.js'
 import { defaultComponent } from './palette.js'
-import { editorOver, richReport } from './test-support.js'
+import { invoicedScenarioReport } from './scenario-e-invoice.js'
+import { billedReport, editorOver, richReport } from './test-support.js'
 
 function ok(outcome: EditorOutcome): void {
   if (!outcome.ok) throw new Error(`refused: ${outcome.code} ${outcome.message}`)
@@ -553,6 +554,141 @@ describe('a table column’s properties', () => {
     ok(editor.dispatch({ type: 'setProperty', key: '/align', value: 'center' }))
     const table = componentAt(session.document(), 'lines')?.component as Extract<Component, { kind: 'table' }>
     expect(table.columns[1]).toMatchObject({ header: 'Total', align: 'center' })
+  })
+})
+
+describe('a paragraph’s runs', () => {
+  /** The rich report with its title's bound run set above the line: a value raised as literal text is (0061). */
+  function raisedTitle(): ReportDefinition {
+    const report = richReport()
+    const [columns] = report.regions.reportHeader
+    if (columns?.kind !== 'columns') throw new Error('the rich report starts with its heading')
+    const [title] = columns.columns[1]?.components ?? []
+    if (title?.kind !== 'text') throw new Error('the heading holds the title')
+    const content = title.content.map((run) => (run.kind === 'field' ? { ...run, baseline: 'superscript' as const } : run))
+    const raised = { ...title, content }
+    const heading = { ...columns, columns: columns.columns.map((column, at) => (at === 1 ? { ...column, components: [raised] } : column)) }
+    return { ...report, regions: { ...report.regions, reportHeader: [heading, ...report.regions.reportHeader.slice(1)] } }
+  }
+
+  /** The groups the panel draws, each by its key, its name, its fields' keys and its buttons as a builder draws them. */
+  const groupsOf = (editor: ReturnType<typeof editorOver>['editor']) =>
+    editor.state().properties.rows.flatMap((row) =>
+      'group' in row
+        ? [
+            {
+              key: row.group.key,
+              label: row.group.label,
+              fields: row.group.fields.map((one) => one.key),
+              buttons: row.group.actions.map((action) => [action.label, action.text, action.pressed, action.action]),
+            },
+          ]
+        : [],
+    )
+
+  // Each run of a paragraph is a group named as its field is, holding the
+  // field and its two buttons, named after the run so that two runs' are
+  // never one name, showing only what they set, and pressed while the run
+  // is set so: one button for the whole text would act on a field a
+  // screen reader's user can no longer see named (0061). Pressed, a button
+  // sets the run back on the line.
+  test('are each a group with its field and its two buttons, pressed as the run is set', () => {
+    const { editor } = editorOver(raisedTitle())
+    ok(editor.dispatch({ type: 'select', id: 'title' }))
+    expect(groupsOf(editor)).toEqual([
+      {
+        key: '/content/0',
+        label: 'Part 1: Text',
+        fields: ['/content/0/text'],
+        buttons: [
+          ['Part 1: Text, subscript', 'Subscript', false, { type: 'setBaseline', key: '/content/0', baseline: 'subscript' }],
+          ['Part 1: Text, superscript', 'Superscript', false, { type: 'setBaseline', key: '/content/0', baseline: 'superscript' }],
+        ],
+      },
+      {
+        key: '/content/1',
+        label: 'Part 2: Field',
+        fields: ['/content/1'],
+        buttons: [
+          ['Part 2: Field, subscript', 'Subscript', false, { type: 'setBaseline', key: '/content/1', baseline: 'subscript' }],
+          ['Part 2: Field, superscript', 'Superscript', true, { type: 'setBaseline', key: '/content/1', baseline: null }],
+        ],
+      },
+    ])
+    // The fields are where they were, every one of them, so a field is found by its name as before.
+    expect(editor.state().properties.fields.map((one) => one.label)).toEqual(['Part 1: Text', 'Part 2: Field', 'Keep with next', 'Style', 'Show only when'])
+    expect(editor.state().properties.rows.flatMap((row) => ('field' in row ? [row.field.key] : []))).toEqual(['/keepWithNext', '/style', '/visibleWhen'])
+  })
+
+  // A lone run is named by what it is, and so are its buttons; a page
+  // counter, which takes no baseline and has nothing to edit, has no group,
+  // and the runs around it keep their places.
+  test('name a lone run by what it is, and give a page counter none', () => {
+    const { editor } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'intro' }))
+    expect(groupsOf(editor).map((group) => [group.key, group.label, group.buttons.map(([label]) => label)])).toEqual([
+      ['/content/0', 'Text', ['Text, subscript', 'Text, superscript']],
+    ])
+    ok(editor.dispatch({ type: 'select', id: 'page-of' }))
+    expect(groupsOf(editor).map((group) => [group.key, group.label])).toEqual([
+      ['/content/0', 'Part 1: Text'],
+      ['/content/2', 'Part 3: Text'],
+    ])
+  })
+
+  // The buttons in the editor's other languages, from their catalogues.
+  test('name the buttons in each language', () => {
+    for (const [locale, names] of [
+      ['de-CH', ['Text, tiefgestellt', 'Tiefgestellt', 'Text, hochgestellt', 'Hochgestellt']],
+      ['fr-CH', ['Texte, indice', 'Indice', 'Texte, exposant', 'Exposant']],
+    ] as const) {
+      const { editor } = editorOver(richReport(), { locale })
+      ok(editor.dispatch({ type: 'select', id: 'intro' }))
+      expect(
+        groupsOf(editor)[0]?.buttons.flatMap(([label, text]) => [label, text]),
+        locale,
+      ).toEqual(names)
+    }
+  })
+
+  // What a code encodes is its text alone, and a table's cell prints one
+  // string at one size, so the format refuses a baseline there
+  // (misplaced-baseline): a button that set one would offer an edit the
+  // validator refuses every time. A QR code's content, an EPC code's
+  // texts, a QR-bill's and an e-invoice's, and a column's value have none.
+  test('are offered in a paragraph alone', () => {
+    const baselines = (editor: ReturnType<typeof editorOver>['editor']) =>
+      editor.state().properties.rows.flatMap((row) => ('group' in row ? row.group.actions.filter((action) => action.action.type === 'setBaseline') : []))
+    const rich = editorOver().editor
+    for (const selection of [{ id: 'order-code' }, { id: 'pay-code' }, { id: 'lines', column: 'sku' }] as const) {
+      ok(rich.dispatch({ type: 'select', ...selection }))
+      expect(baselines(rich), selection.id).toEqual([])
+      expect(
+        rich.state().properties.rows.some((row) => 'group' in row),
+        selection.id,
+      ).toBe(false)
+    }
+    const billed = editorOver(billedReport()).editor
+    ok(billed.dispatch({ type: 'select', part: 'paymentPart' }))
+    expect(baselines(billed)).toEqual([])
+    const invoiced = editorOver(invoicedScenarioReport()).editor
+    ok(invoiced.dispatch({ type: 'select', part: 'eInvoice' }))
+    expect(baselines(invoiced)).toEqual([])
+  })
+
+  // A run rebound to another field or a parameter is the same run: set
+  // above the line, it stays there, as it keeps its format. Rebound to
+  // the run the binding builds afresh, its exponent would drop to the line.
+  test('keep a bound run’s baseline when it is rebound', () => {
+    const { editor, session } = editorOver(raisedTitle())
+    ok(editor.dispatch({ type: 'select', id: 'title' }))
+    ok(editor.dispatch({ type: 'setProperty', key: '/content/1', value: 'parameter:from' }))
+    expect(componentAt(session.document(), 'title')?.component).toMatchObject({
+      content: [
+        { kind: 'text', text: 'Orders for ' },
+        { kind: 'parameter', parameter: 'from', baseline: 'superscript' },
+      ],
+    })
   })
 })
 

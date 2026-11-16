@@ -634,6 +634,32 @@ describe('reviewFormVersion, a relabel', () => {
     expect(applied.regions.summary).toEqual([other])
   })
 
+  // A relabel says the new words and nothing else: a label run its author
+  // set above the line (0061) stays there. Rebuilt as a bare run, it would
+  // drop to the line in the one edit that was only to change its words.
+  test('keeps a label run set below or above the line where it was', () => {
+    const relabelled = version((fields) => changed(fields, 'site', (field) => ({ ...field, label: 'Address' })))
+    const raised = (report: ReportDefinition): ReportDefinition => ({
+      ...report,
+      regions: {
+        ...report.regions,
+        body: report.regions.body.map((component) =>
+          component.kind === 'text'
+            ? {
+                ...component,
+                content: component.content.map((run) => (run.kind === 'text' && run.text === 'Site: ' ? { ...run, baseline: 'superscript' as const } : run)),
+              }
+            : component,
+        ),
+      },
+    })
+    const report = raised(REPORT)
+    expect(texts(report)).toContain('Site: {field}')
+    const applied = resolved(reviewed(relabelled, report), 'site', 'relabel', report)
+    const runs = walkComponents(applied).flatMap(({ component }: { component: Component }) => (component.kind === 'text' ? component.content : []))
+    expect(runs.filter((run) => run.kind === 'text' && run.text === 'Address: ')).toEqual([{ kind: 'text', text: 'Address: ', baseline: 'superscript' }])
+  })
+
   // A label the format cannot hold -- a field's past MAX_LABEL_LENGTH --
   // is no relabel the session would take: none is offered, and the item
   // still says the form labels the field otherwise.

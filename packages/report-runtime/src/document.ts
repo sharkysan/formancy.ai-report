@@ -30,6 +30,7 @@
 import type {
   Alignment,
   AssetMediaType,
+  BaselineShift,
   Border,
   EpcCaption,
   FacturXProfileTerms,
@@ -51,8 +52,35 @@ import type { Chart } from './chart-document.js'
  * page, which prints only in the page header and footer. A run in bold
  * inside a paragraph that is not was the trial's; version 0 of the
  * definition sets weight per paragraph.
+ *
+ * A run of text may be set below or above the line, `baseline`, as its
+ * source run was (0061): absent, it stands on the line, and the runtime
+ * writes the key only where the report set one. A page counter takes none.
+ * What such a run prints as is `SHIFTED_SIZE` and `SHIFTED_RISE`.
  */
-export type Inline = { readonly text: string; readonly bold?: boolean } | { readonly field: 'pageNumber' } | { readonly field: 'pageCount' }
+export type Inline =
+  { readonly text: string; readonly bold?: boolean; readonly baseline?: BaselineShift } | { readonly field: 'pageNumber' } | { readonly field: 'pageCount' }
+
+/**
+ * A run set below or above the line prints at this fraction of its
+ * paragraph's size, in the paragraph's face (0061). It is pdfmake 0.3.11's
+ * own figure (`TextInlines.js`), stated here as the document's, for any
+ * engine: the renderer counts such a run's line at it (`bound.ts`), the
+ * corpus reads a run at it as one of its line (`lines.ts`), and a PDF that
+ * draws another fails there.
+ */
+export const SHIFTED_SIZE = 0.58
+
+/**
+ * How far such a run's baseline is moved from its line's, as a fraction of
+ * its paragraph's size, up positive: 0.75 of the reduced size up for a run
+ * set above the line, 0.35 of it down for one below, 0.435 and 0.203 of the
+ * paragraph's size. pdfmake 0.3.11's own figures (`Renderer.js`'s
+ * `offsetText`), as `SHIFTED_SIZE` is. The move itself takes no room in
+ * the line: what room a line makes for such a run, below or above it, is
+ * the engine's.
+ */
+export const SHIFTED_RISE: Readonly<Record<BaselineShift, number>> = { superscript: 0.75 * SHIFTED_SIZE, subscript: -0.35 * SHIFTED_SIZE }
 
 /**
  * How text prints: report-spec's `PrintStyle`, resolved. The runtime lays

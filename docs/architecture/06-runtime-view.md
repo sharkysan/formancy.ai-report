@@ -159,6 +159,9 @@ renderPdf(document, { maxPages, signal, pdfa })
    ├─ plan where each table breaks
    ├─ lay out the PDF; a page past maxPages ─────────────────▶ too-many-pages
    │       in every pass, a word wider than its column ──────▶ content-too-large
+   │       a word that holds a run set below or above the
+   │       line and no run on it (0061) ─────────────────────▶ unsupported
+   │       such a word wider than its line ──────────────────▶ content-too-large
    │       an abort is read between passes ──────────────────▶ cancelled
    ├─ an e-invoice: a PDF/A-3b, and on this last pass alone its XML embedded
    │ and its XMP written, through PDFKit's document before it ends (6.8)
@@ -171,6 +174,11 @@ The runtime never returns part of a document and the renderer never
 resolves to part of a PDF
 ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md),
 [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+A run set below or above the line travels with its baseline, and the
+document states what it prints as; the renderer hands it to pdfmake as
+pdfmake's own `sub` or `sup`, and reads pdfmake's words of only the
+paragraphs that hold one
+([0061](../decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
 Every value reaching the renderer is already the string it prints, so the
 renderer has no total to round twice. The PDF's creation date is the one the
 host passed, so one document renders to the same bytes every time

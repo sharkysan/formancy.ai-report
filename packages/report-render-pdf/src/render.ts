@@ -126,7 +126,7 @@ async function measureSlip(engine: Engine, bill: CheckedBill, page: Page, setup:
       )
     const item: Content = { stack: informationContent(bill.bill, part), margin: [0, 0, page.paperWidth - width, 0] }
     const sheet = { width: page.paperWidth, height: height + 3 * SENTINEL_LINE + SECTION_SLACK, left: 0, right: 0 }
-    await measure(engine, sheet, [item], resources(fonts, {}), refusal, [], fonts.engine)
+    await measure(engine, sheet, [item], resources(fonts, {}), refusal, { words: [], shifted: [] }, fonts.engine)
   }
 }
 
@@ -166,7 +166,7 @@ async function measureOnPrintable(
   checked: Checked,
   fonts: RenderFonts,
   items: readonly Content[],
-  build: Pick<Build, 'images' | 'words'>,
+  build: Pick<Build, 'images' | 'words' | 'shifted'>,
   overflow: string,
   subject?: string,
 ): Promise<{ readonly heights: readonly number[] }> {
@@ -177,7 +177,7 @@ async function measureOnPrintable(
     items,
     resources(fonts, build.images),
     () => new RenderRefusal('content-too-large', overflow, subject),
-    build.words,
+    build,
     fonts.engine,
   )
 }
@@ -243,7 +243,7 @@ async function measureBody(
     items,
     resources(fonts, build.images),
     () => new RenderRefusal('too-many-pages', `the report needs more than ${maxPages} pages`),
-    build.words,
+    build,
     fonts.engine,
   )
   const plans = new Map<Table, TablePlan>()
