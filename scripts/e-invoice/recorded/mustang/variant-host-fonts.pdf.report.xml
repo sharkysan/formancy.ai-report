@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="variant-host-fonts.pdf" datetime="2026-11-16 15:14:52">
+<validation filename="variant-host-fonts.pdf" datetime="2026-11-17 00:31:07">
   <pdf>ValidationResult [flavour=3b, totalAssertions=4593, assertions=[], isCompliant=true]
     <info>
       <signature>unknown</signature>
-      <duration unit="ms">762</duration>
+      <duration unit="ms">1731</duration>
     </info>
     <summary status="valid"/>
   </pdf>  
@@ -17,7 +17,7 @@
         <fired>179</fired>
         <failed>0</failed>
       </rules>
-      <duration unit="ms">981</duration>
+      <duration unit="ms">2179</duration>
     </info>
     <summary status="valid"/>
   </xml>
