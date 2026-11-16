@@ -155,10 +155,9 @@ const editor = createReportEditor(opening.session, {
   payment instructions (0044). It has no amount, which the payer fills in,
   and no frame, which is Austria's option. The palette withholds a chart
   until the builders edit a chart's own properties: inserted now, it would
-  be a box whose kind, category and series no builder edits, in a report
-  the renderer refuses to print until it draws charts. An insert or a drag
-  of one is refused as `unavailable`, as of a kind the palette does not
-  have. A chart a report holds is drawn, moved and removed as any
+  be a box whose kind, category and series no builder edits. An insert or
+  a drag of one is refused as `unavailable`, as of a kind the palette does
+  not have. A chart a report holds is drawn, moved and removed as any
   component, with the properties every component has
   ([0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md),
   [0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).

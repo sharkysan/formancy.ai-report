@@ -1,4 +1,3 @@
-import pdfmake from 'pdfmake'
 import { readPdf, verify, type ReadPdf } from '@formancy/report-corpus'
 import { RenderRefusal, type ResolvedDocument, type ResolvedFonts, type Table, type TableColumn, type TableRow, type TextStyle } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
@@ -6,6 +5,7 @@ import { renderPdf } from './node.js'
 import { styledRows } from './table.js'
 import { bareDocument, details, documentOf, fixtureOf, ledger, PAGE, paragraph, TIMEOUT, totalRow } from './testing/documents.js'
 import { face, HOST_SANS, HOST_SANS_BOLD, withEms } from './testing/fonts.js'
+import { lastPassLayouts } from './testing/layouts.js'
 import { pageLines } from './testing/lines.js'
 
 /**
@@ -43,32 +43,6 @@ function keeping(rows: readonly TableRow[], count: number): TableRow[] {
     while (rows[index + 1 + details]?.kind === 'detail') details++
     return Math.min(count, details) > 1 ? { ...row, keepWithRows: Math.min(count, details) } : row
   })
-}
-
-/** How many times pdfmake laid out the last pass of rendering `document`: each layout asks for the first page's background once. */
-async function lastPassLayouts(document: ResolvedDocument, maxPages: number): Promise<number> {
-  const passes: number[] = []
-  const createPdf = pdfmake.createPdf.bind(pdfmake)
-  const spy = vi.spyOn(pdfmake, 'createPdf').mockImplementation((definition, options) => {
-    const pass = passes.push(0) - 1
-    const background = definition.background
-    return createPdf(
-      {
-        ...definition,
-        background: (page, size) => {
-          if (page === 1) passes[pass]! += 1
-          return typeof background === 'function' ? background(page, size) : null
-        },
-      },
-      options,
-    )
-  })
-  try {
-    await renderPdf(document, { maxPages })
-  } finally {
-    spy.mockRestore()
-  }
-  return passes.at(-1)!
 }
 
 describe("a table's closing rows", () => {

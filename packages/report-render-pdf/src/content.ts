@@ -2,6 +2,7 @@ import type { Content, CustomTableLayout } from 'pdfmake/interfaces.js'
 import type { Block, Columns, Image, ImageAsset, Inline, Paragraph, Rectangle, Rule, Section, TextStyle } from '@formancy/report-runtime'
 import { base64 } from './bytes.js'
 import { startsOnPage, type Build, type Fields } from './build.js'
+import { chartContent } from './chart-content.js'
 import { epcContent } from './epc.js'
 import type { FaceWanted } from './host-fonts.js'
 import { qrContent } from './qr.js'
@@ -105,34 +106,62 @@ function sequence(given: readonly Block[], build: Build, scope: Scope): Content[
 interface Anchor {
   readonly text?: unknown
   readonly image?: unknown
-  /** A QR code or an EPC QR code: what the renderer draws as an SVG (`qr.ts`, `epc.ts`). */
+  /** A QR code or an EPC QR code, or a chart's marks: what the renderer draws as an SVG (`qr.ts`, `epc.ts`, `chart-content.ts`). */
   readonly svg?: unknown
   readonly stack?: readonly Anchor[]
   readonly columns?: readonly Anchor[]
   readonly table?: { readonly body: readonly (readonly Anchor[])[] }
+  /** A keep-together block in the PDF's pass, or a chart: laid out where it starts and moved whole. */
+  readonly unbreakable?: boolean
   id?: string
   headlineLevel?: number
 }
 
-/** The first node of `node` that prints text, or an image or a QR code when no text comes first: where pdfmake records the content's start. */
+/**
+ * The first node of `node` that prints text, or an image or a QR code when
+ * no text comes first: where pdfmake records the content's start. Of an
+ * unbreakable node -- a keep-together block, a chart -- the first that
+ * prints text wherever it stands in it, and an image or an SVG only where
+ * none does: pdfmake records where each of its nodes starts on the page
+ * its layout began on, and corrects that page, once it moves the node to
+ * the next, for text with an id alone (`pdfmake.test.ts`); and a chart
+ * paints its marks before its first word.
+ */
 function anchorOf(node: Anchor): Anchor | undefined {
-  const inner = node.stack ?? node.columns ?? node.table?.body.flat()
-  if (inner !== undefined) {
-    for (const each of inner) {
-      const anchor = anchorOf(each)
-      if (anchor !== undefined) return anchor
-    }
-    return undefined
+  if (node.unbreakable === true) return firstOf(node, printsText) ?? firstOf(node, prints)
+  const inner = innerOf(node)
+  if (inner === undefined) return prints(node) ? node : undefined
+  for (const each of inner) {
+    const anchor = anchorOf(each)
+    if (anchor !== undefined) return anchor
   }
-  // A paragraph's text is an array of runs, and the renderer keeps nothing with a paragraph that prints nothing.
-  const printsText = typeof node.text === 'string' ? node.text.trim() !== '' : Array.isArray(node.text)
-  return printsText || node.image !== undefined || node.svg !== undefined ? node : undefined
+  return undefined
 }
+
+/** The nodes `node` holds, in the order pdfmake lays them out: a stack's, columns', or a table's cells, row by row; none for a leaf. */
+const innerOf = (node: Anchor): readonly Anchor[] | undefined => node.stack ?? node.columns ?? node.table?.body.flat()
+
+/** The first node of `node`, itself or one it holds, in the order pdfmake lays them out, that `takes`. */
+function firstOf(node: Anchor, takes: (leaf: Anchor) => boolean): Anchor | undefined {
+  const inner = innerOf(node)
+  if (inner === undefined) return takes(node) ? node : undefined
+  for (const each of inner) {
+    const found = firstOf(each, takes)
+    if (found !== undefined) return found
+  }
+  return undefined
+}
+
+/** Whether `leaf` prints text: a paragraph's text is an array of runs, and the renderer keeps nothing with a paragraph that prints nothing. */
+const printsText = (leaf: Anchor): boolean => (typeof leaf.text === 'string' ? leaf.text.trim() !== '' : Array.isArray(leaf.text))
+
+/** Whether `leaf` prints text, an image or an SVG. */
+const prints = (leaf: Anchor): boolean => printsText(leaf) || leaf.image !== undefined || leaf.svg !== undefined
 
 /**
  * Where the block a keep-with-next paragraph at `index` stays with starts:
- * the anchor of the next block that prints text, an image or a QR code,
- * past spacers, rules, rectangles and other keep-with-next paragraphs, so
+ * the anchor of the next block that prints text, an image, a QR code or a
+ * chart, past spacers, rules, rectangles and other keep-with-next paragraphs, so
  * that a run of headings moves as one. None when a page break or the end of
  * the list comes first: a heading over nothing is not kept with anything.
  */
@@ -180,8 +209,7 @@ function blockContent(block: Block, build: Build, scope: Scope): Content {
     case 'section':
       return sectionContent(block, build, scope)
     case 'chart':
-      // check.ts refuses every chart before anything is built.
-      throw new Error(`the chart ${block.id} reached the pdfmake content`)
+      return chartContent(block, build)
   }
 }
 

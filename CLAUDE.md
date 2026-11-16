@@ -50,7 +50,14 @@ this repository's terms from the same rightsholder: they are admitted each
 for one package alone -- Data's client and core for `report-data-provider`,
 Data's identity verifier for `report-server` -- at an exact version, with
 the licence file a review read (`FORMANCY_DATA`, 0006 as 0016 and 0047
-extend it). A commercial
+extend it). Apache ECharts and zrender, which the renderer lays a chart
+out with, are permissive and judged so, and admitted further for
+`report-render-pdf` alone, each at exactly 6.1.0, by the digests of the
+licence files a review read (`CONFINED`, 0006 as 0058 extends it):
+another version, a licence file of other bytes, and any other published package
+that depends on either itself, ECharts on zrender aside, are refused, so
+that no builder depends on a charting library; the tslib 2.3.0 they pin
+is judged as any package. A commercial
 component needs written redistribution rights. Fonts must be licensed for embedding in generated PDFs.
 `scripts/dependency-licences.mjs` holds this for the production dependencies
 of every publishable package and every font they ship, reading a font's
@@ -198,8 +205,8 @@ were selected in a run's field, or the whole run, in one undo step, the
 whole run alone from another language, each run a group with its Subscript
 and Superscript
 ([0061](docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
-A chart, a component, is known to report-spec, report-core and the
-runtime, refused by the renderer, and not offered by the builders yet: its
+A chart, a component, runs through report-spec, report-core, the
+runtime and the renderer, and is not offered by the builders yet: its
 rules are report-spec's `chart.ts`, the palette `CHART_PALETTE` and the
 lists beside it, and `validate-chart.ts`, which holds its category and
 each series to the detail fields' types and the kinds' own rules, a bar's
@@ -227,10 +234,33 @@ of ten, exactly, at most `MAX_TICK_INTERVALS` intervals
 (`chart-ticks.ts`); a pie's negative value refused as
 `chart-negative-share`, and its shares ratios rounded once to
 `SHARE_PLACES` (`decimal.ts`'s `ratioRounded`) and printed by
-`format.ts`'s `percent`, which refuses rather than rounds again; and the
-renderer's `check.ts` refuses the block as `unsupported` until it draws
-charts
+`format.ts`'s `percent`, which refuses rather than rounds again
 ([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
+The renderer draws the block, laid out by Apache ECharts 6.1.0 and drawn
+by pdfmake ([0058](docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)): `check-chart.ts` holds it, before anything is laid out, to
+where it stands, the runtime's bounds, its parts, its words and its
+numbers, and weighs a render's charts together, refusing them past
+`MAX_CHART_DRAWING`; `chart-draw.ts`, the one module that imports
+ECharts' code, which
+`render.ts` loads through `loadOnce` for the first chart with marks, so
+that a browser loads it as a chunk of its own, lays it out three times, a
+pie twice, the plot only snapped, and refuses as `content-too-large` words
+that would meet, leave the box or stand in the plot, category labels that
+do not fit across, which are never turned, a plot too short for two tick
+labels and bars under `MIN_BAR_WIDTH`, measured, its words held by
+their one rule, `chart-held.ts`, which an empty chart's words meet too;
+`chart-measure.ts`
+replaces zrender's platform for one layout, answering in the widths each
+engine's `widths` measures in the faces the render embeds
+(`chart-faces.ts`, each named by the digest of its bytes);
+`chart-option.ts` hands ECharts the ticks' places, each value's worked
+out in BigInt, a pie's exact shares and every word by index, so that it
+decides no number and no word; `chart-svg.ts` holds the SVG ECharts
+writes to what 6.1.0 was seen to write and takes its words out, after
+`chart-arcs.ts` writes a pie's arcs again on its own circle;
+`chart-content.ts` prints one unbreakable stack, the marks through the
+converter and each word as pdfmake's text where ECharts placed it; and
+`chart-empty.ts` places a chart with nothing to draw without ECharts.
 A report's first page may print a header of its own, or none, in place
 of the page header, through all four and both builders: report-spec's
 optional sixth region, `firstPageHeader`, between the report header and
@@ -388,7 +418,9 @@ the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
 `readCodes`, which decodes the QR codes a page prints with ZXing from the
 pixels PDF.js draws, the drawings an SVG image paints and the ink around
-them, the e-invoice samples and a reader of their XML by
+them, a chart's words, axis, bars, lines, slices and legend held to its
+block (`check-charts.ts`) and `CHART_FIXTURES`, the charts the renderer
+draws and refuses, the e-invoice samples and a reader of their XML by
 namespace, a formancy form in three versions, the third renaming the inspector's
 group, declared, with submissions of each and
 a report of them (`forms/site-visit.ts`), the site visit starter the
@@ -438,6 +470,8 @@ before it:
    a renderer-neutral output.
 5. `report-render-pdf` -- the one chosen engine's adapter. It takes resolved
    input and approved asset bytes, never a database connection or a URL.
+   A chart is laid out inside it by ECharts, which no other published package
+   depends on (0058).
 6. `report-server-core` / `report-server` / `report-client` -- built: who
    may do what, a server that knows who is asking (0046) and keeps a
    template's draft and its images, and the client a host asks it with
@@ -557,6 +591,15 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
   white ([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), extending 0003).
   A drawing is known by its size, so say so where another of that size
   could stand in for it.
+- A chart is paths and pdfmake's text, so it is proved by the clip of its
+  box, its painted paths and its words
+  (`packages/report-corpus/src/check-charts.ts`): each word one run in its
+  box and its face, each bar its value's length, each line through its
+  markers, each slice its share's sector on its circle, each legend entry
+  beside its swatch
+  ([0058](docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), extending 0003).
+  An empty chart draws nothing, so it is found by its words alone, and a
+  chart beside an SVG image of its size is told from it by their order.
 - Never silently drop, clip or truncate content. A report that cannot fit says
   so in a diagnostic; a production render with incomplete data refuses.
 - Exact values -- decimals, large integers -- travel as strings with their type
@@ -883,11 +926,13 @@ exactly what CI does:
   the PDF/A-3b the renderer draws of each Factur-X and of variants that carry
   the first sample's e-invoice on other pages -- every starter's, a page
   of every image kind PDFKit embeds, a page of SVGs in every way
-  svg-to-pdfkit paints one, and one of an SVG at every bound an e-invoice
-  holds one to -- Mustang by its PDF part too,
+  svg-to-pdfkit paints one, one of an SVG at every bound an e-invoice
+  holds one to, and a page each of four of the corpus's charts, laid out by
+  ECharts (0058) -- Mustang by its PDF part too,
   never its exit status alone; veraPDF alone, with its PDF/A-2b profile
   and `--flavour 2b`, the PDF/A-2b of every starter that is no e-invoice
-  and of the corpus's image, SVG and font pages, and two controls (0057);
+  and of the corpus's image, SVG, chart and font pages, and two controls
+  (0057, 0058);
   each control is judged exactly as the corpus expects, at least one tool
   refusing it and each tool refusing at least one control of its format;
   and report-spec's code lists and rule ids are held to the schematrons
@@ -988,7 +1033,8 @@ Locally, run the same commands for what you changed.
   alone and type-checks `client.ts` against them (0049);
 - runs it: `consume.ts` under Node, which also draws an e-invoice, in
   `e-invoice.ts`, and reads the PDF/A-3b's bytes with `embedding.ts` and
-  Node alone (0031), and a PDF/A-2b, in `pdfa.ts` (0057);
+  Node alone (0031), a PDF/A-2b, in `pdfa.ts` (0057), and the guide's
+  quotation with its chart, in `chart.ts` (0058);
   `server.ts`, the server made in its host's process and asked over a
   socket, a draft saved through the packed client, read back and a stale
   save refused `draft-changed`;

@@ -37,13 +37,13 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **A run below or above the line**: a formula's digits, a unit's power or a footnote's mark, set in a text as `subscript` or `superscript`, in any character the text's face draws, a value read from the data among them, from two buttons on each run in either builder. It prints at pdfmake's own 58 % of the text's size, raised or lowered, inside a word with text on the line, and a run that could stand alone on a line is refused rather than printed over the line above. Not in a table's cells, and not in what a code encodes ([0061](./docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
 - **Images**: a PNG, a JPEG, or an SVG logo drawn as vectors, made of shapes alone: no text, no embedded picture. Where your application gives the editor a store for them, a person adds one in either builder, and your application keeps its bytes ([0030](./docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0033](./docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
 - **A first page of its own**: page 1 may print a header of its own -- a letterhead, say -- or none, in place of the page header, which then prints from page 2 on, each page's body starting below the header that page prints. It holds what the page header holds but a page number or count, which the page footer prints on page 1 as on every page, and both builders choose it in the report's properties ([0060](./docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
-- **Charts**, in the format, the editing core and the runtime, and not yet in a PDF or in the builders' palettes: a bar, line or pie chart of the detail rows, its categories the values of one field and each series a sum, a count, an average, a minimum or a maximum of a field for each category, held where it is written to what a reader could use. The runtime resolves one by the rules a table's totals are decided by, so a series and a subtotal of one definition, over the same rows and in one format, print the same number; its value axis is one, two or five times a power of ten, chosen exactly, and a pie's shares are exact ratios rounded once, to `SHARE_PLACES`, that need not add up to 100.0 %. A chart of more than `MAX_CHART_CATEGORIES`, or a pie of more categories than its palette has colours, is refused when it renders. Until the renderer draws charts, a report that would print one is refused rather than printed without it ([0052](./docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md), [0055](./docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
+- **Charts**: a bar, line or pie chart of the detail rows, its categories the values of one field and each series a sum, a count, an average, a minimum or a maximum of a field for each category, held where it is written to what a reader could use, and not yet in the builders' palettes. The runtime resolves one by the rules a table's totals are decided by, so a series and a subtotal of one definition, over the same rows and in one format, print the same number; its value axis is one, two or five times a power of ten, chosen exactly, and a pie's shares are exact ratios rounded once, to `SHARE_PLACES`, that need not add up to 100.0 %. The renderer draws it laid out by Apache ECharts, its marks as vectors and its words as text in the report's faces, every number and word on it the runtime's; a chart whose words would meet or leave its box, whose category labels do not fit across, whose bars would be too thin to see or whose pie too small to show a slice of one percent is refused, never cut or turned to fit, and so is a chart of more than `MAX_CHART_CATEGORIES`, or a pie of more categories than its palette has colours, and a render whose charts together would cost more than `MAX_CHART_DRAWING` to lay out and draw ([0052](./docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md), [0055](./docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md), [0058](./docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)).
 - **A server that knows who is asking**: it verifies your application's token offline with Formancy Data's own verifier, takes the person's tenant from a claim every token must carry, and says which actions your roles give them, under `/v1` ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](./docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
 - **A template's draft, kept on that server**: one per template of a tenant, saved from the version your page opened, its revision and the digest of its report, so a save from a draft another author has saved over since, or from one whose number a restore let another save take with another report, is refused with nothing written, and your page offers a reload; the report checked by the format before it is kept and served as it was saved, who saved each revision kept beside it, and the images it declares kept by their digest. `@formancy/report-client` is what your page asks it with; your page draws Save and the reload, not the builders. It renders and publishes nothing yet, and keeps no fonts ([0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 - **The Studio**, a playground with both builders and the PDF they print, beside them or in the design view's place, online at https://formancy.ai/report/ ([Try it](#try-it), [0018](./docs/decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 
-Planned and not here: charts drawn, and offered and edited in the
-builders, and documents, which are being built; the server's
+Planned and not here: charts offered and edited in the builders, and
+documents, which are being built; the server's
 publication, render jobs and artifacts, fonts kept beside its images, a
 Save in the builders themselves, and its published image; reviewed AI
 changes, a published PDF viewer, and a consistent read from Formancy Data.
@@ -64,16 +64,15 @@ and what is not planned at all.
 > the server answers who is asking and keeps a template's draft and its
 > images, in files on one volume, and its image is built by the gates and
 > not published; and a report may hold a chart, which the format, the
-> editing core and the runtime know, the builders do not offer yet and
-> nothing prints: the renderer refuses a report that would print one; and
-> a final render of any report that is no e-invoice may be drawn as a
-> PDF/A-2b; a report's first page may print a header of its own, or none,
-> in place of the page header; and a report may be written in several
-> languages, its own words in each, which the format, the editing core,
-> the runtime, the form bridge, both builders and the Studio know, and a
-> render names the one it prints in. The report format is still version
-> "0", the draft: a report written now is not promised to be read by a
-> later release
+> editing core and the runtime know, the renderer draws, laid out by
+> Apache ECharts, and the builders do not offer yet; and a final render of
+> any report that is no e-invoice may be drawn as a PDF/A-2b; a report's
+> first page may print a header of its own, or none, in place of the page
+> header; and a report may be written in several languages, its own words
+> in each, which the format, the editing core, the runtime, the form
+> bridge, both builders and the Studio know, and a render names the one it
+> prints in. The report format is still version "0", the draft: a report
+> written now is not promised to be read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
 
 **Start with [the getting-started guide](./docs/getting-started.md)**: a
@@ -400,9 +399,11 @@ gate proves and what it does not.
 | `tslib`, by `@formancy/report-builder-angular` | 2.8.1 | `^2.8.0` |
 | `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
 | `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |
+| `echarts`, by `@formancy/report-render-pdf` | 6.1.0 | `6.1.0` |
 | `pdfkit`, by `@formancy/report-render-pdf` | 0.19.1 | `0.19.1` |
 | `pdfmake`, by `@formancy/report-render-pdf` | 0.3.11 | `0.3.11` |
 | `uqr`, by `@formancy/report-render-pdf` | 0.1.3 | `0.1.3` |
+| `zrender`, by `@formancy/report-render-pdf` | 6.1.0 | `6.1.0` |
 | `@fastify/rate-limit`, by `@formancy/report-server` | 11.2.1 | `11.2.1` |
 | `fastify`, by `@formancy/report-server` | 5.12.7 | `5.12.7` |
 | `@noble/hashes`, by `@formancy/report-spec` | 2.4.0 | `2.4.0` |

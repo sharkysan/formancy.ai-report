@@ -30,6 +30,10 @@
 // read its licence and recorded, by the digest of its bytes, the sentence
 // that grants it (`ICC_PROFILES`). A profile carries no licence to read.
 //
+// A package a review read for one dependent alone is `CONFINED`: at one
+// version, by the digest of its licence files, depended on by that package
+// and no other published one.
+//
 // Where a manifest or a font is silent or wrong, a reviewed exception records
 // what the evidence says the licence is, at one exact version; the policy
 // still applies to what it records. An exception nothing installs is refused,
@@ -40,10 +44,14 @@
 // against fixtures and the real tree.
 
 import { createHash } from 'node:crypto'
-import { closeSync, openSync, readdirSync, readFileSync, readSync, realpathSync, statSync } from 'node:fs'
-import { basename, dirname, join, relative, resolve } from 'node:path'
+import { readdirSync, readFileSync, realpathSync } from 'node:fs'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { filesIn, fontLicence, licenceTextsIn } from './dependency-licences/files.mjs'
+import { CONFINED, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES } from './dependency-licences/reviews.mjs'
 import { LICENSE_FIELD } from './verify-licenses.mjs'
+
+export { CONFINED, EXCEPTIONS, FORMANCY_DATA, fontLicence, ICC_PROFILES }
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -77,94 +85,6 @@ const allowed = new Set(ALLOWED.map((id) => id.toUpperCase()))
  */
 export const ALLOWED_EXCEPTIONS = Object.freeze(['LLVM-exception', 'Classpath-exception-2.0', 'GCC-exception-3.1', 'Font-exception-2.0'])
 const allowedExceptions = new Set(ALLOWED_EXCEPTIONS.map((id) => id.toUpperCase()))
-
-/**
- * Reviewed exceptions: `name@version`, or `name@version/path` for one font file,
- * to the licence the evidence shows and where that evidence is. `problems`
- * refuses an entry nothing installs, so one outlives its package by no more
- * than the release that drops it.
- *
- * - `png-js@1.1.0` reaches `@formancy/report-render-pdf` through pdfmake and
- *   PDFKit, and its package.json has no `license` field, as decision 0005
- *   predicted. The LICENSE file it ships is the MIT License, read on
- *   2026-10-15.
- */
-export const EXCEPTIONS = Object.freeze({
-  'png-js@1.1.0': { licence: 'MIT', evidence: 'LICENSE in the tarball: MIT License, Copyright (c) 2017 Devon Govett' },
-})
-
-/**
- * Formancy Data's packages, each admitted for the one package allowed to
- * depend on it (0006, extended 2026-10-16 by 0016 and 2026-10-22 by 0047):
- * `name@version` to the sha256 of the `LICENSE.md` their `SEE LICENSE IN`
- * pointer names, as the review read it, and the package whose dependency
- * it may be -- the provider for Data's client, the server for Data's
- * identity verifier, and neither for the other's. Data is on this
- * repository's terms under its own name, from the same rightsholder, so a
- * customer licenses the two together; it is still a source-available
- * licence, which the policy refuses from anybody else. Not a correction of
- * metadata, as an exception is: a second set of terms, read, at one
- * version. `problems` refuses an admission nothing installs.
- *
- * - Data 0.1.0, published 2026-10-16: `data-client` and the `data-core` it
- *   depends on ship the same `LICENSE.md`, the Formancy Data Source-Available
- *   Licence Version 1.1, in force from 11 October 2026 -- byte for byte the
- *   file at Data's tag v0.1.0, read that day.
- * - Data 0.3.0's `data-identity`, published 2026-10-21, the host identity
- *   verifier `@formancy/report-server` verifies tokens with (0047): its
- *   `LICENSE.md` is the same Version 1.1, byte for byte the file 0.1.0
- *   shipped, read on 2026-10-22. It depends on jose alone, which the policy
- *   judges like anybody's.
- */
-export const FORMANCY_DATA = Object.freeze({
-  '@formancy/data-client@0.1.0': {
-    licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
-    for: '@formancy/report-data-provider',
-    evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026',
-  },
-  '@formancy/data-core@0.1.0': {
-    licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
-    for: '@formancy/report-data-provider',
-    evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026',
-  },
-  '@formancy/data-identity@0.3.0': {
-    licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
-    for: '@formancy/report-server',
-    evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026, the same bytes as 0.1.0 shipped',
-  },
-})
-
-/**
- * Reviewed ICC profiles, by the SHA-256 of their bytes, each with what it
- * is, the licence sentence that grants it as the review read it, and where.
- * A profile states its copyright holder in its header and its `cprt` tag,
- * not its terms, so nothing here reads a licence from the file: a review
- * does, once, and the digest holds the bytes it read. Keyed by digest and
- * not by package, since the licence is the profile's whoever ships it, and
- * a profile one byte off is another profile nobody has read. `problems`
- * refuses an entry nothing installs, and one that records no sentence.
- *
- * - The ICC's sRGB2014.icc, which PDFKit 0.19.1 ships as
- *   `js/data/sRGB_IEC61966_2_1.icc` and embeds as the output intent of every
- *   PDF/A (pdfkit.js 5265), which an e-invoice is: its header and tags read
- *   an ICC v2 `mntr` RGB profile, `desc` "sRGB2014", `cprt` "Copyright
- *   International Color Consortium, 2015". Byte for byte the ICC's own file
- *   at https://registry.color.org/rgb-registry/profiles/sRGB2014.icc,
- *   compared on 2026-10-17. Its licence is the ICC's for every profile the
- *   ICC owns, on its profile library page, read that day. pdfmake's browser
- *   build carries the same 3,024 bytes as base64 inside a script, where
- *   this walk does not look; the renderer's browser test holds that copy to
- *   this digest.
- */
-export const ICC_PROFILES = Object.freeze({
-  'sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a': {
-    profile: 'sRGB2014.icc, the International Color Consortium\'s ICC v2 sRGB profile (desc "sRGB2014", cprt "Copyright International Color Consortium, 2015")',
-    licence:
-      'This profile is made available by the International Color Consortium, and may be copied, distributed, embedded, made, used, and sold without restriction. Altered versions of this profile shall have the original identification and copyright information removed and shall not be misrepresented as the original profile.',
-    evidence:
-      'https://registry.color.org/profile-library/#license, read 2026-10-17, where "ICC is the copyright owner"; the file compared byte for byte with https://registry.color.org/rgb-registry/profiles/sRGB2014.icc that day',
-  },
-})
 
 /** Whether `expression`, an SPDX licence expression, is one the policy allows. Unreadable is refused. */
 export function spdxAllows(expression) {
@@ -234,139 +154,6 @@ export function declaredLicence(manifest) {
   return declared.length === 1 ? declared[0].trim() : declared.map((type) => `(${type.trim()})`).join(' AND ')
 }
 
-/** sfnt versions: TrueType, CFF-flavoured OpenType, and Apple's TrueType tag. */
-const OPEN_TYPE = new Set([0x00010000, 0x4f54544f, 0x74727565])
-
-/**
- * The sentences a font's licence description (name ID 13) begins with, as the
- * OFL's FAQ, Liberation Sans 2 and Apache-licensed font projects write them,
- * and what each means. Anything else is a licence this does not recognise,
- * refused until reviewed: Liberation Sans 1, under GPL-2.0 with a font
- * exception, says "Licensed under the Liberation Fonts license".
- */
-const FONT_LICENCES = [
-  [/^This Font Software is licensed under the SIL Open Font License, Version 1\.1\b/, 'OFL-1.1'],
-  [/^Licensed under the SIL Open Font License, Version 1\.1\b/, 'OFL-1.1'],
-  [/^Licensed under the Apache License, Version 2\.0\b/, 'Apache-2.0'],
-]
-
-/**
- * What an OpenType font's name table says of its version and licence. A font
- * is untrusted input: anything that is not an OpenType font, or whose tables
- * run past its end, is `{ readable: false }`, never a crash and never a pass.
- */
-export function fontLicence(bytes) {
-  try {
-    if (!OPEN_TYPE.has(bytes.readUInt32BE(0))) return { readable: false }
-    const names = new Map()
-    for (let table = 0; table < bytes.readUInt16BE(4); table += 1) {
-      const record = 12 + 16 * table
-      if (bytes.toString('latin1', record, record + 4) !== 'name') continue
-      const at = bytes.readUInt32BE(record + 8)
-      const storage = at + bytes.readUInt16BE(at + 4)
-      for (let index = 0; index < bytes.readUInt16BE(at + 2); index += 1) {
-        const name = at + 6 + 12 * index
-        const platform = bytes.readUInt16BE(name)
-        const id = bytes.readUInt16BE(name + 6)
-        // Unicode and Windows names are UTF-16BE; a Mac Roman one is not read.
-        if ((platform !== 0 && platform !== 3) || names.has(id)) continue
-        const start = storage + bytes.readUInt16BE(name + 10)
-        const end = start + bytes.readUInt16BE(name + 8)
-        if (end > bytes.length) return { readable: false }
-        names.set(id, Buffer.from(bytes.subarray(start, end)).swap16().toString('utf16le'))
-      }
-    }
-    const description = names.get(13)
-    return {
-      readable: true,
-      version: names.get(5),
-      description,
-      licence: FONT_LICENCES.find(([sentence]) => sentence.test(description ?? ''))?.[1],
-    }
-  } catch {
-    return { readable: false }
-  }
-}
-
-/** Files that are fonts, by extension: OpenType and TrueType, collections, web fonts and Type 1. */
-const FONT_FILE = /\.(ttf|otf|ttc|otc|woff2?|eot|pfb|pfa)$/i
-
-/** Files that are ICC profiles, by extension. */
-const PROFILE_FILE = /\.ic[cm]$/i
-
-/** Whether a file's first bytes are an ICC profile's, whatever it is called: the profile file signature `acsp` at byte 36 of its header (ICC.1, 7.2). */
-function looksLikeProfile(head) {
-  return head.length >= 40 && head.toString('latin1', 36, 40) === 'acsp'
-}
-
-/**
- * Whether a file's first bytes are a font's, whatever it is called: an sfnt
- * whose table directory fits the file, a collection, a web font, or Type 1
- * as text or in its binary segments. Text that merely begins `true` or
- * `OTTO` is not an sfnt: its table directory does not fit.
- */
-function looksLikeFont(head, size) {
-  const tag = head.toString('latin1', 0, 4)
-  if (['ttcf', 'wOFF', 'wOF2'].includes(tag) || head.toString('latin1', 0, 14) === '%!PS-AdobeFont') return true
-  if (head[0] === 0x80 && head[1] === 0x01 && head.toString('latin1', 6, 20) === '%!PS-AdobeFont') return true
-  if (head.length < 12 || !OPEN_TYPE.has(head.readUInt32BE(0))) return false
-  const tables = head.readUInt16BE(4)
-  return tables > 0 && 12 + 16 * tables <= size
-}
-
-/** The first bytes of a file, enough to tell a font or an ICC profile by. */
-function headOf(path) {
-  const handle = openSync(path, 'r')
-  try {
-    const head = Buffer.alloc(40)
-    return head.subarray(0, readSync(handle, head, 0, head.length, 0))
-  } finally {
-    closeSync(handle)
-  }
-}
-
-/**
- * Files named as code, text or an image, which are not opened to look for a
- * font or an ICC profile: a package holds thousands of them, and opening
- * each one made the first walk of pdfmake's closure take 18.7 s instead of
- * 0.67 s (one Windows machine, 2026-10-15). A font or a profile under one of
- * these names is not found -- one inside a script, as pdfmake's browser
- * build carries both, or inside an image -- which 0006 says.
- */
-const NOT_OPENED = /\.(c?js|mjs|d\.[cm]?ts|[cm]?ts|map|json|md|markdown|txt|html?|css|ya?ml|png|jpe?g|gif|svg|wasm|node)$/i
-
-const byPath = (a, b) => (a.path < b.path ? -1 : 1)
-
-/**
- * Every font file and every ICC profile in a package's directory, outside
- * its own node_modules, by path: each by its extension, or by its first
- * bytes. A font is read for its licence; a profile is known by its digest.
- */
-function filesIn(directory) {
-  const fonts = []
-  const profiles = []
-  const walk = (at) => {
-    for (const item of readdirSync(at, { withFileTypes: true })) {
-      if (item.name === 'node_modules') continue
-      const path = join(at, item.name)
-      if (item.isDirectory()) {
-        walk(path)
-        continue
-      }
-      if (!item.isFile()) continue
-      const named = FONT_FILE.test(item.name) || PROFILE_FILE.test(item.name)
-      const head = named || NOT_OPENED.test(item.name) ? undefined : headOf(path)
-      const file = relative(directory, path).replaceAll('\\', '/')
-      if (FONT_FILE.test(item.name) || (head !== undefined && looksLikeFont(head, statSync(path).size)))
-        fonts.push({ path: file, ...fontLicence(readFileSync(path)) })
-      else if (PROFILE_FILE.test(item.name) || (head !== undefined && looksLikeProfile(head)))
-        profiles.push({ path: file, digest: `sha256:${createHash('sha256').update(readFileSync(path)).digest('hex')}` })
-    }
-  }
-  walk(directory)
-  return { fonts: fonts.sort(byPath), profiles: profiles.sort(byPath) }
-}
-
 /** The real directory `name` resolves to from `directory`, as Node looks for it, or undefined. */
 function resolveFrom(directory, name) {
   for (let at = directory; ; at = dirname(at)) {
@@ -419,6 +206,7 @@ function pointedFile(directory, licence) {
 export function closure(start, siblings = new Set()) {
   const found = []
   const seen = new Set()
+  const dependents = new Map()
   const visit = (directory, via) => {
     if (seen.has(directory)) return
     seen.add(directory)
@@ -429,6 +217,7 @@ export function closure(start, siblings = new Set()) {
       version: manifest.version,
       licence,
       licenceFile: pointedFile(directory, licence),
+      licenceTexts: licenceTextsIn(directory),
       dir: directory,
       via,
       sibling: siblings.has(directory),
@@ -445,14 +234,18 @@ export function closure(start, siblings = new Set()) {
       const at = resolveFrom(directory, name)
       if (at === undefined) found.push({ name, missing: true, via: path })
       else visit(at, path)
+      if (at !== undefined) dependents.set(at, new Set([...(dependents.get(at) ?? []), manifest.name]))
     }
     for (const [name, kind] of others) {
       const at = resolveFrom(directory, name)
-      if (at !== undefined) visit(at, path)
-      else if (kind === 'peer') found.push({ name, missing: true, peer: true, via: path })
+      if (at !== undefined) {
+        visit(at, path)
+        dependents.set(at, new Set([...(dependents.get(at) ?? []), manifest.name]))
+      } else if (kind === 'peer') found.push({ name, missing: true, peer: true, via: path })
     }
   }
   visit(realpathSync(start), [])
+  for (const item of found) if (!item.missing) item.dependents = [...(dependents.get(item.dir) ?? [])].sort()
   return found
 }
 
@@ -468,26 +261,69 @@ function admission(item, id, route, data) {
   if (item.licenceFile !== admitted.licenceFile) {
     return `${id}'s LICENSE.md is ${item.licenceFile ?? 'missing'}, not the Formancy Data licence the review read (${admitted.licenceFile}) (${route})`
   }
-  // The package that depends on Data: the last on the route before the
-  // first Data package, so Data's own dependencies on each other are
-  // allowed and a package reaching Data past the provider is not.
-  const names = new Set(Object.keys(data).map((key) => key.slice(0, key.lastIndexOf('@'))))
-  const path = [...item.via, item.name]
-  const dependent = path[path.findIndex((name) => names.has(name)) - 1]
+  const dependent = dependentOf(item, Object.keys(data))
   return dependent === admitted.for || `${id} is admitted for ${admitted.for} alone, and ${String(dependent)} depends on it (${route})`
+}
+
+/**
+ * The package that depends on the first of `ids` on `item`'s route: the last
+ * before it, so one admitted package's dependencies on another are allowed
+ * and a package reaching one past its dependent is not.
+ */
+function dependentOf(item, ids) {
+  const names = new Set(ids.map((key) => key.slice(0, key.lastIndexOf('@'))))
+  const path = [...item.via, item.name]
+  return path[path.findIndex((name) => names.has(name)) - 1]
+}
+
+/**
+ * What is wrong with a confined package (`CONFINED`): the policy judges it
+ * as any other, and it is further refused at a version no review read, with
+ * a licence file, or a file beside it the review read, whose digest is not the
+ * review's, and depended on by any package other than the one it is for or
+ * another confined package. A package that depends on the one it is for
+ * reaches it through that package, which is allowed: what is held is that
+ * no other published package depends on it itself.
+ */
+function confinement(item, id, route, confined) {
+  const ids = Object.keys(confined)
+  const versions = ids.filter((key) => key.slice(0, key.lastIndexOf('@')) === item.name)
+  if (versions.length === 0) return []
+  if (!Object.hasOwn(confined, id)) {
+    return [
+      `${id} is a version of ${item.name}, which a review read at ${versions.map((key) => key.slice(key.lastIndexOf('@') + 1)).join(' and ')} alone, for ${confined[versions[0]].for} (${route})`,
+    ]
+  }
+  const admitted = confined[id]
+  const names = new Set(ids.map((key) => key.slice(0, key.lastIndexOf('@'))))
+  // Every package that depends on it, not the first route the walk found: a
+  // direct dependency hides behind the route through the renderer.
+  const dependents = item.dependents ?? [item.via.at(-1)]
+  return [
+    ...[admitted.licenceFile, ...(admitted.alsoRead ?? [])].flatMap(({ path, sha256 }) =>
+      item.licenceTexts?.[path] === sha256
+        ? []
+        : [`${id}'s ${path} is ${item.licenceTexts?.[path] ?? 'missing'}, not the file the review read (${sha256}) (${route})`],
+    ),
+    ...dependents
+      .filter((dependent) => dependent !== admitted.for && !names.has(dependent))
+      .map((dependent) => `${id} is admitted for ${admitted.for} alone, and ${String(dependent)} depends on it (${route})`),
+  ]
 }
 
 /**
  * What is wrong with these closures under the policy, each named once with the
  * route to it. `exceptions` replace what a package or a font file says with
  * what a review found, at that exact version, and are refused when nothing
- * here installs them. `data` admits Formancy Data's packages, and `profiles`
- * the ICC profiles a review read, and each is refused the same way.
+ * here installs them. `data` admits Formancy Data's packages, `profiles`
+ * the ICC profiles a review read, and `confined` the packages a review read
+ * for one dependent alone, and each is refused the same way.
  */
-export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA, profiles = ICC_PROFILES) {
+export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA, profiles = ICC_PROFILES, confined = CONFINED) {
   const found = new Set()
   const used = new Set()
   const admitted = new Set()
+  const confinedSeen = new Set()
   const shipped = new Set()
   const judge = (key, declared, source, route, refusal) => {
     const exception = Object.hasOwn(exceptions, key) ? exceptions[key] : undefined
@@ -511,6 +347,10 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
     // A workspace package is passed over only when it declares this repository's terms; one that says otherwise is judged like anyone's.
     else if (verdict === false && !(item.sibling && item.licence === LICENSE_FIELD))
       judge(id, item.licence, 'its package.json', route, `${id} declares no licence (${route})`)
+    if (!item.sibling) {
+      for (const refusal of confinement(item, id, route, confined)) found.add(refusal)
+      if (Object.hasOwn(confined, id)) confinedSeen.add(id)
+    }
     for (const font of item.fonts) {
       const refusal = font.readable
         ? `${id}/${font.path} is a font whose name table names no licence the policy allows: "${font.description ?? ''}" (${route})`
@@ -531,6 +371,9 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
   }
   for (const key of Object.keys(data)) {
     if (!admitted.has(key)) found.add(`Formancy Data admission ${key} names nothing a published package installs; remove it`)
+  }
+  for (const key of Object.keys(confined)) {
+    if (!confinedSeen.has(key)) found.add(`confined package ${key} names nothing a published package installs; remove it`)
   }
   for (const [digest, review] of Object.entries(profiles)) {
     if (!shipped.has(digest)) found.add(`reviewed ICC profile ${digest} names nothing a published package installs; remove it`)

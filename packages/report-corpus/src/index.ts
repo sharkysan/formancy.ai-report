@@ -1,4 +1,7 @@
 export { verify, verifyRefusal } from './checks.js'
+export { AXIS_PAINT, GRID_PAINT } from './check-chart-marks.js'
+export { SHARE_UNIT } from './check-chart-pie.js'
+export { LABEL_DISTANCE } from './check-chart-labels.js'
 export { inkAround, verifyInk } from './check-ink.js'
 export { pageDimensions, RenderRefusal } from './document.js'
 export type {
@@ -29,6 +32,8 @@ export type {
 export type {
   Expectation,
   ExpectedCell,
+  ExpectedChart,
+  ExpectedDrawing,
   ExpectedFirstPage,
   ExpectedImage,
   ExpectedRefusal,
@@ -38,7 +43,7 @@ export type {
   Fixture,
   Stated,
 } from './fixture.js'
-export { epcCodes, expectation, shiftedRunsOf } from './fixture.js'
+export { chartsOf, drawingsOf, epcCodes, expectation, shiftedRunsOf } from './fixture.js'
 export {
   SITE_VISIT_HIGH,
   SITE_VISIT_REPORT,
@@ -55,9 +60,11 @@ export { ALL_FIXTURES } from './fixtures/all.js'
 export { KEEP_WITH_FIXTURES } from './fixtures/group-keep-with.js'
 export { IMAGE_KINDS } from './image-kinds.js'
 export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from './fixtures/svg.js'
+export { CHART_FIXTURES } from './fixtures/charts.js'
 export { FIRST_PAGE_FIXTURES } from './fixtures/first-page-header.js'
 export { SHIFTED_FIXTURES } from './fixtures/shifted.js'
 export { baselineOf, readPdf } from './read-pdf.js'
+export { curvePoints, curveSamples, onCurve } from './curves.js'
 export { drawingsOn } from './drawings.js'
 export type { Drawing } from './drawings.js'
 export { readPdfNumbers } from './numbers.js'
@@ -129,4 +136,4 @@ export {
   xrechnungData,
 } from './starters/index.js'
 export type { Edition, Starter, StarterImage } from './starters/index.js'
-export type { PdfAttachment, PdfBox, PdfFont, PdfPage, PdfPaint, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'
+export type { PdfAttachment, PdfBox, PdfCurve, PdfFont, PdfPage, PdfPaint, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'

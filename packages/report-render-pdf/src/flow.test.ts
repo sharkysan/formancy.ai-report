@@ -1,11 +1,13 @@
 import { readPdf, verify, type ReadPdf } from '@formancy/report-corpus'
-import type { Block, Image, KeepTogether, ResolvedDocument, TableRow } from '@formancy/report-runtime'
+import type { Block, Image, KeepTogether, PieChart, ResolvedDocument, TableRow } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { renderPdf } from './node.js'
 import { RULE_GAP } from './content.js'
+import { PIE } from './testing/charts.js'
 import { BODY_HEIGHT, details, documentOf, fixtureOf, heading, ledger, PAGE, paragraph, TIMEOUT, totalRow } from './testing/documents.js'
 import { encodePng } from './testing/images.js'
 import { lineHas, lineOf, pageLines, pageOf } from './testing/lines.js'
+import { MARK, svgAsset } from './testing/svg.js'
 
 /**
  * How the body flows over pages: the page regions it flows between, the
@@ -13,6 +15,25 @@ import { lineHas, lineOf, pageLines, pageOf } from './testing/lines.js'
  * Each is a default of pdfmake's that the renderer works around, because the
  * default loses or misplaces content without saying so (0005).
  */
+
+/** A keep-together block of `first` and a paragraph under it: one that opens with what prints no text. */
+const keptUnder = (first: Block): KeepTogether => ({ kind: 'keepTogether', blocks: [first, paragraph('Under it')] })
+
+/** A small PNG image, 80 by 40 points. */
+const PNG_IMAGE: Image = {
+  kind: 'image',
+  asset: { id: 'chart', mediaType: 'image/png', bytes: encodePng(16, 8, () => [0, 90, 0]) },
+  width: 80,
+  height: 40,
+  fit: 'contain',
+}
+
+/** EPC069-12's first example, which the EPC QR code's own tests draw. */
+const EPC_EXAMPLE = ['BCD', '001', '1', 'SCT', 'BHBLDEHHXXX', 'Franz Mustermänn', 'DE71110220330123456789', 'EUR12.3', 'GDDS', 'RF18539007547034'].join('\n')
+
+/** `PIE` without a title, its legend's entries blank, as a pie of categories the data left blank prints with its values unlabelled: a chart that prints no word. */
+const { title: _title, ...untitled } = PIE
+const WORDLESS: PieChart = { ...untitled, id: 'wordless', legend: PIE.legend.map(({ color }) => ({ text: '', color })) }
 
 async function rendered(document: ResolvedDocument, maxPages = 20): Promise<ReadPdf> {
   return readPdf(await renderPdf(document, { maxPages }))
@@ -261,7 +282,8 @@ describe('keeping content together', () => {
   // A heading at the foot of a page with what it heads on the next one. The
   // spacer leaves 20pt: room for the 14pt heading, not for what follows.
   // What it heads starts where its first text or image does: past a spacer
-  // at the top of a keep-together block, for one.
+  // at the top of a keep-together block, for one, and at the first text of
+  // one, which moves whole, where an image comes before it.
   test.each([
     ['the table it heads', ledger('lines', details(1, 5))],
     [
@@ -277,6 +299,30 @@ describe('keeping content together', () => {
     [
       'the keep-together block it heads',
       { kind: 'keepTogether', blocks: [{ kind: 'spacer', height: 2 }, paragraph('Kept under the heading'), paragraph('And kept with it')] } as const,
+    ],
+    // pdfmake corrects the page a node of a block it moved records for text with an id alone: kept with the block's image, the heading stayed on the page before.
+    ['the keep-together block it heads, opening with an image', keptUnder(PNG_IMAGE)],
+    // The same for every block drawn as an SVG, which pdfmake records as it does an image: a QR code, an EPC QR code and an SVG asset.
+    [
+      'the keep-together block it heads, opening with a QR code',
+      keptUnder({ kind: 'qrCode', id: 'payment-code', text: 'INV-2026-0042', size: 60, errorCorrection: 'M' }),
+    ],
+    ['the keep-together block it heads, opening with an EPC QR code', keptUnder({ kind: 'epcQrCode', id: 'pay-code', payload: EPC_EXAMPLE, size: 85.04 })],
+    ['the keep-together block it heads, opening with an SVG image', keptUnder({ kind: 'image', asset: svgAsset(MARK), width: 40, height: 40, fit: 'contain' })],
+    // And for one the heading reaches through a framed section or a column, which are not kept together, and hold it.
+    [
+      'the framed section it heads, opening with such a keep-together block',
+      { kind: 'section', border: { thickness: 1, color: '#000000' }, blocks: [keptUnder(PNG_IMAGE)] },
+    ],
+    [
+      'the columns it heads, opening with such a keep-together block',
+      {
+        kind: 'columns',
+        columns: [
+          { width: 'fill', blocks: [keptUnder(PNG_IMAGE)] },
+          { width: 'fill', blocks: [] },
+        ],
+      },
     ],
     [
       'the columns it heads',
@@ -304,6 +350,59 @@ describe('keeping content together', () => {
       expect(verify(fixtureOf('heading-at-foot', document, { minPagesExpected: 2, maxPagesExpected: 2, noEmptyPages: false }), pdf)).toEqual([])
       expect(pageOf(pdf, 'Lines')).toBe(2)
       expect(pdf.pages[0]!.images.length + pageLines(pdf.pages[0]!).filter((line) => !/^(Formancy Report corpus|Page \d)/.test(line.text)).length).toBe(0)
+    },
+    TIMEOUT,
+  )
+
+  // A keep-together block that prints no text is kept with by its image,
+  // as a block that is not kept together is: kept with what comes after
+  // it, a heading over an image that fits under it at a page's foot would
+  // move to the next page whenever the line after the image does, and
+  // leave the image alone under nothing.
+  test(
+    'keeps a heading on its page with a keep-together block of an image alone that fits there',
+    async () => {
+      const image: Block = {
+        kind: 'image',
+        asset: { id: 'chart', mediaType: 'image/png', bytes: encodePng(16, 8, () => [0, 90, 0]) },
+        width: 80,
+        height: 100,
+        fit: 'contain',
+      }
+      const document = documentOf('Image kept at the foot', [
+        { kind: 'spacer', height: BODY_HEIGHT - 14 * (2400 / 2048) - 100 - 2 },
+        heading('Figure'),
+        { kind: 'keepTogether', blocks: [image] },
+        paragraph('Next page'),
+      ])
+      const pdf = await rendered(document)
+      expect([pageOf(pdf, 'Figure'), pageOf(pdf, 'Next page'), pdf.pages[0]!.images.length]).toEqual([1, 2, 1])
+    },
+    TIMEOUT,
+  )
+
+  // A limitation, held as it stands (0058): a block that prints no text
+  // -- a chart that prints no word, a pie with no title whose every legend
+  // entry is blank, and a keep-together block of an image alone -- is kept
+  // with by its drawing or its image, whose page pdfmake 0.3.11 records as
+  // the one its layout began on and never corrects once it moves the
+  // block (pdfmake.test.ts). Where the block moves to the next page, the
+  // heading kept with it stays at the foot of the page before, over
+  // nothing. Nothing is lost or misprinted; the heading is where a reader
+  // would not look for it. A pdfmake that corrects a drawing's page fails
+  // this, and the limitation goes with it.
+  test.each([
+    ['a pie that prints no word', WORDLESS, (pdf: ReadPdf) => pdf.pages[1]!.clips.filter(({ width }) => Math.abs(width - WORDLESS.width) < 1e-3).length],
+    [
+      'a keep-together block of an image alone',
+      { kind: 'keepTogether', blocks: [{ ...PNG_IMAGE, height: 150 }] },
+      (pdf: ReadPdf) => pdf.pages[1]!.images.length,
+    ],
+  ] as const)(
+    'leaves a heading kept with a block that prints no text at the foot of the page the block leaves: %s',
+    async (_, block, onSecond) => {
+      const pdf = await rendered(documentOf('Kept with no text', [{ kind: 'spacer', height: BODY_HEIGHT - 120 }, heading('Kept heading'), block]))
+      expect([pageOf(pdf, 'Kept heading'), onSecond(pdf)]).toEqual([1, 1])
     },
     TIMEOUT,
   )

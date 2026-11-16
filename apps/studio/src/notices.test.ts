@@ -1,6 +1,7 @@
 // @vitest-environment node
 
-import { readdirSync, readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { readdirSync, readFileSync, realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -137,5 +138,117 @@ describe("the notice for report-render-pdf's embedded Liberation Sans", () => {
         .map((name) => `dist/${name}`)
         .filter((name) => file.test(name)),
     ).toEqual([expect.stringMatching(/^dist\/bill-fonts-/)])
+  })
+})
+
+/** A package's directory, found from `from`'s own manifest, as the renderer's install lays it out. */
+const installed = (name: string, from = join(renderPdf, 'package.json')): string => dirname(createRequire(from).resolve(`${name}/package.json`))
+const echarts = realpathSync(installed('echarts'))
+const zrender = installed('zrender')
+/** The tslib that echarts pins, which is not the one the workspace's other packages use. */
+const tslib = realpathSync(join(echarts, '..', 'tslib'))
+
+/** What `scripts/renderer-notices.mjs` reports: the notices the plugin writes and the chunks the bundler made. */
+interface RendererBuild {
+  readonly notices: string
+  readonly chunks: readonly {
+    fileName: string
+    isEntry: boolean
+    imports: readonly string[]
+    dynamicImports: readonly string[]
+    moduleIds: readonly string[]
+  }[]
+}
+
+/**
+ * A build of report-render-pdf's browser entry with the Studio's notices
+ * plugin and reviewed `embedded` list: the same plugin, the same list and
+ * the same package, without the Studio's page. `scripts/renderer-notices.mjs`
+ * builds it in a process of its own, which says why; it is built once for
+ * the cases below.
+ */
+let built: RendererBuild | undefined
+const rendererBuild = (): RendererBuild =>
+  (built ??= JSON.parse(
+    execFileSync(process.execPath, [join(app, 'scripts', 'renderer-notices.mjs')], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }),
+  ) as RendererBuild)
+const noticesOfRenderer = (): string => rendererBuild().notices
+
+describe("the notices for the chart chunk's libraries", () => {
+  // A chart is drawn by ECharts and zrender, which the Studio ships in a
+  // chunk of their own (the renderer imports it when a document holds a
+  // chart). Apache-2.0 asks that a NOTICE travel with the Work (section
+  // 4(d)), BSD-3-Clause that the licence travel with the binary: a build
+  // whose notices left one out would redistribute somebody's work without
+  // its terms. Each file is held to the package's own, not to a copy.
+  const text = (file: string): string => flowed(readFileSync(file, 'utf8').trimEnd())
+  const cases: readonly [string, string][] = [
+    ["echarts's LICENSE", join(echarts, 'LICENSE')],
+    ["echarts's NOTICE", join(echarts, 'NOTICE')],
+    ["zrender's LICENSE", join(zrender, 'LICENSE')],
+    ["the tslib that echarts pins's licence", join(tslib, 'LICENSE.txt')],
+    [
+      "echarts's licenses/LICENSE-d3, d3's BSD-3-Clause text, which lib/util/number.js says its quantile is copied under",
+      join(echarts, 'licenses', 'LICENSE-d3'),
+    ],
+  ]
+  test.each(cases)(
+    'carries %s',
+    (_, file) => {
+      expect(flowed(noticesOfRenderer())).toContain(text(file))
+    },
+    60_000,
+  )
+
+  // The tslib licence is the same text in both copies the workspace
+  // installs, so the text alone would pass for either: the notice of the
+  // copy echarts pins, 2.3.0, is held by its own heading and its section.
+  test('lists the tslib that echarts pins, 2.3.0, with its licence under its own heading', () => {
+    const rule = '-'.repeat(80)
+    // The heading's rules close at the files' list; the next rule opens the next package.
+    const parts = noticesOfRenderer().split(`${rule}\ntslib 2.3.0\n`)[1]?.split(`\n${rule}\n`)
+    if (parts === undefined) throw new Error('the notices have no tslib 2.3.0 section')
+    expect(flowed(parts[1] ?? '')).toContain(text(join(tslib, 'LICENSE.txt')))
+  })
+})
+
+/** The package directory a bundled module is in, for `name`, or undefined: pnpm's own, by name and version. */
+const packageOf = (id: string, name: string): string | undefined =>
+  new RegExp(`^.*/node_modules/\\.pnpm/${name}@[^/]+/node_modules/${name}/`).exec(id.replaceAll('\\', '/'))?.[0]
+
+describe("the chart chunk's libraries in a build of the renderer's browser entry", () => {
+  const chunks = (): RendererBuild['chunks'] => rendererBuild().chunks
+  const holds = (chunk: RendererBuild['chunks'][number]): boolean =>
+    chunk.moduleIds.some((id) => packageOf(id, 'echarts') !== undefined || packageOf(id, 'zrender') !== undefined)
+
+  // The guard in chart-draw.ts refuses a chart where ECharts measures
+  // through another zrender than the one the renderer measures with, and
+  // two copies is how that happens: one echarts and one zrender, each at
+  // the release the renderer pins, are bundled. The Studio's own build is
+  // this build with more beside it, over the same resolver.
+  test('bundles one echarts and one zrender, at the releases the renderer pins', () => {
+    const found = (name: string): string[] => [...new Set(chunks().flatMap((chunk) => chunk.moduleIds.flatMap((id) => packageOf(id, name) ?? [])))]
+    expect(found('echarts')).toEqual([expect.stringMatching(/\/echarts@6\.1\.0\/node_modules\/echarts\/$/)])
+    expect(found('zrender')).toEqual([expect.stringMatching(/\/zrender@6\.1\.0\/node_modules\/zrender\/$/)])
+  })
+
+  // A page that prints no chart loads none of ECharts (R23): its code is in
+  // the chunk the renderer imports for a chart and in no chunk the entry
+  // imports statically, as a bundler setting that inlined dynamic imports,
+  // or an import that became static, would put it.
+  test('holds them in the chunk the entry imports dynamically, and in no chunk it imports statically', () => {
+    const all = chunks()
+    const byName = new Map(all.map((chunk) => [chunk.fileName, chunk]))
+    const statics = new Set<string>()
+    const walk = (name: string): void => {
+      if (statics.has(name)) return
+      statics.add(name)
+      for (const next of byName.get(name)?.imports ?? []) walk(next)
+    }
+    for (const entry of all.filter((chunk) => chunk.isEntry)) walk(entry.fileName)
+    expect(all.filter(holds).map((chunk) => chunk.fileName)).toEqual([expect.stringMatching(/^assets\/chart-draw-/)])
+    const drawing = all.find(holds)!
+    expect(statics.has(drawing.fileName)).toBe(false)
+    expect(all.some((chunk) => statics.has(chunk.fileName) && chunk.dynamicImports.includes(drawing.fileName))).toBe(true)
   })
 })

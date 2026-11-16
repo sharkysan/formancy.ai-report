@@ -1,6 +1,19 @@
 import { createHash } from 'node:crypto'
 import pdfmake from 'pdfmake'
-import { inspectionData, rasterPixels, readAnnotations, readPdf, SERVICE_INSPECTION, SVG_MARK, SVG_WINDOW, verify, verifyInk } from '@formancy/report-corpus'
+import {
+  expectation,
+  inspectionData,
+  rasterPixels,
+  readAnnotations,
+  readPdf,
+  SERVICE_INSPECTION,
+  SVG_MARK,
+  SVG_WINDOW,
+  verify,
+  verifyInk,
+  type Fixture,
+  type ReadPdf,
+} from '@formancy/report-corpus'
 import {
   checkSvg,
   MAX_SVG_GROUPS,
@@ -17,7 +30,7 @@ import { describe, expect, test } from 'vitest'
 import { drawingUnits, MAX_SVG_DRAWING } from './assets.js'
 import { renderPdf } from './node.js'
 import { converterOptions } from './svg-content.js'
-import { bareDocument, fixtureOf, paragraph, TIMEOUT } from './testing/documents.js'
+import { bareDocument, documentOf, fixtureOf, paragraph, TIMEOUT } from './testing/documents.js'
 import { readDrawing } from './testing/drawing.js'
 import { colourAt, DRAWINGS, inkBox, MARK, MARK_COLOURS, svg, svgAsset } from './testing/svg.js'
 
@@ -177,6 +190,40 @@ describe('an SVG image', () => {
       // The viewBox is 100 units in a box of 60 pt: its middle at 30 pt in, the ring 10 pt in from the top.
       expect(colourAt(pixels, SCALE, LEFT + 30, TOP + 30)).toBe('#ffffff')
       expect(colourAt(pixels, SCALE, LEFT + 30, TOP + 9)).toBe(MARK_COLOURS.disc)
+    },
+    TIMEOUT,
+  )
+
+  // An SVG image stands where its author put it: beside text in a column,
+  // framed in a section. The corpus seeks the body's drawings through
+  // every container (`drawingsOf`), where it once sought only those
+  // outside a column or a section, and a logo lost from either passed. On
+  // the corpus's own expectation, the renderer's PDF passes, and the same
+  // PDF with the column's drawing taken out of its clip is said to lack it.
+  test(
+    'in a column and in a section, is found by the corpus where it stands',
+    async () => {
+      const document = documentOf('Containers', [
+        paragraph('Before'),
+        {
+          kind: 'columns',
+          columns: [
+            { width: 'fill', blocks: [paragraph('Beside the mark')] },
+            { width: 'fill', blocks: [image(svgAsset(MARK), 40, 40)] },
+          ],
+        },
+        { kind: 'section', padding: 6, blocks: [image(svgAsset(MARK), 50, 30)] },
+      ])
+      const each: Fixture = { id: 'containers', title: 'Containers', document, maxPages: 5, expect: expectation(document, { maxPagesExpected: 1 }) }
+      const pdf = await readPdf(await rendered(document))
+      expect(verify(each, pdf)).toEqual([])
+      const [page] = pdf.pages
+      const clip = page!.clips.findIndex(({ width, height }) => width === 40 && height === 40)
+      const lost: ReadPdf = { ...pdf, pages: [{ ...page!, paths: page!.paths.filter((path) => path.clip !== clip) }] }
+      expect(verify(each, lost)).toEqual([
+        // The second column: 40 + 515.28 / 2 across; down, the page header's 8 pt line, its 6 pt gap, and the 9 pt line above it.
+        'containers: the SVG image 1 of the body, 40 × 40 pt, has its clip at 297.64, 61.92 on page 1, and nothing painted inside it',
+      ])
     },
     TIMEOUT,
   )

@@ -57,6 +57,7 @@ import type { DataBinding, ProviderRead } from '@formancy/report-data-provider'
 import { createDataClient } from '@formancy/data-client'
 import type { PublishedForm } from '@formancy/data-client'
 import { drawnEInvoice } from './e-invoice.js'
+import { chartDrawn } from './chart.js'
 import { addedImages } from './images.js'
 import { fontsRead, hostFontRendered } from './fonts.js'
 import { imagesInOrder } from './image-order.js'
@@ -261,6 +262,9 @@ const rendered = await (async () => {
   return pdf
 })()
 if (new TextDecoder().decode(rendered.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation did not render to a PDF')
+
+// The guide's chart, on the quotation (chart.ts): resolved to a bar of three categories and drawn.
+await chartDrawn(images)
 
 // A refusal travels as the class a host catches, from the runtime's
 // declaration through the renderer's re-export: a customer's name in a

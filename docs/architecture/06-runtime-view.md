@@ -139,13 +139,20 @@ renderPdf(document, { maxPages, signal, pdfa })
    │ in a Factur-X invoice or a PDF/A-2b, a title its XMP cannot
    │ hold, a CMYK JPEG, an SVG whose numbers or nesting its
    │ PDF/A cannot hold (6.9) ────────────────────────────────▶ unsupported
-   │ a chart, which this release does not draw yet (6.18) ───▶ unsupported
+   │ a chart in a page region, of a kind it does not know, past
+   │ MAX_TICK_INTERVALS or MAX_CHART_SERIES, or with a word its
+   │ face cannot draw (6.18) ────────────────────────────────▶ unsupported
+   │ a chart of more than MAX_CHART_CATEGORIES, and a render's
+   │ charts past MAX_CHART_DRAWING together (6.18) ──────────▶ content-too-large
    ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
    │ browser its chunk imported
    ├─ measure the page regions, and page 1's own header in a pass of its
    │ own (6.20); the body's margins follow
    ├─ a block of fixed height taller than the body ──────────▶ content-too-large
    ├─ least height already past maxPages ────────────────────▶ too-many-pages
+   ├─ the body's charts laid out by ECharts, in the widths pdfmake
+   │ prints in; words that would meet, labels that do not fit
+   │ across, bars too thin (6.18) ───────────────────────────▶ content-too-large
    ├─ measure kept blocks and table rows; one no page holds,
    │ or a row's line no page holds under its table's
    │ repeated header (0011) ─────────────────────────────────▶ content-too-large
@@ -976,9 +983,8 @@ kind than it declares, is refused, naming it.
 
 ## 6.18 A chart, from the rows to its marks
 
-The runtime's half: what a chart prints, decided once. How the renderer
-draws the block is its own record's, and until it has one the renderer
-refuses the block.
+What a chart prints is decided once, by the runtime; the renderer draws
+the block, and decides nothing a reader reads.
 
 ```
 resolveReport, a chart in the body or the summary, its condition true
@@ -1014,7 +1020,45 @@ a legend of its series, two or more        a legend of its categories,
 the chart block: every word it prints, each value's exact digits beside its text,
 its ticks, its colours by place ──▶ the ResolvedDocument (6.2)
    ▼
-renderPdf: check.ts ──────────────────────────────────▶ unsupported, naming the chart
+renderPdf (6.2): checkChart, before pdfmake sees it      report-render-pdf's check-chart.ts
+   ├─ in a page region; a kind, a box, a colour or a style it does not know;
+   │  past MAX_TICK_INTERVALS or MAX_CHART_SERIES; its parts unmatched; a
+   │  word with a control character, or one its face has no glyph for; a
+   │  value no decimal, uneven ticks, a slice below zero ───▶ unsupported
+   ├─ more than MAX_CHART_CATEGORIES categories or slices; wider than
+   │  where it stands; taller than the body ──────────────▶ content-too-large
+   ▼
+checkChartDrawing: the render's charts weighed together, each its kind's
+weight, a unit a point and each word's weight, before any is laid out
+   ├─ past MAX_CHART_DRAWING, at the chart that crossed it ─▶ content-too-large
+   ▼
+drawCharts: each chart's faces from the render's plan, opened by Engine.widths
+   ├─ nothing to draw ──▶ drawEmpty: its title and empty text placed, no ECharts
+   ▼
+chart-draw.ts, imported through loadOnce with the first chart that has marks
+   ▼
+withMeasurer: zrender's measureText answers in pdfmake's widths, 国 in the
+face's line, for one layout, and is put back after it
+   ▼
+layout 1, the bands: where the title and the legend stand
+layout 2, the plot: ECharts fits it between the bands, read by convertToPixel
+   ├─ bars narrower than MIN_BAR_WIDTH ───────────────────▶ content-too-large
+   ▼
+snapped: its top on a half point, each interval whole points; tickEvery
+   ├─ too short for two tick labels TICK_CLEARANCE apart, or
+   │  a category label wider than its slot less half a line ─▶ content-too-large
+   ▼
+layout 3, drawn; a pie, laid out in its square, its arcs written again on its circle
+   ├─ a pie's square narrower than MIN_PIE_DIAMETER ──────▶ content-too-large
+   ▼
+readChartSvg: the SVG held to what ECharts 6.1.0 writes, each <text> taken out
+and read back as the box pdfmake prints its word in, its clips taken out
+   ├─ anything else, or a word the block does not hold ───▶ unsupported
+   ▼
+held: words that would meet, leave the box or stand in the plot ──▶ content-too-large
+   ▼
+chartContent, in every pass: one unbreakable stack of the SVG, each word as
+pdfmake text where ECharts placed it, and a spacer of the box's height
 ```
 
 Every refusal names the chart by its id and says counts, never a value, a
@@ -1025,9 +1069,18 @@ rows in the same format, they print the same text
 ([0055](../decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
 The ticks are BigInt division on a decimal's units, and a share an exact
 ratio rounded once and printed without rounding again, so nothing a chart
-prints passes through a double. What a renderer may make of the block is
-a coordinate from a value's `exact`, with `Number`, and nothing else:
-every word it draws is in the block.
+prints passes through a double. The renderer makes nothing of the block
+but coordinates: a value's place, its distance from the lowest tick in
+the ticks' interval worked out in BigInt and made a double at the end,
+and a slice's exact share; every word it draws is in the block, looked up
+by index, and a word ECharts wrote that the block does not hold is
+refused. ECharts lays the chart out, and the renderer only snaps the plot
+it chose and reads back where every word went: a chart whose words would
+meet or leave its box, whose labels do not fit across, or whose bars are
+too thin to see, is refused, naming it and its box and saying sizes,
+never moved, cut or turned to fit; and a render whose charts together
+weigh more than `MAX_CHART_DRAWING` is refused before any of them is laid
+out [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 
 ## 6.19 A PDF/A-2b, from the host's option to the PDF
 

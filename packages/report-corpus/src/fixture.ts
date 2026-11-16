@@ -1,4 +1,18 @@
-import type { BaselineShift, Block, EpcQrCode, Image, Inline, Paragraph, RefusalCode, ResolvedDocument, Table, TableRow } from './document.js'
+import { faceKey, readFont, type ResolvedFonts } from '@formancy/report-runtime'
+import type {
+  BaselineShift,
+  Block,
+  Chart,
+  ChartValue,
+  EpcQrCode,
+  Image,
+  Inline,
+  Paragraph,
+  RefusalCode,
+  ResolvedDocument,
+  Table,
+  TableRow,
+} from './document.js'
 
 /**
  * A fixture is a document an engine must render, or refuse, and what the PDF
@@ -64,10 +78,77 @@ export interface ExpectedImage {
   readonly height: number
 }
 
+/**
+ * A drawing in the body: what is painted inside a clip of its box, and
+ * found by that clip (`drawings.ts`) -- an SVG image (0030), or a chart
+ * ECharts drew (0058), known by its id.
+ */
+export type ExpectedDrawing =
+  | { readonly kind: 'image'; readonly width: number; readonly height: number }
+  | { readonly kind: 'chart'; readonly id: string; readonly width: number; readonly height: number }
+
+/** A series or a slice of a chart (`ExpectedChart.marks`). */
+export interface ExpectedMark {
+  readonly paint: string
+  readonly values: readonly (string | null)[]
+  /** Present where the chart labels its values: one per value, the text its label prints, null where it prints none. */
+  readonly labels?: readonly (string | null)[]
+}
+
 /** A run of text and the PostScript name of the face it must print in (0043), after any subset prefix. */
 export interface ExpectedFontName {
   readonly text: string
   readonly postScriptName: string
+}
+
+/**
+ * A chart in the body as its PDF must show it (0058), from the runtime's
+ * block: its box, every word it prints, and each of its series' or slices'
+ * colour and values, which the check holds its marks to
+ * (`check-charts.ts`). A word that prints nothing -- a label empty once
+ * trimmed -- is no word, and nothing could prove it printed (0058).
+ */
+export interface ExpectedChart {
+  readonly id: string
+  readonly chart: Chart['chart']
+  /** Points: the box the chart is drawn in. */
+  readonly width: number
+  readonly height: number
+  /**
+   * Every word but a tick's, each printed once inside the box: a word the
+   * list holds twice prints twice. Its title, its axes' titles, each
+   * category's label, each value's where the chart labels them and each
+   * legend entry; an empty chart's title, where it prints one, then its
+   * empty text.
+   */
+  readonly words: readonly string[]
+  /** A bar or a line chart's category labels, in order, '' where one prints nothing; a pie's none, since its legend entries hold them. */
+  readonly categories: readonly string[]
+  /** Each tick, lowest first, its value exactly, which places the axis, and its label: the chart prints every k-th label from the lowest, which the layout chooses. */
+  readonly ticks: readonly ChartValue[]
+  /**
+   * A bar or a line chart's series, each its colour and its values exactly
+   * (`ChartValue.exact`), one per category, null where it has none, and,
+   * where the chart labels its values, the text each value's label prints,
+   * null where it prints none; a pie's slices, each its colour and its one
+   * value, whose label prints in its legend entry alone.
+   */
+  readonly marks: readonly ExpectedMark[]
+  /** Its legend's entries, in order, each its words as PDF.js extracts them -- '' where they print nothing -- and the paint of what it names, its swatch's; none where it has no legend. */
+  readonly legend: readonly { readonly text: string; readonly paint: string }[]
+  /** The face each of its words prints in, ticks included, by the face's PostScript name after any subset prefix: its token's host face, or Roboto's where the sans token maps none. */
+  readonly faces: readonly ExpectedFontName[]
+  /** Whether it has nothing to draw: its words are then all it prints. */
+  readonly empty: boolean
+  /**
+   * A chart with nothing to draw has no box to be found by, and its words
+   * are sought after the chart that draws something before it in its own
+   * flow -- the body, or the column it stands in, through sections and
+   * keep-together blocks -- by that chart's id, where there is one.
+   */
+  readonly after?: string
+  /** Where no chart is drawn before it in its flow: how many page breaks stand before it, its words being sought on the pages after them. */
+  readonly breaks?: number
 }
 
 /**
@@ -147,14 +228,15 @@ export interface Expectation {
   /** No page's last table line is a group header or the column header: a heading never ends a page alone. */
   readonly noOrphanedHeaders: boolean
   /**
-   * Every page prints something between its page header and footer: text or
-   * an image. Off for a document whose body has a spacer or a rule, which
-   * print nothing the checks can read and may be all a page holds.
+   * Every page prints something between its page header and footer: text,
+   * an image, or a drawing -- an SVG image or a chart. Off for a document
+   * whose body has a spacer or a rule, which print nothing the checks can
+   * read and may be all a page holds.
    */
   readonly noEmptyPages: boolean
-  /** All text and every image lies inside the document's margins. */
+  /** All text, every image and every drawing -- an SVG image, a chart -- lies inside the document's margins. */
   readonly allTextInsidePrintable: boolean
-  /** No two pieces of text, and no text and image, are drawn over each other. */
+  /** No two pieces of text, no text and an image or a drawing, and no two of those, are drawn over each other, but a chart's own words, which print inside its box. */
   readonly noOverlaps: boolean
   /** Every font a page uses travels inside the PDF. */
   readonly fontsEmbedded: boolean
@@ -162,6 +244,16 @@ export interface Expectation {
   readonly fontNames: readonly ExpectedFontName[]
   /** The body's images, in document order, each drawn once at this size. */
   readonly images: readonly ExpectedImage[]
+  /**
+   * The body's drawings in document order through every container -- a
+   * column, a section, a keep-together block -- each found after the one
+   * before (`drawings.ts`): its SVG images, and its charts that have
+   * something to draw (`drawingsOf`). A drawing it does not list is
+   * sought nowhere, and a chart not sought is proved by nothing.
+   */
+  readonly drawings: readonly ExpectedDrawing[]
+  /** Every chart in the body, in document order through every container (`chartsOf`), each proved by `check-charts.ts` where `drawings.ts` placed it. */
+  readonly charts: readonly ExpectedChart[]
   /** The page header's and footer's images, each drawn at this size on every page that prints them: on every page but page 1 where `firstPage` is present. */
   readonly pageRegionImages: readonly ExpectedImage[]
   /**
@@ -174,8 +266,8 @@ export interface Expectation {
   readonly pageRegionShiftedRuns: readonly ExpectedShiftedRun[]
 }
 
-/** What a fixture states about itself; everything else in its expectation is derived. */
-export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expectation, 'maxPagesExpected'>>
+/** What a fixture states about itself; everything else in its expectation is derived, and the drawings it seeks and the charts it proves always are. */
+export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expectation, 'maxPagesExpected' | 'drawings' | 'charts'>>
 
 /**
  * The expectation a document implies, with what the fixture states laid over
@@ -210,6 +302,9 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     shiftedRuns: shiftedRunsOf(document.body),
     pageRegionShiftedRuns: shiftedRunsOf([...document.pageHeader, ...document.pageFooter]),
     ...stated,
+    // Derived together and never stated, so that a drawing is never sought apart from the chart it proves (N3).
+    drawings: drawingsOf(document.body),
+    charts: chartsOf(document),
   }
 }
 
@@ -258,6 +353,123 @@ export function flatten(blocks: readonly Block[]): Block[] {
 
 export function tables(blocks: readonly Block[]): Table[] {
   return flatten(blocks).filter((block) => block.kind === 'table')
+}
+
+/** The drawings among `blocks`, in document order through every container, as `epcCodes` walks them: each SVG image, and each chart with something to draw; a chart with nothing to draw is no drawing (R7, R8). */
+export function drawingsOf(blocks: readonly Block[]): ExpectedDrawing[] {
+  return blocks.flatMap((block): ExpectedDrawing[] => {
+    if (block.kind === 'image') return block.asset.mediaType === 'image/svg+xml' ? [{ kind: 'image', width: block.width, height: block.height }] : []
+    if (block.kind === 'chart') return block.empty === undefined ? [{ kind: 'chart', id: block.id, width: block.width, height: block.height }] : []
+    if (block.kind === 'columns') return block.columns.flatMap((column) => drawingsOf(column.blocks))
+    return 'blocks' in block ? drawingsOf(block.blocks) : []
+  })
+}
+
+/**
+ * Every chart in `document`'s body as its PDF must show it, in document
+ * order through every container, as `drawingsOf` walks them: its words as
+ * PDF.js extracts them (`normalise`), none that prints nothing; a bar or a
+ * line chart's categories and ticks, a pie's none; each series' or slice's
+ * colour and exact values; the face each word prints in where its token
+ * maps a host font (0043); and a chart with nothing to draw anchored in
+ * its flow. A flow is the body, or a column: a section or a keep-together
+ * block flows in the flow it stands in, and a column flows below what
+ * stands before its columns block, apart from the columns beside it, so
+ * that an empty chart is sought after the chart drawn before it there
+ * (`ExpectedChart.after`), and where none is, after the page breaks before
+ * it (`ExpectedChart.breaks`), which stand in the body and its sections
+ * alone. What follows a columns block stands below every column, and
+ * after the last chart drawn in any.
+ */
+export function chartsOf(document: ResolvedDocument): ExpectedChart[] {
+  const charts: ExpectedChart[] = []
+  let breaks = 0
+  /** `blocks` walked, `drawn` the id of the chart drawn last before them in their flow; the one drawn last once they are. */
+  const walk = (blocks: readonly Block[], drawn: string | undefined): string | undefined => {
+    let last = drawn
+    for (const block of blocks) {
+      if (block.kind === 'pageBreak') breaks += 1
+      else if (block.kind === 'chart') {
+        const anchor = block.empty === undefined ? {} : last === undefined ? { breaks } : { after: last }
+        charts.push({ ...expectedChart(block, document.fonts), ...anchor })
+        if (block.empty === undefined) last = block.id
+      } else if (block.kind === 'columns') {
+        const before = last
+        for (const column of block.columns) {
+          const ended = walk(column.blocks, before)
+          if (ended !== before) last = ended
+        }
+      } else if ('blocks' in block) last = walk(block.blocks, last)
+    }
+    return last
+  }
+  walk(document.body, undefined)
+  return charts
+}
+
+/** `chart` as its PDF must show it, its words' faces read from `fonts` where its token maps a host font. */
+function expectedChart(chart: Chart, fonts: ResolvedFonts | undefined): ExpectedChart {
+  const printed = (texts: readonly (string | undefined)[]): string[] => texts.map((text) => normalise(text ?? '')).filter((text) => text !== '')
+  const axis = chart.chart === 'pie' ? undefined : chart
+  const values = axis?.valueLabels === true ? axis.series.flatMap(({ values: each }) => each.flatMap((value) => (value === null ? [] : [value.text]))) : []
+  const title = printed([chart.title])
+  const words = printed([axis?.categoryTitle, axis?.valueTitle, ...(axis?.categories ?? []), ...values, ...chart.legend.map(({ text }) => text), chart.empty])
+  const ticks = axis?.ticks ?? []
+  const [titleFace, wordsFace] = [true, false].map((bold) => faceName(chart, fonts, bold))
+  const named = (texts: readonly string[], postScriptName: string | undefined): ExpectedFontName[] =>
+    postScriptName === undefined ? [] : texts.map((text) => ({ text, postScriptName }))
+  return {
+    id: chart.id,
+    chart: chart.chart,
+    width: chart.width,
+    height: chart.height,
+    words: [...title, ...words],
+    categories: (axis?.categories ?? []).map(normalise),
+    ticks,
+    marks:
+      chart.chart === 'pie'
+        ? chart.slices.map(({ color, value }) => ({ paint: color, values: [value.exact] }))
+        : chart.series.map(({ color, values: each }) => ({
+            paint: color,
+            values: each.map((value) => value?.exact ?? null),
+            ...(chart.valueLabels ? { labels: each.map((value) => (value === null ? null : (printed([value.text])[0] ?? null))) } : {}),
+          })),
+    legend: chart.legend.map(({ text, color }) => ({ text: normalise(text), paint: color })),
+    faces: [...named(title, titleFace), ...named([...words, ...printed(ticks.map(({ text }) => text))], wordsFace)],
+    empty: chart.empty !== undefined,
+  }
+}
+
+/**
+ * The PostScript names of Roboto 3.014's four faces, which the renderer
+ * prints the sans token in where a report maps it no host font, as the
+ * PDF names them: its own `face-identity.ts` holds each to its file, and
+ * report-render-pdf's `corpus.test.ts` holds these to a chart it draws in
+ * each face.
+ */
+const ROBOTO: { readonly [Key in ReturnType<typeof faceKey>]: string } = {
+  normal: 'Roboto-Regular',
+  bold: 'Roboto-Medium',
+  italic: 'Roboto-Italic',
+  boldItalic: 'Roboto-MediumItalic',
+}
+
+/**
+ * The PostScript name of the face a word of `chart` prints in: its title
+ * bold, every other word its style's weight, each its style's slant
+ * (`chart-faces.ts`), in the face `fonts` maps its token to, read from its
+ * bytes as the renderer reads them, or in Roboto's where the sans token
+ * maps none. None where another token maps none, or no such face, or one
+ * that is no font, each of which the renderer refuses.
+ */
+function faceName(chart: Chart, fonts: ResolvedFonts | undefined, title: boolean): string | undefined {
+  const style = chart.style ?? {}
+  const [token, key] = [style.font ?? 'sans', faceKey(title || (style.bold ?? false), style.italic ?? false)]
+  const faces = fonts?.[token]
+  if (faces === undefined) return token === 'sans' ? ROBOTO[key] : undefined
+  const asset = faces[key]
+  const read = asset === undefined ? undefined : readFont(asset.bytes)
+  return read?.ok === true ? read.names.postScriptName : undefined
 }
 
 /** Every EPC QR code among `blocks`, inside every container -- a column, a section, a keep-together block -- in document order. */

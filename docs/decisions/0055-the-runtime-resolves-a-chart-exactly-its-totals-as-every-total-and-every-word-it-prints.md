@@ -1,6 +1,6 @@
 # 0055 — The runtime resolves a chart exactly: its categories in the data's order or sorted, its totals as every total, its ticks one, two or five times a power of ten, and every word it prints
 
-- **Status:** accepted; numbered while 0053 and 0054 were held by branches not yet merged; extends [0052](0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md), whose chart it resolves and whose interim refusal it ends, and [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), whose document gains the chart's block; extended by [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md), under which a chart prints its words, orders its categories and writes its shares in the locale a render names
+- **Status:** accepted; numbered while 0053 and 0054 were held by branches not yet merged; extends [0052](0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md), whose chart it resolves and whose interim refusal it ends, and [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), whose document gains the chart's block; extended by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), which draws the block and ends the renderer's interim refusal, placing each value by its exact distance from the lowest tick rather than by `Number`, and by [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md), under which a chart prints its words, orders its categories and writes its shares in the locale a render names
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -86,7 +86,9 @@
     refuses a chart as `unsupported`, naming it, in Node in the body, in a
     column and kept together, and in the browser entry in the body.
     report-corpus's `src/trial/undrawn.test.ts` refuses one through both
-    trial adapters.
+    trial adapters. Since 15 November 2026 the renderer draws a chart
+    (0058), and its case in `refusals.test.ts` is gone; the trial's
+    adapters, kept as the record of the renderer trial, still refuse one.
   - **Seen failing, on 11 November 2026.** Each case was run before its
     code existed, or with its code broken alone and restored: by the
     implementer of each change, in the working tree, or by its reviewer,
@@ -322,7 +324,8 @@ drawn by this release of the renderer". It does so wherever the block
 stands, in the body, a column or a kept block, before pdfmake is handed
 the document, in either entry. The corpus's trial adapters refuse one too.
 The renderer's record replaces that refusal. `chart-not-resolved` is gone,
-and 0052's interim refusal with it.
+and 0052's interim refusal with it. The renderer's refusal went on
+15 November 2026, when it drew charts (0058, below).
 
 ## Consequences
 
@@ -402,11 +405,32 @@ and 0052's interim refusal with it.
   cost, or that 201 is too many. `MAX_TICK_INTERVALS` and `SHARE_PLACES`
   are chosen too.
 - **Nothing prints a chart yet.** The renderer refuses a report that would
-  print one, a preview as a final render, until it draws charts.
+  print one, a preview as a final render, until it draws charts. Since
+  0058 it draws them.
 
 **What it forecloses.** Nothing that cannot be undone: the format is a
 draft's. An axis an author sets, shares rounded to add up and a colour
 cycle would each be another record's.
+
+**Added 2026-11-15: the renderer draws the block.**
+[0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)
+draws it, and ends the renderer's refusal of it as `unsupported`. It
+reads the block as this record's contract says, and is held to it before
+anything is laid out: every word it prints is one the block holds,
+looked up by index, and a word ECharts wrote that the block does not hold
+is refused; it formats, rounds and ticks no number. The block's `exact`
+digits are made a coordinate more exactly than the contract allows: a
+value is placed by its distance from the lowest tick in the ticks'
+interval, worked out in BigInt on the decimals' units and made a double
+at the end, and a pie's slice by its exact share of the slices' sum, so
+that ticks close for their size stand where they are. The renderer holds
+a block built by hand to `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and
+`MAX_CHART_SERIES`, which the runtime now hands on from report-spec, and
+to what the runtime resolves -- every value a decimal, ticks in equal
+steps holding every value and a bar's zero, no slice below zero -- before
+anything is laid out. An empty label, which a preview prints for a
+category its data lacks, is no word to the renderer: its slot is kept
+and nothing is printed in it.
 
 ## Alternatives considered
 

@@ -22,6 +22,9 @@ import { RenderRefusal } from '@formancy/report-runtime'
  *   such as an identifier with no space in it, breaks across lines, as the
  *   corpus's `long-paragraph` fixture asks; one longer than that is
  *   refused, naming the block, before pdfmake breaks a line of it.
+ * - **a chart's word** to the advance the drawing placed it by, which
+ *   pdfmake prints it unbroken in (`chart-content.ts`): one pdfmake
+ *   measures wider is refused, naming the chart, in a sentence of its own.
  *
  * `_minWidth` is pdfmake's own, not part of its API; `pdfmake.test.ts`
  * holds that 0.3.11 still writes it where the renderer reads it.
@@ -45,6 +48,8 @@ export interface WordRoom {
   /** Where it is, for a person: "row 3 of table lines, column 2". */
   readonly what: string
   readonly subject: string
+  /** What the refusal of a word `widest` points wide says, where the room is neither a table cell's nor a paragraph's lines: a chart's word, placed by its advance. */
+  readonly refused?: (widest: number) => string
 }
 
 /** How much wider than its room a word may measure and still be laid out unbroken: rounding, not layout. A word that holds a run set below or above the line is held to its line with it (`shifted.ts`). */
@@ -52,13 +57,14 @@ export const SLACK = 0.001
 
 /** Refuses the first text node whose widest word, as pdfmake measured it, is wider than its room. Nodes pdfmake has not measured are passed over. */
 export function checkWords(rooms: readonly WordRoom[]): void {
-  for (const { node, width, lines, what, subject } of rooms) {
+  for (const { node, width, lines, what, subject, refused } of rooms) {
     const widest = (node as { readonly _minWidth?: unknown })._minWidth
     if (typeof widest !== 'number' || widest <= width * lines + SLACK) continue
     const room = lines === 1 ? `its column holds ${width.toFixed(2)} pt` : `${lines} lines of its width are ${(width * lines).toFixed(2)} pt`
     throw new RenderRefusal(
       'content-too-large',
-      `a word of ${what} is ${widest.toFixed(2)} pt wide, and ${room}; a word is broken only in a paragraph, and across no more than ${MAX_WORD_LINES} lines`,
+      refused?.(widest) ??
+        `a word of ${what} is ${widest.toFixed(2)} pt wide, and ${room}; a word is broken only in a paragraph, and across no more than ${MAX_WORD_LINES} lines`,
       subject,
     )
   }

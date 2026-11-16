@@ -1,6 +1,6 @@
 # 0003 — A rendered report is proved on the PDF it produced
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which reads a run turned on the page, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which reads an SVG image from its painted paths, its clip and its pixels, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which reads the files a PDF embeds and what it says of itself with a second reader, pdf-lib, and its XMP with saxes, and by [0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md), whose checks read page 1 by its own header where the document gives it one, and every later page by the page header, and by [0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md), which reads a run set below or above the line into the line it stands on, and holds its size and its baseline
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which reads QR codes from the page's pixels, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which reads a run turned on the page, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which reads an SVG image from its painted paths, its clip and its pixels, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which reads the files a PDF embeds and what it says of itself with a second reader, pdf-lib, and its XMP with saxes, by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), which reads a chart by its clip, its paths and its words, and by [0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md), whose checks read page 1 by its own header where the document gives it one, and every later page by the page header, and by [0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md), which reads a run set below or above the line into the line it stands on, and holds its size and its baseline
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `packages/report-corpus`, whose suite runs in its own job of
@@ -182,6 +182,52 @@ page images this record leaves for later. A drawing is known by its size,
 so another drawing of the same size, a QR code, could stand in for one.
 `src/read-pdf.test.ts`, `src/drawings.test.ts` and `src/check-ink.test.ts`
 hold them.
+
+**Added 2026-11-15: a chart, read from its clip, its paths and its
+words.** A chart's marks are paths the converter draws inside a clip of
+its box, and its words are pdfmake's text
+([0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)),
+so neither the image checks nor the drawings' alone could say a chart
+printed what the runtime resolved. report-corpus's `check-charts.ts`, with
+`check-chart-marks.ts`, `check-chart-pie.ts`, `check-chart-labels.ts` and
+`check-chart-read.ts` beside it, holds each chart to its block, which the
+expectation derives (`ExpectedChart`):
+- **Where it stands.** Charts and SVG images are placed by one walk,
+  `drawingsOf`, in document order through every container, each as a clip
+  of its size holding painted paths; a chart's clip is claimed once, and
+  a chart drawn twice is said.
+- **Its words.** Each is one run's text inside its box, as often as the
+  chart holds it, in its face -- its token's host face, or Roboto's where
+  `sans` maps none, its title bold -- and no two meet. A word empty once
+  trimmed prints nothing, and is not proved.
+- **Its axis.** A gridline at each tick, the category axis's line along
+  the plot's foot, each tick's label on its gridline and each category's
+  under its slot.
+- **Its bars**, each its value's length, standing at the value's place
+  among the ticks, worked out from the runtime's decimals.
+- **Its lines**, one stroked path for each series with a value, a subpath
+  for each stretch of two values or more, through its markers' centres.
+- **Its slices.** Every point of a slice's outline lies in its sweep, and
+  every curve's end, and every point sampled along each curve, on its
+  circle within `EDGE`; a slice is one subpath, and draws a curve where
+  its arc is 0.1 · √2 pt or longer.
+- **Its legend**, each entry's words beside its swatch, in the paint of
+  what it names; and **its values' labels**, each at its own mark.
+- **Nothing to draw.** An empty chart has no clip, so it is proved by its
+  title and its empty text, each once, no farther apart than its box, and
+  nothing painted between them in a chart's colour, sought in its own
+  flow after the chart drawn before it.
+
+What it does not see, 0058 says: an empty chart's box; a chart beside an
+SVG image of its very size but by their order; a pie's arc bulging
+0.47 pt off its circle, which the renderer's own `chart-arcs.test.ts`
+holds tighter; document order where columns break across pages; and a
+value label or a legend entry in a face whose metrics stand farther off
+than the three its tolerance was measured on. `check-charts.test.ts`
+holds the check on real renders and on reads doctored to show each fault;
+`read-pdf.test.ts` holds each path's subpaths and each curve with its
+control points, which the reader now gives; and `curves.test.ts` the one
+sampler of a curve that the check and the renderer's tests share.
 
 **Added 2026-11-15: a run set below or above the line, read into its
 line.** A paragraph's run may be set below or above the line

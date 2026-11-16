@@ -7,7 +7,7 @@
 // scripts/e-invoice.mjs imports them from their dist/, so that nothing
 // here imports a package itself.
 
-import { blocksDocument, boundDocument, PDF_BASE, svgDocument, TRANSLUCENT_SVG } from './pdf-corpus.mjs'
+import { blocksDocument, boundDocument, CHART_VARIANT_FIXTURES, chartsDocument, PDF_BASE, svgDocument, TRANSLUCENT_SVG } from './pdf-corpus.mjs'
 import { PDF_A_2B_BASE } from './pdfa-2b.mjs'
 
 /** The instant every sample is resolved at: the XML reads no clock, and a final render needs one. */
@@ -27,9 +27,9 @@ const AS_2B = { maxPages: VARIANT_MAX_PAGES, pdfa: '2b' }
  * sample's e-invoice, a starter resolved as a host resolves it, and an SVG
  * as an approved asset holds it, in the form report-spec's `cleanSvg`
  * writes. And the PDF/A-2b: each starter as a 2b (`drawStarter2b`), each
- * variant of the 2b corpus as a 2b with no e-invoice, its blocks and SVGs
- * on the quotation's page and its fixtures as they are (`drawVariant2b`),
- * and the quotation without `pdfa` (`drawPlain2bBase`).
+ * variant of the 2b corpus as a 2b with no e-invoice, its blocks, SVGs and
+ * charts on the quotation's page and its fixtures as they are
+ * (`drawVariant2b`), and the quotation without `pdfa` (`drawPlain2bBase`).
  */
 export function samplesOf({ spec, runtime, renderer, corpus }) {
   const { starterImages: images } = corpus
@@ -70,6 +70,17 @@ export function samplesOf({ spec, runtime, renderer, corpus }) {
     const svg = (id, bytes) => ({ id, mediaType: 'image/svg+xml', bytes })
     return [svg('svg-mark', corpus.SVG_MARK), svg('svg-window', corpus.SVG_WINDOW), svg('svg-translucent', translucent)]
   }
+  const charts = (base) =>
+    chartsDocument(
+      base,
+      CHART_VARIANT_FIXTURES.map((id) => {
+        const fixture = corpus.CHART_FIXTURES.find((each) => each.id === id)
+        if (fixture === undefined) throw new Error(`variant-charts.pdf and pdfa-2b-charts.pdf draw the chart fixture ${id}, which report-corpus does not have`)
+        if (fixture.expect.outcome !== 'render')
+          throw new Error(`variant-charts.pdf and pdfa-2b-charts.pdf draw the chart fixture ${id}, which the renderer is not to draw whole`)
+        return fixture
+      }),
+    )
   const bound = (base) => boundDocument(base, { id: 'svg-bound', mediaType: 'image/svg+xml', bytes: corpus.SVG_BOUND }, corpus.SVG_BOUND_SIDE)
   // What a variant draws, on `base`'s page where it adds to one: the same pages for the PDF/A-3b's and the PDF/A-2b's.
   const variantPage = (base, draws) =>
@@ -79,9 +90,11 @@ export function samplesOf({ spec, runtime, renderer, corpus }) {
         ? svgDocument(base, svgAssets())
         : draws.bound === true
           ? bound(base)
-          : draws.fixture !== undefined
-            ? fixtureDocument(draws.fixture)
-            : starterDocument(draws.starter)
+          : draws.charts === true
+            ? charts(base)
+            : draws.fixture !== undefined
+              ? fixtureDocument(draws.fixture)
+              : starterDocument(draws.starter)
   const drawVariant = (draws) => {
     const base = documents.get(PDF_BASE)
     return renderer.renderPdf({ ...variantPage(base, draws), eInvoice: base.eInvoice }, { maxPages: VARIANT_MAX_PAGES })

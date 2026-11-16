@@ -2,7 +2,7 @@
  * Byte arithmetic the renderer needs in Node and in a browser alike, written
  * on the standard library alone: neither `Buffer` nor `node:zlib` exists in a
  * browser, and the browser entry shares every line of this package but its
- * font loading (`browser.ts`).
+ * font loading (`browser-engine.ts`).
  */
 
 const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'

@@ -452,7 +452,9 @@ against the printed copy, told the report's own locale by
 the renderer's contract, declared here so that no engine defines them; a
 chart's among them, and `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and
 `SHARE_PLACES`, the runtime's bounds on a chart, which a host that tells an
-author of them reads rather than copies (0055); and `MAX_KEEP_WITH_ROWS`, report-spec's bound on the rows a group header
+author of them reads rather than copies (0055), with report-spec's
+`MAX_CHART_SERIES` beside them, which the renderer holds a chart's block to;
+and `MAX_KEEP_WITH_ROWS`, report-spec's bound on the rows a group header
 row keeps, is handed on for an engine to hold that row to (0059).
 What report-spec decides of a QR-bill that an engine needs to draw its
 slip is handed on as report-spec's own objects: `QR_BILL_SIZE` and

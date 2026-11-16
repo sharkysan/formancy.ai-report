@@ -6,10 +6,11 @@ import type { Finish, PdfKitDocument } from './pdfa.js'
 
 /**
  * pdfmake with the renderer's fonts and access policies, as Node's entry
- * (`node.ts`) or the browser's (`browser.ts`) configures it: what runs a
- * definition and returns the PDF's bytes, and the characters the faces it
- * embeds have glyphs for. Everything else a render does is the same in both
- * (`render.ts`).
+ * (`node.ts`) or the browser's (`browser-engine.ts`) configures it: what
+ * runs a definition and returns the PDF's bytes, the characters the faces
+ * it embeds have glyphs for, and the widths a chart's words are laid out by,
+ * measured in those faces. Everything else a render does is the same in
+ * both (`render.ts`).
  */
 export interface Engine {
   /**
@@ -32,6 +33,38 @@ export interface Engine {
    * has them for a document that prints them.
    */
   readonly billGlyphs: () => Promise<BillGlyphs>
+  /**
+   * `faces` opened for measuring a chart's words: from a document of the
+   * entry's own pdfmake, its fonts and access policies set as `run` sets
+   * them, each face opened at once with pdfmake's `provideFont` -- the
+   * call a pass opens a text node's face with -- while `host`'s virtual
+   * files are registered, and the files removed after, as `run` removes
+   * them, whether every face opened or one threw (0043). The document holds
+   * no content and is never ended, so it writes no PDF.
+   */
+  readonly widths: (host: HostFontFiles, faces: readonly MeasuredFace[]) => Promise<FaceWidths>
+}
+
+/** A face a chart's words are measured in: its pdfmake family, and which of the family's faces. */
+export interface MeasuredFace {
+  readonly family: string
+  readonly face: Face
+}
+
+/** Widths as pdfmake measures them, in the faces `Engine.widths` opened. */
+export interface FaceWidths {
+  /**
+   * The width of `text` at `size` in `family`'s `face`: PDFKit's
+   * `widthOfString` of the face pdfmake opened. That is the width pdfmake
+   * gives a text node it lays out without wrapping only for text with no
+   * whitespace at either end and no tab: pdfmake cuts a run's leading and
+   * trailing `\s` -- no-break spaces among them -- out of its width, and
+   * expands a tab to four spaces before it measures, and this does neither
+   * (`engine.test.ts`). A word reaches it trimmed and without a tab, or is
+   * measured apart from how pdfmake prints it. Throws for a face that was
+   * not opened: its virtual file is gone by now.
+   */
+  width(family: string, face: Face, size: number, text: string): number
 }
 
 /** pdfmake's virtual file system, as both builds expose it: a plain `storage` object the renderer writes a host face into and removes after, since it has no delete (0043). */
@@ -113,6 +146,39 @@ export async function written(document: Promise<unknown>, finish: Finish | undef
   finalizeInOrder(pdf)
   finish?.(pdf)
   return collect(pdf)
+}
+
+/** PDFKit's face as pdfmake's `provideFont` opens it, as far as measuring reads it. */
+interface PdfKitFace {
+  widthOfString(text: string, size: number): number
+}
+
+/** pdfmake's PDFKit document, as far as measuring reads it: what opens a face of its font table. */
+interface FaceProvider {
+  provideFont(family: string, bold: boolean, italics: boolean): PdfKitFace
+}
+
+/**
+ * `faces` opened at once on the document `getStream` hands over, a document
+ * of the entry's pdfmake made while the render's virtual files are
+ * registered: what each entry's `widths` does once it has configured its
+ * pdfmake, as `written` is what its `run` does.
+ */
+export async function faceWidths(document: Promise<unknown>, faces: readonly MeasuredFace[]): Promise<FaceWidths> {
+  const pdf = (await document) as FaceProvider
+  const opened = new Map(
+    faces.map(({ family, face }) => [
+      `${family}/${face}`,
+      pdf.provideFont(family, face === 'bold' || face === 'bolditalics', face === 'italics' || face === 'bolditalics'),
+    ]),
+  )
+  return {
+    width: (family, face, size, text) => {
+      const font = opened.get(`${family}/${face}`)
+      if (font === undefined) throw new Error(`no face ${family} ${face} was opened for measuring`)
+      return font.widthOfString(text, size)
+    },
+  }
 }
 
 /**

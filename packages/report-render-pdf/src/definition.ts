@@ -2,7 +2,8 @@ import type { Content, DynamicContent, TDocumentDefinitions } from 'pdfmake/inte
 import { QR_BILL_TOP, RenderRefusal, type Block, type ResolvedDocument, type Table } from '@formancy/report-runtime'
 import type { CheckedBill } from './bill.js'
 import { newBuild, type Build, type Fields, type TablePlan } from './build.js'
-import type { Checked, Measured, Page } from './check.js'
+import type { Checked, Page } from './check.js'
+import type { Measured } from './check-walk.js'
 import { contentOf } from './content.js'
 import { pdfaOptions } from './pdfa.js'
 import { ABOVE_SLIP, slipContent } from './slip.js'
@@ -15,7 +16,7 @@ import { checkWords } from './words.js'
  * The pdfmake document definitions a render hands pdfmake, built from the
  * resolved document and what was measured: pure, the same in Node and in a
  * browser, and the one place either entry's definitions come from. What
- * runs them is the entry's own (`node.ts`, `browser.ts`).
+ * runs them is the entry's own (`node.ts`, `browser-engine.ts`).
  *
  * The page regions: pdfmake draws its header inside the top page margin and
  * its footer inside the bottom one, and lays the body out between. So
@@ -51,6 +52,12 @@ export interface Regions {
   readonly first: number
 }
 
+/** The document as the checks read it, its charts drawn (`drawCharts`): what the body's builds are made from, the PDF's among them. */
+export type Drawn = Omit<Checked, 'charts'> & { readonly charts: Build['charts'] }
+
+/** The drawn charts of a build made before the charts are drawn: none, since a chart stands in the body alone. */
+const UNDRAWN: Build['charts'] = new Map()
+
 /** What a measuring pass lays out: one item per thing measured, and the build that holds their images and marks. */
 export interface Measurement {
   readonly items: readonly Content[]
@@ -71,18 +78,20 @@ export function regionsMeasurement(
 ): Measurement & { readonly present: readonly (readonly Block[])[] } {
   const fields: Fields = { pageNumber: maxPages, pageCount: maxPages }
   const present = [document.pageHeader, document.pageFooter].filter((blocks) => blocks.length > 0)
-  const build = newBuild('measure', checked, fonts)
+  // The page regions hold no chart: check.ts refuses one there.
+  const build = newBuild('measure', { ...checked, charts: UNDRAWN }, fonts)
   return { present, build, items: present.map((blocks): Content => ({ stack: contentOf(blocks, build, checked.page.width, { fields }) })) }
 }
 
 /** Page 1's own header (0060), one item, laid out as page 1's background lays it out: a page region with no page field. */
 export function firstPageHeaderMeasurement(blocks: readonly Block[], checked: Checked, fonts: RenderFonts): Measurement {
-  const build = newBuild('measure', checked, fonts)
+  // Page 1's own header holds no chart, as the page regions hold none: check.ts refuses one there.
+  const build = newBuild('measure', { ...checked, charts: UNDRAWN }, fonts)
   return { build, items: [{ stack: contentOf(blocks, build, checked.page.width, {}) }] }
 }
 
 /** The body's tables and keep-together blocks, each one item laid out at the width it stands at. */
-export function bodyMeasurement(measured: readonly Measured[], checked: Checked, fonts: RenderFonts): Measurement {
+export function bodyMeasurement(measured: readonly Measured[], checked: Drawn, fonts: RenderFonts): Measurement {
   const build = newBuild('measure', checked, fonts)
   const items = measured.map(({ block, width }): Content => ({ stack: contentOf([block], build, width), margin: [0, 0, checked.page.width - width, 0] }))
   return { items, build }
@@ -126,7 +135,7 @@ export function slipReservation(page: Page, regions: Regions): number {
  */
 export function layoutDefinition(
   document: ResolvedDocument,
-  checked: Checked,
+  checked: Drawn,
   regions: Regions,
   plans: ReadonlyMap<Table, TablePlan>,
   fonts: RenderFonts,
