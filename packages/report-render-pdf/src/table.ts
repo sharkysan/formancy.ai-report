@@ -3,13 +3,13 @@ import type { Table, TableColumn, TextStyle } from '@formancy/report-runtime'
 import { mark, UNPLANNED, type Build, type RowKind } from './build.js'
 import type { FaceWanted } from './host-fonts.js'
 import { textProperties } from './style.js'
-import { tableRules } from './table-rules.js'
+import { printing, tableRules } from './table-rules.js'
 import { columnWidths } from './widths.js'
 
 /**
  * A table as pdfmake content: its header row repeated on every page it
  * spans, its rows styled, a row across the table as one cell spanning every
- * column, and the rule that keeps a group header with the row it heads.
+ * column, and the rules that keep a group header with the rows it heads.
  */
 
 /** A table's cells, whose size the document does not set: the body size the corpus's geometry assumes. */
@@ -151,16 +151,26 @@ export function tableContent(
   })
   // The cells a span covers: one per column after the first, laid out as nothing.
   const covered = (): Cell[] => table.columns.slice(1).map((_, index) => cell('', index + 1, 'detail', {}))
-  const rows = styledRows(table).map(({ kind, cells, styles, across }): Row => {
+  const styled = styledRows(table)
+  const rows = styled.map(({ kind, cells, styles, across }): Row => {
     if (across) return { kind, cells: [cell(cells[0]!, 0, kind, styles[0]!, columns), ...covered()] }
     return { kind, cells: cells.map((text, column) => cell(text, column, kind, styles[column]!)) }
   })
   if (place.record) recordWords(table, rows, widths, across, build)
   const plan = build.plans.get(table) ?? UNPLANNED
   if (measuring) {
+    // A no-break space is no text to `printing`, as the empty cell it stands for prints none: the plan reads the rows the rules will.
     build.measuredRows.set(
       table,
-      rows.map((row) => ({ kind: row.kind, mark: mark(row.cells[0]!, build) })),
+      rows.map((row, at) => {
+        const index = styled[at]!.index
+        return {
+          kind: row.kind,
+          mark: mark(row.cells[0]!, build),
+          keep: (index === undefined ? undefined : table.rows[index]!.keepWithRows) ?? 1,
+          prints: printing(row).length > 0,
+        }
+      }),
     )
   } else if (!kept) {
     // In the body outside any frame, a page the table continues on starts under its top rule and repeated header.

@@ -1,5 +1,5 @@
-import { emptyReport, validateReport } from '@formancy/report-spec'
-import type { AggregateDef, ReportDefinition, Rounding } from '@formancy/report-spec'
+import { emptyReport, reportWords, validateReport } from '@formancy/report-spec'
+import type { AggregateDef, ReportDefinition, Rounding, Translation } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { thawed } from '../snapshot.js'
 import type { Mutable } from '../snapshot.js'
@@ -32,6 +32,18 @@ function edited(...edits: Edit[]): ReportDefinition {
   const outcome = validateReport(report)
   if (!outcome.valid) throw new Error(`the edit made the sample invalid: ${outcome.errors.map(({ code, path }) => `${code} ${path}`).join(', ')}`)
   return outcome.report
+}
+
+/** The sample's every word in French, and its three word expressions each written again as itself: a whole translation, which `change` breaks. */
+function inFrench(change: (translation: Translation) => Translation): Edit {
+  const words = [...new Set(reportWords(sampleReport()).map(({ text }) => text))]
+  const expressions = ['header.customer + " x" + string(params.copies)', '" (" + string(group.lines) + ")"', '" for " + header.customer']
+  const whole: Translation = {
+    locale: 'fr-CH',
+    words: words.map((word) => ({ word, text: `fr:${word}` })),
+    expressions: expressions.map((cel) => ({ cel, expression: { cel } })),
+  }
+  return set('/translations', [change(whole)])
 }
 
 /** One break of the sample, and the one diagnostic it gives. */
@@ -136,6 +148,23 @@ const CASES: { readonly [C in DiagnosticCode]: Case } = {
     },
     expected: { path: '/regions/summary/4/content/9/format', componentId: 'invoice-totals' },
   },
+  // A word a language does not translate refuses a render in it, and is
+  // said before one, where the word stands (0063).
+  'word-missing': {
+    edit: inFrench((whole) => ({ ...whole, words: whole.words.filter(({ word }) => word !== 'Qty') })),
+    expected: { path: '/regions/body/2/columns/1/header', componentId: 'lines', columnId: 'qty', language: 'fr-CH' },
+  },
+  // A translation that gives a number where its source gives text would
+  // print another column in French than in German.
+  'translation-differs': {
+    edit: inFrench((whole) => ({
+      ...whole,
+      expressions: whole.expressions.map((entry, index) =>
+        index === 0 ? { ...entry, expression: { cel: 'size(header.customer + " fois") + params.copies' } } : entry,
+      ),
+    })),
+    expected: { path: '/translations/0/expressions/0/expression/cel', componentId: 'intro', language: 'fr-CH' },
+  },
   'unused-style': { edit: (report) => report.styles.push({ id: 'spare', bold: true }), expected: { path: '/styles/5' } },
   'unused-asset': {
     edit: (report) => report.assets.push({ id: 'spare', mediaType: 'image/png', digest: `sha256:${'12'.repeat(32)}` }),
@@ -159,6 +188,11 @@ const CASES: { readonly [C in DiagnosticCode]: Case } = {
     expected: { path: '/regions/body' },
   },
   'empty-text': { edit: set('/regions/body/3/components/1/content', []), expected: { path: '/regions/body/3/components/1/content', componentId: 'note' } },
+  // A translation of a word the report no longer prints is kept for nothing.
+  'unused-translation': {
+    edit: inFrench((whole) => ({ ...whole, words: [...whole.words, { word: 'Nowhere', text: 'Nulle part' }] })),
+    expected: { path: `/translations/0/words/${new Set(reportWords(sampleReport()).map(({ text }) => text)).size}`, language: 'fr-CH' },
+  },
   // A bill left paying SIX's example account, as one a builder adds starts.
   'example-payment-part': { edit: set('/paymentPart/account', [{ kind: 'text', text: 'CH44 3199 9123 0008 8901 2' }]), expected: { path: '/paymentPart' } },
 }

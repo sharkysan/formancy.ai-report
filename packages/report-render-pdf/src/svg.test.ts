@@ -312,7 +312,7 @@ describe('what SVG images may cost a render', () => {
   // holds it to is drawn, and one more page is past it, though the report
   // prints one. In the body it counts once, at any limit.
   test(
-    'counts an SVG in a page region on every page the report may have, and refuses past MAX_SVG_DRAWING',
+    'counts an SVG in the page header on every page the report may have, and refuses past MAX_SVG_DRAWING',
     async () => {
       const asset = svgAsset(path(MAX_SVG_DRAWING / 100 - 1 - 24 - 2000), 'logo')
       const checked = checkSvg(asset.bytes)
@@ -326,7 +326,7 @@ describe('what SVG images may cost a render', () => {
       await expect(header(pages + 1)).rejects.toMatchObject({
         code: 'content-too-large',
         subject: 'logo',
-        message: `the SVG images up to logo cost ${cost * (pages + 1)} units to draw, each in a page region counted on every page the report may have; a render may draw ${MAX_SVG_DRAWING}`,
+        message: `the SVG images up to logo cost ${cost * (pages + 1)} units to draw, each in the page header or footer counted on every page the report may have, one in page 1's own header once; a render may draw ${MAX_SVG_DRAWING}`,
       })
       await expect(rendered(bareDocument('Body', [image(asset, 30, 30)]), pages + 1)).resolves.toBeInstanceOf(Uint8Array)
     },

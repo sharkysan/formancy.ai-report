@@ -26,7 +26,16 @@ import type { ReportBuilderProps } from '@formancy/report-builder-react'
 import type { EditorState, ReportEditor } from '@formancy/report-builder-core'
 import { elementsIn, readMarkup, spokenText } from './markup.js'
 import type { MarkupElement } from './markup.js'
-import { editorToDraw, editorWithBill, editorWithEInvoice, editorWithHostView, editorWithImages, HOST_VIEW, structureProblems } from './structure.js'
+import {
+  editorToDraw,
+  editorWithBill,
+  editorWithEInvoice,
+  editorWithHostView,
+  editorWithImages,
+  editorWithLanguages,
+  HOST_VIEW,
+  structureProblems,
+} from './structure.js'
 
 /**
  * Which of React's builds runs: the gate sets NODE_ENV=production for the
@@ -134,6 +143,16 @@ if (invoiced.children.length !== 1 || invoicedRoot === undefined || typeof invoi
 wrong.push(...structureProblems(invoicedRoot, invoicing.state()).map((problem) => `with an e-invoice: ${problem}`))
 invoicing.dispose()
 
+// Drawn a sixth time written in a second language, that one shown (0063):
+// the switch in the bar, the boxes marked missing and the field's note.
+const translating = editorWithLanguages()
+const translated = readMarkup(render(<ReportBuilder editor={translating} />))
+const [translatedRoot] = translated.children
+if (translated.children.length !== 1 || translatedRoot === undefined || typeof translatedRoot === 'string')
+  throw new Error('the markup in two languages is not one editor root')
+wrong.push(...structureProblems(translatedRoot, translating.state()).map((problem) => `in two languages: ${problem}`))
+translating.dispose()
+
 // A host's own view of the state, through the hook the package exports.
 function Title({ editor: shown }: { readonly editor: ReportEditor }): ReactElement {
   return <h1>{useEditorState(shown).document.title}</h1>
@@ -146,5 +165,5 @@ editor.dispose()
 if (wrong.length > 0) throw new Error(`the React builder, drawn on the server by React's ${build} build:\n- ${wrong.join('\n- ')}`)
 
 console.log(
-  `ok: React ${version}'s ${build} build drew the packed builder on the server, in Swiss German, as report-builder-core's README sets out: one region named by the catalogue, a toolbar that is one tab stop with a button per pane, a Hide in each side pane, a palette of ${String(state.palette.length)}, a tree with a group per region and a row per node, a design view of named pictures, a form named by its heading, the report's problems listed and counted, and the live region, and with a host's view the region it stands in instead of the design view, and with a host's store Add image… and its hidden input, and the report's images, each with its Remove; every data-report-part one REPORT_PARTS names; nothing said by React, nothing changed and no listener added (the server runs no effects, so it never subscribes); useEditorState gave a host the state`,
+  `ok: React ${version}'s ${build} build drew the packed builder on the server, in Swiss German, as report-builder-core's README sets out: one region named by the catalogue, a toolbar that is one tab stop with a button per pane, a Hide in each side pane, a palette of ${String(state.palette.length)}, a tree with a group per region and a row per node, a design view of named pictures, a form named by its heading, the report's problems listed and counted, and the live region, and with a host's view the region it stands in instead of the design view, and with a host's store Add image… and its hidden input, and the report's images, each with its Remove, and in two languages the switch between them, the boxes marked missing and a field's note; every data-report-part one REPORT_PARTS names; nothing said by React, nothing changed and no listener added (the server runs no effects, so it never subscribes); useEditorState gave a host the state`,
 )

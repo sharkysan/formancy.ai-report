@@ -1,4 +1,4 @@
-import { EDGE, plural, points } from './check-page.js'
+import { EDGE, plural, points, regionsOn } from './check-page.js'
 import type { Expectation, ExpectedDrawing, ExpectedImage } from './fixture.js'
 import type { PdfBox, PdfPage, PdfPath, ReadPdf } from './read-pdf.js'
 
@@ -26,7 +26,8 @@ import type { PdfBox, PdfPage, PdfPath, ReadPdf } from './read-pdf.js'
  *   series' or slices' paints is the chart drawn twice, and is said. An
  *   SVG image drawn twice is not seen.
  * - **The order is the document's.** A page region's SVG images are found
- *   on each page first; then the body's SVG images and charts, in one walk
+ *   on each page that prints it first -- page 1's own header's on page 1
+ *   alone (0060); then the body's SVG images and charts, in one walk
  *   in document order through every container, each after the one before,
  *   so that an image and a chart of one size never take each other's
  *   clip. Columns that break across pages break that order: a column's
@@ -65,7 +66,6 @@ const LISTED = 5
 /** The drawings `expected` holds, found among `pdf`'s clips. */
 export function placeDrawings(pdf: ReadPdf, expected: Expectation): PlacedDrawings {
   const vector = (images: readonly ExpectedImage[]): ExpectedImage[] => images.filter((image) => image.kind === 'vector')
-  const regions = vector(expected.pageRegionImages)
   const boxes: PdfBox[][] = pdf.pages.map(() => [])
   const charts: PlacedChart[][] = pdf.pages.map(() => [])
   const clips: Clip[] = pdf.pages.flatMap((page) =>
@@ -78,7 +78,7 @@ export function placeDrawings(pdf: ReadPdf, expected: Expectation): PlacedDrawin
   }
   for (const page of pdf.pages) {
     const onPage = clips.filter((clip) => clip.page === page.number)
-    for (const [index, image] of regions.entries()) {
+    for (const [index, image] of vector(regionsOn(expected, page.number).regionImages).entries()) {
       const found = onPage.find((clip) => !clip.used && clip.painted && sized(clip.box, image))
       if (found === undefined) problems.push(`page ${page.number}: ${missing(`the SVG image ${index + 1} of the page regions`, image, onPage)}`)
       else take(found)

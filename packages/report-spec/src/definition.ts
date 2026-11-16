@@ -36,17 +36,33 @@ import type { FontMap } from './font-map.js'
 import type { PageSettings } from './page.js'
 import type { PaymentPart } from './payment-part.js'
 import type { PrintStyle } from './styles.js'
+import type { Translation } from './translation.js'
 import type { REPORT_SPEC_VERSION } from './version.js'
 
 /**
  * The report's regions, in the order a reader meets them. The body is flow
  * only in version 0: ordered blocks, so a growing table pushes what follows
  * down. Positioned elements in the page regions are deferred.
+ *
+ * The first page header stands beside the header it replaces: page 1
+ * prints it in place of the page header, which then prints from page 2 on
+ * ([0060](../../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
  */
-export const REGION_NAMES = ['reportHeader', 'pageHeader', 'body', 'pageFooter', 'summary'] as const
+export const REGION_NAMES = ['reportHeader', 'firstPageHeader', 'pageHeader', 'body', 'pageFooter', 'summary'] as const
 export type RegionName = (typeof REGION_NAMES)[number]
 
-export type Regions = { readonly [R in RegionName]: readonly Component[] }
+/**
+ * The regions a report may leave out, and what leaving one out means: the
+ * first page header absent, page 1 prints the page header as every page
+ * does; present and empty, page 1 prints no header (0060). Every other
+ * region every report holds.
+ */
+export const OPTIONAL_REGIONS = ['firstPageHeader'] as const satisfies readonly RegionName[]
+export type OptionalRegionName = (typeof OPTIONAL_REGIONS)[number]
+
+export type Regions = { readonly [R in Exclude<RegionName, OptionalRegionName>]: readonly Component[] } & {
+  readonly [R in OptionalRegionName]?: readonly Component[]
+}
 
 export const PROVENANCE_KINDS = ['blank', 'form', 'dataset'] as const
 export type ProvenanceKind = (typeof PROVENANCE_KINDS)[number]
@@ -70,7 +86,7 @@ export interface ReportDefinition {
   readonly reportSpecVersion: typeof REPORT_SPEC_VERSION
   readonly id: string
   readonly title: string
-  /** A BCP 47 tag: language, optional script, optional region. */
+  /** A BCP 47 tag: language, optional script, optional region. The report's own language: the one its words are written in, and the one a render that names none prints in (0063). */
   readonly locale: string
   readonly page: PageSettings
   readonly styles: readonly PrintStyle[]
@@ -86,4 +102,11 @@ export interface ReportDefinition {
   /** The EN 16931 invoice the report is, written as Factur-X from what its page prints. Absent, the report is none. */
   readonly eInvoice?: EInvoice
   readonly provenance?: Provenance
+  /**
+   * The report's words in each language besides its own, one translation
+   * a language, each word looked up by its exact text in the report's own
+   * (0063). Absent, the report is written in its own language alone; never
+   * an empty list.
+   */
+  readonly translations?: readonly Translation[]
 }

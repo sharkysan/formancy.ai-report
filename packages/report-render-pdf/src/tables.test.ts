@@ -35,6 +35,16 @@ function grouped(groups: number, size: number): TableRow[] {
   return [...rows, totalRow(rows, 'Grand total')]
 }
 
+/** `rows` with each group header keeping `count` of its rows, or all of them where its group has fewer, as the runtime resolves a group that states it (0059). */
+function keeping(rows: readonly TableRow[], count: number): TableRow[] {
+  return rows.map((row, index) => {
+    if (row.kind !== 'groupHeader') return row
+    let details = 0
+    while (rows[index + 1 + details]?.kind === 'detail') details++
+    return Math.min(count, details) > 1 ? { ...row, keepWithRows: Math.min(count, details) } : row
+  })
+}
+
 describe("a table's closing rows", () => {
   // A quotation of 31 lines printed its subtotal and VAT under the last
   // line and its total alone on the next page, under a repeated header; at
@@ -125,6 +135,18 @@ describe("a table's planned breaks", () => {
     TIMEOUT,
   )
 
+  // The longer block a header keeps is planned as every block is: kept
+  // with three rows, each a whole group, 400 groups are still laid out a
+  // few times, never once a page (0059).
+  test(
+    'lay a long grouped table whose headers keep three rows out a few times, not once a page',
+    async () => {
+      const document = documentOf('Long kept groups', [ledger('groups', keeping(grouped(400, 3), 3))])
+      expect(await lastPassLayouts(document, 200)).toBeLessThanOrEqual(3)
+    },
+    TIMEOUT,
+  )
+
   // The plan only makes, sooner, the breaks the rules would make: the same
   // document renders to the same bytes with the plan and with the rules
   // alone, for every table length across several page ends.
@@ -149,6 +171,53 @@ describe("a table's planned breaks", () => {
           ),
         )
         if (a !== b) differing.push(size)
+      }
+      expect(differing).toEqual([])
+    },
+    TIMEOUT,
+  )
+
+  // The plan reads the block a count makes as the rules do, swept by lines
+  // of text above the table across the page's foot, planned and by the
+  // rules alone to the same bytes: headers keeping all three of their
+  // group's rows, a block that runs into the subtotal and the total; three
+  // of four, a block short of its group; and three of four whose third
+  // prints nothing, which the count drops to two. A plan that counted a
+  // block otherwise than its rule holds it -- to its header's first row, or
+  // to a blank row -- would break before a header where no rule asks it to.
+  test(
+    'make exactly the breaks the rules alone would make for headers that keep three rows',
+    async () => {
+      vi.resetModules()
+      vi.doMock('./breaks.js', async (original) => ({
+        ...(await original<typeof import('./breaks.js')>()),
+        plannedBreaks: () => ({ breaks: [], sure: false }),
+      }))
+      const unplanned = (await import('./node.js')).renderPdf
+      vi.doUnmock('./breaks.js')
+      vi.resetModules()
+      const planned = (await import('./node.js')).renderPdf
+      const tables: Record<string, TableRow[]> = {
+        whole: keeping(grouped(12, 3), 3),
+        short: keeping(grouped(12, 4), 3),
+        // Each group's header, four rows of which the third is blank, and its subtotal.
+        blank: keeping(
+          grouped(12, 4).map((row, index): TableRow => (index % 6 === 3 ? { kind: 'detail', cells: ['', '', ''] } : row)),
+          3,
+        ),
+      }
+      const differing: string[] = []
+      for (const [name, rows] of Object.entries(tables)) {
+        for (let before = 1; before <= 10; before++) {
+          const lines = Array.from({ length: before }, (_, index) => paragraph(`Line ${index + 1} before the table`))
+          const document = documentOf('Kept groups', [...lines, ledger('groups', rows)])
+          const [a, b] = await Promise.all(
+            [planned(document, { maxPages: 40 }), unplanned(document, { maxPages: 40 })].map((rendering) =>
+              rendering.then((bytes) => Buffer.from(bytes).toString('base64')),
+            ),
+          )
+          if (a !== b) differing.push(`${name} ${before}`)
+        }
       }
       expect(differing).toEqual([])
     },

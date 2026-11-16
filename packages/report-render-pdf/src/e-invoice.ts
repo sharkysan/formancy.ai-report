@@ -64,12 +64,13 @@ export function checkEInvoice(file: unknown): EInvoiceFile {
 }
 
 /**
- * Refuses an XRechnung's document whose page header does not open with the
- * runtime's label paragraph, `XRECHNUNG_COPY_PARAGRAPH`, as the runtime
- * writes it: its text, `XRECHNUNG_COPY_LABEL`, the one run, at its size,
- * bold and in its colour, and nothing else. The page header repeats on
- * every page, so the label opening it is on every page, and no block of
- * the header's is drawn over another: blocks flow. A copy drawn without it
+ * Refuses an XRechnung's document whose page header, or page 1's own
+ * header where it has one (0060), does not open with the runtime's label
+ * paragraph, `XRECHNUNG_COPY_PARAGRAPH`, as the runtime writes it: its
+ * text, `XRECHNUNG_COPY_LABEL`, the one run, at its size, bold and in its
+ * colour, and nothing else. One of the two heads every page, so the label
+ * opening each is on every page, and no block of a header's is drawn over
+ * another: blocks flow. A copy drawn without it
  * would be a final picture of an invoice that says nothing of what it is
  * (0038), and so would one whose label is drawn in white or at one point,
  * where PDF.js still finds the text. The runtime writes it; a document
@@ -77,12 +78,12 @@ export function checkEInvoice(file: unknown): EInvoiceFile {
  * does not see: the label names no font, and prints in the renderer's
  * default, and the paper is white because the renderer draws none.
  */
-export function checkCopyLabel(pageHeader: readonly Block[]): void {
-  if (!samePlain(pageHeader[0], XRECHNUNG_COPY_PARAGRAPH)) {
+export function checkCopyLabel(header: readonly Block[], name: 'pageHeader' | 'firstPageHeader'): void {
+  if (!samePlain(header[0], XRECHNUNG_COPY_PARAGRAPH)) {
     throw new RenderRefusal(
       'unsupported',
-      "an XRechnung's PDF is a copy of its XML, labelled so at the top of every page, and this document's page header does not open with the label as the runtime writes it",
-      'pageHeader',
+      `an XRechnung's PDF is a copy of its XML, labelled so at the top of every page, and this document's ${name === 'pageHeader' ? 'page header' : 'first page header'} does not open with the label as the runtime writes it`,
+      name,
     )
   }
 }

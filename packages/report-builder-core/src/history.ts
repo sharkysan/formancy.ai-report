@@ -18,10 +18,10 @@
  * application -- shares no map, and each shows the other's steps in
  * English.
  */
+import { fieldWords } from './field-specs.js'
+import type { FieldWords } from './field-specs.js'
 import { kindLabel } from './labels.js'
 import type { PartKind } from './model.js'
-import { fieldWords } from './property-fields.js'
-import type { FieldWords } from './property-fields.js'
 import { editorText } from './text.js'
 import type { EditorText, MessageId } from './text.js'
 

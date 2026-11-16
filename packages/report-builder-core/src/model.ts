@@ -138,6 +138,8 @@ export interface DiagnosticEntry {
   readonly label: string
   /** What activating it selects; null for a diagnostic about the report as a whole. */
   readonly target: Selection | null
+  /** The language it is about, where it names one a translation declares: a render in that language alone is refused for it (0063). */
+  readonly language?: string
 }
 
 export interface HistoryState {
@@ -231,6 +233,27 @@ export interface HostView {
   readonly place: HostViewPlace
 }
 
+/** One language the report is written in, as the bar's switch offers it (0063). */
+export interface EditorLanguage {
+  /** Its BCP 47 tag, as the report writes it: what `setLanguage` takes. */
+  readonly locale: string
+  /** Its name in the editor's language, by Intl: "French (Switzerland)". */
+  readonly name: string
+  /** What the switch says of it: its name, and that it is the report's own, or how many of its words are missing. */
+  readonly label: string
+  readonly own: boolean
+  /** The words, and the expressions that print words, it does not translate yet: none in the report's own. */
+  readonly missing: number
+}
+
+/** The languages the report is written in, and the one the design view and the properties show (0063). */
+export interface EditorLanguages {
+  /** The locale the person edits the words of: the report's own until another is chosen, and what a host's preview prints in. */
+  readonly edited: string
+  /** Every language the report is written in, its own first, then each its translations declare, in their order. */
+  readonly declared: readonly EditorLanguage[]
+}
+
 /** The latest announcement for the builder's live region; `sequence` counts them, so saying the same twice is still two. */
 export interface Announcement {
   readonly text: string
@@ -246,6 +269,12 @@ export interface EditorState {
   readonly zoomLabel: string
   readonly document: DocumentSummary
   readonly selection: Selection | null
+  /**
+   * The languages the report is written in and the one edited (0063). A
+   * builder draws the switch between them, in its bar, while there are two
+   * or more; a report with none but its own has none drawn.
+   */
+  readonly languages: EditorLanguages
   readonly outline: readonly OutlineRegion[]
   /** The outline's rows for the parts of the report's own level, after its regions: its payment part, where it has one. */
   readonly outlineParts: readonly OutlinePart[]

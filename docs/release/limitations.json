@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:addecb0daf80fd67aea4b87c5343e57b8f9e49c09ea6564cfcf69c1bd7691567",
+      "reviewed": "sha256:60266b133f898cda16acfff6bfd514f8908662f31f40f2d3f1e4c2312fc738d6",
       "limitations": [
         {
           "area": "testing",
@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:4904bb6eb6cceda257192ce65f5e520c94d13e298feeb80a246fcbcf7bbf6368",
+      "reviewed": "sha256:8c74652e2126654bb1556fb1bf232a8b90eb55284961b9929a4f0d8a06f5af3b",
       "limitations": [
         {
           "area": "format",
@@ -177,7 +177,7 @@
       ]
     },
     "0009": {
-      "reviewed": "sha256:8898dc29a5dc084076257f87b26d50700da475d294d066dad99f1f4dd1c13604",
+      "reviewed": "sha256:6e7967e54d8017ea6afd2f48ab91aa386cf2d1562228993cbcc034222270a048",
       "limitations": [
         {
           "area": "runtime",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:d2262b528a9832011368ca08c8a3b2581e9f146152a6c0760dc1c366812f758f",
+      "reviewed": "sha256:2736bf69d3713e0a59ed139cc538f5b856dfad8e9b9f4c70489c2c9b57bc1912",
       "limitations": [
         {
           "area": "runtime",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:8199940a767c644140b60a87771dc61c9fc8c0edcb820790d05e18cd7aed374b",
+      "reviewed": "sha256:e5a07ef16d5def8918dfcb3b410f7cdf0355fea5018035df1265ddfaa40545e3",
       "limitations": [
         {
           "area": "rendering",
@@ -296,7 +296,7 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:f3a9d8ddfbcc523d096dbc4c69c2ed58613a3942e8c54ee4ab59d63f28638e31",
+      "reviewed": "sha256:296cc6bfc17ef4b248872e28408bac84a5fb97228e381a407c232cc236c0f368",
       "limitations": [
         {
           "area": "builders",
@@ -499,7 +499,7 @@
       ]
     },
     "0022": {
-      "reviewed": "sha256:2be7cd0a270c9ee7c9ee7cefe355364a4402302e96a0fafaa80220f1deadd776",
+      "reviewed": "sha256:5bf3e4e77f1e23f6a5ae838186d966c7488e0ffbec3c931be4d129cd3301687a",
       "limitations": [
         {
           "area": "format",
@@ -596,7 +596,7 @@
       ]
     },
     "0024": {
-      "reviewed": "sha256:995c59f638e12d2ea5098d6c759948e6de8dd5c558d256d5011c1309dfa971f6",
+      "reviewed": "sha256:999b293306959499755457928aa826fa0603fa9076bd9218b8956ff8458a7b49",
       "limitations": [
         {
           "area": "release",
@@ -738,7 +738,7 @@
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     },
     "0027": {
-      "reviewed": "sha256:401bb8ae7d99c77d20742444ba961a6d2883540438944bf2e2b5eeeb52e70f5f",
+      "reviewed": "sha256:f389e7d2e899d679159d57fd5521495bfed4e99047bc7a1e3c75a7012e1c221e",
       "limitations": [
         {
           "area": "format",
@@ -1025,7 +1025,7 @@
       ]
     },
     "0030": {
-      "reviewed": "sha256:0947af8b1931833abdcbcd32d01c923e1cc8a9614a03b65cc5958a25672cd335",
+      "reviewed": "sha256:c980687fa2390ad5a9de4fcf806f628a740c6bdc529f4f2038aa534a2bfc30b2",
       "limitations": [
         {
           "area": "format",
@@ -1078,7 +1078,7 @@
         },
         {
           "area": "rendering",
-          "says": "A render may draw `MAX_SVG_DRAWING` units of SVG, an image in a page region counted on every page `maxPages` allows and not on the pages printed, so at a limit of 200 pages a header logo may cost 5,000 units however short the report: a logo of 9,999 short lines, the most one drawing may hold, costs 12,152 and may head a report of 82 pages at most, which the Studio's Preview, limited to 40, draws and a render limited to 200 refuses.",
+          "says": "A render may draw `MAX_SVG_DRAWING` units of SVG, an image in the page header or footer counted on every page `maxPages` allows and not on the pages printed, so at a limit of 200 pages a header logo may cost 5,000 units however short the report: a logo of 9,999 short lines, the most one drawing may hold, costs 12,152 and may head a report of 82 pages at most, which the Studio's Preview, limited to 40, draws and a render limited to 200 refuses.",
           "heldBy": "packages/report-render-pdf/src/svg.test.ts"
         },
         {
@@ -1400,7 +1400,7 @@
       ]
     },
     "0038": {
-      "reviewed": "sha256:3241ff5eee759216395cadd47db1ae9c166a37f0c9f818e804be9855829da813",
+      "reviewed": "sha256:4ca7d26925b6ac72abe339de81c315f79488c342804564d3a02a5d80968f2122",
       "limitations": [
         {
           "area": "format",
@@ -1582,7 +1582,7 @@
       ]
     },
     "0041": {
-      "reviewed": "sha256:04928d4a2a1d91c56800adef42ea4c54f6594e1bdddfaec1de21aac5785176ca",
+      "reviewed": "sha256:fd9d2465dd2072023ce3fc4523103235b863564890d6eb809741f973b1e59709",
       "limitations": [
         {
           "area": "data",
@@ -1628,7 +1628,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:ceb2357d0b57c15c26f56e1d35e94d30c6af8c318fb58dafa3962afa87d78271",
+      "reviewed": "sha256:c0464289531480835eb82268415fb2610c988f51597e4d1c1e2b503d8c4471cd",
       "limitations": [
         {
           "area": "format",
@@ -1683,7 +1683,7 @@
         },
         {
           "area": "data",
-          "says": "Labels print from the version's catalogue for the report's locale, or from its default catalogue where it has none for that locale, formancy's own fallback, so a report in de-CH of a form with only German and English catalogues prints its default's labels.",
+          "says": "Labels print from the version's catalogue for the locale a render prints in, the report's own unless the render names a translation's (0063), or from its default catalogue where it has none for that locale, formancy's own fallback, so a report in de-CH of a form with only German and English catalogues prints its default's labels.",
           "heldBy": "packages/report-forms/src/kinds.test.ts"
         },
         {
@@ -2026,7 +2026,7 @@
       ]
     },
     "0048": {
-      "reviewed": "sha256:a2b622b1842d1ecfc1a3ee6a96f8fc22379482ce113a6312d51c466f849867eb",
+      "reviewed": "sha256:e3a49ba324f7f0fc1e4d95f8d491e32062419b1f17f00aa54b80d3ba393a46e2",
       "limitations": [
         {
           "area": "data",
@@ -2268,7 +2268,7 @@
       ]
     },
     "0052": {
-      "reviewed": "sha256:f46b65547424a5a944ec70e71ca639c74e7b1c99b644cc23472db92422bf0437",
+      "reviewed": "sha256:0ec5ceb3bef93036dbd858365409c8c4ddbcdf3caeeb9a20565bf367140fece6",
       "limitations": [
         {
           "area": "format",
@@ -2400,7 +2400,7 @@
       ]
     },
     "0055": {
-      "reviewed": "sha256:087b669b7f3065a73db8cd88f9b92c07c48348b64264b3873a0e477d362b8095",
+      "reviewed": "sha256:59d44940f247543ae085174c07bb594c7d732c5075078fb1462f704c66a2f4d4",
       "limitations": [
         {
           "area": "runtime",
@@ -2513,7 +2513,7 @@
       ]
     },
     "0058": {
-      "reviewed": "sha256:107436bfe8940239c21739414cac4c36cbe3eec1b041421cd3459ced0faca1f4",
+      "reviewed": "sha256:34385f8201ebd18cb04931ce05f6d660237ff8fd0c44575dd57d575752f3504f",
       "limitations": [
         {
           "area": "rendering",
@@ -2593,6 +2593,244 @@
           "area": "testing",
           "says": "A chart is proved on its PDF by its clip, its paths and its words, so an empty chart's box, a pie's arc up to about half a point off its circle, a chart beside an SVG image of its very size but by their order, document order where columns break across pages, a label in a face whose metrics stand apart from the three its tolerance was measured on, a colour a reader cannot tell from its neighbour and a mark under a word are not seen.",
           "heldBy": "packages/report-corpus/src/check-charts.test.ts"
+        }
+      ]
+    },
+    "0059": {
+      "reviewed": "sha256:238371799707aa0d3cb1088bceebad96950a481ab545cbc4fbc675c038b81095",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A group header that states how many of its rows it is kept with moves to the next page with them where fewer would fit at the foot of one, leaving that room blank, so a report that states a count can need more pages than without, and is refused as too-many-pages where that passes the host's limit, once it is measured whole.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group header's count is a most: where its stated rows do not fit on a page under the table's repeated column header, it is kept with as many as fit, or with its first row alone, and nothing says that fewer were kept.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A count of one and no count print alike and hash differently: the builders write the absence, and a host or a proposal may write either.",
+          "heldBy": "packages/report-spec/src/validate-table.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A group header is kept with at most 32 of its rows, MAX_KEEP_WITH_ROWS, a bound chosen, not measured.",
+          "heldBy": "packages/report-spec/src/validate-table.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A row with no text ends no count: a group header whose last stated rows print nothing is kept with the rows before them that do, and those that print nothing may stand on the next page.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group no longer than its count whose footer row or total after its subtotal prints nothing is kept whole with that blank row, and, where the table's breaks are planned, in the body outside a frame, moves whole to the next page where the blank row would not fit with it.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group header that prints nothing is kept with no more than its first row, whatever its count: a table's first group header still moves with that row under the column header, and any other is left where it falls.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The builders show a group's count of kept rows on its table's properties though the group's header has no text, where the renderer keeps no more than the header's first row with it.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "In a table whose rows may split across pages, the last row a group header keeps starts on the header's page and may continue on the next.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "A report that states a count is refused whole by 0.2.0 as an unknown property, and a 0.2.0 renderer handed a document this release's runtime resolved keeps each group header with its first row alone, reading no member of a row it does not know."
+        },
+        {
+          "area": "testing",
+          "says": "The corpus's fixture for kept rows is built of rows that fit, so a header kept with fewer rows than its count, where they do not, is proved by the renderer's own cases alone, each stating the count it expects from the heights it computes.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        }
+      ]
+    },
+    "0060": {
+      "reviewed": "sha256:1058803f8ce803090286576cbd49d5f2fdbe9ed2c73eb2b2bb76cb47d3f376a4",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A page number or a page count is refused in page 1's own header, since it is drawn before the pages are counted: page 1's number and count print in the page footer, and a first page header copied from a page header that numbers its pages is refused until the number is taken out.",
+          "heldBy": "packages/report-spec/src/validate-first-page-header.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "No header on page 1 is written as an empty header of page 1's own, which the format has no other word for: a person who chooses a header of page 1's own and adds nothing to it gets no header on page 1.",
+          "heldBy": "packages/report-spec/src/validate-first-page-header.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "`REGION_NAMES` lists six regions and a report may hold five of them, so an integrator who iterates the list meets `firstPageHeader` missing from a report without one; report-spec's `heldRegions` lists the regions a report holds.",
+          "heldBy": "packages/report-spec/src/walk.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Choosing the page header again for page 1 in either builder's report properties removes page 1's own header with everything it holds, in one step that undo brings back.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "In a report with a header of page 1's own, an image, a QR code or another block of fixed height taller than the shorter of page 1's body and the later pages' bodies is refused, though a later page could hold it.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Where page 1's own header takes more room than the page header, a block kept together, or a table's first rows kept with its column header, that page 1's body cannot hold starts page 2, and page 1 prints its header with nothing under it.",
+          "heldBy": "packages/report-render-pdf/src/first-page-header.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Where page 1's own header takes less room than the page header, a kept block, a table's line under its repeated header or an image that only page 1's taller body could hold is refused, even in a report that would end on page 1.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A header of page 1's own that reaches into a QR-bill's slip is refused, though the report runs on to a later page whose page header leaves the slip its room, since which page is the last is known only once the pages are laid out.",
+          "heldBy": "packages/report-render-pdf/src/first-page-header.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The page header of a report with a header of page 1's own is measured and held to leaving the later pages' body room, even where the report has one page and no page prints it.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "No e-invoice gate variant draws a header of page 1's own, so veraPDF and Mustang have not judged a PDF/A-3b whose page 1 prints one."
+        },
+        {
+          "area": "release",
+          "says": "A report that holds a first page header is refused whole by 0.2.0 as an unknown property, so a report saved with one opens only in a release that has the region; and a 0.2.0 renderer handed a document this runtime resolved prints the page header on page 1 without a word, so the runtime and the renderer must be of one release."
+        }
+      ]
+    },
+    "0063": {
+      "reviewed": "sha256:266e3aa7087ccb8159c1b883dbf7cad469193f73f1999324bd8327a208b74e06",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A word is translated once in each language, whatever its place, so two places that need two words in one language need two different words in the report's own.",
+          "heldBy": "packages/report-spec/src/report-in.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A translation is keyed by its word's exact text, so a word changed in the report's own language -- a typo fixed, or a form review's relabel -- is missing again in every other, and its old translation is left unused.",
+          "heldBy": "packages/report-core/src/diagnostics/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A text's runs keep their order in every language, so a language that puts a value elsewhere in a sentence writes that sentence as an expression."
+        },
+        {
+          "area": "format",
+          "says": "A translation is never blank, so a word cannot print as nothing in one language.",
+          "heldBy": "packages/report-spec/src/validate-translations.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Every literal that holds a letter is a word, so a firm's name or an address written into a paragraph is written again, the same, in each language.",
+          "heldBy": "packages/report-spec/src/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An expression is taken to print words where it prints text and its source holds a quote, so one that only compares a quoted value is translated too, one that prints words without a quote never is, and its translation is written in CEL, reading exactly the members its source reads.",
+          "heldBy": "packages/report-core/src/diagnostics/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A QR code's content, an EPC QR code's texts, a QR-bill's account, parties, reference and billing information, a parameter's default and an e-invoice's texts print as written in every language; a host that wants them in each hands them over as data.",
+          "heldBy": "packages/report-spec/src/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A render names a locale the report declares exactly, or prints in the report's own: de-CH and de-DE are two languages, each written whole, and nothing falls back from one to the other or to the report's own.",
+          "heldBy": "packages/report-spec/src/report-in.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A report that holds more words than `MAX_WORDS` validates, and cannot be translated whole: each word past the bound stays missing in every language."
+        },
+        {
+          "area": "format",
+          "says": "A report is validated and diagnosed once for each language it declares, at most `MAX_LANGUAGES` times, and a report in many languages is a larger draft, nearer `MAX_REPORT_BYTES`."
+        },
+        {
+          "area": "format",
+          "says": "A report that holds translations is refused whole by 0.2.0, which does not know the property, so a report saved with them opens only in a release that has them."
+        },
+        {
+          "area": "format",
+          "says": "The report's own language is the key of every translation and is not swapped for another, so making a translation's language the report's own is writing the report again."
+        },
+        {
+          "area": "editing",
+          "says": "A word missing in a language is an error of that language, which refuses a render in it alone, so a report being translated shows an error for each word until it is written.",
+          "heldBy": "packages/report-core/src/diagnostics/words.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Every report's own fields end with a Languages group, before the images a report declares, a report in one language among them.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The builders edit one language at a time: a word's field writes its translation in the language shown, the report's own word its placeholder, and every other field, the Language field among them, edits the report's own.",
+          "heldBy": "packages/report-builder-core/src/languages.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Every language's problems are counted on the outline's rows whichever language is shown, so a report whose French is unfinished shows its errors in its own language's view too.",
+          "heldBy": "packages/report-builder-core/src/languages.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A translator sees no PDF of a language until it is whole: the Studio's Preview refuses a render in it, a preview among them, while a word is missing, and the builders show the words it lacks instead.",
+          "heldBy": "apps/studio/src/studio.test.tsx"
+        },
+        {
+          "area": "runtime",
+          "says": "A render in a translation's locale prints the QR-bill's headings in that locale's language where SIX has headings in it, so no such render keeps the bill's own language.",
+          "heldBy": "packages/report-runtime/src/languages.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "The runtime's own words -- a preview's and a copy's labels, and a boolean's true and false -- are English in every language a report prints in."
+        },
+        {
+          "area": "runtime",
+          "says": "Data prints as the host hands it over, in whatever language the host chose: nothing holds a field's or a parameter's value to the render's language but a form's labels."
+        },
+        {
+          "area": "runtime",
+          "says": "A translated e-invoice's XML names each line in the render's language where its column prints a word, beside terms in the report's own, and no external judge of the e-invoice gate sees a translated e-invoice."
+        },
+        {
+          "area": "rendering",
+          "says": "The PDF names no language of its own, in whichever language a report prints, and a character a translation needs that the faces lack is refused when it prints, not when it is written."
+        },
+        {
+          "area": "data",
+          "says": "Form data read without a locale holds the report's own language's labels and is refused in a render in a translation's locale, so a host reads the submissions again for each language it prints.",
+          "heldBy": "packages/report-runtime/src/languages.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A report generated from a form version is written in one language, and its translations are written by a person afterwards.",
+          "heldBy": "packages/report-forms/src/generate.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A form review judges a field's new type in every language a report declares, so a resolution one language's expression could not take is withheld for every language.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
         }
       ]
     }

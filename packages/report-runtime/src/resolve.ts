@@ -6,6 +6,9 @@
  *
  * 1. the report, validated again and its expressions compiled; one the
  *    editor's diagnostics give an error for is refused (`report-check.ts`);
+ *    then written in the locale the render names, its own or one its
+ *    translations declare, which every later stage reads (`languages.ts`,
+ *    0063);
  * 2. the options, the parameters and the data, each checked, and every
  *    error of the three listed together (`parameters.ts`, `data.ts`);
  * 3. the aggregates, exactly, over every row (`totals.ts`);
@@ -36,8 +39,9 @@ import { reportHash } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { checkData } from './data.js'
 import type { Completeness, Consistency, DataMode, ReportData } from './data.js'
-import type { Paragraph, ResolvedDocument } from './document.js'
+import type { Block, Paragraph, ResolvedDocument } from './document.js'
 import { createFormatter } from './format.js'
+import { localePath } from './languages.js'
 import { eInvoiceFile, resolveEInvoice } from './lower-e-invoice.js'
 import { resolveFonts } from './lower-fonts.js'
 import { lowerPaymentPart } from './lower-payment-part.js'
@@ -64,13 +68,22 @@ export interface ResolveOptions {
   readonly creationDate: string
   /** The IANA zone instants are shown in, named by the host: UTC when absent, never the machine's. */
   readonly timeZone?: string
+  /**
+   * The locale the render prints in: the report's own when absent, or one
+   * its translations declare, exactly; any other is refused as
+   * `undeclared-locale` (0063). It decides every word the report prints,
+   * every value's format, the order of rows and groups, the slip's
+   * headings and the labels form data must have been read in.
+   */
+  readonly locale?: string
 }
 
 /** What a document was resolved from, to keep beside the PDF (plan 14). Nothing in it is the data's. */
 export interface RenderManifest {
-  /** report-spec's hash of the report as validated. */
+  /** report-spec's hash of the report as validated, its translations and all. */
   readonly reportHash: string
   readonly reportSpecVersion: ReportDefinition['reportSpecVersion']
+  /** The locale the render printed in: the report's own, or the translation's it named (0063). */
   readonly locale: string
   readonly timeZone: string
   readonly mode: DataMode
@@ -98,7 +111,7 @@ export type Resolution =
     }
   | { readonly ok: false; readonly errors: readonly RuntimeError[] }
 
-/** What every page of a preview that lacks data says, at the top of its page header. */
+/** What every page of a preview that lacks data says, at the top of its page header, and of page 1's own where it has one. */
 export const PREVIEW_LABEL = 'Preview of incomplete data: not a final report'
 
 /** What every page of a preview of an e-invoice says when it lacks nothing else: it writes no XML, and is not the invoice. */
@@ -114,8 +127,9 @@ const label = (text: string): Paragraph => ({ kind: 'paragraph', runs: [{ text }
  * The paragraph that opens every page's header of a final render of an
  * XRechnung, as the runtime writes it: `XRECHNUNG_COPY_LABEL` in the
  * labels' style. The renderer refuses an XRechnung's document whose page
- * header does not open with it, style and all, since the text in white or
- * at one point would say nothing to a reader (0038). Frozen, so that what
+ * header, or page 1's own where it has one (0060), does not open with it,
+ * style and all, since the text in white or at one point would say nothing
+ * to a reader (0038). Frozen, so that what
  * the renderer holds a copy to is not a host's to change; each document
  * carries a paragraph of its own.
  */
@@ -148,9 +162,9 @@ function writtenParameters(values: CheckedParameters): Record<string, string | b
  * nothing in the result is shared with them.
  */
 export function resolveReport(report: ReportDefinition, data: ReportData, options: ResolveOptions): Resolution {
-  const checked = checkReport(report)
+  const checked = checkReport(report, options.locale)
   if (!checked.ok) return { ok: false, errors: checked.errors }
-  const valid = checked.report
+  const valid = checked.printed
   const timeZone = options.timeZone ?? 'UTC'
   const errors: RuntimeError[] = []
   const creationDate = canonicalInstant(String(options.creationDate))
@@ -158,10 +172,15 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
     errors.push({ stage: 'resolve', code: 'invalid-creation-date', path: '', message: 'the creation date is an ISO 8601 instant with its zone' })
   const formatter = createFormatter({ locale: valid.locale, timeZone })
   if (!formatter.ok)
-    errors.push({ stage: 'format', code: formatter.code, path: formatter.code === 'unsupported-locale' ? '/locale' : '', message: formatter.message })
+    errors.push({
+      stage: 'format',
+      code: formatter.code,
+      path: formatter.code === 'unsupported-locale' ? localePath(checked.report, valid.locale) : '',
+      message: formatter.message,
+    })
   const parameters = checkParameters(valid, options.parameters ?? {})
   if (!parameters.ok) errors.push(...parameters.errors.map((error) => fromData('parameters', error)))
-  const checkedData = checkData(valid, data, { mode: options.mode })
+  const checkedData = checkData(valid, data, { mode: options.mode, reportLocale: checked.report.locale })
   if (!checkedData.ok) errors.push(...checkedData.errors.map((error) => fromData('data', error)))
   if (errors.length > 0 || creationDate === undefined || !formatter.ok || !parameters.ok || !checkedData.ok) return { ok: false, errors }
 
@@ -202,10 +221,13 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
       : invoice === undefined
         ? undefined
         : E_INVOICE_PREVIEW_LABEL
+  // Every header a page prints opens with the label, page 1's own among them, each with a paragraph of its own (0060).
+  const headed = (blocks: readonly Block[]): readonly Block[] => (labelled === undefined ? blocks : [label(labelled), ...blocks])
   const document: ResolvedDocument = {
     info: { title: valid.title, creationDate },
     page: valid.page,
-    pageHeader: labelled === undefined ? regions.pageHeader : [label(labelled), ...regions.pageHeader],
+    ...(regions.firstPageHeader === undefined ? {} : { firstPageHeader: headed(regions.firstPageHeader) }),
+    pageHeader: headed(regions.pageHeader),
     pageFooter: regions.pageFooter,
     body: regions.body,
     ...(paymentPart === undefined ? {} : { paymentPart }),
@@ -213,7 +235,7 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
     ...(fonts === undefined ? {} : { fonts }),
   }
   const manifest: RenderManifest = {
-    reportHash: reportHash(valid),
+    reportHash: reportHash(checked.report),
     reportSpecVersion: valid.reportSpecVersion,
     locale: valid.locale,
     timeZone,

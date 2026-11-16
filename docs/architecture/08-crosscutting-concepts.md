@@ -30,7 +30,7 @@ half done behind it. Each layer has its own kind:
 |---|---|---|
 | Format | A validation error: a stable code, a JSON Pointer, the component it is inside | No hash for an invalid report ([0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md)) |
 | Editing core | A command's `Refusal`, with a stable code | The session as it was, its listeners unnotified ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md)) |
-| Diagnostics | An error or a warning on a valid report, at the component and the column it is about | An error is what the runtime would refuse; a warning renders as written ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) |
+| Diagnostics | An error or a warning on a valid report, at the component and the column it is about, and the language it is about where it is one of a translation's | An error is what the runtime would refuse, one that names a language a render in that language alone; a warning renders as written ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), 0063) |
 | Runtime | Every reason, each with the stage that found it, a stable code and a JSON Pointer | No document ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | Renderer | A `RenderRefusal`: `too-many-pages`, `content-too-large`, `invalid-asset`, `cancelled` or `unsupported`, naming the block, table or asset | No PDF ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
 | Provider | Every reason, each with a JSON Pointer | No data ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
@@ -52,7 +52,8 @@ version
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
 [0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)),
 and 0.2.0 one with a chart
-([0052](../decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+([0052](../decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md))
+or with translations (0063).
 An SVG construct the cleaner's tables do not name is refused, named, never
 dropped: a construct nobody decided about is one a browser may draw and
 the converter not (0030).
@@ -455,9 +456,25 @@ The SBOM describes what a consumer installs, not the workspace
 
 Several sets of words, and they are kept apart:
 
-- **The report's own words** are the author's, in the report's locale. Its
-  values are formatted for that locale by Intl
-  ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).
+- **The report's own words** are the author's, in the report's locale,
+  and in each language its `translations` declare: each word written in
+  that language, looked up by its exact text in the report's own, and
+  each expression that prints words written as an expression of that
+  language. Which strings are words is report-spec's one walk,
+  `reportWords`; a string the walk does not yield prints as written in
+  every language, and its reason is named beside the walk. A render names
+  the locale it prints in, the report's own or a declared one exactly,
+  and that locale writes every word, formats every value by Intl and
+  orders the rows, through report-spec's `reportIn`, so that no stage of
+  the runtime has a language step of its own; a form's labels are read
+  in it, and refused when they were read in another. A word
+  missing in it refuses the render, an error of that language alone; it
+  is never printed in another, and no locale falls back to another, nor
+  de-CH to de-DE
+  ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md),
+  [0063](../decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+  The builders edit one language at a time, the one their bar's switch
+  shows, and every language's missing words are problems named by it.
 - **The builders' words** are report-builder-core's one catalogue, in
   English, Swiss German and Swiss French; both builders read it, and the
   scenarios run in all three. A session's undo labels are English sentences
@@ -471,6 +488,11 @@ Several sets of words, and they are kept apart:
 - **A QR-bill's headings** are in the slip's own language, one of SIX's
   five, which may differ from the report's
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)).
+  A render in a translation's locale prints them in that locale's
+  language where SIX has headings in it, and in the slip's own where it
+  has none, so no such render keeps the slip's own language; the bill's
+  message is a word, and its account, parties, reference and billing
+  information print as written in every language (0063).
 - **An EPC QR code's caption** is Austria's words, "Zahlen mit Code", as the
   PSA prints them, whatever the report's language. The builders call the
   code "EPC payment code", "EPC-Zahlcode" or "Code de paiement EPC"; the
@@ -480,7 +502,8 @@ Several sets of words, and they are kept apart:
 - **The product's pages** are German, French, Italian and English, every
   page in each ([0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)),
   and so is the invoice, as the corpus's samples
-  ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)).
+  ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)),
+  and as one report written in the four, beside them (0063).
   The euro invoice's samples are in German for Austria, French, Italian,
   Spanish, Dutch and English for Ireland, each in its locale; Spanish and
   Dutch are seen only as pictures, since no page is in either. The German

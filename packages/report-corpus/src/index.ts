@@ -34,6 +34,7 @@ export type {
   ExpectedCell,
   ExpectedChart,
   ExpectedDrawing,
+  ExpectedFirstPage,
   ExpectedImage,
   ExpectedRefusal,
   ExpectedRow,
@@ -55,9 +56,11 @@ export {
 } from './forms/site-visit.js'
 export type { StoredSubmission } from './forms/site-visit.js'
 export { ALL_FIXTURES } from './fixtures/all.js'
+export { KEEP_WITH_FIXTURES } from './fixtures/group-keep-with.js'
 export { IMAGE_KINDS } from './image-kinds.js'
 export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from './fixtures/svg.js'
 export { CHART_FIXTURES } from './fixtures/charts.js'
+export { FIRST_PAGE_FIXTURES } from './fixtures/first-page-header.js'
 export { readPdf } from './read-pdf.js'
 export { curvePoints, curveSamples, onCurve } from './curves.js'
 export { drawingsOn } from './drawings.js'
@@ -102,11 +105,15 @@ export {
   inspectionData,
   inspectionNotes,
   INVOICE,
+  INVOICE_EDITIONS,
   INVOICE_EN,
   INVOICE_FR,
   INVOICE_IT,
+  INVOICE_LANGUAGES,
   INVOICE_SAMPLES,
+  invoiceAlone,
   invoiceData,
+  invoiceLanguagesData,
   invoiceLines,
   LETTERHEAD,
   lineAmount,
@@ -126,5 +133,5 @@ export {
   XRECHNUNG_SAMPLES,
   xrechnungData,
 } from './starters/index.js'
-export type { Starter, StarterImage } from './starters/index.js'
+export type { Edition, Starter, StarterImage } from './starters/index.js'
 export type { PdfAttachment, PdfBox, PdfCurve, PdfFont, PdfPage, PdfPaint, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'

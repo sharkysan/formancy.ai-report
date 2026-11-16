@@ -135,8 +135,8 @@ export function fixtureOf(id: string, document: ResolvedDocument, stated: Stated
  * The expectation a document implies, with what the test states laid over
  * it: keys from the first cell of every table row and the lines of every
  * keep-together block, every table's header and rows, the page header's and
- * footer's lines, the body's and the page regions' images, and every layout
- * check on.
+ * footer's lines, and page 1's own header's where it has one, the body's and
+ * the page regions' images, and every layout check on.
  */
 export function expectation(document: ResolvedDocument, stated: Stated): Expectation {
   const footerEveryPage = footerPattern(document.pageFooter)
@@ -147,6 +147,10 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
       .filter((block) => block.kind === 'table')
       .map(expectedTable),
     pageHeaderLines: plainLines(document.pageHeader),
+    // Page 1's own header (0060), as the corpus derives it: page 1 is held to its lines and images in place of the page header's.
+    ...(document.firstPageHeader === undefined
+      ? {}
+      : { firstPage: { headerLines: plainLines(document.firstPageHeader), regionImages: imagesOf([...document.firstPageHeader, ...document.pageFooter]) } }),
     pageFooterLines: plainLines(document.pageFooter),
     ...(footerEveryPage === undefined ? {} : { footerEveryPage }),
     exactText: [],
@@ -215,7 +219,12 @@ function expectedTable(table: Table): ExpectedTable {
   return {
     id: table.id,
     header: printed(table.header).map((cell) => cell.text),
-    rows: table.rows.map((row) => ({ kind: row.kind, key: normalise(row.cells[0] ?? ''), cells: printed(row.cells) })),
+    rows: table.rows.map((row) => ({
+      kind: row.kind,
+      key: normalise(row.cells[0] ?? ''),
+      cells: printed(row.cells),
+      ...(row.keepWithRows === undefined ? {} : { keepWithRows: row.keepWithRows }),
+    })),
     emptyText: table.rows.some((row) => row.kind === 'detail') ? '' : normalise(table.emptyText),
   }
 }

@@ -89,8 +89,11 @@
     through an ECharts that measures through another zrender.
     `src/chart-held.test.ts` holds the words' rule at the box's edges.
   - **The check.** `src/charts.test.ts` refuses, before anything is laid
-    out, a chart in a page region, one wider than its column or taller
-    than the body, one past a bound the runtime holds it to, a pie of more
+    out, a chart in a page region, page 1's own header among them
+    ([0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)),
+    one wider than its column or taller
+    than the body -- the shorter of page 1's and the later pages' where
+    page 1 has a header of its own, as an image is (0060) -- one past a bound the runtime holds it to, a pie of more
     slices than a palette has colours among them, one with a
     control character Roboto maps to an empty glyph, one of a kind, a box,
     a colour or a style the renderer does not know, and each invariant the
@@ -361,7 +364,8 @@ render and on a reader.** In order:
    naming the chart and the sizes or counts that do not hold, and quoting
    none of its words or values:
    - **Where it stands**: in the body, a column, a section or a
-     keep-together block, never in a page region.
+     keep-together block, never in a page region, page 1's own header
+     (0060) among them.
    - **What it is**: a kind the renderer knows, a box of a size, its
      colours and its style held as a paragraph's are, and no more than the
      runtime's bounds -- `MAX_CHART_CATEGORIES` categories,

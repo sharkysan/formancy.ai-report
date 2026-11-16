@@ -3,6 +3,7 @@ import { cellLine } from './bound.js'
 import { checkStyle, checkText } from './check-faces.js'
 import { tall, type Place, type Walk } from './check-walk.js'
 import type { RenderFonts } from './host-fonts.js'
+import { checkKeptRows } from './kept-rows.js'
 import { cellFace, PADDING_X, PADDING_Y, styledRows, type StyledRow } from './table.js'
 import { fillWidth, fixedWidth } from './widths.js'
 
@@ -95,6 +96,7 @@ export function checkTable(table: Table, width: number, fonts: RenderFonts): voi
     }
     for (const style of [row.style, ...(row.cellStyles ?? [])]) checkStyle(style ?? undefined, table.id, fonts)
   })
+  checkKeptRows(table)
   checkStyle(table.headerStyle, table.id, fonts)
   const narrow = table.columns.find((column) => column.width !== 'fill' && !(column.width > 2 * PADDING_X && Number.isFinite(column.width)))
   if (narrow !== undefined)

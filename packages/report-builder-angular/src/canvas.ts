@@ -13,7 +13,9 @@
  * keyboard can scroll a zoomed sheet. Dragging a palette button, a box or
  * an outline row onto it places at the nearest place the session accepts,
  * with the places drawn, and named, while the drag lasts; the place chooser
- * is the keyboard's path for the same.
+ * is the keyboard's path for the same. A box, or the band, that prints a
+ * word not written yet in the language edited is marked, and described by
+ * the sentence that says so (0063).
  */
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { targetNear } from '@formancy/report-builder-core'
@@ -59,8 +61,9 @@ import { ReportEditorRoot } from './root'
           [attr.data-kind]="box.kind"
           [attr.data-selected]="box.selected ? 'true' : null"
           [attr.data-overflows]="box.overflows ? 'true' : null"
+          [attr.data-missing]="box.missing === undefined ? null : 'true'"
           [attr.data-dragging]="box.id === dragged() && box.column === undefined ? 'true' : null"
-          [attr.title]="box.overflows ? t()('canvas.overflow') : null"
+          [attr.title]="described(box)"
           [attr.draggable]="box.column === undefined ? 'true' : null"
           [style.left.px]="box.px.x"
           [style.top.px]="box.px.y"
@@ -80,6 +83,8 @@ import { ReportEditorRoot } from './root'
           data-report-part="payment-part"
           [attr.aria-label]="band.label"
           [attr.data-selected]="band.selected ? 'true' : null"
+          [attr.data-missing]="band.missing === undefined ? null : 'true'"
+          [attr.title]="band.missing ?? null"
           [style.left.px]="band.px.x"
           [style.top.px]="band.px.y"
           [style.width.px]="band.px.width"
@@ -115,6 +120,12 @@ export class ReportCanvas {
     const subject = this.state().drag?.subject
     return subject !== undefined && 'id' in subject ? subject.id : null
   })
+
+  /** What a box says beyond its name, as its description: that it runs over, and that a word it prints is missing in the language edited. */
+  protected described(box: CanvasBox): string | null {
+    const said = [box.overflows ? this.t()('canvas.overflow') : undefined, box.missing].filter((sentence) => sentence !== undefined)
+    return said.length === 0 ? null : said.join('. ')
+  }
 
   protected select(box: CanvasBox): void {
     this.root.dispatch({ type: 'select', id: box.id, ...(box.column === undefined ? {} : { column: box.column }) }, { to: 'selection' })

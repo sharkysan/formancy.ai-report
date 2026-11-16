@@ -11,7 +11,9 @@ import {
   ALL_FIXTURES,
   CHART_FIXTURES,
   E_INVOICE,
+  FIRST_PAGE_FIXTURES,
   inflatedDigest,
+  KEEP_WITH_FIXTURES,
   QUOTATION,
   readAnnotations,
   readCodes,
@@ -136,7 +138,7 @@ describe('the browser entry', () => {
           const order = new Map<string, number>()
           return pass.replace(/\bzr\d+-[a-z]+(?:-\d+|\d+)\b/g, (name) => `zr-${String(order.get(name) ?? order.set(name, order.size).size - 1)}`)
         })
-      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...CHART_FIXTURES]) {
+      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES]) {
         const options = { maxPages: each.maxPages }
         const inNode = await rendering(nodePdfmake, () => renderInNode(each.document, options))
         const inBrowser = await rendering(browserPdfmake, () => renderInBrowser(each.document, options))
@@ -156,7 +158,7 @@ describe('the browser entry', () => {
   test(
     'renders every fixture of the corpus as its checks expect, or refuses it as they allow',
     async () => {
-      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...CHART_FIXTURES]) {
+      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES]) {
         const rendered = await renderInBrowser(each.document, { maxPages: each.maxPages }).then(
           (bytes) => ({ bytes }),
           (error: unknown) => ({ error }),

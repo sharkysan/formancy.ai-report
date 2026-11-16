@@ -3,13 +3,16 @@
  * own: what both builders render.
  *
  * What depends on the document alone -- labels, diagnostics, the layout,
- * the palette -- is derived once per document and kept while the document
- * is the same object; the rest is built per state. The state is frozen to
+ * the palette -- is derived once per document and language edited, and
+ * kept while both are the same; the rest is built per state. The labels
+ * and the layout are of the report as the language edited writes it
+ * (0063), so the outline, the design view and the bar show its words, a
+ * word it lacks in the report's own and marked. The state is frozen to
  * its leaves, so neither builder can write into what the other renders.
  */
 import { diagnose } from '@formancy/report-core'
 import type { Diagnostic, DiagnosticSeverity } from '@formancy/report-core'
-import { REGION_NAMES, walkComponents } from '@formancy/report-spec'
+import { heldRegions, walkComponents, writtenIn } from '@formancy/report-spec'
 import type { Component, ReportDefinition } from '@formancy/report-spec'
 import { duplicate, indent, moveBy, outdent } from './edits.js'
 import { layoutReport, MAX_ZOOM, MIN_ZOOM, pageGeometry, PX_PER_PT, rulerTicks, toPx } from './geometry.js'
@@ -17,6 +20,8 @@ import type { Layout } from './geometry.js'
 import { addRefusal, imageLibrary } from './images.js'
 import type { Images } from './images.js'
 import { kindLabel, partLabel, regionLabel, reportLabels } from './labels.js'
+import { languageName, languagesOf, missingKeys } from './languages.js'
+import type { Edited } from './languages.js'
 import type {
   Announcement,
   Availability,
@@ -57,11 +62,18 @@ export interface Local {
   readonly status: Announcement
   /** The name of the file an add has taken, until it is done: one at a time. */
   readonly adding: string | null
+  /** The language whose words are shown and edited, one a translation declares; null for the report's own (0063). */
+  readonly language: string | null
 }
 
-/** What the document alone decides. */
+/** What the document and the language edited decide. */
 export interface Derived {
   readonly report: ReportDefinition
+  readonly edited: Edited
+  /** The report as the language edited writes it, a word it lacks left in the report's own: what the labels and the layout are of. */
+  readonly written: ReportDefinition
+  /** The keys of what prints a word the language edited lacks. */
+  readonly missing: ReadonlySet<string>
   readonly labels: ReadonlyMap<string, string>
   readonly diagnostics: readonly Diagnostic[]
   readonly problems: ReadonlyMap<string, number>
@@ -94,11 +106,17 @@ function targetOf(diagnostic: Diagnostic): Selection | null {
   return columnId === undefined ? { id: componentId } : { id: componentId, column: columnId }
 }
 
-/** What `report` alone decides, in the words of `t`; `stored` says whether the host keeps images a person adds, which the palette's Image says. */
-export function derive(report: ReportDefinition, t: EditorText, stored: boolean): Derived {
-  const components = reportLabels(report, t)
+/**
+ * What `report` and the language edited decide, in the words of `t`;
+ * `stored` says whether the host keeps images a person adds, which the
+ * palette's Image says; `known`, `report`'s diagnostics where they are
+ * known already, which no language changes.
+ */
+export function derive(report: ReportDefinition, t: EditorText, stored: boolean, edited: Edited, known?: readonly Diagnostic[]): Derived {
+  const written = edited.translation === undefined ? report : writtenIn(report, edited.locale)
+  const components = reportLabels(written, t)
   const labels = new Map([...components, ...REPORT_LEVEL_PARTS.map((part) => [selectionKey({ part }), partLabel(part, t)] as const)])
-  const diagnostics = diagnose(report)
+  const diagnostics = known ?? diagnose(report)
   const problems = new Map<string, number>()
   // An error outranks a warning, whichever comes first: a count drawn in a
   // warning's colour would say the report still renders.
@@ -110,11 +128,17 @@ export function derive(report: ReportDefinition, t: EditorText, stored: boolean)
     problems.set(key, (problems.get(key) ?? 0) + 1)
     if (severities.get(key) !== 'error') severities.set(key, diagnostic.severity)
   }
-  const layout = layoutReport(report)
+  const layout = layoutReport(written)
   const overflowing = new Set(layout.parts.filter((part) => part.overflows).map((part) => part.key))
   const inputs = { labels, selection: null, problems, severities, overflowing }
   const order = outlineOrder(buildOutline(report, inputs, t), outlineParts(report, inputs, t))
-  return { report, labels, diagnostics, problems, severities, overflowing, layout, palette: paletteEntries(report, t, stored), order }
+  const missing = missingKeys(edited)
+  return { report, edited, written, missing, labels, diagnostics, problems, severities, overflowing, layout, palette: paletteEntries(report, t, stored), order }
+}
+
+/** What a box or a band says of a word it prints that the language edited lacks: nothing, or the sentence naming the language. */
+function missingIn(derived: Derived, key: string, t: EditorText): { readonly missing?: string } {
+  return derived.missing.has(key) ? { missing: t('canvas.missing', { language: derived.edited.name }) } : {}
 }
 
 /** What the middle pane shows: the host's view while it is shown there, else the design view. Decided here once, for the state and the editor's actions. */
@@ -150,6 +174,7 @@ function paymentBand(derived: Derived, box: Box, chosen: string | undefined, zoo
     selected: chosen === key,
     problems: derived.problems.get(key) ?? 0,
     ...(severity === undefined ? {} : { severity }),
+    ...missingIn(derived, key, t),
     pt: box,
     px: toPx(box, zoom),
   }
@@ -178,6 +203,7 @@ function canvasOf(derived: Derived, local: Local, t: EditorText): Canvas {
         problems: problems.get(part.key) ?? 0,
         ...(severity === undefined ? {} : { severity }),
         overflows: part.overflows,
+        ...missingIn(derived, part.key, t),
         pt: part.box,
         px: toPx(part.box, local.zoom),
       }
@@ -194,29 +220,49 @@ function canvasOf(derived: Derived, local: Local, t: EditorText): Canvas {
  */
 export function diagnosticKeys(diagnostics: readonly Diagnostic[]): string[] {
   const seen = new Map<string, number>()
-  return diagnostics.map(({ code, path, position }) => {
-    const key = `${code} ${path}${position === undefined ? '' : ` ${String(position.start)}-${String(position.end)}`}`
+  return diagnostics.map(({ code, path, position, language }) => {
+    const at = position === undefined ? '' : ` ${String(position.start)}-${String(position.end)}`
+    // One word missing in two languages is two problems, at one path.
+    const key = `${code} ${path}${at}${language === undefined ? '' : ` ${language}`}`
     const count = (seen.get(key) ?? 0) + 1
     seen.set(key, count)
     return count === 1 ? key : `${key} ${String(count)}`
   })
 }
 
-function diagnosticEntries(derived: Derived, t: EditorText): DiagnosticEntry[] {
+/** The problems, each linked to what it is about, and one about a language a translation declares named by it (0063). */
+function diagnosticEntries(derived: Derived, t: EditorText, locale: EditorLocale): DiagnosticEntry[] {
   const keys = diagnosticKeys(derived.diagnostics)
   return derived.diagnostics.map((diagnostic, at) => {
     const target = targetOf(diagnostic)
     const where = target === null ? t('problem.report') : (derived.labels.get(selectionKey(target)) ?? selectionKey(target))
+    const severity = t(`severity.${diagnostic.severity}`)
+    const { language } = diagnostic
     return {
       key: keys[at] as string,
       severity: diagnostic.severity,
       code: diagnostic.code,
       message: diagnostic.message,
       where,
-      label: t('problem.item', { severity: t(`severity.${diagnostic.severity}`), where }),
+      label:
+        language === undefined ? t('problem.item', { severity, where }) : t('problem.itemIn', { severity, where, language: languageName(language, locale) }),
       target,
+      ...(language === undefined ? {} : { language }),
     }
   })
+}
+
+/**
+ * The diagnostics a field shows: those about the report in every language
+ * and those about the language edited, but a word missing, which the
+ * field's own note says -- a translated expression's among them, which
+ * report-core points at its translation and the field that writes it
+ * finds there (`diagnosed`). In the report's own language, none that
+ * names a translation's: a field there writes no translation.
+ */
+function fieldDiagnostics(derived: Derived): readonly Diagnostic[] {
+  const { diagnostics, edited } = derived
+  return diagnostics.filter(({ code, language }) => language === undefined || (language === edited.locale && code !== 'word-missing'))
 }
 
 const REPORT = { kind: 'report', path: '' } as const
@@ -280,7 +326,8 @@ export function buildState(
   const inputs = { labels, selection: local.selection, problems, severities, overflowing }
   // The editor keeps its selection one the document has, so this finds it.
   const panelTarget = propertyTarget(report, local.selection) ?? REPORT
-  const counts = new Map(REGION_NAMES.map((region) => [region, 0]))
+  // A first page header is listed only where the report has one (0060).
+  const counts = new Map(heldRegions(report.regions).map(([region]) => [region, 0]))
   for (const { region } of walkComponents(report)) counts.set(region, (counts.get(region) ?? 0) + 1)
   const placing = dragOf(derived, local, t, targets)
   return freeze({
@@ -290,26 +337,27 @@ export function buildState(
     zoomLabel: formatZoom(local.zoom, locale),
     document: {
       id: report.id,
-      title: report.title,
+      title: derived.written.title,
       locale: report.locale,
       page: pageGeometry(report, local.zoom),
-      regions: REGION_NAMES.map((region) => ({ region, label: regionLabel(region, t), count: counts.get(region) ?? 0 })),
+      regions: [...counts].map(([region, count]) => ({ region, label: regionLabel(region, t), count })),
     },
     selection: local.selection,
+    languages: languagesOf(report, derived.edited, derived.diagnostics, t, locale),
     outline: buildOutline(report, inputs, t),
     outlineParts: outlineParts(report, inputs, t),
     palette: derived.palette,
     images: imageLibrary(images, derived, local.adding),
     properties: propertyPanel(
       panelTarget,
-      specsOf(panelTarget, report, t, locale),
+      specsOf(panelTarget, report, t, locale, derived.edited),
       propertyHeading(panelTarget, labels, t),
       local.errors,
-      derived.diagnostics,
+      fieldDiagnostics(derived),
       t,
     ),
     canvas: canvasOf(derived, local, t),
-    diagnostics: diagnosticEntries(derived, t),
+    diagnostics: diagnosticEntries(derived, t, locale),
     history: session.history,
     drag: placing.drag,
     dropTargets: placing.dropTargets,

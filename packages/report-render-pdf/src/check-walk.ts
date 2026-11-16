@@ -1,4 +1,5 @@
-import type { Block, Chart, EpcQrCode, Image, KeepTogether, QrCode, Table } from '@formancy/report-runtime'
+import type { Block, Chart, EpcQrCode, KeepTogether, QrCode, Table } from '@formancy/report-runtime'
+import type { PlacedImage } from './check-images.js'
 import type { RenderFonts } from './host-fonts.js'
 import type { QrSymbol } from './qr.js'
 import type { RowLine } from './check-table.js'
@@ -24,7 +25,10 @@ export interface Measured {
 
 /** Where a block stands. */
 export interface Place {
+  /** In a page region, not the body: the page header or footer, or page 1's own header. */
   readonly region: boolean
+  /** In a region pdfmake draws on every page, the page header or footer, knowing the page's number and the count: not page 1's own header, nor the body. */
+  readonly everyPage: boolean
   /** Inside a keep-together block. */
   readonly kept: boolean
   /** Inside a columns block. */
@@ -37,7 +41,7 @@ export interface Place {
 export interface Walk {
   readonly fonts: RenderFonts
   readonly paths: Map<Block, string>
-  readonly images: { readonly image: Image; readonly region: boolean }[]
+  readonly images: PlacedImage[]
   readonly codes: Map<QrCode | EpcQrCode, QrSymbol>
   captioned: boolean
   readonly tall: Tall[]

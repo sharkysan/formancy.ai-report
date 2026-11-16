@@ -1,15 +1,17 @@
 import type { PlacedChart, PlacedDrawings } from './drawings.js'
-import { normalise, type Expectation } from './fixture.js'
+import { normalise, type Expectation, type ExpectedImage } from './fixture.js'
 import { pageLines, type Line } from './lines.js'
 import type { PdfBox, PdfPage, ReadPdf } from './read-pdf.js'
 
 /**
  * A page as the checks read it: its lines, sorted into the page header's,
  * the page footer's and the body's. A line belongs to a page region when it
- * reads as one of that region's lines -- the page header's and footer's
- * plain lines exactly, the footer's numbered line by its pattern -- wherever
- * on the page it is, so that a region drawn in the wrong place is still
- * found, and is then reported for where it is.
+ * reads as one of that region's lines -- the header's and footer's plain
+ * lines exactly, the footer's numbered line by its pattern -- wherever on
+ * the page it is, so that a region drawn in the wrong place is still found,
+ * and is then reported for where it is. Page 1's header is its own where
+ * the document gives it one (0060), and the page header on every other
+ * page (`regionsOn`).
  */
 export interface Page {
   readonly page: PdfPage
@@ -25,12 +27,34 @@ export interface Page {
   readonly charts: readonly PlacedChart[]
 }
 
+/** What a page shows of its page regions: on page 1, page 1's own where the document gives it a header of its own (0060), and every page's otherwise. */
+export interface PageRegions {
+  /** Whether these are page 1's own. */
+  readonly own: boolean
+  readonly headerLines: readonly string[]
+  readonly regionImages: readonly ExpectedImage[]
+  /** The lines of the other header, which this page must not print: the page header's on page 1 under its own, page 1's own on every other page. */
+  readonly otherLines: readonly string[]
+}
+
+/** What page `number` shows of its page regions, by what `expected` says of page 1 and of every page. */
+export function regionsOn(expected: Expectation, number: number): PageRegions {
+  const { firstPage } = expected
+  const every = { headerLines: expected.pageHeaderLines, regionImages: expected.pageRegionImages }
+  if (firstPage === undefined) return { own: false, ...every, otherLines: [] }
+  const own = number === 1
+  const [mine, other] = own ? [firstPage.headerLines, expected.pageHeaderLines] : [expected.pageHeaderLines, firstPage.headerLines]
+  // A line both headers print, or the footer does, is no sign of the wrong one: a preview's label heads both.
+  const shared = new Set([...mine, ...expected.pageFooterLines].map(normalise))
+  return { own, ...(own ? firstPage : every), otherLines: other.filter((line) => !shared.has(normalise(line))) }
+}
+
 /** `pdf`'s pages as the checks read them, each with the SVG images' boxes and the charts `drawings` placed on it, page by page. */
 export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: Pick<PlacedDrawings, 'boxes' | 'charts'>): Page[] {
-  const header = new Set(expected.pageHeaderLines.map(normalise))
   const footer = new Set(expected.pageFooterLines.map(normalise))
   const numbered = expected.footerEveryPage === undefined ? undefined : once(expected.footerEveryPage)
   return pdf.pages.map((page, index) => {
+    const header = new Set(regionsOn(expected, page.number).headerLines.map(normalise))
     const lines = pageLines(page)
     const region = (line: Line): 'header' | 'footer' | 'body' => {
       if (header.has(line.text)) return 'header'

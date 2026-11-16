@@ -48,7 +48,7 @@ async function checked(chart: Chart): Promise<unknown> {
     charts: [],
   }
   try {
-    checkChart(chart, 'body[0]', { region: false, kept: false, column: false, width: PRINTABLE_WIDTH, inset: 0, depth: 0 }, walk)
+    checkChart(chart, 'body[0]', { region: false, everyPage: false, kept: false, column: false, width: PRINTABLE_WIDTH, inset: 0, depth: 0 }, walk)
     return walk.charts
   } catch (error) {
     return error
@@ -226,6 +226,25 @@ describe('a chart checked before anything is laid out', () => {
     }
   })
 
+  // Page 1's own header (0060) is a page region too, measured before the
+  // body and drawn once, in page 1's background, where report-spec refuses
+  // a chart as `misplaced-flow-component` and the runtime never puts one: a
+  // document built by hand with one there is refused, naming it, and says
+  // where it stands rather than that it is drawn on every page.
+  test("refuses a chart in page 1's own header, a page region drawn once", async () => {
+    const body = documentOf('Chart', [paragraph('Body')])
+    for (const [document, id] of [
+      [{ ...body, firstPageHeader: [BARS] }, 'sales'],
+      [{ ...body, firstPageHeader: [{ kind: 'section', padding: 4, blocks: [PIE] }] }, 'shares'],
+    ] as const) {
+      expect(await refusal(document)).toMatchObject({
+        code: 'unsupported',
+        subject: id,
+        message: `the chart ${id} stands in page 1's own header, a page region drawn in page 1's background: a chart is drawn in the body`,
+      })
+    }
+  })
+
   // A chart wider than where it stands would be drawn past the margin, or
   // over the column beside it, where a printer cuts it off or it covers
   // what is there. Its box is reserved whole, so it is refused by its
@@ -280,6 +299,27 @@ describe('a chart checked before anything is laid out', () => {
       })
     }
     expect(await refusal(documentOf('Chart', [framed(tall(BODY_HEIGHT - 10))]))).toBe('rendered')
+  })
+
+  // Page 1's own header (0060) gives page 1 a body of its own, and a chart
+  // is drawn at a fixed height, as an image is: held to the shorter of
+  // page 1's body and the later pages', since page 1 under a header of
+  // space alone holds nothing pdfmake would move the chart past. Held to
+  // the later pages' body alone, a chart 600 points tall under a 200-point
+  // letterhead's room would stand past page 1's body, over its footer.
+  // Refused, naming it, where page 1's body is the shorter; drawn where
+  // both bodies hold it.
+  test("refuses a chart page 1's shorter body cannot hold, and draws one it can", async () => {
+    const spaced = (height: number): ResolvedDocument => ({
+      ...documentOf('Spaced', [{ ...BARS, height: 600 }]),
+      firstPageHeader: [{ kind: 'spacer', height }],
+    })
+    expect(await refusal(spaced(200))).toMatchObject({
+      code: 'content-too-large',
+      subject: 'sales',
+      message: 'the chart sales is 600.00 pt tall; the body is 548.51 pt where it stands',
+    })
+    expect(await refusal(spaced(100))).toBe('rendered')
   })
 
   // The runtime groups a chart's rows into at most MAX_CHART_CATEGORIES

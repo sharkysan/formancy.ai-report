@@ -10,6 +10,140 @@ later.
 
 ## Unreleased
 
+**A report's first page may print a header of its own, or none, in place of
+the page header**
+([0060](docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+A letter, an invoice or an order often opens with a letterhead and runs on
+under a short line, or under nothing. A report could print a letterhead only
+in its report header, which is the start of the body: under the page header,
+which still printed above it on page 1, and with no room of its own. Page 1
+can now print its own header in the page header's place, which then prints
+from page 2 on, each page's body starting below the header that page prints.
+A report that does not use it resolves and prints exactly as before: every
+PDF the e-invoice gate records, drawn again by the changed renderer, has the
+digest it had.
+- **report-spec's sixth region, `firstPageHeader`**, optional, between the
+  report header and the page header in `REGION_NAMES`, which now lists six
+  names a report may hold five of; `OPTIONAL_REGIONS` names it, and
+  `heldRegions` lists the regions a report holds. Its presence is the
+  choice: absent, page 1 prints the page header; **empty, page 1 prints no
+  header**, which has no other spelling. It holds what the page header
+  holds, with a budget of its own, but **no page number or page count**,
+  refused as `misplaced-page-counter`: it is drawn before the pages are
+  counted, and page 1's number and count print in the page footer.
+- **report-core's `putFirstPageHeader` and `removeFirstPageHeader`**, each
+  one undo step and a descriptor a proposal can carry; removing it takes
+  what it holds with it, and a place in it is refused as `not-found` while a
+  report has none. The walk, `fieldReaders`, the diagnostics and a form
+  review reach what stands in it.
+- **The runtime's `ResolvedDocument.firstPageHeader`**, present exactly when
+  the report's is, an empty list for none and for one whose every component
+  its condition hides, never the page header's blocks; and headed by every
+  label the page header carries, a preview's, an e-invoice preview's and an
+  XRechnung's copy paragraph.
+- **The renderer draws it in page 1's background**, at the margin the page
+  header stands at, the page header drawing nothing on page 1, and moves
+  page 1's body by the difference between the two headers' rooms: a
+  pdfmake page header's box is the top margin, one for every page, which
+  would lose a taller letterhead's lines. It is measured in a pass of its
+  own, and refused as `content-too-large` naming `firstPageHeader` where it
+  is taller than the printable area or leaves page 1 no body; a page field
+  in a document's first page header is `unsupported`, an XRechnung's that
+  does not open with the copy paragraph is refused, and an SVG in it counts
+  once toward `MAX_SVG_DRAWING`. **What it costs**: where page 1's own
+  header is taller, a block kept together that page 1's body cannot hold
+  starts page 2, page 1 printing its header alone; an image, a QR code or
+  another block of fixed height taller than the shorter of page 1's and the
+  later pages' bodies is refused, though a later page could hold it,
+  because pdfmake draws an image on a page that holds nothing yet whatever
+  its room, and would draw it past page 1's foot; where page 1's own
+  header is shorter, or none, a block kept together, a table's line under
+  its repeated header or an image that only page 1's taller body could hold
+  is refused, even in a report that would end on page 1, because where a
+  block lands is known only once the body is laid out, and a later page
+  could not hold it whole;
+  a tall own header is held above a QR-bill's slip though the report may
+  end on a later page; and the page header is still measured and held in a
+  report of one page that prints it nowhere.
+- **Both builders choose it in the report's properties**: "Header on page
+  1", the page header or a header of its own, which prints none while it is
+  empty. The outline's group and the design view's band show it only where
+  a report has one, before the page header's, so a report without it shows
+  the outline and the design view it did; every report's properties show
+  the choice, and the README's picture of them is retaken for it.
+- **0.2.0 refuses a report with one** as `unknown-property`, and a 0.2.0
+  renderer handed this runtime's document would print the page header on
+  page 1 without a word: the runtime and the renderer are of one release. No
+  e-invoice variant draws one yet, so veraPDF and Mustang have not judged a
+  PDF/A-3b whose page 1 prints its own header. A first page's own footer is
+  not part of it.
+
+**A report's own words are written in each language it declares, and a render names the one it
+prints in**
+([0063](docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+A firm that bills in German, French, Italian and English kept a report for each language: four
+layouts edited four times and four reviews of every form version, as the invoice's samples still
+are (0024). A report may now declare `translations`: for each language beside its own `locale`,
+its words written in it, each looked up by its exact text in the report's own -- the title, a
+text's literal runs, a table's cells, group headers, footer rows, column headers and empty text, a
+chart's words and a QR-bill's message -- and each expression that prints words translated whole.
+`resolveReport` takes a `locale`, the report's own or a declared one exactly, and that locale
+writes every word, formats every value, orders the rows and, through report-forms' new `locale`
+read option, gives a form's labels; the slip's headings follow it where SIX has the language. A
+word missing in that language is an error of that language, `word-missing`, which refuses a
+render in it alone: nothing is printed in another language, and nothing falls back from de-CH to
+de-DE. report-spec gains `reportWords`, `renderLocale`, `reportIn` and `writtenIn`; report-core
+`addLanguage`, `removeLanguage`, `translateWord`, `translateExpression`, `languageDiagnostics`
+and `wordExpressions`, and a diagnostic names its `language`; the runtime refuses
+`undeclared-locale` and `labels-locale-differs`, and its manifest names the locale a render
+printed in. Both builders edit one language at a time, chosen in a switch their bar shows once a
+report declares a translation, its missing words marked and listed by their language, and every
+report's own fields end with a Languages group, before the images a report declares; the Studio's
+Preview prints the language the builder shows. A report without translations validates, hashes,
+resolves and prints exactly as before, which every starter's and sample's bytes hold, and 0.2.0
+refuses a report that has them. What it costs -- a word changed is a word to translate again, an
+expression is judged a word by a quote, codes and the XML keep one language and data the
+host's -- is the record's.
+
+**A table's group header may be kept on its page with as many of its group's first rows as the
+report states, or as many as fit**
+([0059](docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+Every group header was kept with its first row, and no more, so an order grouped by delivery
+could start a group at the foot of a page with its heading and one line, and the rest of the
+group on the next; nothing in the format could ask for more. A report that states no count
+resolves to the same document and prints to the same bytes: every corpus fixture, starter and
+invoice sample was compared byte for byte on the day the renderer changed.
+- **report-spec's `TableGroup.keepWithRows`**, a whole number from 1 to `MAX_KEEP_WITH_ROWS`,
+  32, chosen and not measured, on the group so that each level states its own once groups nest.
+  Absent, it is 1, the rule every header already had. 0 and 33 are refused as `out-of-range`,
+  2.5 as `not-an-integer`, at `/group/keepWithRows`; `keepWithRows: 1` is accepted and hashes
+  otherwise than its absence. It changes through `setGroup` and `updateComponent`, with no
+  command of its own.
+- **The runtime counts the group**: a `groupHeader` row carries `keepWithRows`, the stated
+  number or the group's rows where it has fewer, and only where that is more than one, so a
+  document of a report that states none has no such member. `MAX_KEEP_WITH_ROWS` is
+  re-exported for an engine to hold the row to.
+- **The renderer keeps the longer block** by the blocks, rules and planned breaks that kept the
+  first row: the header stands on the page of as many of its stated rows as fit there under the
+  repeated column header, a group no longer than its count whole with its subtotal, and of its
+  first row where no more fit. **A count is a most, and nothing says when fewer were kept**:
+  the heights are the data's, and refusing would refuse a report that loses nothing by printing.
+  A row with no text counts but never ends the block, since a rule finds a row on its page by
+  its text; a whole group's block is held by its subtotal though a footer row after it prints
+  nothing, and that blank row stands in the block's height. A header that prints nothing keeps
+  no more than its first row: a table's first group header still moves with it under the column
+  header, and any other is left where it falls. A report that states a count can need more
+  pages, and is refused as `too-many-pages` where that passes the host's limit. A count on a row
+  that is no group header, outside 2 to the bound, or past the detail rows under its header is
+  refused as `unsupported`, naming the table.
+- **Both builders show *Rows kept with each group header*** on a grouped table's properties, a
+  number reading 1 where none is stated; 1, or nothing, is written as the member's absence, and
+  a count given back as it reads is no edit. The Angular builder now gives a typed field back
+  what it reads once a commit is taken as no edit, as the React builder already did.
+- **0.2.0 refuses a report that states a count** as `unknown-property`, never printing it
+  without the count, and a 0.2.0 renderer handed this runtime's document keeps each header with
+  its first row alone.
+
 **The product pages are measured in a browser on every pull request**
 ([0053](docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
 Their reflow down to 320 pixels and their contrast were measured by hand in Chromium when each
@@ -183,9 +317,10 @@ AI, each in order, code a report carries run in a sandbox among them,
 and the three things Report does not mean to do -- connect to a
 database, fetch by address, drill down -- with the reason for each. What
 a report can hold takes in more than one table, each over rows of its
-own with columns of its own, one template in several languages, a
-group's header kept with a stated number of its rows, a first page's own
-page header, and sub- and superscript. It promises nothing: an item is
+own with columns of its own, and sub- and superscript; a group's header
+kept with a stated number of its rows (0059), a first page's own page
+header (0060) and one template in several languages (0063) have since
+been built. It promises nothing: an item is
 built when its record is written, and that record may narrow it or turn
 it down.
 
@@ -255,7 +390,7 @@ registers on it (below).
   it moves the heading to, which the bound does not count.
 - **What the renderer cannot draw as written is refused** as
   `unsupported`, before anything is laid out: a chart in a page region,
-  one past the runtime's bounds on its ticks or its series, a pie of more
+  page 1's own header among them (0060), one past the runtime's bounds on its ticks or its series, a pie of more
   slices than a palette has colours, which the runtime never resolves, a word with a
   tab, a line break or any other control character, its empty text's
   included, and a drawing ECharts writes otherwise than it was read to

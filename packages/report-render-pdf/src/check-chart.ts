@@ -12,8 +12,9 @@ import { tall, type Place, type Walk } from './check-walk.js'
  * of its words or values, each of which may be the data's. In order:
  *
  * - **Where it stands.** In the body, in a column, a section or a
- *   keep-together block; never in a page region, which is drawn on every
- *   page and measured before the body, and where the runtime never puts a
+ *   keep-together block; never in a page region, which is measured before
+ *   the body and drawn on every page -- or, page 1's own header (0060),
+ *   once, in page 1's background -- and where the runtime never puts a
  *   chart.
  * - **What it is.** A kind the renderer knows, a box of a size, within the
  *   bounds no chart the runtime resolves passes (`checkBounds`), every
@@ -58,7 +59,11 @@ import { tall, type Place, type Walk } from './check-walk.js'
  */
 export function checkChart(chart: Chart, at: string, place: Place, walk: Walk): void {
   const named = `the chart ${chart.id}`
-  if (place.region) throw refusal(chart, `${named} stands in a page region, which is drawn on every page: a chart is drawn in the body`)
+  if (place.region)
+    throw refusal(
+      chart,
+      `${named} stands in ${place.everyPage ? 'a page region, which is drawn on every page' : "page 1's own header, a page region drawn in page 1's background"}: a chart is drawn in the body`,
+    )
   const kind: string = chart.chart
   if (kind !== 'bar' && kind !== 'line' && kind !== 'pie') throw refusal(chart, `${named} is of a kind the renderer does not know`)
   const { width, height } = chart

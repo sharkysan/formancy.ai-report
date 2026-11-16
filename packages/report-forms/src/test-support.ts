@@ -10,6 +10,7 @@
  */
 import { checkData, checkReport } from '@formancy/report-runtime'
 import type { ReportData } from '@formancy/report-runtime'
+import { writtenIn } from '@formancy/report-spec'
 import type { DatasetContract, FieldContract, FieldFormBinding, FieldType, ReportDefinition } from '@formancy/report-spec'
 import { generateReport } from './generate.js'
 import type { Generated, GenerateNote, GenerateOptions } from './generate.js'
@@ -68,11 +69,13 @@ export function formOf(fields: readonly unknown[], more: Record<string, unknown>
  * two ways and a host meets the runtime's refusal at a path it never
  * wrote. The one refusal left to the runtime is the report's own contract
  * against the answers: a field declared not nullable that the submission
- * left unanswered (0042).
+ * left unanswered (0042). Data read in a locale is held to the report
+ * written in it, as a render in that locale holds it (0063).
  */
-function admitted(report: ReportDefinition, outcome: SubmissionRead): SubmissionRead {
+function admitted(report: ReportDefinition, outcome: SubmissionRead, locale: string | undefined): SubmissionRead {
   if (outcome.ok) {
-    const check = checkData(report, outcome.data, { mode: 'preview' })
+    const printed = locale === undefined ? report : writtenIn(report, locale)
+    const check = checkData(printed, outcome.data, { mode: 'preview', reportLocale: report.locale })
     const refused = check.ok ? [] : check.errors.filter((error) => error.code !== 'unexpected-null')
     if (refused.length > 0)
       throw new Error(`the bridge handed over data the runtime refuses: ${refused.map((error) => `${error.code} ${error.path}`).join('; ')}`)
@@ -82,7 +85,7 @@ function admitted(report: ReportDefinition, outcome: SubmissionRead): Submission
 
 /** A submission read as `input`, by readSubmission. */
 export const readOne = (report: ReportDefinition, input: unknown, options?: ReadOptions): SubmissionRead =>
-  admitted(report, readSubmission(report, input as SubmissionInput, options))
+  admitted(report, readSubmission(report, input as SubmissionInput, options), options?.locale)
 
 /** One submission of `data`, read against `form`. */
 export function read(report: ReportDefinition, form: unknown, data: unknown, options?: ReadOptions): SubmissionRead {
@@ -106,7 +109,7 @@ export const headerOf = (outcome: SubmissionRead): Readonly<Record<string, unkno
 
 /** Many submissions, read as `input`, by readSubmissions. */
 export const readMany = (report: ReportDefinition, input: unknown, options?: ReadOptions): SubmissionRead =>
-  admitted(report, readSubmissions(report, input as SubmissionsInput, options))
+  admitted(report, readSubmissions(report, input as SubmissionsInput, options), options?.locale)
 
 /**
  * `outcome`, once a report it hands over is held to report-spec's

@@ -105,7 +105,19 @@ Every block of the resolved document:
   column aligned as it says unless a cell says otherwise. A group header
   `across` the table is one cell over every column. A group header is never
   the last row on a page, and a row that fits on a page is never split. A
-  group's footers and the totals under the last row stand on the page of
+  group header row that keeps more of its group's first rows
+  (`keepWithRows`) stands on the page of as many of them as fit there under
+  the repeated column header, and of its first row where no more do: a
+  group no longer than its count stands whole, with its footers, where it
+  fits, held by the last of them that prints though a footer row after it
+  prints nothing; a block short of its group ends on the last of those
+  rows that prints, since a rule finds a row on its page by its text; a
+  header that prints nothing keeps no more than its first row; and a
+  count on a row that is
+  no group header, outside 2 to `MAX_KEEP_WITH_ROWS`, or past the detail
+  rows under the header is refused as `unsupported`, naming the table
+  ([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+  A group's footers and the totals under the last row stand on the page of
   the row before them, and with its group header when that row is its
   group's first: a subtotal or a total never stands alone at the top of a
   page. Every column is as wide as it says, a fill column its share of
@@ -150,6 +162,13 @@ Every block of the resolved document:
 - **The page header and footer**, on every page, with the page number and
   the page count. The body is laid out between them, after both are
   measured.
+- **Page 1's own header**, where the document has one ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)), on
+  page 1 in the page header's place; the page header then prints from page
+  2 on. It is drawn in page 1's background, at the margin the page header
+  stands at, measured in a pass of its own, and page 1's body starts below
+  it and the gap, or at the top margin where it is empty, which is page 1
+  with no header. It holds no page field: page 1's number and count print in
+  the page footer, which page 1 prints as every page does.
 - **A QR-bill's payment part**, the receipt and the payment part with its
   Swiss QR Code, across the foot of the last page in place of its page
   footer (below).
@@ -162,10 +181,10 @@ Every block of the resolved document:
 | Code | When |
 |---|---|
 | `too-many-pages` | The report needs more pages than `maxPages`, a QR-bill's page included. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more, the room a bill's slip keeps included, is refused before pdfmake measures it. |
-| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below); a chart whose words would meet, leave its box or stand in its plot, whose category labels do not fit across their slots, whose plot is too short for two tick labels, whose bars would be narrower than 3.5 pt, or whose pie would be narrower than 24.75 pt, and a bar or a line chart of more than `MAX_CHART_CATEGORIES` categories; a render whose charts together weigh more than `MAX_CHART_DRAWING`, at the chart that crossed it (below). |
+| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body, and page 1's own header that leaves page 1 none or is taller than the printable area, naming `firstPageHeader` (0060); where page 1 has a header of its own, a block of fixed height or a line taller than the shorter of page 1's body and the later pages', and a keep-together block or a table's line under its repeated header that the later pages' body cannot hold, though page 1's taller body could; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below); a chart whose words would meet, leave its box or stand in its plot, whose category labels do not fit across their slots, whose plot is too short for two tick labels, whose bars would be narrower than 3.5 pt, or whose pie would be narrower than 24.75 pt, and a bar or a line chart of more than `MAX_CHART_CATEGORIES` categories; a render whose charts together weigh more than `MAX_CHART_DRAWING`, at the chart that crossed it (below). |
 | `invalid-asset` | An image's bytes are not the PNG, JPEG or SVG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side, and for an SVG a mebibyte; a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031); an SVG is not exactly the drawing report-spec's `cleanSvg` writes (below). A PNG's or a JPEG's structure is read by report-spec's `imageHeader`, which a builder refuses an image a person adds by too, in the same words (0033); whether a PNG's image data inflates to the scanlines its header promises is read here alone, since it needs the platform's decompressor. A host's font `readFont` refuses, one PDFKit would draw as another face, or one asset id handed in two byte strings, naming the asset (0043). |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or what a PDF/A cannot hold, an e-invoice's PDF/A-3b or a PDF/A-2b, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them; as a PDF/A-2b, a Factur-X, an XRechnung's copy and a labelled preview (below); and a chart it cannot draw as written: in a page region, past `MAX_TICK_INTERVALS` or `MAX_CHART_SERIES`, with a control character in any of its words, or whose drawing ECharts writes otherwise than it was read to write, or that ECharts lays out through another copy of zrender than the renderer's (below). |
+| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, page 1's own header among them, which is drawn before the pages are counted, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or what a PDF/A cannot hold, an e-invoice's PDF/A-3b or a PDF/A-2b, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them; as a PDF/A-2b, a Factur-X, an XRechnung's copy and a labelled preview (below); a count of kept rows (`keepWithRows`) on a table row that is no group header, outside 2 to `MAX_KEEP_WITH_ROWS`, or past the detail rows under its header, naming the table (0059); and a chart it cannot draw as written: in a page region, page 1's own header among them, past `MAX_TICK_INTERVALS` or `MAX_CHART_SERIES`, with a control character in any of its words, or whose drawing ECharts writes otherwise than it was read to write, or that ECharts lays out through another copy of zrender than the renderer's (below). |
 
 ## SVG images
 
@@ -197,26 +216,29 @@ the form that was approved.
   whatever its callbacks say; the check and the list do. The list may
   refuse more than report-spec's tables, never less: a test holds it to
   their `SVG_ELEMENTS`.
-- **Drawn again on every page in a page region.** pdfmake lays the page
-  header and footer out for each page, and the converter draws the drawing
-  each time: a PNG is embedded once, an SVG grows the PDF and the render
-  by its drawing on every page.
+- **Drawn again on every page in the page header or footer.** pdfmake
+  lays the page header and footer out for each page, and the converter
+  draws the drawing each time: a PNG is embedded once, an SVG grows the PDF
+  and the render by its drawing on every page. One in page 1's own header
+  is drawn on page 1 alone (0060).
 - **Bounded per render.** What drawing the SVGs costs the renderer is held
   to `MAX_SVG_DRAWING` units of what the converter draws -- lines, curves,
   elements, gradient stops and page-sized transparency groups, each
   weighted by what it was measured to cost beside a line, and every 32
   bytes of the drawing, which pdfmake and the converter read again each
   time it is drawn, whatever it draws -- counting an
-  image in a page region on every one of `maxPages`, the pages the report
-  may have, which is known before the render: a detailed header logo can
+  image in the page header or footer on every one of `maxPages`, the pages
+  the report may have, which is known before the render, and one in page
+  1's own header once: a detailed header logo can
   be refused at a high page limit though the report prints two pages. At
   the budget the renderer spends about what `MAX_IMAGE_DATA`'s largest
   images cost it to decode (`assets.ts` says how both were measured, on
   what and when). What they cost a reader is held
   to what one drawing may cost, which was measured as a page's:
   `MAX_SVG_SEGMENTS` and `MAX_SVG_GROUPS` over every SVG image of the body,
-  as though all fell on one page, and those of the page regions. A
-  translucent logo printed twice in the body can be refused for it.
+  as though all fell on one page, and those of the page regions, page 1's
+  own header's among them. A translucent logo printed twice in the body can
+  be refused for it.
 - **Held to PDF/A's limits in a PDF/A** (below), an e-invoice's PDF/A-3b or a
   PDF/A-2b: an SVG whose numbers could pass the integers a PDF/A holds, or
   whose drawing nests deeper than its graphics state may, is refused there
@@ -388,8 +410,9 @@ what that costs, is [0022](../../docs/decisions/0022-a-report-carries-one-swiss-
 
 - **Where.** The slip spans the paper's width and ends at its foot (IG 3.1),
   whatever the page margins. It is the last page's footer, drawn there in
-  place of the page footer; the page header is drawn as on every page. The
-  body keeps the slip's room at its end: when the last page has less room
+  place of the page footer; the page header is drawn as on every page, or
+  page 1's own header where the slip is on page 1 of a report that has one.
+  The body keeps the slip's room at its end: when the last page has less room
   left, the slip takes a page of its own, which the footers before it count.
 - **The code.** The payload as UTF-8 at level M, in the smallest version
   that holds it and none past 25 (IG 6), 46 mm square without a quiet zone
@@ -426,7 +449,7 @@ value, which may be a name, an address or an account:
 | Code | When |
 |---|---|
 | `unsupported` | A payment part of a kind the renderer does not know; a page that is not A4 in portrait; text that is not text, half of a surrogate pair in the payload, or a character Liberation Sans has no glyph for; an amount not written as the slip prints one, or outside report-spec's range, 0.01 to 999 999 999.99; a currency other than CHF and EUR; an address of more than three lines, additional information of more than two, or a value longer than 140 characters, the longest SIX allows. |
-| `content-too-large` | A payload of more than 997 characters, refused unencoded, or whose UTF-8 is more than version 25 holds at level M, 997 bytes (IG 6.2); a page whose top margin, with the page header and the instruction to separate, reaches into the slip, by report-spec's `qrBillPageBreak`, and a top margin alone in the editor's words; information taller than its section, 56 mm on the receipt and 85 mm in the payment part (SG 6). |
+| `content-too-large` | A payload of more than 997 characters, refused unencoded, or whose UTF-8 is more than version 25 holds at level M, 997 bytes (IG 6.2); a page whose top margin, with the page header and the instruction to separate, reaches into the slip, by report-spec's `qrBillPageBreak`, the taller of the page header and page 1's own header where a report has one, since which page is the last is known only once the pages are laid out (0060), and a top margin alone in the editor's words; information taller than its section, 56 mm on the receipt and 85 mm in the payment part (SG 6). |
 
 What the slip does not do:
 
@@ -556,7 +579,8 @@ invoice whose XML is the invoice
   as every report is -- no PDF/A, no file, no XMP, a title of any text and
   a CMYK logo drawn -- and its page header opens with the runtime's
   `XRECHNUNG_COPY_PARAGRAPH`, `XRECHNUNG_COPY_LABEL` in small red bold,
-  so every page says it is the copy. Never a ZUGFeRD hybrid of the
+  and so does page 1's own header where it has one, so every page says it
+  is the copy. Never a ZUGFeRD hybrid of the
   XRECHNUNG profile.
 
 It refuses, as `unsupported` and before pdfmake sees the document:
@@ -567,7 +591,8 @@ It refuses, as `unsupported` and before pdfmake sees the document:
   XRechnung's whose syntax, version or guideline is not report-spec's;
 - an XRechnung whose page header does not open with the copy's label as
   the runtime writes it, `XRECHNUNG_COPY_PARAGRAPH`, its style and all,
-  naming `pageHeader`: a final picture of an invoice that says nothing of
+  naming `pageHeader`, or whose first page header, where it has one, does
+  not, its none among them, naming `firstPageHeader` (0060): a final picture of an invoice that says nothing of
   what it is, or says it in white or at one point, where PDF.js would
   still find the text. That the label names no font, and prints in the
   renderer's, and that the paper is white, the renderer drawing none, are
@@ -751,11 +776,28 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
   keep-together block, a column or a page region, and not past the end of a
   framed section: a heading that ends a framed section is not kept with
   what follows it.
+- **Say when a group header keeps fewer rows than its row says.** Where
+  the rows it keeps do not fit on a page with it under the repeated column
+  header, it is kept with as many as fit, and nothing says so: the heights
+  are the data's, and a render has no warning to give (0059).
 - **Refuse a spacer at the foot of a page.** One that does not fit what is
   left of a page moves to the next and starts there, without its space.
 - **Measure page regions per page.** They are measured once, every page
   field printed as `maxPages`, so a region that wraps only for some page
-  numbers is measured at its widest.
+  numbers is measured at its widest. Page 1's own header, which holds no
+  page field, is measured once, in a pass of its own.
+- **Print a page number in page 1's own header, or a footer of page 1's
+  own.** Page 1's own header is drawn when page 1 is added, before the
+  pages are counted, and page 1 prints the page footer every page prints.
+  Where page 1's own header is taller than the page header, a block page
+  1's body cannot hold whole starts page 2, page 1 printing its header
+  alone; where it is shorter, or none, a kept block, a table's line under
+  its repeated header or an image that only page 1's taller body could
+  hold is refused, even in a report that would end on page 1, since where
+  a block lands is known only once the body is laid out; and where a
+  report has one, the page header is still measured and held to leaving a
+  body, though a report of one page prints it on no page
+  ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
 - **Draw an SVG as a browser does, compared.** That the PDF shows what a
   browser draws of the same cleaned drawing is held by report-spec's allow
   lists and by review; no browser's rendering is compared with the PDF.
@@ -776,7 +818,10 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
 `@formancy/report-corpus` and proves each PDF with the corpus's checks, or
 holds a refusal to the one the fixture allows
 ([0003](../../docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)).
-These are the tests decision 0005 names. Each block kind is read back from
+These are the tests decision 0005 names; the corpus's kept rows' fixture
+(`KEEP_WITH_FIXTURES`), which the trial never drew, is rendered beside
+them, and `group-rows.test.ts` holds a group header to the rows its row
+keeps, or as many as fit, on the PDFs (0059). Each block kind is read back from
 the PDF it produced: its text and images with PDF.js, through the corpus's
 reader, and its lines, rectangles, clips and text colours from the PDF's own
 content streams (`src/testing/drawing.ts`), which PDF.js's text does not
@@ -794,6 +839,15 @@ them. `samples.test.ts` does the same for the corpus's invoice samples,
 the invoice in German, French, Italian and English: one page each, its
 totals in its locale's format, its slip's headings in its language and in
 no other's, and its code asking for the total it prints.
+`languages.test.ts` prints the corpus's invoice written in the same four
+languages as one report, in each of them: that language's words and none
+of the report's own in another, its total in that locale's format, its
+slip's headings in its language and its code carrying the message in it,
+each PDF equal by `inflatedDigest` to the invoice written in that language
+alone; and every starter and sample prints the same bytes with its own
+locale named as with none. The renderer draws a translated report's
+document as it draws any other, and the PDF names no language of its own
+([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 `euro-samples.test.ts` does it for the euro invoice's samples, the
 starter and the invoice from Austria, France, Italy, Spain, the
 Netherlands and Ireland: one page each, its totals as `Intl` formats its
@@ -826,7 +880,7 @@ corpus's reader through the transparency groups a clip path draws into,
 `contain`'s proportions, and from the pixels `cover` and a
 root's transform painting nothing outside the box, each beside the same
 drawing as it came, which does; and the budget at its bound and one past
-it, an image in a page region counted on every page. `svg-threats.test.ts`
+it, an image in the page header or footer counted on every page. `svg-threats.test.ts`
 refuses each hazard svg-to-pdfkit meets in an SVG as it came -- a local
 image, text, a style sheet, an entity, a `use` fan-out, a link -- before
 pdfmake runs, and shows each guard behind the check hold without it; holds
@@ -843,6 +897,22 @@ access policy, the link it writes whatever its callbacks say, the drawing
 xmldoc hands it, its warnings, its clip and the page-sized groups it draws
 for every reference. Every SVG the renderer draws in these tests is held
 to carrying no annotation.
+
+`first-page-header.test.ts` proves page 1's own header on its PDF (0060):
+each of the corpus's `FIRST_PAGE_FIXTURES`, a long grouped table under a
+letterhead taller than the page header, under none and under a header
+shorter than it, reads on page 1, line by line and drawing by drawing,
+exactly as the same document under a page header like its own, and on every
+later page exactly as under the page header alone; a one-page report prints
+its own header and the page header nowhere, with a QR-bill's slip under it,
+its code decoded; a heading kept with the next block stays first on page 1,
+a kept block page 1 cannot hold starts page 2 whole, and the slip is held
+below the taller header; its SVG counts once, and a heading in it names no
+destination. `pdfmake.test.ts` pins what that rests on: the background laid
+out in a box as large as the page, an empty node's top margin moving the
+next line up or down by itself, a header function returning null, as the
+renderer's does, and a table's fill painted under its own text beneath the
+background.
 
 `fonts.test.ts` reads the faces the package embeds, Roboto's four and
 Liberation Sans's two, through report-spec's reader to the values measured

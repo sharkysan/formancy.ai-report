@@ -500,6 +500,53 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     accept: fromForm,
     at: ['/datasets/header/form/kind'],
   },
+  // A translation into the report's own language would print over the
+  // words it is written in; two into one would leave which prints to the
+  // order they were read in (0063).
+  'duplicate-language': {
+    refuse: set('/translations', [{ locale: 'de-CH', words: [], expressions: [] }]),
+    accept: set('/translations', [{ locale: 'fr-CH', words: [], expressions: [] }]),
+    at: ['/translations/0/locale'],
+  },
+  // A text with no letter prints as written in every language, and is
+  // never looked up: its translation would translate nothing.
+  'not-a-word': {
+    refuse: set('/translations', [{ locale: 'fr-CH', words: [{ word: '12.50', text: '12,50' }], expressions: [] }]),
+    accept: set('/translations', [{ locale: 'fr-CH', words: [{ word: 'Qty', text: 'Qté' }], expressions: [] }]),
+    at: ['/translations/0/words/0/word'],
+  },
+  // One word, one translation in a language: two would leave which prints
+  // to the order they were read in.
+  'duplicate-word': {
+    refuse: set('/translations', [
+      {
+        locale: 'fr-CH',
+        words: [
+          { word: 'Qty', text: 'Qté' },
+          { word: 'Qty', text: 'Quantité' },
+        ],
+        expressions: [],
+      },
+    ]),
+    accept: set('/translations', [
+      {
+        locale: 'fr-CH',
+        words: [
+          { word: 'Qty', text: 'Qté' },
+          { word: 'Price', text: 'Prix' },
+        ],
+        expressions: [],
+      },
+    ]),
+    at: ['/translations/0/words/1/word'],
+  },
+  // A word a language leaves out cannot print nothing in its place: a
+  // blank translation would be a column with no header.
+  'blank-translation': {
+    refuse: set('/translations', [{ locale: 'fr-CH', words: [{ word: 'Qty', text: ' ' }], expressions: [] }]),
+    accept: set('/translations', [{ locale: 'fr-CH', words: [{ word: 'Qty', text: 'Qté' }], expressions: [] }]),
+    at: ['/translations/0/words/0/text'],
+  },
 }
 
 function errorsOf(document: unknown): readonly ReportError[] {

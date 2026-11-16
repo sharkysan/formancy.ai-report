@@ -125,6 +125,21 @@ export function editorWithEInvoice(): ReportEditor {
 }
 
 /**
+ * editorToDraw()'s report written in French too, with no French word yet,
+ * French chosen in the bar and the inserted text selected (0063): the
+ * switch drawn after the title with an option per language, the boxes of
+ * what prints a word marked missing, and the text's field with its note.
+ */
+export function editorWithLanguages(): ReportEditor {
+  const opening = openReportSession({ ...reportToDraw(), translations: [{ locale: 'fr-CH', words: [], expressions: [] }] })
+  if (!opening.ok) throw new Error('the report in two languages did not open a session')
+  const editor = insertAndSelect(createReportEditor(opening.session, { locale: 'de-CH' }))
+  if (!editor.dispatch({ type: 'setLanguage', locale: 'fr-CH' }).ok) throw new Error('the editor did not show the French')
+  if (!editor.state().properties.fields.some((field) => field.note !== undefined)) throw new Error('the text selected shows no word to write in French')
+  return editor
+}
+
+/**
  * Everything about `root` -- the editor's root element, as a builder drew it
  * for `state` -- that is not as report-builder-core's README says: one
  * sentence per difference, empty when there is none.
@@ -176,6 +191,40 @@ export function structureProblems(root: MarkupElement, state: EditorState): stri
     'the root lacks the wb grid or the state panel',
   )
   expect(spokenText(root).includes(state.document.title), `the report's title ${state.document.title} is not shown`)
+
+  // The switch between the report's languages (0063): one select, named by
+  // the catalogue, with an option per language the state declares, each
+  // its tag and its label, outside the toolbar, whose arrows it would take;
+  // and none for a report written in its own language alone.
+  const switches = parts('language')
+  if (state.languages.declared.length > 1) {
+    const [switcher] = switches
+    const options = switcher === undefined ? [] : elementsIn(switcher).filter((element) => element.tag === 'option')
+    expect(
+      switches.length === 1 && switcher?.tag === 'select' && nameOf(switcher) === t('language.label'),
+      `there is not one select named ${t('language.label')}`,
+    )
+    expect(
+      options.length === state.languages.declared.length &&
+        state.languages.declared.every((language, at) => {
+          const option = options[at]
+          return option !== undefined && spokenText(option) === language.label && attribute(option, 'value') === language.locale
+        }),
+      'the switch does not offer the languages the state declares, by tag and label',
+    )
+  } else expect(switches.length === 0, 'a switch between languages is drawn for a report written in one')
+
+  // A word not written yet in the language edited (0063): each box the
+  // state says of marked for the stylesheet, and each field's note drawn,
+  // as many as the state has.
+  const missing = state.view === 'design' ? state.canvas.boxes.filter((box) => box.missing !== undefined).length : 0
+  expect(
+    parts('box').filter((box) => attribute(box, 'data-missing') === 'true').length === missing,
+    `the boxes marked missing are not the ${String(missing)} the state says`,
+  )
+  const notes = state.properties.fields.flatMap((field) => (field.note === undefined ? [] : [field.note]))
+  const drawnNotes = parts('property-note').map((note) => spokenText(note))
+  expect(drawnNotes.length === notes.length && notes.every((note) => drawnNotes.includes(note)), `the fields' notes drawn are not ${notes.join(' | ')}`)
 
   // The toolbar: named, one tab stop rather than a keyboard walking every
   // tool, the zoom as the state says it, and a button for each pane, which on a

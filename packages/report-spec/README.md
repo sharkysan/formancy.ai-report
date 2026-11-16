@@ -28,9 +28,10 @@ if (!outcome.valid) {
 - anything a shape does not have, and every reference to something the
   report does not declare;
 - a value standing where it has none: a detail field outside the table's
-  cells, a page number outside the page header and footer or anywhere in a
-  QR code, an EPC QR code or a QR-bill, whose content is resolved before
-  there are pages;
+  cells, a page number outside the page header and footer -- in the first
+  page's own header too, which is drawn before pages are counted -- or
+  anywhere in a QR code, an EPC QR code or a QR-bill, whose content is
+  resolved before there are pages;
 - a QR code of no runs, which would encode nothing;
 - a fixed size the page cannot hold, a QR code's and an EPC QR code's
   square measured against `squareRoom`;
@@ -105,6 +106,41 @@ text. It reports up to `MAX_ERRORS` errors and says when there were more.
 It checks structure, and what a payment code's literal texts say: whether
 an expression compiles, what a code's data resolves to, and whether the
 rendered output fits, are the runtime's and the renderer's questions.
+
+## A table's group
+
+The table over the detail dataset groups its rows by one detail field, one
+level in version 0: its `group` names the field (`by`) and its order, a
+header of runs read once per group, its style, and the footer rows that
+total the group. A group header is kept on its page with the group's first
+row; `keepWithRows` states how many of its first rows instead
+([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+
+```ts
+import { MAX_KEEP_WITH_ROWS } from '@formancy/report-spec'
+
+// An order's lines, grouped by delivery:
+const group = {
+  by: { dataset: 'detail', field: 'delivery' },
+  direction: 'asc',
+  header: [{ kind: 'field', field: { dataset: 'detail', field: 'delivery' } }],
+  keepWithRows: 3,
+  footer: [],
+} as const
+// keepWithRows 0 or 33: out-of-range at /group/keepWithRows. 2.5: not-an-integer. '3': wrong-type.
+MAX_KEEP_WITH_ROWS // 32: chosen, not measured
+```
+
+- **A whole number from 1 to `MAX_KEEP_WITH_ROWS`**; absent, it is one,
+  the rule every group header has had. One written out is accepted, as a
+  flag's default is, and hashes apart from the member's absence.
+- **The group's own**, so that each level of a later nesting states its
+  own; on the table it is `unknown-property`.
+
+What it does not check: whether that many rows fit on a page under the
+table's column header, which only the data says. 0059 has the runtime
+resolve the count against the group it made, and the renderer keep as many
+of them as fit.
 
 ## A QR-bill
 
@@ -480,6 +516,65 @@ What they do not check:
   fit its box, which the renderer reads once it has laid the chart out
   ([0058](../../docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)).
 
+## A report in several languages
+
+A report is written in its own `locale`, and may declare `translations`:
+for each other language, its words written in that language, each looked
+up by its exact text in the report's own, and each expression that
+prints words by its exact source ([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)). Its types and its
+walk are `translation.ts`'s, the report written in one of its languages
+`report-in.ts`'s, and `validate-translations.ts` holds a translation to
+what it may be.
+
+```ts
+import { declaredLocales, isWord, MAX_LANGUAGES, MAX_WORDS, renderLocale, reportIn, reportWords, writtenIn } from '@formancy/report-spec'
+import type { ReportDefinition, Translation } from '@formancy/report-spec'
+
+const french: Translation = {
+  locale: 'fr-CH',
+  words: [{ word: 'Quantity', text: 'Quantité' }, { word: 'No lines.', text: 'Aucune ligne.' }],
+  expressions: [{ cel: 'row.count == 1 ? "item" : "items"', expression: { cel: 'row.count == 1 ? "article" : "articles"' } }],
+}
+declare const report: ReportDefinition // one the validator accepts, its translations [french]
+reportWords(report) // each word at each place it stands: { path, text, componentId?, columnId? }
+declaredLocales(report) // ['de-CH', 'fr-CH']: the report's own first
+renderLocale(report, 'fr') // { ok: false, message: '"fr" is not a locale this report is written in; ...' }
+reportIn(report, 'fr-CH') // the report in French, whole, locale 'fr-CH', no translations; throws where a word is missing
+writtenIn(report, 'fr-CH') // the same, a missing word left in the report's own: what each language is validated as
+isWord('12.50') // false: a text with no letter prints as written in every language
+MAX_LANGUAGES // 24, the report's own among them
+MAX_WORDS // 1024 words, and as many expressions, in each translation
+```
+
+- **The words** are the title; each literal run of a text, of a table's
+  cells, its group's header and its footer rows' cells; a table's column
+  headers and its empty text; a chart's titles, its empty text, the label
+  of its rows without a category and each series' label; and a QR-bill's
+  message. A literal is a word only where it holds a letter. Every other
+  string prints as written in every language -- a QR code's content, an
+  EPC QR code's texts, a bill's account, parties, reference and billing
+  information, an e-invoice's texts, a field's and a parameter's label, a
+  parameter's default -- and `NOT_WORDS`, beside the walk, names each,
+  which `words.test.ts` holds every string of the format to.
+- **An expression run where a word stands** is translated whole, by its
+  source; which of them print words, report-core's diagnostics say.
+- **The validator** holds a translation's shape: a locale written as the
+  report's is, never the report's own nor twice (`duplicate-language`), a
+  word that holds a letter (`not-a-word`), once in a language
+  (`duplicate-word`), and never translated blank (`blank-translation`).
+  Then it writes the report in each language and reads it again, so that
+  a translation is held to every rule each place of its word holds the
+  word to, and an error is reported at the translation, naming the place
+  and the language.
+- **In a translation's locale** the QR-bill's headings are printed in that
+  locale's language where SIX has headings in it, and in the bill's own
+  where it has none. In the report's own locale the report prints as it
+  did, without its translations.
+
+What they do not check: whether a language holds every word, which
+report-core's `languageDiagnostics` says, and the runtime refuses a render
+for.
+
 ## An SVG asset
 
 An image asset may be `image/svg+xml`, held to one form: what `cleanSvg`
@@ -748,7 +843,7 @@ validator refuses: only a valid report has a hash.
 ## Start, find and measure
 
 ```ts
-import { componentAt, emptyReport, mmToPt, printableArea, squareRoom, walkComponents } from '@formancy/report-spec'
+import { componentAt, emptyReport, heldRegions, mmToPt, printableArea, squareRoom, walkComponents } from '@formancy/report-spec'
 
 const blank = emptyReport('site-visit', 'Site visit', 'de-CH') // A4 portrait, 20 mm margins
 const margin = mmToPt(15) // 42.52: lengths are points, stored to the hundredth
@@ -756,13 +851,29 @@ const { width } = printableArea(blank.page) // what the margins leave
 const { side, length } = squareRoom(printableArea(blank.page)) // the largest square, a QR code's room
 for (const { component, path, depth } of walkComponents(blank)) console.log(depth, path, component.id)
 componentAt(blank, 'title') // where a component is, by id: the path its errors use
+heldRegions(blank.regions).map(([region]) => region) // ['reportHeader', 'pageHeader', 'body', 'pageFooter', 'summary']
 ```
+
+A report holds five regions, and may hold a sixth (`REGION_NAMES`, in the
+order a reader meets them): `firstPageHeader`, which page 1 prints in place
+of the page header, the page header then printing from page 2 on
+([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+Its presence is the choice: absent, page 1 prints the page header; present
+and empty, page 1 prints no header. `OPTIONAL_REGIONS` names it, and
+`Regions` holds it optionally, so `report.regions[name]` over
+`REGION_NAMES` may be `undefined`; `heldRegions` gives the regions a report
+holds, each with its components, and the walk visits those alone. What
+stands in it is what the page header holds -- no table, chart, page break
+or keep-together block -- but no page number or count, refused as
+`misplaced-page-counter`: page 1's number and count print in the page
+footer.
 
 `REPORT_SPEC_VERSION` is `0`, the draft: nothing written under it is promised
 to be read by a later release. Nor by an earlier one: a kind the draft gains
 is refused as `unknown-kind` by a release that predates it, never skipped. A
 report with a `qrCode` or an `epcQrCode` is refused so by 0.1.0, and one
 with a `paymentPart` or an `eInvoice` as `unknown-property`; a report with
-a `chart` is refused so by 0.2.0.
+a `chart` is refused so by 0.2.0, and one whose table's group states
+`keepWithRows`, or with a `firstPageHeader`, as `unknown-property`.
 
 Source-available, not open source: see [`LICENSE.md`](../../LICENSE.md).

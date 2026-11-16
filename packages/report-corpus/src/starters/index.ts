@@ -34,6 +34,8 @@ export {
 } from './euro-invoice.js'
 export { equipmentData, equipmentRows, GROUPED_EQUIPMENT } from './grouped-equipment.js'
 export { INVOICE, INVOICE_EN, INVOICE_FR, INVOICE_IT, INVOICE_SAMPLES, invoiceData, invoiceLines } from './invoice.js'
+export { INVOICE_EDITIONS, INVOICE_LANGUAGES, invoiceAlone, invoiceLanguagesData } from './invoice-languages.js'
+export type { Edition } from './invoice-words.js'
 export { LETTERHEAD, LOGO, LOGO_ASSET } from './logo.js'
 export { lineAmount, QUOTATION, quotationData, quotationLines } from './quotation.js'
 export { INSPECTION_PHOTO, inspectionData, inspectionNotes, SERVICE_INSPECTION } from './service-inspection.js'

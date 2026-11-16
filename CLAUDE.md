@@ -154,7 +154,8 @@ renderer draws, and `checkSvg`, which accepts only that form; the runtime
 hands both on and refuses an answer past `MAX_SVG_BYTES`; and the renderer
 draws only what `checkSvg` accepts, as vectors, behind its own list of
 elements in `svg-content.ts` and converter callbacks that refuse, a logo
-in a page region counted on every page against `MAX_SVG_DRAWING`
+in the page header or footer counted on every page against
+`MAX_SVG_DRAWING`, and one in page 1's own header once
 ([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 A font is read once, by report-spec's own reader: `readFont`, in
 `font.ts` and the `font-*.ts` beside it, reads a static TrueType font
@@ -242,6 +243,43 @@ writes to what 6.1.0 was seen to write and takes its words out, after
 `chart-content.ts` prints one unbreakable stack, the marks through the
 converter and each word as pdfmake's text where ECharts placed it; and
 `chart-empty.ts` places a chart with nothing to draw without ECharts.
+A report's first page may print a header of its own, or none, in place
+of the page header, through all four and both builders: report-spec's
+optional sixth region, `firstPageHeader`, between the report header and
+the page header in `REGION_NAMES`, named by `OPTIONAL_REGIONS`, read by
+name in `validate.ts` and walked only where a report holds it
+(`heldRegions`), its presence the choice and its empty list none, a page
+field refused in it by `validate-inline.ts`; report-core's
+`putFirstPageHeader` and `removeFirstPageHeader`
+(`commands/first-page-header.ts`); the runtime's
+`ResolvedDocument.firstPageHeader`, headed with every label the page
+header carries; the renderer's `definition.ts` drawing it in page 1's
+background, page 1's body moved by the difference between the two
+headers' rooms, `render.ts` measuring it in a pass of its own, a kept
+block held to the later pages' body and a block of fixed height to the
+shorter, and `check-images.ts` counting its drawings once; the corpus's
+`FIRST_PAGE_FIXTURES`, apart from `ALL_FIXTURES`, and `regionsOn`, which
+reads page 1 by its own header; and builder-core's `report-fields.ts`,
+the report's properties choosing it, and `scenario-first-page.ts`
+([0060](docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+A report may be written in several languages: its own `locale` and the
+`translations` beside it, each a language's words keyed by their exact
+text in the report's own and the expressions that print words keyed by
+their source. Report-spec's `translation.ts` is the one walk of the words
+a report prints, `NOT_WORDS` every other string with its reason,
+`validate-translations.ts` holds each language to the rules every report
+is held to, and `report-in.ts`'s `reportIn` writes the report in a
+declared locale; report-core diagnoses each language as a report
+(`diagnostics/words.ts`'s `languageDiagnostics`), a word missing being
+`word-missing`, an error of that language alone, and edits one through
+`addLanguage`, `removeLanguage`, `translateWord` and
+`translateExpression`; the runtime prints in the locale a render names,
+the report's own or a declared one exactly, refusing a render only for
+its own language's errors (`languages.ts`), every word, value, row
+order, a form's labels and the slip's headings in that locale and never
+another's; and both builders edit one language at a time (builder-core's
+`languages.ts`)
+([0063](docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 `@formancy/report-documents` is the one reader of PDFs, beside report-spec,
 which holds no PDF engine, and nothing calls it yet: `readDocument`, in
 `read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
@@ -309,7 +347,8 @@ scopes indexed once and held to formancy's `modelDataPaths`
 (`version.test.ts`), every field the report reads checked against each
 version before an answer is read, formancy's kinds mapped once in
 `kinds.ts`, a number by its digits or refused (`numbers.ts`), labels from
-that version in the report's locale, and the data host-captured, its
+that version in the locale the render names (0063), and the data
+host-captured, its
 source naming each submission and its version; the binding is
 report-spec's, on the dataset contract (`validate-form-binding.ts`)
 ([0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).

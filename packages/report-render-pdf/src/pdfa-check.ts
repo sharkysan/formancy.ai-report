@@ -43,8 +43,11 @@ export function checkPdfA(document: ResolvedDocument, asked: '2b' | undefined): 
   // An e-invoice it does not know is refused, never embedded as something else or drawn as a plain PDF (`e-invoice.ts`), whatever was asked.
   const eInvoice = document.eInvoice === undefined ? undefined : checkEInvoice(document.eInvoice)
   if (asked === '2b') refuseAs2b(eInvoice, document.pageHeader)
-  // An XRechnung's PDF is a plain copy, labelled so on every page (0038).
-  if (eInvoice?.kind === 'xrechnung') checkCopyLabel(document.pageHeader)
+  // An XRechnung's PDF is a plain copy, labelled so on every page (0038): page 1 by its own header, where it has one (0060).
+  if (eInvoice?.kind === 'xrechnung') {
+    checkCopyLabel(document.pageHeader, 'pageHeader')
+    if (document.firstPageHeader !== undefined) checkCopyLabel(document.firstPageHeader, 'firstPageHeader')
+  }
   const pdfa: PdfA | undefined = eInvoice?.kind === 'facturX' ? { subset: 'PDF/A-3b', file: eInvoice } : asked === '2b' ? { subset: 'PDF/A-2b' } : undefined
   if (pdfa !== undefined) checkPdfATitle(document.info.title, pdfa)
   return pdfa

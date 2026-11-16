@@ -4,7 +4,9 @@ import {
   AXIS_PAINT,
   CHART_FIXTURES,
   E_INVOICE,
+  FIRST_PAGE_FIXTURES,
   GRID_PAINT,
+  KEEP_WITH_FIXTURES,
   LABEL_DISTANCE,
   pageDimensions,
   readPdf,
@@ -32,11 +34,13 @@ import { documentOf, fixture, fixtureOf, paragraph, TIMEOUT, type Stated } from 
  * was given (0003). These are the gate decision 0005 names: the trial chose
  * pdfmake on this corpus, and the renderer grown from its adapter is held to
  * it here, and to the corpus's SVG fixtures beside it (0030), which the
- * trial's engines never drew.
+ * trial's engines never drew, its kept rows' fixture (0059), which they
+ * never kept, and its fixtures of page 1's own header (0060), which they
+ * never drew either.
  */
 
-/** Section 20's fixtures, the SVG ones and the chart ones. */
-const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...CHART_FIXTURES]
+/** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's and the chart ones. */
+const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES]
 
 /**
  * Why each chart fixture the renderer refuses is refused, by its message,
@@ -132,6 +136,7 @@ describe('the renderer on the corpus', () => {
   test('runs a corpus that has fixtures, and excuses none of them', () => {
     expect(ALL_FIXTURES.length).toBeGreaterThan(0)
     expect(SVG_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
+    expect(FIRST_PAGE_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect(CHART_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect([...CHART_REFUSALS.keys()]).toEqual(CHART_FIXTURES.filter((fixture) => fixture.expect.outcome === 'refuse').map((fixture) => fixture.id))
     expect([...CANNOT.keys()]).toEqual([])
