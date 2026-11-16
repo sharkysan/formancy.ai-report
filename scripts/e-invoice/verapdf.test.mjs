@@ -178,6 +178,7 @@ describe('veraPDF’s verdict', () => {
       ['variant-blocks.pdf', 'as expected', []],
       ['variant-svg.pdf', 'as expected', []],
       ['variant-svg-bound.pdf', 'as expected', []],
+      ['variant-charts.pdf', 'as expected', []],
       ['variant-fonts.pdf', 'as expected', []],
       ['variant-host-fonts.pdf', 'as expected', []],
       ['variant-service-inspection.pdf', 'as expected', []],

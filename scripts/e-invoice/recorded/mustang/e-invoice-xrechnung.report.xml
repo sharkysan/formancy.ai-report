@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="e-invoice-xrechnung.xml" datetime="2026-11-15 13:49:22">
+<validation filename="e-invoice-xrechnung.xml" datetime="2026-11-16 14:48:20">
   <xml>
     <info>
       <version>2</version>
@@ -10,7 +10,7 @@
         <fired>25</fired>
         <failed>0</failed>
       </rules>
-      <duration unit="ms">10182</duration>
+      <duration unit="ms">975</duration>
     </info>
     <summary status="valid"/>
   </xml>
