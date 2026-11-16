@@ -96,6 +96,11 @@ recording holds them.
   has one detail dataset", where it said one detail table, which a report
   may now hold several of; the code and what the generator leaves out are
   unchanged.
+- **The start page's first absence**, in all four languages, says that a
+  report reads one list of detail rows and that its tables print rows of
+  that list alone, each grouped by one field or by none, where it said one
+  detail table: true of 0.2.0 and of this release alike. Its date is
+  unchanged, since the sentence was as true of both on that day.
 - **What it costs.** One detail dataset still: two lists from two sources, a
   subreport and a nested detail are the roadmap's. A table's own total
   prints inside the table alone, and a cell cannot read it. In a builder a
