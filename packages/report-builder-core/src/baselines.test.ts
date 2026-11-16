@@ -191,6 +191,39 @@ describe('the setBaseline action', () => {
     expect(editor.state().history.canUndo).toBe(false)
   })
 
+  // In another language the field shows the translation, and a selection
+  // of its characters means nothing in the report's own run: applied, its
+  // offsets would set other characters off the line in every language, and
+  // refused as a stale value, the person would be told to commit what they
+  // never typed (0063). Part of a run is refused, saying where it is set,
+  // the report unchanged; nothing or all of it selected sets the run whole,
+  // in every language, as a run's other properties are.
+  test('sets a run whole from another language, and refuses part of it there, saying where it is set', () => {
+    const report = { ...withIntro([text('Water')]), translations: [{ locale: 'fr-CH', words: [{ word: 'Water', text: 'Eau' }], expressions: [] }] }
+    const { editor, session } = editorOver(report)
+    expect(editor.dispatch({ type: 'setLanguage', locale: 'fr-CH' }).ok).toBe(true)
+    expect(editor.dispatch({ type: 'select', id: 'intro' }).ok).toBe(true)
+    const part = editor.dispatch({ type: 'setBaseline', key: '/content/0', baseline: 'subscript', selected: { start: 0, end: 1, text: 'Eau' } })
+    expect(part).toMatchObject({ ok: false, code: 'unavailable' })
+    expect(editor.state().status.text).toBe(
+      "Part of Text is set below or above the line in the report's own language: switch to it, or select nothing to set all of Text.",
+    )
+    expect(intro(session)).toEqual([text('Water')])
+    expect(editor.state().history.canUndo).toBe(false)
+    for (const selected of [
+      { start: 1, end: 1, text: 'Eau' },
+      { start: 0, end: 3, text: 'Eau' },
+    ]) {
+      expect(editor.dispatch({ type: 'setBaseline', key: '/content/0', baseline: 'subscript', selected }), JSON.stringify(selected)).toMatchObject({ ok: true })
+      expect(intro(session)).toEqual([text('Water', 'subscript')])
+      expect(editor.dispatch({ type: 'undo' }).ok).toBe(true)
+    }
+    // A selection no field could give is refused there too, as in the report's own language.
+    const action = { type: 'setBaseline', key: '/content/0', baseline: 'subscript', selected: null } as unknown as EditorAction
+    expect(editor.dispatch(action)).toMatchObject({ ok: false, code: 'invalid-value' })
+    expect(intro(session)).toEqual([text('Water')])
+  })
+
   // A text field gives back a line broken by CR LF, or by CR alone, as LF,
   // as the platform reads a textarea's value: a run a host, a paste or a
   // proposal wrote so -- which the format takes and the renderer prints as

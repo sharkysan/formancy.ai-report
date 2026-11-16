@@ -179,10 +179,17 @@ export function setRunBaseline(
   const name = groupName(group, t)
   if (baseline !== null && !(BASELINE_SHIFTS as readonly unknown[]).includes(baseline)) return lent.refuse('invalid-value', t('input.option'))
   const shift = baseline as BaselineShift | null
-  if (run.kind === 'text' && selected !== undefined && !selects(selected, shownText(run.text)))
-    return lent.refuse('invalid-value', t('status.selectionStale', { name }))
+  // In another language the field shows the translation (0063): its selection is held to that text, and only
+  // nothing or all of it selected sets the run, whole; part of it would name characters the report's own run lacks.
+  const own = lent.local().language === null
+  if (run.kind === 'text' && selected !== undefined) {
+    const shown = own ? shownText(run.text) : (selected as { readonly text?: unknown } | null)?.text
+    if (typeof shown !== 'string' || !selects(selected, shown)) return lent.refuse('invalid-value', t('status.selectionStale', { name }))
+    if (!own && selected.start !== selected.end && !(selected.start === 0 && selected.end === shown.length))
+      return lent.refuse('unavailable', t('status.baselineInOwnLanguage', { name }))
+  }
   const range =
-    run.kind === 'text' && selected !== undefined ? { start: heldOffset(run.text, selected.start), end: heldOffset(run.text, selected.end) } : undefined
+    run.kind === 'text' && selected !== undefined && own ? { start: heldOffset(run.text, selected.start), end: heldOffset(run.text, selected.end) } : undefined
   const made = setBaseline(component.content, index, shift, range)
   if (JSON.stringify(made.content) === JSON.stringify(component.content)) return lent.refuse('unavailable', t('status.baselineUnchanged', { name }))
   const said = SAID[shift ?? 'line']

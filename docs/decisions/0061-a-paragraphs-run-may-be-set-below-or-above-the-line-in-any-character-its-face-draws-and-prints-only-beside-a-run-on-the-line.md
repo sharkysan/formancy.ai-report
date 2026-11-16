@@ -110,7 +110,9 @@
       unchanged, for a selection of other text than the report holds,
       with nothing selected in it too, or none a field could give, a key
       that names no run with a baseline -- a page counter's among them --
-      a baseline the format lacks, said as none of the options, a press
+      a baseline the format lacks, said as none of the options, part of
+      a run selected in another language, said as set in the report's own,
+      a press
       that would change nothing, and, by the validator, a split past
       `MAX_INLINES`; and an Add or a Remove of a run's group refused,
       saying it is part of the text.
@@ -357,6 +359,16 @@ chose an engine against.
   touched: runs a host or a paste wrote apart stay apart. Each press is
   one `updateComponent`, one undo step; a split past `MAX_INLINES` is the
   validator's to refuse, and changes nothing (0008).
+- **In another language, the whole run or nothing.** A run's baseline is
+  the run's in every language, and a field in another language shows the
+  translation, whose characters are not the report's own run's
+  ([0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+  There a press with nothing selected, or all of the translation, sets
+  the whole run, in every language; part of it is refused as
+  `unavailable`, the report unchanged, saying that part of a run is set
+  in the report's own language. A press applied to the translation's
+  offsets would set other characters off the line, and one refused as a
+  stale value would tell a person to commit what they never typed.
 - **Decided once.** builder-core holds the split, the join and the
   action (`baselines.ts`) and the groups and their buttons
   (`run-fields.ts`, `property-fields.ts`); a builder adds only the

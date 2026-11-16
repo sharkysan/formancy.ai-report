@@ -441,5 +441,7 @@ export const DE_CH: Catalogue = {
   'status.selectionStale':
     'In {name} steht, was eingegeben wurde, nicht was der Bericht enthält: Übernehmen Sie es oder drücken Sie Escape, bevor Sie einen Teil davon tief- oder hochstellen.',
   'status.baselineUnchanged': '{name} ist schon so gesetzt.',
+  'status.baselineInOwnLanguage':
+    'Einen Teil von {name} stellen Sie in der eigenen Sprache des Berichts tief oder hoch: Wechseln Sie zu ihr, oder wählen Sie nichts aus, um {name} ganz zu setzen.',
   'status.notOptionalRun': '{name} gehört zum Text: Er wird in seinem Feld bearbeitet, nie hinzugefügt oder entfernt.',
 }

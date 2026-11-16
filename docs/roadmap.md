@@ -55,10 +55,9 @@ that lands it.
    labels or cards on a stated grid.
 7. **Rich text from data**: a field that holds formatted text -- emphasis,
    sub- and superscript, lists, headings -- printed in the report's fonts,
-   in a format a record fixes and checks, never markup run as it arrives;
-   and a run of a template's own text set below or above the line, a
-   formula's digits or a unit's power, in any character its face draws
-   and not only those Unicode gives a raised or lowered form.
+   in a format a record fixes and checks, never markup run as it arrives,
+   its sub- and superscript as a template's own runs are set
+   ([0061](decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
 8. **Watermarks and backgrounds**: text or an image under every page or a
    range of pages, a letterhead or a "Draft".
 9. **A table of contents and bookmarks**: a contents page whose page
