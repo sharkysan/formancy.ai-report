@@ -1210,8 +1210,10 @@ and its total are of the rows printed above them. `totals` stays every
 detail row's, under every table and in the summary, a payment code, the
 e-invoice and a chart, and a table without a condition is handed the
 report's totals themselves as `table`, so a report without conditions
-resolves to the document it did. An e-invoice's lines' table has no condition,
-which the validator holds, so `e-invoice-lines.ts` orders every row as
-before. The document gains nothing: a table is the rows it prints,
+resolves to the document it did. A render in a language the report
+declares (0063) reads the condition as written, since a condition is no
+word (`NOT_WORDS`), so every language selects the same rows. An
+e-invoice's lines' table has no condition, which the validator holds, so
+`e-invoice-lines.ts` orders every row as before. The document gains nothing: a table is the rows it prints,
 and the renderer draws any number of them as it drew one
 ([0062](../decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).

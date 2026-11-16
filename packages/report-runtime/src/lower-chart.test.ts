@@ -100,6 +100,30 @@ describe('a chart beside a table', () => {
     expect(footers.map((cells) => cells[1])).toEqual(['10.25', '24.25', '1.50'])
   })
 
+  // A table that selects its rows (0062) prints and totals those alone, and
+  // a chart beside it, before it or after it, still totals every detail
+  // row, as `totals` does: a chart that read the rows a table before it
+  // selected would print another region's total than the report's, and a
+  // chart that changed with the tables around it would say nothing of
+  // which.
+  test('totals every detail row beside a table that selects its rows, before it or after it', () => {
+    const report = chartReport()
+    const everyRow = chartOf(report)
+    const [chart, table] = report.regions.body
+    const selecting = { ...(table as Extract<typeof table, { kind: 'table' }>), rowsWhen: { cel: 'row.units >= 2' } }
+    for (const body of [
+      [chart, selecting],
+      [selecting, chart],
+    ]) {
+      const document = resolved({ ...report, regions: { ...report.regions, body: body as typeof report.regions.body } })
+      const drawn = document.body.find((block) => block.kind === 'chart') as AxisChart
+      const printedTable = document.body.find((block) => block.kind === 'table') as Table
+      expect(drawn).toEqual(everyRow)
+      expect(drawn.series[0]?.values.map((each) => each?.text)).toEqual(['10.25', '24.25', '1.50'])
+      expect(printedTable.rows.filter((row) => row.kind === 'groupFooter').map((row) => row.cells[1])).toEqual(['24.25'])
+    }
+  })
+
   // R18 -- the same definition as a series and as an aggregate, rounded and
   // refused alike. A series rounded by a rule of its own would print 24.30
   // where the table's subtotal, rounded half to even, prints 24.20; one

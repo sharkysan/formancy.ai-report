@@ -2792,7 +2792,7 @@
       ]
     },
     "0062": {
-      "reviewed": "sha256:21b8660ab8112e37337288434034a28140300395340a4b6eb36be455c9474c2a",
+      "reviewed": "sha256:587adff1ec1f4b84e36755809b8033761000c3a403aa1e429585f13cff0b39c6",
       "limitations": [
         {
           "area": "format",
@@ -2839,7 +2839,8 @@
         },
         {
           "area": "runtime",
-          "says": "A chart reads every detail row whatever the tables beside it select, so it may show totals no table prints."
+          "says": "A chart reads every detail row whatever the tables beside it select, so it may show totals no table prints.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
         },
         {
           "area": "format",

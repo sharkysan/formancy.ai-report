@@ -637,8 +637,9 @@ MAX_WORDS // 1024 words, and as many expressions, in each translation
   string prints as written in every language -- a QR code's content, an
   EPC QR code's texts, a bill's account, parties, reference and billing
   information, an e-invoice's texts, a field's and a parameter's label, a
-  parameter's default -- and `NOT_WORDS`, beside the walk, names each,
-  which `words.test.ts` holds every string of the format to.
+  parameter's default, a table's row condition, so that a render selects
+  the same rows in every language -- and `NOT_WORDS`, beside the walk,
+  names each, which `words.test.ts` holds every string of the format to.
 - **An expression run where a word stands** is translated whole, by its
   source; which of them print words, report-core's diagnostics say.
 - **The validator** holds a translation's shape: a locale written as the

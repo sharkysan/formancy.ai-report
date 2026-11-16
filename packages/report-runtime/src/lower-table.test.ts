@@ -241,6 +241,30 @@ describe("a group header's kept rows", () => {
     ])
   })
 
+  // A table that selects its rows (0062) groups those alone, so the rows a
+  // header keeps are counted among them: Bern's five rows, of which the
+  // condition keeps two, keep two with their header, not the three the
+  // group states. A count of every row of the key would have the renderer
+  // keep a header of two rows with three, the next group's header among
+  // them, which it refuses (0059).
+  test('counts the rows a table’s condition selects in each group, never every row of its key', () => {
+    const selecting = report({ ...TABLE, rowsWhen: { cel: 'row.tag != "A-3" && row.tag != "A-4" && row.tag != "A-5"' }, group: { ...GROUP, keepWithRows: 3 } })
+    expect(kept(table(SITES, {}, selecting))).toEqual([
+      'groupHeader 2',
+      'detail',
+      'detail',
+      'groupFooter',
+      'groupHeader 2',
+      'detail',
+      'detail',
+      'groupFooter',
+      'groupHeader',
+      'detail',
+      'groupFooter',
+      'total',
+    ])
+  })
+
   // One row kept is the rule every group header has had, and the old
   // documents carry no member for it: a header of one row, a count of
   // one, and a report that states nothing each resolve to the row that

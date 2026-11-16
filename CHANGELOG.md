@@ -64,6 +64,14 @@ recording holds them.
   totals of nothing. At `MAX_DETAIL_ROWS`, eight tables each selecting every
   row resolved in a median of 12.2 s against 1.4 s for one table, on one
   machine on 15 November 2026, the figures beside `MAX_TABLES`.
+- **Beside a report's languages, charts and kept rows.** A condition is no
+  word: `NOT_WORDS` names it, so a render in any language the report
+  declares selects the same rows, and a translation keyed by a condition's
+  source is never read. A chart beside a table that selects its rows still
+  totals every detail row, before it or after it. A group header keeps as
+  many rows as its group states among the rows its table selects, and in a
+  second table as in the first; and a table in page 1's own header is
+  refused for where it stands, as before, whichever table it is.
 - **The renderer is unchanged**, and proved on the PDF it draws of an order
   in three tables, `several-tables.test.ts`: each table's rows, order,
   groups and totals line by line, the summary's total of every row, and the

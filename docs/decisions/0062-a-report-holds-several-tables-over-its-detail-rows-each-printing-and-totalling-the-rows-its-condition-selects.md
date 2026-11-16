@@ -143,6 +143,30 @@
     packed validator to refusing a table past `MAX_TABLES` as `too-many`
     at its own path, and to giving that report no hash, where it held it
     to refusing a second table.
+  - **Where it meets the records merged beside it.** report-spec's
+    `src/words.test.ts` holds a second table's condition among the
+    strings `NOT_WORDS` names as no word, with its reason
+    ([0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)),
+    and finds every table's column headers, group, footer and total rows
+    and empty text in the walk, each named by its own table; and
+    report-runtime's `src/languages.test.ts` selects the same rows in
+    German, French and Swedish, a French translation of the condition read
+    nowhere. Its `src/lower-chart.test.ts` resolves a chart before and
+    after a table that selects its rows to the chart beside a table of
+    every row (0055,
+    [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)),
+    and `src/lower-table.test.ts` counts the rows a group header keeps
+    among the rows the condition selects
+    ([0059](0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md));
+    report-render-pdf's `src/group-rows.test.ts` keeps a group header on
+    the page of its first three rows in the first of two tables and in the
+    second, wherever the page ends, proved on the PDF. report-spec's
+    `src/validate-first-page-header.test.ts` refuses a second table in
+    page 1's own header for where it stands and for nothing else
+    ([0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)),
+    and `src/validate-baseline.test.ts` refuses a baseline in a table's
+    cells and in its total rows, which the `table` scope reads
+    ([0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
   - **Seen failing, on 15 November 2026.** Each case was run before its
     code existed, or with its code put back or broken alone and restored,
     in the branch's working tree:
@@ -183,6 +207,20 @@
       with the second table said only where the regions were read whole;
     - report-render-pdf's overlapping case failed with the fourth table's
       condition taken out.
+
+    And on 16 November 2026, once 0058 to 0061 and 0063 were merged in:
+    - report-spec's `words.test.ts` guard failed on the second table's
+      `rowsWhen` until `NOT_WORDS` named it, and its walk case with the
+      walk reading a report's first table alone;
+    - report-runtime's languages case failed, the French render refused
+      as `translation-differs`, with the condition walked as an
+      expression where a word stands; its chart case with a table's
+      selection written back into the render's data; and its kept rows
+      case with the count taken over every row of the group's key;
+    - report-render-pdf's two tables case failed with rows kept in a
+      document's first table alone;
+    - report-spec's first page header case failed with the old refusal of
+      a second table put back.
 
 ## Context
 
