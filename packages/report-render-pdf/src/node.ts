@@ -17,12 +17,13 @@ import { LIBERATION_SANS } from './style.js'
  * four font files in pdfmake's own package, and Liberation Sans 2.1.5, for
  * a QR-bill's slip, from the two in this package's `fonts` directory -- all
  * of which the dependency-licence guard reads as OFL-1.1 (0006) -- and no
- * other file, and no address at all; but for an e-invoice, whose PDF/A
- * output intent PDFKit reads from its own `data/sRGB_IEC61966_2_1.icc`
- * with `fs`, past pdfmake's policy (pdfkit.js 5265), a profile the guard
- * holds to its reviewed digest (0031). The renderer reads the same files
- * once, for the characters they have glyphs for (`glyphs.ts`): Roboto's
- * for the first document, Liberation Sans's for the first with a bill.
+ * other file, and no address at all; but for a PDF/A -- an e-invoice's
+ * PDF/A-3b, or the PDF/A-2b a host asks for (0057) -- whose output intent
+ * PDFKit reads from its own `data/sRGB_IEC61966_2_1.icc` with `fs`, past
+ * pdfmake's policy (pdfkit.js 5265), a profile the guard holds to its
+ * reviewed digest (0031). The renderer reads the same files once, for the
+ * characters they have glyphs for (`glyphs.ts`): Roboto's for the first
+ * document, Liberation Sans's for the first with a bill.
  *
  * pdfmake is one configuration per process. It is set again before every
  * document, in the same synchronous step as `createPdf`, which reads it, so

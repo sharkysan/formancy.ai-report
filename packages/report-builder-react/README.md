@@ -100,6 +100,16 @@ change is drawn: a category moved keeps the keyboard on the same button of
 the group it went to, one removed hands it to the list's Add, and one
 added to its first field.
 
+**A report written in several languages**
+([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md))
+has a switch between them in the bar, a native `<select>` beside the
+title that dispatches `setLanguage`, drawn only while the report declares
+more than one; a language is added from the report's own properties, its
+Languages group's Add language. In another language than the report's
+own, a field at a word writes its translation, its note drawn under it
+and describing it, and a box or a field whose word is missing there is
+marked `data-missing`, the box described as missing by its `title`.
+
 **A run of a paragraph is set below or above the line from its group**
 ([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)): each run is a group with two buttons, Subscript and
 Superscript, each showing its word, named after the run by `aria-label`
@@ -141,8 +151,9 @@ and go without losing anything, and two builders can share one session:
 
 Exactly the structure `report-builder-core`'s README sets out under *What a
 builder renders*, which the Angular builder renders too: a region named
-"Report editor" with a bar above the panes (the title and the toolbar,
-with its four pane buttons), the outline pane with the place dialog
+"Report editor" with a bar above the panes (the title, the switch between
+the report's languages where it is written in more than one, and the
+toolbar, with its four pane buttons), the outline pane with the place dialog
 floating over it, the design view -- or the host's view in its place --
 the properties and the problems sharing the third column, and a bar below
 with the live region.
@@ -292,6 +303,11 @@ new child, the sheet's border, and a modified arrow taken by the toolbar.
 - **The place dialog's "nowhere" sentence** shows when a component has
   nowhere else to go. No report tried here has such a component. The test
   draws the dialog over a state that says so.
+- **Text that is not a number never reaches the editor from a number field.**
+  A browser empties an `<input type="number">` holding "tall" before any
+  change event fires, so the field says "This cannot be empty." rather than
+  "Enter a number.", and an optional one is emptied: the rows a group
+  header is kept with, emptied, are 1 again, the member's absence (0059).
 - Everything `report-builder-core` lists under *What it does not do*
   holds here too: the canvas is not the PDF, some properties have no
   editor yet, and two problems about the report as a whole share a name.

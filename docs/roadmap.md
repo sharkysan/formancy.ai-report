@@ -33,10 +33,18 @@ that lands it.
    scan, as a QR code is
    ([0020](decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
 2. **Nested groups**: a table grouped at several levels, each with its own
-   header, footer and totals, grouped and aggregated once in the runtime.
+   header, footer and totals, grouped and aggregated once in the runtime,
+   and each level's header kept with as many of its first rows as it
+   states, as one group's is
+   ([0059](decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
 3. **More than one dataset**: a second detail dataset, a subreport, and a
    detail nested in a detail -- an order's lines under each order -- each
-   resolved by the runtime as the one detail is.
+   resolved by the runtime as the one detail is; and more than one table,
+   each over a dataset of its own or over the detail rows a condition
+   selects, with its own columns, order, groups and totals. A record
+   decides what a report's totals read once it holds several tables, and
+   which one an e-invoice's lines are held to. Until then a second table
+   is refused.
 4. **Running totals**: a page's subtotal, carried forward at its foot and
    brought forward at the next page's head, as a German or Swiss invoice
    of many pages prints it.
@@ -46,15 +54,20 @@ that lands it.
 6. **Columns and labels**: a body that flows in columns, and sheets of
    labels or cards on a stated grid.
 7. **Rich text from data**: a field that holds formatted text -- emphasis,
-   lists, headings -- printed in the report's fonts, in a format a record
-   fixes and checks, never markup run as it arrives.
+   sub- and superscript, lists, headings -- printed in the report's fonts,
+   in a format a record fixes and checks, never markup run as it arrives;
+   and a run of a template's own text set below or above the line, a
+   formula's digits or a unit's power, in any character its face draws
+   and not only those Unicode gives a raised or lowered form.
 8. **Watermarks and backgrounds**: text or an image under every page or a
    range of pages, a letterhead or a "Draft".
 9. **A table of contents and bookmarks**: a contents page whose page
-   numbers are the PDF's, and the same outline as the PDF's bookmarks.
+    numbers are the PDF's, and the same outline as the PDF's bookmarks.
 10. **Positioned elements in the page header and footer**, which the
     format's plan already names
-    ([0007](decisions/0007-a-report-definition-is-its-own-versioned-document.md)).
+    ([0007](decisions/0007-a-report-definition-is-its-own-versioned-document.md)),
+    a first page's own page header among them as a page header is
+    ([0060](decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
 11. **More scripts**: right-to-left text, Arabic and Hebrew, and Chinese,
     Japanese and Korean, shaped as each script is written, with the
     fallback fonts the renderer's plan names
@@ -74,19 +87,14 @@ that lands it.
 
 ## What a render can be
 
-1. **PDF/A for any report**, not only an e-invoice, judged by veraPDF as
-   an e-invoice's PDF/A-3b is
-   ([0031](decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
-   Formancy Health's documents for Switzerland's electronic patient record
-   wait for it.
-2. **An accessible PDF**: tagged, its headings, tables, reading order and
+1. **An accessible PDF**: tagged, its headings, tables, reading order and
    images' alternative text taken from the report's own structure, and
    held to PDF/UA by a gate.
-3. **Excel and CSV**: a report's tables as a workbook and as text, every
+2. **Excel and CSV**: a report's tables as a workbook and as text, every
    value exact -- a decimal written as a decimal, never through a binary
    number.
-4. **Word and HTML**, after Excel.
-5. **A signed PDF**: a final render signed (PAdES) with a key the host
+3. **Word and HTML**, after Excel.
+4. **A signed PDF**: a final render signed (PAdES) with a key the host
    holds and hands to the renderer for that render. Report keeps no key.
 
 ## The editor

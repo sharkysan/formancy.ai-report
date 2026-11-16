@@ -140,6 +140,8 @@ async function run(step: ScenarioStep, mounted: Mounted<unknown>, session: Repor
       expect(field.getAttribute('aria-invalid')).toBe('true')
       return void expect(computeAccessibleDescription(field)).not.toBe('')
     }
+    case 'described':
+      return void expect(computeAccessibleDescription(find(step))).toContain(step.text)
     case 'document':
       return void expect(step.check(session.document()), step.says).toBe(true)
     case 'kept':

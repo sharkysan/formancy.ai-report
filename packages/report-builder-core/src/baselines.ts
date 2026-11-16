@@ -25,7 +25,7 @@ import type { BaselineShift, Inline, TextInline } from '@formancy/report-spec'
 import type { Edit } from './edits.js'
 import type { EditorOutcome, EditorRefusalCode, FieldSelection } from './model-actions.js'
 import { propertyTarget, specsOf } from './properties.js'
-import { groupName, isGroup } from './property-groups.js'
+import { groupName, isGroup } from './property-fields.js'
 import type { Derived, Local } from './state.js'
 import type { EditorLocale, EditorText } from './text.js'
 

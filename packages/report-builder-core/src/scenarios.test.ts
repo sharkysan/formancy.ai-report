@@ -10,7 +10,9 @@
  * of its images, a button per diagnostic and a status counting them, a
  * button hiding each side pane, nothing of a pane that is hidden, a
  * picture of each box and of the payment part's band on the canvas, each
- * selecting what it draws when clicked, and the live region; and, while
+ * selecting what it draws when clicked, the switch between the report's
+ * languages in the bar while it is written in more than one, and the live
+ * region; and, while
  * the state's `view` is the host's, a region named by the host's view in
  * the design view's place, holding the host's one button, taking none of
  * the builder's keys, and taking the keyboard from the middle pane it
@@ -186,6 +188,11 @@ class Driver {
     this.where = next
   }
 
+  /** Whether `query` is the bar's switch between the report's languages, which stands there while it is written in more than one. */
+  private switcher(query: ScenarioQuery): boolean {
+    return query.role === 'combobox' && query.name === this.t('language.label')
+  }
+
   /** The region in the middle pane: the design view, or the host's view while the state says it stands there. */
   private middle(): string {
     return this.state.view === 'host' ? (this.state.hostView?.name ?? '') : this.t('canvas.label')
@@ -321,6 +328,23 @@ class Driver {
     if (this.state.status.sequence < before + 2) throw new Error(`the editor never took ${file.name}`)
   }
 
+  /**
+   * What describes an element, as a builder describes it: a picture of the
+   * canvas by its running over and the word it lacks in the language
+   * edited, a field by its error and its note.
+   */
+  private description(query: ScenarioQuery): string {
+    if (query.role !== 'img') {
+      const { error, note } = this.field(query)
+      return [error, note].filter((said) => said !== undefined).join(' ')
+    }
+    const { canvas } = this.state
+    if (canvas.paymentPart?.label === query.name) return canvas.paymentPart.missing ?? ''
+    const box = canvas.boxes.find((candidate) => candidate.label === query.name)
+    if (box === undefined) throw new Error(`no picture ${query.name}`)
+    return [box.overflows ? this.t('canvas.overflow') : undefined, box.missing].filter((said) => said !== undefined).join('. ')
+  }
+
   private field(query: ScenarioQuery) {
     const found = this.state.properties.fields.find((field) => field.label === query.name && PROPERTY_ROLES[field.kind] === query.role)
     if (found === undefined) throw new Error(`no ${query.role} ${query.name} among ${this.state.properties.fields.map((field) => field.label).join(' | ')}`)
@@ -354,6 +378,9 @@ class Driver {
         )
       case 'status':
         return statusText(this.t, state, query.name) !== undefined
+      case 'combobox':
+        if (this.switcher(query)) return state.languages.declared.length > 1
+        return shown(state, 'properties') && state.properties.fields.some((field) => field.label === query.name && PROPERTY_ROLES[field.kind] === query.role)
       default:
         return shown(state, 'properties') && state.properties.fields.some((field) => field.label === query.name && PROPERTY_ROLES[field.kind] === query.role)
     }
@@ -406,6 +433,12 @@ class Driver {
         return
       }
       case 'choose': {
+        if (this.switcher(step)) {
+          const language = this.present(step) ? this.state.languages.declared.find((candidate) => candidate.label === step.option) : undefined
+          if (language === undefined) throw new Error(`no language ${step.option} in ${step.name}`)
+          this.editor.dispatch({ type: 'setLanguage', locale: language.locale })
+          return
+        }
         const field = this.field(step)
         const option = field.options?.find((candidate) => candidate.label === step.option)
         if (option === undefined) throw new Error(`no option ${step.option} in ${step.name}`)
@@ -439,12 +472,15 @@ class Driver {
         expect(this.focused).toEqual({ role: expectation.role, name: expectation.name })
         return void expect(this.present(expectation)).toBe(true)
       case 'value':
+        if (this.switcher(expectation)) return void expect(this.state.languages.edited).toBe(expectation.value)
         return void expect(this.field(expectation).value).toBe(expectation.value)
       case 'text':
         expect(expectation.role).toBe('status')
         return void expect(statusText(this.t, this.state, expectation.name)).toContain(expectation.text)
       case 'invalid':
         return void expect(this.field(expectation).error ?? '').not.toBe('')
+      case 'described':
+        return void expect(this.description(expectation)).toContain(expectation.text)
       case 'document':
         return void expect(expectation.check(this.session.document()), expectation.says).toBe(true)
       case 'kept':

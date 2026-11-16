@@ -20,6 +20,8 @@ import type { FormatErrorCode } from './format.js'
 export const RESOLVE_ERROR_CODES = [
   /** A creation date that is not an ISO 8601 instant with its zone. */
   'invalid-creation-date',
+  /** A locale a render names that the report is not written in: neither its own nor one its translations declare, a near one among them (0063). */
+  'undeclared-locale',
   /** An image whose bytes the host does not have, or a report with images and no way to fetch them. */
   'missing-asset',
   /** Bytes for an image that are not a `Uint8Array`, or of another media type than the asset declares or a report may draw. */
@@ -56,8 +58,14 @@ export const RESOLVE_ERROR_CODES = [
   'invalid-e-invoice',
   /** A warning, never an error: a preview of an e-invoice, which writes no XML and is not the invoice. */
   'e-invoice-preview',
-  /** A chart, which this release of the runtime does not yet resolve: lowered to nothing, the report would print without it. */
-  'chart-not-resolved',
+  /**
+   * A chart of more categories than the runtime groups, `MAX_CHART_CATEGORIES`,
+   * or a pie of more categories than its palette has colours: two slices of
+   * one colour would be told apart by nothing.
+   */
+  'chart-too-many-categories',
+  /** A pie a category of which totals less than zero: a share of a whole is never negative. */
+  'chart-negative-share',
   /** More errors were found than are listed. */
   'too-many-errors',
 ] as const

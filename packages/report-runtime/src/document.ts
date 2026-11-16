@@ -45,6 +45,7 @@ import type {
   XRechnungTerms,
   XRechnungVersion,
 } from '@formancy/report-spec'
+import type { Chart } from './chart-document.js'
 
 /**
  * A run of text, or a number only the engine knows when it lays out the
@@ -120,9 +121,10 @@ export interface TableColumn {
  * the row, so that a row's first line holds its first cell.
  *
  * A `groupHeader` is never the last row on a page: it moves to the next page
- * with the row it heads. A `detail` row may be taller than a page; the engine
- * then continues it on the next one, or refuses with `content-too-large`, and
- * never clips it.
+ * with the row it heads, or with as many of its group's first rows as it
+ * keeps (`keepWithRows`). A `detail` row may be taller than a page; the
+ * engine then continues it on the next one, or refuses with
+ * `content-too-large`, and never clips it.
  */
 export interface TableRow {
   readonly kind: 'detail' | 'groupHeader' | 'groupFooter' | 'total'
@@ -142,6 +144,15 @@ export interface TableRow {
    * style, or one of its conditional styles that held for this row.
    */
   readonly cellStyles?: readonly (TextStyle | null)[]
+  /**
+   * On a `groupHeader` alone: how many of its group's first rows it stands
+   * on its page with, from 2 to `MAX_KEEP_WITH_ROWS` and never more than
+   * the detail rows under it -- the count its group states, or the group's
+   * rows where it has fewer (0059). Absent, it is kept with its first row.
+   * An engine keeps it with as many of them as fit on a page under the
+   * repeated header, and with its first row where no more do.
+   */
+  readonly keepWithRows?: number
 }
 
 export interface Table {
@@ -320,7 +331,8 @@ export interface Section {
   readonly padding?: number
 }
 
-export type Block = Paragraph | Table | Image | QrCode | EpcQrCode | Rule | Rectangle | Spacer | PageBreak | KeepTogether | Columns | Section
+/** Every block a region holds; a chart's types are `chart-document.ts`'s. */
+export type Block = Paragraph | Table | Image | QrCode | EpcQrCode | Chart | Rule | Rectangle | Spacer | PageBreak | KeepTogether | Columns | Section
 
 export interface PageSetup {
   readonly size: PageSizeName
@@ -464,7 +476,15 @@ export interface ResolvedDocument {
     readonly creationDate: string
   }
   readonly page: PageSetup
-  /** Repeated on every page, at the top of the printable area. */
+  /**
+   * Page 1's own header, which page 1 prints at the top of the printable
+   * area in the page header's place (0060); an empty list is none, and page
+   * 1's body then starts at the top margin. Absent, page 1 prints the page
+   * header, as every page does. It holds no page field: report-spec refuses
+   * one in it, and the renderer draws it before the pages are counted.
+   */
+  readonly firstPageHeader?: readonly Block[]
+  /** Repeated at the top of the printable area on every page, or on every page but the first where the document has `firstPageHeader`. */
   readonly pageHeader: readonly Block[]
   /** Repeated on every page, at the bottom of the printable area. */
   readonly pageFooter: readonly Block[]

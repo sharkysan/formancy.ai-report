@@ -9,12 +9,15 @@
  *
  * The report header is the start of the body and the summary its end, so
  * the document has three regions: the page header and footer, repeated on
- * every page, and the body.
+ * every page, and the body; and a fourth where the report gives page 1 a
+ * header of its own, which page 1 prints in the page header's place
+ * (0060).
  */
-import type { Component, ComponentKind, RegionName } from '@formancy/report-spec'
+import type { Component, ComponentKind, OptionalRegionName, RegionName } from '@formancy/report-spec'
 import type { Block, TextStyle } from './document.js'
 import { imageBlock } from './images.js'
 import { encodedText, runOf } from './inlines.js'
+import { chartBlock } from './lower-chart.js'
 import { epcQrCodeBlock } from './lower-epc-qr-code.js'
 import { tableBlock } from './lower-table.js'
 import { holds, reportScope } from './render-context.js'
@@ -23,6 +26,8 @@ import { styled } from './styles.js'
 
 /** The document's regions, lowered. */
 export interface LoweredRegions {
+  /** Present exactly when the report has a first page header: what its components print, an empty list for none. */
+  readonly firstPageHeader?: readonly Block[]
   readonly pageHeader: readonly Block[]
   readonly pageFooter: readonly Block[]
   readonly body: readonly Block[]
@@ -76,17 +81,7 @@ const LOWER: { readonly [K in ComponentKind]: Lowerer<K> } = {
     ...optional('padding', section.padding),
   }),
   table: (table, { render, path, style }) => tableBlock(render, table, path, style),
-  // Interim (the charts plan, R10): a chart lowered to nothing would print the report without it, and nothing would say so.
-  chart: (chart, { render, path }) => {
-    render.problems.error({
-      stage: 'resolve',
-      code: 'chart-not-resolved',
-      path,
-      message: `chart ${chart.id} is not resolved by this release of the runtime`,
-      componentId: chart.id,
-    })
-    return undefined
-  },
+  chart: (chart, { render, path, style }) => chartBlock(render, chart, path, style),
   pageBreak: () => ({ kind: 'pageBreak' }),
   keepTogether: (kept, { render, path, style }) => ({ kind: 'keepTogether', blocks: blocksOf(render, kept.components, `${path}/components`, style) }),
 }
@@ -104,13 +99,16 @@ function blocksOf(render: Render, components: readonly Component[], path: string
   return components.flatMap((component, index) => blockOf(render, component, `${path}/${index}`, inherited) ?? [])
 }
 
-function region(render: Render, name: RegionName): Block[] {
+/** A region every report holds, lowered. */
+function region(render: Render, name: Exclude<RegionName, OptionalRegionName>): Block[] {
   return blocksOf(render, render.report.regions[name], `/regions/${name}`, undefined)
 }
 
 /** Every region of `render`'s report, lowered: the report header, body and summary as the one body. */
 export function lowerRegions(render: Render): LoweredRegions {
+  const own = render.report.regions.firstPageHeader
   return {
+    ...(own === undefined ? {} : { firstPageHeader: blocksOf(render, own, '/regions/firstPageHeader', undefined) }),
     pageHeader: region(render, 'pageHeader'),
     pageFooter: region(render, 'pageFooter'),
     body: [...region(render, 'reportHeader'), ...region(render, 'body'), ...region(render, 'summary')],

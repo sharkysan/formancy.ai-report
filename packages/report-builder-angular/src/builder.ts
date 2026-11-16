@@ -6,8 +6,10 @@
  * directive), a region named "Report editor". Its children, as the React
  * builder's are:
  *
- * - a bar with the report's title and the toolbar, which on a narrow screen
- *   is what switches between the panes, so it stands in none of them;
+ * - a bar with the report's title, the switch between the languages the
+ *   report is written in where it is written in more than one (0063), and
+ *   the toolbar, which on a narrow screen is what switches between the
+ *   panes, so it stands in none of them;
  * - the palette over the outline -- with no row in it, an empty tree and
  *   the sentence that says so -- with the place chooser floating over them
  *   while a keyboard chooses a place;
@@ -51,6 +53,13 @@ import { ReportToolbar } from './toolbar'
     <div class="wb-pane">
       <header>
         <span data-report-part="title">{{ state().document.title }}</span>
+        @if (state().languages.declared.length > 1) {
+          <select data-report-part="language" [attr.aria-label]="t()('language.label')" (change)="root.dispatch({ type: 'setLanguage', locale: $any($event.target).value })">
+            @for (language of state().languages.declared; track language.locale) {
+              <option [value]="language.locale" [selected]="language.locale === state().languages.edited">{{ language.label }}</option>
+            }
+          </select>
+        }
         <div reportToolbar></div>
       </header>
     </div>

@@ -2,6 +2,8 @@ import pdfmake from 'pdfmake'
 import {
   ALL_FIXTURES,
   E_INVOICE,
+  FIRST_PAGE_FIXTURES,
+  KEEP_WITH_FIXTURES,
   pageDimensions,
   readPdf,
   SHIFTED_FIXTURES,
@@ -23,12 +25,15 @@ import { fixture, TIMEOUT } from './testing/documents.js'
  * it produced, with the corpus's own checks, never on the definition pdfmake
  * was given (0003). These are the gate decision 0005 names: the trial chose
  * pdfmake on this corpus, and the renderer grown from its adapter is held to
- * it here, and to the corpus's SVG fixtures beside it (0030) and its runs
- * set below or above the line (0061), which the trial's engines never drew.
+ * it here, and to the corpus's SVG fixtures beside it (0030), which the
+ * trial's engines never drew, its kept rows' fixture (0059), which they
+ * never kept, its fixtures of page 1's own header (0060), which they
+ * never drew either, and its runs set below or above the line (0061),
+ * which they never set.
  */
 
-/** Section 20's fixtures, the SVG ones and those of runs set below or above the line. */
-const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...SHIFTED_FIXTURES]
+/** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's and those of runs set below or above the line. */
+const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...SHIFTED_FIXTURES]
 
 /**
  * The fixtures the renderer cannot satisfy, each with what it cannot do and
@@ -84,6 +89,7 @@ describe('the renderer on the corpus', () => {
   test('runs a corpus that has fixtures, and excuses none of them', () => {
     expect(ALL_FIXTURES.length).toBeGreaterThan(0)
     expect(SVG_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
+    expect(FIRST_PAGE_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect(SHIFTED_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect([...CANNOT.keys()]).toEqual([])
   })

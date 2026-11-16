@@ -203,7 +203,10 @@ export function readCheckedFormat(c: Ctx, value: unknown, path: string, scope: I
  * the page header and footer, printed. A table never stands in a page
  * region, so its cells are refused by region too; what a QR code, an EPC
  * QR code, a QR-bill or an e-invoice encodes is resolved before there are
- * pages, so it is refused in every region.
+ * pages, so it is refused in every region. The first page's own header is
+ * drawn on page 1 alone, when page 1 is laid out and before the pages are
+ * counted (0060): a count there has no value, and a number that is always
+ * 1 is text.
  */
 function readCounter(c: Ctx, path: string, scope: InlineScope, kind: 'pageNumber' | 'pageCount'): Inline {
   if (scope.encoded !== undefined) {
@@ -211,6 +214,12 @@ function readCounter(c: Ctx, path: string, scope: InlineScope, kind: 'pageNumber
       path,
       'misplaced-page-counter',
       `what ${scope.encoded} encodes is resolved once, before pages are counted, so a page number or count has no value in it`,
+    )
+  } else if (scope.region === 'firstPageHeader') {
+    c.f.report(
+      path,
+      'misplaced-page-counter',
+      "the first page's own header is drawn before pages are counted, so a page number or count has no value in it; the page footer prints page 1's",
     )
   } else if (!PAGE_REGIONS.includes(scope.region)) {
     c.f.report(path, 'misplaced-page-counter', `page numbers and counts have a value only in the page header and footer, not in the ${scope.region}`)

@@ -3,6 +3,9 @@
  * Node. consume.ts runs it and prints what it returns; it lives apart
  * because consume.ts stands near its size budget.
  *
+ * - the published types and validator take one on a paragraph's run, and
+ *   refuse one on a table's cell, which prints one string at one size,
+ *   where it is written;
  * - the runtime hands on report-spec's own names for a shift, not a copy,
  *   and states the size and the move an engine draws such a run at;
  * - a report whose paragraph sets one resolves to a document whose runs
@@ -18,11 +21,35 @@
 import { createReportEditor } from '@formancy/report-builder-core'
 import type { FieldSelection, GroupFocus } from '@formancy/report-builder-core'
 import { openReportSession } from '@formancy/report-core'
-import { BASELINE_SHIFTS } from '@formancy/report-spec'
-import type { ReportDefinition } from '@formancy/report-spec'
+import { BASELINE_SHIFTS, validateReport } from '@formancy/report-spec'
+import type { ReportDefinition, TableComponent, TextComponent } from '@formancy/report-spec'
 import { BASELINE_SHIFTS as RUNTIME_BASELINE_SHIFTS, resolveReport, SHIFTED_RISE, SHIFTED_SIZE } from '@formancy/report-runtime'
 import type { BaselineShift, ReportData } from '@formancy/report-runtime'
 import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
+
+/** Checks a run set off the line against consume.ts's `report`, whose `table` is its body, through the packed validator; throws on the first wrong, and says what held. */
+export function shiftedValidated(report: ReportDefinition, table: TableComponent): string {
+  const formula: TextComponent = {
+    id: 'formula',
+    kind: 'text',
+    content: [
+      { kind: 'text', text: 'H' },
+      { kind: 'text', text: '2', baseline: 'subscript' },
+      { kind: 'text', text: 'O' },
+    ],
+  }
+  if (BASELINE_SHIFTS.join() !== 'subscript,superscript') throw new Error(`the published baselines are ${BASELINE_SHIFTS.join(', ')}`)
+  const lowered = validateReport({ ...report, regions: { ...report.regions, summary: [formula] } })
+  if (!lowered.valid) throw new Error(`a paragraph's run set below the line was refused: ${lowered.errors.map((error) => error.code).join(', ')}`)
+  const shiftedCell: TableComponent = {
+    ...table,
+    columns: table.columns.map((column) => ({ ...column, value: { kind: 'field', field: { dataset: 'detail', field: 'amount' }, baseline: 'superscript' } })),
+  }
+  const misplaced = validateReport({ ...report, regions: { ...report.regions, body: [shiftedCell] } })
+  if (misplaced.valid || !misplaced.errors.some((error) => error.code === 'misplaced-baseline'))
+    throw new Error("a table's cell set above the line was not refused")
+  return "a paragraph's run set below the line read and a table's cell set above it refused"
+}
 
 /** Checks a run set off the line through the packed packages; throws on the first wrong, and says what held. */
 export async function shiftedRendered(): Promise<string> {

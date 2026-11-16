@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 import type { SiteInputs } from './inputs.js'
 import type { Language } from './languages.js'
 
@@ -7,6 +7,21 @@ export interface PageMeta {
   readonly title: string
   readonly description: string
   readonly name: string
+}
+
+/**
+ * The tests a claim rests on, one at least: each a file of this checkout,
+ * a test or the entry of a gate CI runs (checks/evidence.ts's
+ * `EVIDENCE_KIND`), so a test renamed or removed leaves the claim refused
+ * rather than resting on nothing.
+ */
+export type Evidence = readonly [string, ...string[]]
+
+/** A claim a page makes, as a card: its heading, its words, and the tests it rests on. */
+export interface Card {
+  readonly title: string
+  readonly text: ReactNode
+  readonly evidence: Evidence
 }
 
 /**
@@ -24,31 +39,57 @@ export interface PageGroup {
    */
   readonly slug: Readonly<Record<Language, string>>
   readonly meta: Readonly<Record<Language, PageMeta>>
+  /**
+   * Every claim card the page shows, in its order, in each language: the
+   * page shows these and no other (checks/evidence.ts), and each language's
+   * card rests on the one list of tests the English one does.
+   */
+  readonly cards: Readonly<Record<Language, readonly Card[]>>
   /** What the product page says of a topic page, in each language, under a heading of its own, with a link to it. */
   readonly teaser?: Readonly<Record<Language, Teaser>>
+  /**
+   * The Studio's words the page names, as the Studio writes them in every
+   * language: each is one a scene of docs/images/readme/captured.json says
+   * in quotes, and each page of the group says it (checks/studio-words.ts).
+   */
+  readonly studioWords?: readonly string[]
   /** HL7's trademark notice, which a page naming HL7 or FHIR carries in its footer. */
   readonly hl7Notice?: true
   /** Its picture for a shared link: one of the site's pictures, under docs/images, the same in every language or one for each. */
   readonly image?: string | Readonly<Record<Language, string>>
-  /** Where the page says its feature stands, for a page written before any release had its feature, which says at each release whether that one has it. */
+  /**
+   * Where the page says it stands, against the newest release when it was
+   * said: a page written before any release had its feature, which says at
+   * each release whether that one has it, or the start page, which says
+   * what the release holds and what Formancy Report does not do yet.
+   */
   readonly status?: PageStatus
   readonly Body: (props: { readonly page: PageContext }) => ReactElement
 }
 
 /**
- * Where a page says its feature stands (0024): the day it was last said,
- * and the newest release then, which had the feature or did not, as the
- * page's sentences say. A release CHANGELOG.md names after this one may
- * have it where that one did not, or no longer have it, so the site
- * refuses to render until somebody says whether it does (0028). The rest
- * is what the refusal names: the feature, the file whose sentences say
- * where it stands, those sentences, and the constant that holds this, to
- * change with them.
+ * Where a page says it stands (0024): the day it was last said, and the
+ * newest release then, which had the page's feature or did not, as the
+ * page's sentences say -- or, where the sentences say something else, what
+ * `ask` names: the start page's, what that release holds and what
+ * Formancy Report does not do yet. A release CHANGELOG.md names after this
+ * one may have the feature where that one did not, or no longer have it,
+ * or hold and lack other things, so the site refuses to render until
+ * somebody says what is true of it (0028). The rest is what the refusal
+ * names: the feature, the files whose sentences say where the page
+ * stands, those sentences, and the constant that holds this, to change
+ * with them.
  */
 export interface PageStatus {
   readonly asOf: string
   readonly release: string
   readonly feature: string
+  /**
+   * What the sentences must say again, where "whether that release has the
+   * <feature>" is not it: the start page's say what the release holds and
+   * what Formancy Report does not do yet.
+   */
+  readonly ask?: string
   readonly copy: string
   readonly sentences: string
   readonly constant: string
@@ -59,6 +100,8 @@ export interface Teaser {
   readonly text: string
   /** The link's words, which name the page it leads to. */
   readonly action: string
+  /** Where the topic's page stands, for a page with a status: the card says it beside the teaser. */
+  readonly standing?: string
 }
 
 /** The product page's group, the root of each language's pages: the one whose slugs are empty. */

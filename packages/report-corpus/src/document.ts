@@ -21,8 +21,13 @@ import type { PageSetup, ResolvedDocument } from '@formancy/report-runtime'
 
 export { REFUSAL_CODES, RenderRefusal } from '@formancy/report-runtime'
 export type {
+  AxisChart,
   BaselineShift,
   Block,
+  Chart,
+  ChartLegendEntry,
+  ChartSeriesValues,
+  ChartValue,
   Columns,
   ColumnSlot,
   EInvoiceFile,
@@ -34,6 +39,7 @@ export type {
   PageBreak,
   PageSetup,
   Paragraph,
+  PieChart,
   QrBill,
   QrBillHeadings,
   QrCode,

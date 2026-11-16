@@ -20,6 +20,8 @@ export const FORMS_ERROR_CODES = [
   'invalid-report',
   /** A report that reads no dataset from a form, or one the other reader reads: one row per submission is `readSubmissions`', one submission `readSubmission`'s. */
   'unbound-report',
+  /** A locale a read names its labels in that the report is not written in: neither its own nor one its translations declare, a near one among them, as a render in it is refused (0063). */
+  'undeclared-locale',
   /** What the host handed over is not what the reader takes: not an object, a part it does not know, or a part missing. */
   'invalid-input',
   /** Something JavaScript holds and JSON cannot, in a form or a submission: a getter, never run, a symbol key, a hidden property, a hole, an object of a class, one that throws when read, a number that is not finite, an own `__proto__` in a form or an answer; or a form or an answer nested past `MAX_DOCUMENT_DEPTH`, or holding a list longer than `MAX_DETAIL_ROWS`. */

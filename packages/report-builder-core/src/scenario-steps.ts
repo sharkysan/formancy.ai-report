@@ -34,6 +34,9 @@
  *   it. The live region is the status with no name; the problems' count is
  *   the status named by the problems pane.
  * - `invalid`: `aria-invalid="true"`, and an accessible description saying why.
+ * - `described`: the element's accessible description holds the text: a
+ *   box's that a word it prints is missing in the language edited, a
+ *   field's note on the language it writes (0063).
  * - `document`: `check` holds of the session's document.
  * - `kept`: `check` holds of what the scenario's store kept.
  */
@@ -53,7 +56,7 @@ export interface ScenarioQuery {
 }
 
 export const SCENARIO_ACTIONS = ['click', 'focus', 'press', 'fill', 'selectText', 'choose', 'host', 'upload'] as const
-export const SCENARIO_EXPECTATIONS = ['present', 'absent', 'focused', 'value', 'text', 'invalid', 'document', 'kept'] as const
+export const SCENARIO_EXPECTATIONS = ['present', 'absent', 'focused', 'value', 'text', 'invalid', 'described', 'document', 'kept'] as const
 
 /** A file an `upload` step hands the file input: what a runner makes a `File` of. */
 export interface ScenarioFile {
@@ -83,7 +86,7 @@ export type ScenarioStep =
   | ({ readonly do: 'upload'; readonly file: ScenarioFile } & ScenarioQuery)
   | ({ readonly expect: 'present' | 'absent' | 'focused' | 'invalid' } & ScenarioQuery)
   | ({ readonly expect: 'value'; readonly value: string } & ScenarioQuery)
-  | ({ readonly expect: 'text'; readonly text: string } & ScenarioQuery)
+  | ({ readonly expect: 'text' | 'described'; readonly text: string } & ScenarioQuery)
   | {
       readonly expect: 'document'
       /** What is checked, for the failure message. */

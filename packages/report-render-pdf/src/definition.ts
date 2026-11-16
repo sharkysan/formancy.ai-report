@@ -4,7 +4,7 @@ import type { CheckedBill } from './bill.js'
 import { newBuild, type Build, type Fields, type TablePlan } from './build.js'
 import type { Checked, Measured, Page } from './check.js'
 import { contentOf } from './content.js'
-import { PDF_A_3B } from './pdfa.js'
+import { pdfaOptions } from './pdfa.js'
 import { ABOVE_SLIP, slipContent } from './slip.js'
 import type { RenderFonts } from './host-fonts.js'
 import { DEFAULT_SIZE } from './style.js'
@@ -23,6 +23,16 @@ import { checkWords } from './words.js'
  * height and a 6pt gap, and each region is drawn at the document's own
  * margin: the header from the top of the printable area down, the footer
  * ending at its bottom. Nothing of the body can reach into either.
+ *
+ * Page 1's own header (0060): the header's box is the top margin, one for
+ * every page, so a header of page 1's own taller than the page header could
+ * not be drawn there whole, nor given room there without taking it from
+ * every later page. It is drawn in page 1's background, which pdfmake lays
+ * out in a box as large as the page, at the document's own margin, where
+ * the page header would stand; the page header's function draws nothing on
+ * page 1; and page 1's body is moved by the difference between the two
+ * headers' rooms, an empty node with that top margin at its head, down or
+ * up (`pdfmake.test.ts` holds all three).
  */
 
 /** The document's default text style: the font token-less text prints in -- the mapped `sans` host family, or Roboto -- at the default size (0043). */
@@ -37,6 +47,8 @@ export const REGION_GAP = 6
 export interface Regions {
   readonly header: number
   readonly footer: number
+  /** What page 1's header takes: its own where the document has one (0060), nothing for its none, and `header` where page 1 prints the page header. */
+  readonly first: number
 }
 
 /** What a measuring pass lays out: one item per thing measured, and the build that holds their images and marks. */
@@ -60,7 +72,13 @@ export function regionsMeasurement(
   const fields: Fields = { pageNumber: maxPages, pageCount: maxPages }
   const present = [document.pageHeader, document.pageFooter].filter((blocks) => blocks.length > 0)
   const build = newBuild('measure', checked, fonts)
-  return { present, build, items: present.map((blocks): Content => ({ stack: contentOf(blocks, build, checked.page.width, fields) })) }
+  return { present, build, items: present.map((blocks): Content => ({ stack: contentOf(blocks, build, checked.page.width, { fields }) })) }
+}
+
+/** Page 1's own header (0060), one item, laid out as page 1's background lays it out: a page region with no page field. */
+export function firstPageHeaderMeasurement(blocks: readonly Block[], checked: Checked, fonts: RenderFonts): Measurement {
+  const build = newBuild('measure', checked, fonts)
+  return { build, items: [{ stack: contentOf(blocks, build, checked.page.width, {}) }] }
 }
 
 /** The body's tables and keep-together blocks, each one item laid out at the width it stands at. */
@@ -70,7 +88,7 @@ export function bodyMeasurement(measured: readonly Measured[], checked: Checked,
   return { items, build }
 }
 
-/** Where the body starts and ends on every page, from the top of the paper: inside the margins and below and above the page regions. */
+/** Where the body starts and ends on every page, from the top of the paper: inside the margins and below and above the page regions; page 1's body starts `first - header` lower (0060). */
 export function bodyBounds(page: Page, regions: Regions): { readonly top: number; readonly bottom: number } {
   return { top: page.margins.top + regions.header, bottom: page.paperHeight - page.margins.bottom - regions.footer }
 }
@@ -99,10 +117,12 @@ export function slipReservation(page: Page, regions: Regions): number {
  * less room left, pdfmake moves to a new page and starts it without the
  * space, and the slip has that page to itself.
  *
- * A document with an e-invoice is a PDF/A-3b, whose version and subset are
- * the definition's (`PDF_A_3B`); its file and XMP are the final pass's hook
- * (`render.ts`). Neither moves a line: the measuring passes, which have
- * neither, lay the page out as this one does.
+ * A document drawn as a PDF/A -- an e-invoice's PDF/A-3b, or the PDF/A-2b
+ * a host asked for (`pdfa-check.ts`) -- has its version and subset in the
+ * definition (`pdfaOptions`); a PDF/A-3b's file and XMP are the final
+ * pass's hook (`render.ts`), and a PDF/A-2b has none. Neither moves a
+ * line: the measuring passes, which have neither, lay the page out as this
+ * one does.
  */
 export function layoutDefinition(
   document: ResolvedDocument,
@@ -116,28 +136,38 @@ export function layoutDefinition(
   const page: Page = checked.page
   const { margins } = page
   const { top: bodyTop, bottom: bodyBottom } = bodyBounds(page, regions)
-  const build = newBuild('render', checked, fonts, { top: bodyTop, bottom: bodyBottom }, plans)
-  const region = (blocks: readonly Block[], margin: [number, number, number, number]): DynamicContent | undefined => {
+  const firstShift = regions.first - regions.header
+  const build = newBuild('render', checked, fonts, { top: bodyTop, bottom: bodyBottom, firstShift }, plans)
+  /** A page region's content, built anew for each page pdfmake draws it on, which changes what it lays out. */
+  const region = (blocks: readonly Block[], margin: [number, number, number, number]): ((fields?: Fields) => Content) | undefined => {
     if (blocks.length === 0) return undefined
-    return (pageNumber, pageCount) => ({ stack: contentOf(blocks, build, page.width, { pageNumber, pageCount }), margin })
+    return (fields) => ({ stack: contentOf(blocks, build, page.width, fields === undefined ? {} : { fields }), margin })
   }
-  const header = region(document.pageHeader, [margins.left, margins.top, margins.right, 0])
-  const footer = region(document.pageFooter, [margins.left, REGION_GAP, margins.right, 0])
+  const pageHeader = region(document.pageHeader, [margins.left, margins.top, margins.right, 0])
+  const pageFooter = region(document.pageFooter, [margins.left, REGION_GAP, margins.right, 0])
+  const own = document.firstPageHeader
+  const firstPage = own === undefined ? undefined : region(own, [margins.left, margins.top, margins.right, 0])
+  const header: DynamicContent | undefined =
+    pageHeader === undefined ? undefined : (pageNumber, pageCount) => (own !== undefined && pageNumber === 1 ? null : pageHeader({ pageNumber, pageCount }))
+  const footer: DynamicContent | undefined = pageFooter === undefined ? undefined : (pageNumber, pageCount) => pageFooter({ pageNumber, pageCount })
   // Once now, so that their images are in the dictionary before pdfmake reads it.
-  header?.(1, 1, { width: page.paperWidth, height: page.paperHeight, orientation: document.page.orientation })
-  footer?.(1, 1, { width: page.paperWidth, height: page.paperHeight, orientation: document.page.orientation })
+  pageHeader?.({ pageNumber: 1, pageCount: 1 })
+  pageFooter?.({ pageNumber: 1, pageCount: 1 })
+  firstPage?.()
   // pdfmake lays the footer out from the body's foot, so the slip's parts are placed from there.
   const slip = bill === undefined ? undefined : (): Content => ({ stack: slipContent(bill, QR_BILL_TOP, bodyBottom, page.paperWidth) })
   const last: DynamicContent | undefined =
     slip === undefined ? footer : (pageNumber, pageCount, size) => (pageNumber === pageCount ? slip() : footer?.(pageNumber, pageCount, size))
   const reserved = bill === undefined ? [] : [{ stack: [], margin: [0, slipReservation(page, regions), 0, 0] } satisfies Content]
+  // Page 1's body moved to start below the header page 1 prints, where that is not the page header (0060).
+  const shifted = firstShift === 0 ? [] : [{ stack: [], margin: [0, firstShift, 0, 0] } satisfies Content]
   return {
-    ...(checked.pdfa === undefined ? {} : PDF_A_3B),
+    ...(checked.pdfa === undefined ? {} : pdfaOptions(checked.pdfa)),
     info: { title: document.info.title, creationDate: checked.creationDate },
     pageSize: { width: page.paperWidth, height: page.paperHeight },
     pageMargins: [margins.left, bodyTop, margins.right, page.paperHeight - bodyBottom],
     defaultStyle: defaultStyle(fonts),
-    content: [...contentOf(document.body, build, page.width), ...reserved],
+    content: [...shifted, ...contentOf(document.body, build, page.width), ...reserved],
     images: build.images,
     ...(header === undefined ? {} : { header }),
     ...(last === undefined ? {} : { footer: last }),
@@ -148,7 +178,8 @@ export function layoutDefinition(
         checkShifted(build.shifted)
       }
       if (number > maxPages) throw new RenderRefusal('too-many-pages', `the report needs more than ${maxPages} pages`)
-      return null
+      // Page 1's own header, in a box as large as the page; its words were held to their room when it was measured.
+      return number === 1 && firstPage !== undefined ? firstPage() : null
     },
     pageBreakBefore: (node, queries) => {
       const rule = node.headlineLevel === undefined ? undefined : build.rules.get(node.headlineLevel)

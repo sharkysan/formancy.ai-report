@@ -59,6 +59,32 @@ describe('drop targets', () => {
     expect(editor.state().dropTargets.map((target) => target.label)).toContain('Inside Summary')
   })
 
+  // Page 1's own header takes a component only where the report has one,
+  // and never a page number or count, which have no value there (0060):
+  // offered before it exists, a drop would be refused; offered to a page
+  // field, it would print a number nothing counts. Its place is drawn in
+  // its band, where a pointer finds it, and not at the sheet's corner.
+  test('reach a first page header only where the report has one, in its band, and never for a page field', () => {
+    const report = richReport()
+    const plain = editorOver(report).editor
+    ok(plain.dispatch({ type: 'startDrag', subject: { kind: 'text' } }))
+    expect(plain.state().dropTargets.some((target) => target.location.region === 'firstPageHeader')).toBe(false)
+    const { editor } = editorOver({ ...report, regions: { ...report.regions, firstPageHeader: [] } })
+    ok(editor.dispatch({ type: 'startDrag', subject: { kind: 'text' } }))
+    const own = editor.state().dropTargets.filter((target) => target.location.region === 'firstPageHeader')
+    expect(own.map((target) => target.label)).toEqual(['Inside First page header'])
+    const band = editor.state().canvas.regions.find((region) => region.region === 'firstPageHeader')?.pt as Box
+    const indicator = own[0]?.pt as Box
+    expect(indicator.width).toBe(band.width)
+    expect(indicator.y).toBeGreaterThanOrEqual(band.y)
+    expect(indicator.y + indicator.height).toBeLessThanOrEqual(band.y + band.height)
+    ok(editor.dispatch({ type: 'cancelDrag' }))
+    ok(editor.dispatch({ type: 'startDrag', subject: { id: 'page-of' } }))
+    const regions = new Set(editor.state().dropTargets.map((target) => target.location.region))
+    expect(regions.has('firstPageHeader')).toBe(false)
+    expect(regions.has('pageHeader')).toBe(true)
+  })
+
   // A move is named in the list as it is without the component moved, the
   // list report-core counts its index in: one place down is "after" the
   // next one, not "after" itself.

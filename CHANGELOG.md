@@ -74,6 +74,231 @@ is set so, in the paragraph's own face, at pdfmake's own size and move.
   `unknown-property`, never printing the run on the line: the format is
   still the draft, version "0".
 
+**A report's first page may print a header of its own, or none, in place of
+the page header**
+([0060](docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+A letter, an invoice or an order often opens with a letterhead and runs on
+under a short line, or under nothing. A report could print a letterhead only
+in its report header, which is the start of the body: under the page header,
+which still printed above it on page 1, and with no room of its own. Page 1
+can now print its own header in the page header's place, which then prints
+from page 2 on, each page's body starting below the header that page prints.
+A report that does not use it resolves and prints exactly as before: every
+PDF the e-invoice gate records, drawn again by the changed renderer, has the
+digest it had.
+- **report-spec's sixth region, `firstPageHeader`**, optional, between the
+  report header and the page header in `REGION_NAMES`, which now lists six
+  names a report may hold five of; `OPTIONAL_REGIONS` names it, and
+  `heldRegions` lists the regions a report holds. Its presence is the
+  choice: absent, page 1 prints the page header; **empty, page 1 prints no
+  header**, which has no other spelling. It holds what the page header
+  holds, with a budget of its own, but **no page number or page count**,
+  refused as `misplaced-page-counter`: it is drawn before the pages are
+  counted, and page 1's number and count print in the page footer.
+- **report-core's `putFirstPageHeader` and `removeFirstPageHeader`**, each
+  one undo step and a descriptor a proposal can carry; removing it takes
+  what it holds with it, and a place in it is refused as `not-found` while a
+  report has none. The walk, `fieldReaders`, the diagnostics and a form
+  review reach what stands in it.
+- **The runtime's `ResolvedDocument.firstPageHeader`**, present exactly when
+  the report's is, an empty list for none and for one whose every component
+  its condition hides, never the page header's blocks; and headed by every
+  label the page header carries, a preview's, an e-invoice preview's and an
+  XRechnung's copy paragraph.
+- **The renderer draws it in page 1's background**, at the margin the page
+  header stands at, the page header drawing nothing on page 1, and moves
+  page 1's body by the difference between the two headers' rooms: a
+  pdfmake page header's box is the top margin, one for every page, which
+  would lose a taller letterhead's lines. It is measured in a pass of its
+  own, and refused as `content-too-large` naming `firstPageHeader` where it
+  is taller than the printable area or leaves page 1 no body; a page field
+  in a document's first page header is `unsupported`, an XRechnung's that
+  does not open with the copy paragraph is refused, and an SVG in it counts
+  once toward `MAX_SVG_DRAWING`. **What it costs**: where page 1's own
+  header is taller, a block kept together that page 1's body cannot hold
+  starts page 2, page 1 printing its header alone; an image, a QR code or
+  another block of fixed height taller than the shorter of page 1's and the
+  later pages' bodies is refused, though a later page could hold it,
+  because pdfmake draws an image on a page that holds nothing yet whatever
+  its room, and would draw it past page 1's foot; where page 1's own
+  header is shorter, or none, a block kept together, a table's line under
+  its repeated header or an image that only page 1's taller body could hold
+  is refused, even in a report that would end on page 1, because where a
+  block lands is known only once the body is laid out, and a later page
+  could not hold it whole;
+  a tall own header is held above a QR-bill's slip though the report may
+  end on a later page; and the page header is still measured and held in a
+  report of one page that prints it nowhere.
+- **Both builders choose it in the report's properties**: "Header on page
+  1", the page header or a header of its own, which prints none while it is
+  empty. The outline's group and the design view's band show it only where
+  a report has one, before the page header's, so a report without it shows
+  the outline and the design view it did; every report's properties show
+  the choice, and the README's picture of them is retaken for it.
+- **0.2.0 refuses a report with one** as `unknown-property`, and a 0.2.0
+  renderer handed this runtime's document would print the page header on
+  page 1 without a word: the runtime and the renderer are of one release. No
+  e-invoice variant draws one yet, so veraPDF and Mustang have not judged a
+  PDF/A-3b whose page 1 prints its own header. A first page's own footer is
+  not part of it.
+
+**A report's own words are written in each language it declares, and a render names the one it
+prints in**
+([0063](docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+A firm that bills in German, French, Italian and English kept a report for each language: four
+layouts edited four times and four reviews of every form version, as the invoice's samples still
+are (0024). A report may now declare `translations`: for each language beside its own `locale`,
+its words written in it, each looked up by its exact text in the report's own -- the title, a
+text's literal runs, a table's cells, group headers, footer rows, column headers and empty text, a
+chart's words and a QR-bill's message -- and each expression that prints words translated whole.
+`resolveReport` takes a `locale`, the report's own or a declared one exactly, and that locale
+writes every word, formats every value, orders the rows and, through report-forms' new `locale`
+read option, gives a form's labels; the slip's headings follow it where SIX has the language. A
+word missing in that language is an error of that language, `word-missing`, which refuses a
+render in it alone: nothing is printed in another language, and nothing falls back from de-CH to
+de-DE. report-spec gains `reportWords`, `renderLocale`, `reportIn` and `writtenIn`; report-core
+`addLanguage`, `removeLanguage`, `translateWord`, `translateExpression`, `languageDiagnostics`
+and `wordExpressions`, and a diagnostic names its `language`; the runtime refuses
+`undeclared-locale` and `labels-locale-differs`, and its manifest names the locale a render
+printed in. Both builders edit one language at a time, chosen in a switch their bar shows once a
+report declares a translation, its missing words marked and listed by their language, and every
+report's own fields end with a Languages group, before the images a report declares; the Studio's
+Preview prints the language the builder shows. A report without translations validates, hashes,
+resolves and prints exactly as before, which every starter's and sample's bytes hold, and 0.2.0
+refuses a report that has them. What it costs -- a word changed is a word to translate again, an
+expression is judged a word by a quote, codes and the XML keep one language and data the
+host's -- is the record's.
+
+**A table's group header may be kept on its page with as many of its group's first rows as the
+report states, or as many as fit**
+([0059](docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+Every group header was kept with its first row, and no more, so an order grouped by delivery
+could start a group at the foot of a page with its heading and one line, and the rest of the
+group on the next; nothing in the format could ask for more. A report that states no count
+resolves to the same document and prints to the same bytes: every corpus fixture, starter and
+invoice sample was compared byte for byte on the day the renderer changed.
+- **report-spec's `TableGroup.keepWithRows`**, a whole number from 1 to `MAX_KEEP_WITH_ROWS`,
+  32, chosen and not measured, on the group so that each level states its own once groups nest.
+  Absent, it is 1, the rule every header already had. 0 and 33 are refused as `out-of-range`,
+  2.5 as `not-an-integer`, at `/group/keepWithRows`; `keepWithRows: 1` is accepted and hashes
+  otherwise than its absence. It changes through `setGroup` and `updateComponent`, with no
+  command of its own.
+- **The runtime counts the group**: a `groupHeader` row carries `keepWithRows`, the stated
+  number or the group's rows where it has fewer, and only where that is more than one, so a
+  document of a report that states none has no such member. `MAX_KEEP_WITH_ROWS` is
+  re-exported for an engine to hold the row to.
+- **The renderer keeps the longer block** by the blocks, rules and planned breaks that kept the
+  first row: the header stands on the page of as many of its stated rows as fit there under the
+  repeated column header, a group no longer than its count whole with its subtotal, and of its
+  first row where no more fit. **A count is a most, and nothing says when fewer were kept**:
+  the heights are the data's, and refusing would refuse a report that loses nothing by printing.
+  A row with no text counts but never ends the block, since a rule finds a row on its page by
+  its text; a whole group's block is held by its subtotal though a footer row after it prints
+  nothing, and that blank row stands in the block's height. A header that prints nothing keeps
+  no more than its first row: a table's first group header still moves with it under the column
+  header, and any other is left where it falls. A report that states a count can need more
+  pages, and is refused as `too-many-pages` where that passes the host's limit. A count on a row
+  that is no group header, outside 2 to the bound, or past the detail rows under its header is
+  refused as `unsupported`, naming the table.
+- **Both builders show *Rows kept with each group header*** on a grouped table's properties, a
+  number reading 1 where none is stated; 1, or nothing, is written as the member's absence, and
+  a count given back as it reads is no edit. The Angular builder now gives a typed field back
+  what it reads once a commit is taken as no edit, as the React builder already did.
+- **0.2.0 refuses a report that states a count** as `unknown-property`, never printing it
+  without the count, and a 0.2.0 renderer handed this runtime's document keeps each header with
+  its first row alone.
+
+**The product pages are measured in a browser on every pull request**
+([0053](docs/decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)).
+Their reflow down to 320 pixels and their contrast were measured by hand in Chromium when each
+page arrived, and by nothing after. Four more pages are planned. Each adds a topic to the bar
+every page carries, so each would have measured every page again by hand: four rounds of up to
+32 pages cost more than one gate. CI's `browser` job now runs the pages' own gate after the
+Studio's. It serves every page of the built sitemap under `/report/` with the demo's headers,
+and measures each at 320 pixels with and without the web fonts, on a phone, one pixel past each
+breakpoint the built stylesheet writes in rem, on a laptop and on a screen, and refuses a
+stylesheet that asks about the width in any other form, a container query among them, since the
+layout at its edge would be measured by nobody. It fails a page that does not answer as itself,
+scrolls sideways, has anything past either edge, or has anything axe finds. It also fails a page
+whose first Tab is not its skip link, that does not wear the released room or load its faces,
+that fetches or hints at anything outside the built pages, or that the demo's policy refuses
+anything. It runs in Chromium alone, says nothing of what a page looks like, and does not follow
+a link to the Studio, which it does not serve beside the pages. Its first run in CI found the
+German licence terms table 8 pixels wider than a 320-pixel window in the runner's fallback face,
+with the web fonts refused: below 40rem the table now splits the width in half, and a word wider
+than its column breaks inside it.
+
+**The locked dependencies behind open Dependabot alerts are at their patched releases.** The
+server's image installs from the lockfile, so it now ships `fast-uri` 3.1.9, which `ajv` pulls in
+under Fastify and `@formancy/spec`; that is the only change to production code. The rest are
+development tools: `undici` 8.12.4, and `@angular/build` 22.2.6, whose `vite` 8.3.5 replaces the
+8.3.0 it pinned, with the builders' range floor raised to match. `minimatch` 10.2.6 stays: it comes
+through `@formancy/code-style`'s ESLint, and the fix is formancy.ai's, since a lint rule or its
+dependencies change there and never here.
+
+**A final render of any report that is no e-invoice may be drawn as a
+PDF/A-2b, with `renderPdf(document, { maxPages, pdfa: '2b' })`, in either
+entry**
+([0057](docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
+Switzerland's electronic patient record stores a PDF only as PDF/A-1 or
+PDF/A-2 (EPDV-EDI Anhang 2, Ziffer 2.4 lit. d, in force since 1 June
+2025), and only an e-invoice was a PDF/A here, as the PDF/A-3b the record
+does not take; Formancy Health's document for the record waits for a
+release that draws one. A host asks, and nothing changes for one that
+does not. The PDF is part 2 at level b, the one level in reach: no
+structure tree, so no tagged, accessible PDF. Its pages are the plain
+render's, it embeds nothing, and PDFKit writes its XMP and its sRGB output
+intent as it does an e-invoice's.
+- **What a PDF/A-3b refuses, a PDF/A-2b refuses**, as `unsupported` and
+  before pdfmake runs: a CMYK JPEG, an SVG whose numbers could pass
+  2,147,483,647 or that nests deeper than 28 graphics states, and a title
+  holding `&`, `<`, `>` or a character XML 1.0 cannot write. So a print
+  shop's CMYK logo, a logo shrunk into a small header box and a firm
+  called "Müller & Söhne" print as before and are refused as a PDF/A-2b,
+  and no builder or validator says so beforehand: whether a render is one
+  is the host's choice at that render.
+- **Refused as a PDF/A-2b**, each to be rendered without `pdfa`: a
+  Factur-X, which is drawn as the PDF/A-3b that embeds its XML; an
+  XRechnung's copy, which is never an archival PDF; and a preview the
+  runtime labels as one, which an archive would keep as the report. A
+  preview that lacks nothing carries no label and is drawn as its final
+  render is. Any other value of `pdfa` is a `RangeError`.
+- **The profile is a file on disk in Node.** PDFKit reads
+  `data/sRGB_IEC61966_2_1.icc` with `fs`, so a host that bundles the Node
+  entry ships that file where the bundled PDFKit's `__dirname` points, or
+  every PDF/A render fails, an e-invoice's as before and a PDF/A-2b's now.
+  The browser build carries the same bytes.
+- **The e-invoice gate's veraPDF judges every starter that is no e-invoice
+  as a PDF/A-2b**, with a page of every image kind, SVGs and a host's
+  fonts, in a second run with `--flavour 2b`, and refuses two controls:
+  the quotation drawn plain, and the e-invoice sample's PDF/A-3b, which a
+  veraPDF left to detect the flavour accepts as a 3b. That shows the
+  starters are PDF/A-2b, not that a customer's template is.
+
+**The start page leads with a card for each topic page, and every card on the site names the
+tests it rests on**
+([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md)).
+The topics stood in bands at the start page's foot, where a reader who came for the product has
+already left, and only the EPC QR code page's cards named their tests. Now the hero says what
+0.2.0 holds and links what has come since, and a card for each topic page follows, with its
+page's standing where the page has one. Then come exact totals, a section of their own, how it
+behaves, the starters, and what Formancy Report does not do yet, dated, with the roadmap linked:
+one detail table grouped by one field at most, no consistent read from Formancy Data, no print
+format but PDF, no codes but QR codes, Latin, Greek and Cyrillic only, no published PDF viewer,
+no render jobs, and no changes proposed by an AI. Every card on every page names its tests,
+which the pages' suite holds to the checkout, one list in every language. Claims no test held
+are gone, not softened: the healthcare page's forms card, which claimed formancy's facts, is
+cut, and the data cards now say only what the Studio's browser gate fails on. Every absence but
+one is held to the code, so a pull request that adds a component kind, a block report-spec
+prints, or a `report-render-*`, viewer or `report-ai` package, moves the data provider's client
+off Formancy Data 0.1.0's, gives the server the runtime or the renderer, or freezes the report
+format fails the pages' suite until the sentence is read again; one detail table grouped by one
+field at most rests on review. A word a page takes from the Studio is held to the Studio's
+recorded pictures. The start page has a status of its own, so a release commit rewrites its
+sentences beside the two payment code pages', and opens a new, empty Unreleased, which the start
+page links. No page compares Report with another product. The French and Italian are no native
+speaker's.
+
 **The demo at `/report/` is served under a content security policy that admits its own files
 alone**
 ([0051](docs/decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)).
@@ -154,8 +379,72 @@ an Excel export or a tagged PDF was coming or turned down. The page lists
 what a report can hold, what a render can be, the editor, the server and
 AI, each in order, code a report carries run in a sandbox among them,
 and the three things Report does not mean to do -- connect to a
-database, fetch by address, drill down -- with the reason for each. It promises nothing: an item is built when its
-record is written, and that record may narrow it or turn it down.
+database, fetch by address, drill down -- with the reason for each. What
+a report can hold takes in more than one table, each over rows of its
+own with columns of its own, and sub- and superscript; a group's header
+kept with a stated number of its rows (0059), a first page's own page
+header (0060) and one template in several languages (0063) have since
+been built. It promises nothing: an item is
+built when its record is written, and that record may narrow it or turn
+it down.
+
+**The runtime resolves a chart exactly, and the renderer refuses one
+until it draws charts**
+([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
+A chart is read for its numbers as a table is, and a chart that grouped,
+totalled or printed by rules of its own would print another number than
+the table beside it, with nothing to say which is right. So a chart is
+resolved by the runtime's own rules into a `chart` block, which holds
+every number and every word it prints; a renderer is handed strings to
+print and the digits of each coordinate. **Nothing prints a chart yet**:
+the renderer refuses a report that would print one, a preview as a final
+render, as `unsupported`, naming the chart, until it draws charts.
+- **Its categories are grouped where a table's rows are**: sorted, by the
+  table's own order, or in the order the data first gives each, one key
+  each, so that 1.0 and 1.00 are one category and grouping costs what a
+  table's does. The rows without a category are one category under its
+  `nullLabel`, last when sorted. A decimal category with no format prints
+  as its first row in the data's order spells it, which a table sorted
+  otherwise may spell differently; a category `format` with a scale
+  prints both alike.
+- **Each series is totalled by the function every aggregate is**, in the
+  decimals the compiler types an aggregate of the same function over the
+  same field in (report-core's `seriesType`, now exported). A series and
+  a group footer's aggregate of one definition, over the same rows and in
+  one format, print the same text, a declared rounding applied once as an
+  aggregate's is, and a rounding declared on a count or on a sum of
+  integers is refused by the runtime too, past the editor's check. A
+  series with no value at a category is null there, never zero.
+- **The value axis is chosen exactly**, by one rule: one, two or five
+  times a power of ten, at most `MAX_TICK_INTERVALS` (five) intervals,
+  no finer than the value format prints, over every series, computed in
+  BigInt so that a 40-digit total is ticked to its last digit. A bar's
+  axis holds zero, and so does a flat line's; any other line's is ticked
+  over its own values' range. **An author cannot set the axis's range or
+  its step.**
+- **A pie's shares are exact ratios rounded once**, to `SHARE_PLACES` (one)
+  place of a percentage, of the whole its slices make as they are drawn,
+  and printed by the formatter's new `percent`, which refuses a fraction
+  Intl would round again (`percent-rounds-again`, a new format code), as
+  no pie's share is. **Shares need not add up to 100.0 %**: three equal
+  slices print 33.3 % each, as `lower-chart.test.ts` holds. A percentage
+  is written as the engine's ICU writes one, and a pie entry that labels
+  its value reads `label: value (share)` in every language. A slice's
+  value prints only in its legend entry, never on the slice, and a pie
+  whose values its format cannot print is refused though it labels none
+  of them.
+- **Two new codes refuse what would be drawn wrong**, each naming the chart
+  and quoting nothing of the data: `chart-too-many-categories`, for a chart
+  of more than `MAX_CHART_CATEGORIES` (200, chosen) categories, or for a
+  pie of more categories than its palette has colours, since two slices of
+  one colour are told apart by nothing, either checked before anything is
+  totalled; and `chart-negative-share`, for a pie with a negative value,
+  even one that cancels to zero. A chart with nothing to draw -- no rows,
+  no value, a pie of zeros -- holds its title and its empty text alone.
+- **The runtime exports** the block's types (`Chart`, `AxisChart`,
+  `PieChart`, `ChartValue`, `ChartLegendEntry`, `ChartSeriesValues`) and
+  `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and `SHARE_PLACES`, so that
+  a host that tells an author a bound reads it rather than a copy.
 
 **A report may hold a bar, line or pie chart of its detail rows, which no
 release prints yet**
@@ -164,9 +453,10 @@ Reports are often read for a shape -- which month was up, which category
 is most of the total -- and Report could print numbers only in tables. A
 chart arrives a stage at a time, the format and the editing core first,
 and a stage that does not handle one yet refuses it rather than print the
-report without it: **the runtime refuses a report that would print a
-chart, a preview as a final render, as `chart-not-resolved`**, naming the
-chart, until it resolves charts; and **neither builder offers one yet**.
+report without it: **the renderer refuses a report that would print a
+chart, a preview as a final render**, naming the chart, until it draws
+charts, the runtime resolving it (above); and **neither builder offers one
+yet**.
 - **report-spec's `chart` component.** `chart` is `bar`, `line` or `pie`
   (`CHART_KINDS`), a property, so a bar chart becomes a line chart in
   place; `dataset` is `'detail'`; `width` and `height` are a box of at
@@ -205,15 +495,15 @@ chart, until it resolves charts; and **neither builder offers one yet**.
   says of a series too that it is printed at fewer places than its
   rounding keeps, and `rounding-not-decimal` that it declares a rounding
   of an integer -- a count, or a sum, a least or a greatest of integers --
-  which the runtime will refuse. A chart changes through
+  which the runtime refuses too. A chart changes through
   `updateComponent`, with no command of its own.
-- **`chart-not-resolved`**, a new code of the runtime's, is the refusal
-  above. A chart its condition hides prints nothing, so its report is not
-  refused. The code goes when the runtime resolves charts.
+- **The renderer's `unsupported`** is the refusal above, naming the chart
+  wherever it stands, in either entry. A chart its condition hides prints
+  nothing, so its report is not refused.
 - **Neither builder's palette offers Chart yet**, and an insert or a drag
   of one is refused as `unavailable`: until the builders edit a chart's
   own properties, a chart inserted from the palette would be a box nobody
-  could edit, in a report the runtime refuses to render. A chart a report
+  could edit, in a report the renderer refuses to print. A chart a report
   holds is drawn in the design view as a box of its size, moved and
   removed, with the properties every component has, so a chart is a
   host's or a proposal's to write in the JSON for now.
@@ -227,6 +517,75 @@ chart, until it resolves charts; and **neither builder offers one yet**.
   asked for.
 - **0.2.0 refuses a report with a chart** as `unknown-kind`, never skipping
   it: the format is still the draft, version "0".
+
+**`@formancy/report-documents` reads a PDF whole or refuses it, and
+nothing calls it yet**
+([0054](docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
+Report is to print the PDFs a report carries -- a delivery note, the terms
+a quotation ends with, the signed PDFs a site visit's inspector uploaded --
+as pages of the report. A PDF is untrusted input, and the reader at hand
+forgave too much: pdf-lib's own `load`, measured, hung on junk between two
+objects, exhausted its heap on a cross-reference stream that claims two
+billion rows, and printed a revision the file's cross-reference does not
+name. This package is the one reader every later stage is to read a PDF
+through, and it is the first stage: the format, the runtime, the renderer
+and the builders learn of documents in later releases, so no report holds
+one yet.
+- **`readDocument(bytes)`** reads a PDF's pages in order, as a viewer
+  shows them, every object they draw with, and a count of what does not
+  survive printing -- links, JavaScript, actions, attachments, form
+  fields, signatures -- never named; or refuses it with one of
+  `DOCUMENT_REFUSAL_CODES`, in the reader's own words, naming a page and
+  an annotation by its own count and never a byte of the file. It is
+  synchronous, has no Node or DOM global and reaches no network, never
+  throws, and takes a Uint8Array of the host's own realm alone, which it
+  copies before reading.
+- **Every bound is held before the work it bounds**, and each was
+  measured at it and one past it, within a second and 256 MiB of heap on
+  the laptop measured: the bytes, 20 MiB as an asset's are, the pages,
+  the objects, one count of values a document, what its streams decode
+  to, an image's pixels, and the others `limits.ts` exports. Nothing a
+  file makes the reader do is on a count of its own: each decoder, each
+  annotation a page lists, the second read of the last trailer, each
+  subsection header of a cross-reference table and each walk the closure
+  makes again are counted with the file's values, and a cross-reference
+  stream several sections name is merged once, so that a file at several
+  bounds at once is bounded by the one count too,
+  and each decoder is counted as what it was measured to cost against a
+  value -- an inflater 79, a fixed-ratio decoder 30 -- so that a file of
+  many short compressed streams or inline images is refused sooner. Three
+  such files were measured within the second and 256 MiB on mains power,
+  at 682 ms the slowest and 185 MiB the most heap. **A tagged
+  report as dense as the densest measured is refused past about 700
+  pages**, and is to be added in parts.
+- **Refused:** a file encrypted, cut short or damaged, bytes between its
+  objects, an earlier revision than its cross-reference names, optional
+  content, XFA and NeedAppearances, an annotation that would print
+  otherwise than a viewer shows it, an inline image PDF.js would end
+  elsewhere, a filter the reader does not decode where it must -- LZW,
+  though pdf-lib carries a port of it, since the reader decodes only what
+  it can charge as it decodes; Crypt; a TIFF predictor; a name PDF does not
+  define -- a stream whose data is in another file, and a form or an
+  image that names another file to print in its place (a reference
+  XObject's `/Ref`, an `/OPI` dictionary), since Report never fetches by
+  address and its PDF must name nothing to fetch. An old file compressed
+  with LZW is to be saved again. **Optional content
+  is what real files are refused for most:** of 1,484 PDFs that carry no
+  person's data, read on 8 November 2026, 1,367 read, 116 were refused for
+  layers and one for a cross-reference that is not where it says.
+- **The parser is `@pdfme/pdf-lib` 6.2.4's object grammar**, every token
+  but the keywords read by the reader's own code, and `pako` 3.0.2, both
+  at exact versions and both permissive. pdf-lib's stream decoders are
+  ports of PDF.js's and XPDF's under Apache-2.0, which its bundle and its
+  MIT licence file do not say: a bundle that holds the reader owes that licence's text and the
+  ports' attribution, through an entry of the notices that lands with the
+  pull request that first bundles it. Both come into every bundle that
+  reads a PDF: 234 kB gzipped, as measured of the spike's code that chose
+  them, not of this package. UPNG, the PNG decoder of pdf-lib's that never
+  returns on a truncated image, comes with it, and the reader never calls
+  it.
+- `isPdf` and `PDF_MEDIA_TYPE` say whether bytes are a PDF by their header
+  alone.
 
 **The lint and format rules are `@formancy/code-style` 0.12.0, pinned, and
 no longer a copy**

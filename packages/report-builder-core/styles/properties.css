@@ -88,6 +88,22 @@
   background: color-mix(in srgb, var(--wb-signal) 12%, transparent);
 }
 
+/* A field at a word in a language besides the report's own (0063): its
+   sentence under it, and, while the word is not written yet, its control
+   dashed, the report's own word its placeholder. */
+[data-report-part='property-note'] {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--wb-muted);
+}
+
+[data-report-part='property'][data-missing='true'] :is(input, textarea) {
+  border-style: dashed;
+  border-color: var(--wb-invalid);
+}
+
 [data-report-part='property-error'] {
   grid-column: 1 / -1;
   margin: 0;

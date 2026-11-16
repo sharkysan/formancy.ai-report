@@ -60,14 +60,24 @@ if (resolution.ok) {
   term, a table of no rows in a final render, or a payment code that asks
   for another amount or account than the e-invoice names, each named by
   where it stands, its business term and its rule, never by the value;
-- a report that would print a chart (`resolve`, `chart-not-resolved`),
-  naming the chart by its id, in a preview as in a final render: this
-  release does not resolve charts, and would otherwise print the report
-  without the chart. A chart its condition hides prints nothing, as any
-  component, and is not refused
-  ([0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+- a chart of more categories than `MAX_CHART_CATEGORIES`, or a pie of
+  more categories than its palette has colours (`resolve`,
+  `chart-too-many-categories`), and a pie with a negative value
+  (`chart-negative-share`), each naming the chart by its id and saying
+  counts, never a value or a category: see [A chart](#a-chart);
+- a locale the report is not written in (`resolve`, `undeclared-locale`),
+  and a word missing in the one it names (`expressions`, `word-missing`):
+  see [A report in several languages](#a-report-in-several-languages).
 
 It never returns part of a document.
+
+A table's group header row carries `keepWithRows`, how many of its group's
+first rows an engine keeps it on its page with: the number its group
+states, or the group's rows where it has fewer, and only where that is
+more than one. How many rows a group has is this package's grouping,
+counted once, and a report that states no count resolves to the document
+it did before
+([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
 
 ## The data
 
@@ -133,7 +143,53 @@ or none for one it does, and a provider the runtime does not know are
 each refused, as `invalid-source`, never naming the value or the key. Its
 syntax is checked, not its truth: that the host read what it names is the
 provider's word, as its completeness is. Data that names no source is
-read as before, and its manifest has none.
+read as before, and its manifest has none. A formancy form's source names
+the `locale` its labels were read in, where that is not the report's own,
+held to the syntax a report's locale is (report-spec's `isLocale`): see
+[A report in several languages](#a-report-in-several-languages).
+
+## A report in several languages
+
+A report may write its own words in each language its `translations`
+declare, and a render names the one it prints in with `locale`
+([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)):
+
+```ts
+const french = resolveReport(report, data, { mode: 'final', creationDate: '2026-10-15T08:00:00Z', locale: 'fr-CH' })
+```
+
+- **A declared locale, exactly.** The report's own `locale` or one its
+  translations declare; any other is refused as `undeclared-locale`, a
+  near one among them: `fr-FR` is not `fr-CH`, and `fr` is neither. A
+  render that names none prints in the report's own, and one that names
+  the report's own prints the same document as one that names none.
+- **The report written in it.** What every stage reads is report-spec's
+  `reportIn`: each word and each expression that prints words in that
+  language, `locale` the render's, so that its values are formatted, its
+  rows, groups and a chart's categories ordered, in it, and a QR-bill's
+  headings in its language where SIX has headings in it. No stage of the
+  runtime has a language step of its own.
+- **An error refuses its own language.** Of report-core's diagnostics, an
+  error that names a language -- a word missing in it, `word-missing`, a
+  translated expression that would print another thing -- refuses a
+  render in that language alone; one that names none refuses every
+  render. A report whose French lacks a word prints in German as the same
+  report without translations does. A word is never printed in another
+  language than the one a render names.
+- **The manifest** names the template's hash, translations and all, and
+  the locale the render printed in.
+- **A form's labels in it.** Data read from a formancy form whose labels
+  were read in another locale than the render's is refused as
+  `labels-locale-differs`: a source that names no locale was read in the
+  report's own, so submissions read once in German are refused in a French
+  render rather than print German labels in it. A report's other data, a
+  parameter's value among it, prints as the host hands it over, in
+  whatever language the host chose.
+
+The runtime's own words -- a preview's label, an XRechnung copy's label and
+paragraph, a boolean's `true` and `false` -- are English in every
+language. A translation's locale the engine's `Intl` cannot write is
+refused as `unsupported-locale`, at the translation that declares it.
 
 ## A QR-bill
 
@@ -203,7 +259,8 @@ document's `eInvoice`, an `EInvoiceFile` of its kind:
   since a PDF drawn of it is a copy, in the paragraph the runtime exports
   frozen as `XRECHNUNG_COPY_PARAGRAPH`, small, bold and red; the renderer
   draws the document as a plain PDF that embeds nothing, and refuses one
-  whose page header does not open with that paragraph, style and all.
+  whose page header, or page 1's own header where it has one, does not
+  open with that paragraph, style and all.
 
 ```ts
 const resolution = resolveReport(xrechnung, data, { mode: 'final', creationDate })
@@ -272,6 +329,88 @@ seconds, against 2.0 for the same report and rows without the e-invoice;
 0.23 (five runs each, from the built package, Node 24.21.0, an Intel
 i9-10900K, 17 October 2026). The e-invoice has no bound of its own yet.
 
+## A chart
+
+A `chart` component resolves to a `chart` block (`Chart`, an `AxisChart`
+or a `PieChart`), which holds every word the chart prints and every number
+as its exact digits beside its text
+([0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md),
+[0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)):
+
+```ts
+// A bar chart of sales by region, beside a table grouped by region, in a format of two places:
+const chart = resolution.document.body.find((block) => block.kind === 'chart')
+if (chart?.kind === 'chart' && chart.chart !== 'pie' && chart.empty === undefined) {
+  chart.categories // ['North', 'South', 'No region']: each key in the category's format, the rows without one under nullLabel
+  chart.series[0]?.values[0] // { exact: '10.25', text: '10.25' }: a coordinate from exact, the text printed; null where a series has no value
+  chart.ticks.map(({ text }) => text) // ['0.00', '5.00', '10.00', '15.00', '20.00', '25.00']: the value axis, fixed
+}
+```
+
+- **Its categories** are grouped where a table's rows are: sorted by the
+  table's own order, the rows without one last, or in the order the data
+  first gives each, one key each, so that 1.0 and 1.00 are one category,
+  printed with no format as its first row in the data's order spells it.
+  The rows without a category are one category under its `nullLabel`. A
+  chart with no `nullLabel`, possible only over a field that may not be
+  null, prints an empty label in a preview that lacks the field, the data
+  check having warned; one with a label prints its label.
+- **Each series** is totalled by `totalOf`, the function every aggregate
+  and every group's total is, in the decimals report-core's `seriesType`
+  gives an aggregate of the same function over the same field: a bar
+  prints what the table's group footer of the same rows prints in the same
+  format, a declared rounding applied once, and a rounding of an integer
+  total refused as `rounding-not-decimal`, as an aggregate's is.
+- **The value axis** of a bar or a line chart is one, two or five times a
+  power of ten, the finest step that covers every value of every series
+  in at most `MAX_TICK_INTERVALS` intervals and no finer than the value
+  format prints, found by BigInt division. A bar's axis holds zero, and
+  so does a flat line's; any other line's is ticked over its own range.
+  An author cannot set either.
+- **A pie's share** of each slice is its exact ratio to the sum of its
+  slices as they are totalled, rounded once, half away from zero, to
+  `SHARE_PLACES` places of a percentage, and printed by the formatter's
+  `percent`, which refuses a fraction Intl would round again
+  (`percent-rounds-again`), as no share is. Shares need not add up to
+  100.0 %, and a legend entry that labels its value reads
+  `label: value (share)` in every language. A slice's value prints only
+  in its legend entry, and a pie whose values its format cannot print is
+  refused though it labels none of them.
+- **Nothing to draw** -- no rows, a bar or a line chart with no value, a
+  pie whose values are all zero -- is the chart's title and its empty text
+  alone, with no axis and no axis title.
+- **Its colours** are the chart's own `palette` or `CHART_PALETTE`, a
+  series' at its place and a slice's at its category's.
+
+A renderer prints the block's strings and no others, a pie's values only
+in its legend, makes a coordinate of a value's `exact`, and formats no
+number. This release's renderer does not
+draw a chart yet, and refuses one.
+
+## Page 1's own header
+
+A report whose regions hold `firstPageHeader` gives page 1 a header of its
+own, which page 1 prints in place of the page header
+([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+The document carries it as `firstPageHeader`, beside `pageHeader`, present
+exactly when the report's is:
+
+- **Lowered as the page header is**, each component to the block it
+  prints, a component whose condition does not hold left out; one whose
+  every component is hidden is an empty list, page 1 with no header, never
+  the page header's blocks: the choice is the report's, not the data's.
+- **An empty list is none.** Page 1 prints no header, and its body starts
+  at the top margin. A report without the region resolves to a document
+  without the key, as it always did.
+- **Labelled as the page header is.** A preview's label, an e-invoice
+  preview's and an XRechnung's `XRECHNUNG_COPY_PARAGRAPH` head it too,
+  each header with a paragraph of its own, so that page 1 says it as every
+  page does; page 1's header that is none is the label alone.
+- **No page field.** report-spec refuses a page number or count in it,
+  since the renderer draws it before the pages are counted; which page
+  prints which header is the renderer's to decide, and nothing here
+  evaluates anything per page.
+
 ## A run below or above the line
 
 A paragraph's run carries the `baseline` its report's run sets,
@@ -305,8 +444,16 @@ and the decimal arithmetic; the form bridge reads `readValue`,
 `MAX_STRING_LENGTH`, `isSubmissionId` and `SUBMISSION_ID_SYNTAX`, the
 words a refusal says that rule in, so that it holds an answer and an id
 by this package's rules, and says them in its words, rather than a copy
-of them (0042). The document's types, `RenderRefusal` and `REFUSAL_CODES` are
-the renderer's contract, declared here so that no engine defines them.
+of them (0042). `checkReport(report, locale?)` checks a report for a
+render in a locale and hands back both the copy validation read and
+`printed`, that copy written in the locale; `checkData` checks data
+against the printed copy, told the report's own locale by
+`reportLocale` (0063). The document's types, `RenderRefusal` and `REFUSAL_CODES` are
+the renderer's contract, declared here so that no engine defines them; a
+chart's among them, and `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and
+`SHARE_PLACES`, the runtime's bounds on a chart, which a host that tells an
+author of them reads rather than copies (0055); and `MAX_KEEP_WITH_ROWS`, report-spec's bound on the rows a group header
+row keeps, is handed on for an engine to hold that row to (0059).
 What report-spec decides of a QR-bill that an engine needs to draw its
 slip is handed on as report-spec's own objects: `QR_BILL_SIZE` and
 `QR_BILL_TOP`, the slip's size and place; `qrBillPageBreak` and its type

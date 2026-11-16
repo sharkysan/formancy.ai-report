@@ -238,7 +238,7 @@ What the format, the runtime and the renderer had to build it from:
   size is a line of its own, and "H2O" would not be found.
 
 A field read as a formula -- C6H12O6 printed with its digits lowered --
-is the other half of roadmap item 8, rich text from data, and not this
+is the other half of roadmap item 7, rich text from data, and not this
 record's (below).
 
 ## Decision
@@ -359,7 +359,7 @@ chose an engine against.
   validator's to refuse, and changes nothing (0008).
 - **Decided once.** builder-core holds the split, the join and the
   action (`baselines.ts`) and the groups and their buttons
-  (`property-fields.ts`, `property-groups.ts`); a builder adds only the
+  (`run-fields.ts`, `property-fields.ts`); a builder adds only the
   selection, which only the DOM knows, read from the group's own field
   when its button is pressed, with the text it is of. builder-core
   applies it only to the text the report holds, as its field
@@ -387,7 +387,7 @@ its digit raised, a charge as in SO₄²⁻ for a lowered digit then raised
 ones, and an isotope's mass, ¹⁴C, stands before its letter. Data that
 holds a formula can carry Unicode's lowered digits, U+2080–2089, which
 Roboto and Liberation Serif both map. Formatted text read from a field is
-roadmap item 8's other half, and another record's.
+roadmap item 7's other half, and another record's.
 
 ## Consequences
 

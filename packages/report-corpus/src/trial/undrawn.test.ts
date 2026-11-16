@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { RenderRefusal, type EInvoiceFile, type EpcQrCode, type Image, type QrBill, type ResolvedDocument, type Table } from '../document.js'
+import { RenderRefusal, type Chart, type EInvoiceFile, type EpcQrCode, type Image, type QrBill, type ResolvedDocument, type Table } from '../document.js'
 import { details, documentOf, ledger, paragraph, totalRow } from '../fixtures/build.js'
 import { encodePng } from '../fixtures/png.js'
 import { SVG_MARK } from '../fixtures/svg.js'
@@ -68,6 +68,23 @@ const EPC: EpcQrCode = {
   caption: 'zahlenMitCode',
 }
 
+/** A pie as the runtime resolves one: two slices, its legend their categories. */
+const PIE: Chart = {
+  kind: 'chart',
+  chart: 'pie',
+  id: 'shares',
+  width: 200,
+  height: 200,
+  legend: [
+    { text: 'North', color: '#1f77b4' },
+    { text: 'South', color: '#d95f02' },
+  ],
+  slices: [
+    { color: '#1f77b4', value: { exact: '3', text: '3' } },
+    { color: '#d95f02', value: { exact: '1', text: '1' } },
+  ],
+}
+
 /** The corpus's ledger of three rows, with `patch` laid over it. */
 function table(patch: Partial<Table>): Table {
   return { ...ledger('lines', details(1, 3)), ...patch }
@@ -110,6 +127,11 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
   ],
   // A slip left out would print an invoice nobody can pay by, and say nothing.
   ['a payment part', { ...documentOf('Bill', [paragraph('Invoice')]), paymentPart: BILL }, 'paymentPart'],
+  // Page 1's own header (0060) left out would print the page header on page
+  // 1 in its place, and say nothing; and page 1's header that is none, the
+  // empty list, would print the page header there all the same.
+  ['a first page header', { ...documentOf('First page', [paragraph('Body')]), firstPageHeader: [paragraph('Letterhead')] }, 'firstPageHeader'],
+  ['a first page header that is none', { ...documentOf('No first header', [paragraph('Body')]), firstPageHeader: [] }, 'firstPageHeader'],
   // An e-invoice left out would print a plain PDF of an invoice whose XML
   // is the invoice, and say nothing: the buyer would hold a picture.
   ['an e-invoice', { ...documentOf('E-invoice', [paragraph('Invoice')]), eInvoice: E_INVOICE }, 'eInvoice'],
@@ -122,6 +144,9 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
     documentOf('Kept EPC QR code', [{ kind: 'keepTogether', blocks: [paragraph('Pay by code'), EPC] }]),
     'body[0].blocks[1]',
   ],
+  // A chart left out would print a report without it, and say nothing.
+  ['a chart', documentOf('Chart', [paragraph('Before'), PIE]), 'body[1]'],
+  ['a chart in a keep-together block', documentOf('Kept chart', [{ kind: 'keepTogether', blocks: [paragraph('Shares'), PIE] }]), 'body[0].blocks[1]'],
   [
     'a QR code in the page header',
     { ...documentOf('Header code', [paragraph('Body')]), pageHeader: [{ kind: 'qrCode', id: 'header-code', text: 'A-1', size: 40, errorCorrection: 'L' }] },

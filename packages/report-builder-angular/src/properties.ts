@@ -120,7 +120,10 @@ export class ReportProperties {
       const id = `${this.root.id}-${owner}-${String(index)}`
       index += 1
       const control: Control = field.kind === 'multiline' ? 'textarea' : CONTROLS[PROPERTY_ROLES[field.kind]]
-      return { field, control, id, errorId: field.error === undefined ? null : `${id}-error` }
+      const errorId = field.error === undefined ? null : `${id}-error`
+      const noteId = field.note === undefined ? null : `${id}-note`
+      const described = [errorId, noteId].filter((part) => part !== null).join(' ')
+      return { field, control, id, errorId, noteId, describedBy: described === '' ? null : described }
     }
     return properties.rows.map((row): Row => {
       if ('field' in row) {

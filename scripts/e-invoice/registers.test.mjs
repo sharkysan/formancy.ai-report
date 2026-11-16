@@ -2,7 +2,18 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
-import { ACCEPTING, acceptedProblems, ADMITTED_LICENCES, atLeast, JUDGES, readRegisters, toolProblems } from './registers.mjs'
+import {
+  ACCEPTING,
+  acceptedProblems,
+  ADMITTED_LICENCES,
+  atLeast,
+  JUDGES,
+  judgedBy,
+  PDF_FORMATS,
+  readRegisters,
+  toolProblems,
+  VERAPDF_FLAVOURS,
+} from './registers.mjs'
 
 /**
  * The two registers the e-invoice gate rests on (0027, 0031):
@@ -212,8 +223,39 @@ describe('the judges', () => {
   // KoSIT reads XML and veraPDF reads PDF; Mustang reads both. A tool
   // named for a format it does not read would be a verdict nobody made.
   test('are Mustang and KoSIT for the XML, veraPDF and Mustang for a PDF, and only Mustang and KoSIT accept a warning', () => {
-    expect(JUDGES).toEqual({ xml: ['mustang', 'kosit'], pdf: ['verapdf', 'mustang'] })
+    expect(JUDGES).toEqual({ xml: ['mustang', 'kosit'], pdf: ['verapdf', 'mustang'], 'pdfa-2b': ['verapdf'] })
     expect(ACCEPTING).toEqual(['mustang', 'kosit'])
+  })
+
+  // A PDF/A-2b embeds no XML, and Mustang validates an e-invoice: handed
+  // one, it would refuse it for want of the XML, and the gate would blame
+  // the renderer for a file it drew right (0057). So each tool is handed the
+  // files of the formats it judges and no other, and a file of a format no
+  // tool judges is handed to none.
+  test('gives Mustang the XML and the PDFs, KoSIT the XML, and veraPDF the PDFs and the PDF/A-2b', () => {
+    const entries = [
+      { file: 'e-invoice.xml', format: 'xml' },
+      { file: 'e-invoice.pdf', format: 'pdf' },
+      { file: 'pdfa-2b-quotation.pdf', format: 'pdfa-2b' },
+      { file: 'quotation.docx', format: 'docx' },
+    ]
+    const files = (tool) => judgedBy(tool, entries).map((entry) => entry.file)
+    expect(files('mustang')).toEqual(['e-invoice.xml', 'e-invoice.pdf'])
+    expect(files('kosit')).toEqual(['e-invoice.xml'])
+    expect(files('verapdf')).toEqual(['e-invoice.pdf', 'pdfa-2b-quotation.pdf'])
+    // Both formats are PDFs: written as bytes, named .pdf, and recorded by their inflated objects.
+    expect(PDF_FORMATS).toEqual(['pdf', 'pdfa-2b'])
+  })
+
+  // veraPDF left without a flavour judges a file by the one its XMP
+  // declares, so a PDF/A-3b drawn where a 2b was asked for would be
+  // accepted as the 3b it says it is (0057). The gate runs and judges each
+  // corpus with the flavour this table gives its format, so a swap here,
+  // or a format veraPDF judges with no flavour, fails before any Java runs.
+  test('names PDF/A-3b as the flavour of the e-invoice corpus and PDF/A-2b as the flavour of the PDF/A-2b corpus, and a flavour for every format veraPDF judges', () => {
+    expect(VERAPDF_FLAVOURS).toEqual({ pdf: '3b', 'pdfa-2b': '2b' })
+    expect(Object.isFrozen(VERAPDF_FLAVOURS)).toBe(true)
+    expect(Object.keys(VERAPDF_FLAVOURS)).toEqual(Object.keys(JUDGES).filter((format) => JUDGES[format].includes('verapdf')))
   })
 })
 

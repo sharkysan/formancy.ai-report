@@ -31,6 +31,7 @@ export type {
   TextStyle,
   XRechnungFile,
 } from './document.js'
+export type { AxisChart, Chart, ChartLegendEntry, ChartSeriesValues, ChartValue, PieChart } from './chart-document.js'
 
 export { checkData, CONSISTENCY_MODES, DATA_MODES, MAX_DETAIL_ROWS } from './data.js'
 export type { CheckedData, CheckedRecord, Completeness, Consistency, DataCheck, DataCheckOptions, DataMode, ReportData } from './data.js'
@@ -48,6 +49,8 @@ export { createFormatter, FORMAT_ERROR_CODES, MAX_FORMATTED_DIGITS, plainText, s
 export type { CurrencyScope, FormatContext, Formatted, FormatErrorCode, Formatter, PrintableType, TypedValue } from './format.js'
 export { groupRows, orderKeys, orderRows, orderTable } from './sort-group.js'
 export type { OrderedRow, OrderedTable, OrderKey, RowGroup } from './sort-group.js'
+export { MAX_CHART_CATEGORIES, SHARE_PLACES } from './lower-chart.js'
+export { MAX_TICK_INTERVALS } from './chart-ticks.js'
 export { CAPABILITIES, EVALUATION_ERROR_CODES, EXPRESSION_STEP_BUDGET, prepareExpressions, RENDER_STEP_BUDGET } from './evaluate.js'
 export type { ConditionEvaluation, Evaluation, EvaluationError, EvaluationErrorCode, ExpressionsPreparation, ReportExpressions } from './evaluate.js'
 
@@ -60,6 +63,8 @@ export type { ResolveErrorCode, RuntimeError, RuntimeStage } from './resolve-err
 export type { AssetResolver, ImageBytes, ImageRef, ImageResolver } from './render-context.js'
 /** The definition `resolveReport` reads, so that a caller of the runtime names it without depending on report-spec itself. */
 export type { ReportDefinition } from '@formancy/report-spec'
+/** report-spec's bound on the rows a group header is kept with, handed on so that an engine holds a group header row's `keepWithRows` to it rather than to a copy (0059). */
+export { MAX_KEEP_WITH_ROWS } from '@formancy/report-spec'
 /**
  * What report-spec names a run's place against its line (0061), handed on
  * so that the document's run, an engine and the corpus name a shift as the

@@ -14,13 +14,14 @@
  *
  * The data is `host-captured`: a stored submission is one document written
  * at one moment. Its source names each submission with the form's id and
- * the hash of the version that collected it (0041). Whether each value fits
- * its field is held here by the runtime's own reading of a value, at the
- * answer's path, and again by the runtime when it resolves.
+ * the hash of the version that collected it (0041), and the locale its
+ * labels were read in where that is a translation's (0063). Whether each
+ * value fits its field is held here by the runtime's own reading of a
+ * value, at the answer's path, and again by the runtime when it resolves.
  */
 import { isSubmissionId, MAX_DETAIL_ROWS, SUBMISSION_ID_SYNTAX } from '@formancy/report-runtime'
-import type { FormSubmission, ReportData } from '@formancy/report-runtime'
-import { isSchemaHash, validateReport } from '@formancy/report-spec'
+import type { FormSource, FormSubmission, ReportData } from '@formancy/report-runtime'
+import { declaredLocales, isSchemaHash, renderLocale, validateReport } from '@formancy/report-spec'
 import type { DatasetContract, Datasets, ReportDefinition } from '@formancy/report-spec'
 import { answerOf, readAnswers, rowsAt } from './answers.js'
 import type { AnswerContext, AnswerRecord, OptionLabels } from './answers.js'
@@ -64,13 +65,40 @@ export interface SubmissionsInput {
 }
 
 export interface ReadOptions {
-  /** The labels of a choice's options that a deployment resolves (`optionsSource`), in the report's locale. */
+  /** The labels of a choice's options that a deployment resolves (`optionsSource`), in the locale the read names. */
   readonly labels?: OptionLabels
+  /**
+   * The locale a choice's labels are read in: the one a render of the
+   * data will name, the report's own when absent, or one its translations
+   * declare, exactly, as the runtime holds a render to (report-spec's
+   * `renderLocale`). Data read in a translation's locale names it in its
+   * source, and data read in the report's own names none (0063).
+   */
+  readonly locale?: string
 }
 
 export type SubmissionRead = { readonly ok: true; readonly data: ReportData } | { readonly ok: false; readonly errors: readonly FormsError[] }
 
 const refused = (f: Findings): SubmissionRead => ({ ok: false, errors: f.errors() })
+
+/** The locale a read of `report` names its labels in, the report's own where it names none; undefined after reporting one the report is not written in. */
+function readLocale(f: Findings, report: ReportDefinition, requested: unknown): string | undefined {
+  const choice = requested === undefined || typeof requested === 'string' ? renderLocale(report, requested) : undefined
+  if (choice?.ok === true) return choice.locale
+  f.report(
+    '/options/locale',
+    'undeclared-locale',
+    `labels are read in a locale the report is written in, which a render of the data names: ${declaredLocales(report).join(', ')}, and never a near one`,
+  )
+  return undefined
+}
+
+/** The source of data read from `submissions` in `locale`: naming the locale only where it is not the report's own, `own`, so that one source has one spelling. */
+const sourceOf = (submissions: readonly FormSubmission[], locale: string, own: string): FormSource => ({
+  provider: 'formancy-form',
+  submissions,
+  ...(locale === own ? {} : { locale }),
+})
 
 /** Reports a submission id that is not one a source names, or one named before. */
 function checkId(f: Findings, id: unknown, path: string, seen: Set<string>): void {
@@ -118,8 +146,9 @@ export function readSubmission(report: ReportDefinition, input: SubmissionInput,
   const f = new Findings()
   const checked = validateReport(report)
   if (!checked.valid) return { ok: false, errors: [{ path: '', code: 'invalid-report', message: 'report-spec refuses this report; validateReport says why' }] }
-  const { datasets, locale } = checked.report
-  if (!readsOneSubmission(f, datasets)) return refused(f)
+  const { datasets } = checked.report
+  const locale = readLocale(f, checked.report, options.locale)
+  if (locale === undefined || !readsOneSubmission(f, datasets)) return refused(f)
   const parts = readParts(f, input, '', ['form', 'submission'], ['formHash'])
   const submission = parts?.has('submission') === true ? readParts(f, parts.get('submission'), '/submission', ['id', 'data']) : undefined
   const id = submission?.get('id')
@@ -158,7 +187,7 @@ export function readSubmission(report: ReportDefinition, input: SubmissionInput,
       ...(rows === undefined ? {} : { detail: rows }),
       completeness: { complete: true, captured: rows?.length ?? 0 },
       consistency: 'host-captured',
-      source: { provider: 'formancy-form', submissions: [source] },
+      source: sourceOf([source], locale, checked.report.locale),
     },
   }
 }
@@ -206,7 +235,9 @@ export function readSubmissions(report: ReportDefinition, input: SubmissionsInpu
   const f = new Findings()
   const checked = validateReport(report)
   if (!checked.valid) return { ok: false, errors: [{ path: '', code: 'invalid-report', message: 'report-spec refuses this report; validateReport says why' }] }
-  const { datasets, locale } = checked.report
+  const { datasets } = checked.report
+  const locale = readLocale(f, checked.report, options.locale)
+  if (locale === undefined) return refused(f)
   const contract = datasets.detail
   if (contract?.form?.kind !== 'submissions') {
     f.report(
@@ -260,7 +291,7 @@ export function readSubmissions(report: ReportDefinition, input: SubmissionsInpu
       detail: rows,
       completeness: { complete: complete as boolean, captured: rows.length },
       consistency: 'host-captured',
-      source: { provider: 'formancy-form', submissions: named },
+      source: sourceOf(named, locale, checked.report.locale),
     },
   }
 }

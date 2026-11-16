@@ -52,6 +52,12 @@ export interface CanvasBox {
   readonly severity?: DiagnosticSeverity
   /** Wider than the space it stands in: the layout will have to say what happens to it. */
   readonly overflows: boolean
+  /**
+   * A word it prints is not written yet in the language edited, and is
+   * shown in the report's own: the sentence that says so, naming the
+   * language, which a builder gives the box as its description (0063).
+   */
+  readonly missing?: string
   readonly pt: Box
   readonly px: Box
 }
@@ -77,6 +83,8 @@ export interface CanvasPaymentPart {
   /** Diagnostics about the bill, as its outline row counts them. */
   readonly problems: number
   readonly severity?: DiagnosticSeverity
+  /** Its message is not written yet in the language edited, as a box's `missing` says (0063). */
+  readonly missing?: string
   readonly pt: Box
   readonly px: Box
 }

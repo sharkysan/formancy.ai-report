@@ -1,6 +1,7 @@
 import {
   RenderRefusal,
   type Block,
+  type Chart,
   type Columns,
   type EpcQrCode,
   type QrCode,
@@ -13,13 +14,14 @@ import {
 
 /**
  * What the document grew after the renderer trial, which neither trial
- * adapter draws: columns, sections, rectangles, QR codes and EPC QR codes,
- * a payment part, an e-invoice to embed, an SVG image, fonts but the sans,
- * colour, rules of another weight or colour, and table rows and cells with
- * styles of their own or running across the table. Both adapters refuse it
- * here, as `unsupported` and naming where it stands, before they build
- * anything: a block skipped or a style ignored would print a report that is
- * not the one asked for, with nothing to say so.
+ * adapter draws: columns, sections, rectangles, QR codes, EPC QR codes and
+ * charts, a payment part, an e-invoice to embed, page 1's own header
+ * (0060), an SVG image, fonts but the sans, colour, rules of another
+ * weight or colour, and table rows and cells with styles of their own or
+ * running across the table. Both
+ * adapters refuse it here, as `unsupported` and naming where it stands,
+ * before they build anything: a block skipped or a style ignored would
+ * print a report that is not the one asked for, with nothing to say so.
  *
  * The trial's findings stand on the document it ran on (0005). Drawing the
  * rest is the renderer's, judged on the same corpus. An image's fit is each
@@ -27,7 +29,7 @@ import {
  */
 
 /** The blocks the trial's document did not have. */
-export type Undrawn = Columns | Section | Rectangle | QrCode | EpcQrCode
+export type Undrawn = Columns | Section | Rectangle | QrCode | EpcQrCode | Chart
 
 /** The weight both trial adapters draw a rule at: `RULE` in `pdfmake-content.ts`, `RULE_WEIGHT` in `pdfme.ts`. */
 const TRIAL_RULE = 0.5
@@ -36,15 +38,24 @@ const TRIAL_RULE = 0.5
 const BLACK = '#000000'
 
 export function isUndrawn(block: Block): block is Undrawn {
-  return block.kind === 'columns' || block.kind === 'section' || block.kind === 'rectangle' || block.kind === 'qrCode' || block.kind === 'epcQrCode'
+  const { kind } = block
+  return kind === 'columns' || kind === 'section' || kind === 'rectangle' || kind === 'qrCode' || kind === 'epcQrCode' || kind === 'chart'
 }
 
-/** Refuses the first thing in `document` that neither trial adapter draws: a payment part, an e-invoice, then what the page regions and the body hold. */
+/** Refuses the first thing in `document` that neither trial adapter draws: a payment part, an e-invoice, page 1's own header, then what the page regions and the body hold. */
 export function refuseUndrawn(document: ResolvedDocument): void {
   const bill = document.paymentPart === undefined ? undefined : { message: 'the document has a payment part', subject: 'paymentPart' }
   const invoice = document.eInvoice === undefined ? undefined : { message: 'the document carries an e-invoice to embed', subject: 'eInvoice' }
+  // Either adapter would print the page header on page 1 in its place, its none, the empty list, among them.
+  const firstPage =
+    document.firstPageHeader === undefined ? undefined : { message: 'the document gives page 1 a header of its own', subject: 'firstPageHeader' }
   const problem =
-    bill ?? invoice ?? problemIn(document.pageHeader, 'pageHeader') ?? problemIn(document.pageFooter, 'pageFooter') ?? problemIn(document.body, 'body')
+    bill ??
+    invoice ??
+    firstPage ??
+    problemIn(document.pageHeader, 'pageHeader') ??
+    problemIn(document.pageFooter, 'pageFooter') ??
+    problemIn(document.body, 'body')
   if (problem !== undefined)
     throw new RenderRefusal('unsupported', `${problem.message}; the trial's document had no such thing, and neither trial adapter draws it`, problem.subject)
 }

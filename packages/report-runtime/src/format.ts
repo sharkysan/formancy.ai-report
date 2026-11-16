@@ -9,7 +9,9 @@
  *   handed a double and never rounds. Up to a bound: ECMA-402 reads a
  *   string whose double would be infinite as infinity, and prints '∞'. A
  *   number with more than `MAX_FORMATTED_DIGITS` integer digits is refused
- *   instead; printed without a format, it prints whole.
+ *   instead; printed without a format, it prints whole. `percent` is held
+ *   to both: a share at more places than it keeps is refused, never rounded
+ *   by Intl.
  * - **The locale's conventions.** Grouping, separators, currency symbols,
  *   month names and case are the locale's, as the engine's ICU has them.
  *   ICU versions can differ -- which mark Swiss German groups digits with is
@@ -53,6 +55,8 @@ export const FORMAT_ERROR_CODES = [
   'invalid-currency',
   /** A number with more integer digits than `MAX_FORMATTED_DIGITS`, which Intl would print as '∞'. */
   'number-too-large',
+  /** A share handed to `percent` at more places than it keeps, which Intl would round again by its own rule. */
+  'percent-rounds-again',
 ] as const
 
 /**
@@ -87,7 +91,15 @@ export interface Formatter {
   readonly timeZone: string
   /** `value` as `format` shows it, or as it prints plainly without one. */
   format(value: TypedValue | null, format: Format | undefined, scope?: CurrencyScope): Formatted
+  /** `fraction` as the locale writes a percentage at `places`: 0.125 at 1 is 12.5%. The fraction is already rounded to `places + 2` places, so Intl shifts its digits and never rounds. */
+  percent(fraction: Decimal, places: number): Formatted
 }
+
+/** Whether `digits`, a number as `decimalToString` writes it, has more integer digits than Intl prints: it would print them as infinity. */
+const tooManyDigits = (digits: string): boolean => digits.replace(/^-/, '').split('.')[0]!.length > MAX_FORMATTED_DIGITS
+
+/** A count of places as a message says it: "1 place", "3 places". */
+const placesOf = (count: number): string => `${count} ${count === 1 ? 'place' : 'places'}`
 
 function refused(code: FormatErrorCode, message: string): Formatted {
   return { ok: false, code, message }
@@ -231,6 +243,21 @@ class LocaleFormatter implements Formatter {
     }
   }
 
+  percent(fraction: Decimal, places: number): Formatted {
+    if (fraction.scale > places + 2) {
+      return refused(
+        'percent-rounds-again',
+        `a share of ${placesOf(fraction.scale)}, printed as a percentage at ${placesOf(places)}, would be rounded again by Intl; round it to ${placesOf(places + 2)} first`,
+      )
+    }
+    const digits = decimalToString(fraction) as Intl.StringNumericLiteral
+    if (tooManyDigits(digits)) {
+      return refused('number-too-large', `a share of more than ${MAX_FORMATTED_DIGITS} integer digits, which Intl would print as infinity`)
+    }
+    const options: Intl.NumberFormatOptions = { style: 'percent', minimumFractionDigits: places, maximumFractionDigits: places }
+    return { ok: true, text: kept(this.#numbers, options, () => new Intl.NumberFormat(this.locale, options)).format(digits) }
+  }
+
   #transformed(text: string, transform: TextTransform | undefined): string {
     if (transform === 'upper') return text.toLocaleUpperCase(this.locale)
     return transform === 'lower' ? text.toLocaleLowerCase(this.locale) : text
@@ -242,7 +269,7 @@ class LocaleFormatter implements Formatter {
     const currency = format.kind === 'currency' ? currencyOf(format.currency, scope) : undefined
     if (typeof currency === 'object') return currency
     const rounded = decimalToString(roundDecimalAs(exact, { scale: format.scale, mode: 'half-away-from-zero' })) as Intl.StringNumericLiteral
-    if (rounded.replace(/^-/, '').split('.')[0]!.length > MAX_FORMATTED_DIGITS) {
+    if (tooManyDigits(rounded)) {
       return refused(
         'number-too-large',
         `a number of more than ${MAX_FORMATTED_DIGITS} digits, which Intl would print as infinity; printed without a format, it prints whole`,

@@ -64,8 +64,8 @@ export interface Raster {
    * A JPEG whose frame header says four components, which PDFKit draws in
    * DeviceCMYK (pdfkit.js 3808-3812), as it draws one of three in
    * DeviceRGB and one of one in DeviceGray, and no other count, which the
-   * check refuses; never a PNG, which PDFKit draws in RGB or grey. An
-   * e-invoice's PDF/A cannot hold one.
+   * check refuses; never a PNG, which PDFKit draws in RGB or grey. A PDF/A,
+   * an e-invoice's or a PDF/A-2b, cannot hold one.
    */
   readonly cmyk: boolean
 }
@@ -75,7 +75,7 @@ export interface Raster {
  * `contain` and `cover` keep; the drawing, as the ASCII text it is, which
  * every pass hands pdfmake unchanged; what it costs, as `checkSvg` counts
  * it and `drawingUnits` weights it; and how far the converter's numbers for
- * it reach, which an e-invoice holds it to (`svg-pdfa.ts`).
+ * it reach, which a PDF/A holds it to (`svg-pdfa.ts`).
  */
 export interface Vector {
   readonly kind: 'vector'

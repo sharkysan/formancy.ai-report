@@ -1,4 +1,4 @@
-import { EDGE, imageLabel, once, OVERLAP, pictures, plural, points, quoted, TOP_EDGE_PER_POINT, type Page } from './check-page.js'
+import { EDGE, imageLabel, once, OVERLAP, pictures, plural, points, quoted, regionsOn, TOP_EDGE_PER_POINT, type Page } from './check-page.js'
 import { pageDimensions, type PageSetup } from './document.js'
 import { normalise, type Expectation, type ExpectedImage } from './fixture.js'
 import { lineHas, type Line } from './lines.js'
@@ -39,20 +39,31 @@ export function pageSizes(pages: readonly Page[], setup: PageSetup): string[] {
  * above every line of the body and the footer's below every line and image
  * of the body. A footer drawn at the top of the page, or into the last row
  * between two of its cells where no box crosses another, is reported here.
+ * Where the document gives page 1 a header of its own (0060), page 1 is
+ * held to it and every other page to the page header, and no page prints a
+ * line of the header it does not print.
  */
 export function regions(pages: readonly Page[], expected: Expectation): string[] {
   return pages.flatMap((each) => {
-    const { page, header, footer, body } = each
+    const { page, lines, header, footer, body } = each
+    const { own, headerLines, otherLines } = regionsOn(expected, page.number)
+    const [named, foot] = own ? ['first page header', "page 1's own header"] : ['page header', 'the page header']
+    const printed = (text: string): boolean => lines.some((line) => line.text === normalise(text))
     const problems = [
-      ...missing(header, expected.pageHeaderLines).map((text) => `page ${page.number}: the page header line ${quoted(text)} is missing`),
+      ...missing(header, headerLines).map((text) => `page ${page.number}: the ${named} line ${quoted(text)} is missing`),
+      ...otherLines
+        .filter(printed)
+        .map((text) =>
+          own
+            ? `page 1: the page header line ${quoted(text)} is printed, where page 1 prints its own header in the page header's place`
+            : `page ${page.number}: page 1's own header line ${quoted(text)} is printed on page ${page.number}`,
+        ),
       ...missing(footer, expected.pageFooterLines).map((text) => `page ${page.number}: the page footer line ${quoted(text)} is missing`),
     ]
     const headerFoot = Math.max(...header.map((line) => line.bottom))
     const highest = body[0]
     if (highest !== undefined && highest.top < headerFoot - OVERLAP) {
-      problems.push(
-        `page ${page.number}: ${quoted(highest.text)} starts at ${points(highest.top)} pt, above the foot of the page header at ${points(headerFoot)}`,
-      )
+      problems.push(`page ${page.number}: ${quoted(highest.text)} starts at ${points(highest.top)} pt, above the foot of ${foot} at ${points(headerFoot)}`)
     }
     const footerTop = Math.min(...footer.map((line) => line.top))
     const lowest = body.reduce<Line | undefined>((low, line) => (low === undefined || line.bottom > low.bottom ? line : low), undefined)
@@ -179,18 +190,19 @@ export function overlaps(pages: readonly Page[]): string[] {
 
 /**
  * The images the PDF embeds against the document's PNGs and JPEGs: each
- * page region's on every page, then the body's in page order and the order
- * each page draws them, as many, each at its size. An SVG image is drawn
- * as vectors, never as an image, and `drawings.ts` finds it.
+ * page region's on every page that prints it -- page 1's own header's on
+ * page 1 alone (0060) -- then the body's in page order and the order each
+ * page draws them, as many, each at its size. An SVG image is drawn as
+ * vectors, never as an image, and `drawings.ts` finds it.
  */
 export function images(pages: readonly Page[], expected: Expectation): string[] {
   const raster = (list: readonly ExpectedImage[]): ExpectedImage[] => list.filter((image) => image.kind === 'raster')
-  const [regions, body] = [raster(expected.pageRegionImages), raster(expected.images)]
+  const body = raster(expected.images)
   const sized = (image: PdfBox, { width, height }: ExpectedImage): boolean => Math.abs(image.width - width) <= EDGE && Math.abs(image.height - height) <= EDGE
   const problems: string[] = []
   const drawn = pages.flatMap(({ page }) => {
     const left = [...page.images]
-    for (const image of regions) {
+    for (const image of raster(regionsOn(expected, page.number).regionImages)) {
       const at = left.findIndex((each) => sized(each, image))
       if (at < 0) problems.push(`page ${page.number}: the page regions' image of ${image.width} × ${image.height} pt is not drawn`)
       else left.splice(at, 1)

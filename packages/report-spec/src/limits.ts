@@ -57,6 +57,16 @@ export const MAX_SORT_KEYS = 8
 /** Rows under a group or under the table: a subtotal, a discount, two tax lines and a total fit with room to spare. */
 export const MAX_FOOTER_ROWS = 8
 
+/**
+ * The most of its group's first rows a group header may be kept on its
+ * page with (0059). Chosen, not measured: well above the two or three rows
+ * that keep a group from starting at the foot of a page. A count past what
+ * a page holds keeps what fits, so the bound protects no page: it refuses
+ * a count nobody means, and bounds what the renderer adds up for each
+ * group header.
+ */
+export const MAX_KEEP_WITH_ROWS = 32
+
 /** Fields in one dataset contract: a report prints a fraction of any source table's columns. */
 export const MAX_DATASET_FIELDS = 64
 
@@ -176,6 +186,33 @@ export const MAX_FORM_MEMBER_LENGTH = 200
  * binding to 64 hashes, so no binding grows with what a document holds.
  */
 export const MAX_FORM_OVERRIDES = 64
+
+/**
+ * Languages a report is written in, its own among them (0063). Chosen, not
+ * measured: the European Union's official languages are twenty-four, and a
+ * report is validated once for each language it declares.
+ */
+export const MAX_LANGUAGES = 24
+
+/**
+ * Words one translation holds, and expressions that print words: each list
+ * bounded by it (0063). 1,024, the least power of two that is at least
+ * sixteen times the most a report the corpus exports holds of both: the
+ * XRechnung sample, 36 distinct words and 13 expression runs where words
+ * stand, 49 (measured on 2026-11-15 on an Intel i9-10900K under Windows 11
+ * and Node 24.21.0, as the distinct texts `reportWords` gives and the
+ * distinct sources `wordExpressionSites` gives). That sample written in
+ * `MAX_LANGUAGES` languages, each translation as long as its word, is
+ * 91,113 bytes, inside `MAX_REPORT_BYTES`.
+ *
+ * The format admits far more words than this: every region may hold
+ * `MAX_REGION_COMPONENTS` texts of `MAX_INLINES` runs. Such a report
+ * validates and cannot be translated whole: each word past the bound stays
+ * missing in that language, said as report-core's `word-missing`, and a
+ * render in it is refused. The corpus's `report-size.test.ts` holds the
+ * bound to this factor.
+ */
+export const MAX_WORDS = 1024
 
 /** Characters in a CEL expression. An expression is a formula, not a program; the runtime bounds its evaluation too. */
 export const MAX_EXPRESSION_LENGTH = 1024

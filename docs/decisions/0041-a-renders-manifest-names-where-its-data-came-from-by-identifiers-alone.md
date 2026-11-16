@@ -1,6 +1,6 @@
 # 0041 — A render's manifest names where its data came from, by identifiers alone: each submission of a formancy form with its form's id and the version that collected it, or the Formancy Data forms each dataset was read from; a digest of the data, the record's token, one form id for every submission and a source of free text lost
 
-- **Status:** accepted; numbered while 0039 and 0040 were held by branches not yet merged; extends [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md) and [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md); its form source filled by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)
+- **Status:** accepted; numbered while 0039 and 0040 were held by branches not yet merged; extends [0010](0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md) and [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md); its form source filled by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md); extended by [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md), whose form source names the locale its labels were read in where it is not the report's own
 - **Date:** 2026-10-21
 - **Deciders:** Daniel Bacher
 - **Verified by:**

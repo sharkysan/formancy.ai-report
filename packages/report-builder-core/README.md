@@ -98,14 +98,26 @@ const editor = createReportEditor(opening.session, {
 
 `editor.state()` returns one `EditorState`:
 
-- **`document`**: the title, the page in points and in CSS pixels at the
-  zoom, and each region with its label and how many components it holds.
-- **`outline`**: the regions, then the components in each as a tree, with a
-  table's columns under it. Each row has its kind, its id, its depth,
-  whether it is selected, how many diagnostics are about it and the worst
-  of their severities, and whether it is wider than the space it stands
-  in. Its label is what a person calls it: a text by what it prints, a QR
-  code by its kind and what it encodes ("QR code: https://…"), an EPC
+- **`document`**: the title, in the language edited, the page in points
+  and in CSS pixels at the zoom, and each region the report holds with
+  its label and how many components it holds: a first page header, which
+  page 1 prints in place of the page header, only where the report has
+  one, before the page header
+  ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+- **`languages`**: the language whose words the editor shows and edits,
+  `edited`, the report's own until another is chosen, and every language
+  the report is written in, `declared`, its own first: each with its tag,
+  its name in the editor's language by Intl ("French (Switzerland)"),
+  how many of its words are missing, and the label the bar's switch gives
+  it ("French (Switzerland), words missing: 3"; *A report's languages*,
+  below).
+- **`outline`**: the regions the report holds, in that order, then the
+  components in each as a tree, with a table's columns under it. Each row
+  has its kind, its id, its depth, whether it is selected, how many
+  diagnostics are about it and the worst of their severities, and whether
+  it is wider than the space it stands in. Its label is what a person
+  calls it: a text by what it prints, a QR code by its kind and what it
+  encodes ("QR code: https://…"), an EPC
   payment code by its kind and whom it pays ("EPC payment code: Franz
   Mustermänn"), a bound run by what it binds. Labels are unique in the
   report, so each can be an accessible name; where two would read the
@@ -144,11 +156,12 @@ const editor = createReportEditor(opening.session, {
   and no frame, which is Austria's option. The palette withholds a chart
   until the builders edit a chart's own properties: inserted now, it would
   be a box whose kind, category and series no builder edits, in a report
-  the runtime refuses to render. An insert or a drag of one is refused as
-  `unavailable`, as of a kind the palette does not have. A chart a report
-  holds is drawn, moved and removed as any component, with the properties
-  every component has
-  ([0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+  the renderer refuses to print until it draws charts. An insert or a drag
+  of one is refused as `unavailable`, as of a kind the palette does not
+  have. A chart a report holds is drawn, moved and removed as any
+  component, with the properties every component has
+  ([0052](../../docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md),
+  [0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
   Where the report lacks what a kind needs (an image with nothing to
   draw, a table with no detail dataset), the entry says what to declare
   first.
@@ -182,6 +195,15 @@ const editor = createReportEditor(opening.session, {
   content is edited run by run as a text's is, with no buttons, as the
   format refuses a baseline in what a code encodes, and each of its levels
   of error correction says the share of the code it restores.
+  A table with a group has one field more, after its heading style: how
+  many of the group's first rows its header is kept on its page with,
+  `/group/keepWithRows`, a `number` written into the group through
+  `updateComponent`. It reads 1 where the report states none; 1, or
+  nothing, is written as the member's absence, as a boolean's default is,
+  and a count given back as it reads is no edit. Whether a count is whole
+  and from 1 to report-spec's `MAX_KEEP_WITH_ROWS` is the validator's to
+  say, on the field. A table without a group has no such field
+  ([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
   An EPC payment code's fields follow the order the code holds its
   elements (EPC069-12 2.2): the beneficiary, the IBAN, the BIC, the amount,
   the purpose code, the RF creditor reference, the remittance text and the
@@ -213,8 +235,18 @@ const editor = createReportEditor(opening.session, {
   on or off, and, where the keyboard goes elsewhere than the button once
   it is done, `then`: a button of a group by its key, or that group's
   first field); a builder draws `rows` and finds a field
-  in `fields`. Where the report has no bill, its own properties end with a
-  group "Payment part" whose button is Add QR-bill.
+  in `fields`. The report's own properties are its title, its language and
+  its page (`report-fields.ts`), then "Header on page 1", a choice of what
+  page 1 prints at its top: the page header, while the report has no header
+  of page 1's own, or "A header of its own (none while empty)". Choosing
+  its own puts an empty one in, by report-core's `putFirstPageHeader`, and
+  choosing the page header again takes it away with what it holds, by
+  `removeFirstPageHeader`, each one step, "Change Header on page 1", and
+  the live region says which page prints what; the option shown, chosen
+  again, changes nothing
+  ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+  Where the report has no bill, its own properties have a group "Payment
+  part" whose button is Add QR-bill, before Languages.
   An e-invoice's fields are every term of report-spec's `EInvoice`, of
   either kind, tables over each part (`invoice-fields.ts`): the invoice's
   own terms -- in an XRechnung its version, the buyer's reference and the
@@ -246,10 +278,13 @@ const editor = createReportEditor(opening.session, {
   `QR_BILL_EXAMPLE`; an IBAN typed over a QR reference takes it away; the
   live region says which. A reference the data gives is left as it is.
 - **`canvas`**: the design view. It is one sheet as wide as the page, with
-  the regions as bands and each component's flow box in its band, in points
+  the regions the report holds as bands, an empty one a band still, and
+  each component's flow box in its band, in points
   and in pixels, with the same severity and overflow its outline row has.
   It also carries rulers in millimetres. It is labelled as not the PDF,
-  because it is not; see *What it does not do*.
+  because it is not; see *What it does not do*. A box, and the payment
+  part's band, that prints a word not written yet in the language edited
+  says so in `missing`, naming the language.
   A report with a payment part -- a Swiss QR-bill, which report-spec holds
   at the report's level -- also has `paymentPart`: a band the slip's size
   (report-spec's `QR_BILL_SIZE`, 210 by 105 mm) across the sheet's foot, as
@@ -263,8 +298,12 @@ const editor = createReportEditor(opening.session, {
 - **`diagnostics`**: report-core's `diagnose()`, each entry linked to the
   component or column it is about, or to the payment part, for one that
   names no component at a path inside `/paymentPart`, with a `key` of what
-  it is -- its code, where it points and which characters -- unique in the
-  list and the same while it is listed. A bill that holds SIX's examples
+  it is -- its code, where it points, which characters and the language it
+  names -- unique in the list and the same while it is listed. One about a
+  language a translation declares names it, as `language` and in its label
+  ("Error in French (Switzerland): Introduction"), whichever language is
+  edited: it refuses a render in that language, and the outline counts it
+  where it points, as every problem. A bill that holds SIX's examples
   -- an example account, or the creditor, the debtor or the QR reference
   the editor puts in -- is warned of once, there and on no field, until
   each is replaced (`example-payment-part`).
@@ -334,6 +373,8 @@ session's do.
 | `removeImage(asset)` | Removes an image the report declares and nothing draws, in one undo step. Refused (`unavailable`) for one something draws, naming what draws it, before the session is asked. |
 | `addPart(part)` | Adds a QR-bill to a report without one, SIX's third example (IG 2.4, Table 19), its headings in the report's language where SIX prints in it, else English -- in a report with an e-invoice, in the e-invoice's currency to its account (0044) -- in one step, "Add QR-bill", and selects it; refused (`unavailable`) where the report has one, with report-spec's reason where it cannot take one, and (`not-found`) for a part it has none of, which a caller tsc never saw may send. An e-invoice is never added: refused (`unavailable`), "An e-invoice is edited here, never made from nothing" (0044). |
 | `addGroup(key)`, `removeGroup(key)` | Adds the selection's optional group of fields at `key` from its example values, or removes it, in one step: a bill's debtor, "Add debtor", "Remove debtor"; an e-invoice's contact and its payment instructions. Refused (`unavailable`) with nothing to do, and for a group that is no optional one, saying it is part of every bill or every invoice of its kind, or, an item of a list, that the list's buttons add and remove it, or, a text's run, that it is part of the text (0061); refused by the validator, it says what was not added or removed ("Did not remove Payment instructions: …"). |
+| `setLanguage(locale)` | Shows and edits the words of `locale`, the report's own or one a translation declares; the editor's own, never the report's, kept as the zoom is. Refused (`not-found`) for a language the report is not written in. |
+| `removeLanguage(locale)` | Removes the report's translation into `locale`, with its words, in one step, "Remove language", and shows the report's own words if it was the one edited. Refused (`not-found`) for a language the report has no translation in. |
 | `setBaseline(key, baseline, selected?)` | Sets the run at `key` of the selected text below or above the line (`'subscript'`, `'superscript'`), or back on it (`null`), in one step, "Set below the line": the characters `selected` in its field -- their start and end in UTF-16 code units, and the text the field showed -- snapped to whole graphemes by `Intl.Segmenter` and split from the run, or the whole run where none, or all of them, are selected, or the run is bound -- the field's text read as the run's with a line broken by CR LF or by CR alone as LF, as a textarea gives it back, and its offsets counted back into the run's; then that run joined to the literal runs beside it on its baseline, and no other. Its outcome's `then` is the pressed button of the run that holds the text now, which a split or a join moved. Refused (`invalid-value`) for a selection of other text than the report holds -- a refused value left typed in the field, with nothing selected in it too -- and a baseline the format lacks, as none of the options, (`not-found`) for a key that names no run with a baseline to set, a page counter's among them, (`unavailable`) for a press that would change nothing, and by the validator past `MAX_INLINES`, the report unchanged ([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)). |
 | `addItem(key)`, `removeItem(key)`, `moveItem(key, to)` | Adds an item to the end of the selection's list at `key`, removes the item at `key` (its list's pointer and its index, "/vat/1"), or moves it to the position `to`, each one step: an e-invoice's VAT categories, "Add VAT category", "Remove VAT category", "Move VAT category". Refused (`at-edge`) past either end, (`unavailable`) for an Add the state marks unavailable, saying why, and (`not-found`) for a key that names no list or item, a key that is no string among them. |
 
@@ -432,7 +473,58 @@ nothing decodes: a picture whose data is corrupt is added, and refused as
 `invalid-asset` when it prints. Nor is what the report gains later: a
 CMYK JPEG added before the report has a Factur-X invoice is refused at its
 final render, as an SVG whose numbers its box would carry past what a
-PDF/A holds is.
+PDF/A holds is. Nor is how a host draws it: in a report that is no
+e-invoice, a CMYK JPEG, such an SVG and a title holding `&`, `<` or `>`
+are added and edited without a word, and refused only by a render the
+host asks for as a PDF/A-2b, which no builder knows of
+([0057](../../docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
+
+## A report's languages
+
+A report may be written in several languages, its words written in each
+besides its own, and a render names the one it prints in
+([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+The editor edits one at a time: the language edited, the report's own
+until another is chosen with `setLanguage`, is the editor's own, as its
+zoom is, so two editors of one session may each edit another, and an
+undo, a redo or a removal that takes the language away gives the view
+back to the report's own.
+
+- **Adding and removing one.** The report's own fields end with a
+  group, Languages, before the images a report declares: its one field,
+  Add language, takes a tag -- its key `/translations/-`, the pointer
+  past a list's last item -- and adds the language with no words yet,
+  report-core's `addLanguage`, in one step,
+  "Add language"; the report's own language, one it has and a tag that is
+  none are refused on the field, in report-core's or the validator's
+  words. A Remove for each language follows, and sends `removeLanguage`.
+- **What is shown.** The labels, the layout and the bar's title are of the
+  report as report-spec's `writtenIn` writes it in the language edited: a
+  word it has, in its words, and one it lacks, in the report's own, its
+  box marked missing. A word stands where report-spec's walk says, and an
+  expression prints words where report-core's `wordExpressions` says, the
+  verdict its `word-missing` gives; a QR code's content and a payment
+  code's texts are codes and hold none.
+- **What a field writes.** In a language besides the report's own, a field
+  at a word -- the title, a text's runs, a column's header and its value,
+  a table's empty text, a bill's message -- writes the word's translation,
+  report-core's `translateWord`, or an expression's, `translateExpression`:
+  it is empty until the word is written, the report's own word its
+  placeholder, `missing` while it is, and emptied it takes the translation
+  back. A language looks a word up by its text, so the field's `note` says
+  in how many places the word stands. Every other field edits the report
+  as it does in its own language -- a size, a style, a binding -- and the
+  Language field names, and changes, the report's own language; its own
+  words are edited in it alone. A field shows no problem of another
+  language's, and no word missing, which its note says; an expression's
+  translation that the compiler refuses, or that would print another
+  thing than its expression, is the error of the field that writes it,
+  where report-core points it at the translation's own entry
+  (`diagnosed`).
+
+What it does not do: a side-by-side grid of every language's words, a
+language made the report's own in place of another, and a preview of a
+language with words missing, which the runtime refuses (0063).
 
 ## What a builder renders
 
@@ -447,7 +539,8 @@ so the choices are made here.
   `data-report-part="editor"`, the workbench's `wb` class, `data-panel`
   set to the state's `panel`, and, while any pane is hidden, `data-hidden`
   set to the state's `hidden`, space-separated. Its children, in order:
-  - a bar holding the report's title (`data-report-part="title"`) and the
+  - a bar holding the report's title (`data-report-part="title"`), the
+    switch between its languages while it declares more than one, and the
     toolbar;
   - the outline pane (`data-pane="outline"`): the palette, then the tree,
     with the place chooser floating over them;
@@ -485,6 +578,12 @@ so the choices are made here.
   keyboard -- its view placed or shown from outside, as a window crosses a
   width -- and the element the keyboard stood on went with it, focus goes
   to what stands in the middle now; anywhere else the keyboard stays.
+- **The switch between languages:** while `languages.declared` holds more
+  than one, a native `<select>` after the title, outside the toolbar,
+  whose arrows it would take, named `language.label` (`aria-label`), with
+  `data-report-part="language"`, an option per declared language, its
+  value the tag and its text the label, the edited one selected; a change
+  dispatches `setLanguage`. A report in its own language alone has none.
 - **A toolbar:** `role="toolbar"` named `toolbar.label`, one tab stop, the
   arrow keys, Home and End moving between its buttons the way the page
   reads (→ is the previous tool under `dir="rtl"`); an arrow held with
@@ -549,9 +648,14 @@ so the choices are made here.
   control per field, labelled by the field's label, with the role
   `PROPERTY_ROLES` gives and `required` where the field is. A text field
   commits when it changes (on blur, or Enter in a single-line field), and
-  Escape gives back what the report holds. A refused value sets
+  Escape gives back what the report holds. Once committed, it shows what
+  its field reads, so a value the editor takes as no edit -- a count
+  emptied, which reads 1 -- gives way to it (0059). A refused value sets
   `aria-invalid="true"` and an `aria-describedby` pointing to the visible
-  error. While something is selected, a button named `properties.report`
+  error. A field with a `note` has it drawn under it, after the error, in
+  a paragraph with `data-report-part="property-note"`, and is described by
+  both, the error first; a field `missing` has `data-missing="true"` on its
+  row. While something is selected, a button named `properties.report`
   above the form selects nothing and takes focus to the first field: the
   way back to the report's own properties. The form draws the state's
   `rows`: a field by itself, or a group of them, a `group` named by its
@@ -595,7 +699,10 @@ so the choices are made here.
 - **The canvas:** a region named `canvas.label`, one tab stop so a
   keyboard can scroll it, with the note that says it is not the PDF. Each
   box is an `img` named by its label; a click selects it and moves focus to
-  its outline row. While something is placed, each drop target is drawn as
+  its outline row. A box's `title` is what describes it beyond its name:
+  `canvas.overflow` where it runs over, and its `missing` sentence, joined
+  by ". ", and a box or the band with `missing` has `data-missing="true"`.
+  While something is placed, each drop target is drawn as
   an `img` named by its label. A pointer reads its position from the
   sheet's padding edge, inside its border, as the targets are placed. A
   payment part's band is an `img` named by its label, after the boxes,
@@ -628,7 +735,8 @@ from the state.
 `BUILDER_SCENARIOS` lists what each native builder must do, as data. Each
 scenario has a report to open, a language, and steps:
 `{ do: 'press', key: 'Delete' }`, `{ do: 'click', role: 'treeitem', name: 'Introduction' }`,
-`{ expect: 'focused', role, name }`, `{ expect: 'document', check }`. The
+`{ expect: 'focused', role, name }`, `{ expect: 'described', role, name, text }`,
+`{ expect: 'document', check }`. The
 scenarios insert a text by keyboard, select in the outline and walk it
 with every arrow, select a row by focusing it, edit the title, go back to
 the report's properties from a selection, refuse an invalid property with
@@ -653,7 +761,22 @@ from either code, an account the bill cannot pay refused, delete the
 e-invoice and bring it back, refuse an XRechnung's Leitweg-ID and its
 buyer's reference where they are typed, and insert an EPC payment code by keyboard, its IBAN refused on its field
 when its check digits are wrong, and its BIC added by typing it and
-removed by emptying it. Six are about a host's view: it takes the design view's place with
+removed by emptying it. Three are about a table's group: the rows its
+header is kept with typed, a count out of range refused on its field,
+written back as 1 and undone; a count given back as it reads changing
+nothing, Undo then having nothing to undo; and no such count on a table
+without a group (0059). Two are about what page 1 prints at its top
+(0060): page 1 given a header of its own from the report's properties,
+its group in the outline once it is there, a text put in it by the place
+chooser and drawn in the design view, undone and redone, and the page
+header chosen again, the group and the text going with it, and undone;
+and a page number moved by keyboard, offered the page header and never
+page 1's own. One is about a report's languages: a language
+added by its tag, the report's own refused on the field, its words
+missing as problems that name it, the bar's switch choosing it, a box
+described as missing, a text's word written in it from its field, which
+says where it stands, and seen in the design view, the report's own words
+back with the switch, and the word undone. Six are about a host's view: it takes the design view's place with
 the outline and the properties beside it, and the toolbar's Design view
 gives the place back; a key pressed in it is the host's; a side pane
 hidden beside it gives it the room and the keyboard; placed beside the
@@ -700,7 +823,8 @@ Where the scenarios stop, the two builders' whole accessible trees are
 compared with each other, in the Studio
 ([0012](../../docs/decisions/0012-the-builders-are-native-and-share-one-session.md)):
 side by side over one editor in jsdom, in all three languages, at each
-state of a walk by the editor's own actions (`apps/studio/src/parity.test.tsx`);
+state of a walk by the editor's own actions, page 1 given a header of its
+own among them, which no starter has (`apps/studio/src/parity.test.tsx`);
 and in Chromium, in the Studio's browser gate, for every starter at each
 state the same steps bring each builder to, as Playwright's snapshot and
 as Chromium's own tree read them (`apps/studio/scripts/gate-parity.mjs`).
@@ -741,6 +865,11 @@ there, and on:
   drawn as one;
 - a rule that dresses a selected box, or a box's badge, and not the
   payment part's band, which a click selects as it does a box.
+
+A word not written yet in the language edited is marked on its box and its
+band along their start, as an overflow is along its end, and on its
+field's control, dashed, in the colour of the error a render in that
+language is refused for (0063).
 
 ## The editor's words
 
@@ -806,8 +935,8 @@ the other's steps in English.
   warning where the page names them in its own text ([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
 - **Not every property is editable yet.** These need editors of their own,
   and have none:
-  - a table's sort, its group, its group and total rows, and its footer
-    cells;
+  - a table's sort, its group but for the rows its header is kept with
+    (0059), its group and total rows, and its footer cells;
   - conditional style rules (`styleWhen`);
   - value formats;
   - adding or removing a run in a text, a QR code's content or an EPC

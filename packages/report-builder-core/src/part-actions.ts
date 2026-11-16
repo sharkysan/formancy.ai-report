@@ -23,8 +23,8 @@ import type { EditorOutcome, EditorRefusalCode } from './model-actions.js'
 import { newPaymentPart } from './payment-part.js'
 import { propertyChange, propertyTarget, specsOf } from './properties.js'
 import type { PropertyTarget } from './properties.js'
-import { groupName, isGroup } from './property-groups.js'
-import type { GroupSpec, ListSpec } from './property-groups.js'
+import { groupName, isGroup } from './property-fields.js'
+import type { GroupSpec, ListSpec } from './property-fields.js'
 import { isReportLevelPart } from './selection.js'
 import type { Derived, Local } from './state.js'
 import type { EditorLocale, EditorText } from './text.js'
@@ -75,7 +75,7 @@ export function partActions(lent: PartLent, t: EditorText, locale: EditorLocale)
   function panel(): { readonly target: PropertyTarget; readonly groups: readonly GroupSpec[]; readonly report: ReportDefinition } {
     const { report } = lent.current()
     const target = propertyTarget(report, lent.local().selection) as PropertyTarget
-    return { target, groups: specsOf(target, report, t, locale).filter(isGroup), report }
+    return { target, groups: specsOf(target, report, t, locale, lent.current().edited).filter(isGroup), report }
   }
 
   /**

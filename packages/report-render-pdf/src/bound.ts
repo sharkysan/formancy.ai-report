@@ -47,6 +47,7 @@ function least(block: Block, fonts: Pick<RenderFonts, 'face'>): number {
       return tableHeight(block, fonts)
     case 'image':
     case 'rectangle':
+    case 'chart':
       return block.height
     case 'qrCode':
     case 'epcQrCode':
@@ -111,19 +112,27 @@ function tableHeight(table: Table, fonts: Pick<RenderFonts, 'face'>): number {
 
 /**
  * Refuses a body whose least height needs more than `maxPages` pages of
- * `bodyHeight`, with `reserved` points more at its end: the room a QR-bill's
- * slip keeps on the last page. That room is less than a page's body, so it
- * takes at least its own height of the pages whether it ends the last page
- * of the body or starts one of its own, and the two heights together stay
- * a least height.
+ * body -- page 1's, `bodies.first`, under its own header where it has one
+ * (0060), and the later pages', `bodies.later` -- with `reserved` points
+ * more at its end: the room a QR-bill's slip keeps on the last page. That
+ * room is less than a page's body, so it takes at least its own height of
+ * the pages whether it ends the last page of the body or starts one of its
+ * own, and the two heights together stay a least height.
  */
-export function refuseOversized(blocks: readonly Block[], bodyHeight: number, maxPages: number, fonts: Pick<RenderFonts, 'face'>, reserved = 0): void {
+export function refuseOversized(
+  blocks: readonly Block[],
+  bodies: { readonly first: number; readonly later: number },
+  maxPages: number,
+  fonts: Pick<RenderFonts, 'face'>,
+  reserved = 0,
+): void {
   const height = leastHeight(blocks, fonts) + reserved
-  if (height > maxPages * bodyHeight) {
+  const room = maxPages * bodies.later + (bodies.first - bodies.later)
+  if (height > room) {
     const slip = reserved > 0 ? `, the ${reserved.toFixed(2)} pt the payment part's slip keeps at its end included` : ''
     throw new RenderRefusal(
       'too-many-pages',
-      `the report needs more than ${maxPages} pages: its body is at least ${height.toFixed(2)} pt tall${slip}, and ${maxPages} pages hold ${(maxPages * bodyHeight).toFixed(2)} pt`,
+      `the report needs more than ${maxPages} pages: its body is at least ${height.toFixed(2)} pt tall${slip}, and ${maxPages} pages hold ${room.toFixed(2)} pt`,
     )
   }
 }

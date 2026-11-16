@@ -9,8 +9,9 @@
  * and whether the rendered output fits are later levels, owned elsewhere.
  */
 import { identifier, matches, optional, readObject, shape, strictKeys, text } from './check.js'
-import { REGION_NAMES } from './definition.js'
-import type { Regions, ReportDefinition } from './definition.js'
+import type { Component } from './components.js'
+import { OPTIONAL_REGIONS, REGION_NAMES } from './definition.js'
+import type { RegionName, Regions, ReportDefinition } from './definition.js'
 import type { ReportError } from './errors.js'
 import { MAX_LABEL_LENGTH, MAX_REGION_COMPONENTS } from './limits.js'
 import { at } from './pointer.js'
@@ -23,18 +24,38 @@ import { readAssets, readDatasets, readPage, readParameters, readProvenance, rea
 import { readEInvoice } from './validate-e-invoice.js'
 import { checkMissingFaces, readFontMap } from './validate-font-map.js'
 import { readPaymentPart } from './validate-payment-part.js'
+import { checkLanguages, readTranslations } from './validate-translations.js'
 import { checkSpecVersion, REPORT_SPEC_VERSION } from './version.js'
 
 export type ReportValidation = { readonly valid: true; readonly report: ReportDefinition } | { readonly valid: false; readonly errors: readonly ReportError[] }
 
+/** The regions every report holds: every one but those it may leave out. */
+const REQUIRED_REGIONS: readonly RegionName[] = REGION_NAMES.filter((region) => !(OPTIONAL_REGIONS as readonly RegionName[]).includes(region))
+
+/**
+ * The regions, each read by its name in the order a reader meets them, so
+ * that a component id taken twice is reported where the reader meets it
+ * second. An optional region absent is left absent, and one present as an
+ * empty list is kept: the two print different first pages (0060).
+ */
 function readRegions(c: Ctx, value: unknown, path: string): Regions | undefined {
-  const o = shape(c.f, value, path, REGION_NAMES)
-  const [reportHeader, pageHeader, body, pageFooter, summary] = REGION_NAMES.map((region) => {
+  const o = shape(c.f, value, path, REQUIRED_REGIONS, OPTIONAL_REGIONS)
+  const read: Partial<Record<RegionName, readonly Component[]>> = {}
+  for (const region of REGION_NAMES) {
     const where = at(path, region)
-    return readComponents(c, o?.[region], where, { region, regionPath: where, depth: 0, layout: undefined, budget: { left: MAX_REGION_COMPONENTS } })
-  })
+    const components = readComponents(c, o?.[region], where, {
+      region,
+      regionPath: where,
+      depth: 0,
+      layout: undefined,
+      budget: { left: MAX_REGION_COMPONENTS },
+    })
+    if (components !== undefined) read[region] = components
+  }
+  const { reportHeader, firstPageHeader, pageHeader, body, pageFooter, summary } = read
   if (reportHeader === undefined || pageHeader === undefined || body === undefined || pageFooter === undefined || summary === undefined) return undefined
-  return { reportHeader, pageHeader, body, pageFooter, summary }
+  if (o?.firstPageHeader !== undefined && firstPageHeader === undefined) return undefined
+  return { reportHeader, ...optional('firstPageHeader', firstPageHeader), pageHeader, body, pageFooter, summary }
 }
 
 /** The report in `o`, a copy of the document's top level whose version has been checked. */
@@ -44,7 +65,7 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
     o,
     '',
     ['reportSpecVersion', 'id', 'title', 'locale', 'page', 'styles', 'datasets', 'parameters', 'assets', 'aggregates', 'regions'],
-    ['fonts', 'paymentPart', 'eInvoice', 'provenance'],
+    ['fonts', 'paymentPart', 'eInvoice', 'provenance', 'translations'],
   )
   const id = identifier(c.f, o.id, '/id')
   const title = text(c.f, o.title, '/title', MAX_LABEL_LENGTH)
@@ -65,6 +86,8 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
   const paymentPart = readPaymentPart(c, o.paymentPart, '/paymentPart', page)
   const eInvoice = readEInvoice(c, o.eInvoice, '/eInvoice', { title, regions, paymentPart })
   const provenance = readProvenance(c.f, o.provenance, '/provenance')
+  // Last: a translation is of words the rest holds, and each language is the rest written again.
+  const translations = readTranslations(c, o.translations, '/translations', locale)
   if (
     id === undefined ||
     title === undefined ||
@@ -78,7 +101,8 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
     regions === undefined ||
     (o.fonts !== undefined && fonts === undefined) ||
     (o.paymentPart !== undefined && paymentPart === undefined) ||
-    (o.eInvoice !== undefined && eInvoice === undefined)
+    (o.eInvoice !== undefined && eInvoice === undefined) ||
+    (o.translations !== undefined && translations === undefined)
   ) {
     return undefined
   }
@@ -99,6 +123,7 @@ function readReport(c: Ctx, o: Record<string, unknown>): ReportDefinition | unde
     ...optional('paymentPart', paymentPart),
     ...optional('eInvoice', eInvoice),
     ...optional('provenance', provenance),
+    ...optional('translations', translations),
   }
 }
 
@@ -130,6 +155,8 @@ export function validateReport(document: unknown): ReportValidation {
   }
   // checkSpecVersion reads a version only from an object, so `top` is one.
   const report = readReport(c, top as Record<string, unknown>)
+  // Each language only once the report in its own is whole: an error then is the translation's alone.
+  if (report?.translations !== undefined && c.f.errors().length === 0) checkLanguages(c, report, report.translations, readReport)
   const errors = c.f.errors()
   return report !== undefined && errors.length === 0 ? { valid: true, report } : { valid: false, errors }
 }

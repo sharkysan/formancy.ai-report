@@ -60,6 +60,14 @@ export interface PropertyField {
   readonly required: boolean
   /** Why the last value given was refused, or the diagnostic about what is there now. */
   readonly error?: string
+  /**
+   * In a language besides the report's own, at a word (0063): the sentence
+   * that says which language the field writes, and in how many places its
+   * word stands, which a builder draws under the field and describes it by.
+   */
+  readonly note?: string
+  /** The word is not written yet in that language: the field is empty, its placeholder the report's own word. */
+  readonly missing?: boolean
 }
 
 /**
