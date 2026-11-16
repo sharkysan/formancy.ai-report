@@ -97,7 +97,8 @@ where it names its source, the syntax of identifiers and its shape's keys (0041)
 evaluate conditions and expressions        fixed capabilities; EXPRESSION_STEP_BUDGET
    │                                       each, RENDER_STEP_BUDGET a render
    ▼
-order and group the rows; compute each aggregate exactly, then round it once
+order and group the rows; compute each aggregate exactly, then round it once;
+each table's rows those its condition selects, its totals over them (6.21)
    ▼
 an e-invoice's lines, read once from its table's rows; its totals computed
 once; its other terms held to EN 16931's rules (6.8)
@@ -1172,3 +1173,47 @@ region is resolved to a document without the key, measured in the passes,
 on the sheets and with the messages it always was, and drawn object for
 object as before
 ([0060](../decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+
+## 6.21 Several tables, from the detail rows to each table's totals
+
+```
+resolveReport, a table in the body or the summary, its condition true
+   │  every aggregate already totalled over every detail row (6.2)
+   ▼
+tableBlock(render, table, path, style)                 report-runtime's lower-table.ts
+   ├─ every column hidden ──▶ nothing, and no condition read
+   ▼
+selectedRows: no rowsWhen ──▶ every detail row; table = the report's totals, the same values
+   │  rowsWhen read once a detail row, in the row's scope -- params, header,
+   │  totals, row -- in the data's order, each reading within RENDER_STEP_BUDGET
+   ├─ fails for a row ──────────────────────▶ evaluation, naming the row by its index in the data
+   ├─ a preview lacks a field it reads ─────▶ the row left out, one warning per field
+   ▼
+orderTable(report, table, detail, selected)                         sort-group.ts
+   │  the selected rows ordered and grouped by orderRows and groupRows,
+   │  each kept at its index in the data
+   ▼
+table = Totals.over(the selected rows)      each declared aggregate, rounded once
+   ▼
+each cell in its row's scope; a group's header and footer in groupScope, which
+binds group and table; the total rows in tableScope (render-context.ts), which
+binds table beside totals
+   ├─ no row selected ──▶ the empty text, the total rows beneath it, totals of nothing
+   ▼
+the table block: the rows it prints, as every table's ──▶ the ResolvedDocument (6.2)
+```
+
+What a table prints is decided once, in its lowering: the rows its
+condition selects, ordered and grouped by `sort-group.ts` and totalled by
+`Totals.over`, the function a group's totals are, so a table's subtotal
+and its total are of the rows printed above them. `totals` stays every
+detail row's, under every table and in the summary, a payment code, the
+e-invoice and a chart, and a table without a condition is handed the
+report's totals themselves as `table`, so a report without conditions
+resolves to the document it did. A render in a language the report
+declares (0063) reads the condition as written, since a condition is no
+word (`NOT_WORDS`), so every language selects the same rows. An
+e-invoice's lines' table has no condition, which the validator holds, so
+`e-invoice-lines.ts` orders every row as before. The document gains nothing: a table is the rows it prints,
+and the renderer draws any number of them as it drew one
+([0062](../decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).

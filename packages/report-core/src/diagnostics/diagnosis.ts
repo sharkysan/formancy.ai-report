@@ -15,6 +15,7 @@ import { examplePaymentPartDiagnostics } from './example-payment-part.js'
 import { reportParts } from './parts.js'
 import type { ReportParts } from './parts.js'
 import { roundingDiagnostics } from './rounding.js'
+import { tableDiagnostics } from './tables.js'
 import { unusedDiagnostics } from './unused.js'
 
 /** A report's diagnostics in the language its words are written in, and what found them. */
@@ -27,8 +28,9 @@ export interface Diagnosis {
 /**
  * Every diagnostic for `report` as its words are written, its translations
  * unread: expressions first, in document order, the aggregates' last, then
- * roundings, then a chart's series' roundings, then the e-invoice's
- * unprinted totals, then content, then a bill that holds SIX's examples,
+ * roundings, then a chart's series' roundings, then a total of every row
+ * under a table that selects its rows, then the e-invoice's unprinted
+ * totals, then content, then a bill that holds SIX's examples,
  * then unused declarations in the order they are declared. The
  * expressions' are `compileReport`'s, so the editor reports exactly what
  * the runtime refuses.
@@ -40,6 +42,7 @@ export function diagnosis(report: ReportDefinition): Diagnosis {
     ...compiled.diagnostics,
     ...roundingDiagnostics(report, parts.printedTotals, compiled.members.totals),
     ...chartDiagnostics(report),
+    ...tableDiagnostics(report),
     ...eInvoiceDiagnostics(report, parts.expressions),
     ...contentDiagnostics(report),
     ...examplePaymentPartDiagnostics(report),

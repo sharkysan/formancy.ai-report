@@ -197,10 +197,23 @@ export function orderKeys(report: ReportDefinition, table: TableComponent): Orde
   return [...group, ...(table.sort ?? []).map(({ field, direction }) => typed(field.field, direction))]
 }
 
-/** `detail` -- the report's checked detail rows -- in `table`'s order, and in its groups when it has one. */
-export function orderTable(report: ReportDefinition, table: TableComponent, detail: readonly CheckedRecord[]): OrderedTable {
+/** `selected`, in the data's order, as `orderRows` orders them: each the very row selected, at its index in the data, not in the selection. */
+function selectedInOrder(selected: readonly OrderedRow[], keys: readonly OrderKey[], locale: string): OrderedRow[] {
+  const records = selected.map(({ record }) => record)
+  return orderRows(records, keys, locale).map(({ index }) => selected[index] as OrderedRow)
+}
+
+/**
+ * `detail` -- the report's checked detail rows -- in `table`'s order, and in
+ * its groups when it has one. Given `selected`, the rows a table's
+ * condition selected, in the data's order (0062), those alone, each still
+ * at its index in `detail`: a total over a group reads a row's value by
+ * that index, and an error names the row by it. Ties keep the data's order
+ * among them.
+ */
+export function orderTable(report: ReportDefinition, table: TableComponent, detail: readonly CheckedRecord[], selected?: readonly OrderedRow[]): OrderedTable {
   const keys = orderKeys(report, table)
-  const rows = orderRows(detail, keys, report.locale)
+  const rows = selected === undefined ? orderRows(detail, keys, report.locale) : selectedInOrder(selected, keys, report.locale)
   if (table.group === undefined) return { rows }
   return { rows, groups: groupRows(rows, keys[0] as OrderKey) }
 }

@@ -1,12 +1,13 @@
 /**
- * The table over the detail dataset: its columns, single grouping level,
- * sort and footer rows, and the references each makes into the detail
- * dataset and into the table's own columns.
+ * A table over the detail dataset: the rows it selects, its columns,
+ * single grouping level, sort and footer rows, and the references each
+ * makes into the detail dataset and into the table's own columns. A
+ * report holds up to `MAX_TABLES` of them (0062).
  */
 import { all, identifier, integer, oneOf, optional, quote, readArray, readList, reference, shape, text, width } from './check.js'
 import type { ComponentBase, Width } from './components.js'
 import type { RegionName } from './definition.js'
-import { MAX_FOOTER_ROWS, MAX_KEEP_WITH_ROWS, MAX_LABEL_LENGTH, MAX_SORT_KEYS, MAX_TABLE_COLUMNS } from './limits.js'
+import { MAX_FOOTER_ROWS, MAX_KEEP_WITH_ROWS, MAX_LABEL_LENGTH, MAX_SORT_KEYS, MAX_TABLE_COLUMNS, MAX_TABLES } from './limits.js'
 import { at } from './pointer.js'
 import { ALIGNMENTS } from './styles.js'
 import { SORT_DIRECTIONS } from './table.js'
@@ -18,7 +19,7 @@ import type { FieldBinding, InlineScope } from './validate-inline.js'
 import { roundPt } from './units.js'
 
 export const TABLE_REQUIRED = ['dataset', 'columns', 'emptyText', 'repeatHeader']
-export const TABLE_OPTIONAL = ['headerStyle', 'sort', 'group', 'totals']
+export const TABLE_OPTIONAL = ['rowsWhen', 'headerStyle', 'sort', 'group', 'totals']
 
 /** Reports a sort or group key whose field is an image: an image has no order. */
 function orderable(c: Ctx, key: FieldBinding | undefined, path: string): void {
@@ -143,14 +144,18 @@ function readSort(c: Ctx, value: unknown, path: string, groupBy: string | undefi
 }
 
 /**
- * The table, after refusing a second one: version 0 has one primary detail
- * dataset (plan 10) and one table over it.
+ * A table, counted against `MAX_TABLES`: version 0 has one primary detail
+ * dataset (plan 10), and each table prints the rows of it that its
+ * condition selects (0062). Whether a report that is an e-invoice holds a
+ * second is the e-invoice's to say, once it is read.
  */
 export function readTable(c: Ctx, o: Record<string, unknown>, path: string, region: RegionName, base: ComponentBase | undefined): TableComponent | undefined {
-  if (c.detailTable === undefined) c.detailTable = path
-  else c.f.report(path, 'second-detail-table', `a report has one table over the detail dataset in version 0, and this one's is at ${c.detailTable}`)
+  c.tables.push(path)
+  if (c.tables.length > MAX_TABLES)
+    c.f.report(path, 'too-many', `a report holds at most ${MAX_TABLES} tables, counting those inside containers, and this is table ${c.tables.length}`)
   const dataset = oneOf(c.f, o.dataset, at(path, 'dataset'), ['detail'])
   resolve(c.f, c.declared.datasets, dataset, at(path, 'dataset'), 'unknown-dataset', 'dataset')
+  const rowsWhen = readExpression(c.f, o.rowsWhen, at(path, 'rowsWhen'))
   const read = readList(c.f, o.columns, at(path, 'columns'), 1, MAX_TABLE_COLUMNS)?.map((item, index) =>
     readTableColumn(c, item, at(at(path, 'columns'), index), region),
   )
@@ -171,7 +176,7 @@ export function readTable(c: Ctx, o: Record<string, unknown>, path: string, regi
   const headerStyle = readStyleRef(c, o.headerStyle, at(path, 'headerStyle'))
   const group = readGroup(c, o.group, at(path, 'group'), region, columnIds)
   const sort = readSort(c, o.sort, at(path, 'sort'), group.by)
-  const totals = readFooterRows(c, o.totals, at(path, 'totals'), { region, reads: 'report' }, columnIds)
+  const totals = readFooterRows(c, o.totals, at(path, 'totals'), { region, reads: 'table' }, columnIds)
   const emptyText = text(c.f, o.emptyText, at(path, 'emptyText'), MAX_LABEL_LENGTH)
   const repeatHeader = oneOf(c.f, o.repeatHeader, at(path, 'repeatHeader'), [true])
   const columns = read && all(read.map(({ column }) => column))
@@ -180,6 +185,7 @@ export function readTable(c: Ctx, o: Record<string, unknown>, path: string, regi
     ...base,
     kind: 'table',
     dataset,
+    ...optional('rowsWhen', rowsWhen),
     columns,
     ...optional('headerStyle', headerStyle),
     ...optional('sort', sort),

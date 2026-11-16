@@ -12,20 +12,24 @@ export interface Expression {
 
 /**
  * Where a value is read, which decides what it can name (plan 15's "current
- * row, group or report"): `row` in a table cell, once per detail row;
- * `group` in a group header or footer, once per group; `report` everywhere
- * else, the table's total rows included.
+ * row, group or report"): `row` in a table cell and a table's row
+ * condition, once per detail row; `group` in a group header or footer,
+ * once per group; `table` in a table's total rows, once per table (0062);
+ * `report` everywhere else.
  */
-export const VALUE_SCOPES = ['report', 'group', 'row'] as const
+export const VALUE_SCOPES = ['report', 'table', 'group', 'row'] as const
 export type ValueScope = (typeof VALUE_SCOPES)[number]
 
 /**
  * The names an expression reads in each scope, and nothing else: the
  * runtime binds exactly these. `params` maps parameter ids to values,
  * `header` the header dataset's fields, `row` the current detail row's,
- * `totals` each aggregate over every detail row, and `group` each aggregate
- * over the current group's rows and, as `GROUP_KEY`, the value the group
- * is keyed by.
+ * `totals` each aggregate over every detail row, `table` each aggregate
+ * over the rows the table prints (0062), and `group` each aggregate over
+ * the current group's rows and, as `GROUP_KEY`, the value the group is
+ * keyed by. A table's row condition is read in the row's scope, so it
+ * reads neither `table` nor `group`, which are totalled and made from the
+ * rows it selects.
  *
  * Whether an expression names only these is checked when the runtime
  * compiles it (plan 15's second level), not here: a second, partial CEL
@@ -33,14 +37,16 @@ export type ValueScope = (typeof VALUE_SCOPES)[number]
  */
 export const EXPRESSION_NAMES: { readonly [S in ValueScope]: readonly string[] } = {
   report: ['params', 'header', 'totals'],
-  group: ['params', 'header', 'totals', 'group'],
+  table: ['params', 'header', 'totals', 'table'],
+  group: ['params', 'header', 'totals', 'table', 'group'],
   row: ['params', 'header', 'totals', 'row'],
 }
 
 /**
  * The member of `group` that is the value the group is keyed by: in a group
  * header, `group.key` is the site a group of rows by site is for, of the
- * type of the field grouped by, and null for the group of rows without one.
+ * type of the field the group's own table groups by, and null for the
+ * group of rows without one.
  * An aggregate may not take the name (`reserved-id`), so `group.key` never
  * reads one.
  */
@@ -121,8 +127,11 @@ export interface ExpressionInline {
   readonly baseline?: BaselineShift
 }
 
-/** Whose rows an aggregate is taken over where it is printed: the current group's, or every detail row. */
-export const AGGREGATE_SCOPES = ['group', 'report'] as const
+/**
+ * Whose rows an aggregate is taken over where it is printed: the current
+ * group's, the rows its table prints (0062), or every detail row.
+ */
+export const AGGREGATE_SCOPES = ['group', 'table', 'report'] as const
 export type AggregateScope = (typeof AGGREGATE_SCOPES)[number]
 
 export interface AggregateInline {

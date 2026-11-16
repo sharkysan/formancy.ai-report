@@ -129,10 +129,13 @@ describe('where values may stand', () => {
   // names. If the runtime bound others -- `rows`, `parameters`,
   // `data.header` -- every published template would change meaning or stop
   // compiling, so they are part of the format and fixed here.
-  test('an expression reads params, header and totals everywhere, a row in a cell and a group in its rows', () => {
+  // A table's own totals, `table`, are read in its total rows and its
+  // group's header and footer, and nowhere a row is current (0062).
+  test("an expression reads params, header and totals everywhere, a row in a cell, a table's totals under it and a group in its rows", () => {
     expect(EXPRESSION_NAMES).toEqual({
       report: ['params', 'header', 'totals'],
-      group: ['params', 'header', 'totals', 'group'],
+      table: ['params', 'header', 'totals', 'table'],
+      group: ['params', 'header', 'totals', 'table', 'group'],
       row: ['params', 'header', 'totals', 'row'],
     })
   })

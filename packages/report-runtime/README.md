@@ -191,6 +191,34 @@ paragraph, a boolean's `true` and `false` -- are English in every
 language. A translation's locale the engine's `Intl` cannot write is
 refused as `unsupported-locale`, at the translation that declares it.
 
+## Several tables
+
+A report may hold several tables over its detail rows
+([0062](../../docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)), and each prints the rows its own condition selects:
+
+- **Its condition**, `rowsWhen`, is read once a detail row, in the row's
+  scope and the data's order, before anything is ordered, each reading
+  within the render's step budget; a table without one has every row.
+  One that fails for a row refuses the render (`evaluation`), naming the
+  row by its index in the data. A preview whose data lacks a field it
+  reads leaves the row out of that table, warned once for the field.
+- **Its order and groups** are `sort-group.ts`'s, over the rows it
+  selected, each kept at its index in the data, so an error names the row
+  the provider gave and a total reads the right row's value.
+- **Its totals** are the declared aggregates over those rows, by the
+  function a group's are, `Totals.over`, rounded once, read as
+  `table.<id>` in its total rows and its group's header and footer. A
+  table without a condition is handed the report's totals themselves, so
+  `table.net` and `totals.net` are one value there, and a report without
+  conditions resolves to the document it did. `totals` is every detail
+  row's everywhere, under such a table as in the summary, a payment code,
+  the e-invoice and a chart.
+- **A table that selects no row** prints its empty text, and its total
+  rows beneath it, a count and a sum of nothing 0 and the rest nothing.
+
+The document is unchanged: a table is the rows it prints, and the
+renderer draws any number of them.
+
 ## A QR-bill
 
 A report's payment part resolves to the document's `paymentPart`
@@ -440,7 +468,9 @@ shift alike.
 Each stage is exported for a host or a tool that needs one alone:
 `checkReport`, `checkData`, `checkParameters`, `readValue`,
 `isSubmissionId`, `prepareExpressions`, `createFormatter`, `orderTable`
-and the decimal arithmetic; the form bridge reads `readValue`,
+-- given the rows a table's condition selected, as its optional fourth
+argument, those alone, each kept at its index in the data (0062) -- and
+the decimal arithmetic; the form bridge reads `readValue`,
 `MAX_STRING_LENGTH`, `isSubmissionId` and `SUBMISSION_ID_SYNTAX`, the
 words a refusal says that rule in, so that it holds an answer and an id
 by this package's rules, and says them in its words, rather than a copy

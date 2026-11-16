@@ -205,6 +205,19 @@ were selected in a run's field, or the whole run, in one undo step, the
 whole run alone from another language, each run a group with its Subscript
 and Superscript
 ([0061](docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+A report may hold up to `MAX_TABLES` tables over its one detail dataset,
+but for an e-invoice, whose lines are its one table: a table's optional
+`rowsWhen`, a condition read once a detail row in the row's scope, selects
+the rows it prints and totals, with its own columns, order, group and
+totals, its total rows reading the `table` scope (report-spec's
+`validate-table.ts` and `limits.ts`, report-core's
+`diagnostics/tables.ts`); the runtime selects each table's rows once and
+orders and groups them alone (`lower-table.ts`'s `selectedRows`,
+`sort-group.ts`'s `orderTable`, `render-context.ts`'s `tableScope`), a
+chart still reading every detail row, and the condition is named as no
+word, so every language selects the same rows; and both builders edit a
+table's "Show rows only when" and add a further table by duplicating one
+([0062](docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
 A chart, a component, runs through report-spec, report-core, the
 runtime and the renderer, and is not offered by the builders yet: its
 rules are report-spec's `chart.ts`, the palette `CHART_PALETTE` and the

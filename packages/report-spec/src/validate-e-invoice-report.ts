@@ -1,9 +1,9 @@
 /**
  * What an e-invoice says of the report around it, held where the report
- * can be read: that its lines are what the table over the detail dataset
- * prints, that a payment code printed with it asks for its account and its
- * currency, and that a Factur-X invoice's title can stand in the PDF/A's
- * metadata.
+ * can be read: that its lines are what the report's one table over the
+ * detail dataset prints, every row of it (0062), that a payment code
+ * printed with it asks for its account and its currency, and that a
+ * Factur-X invoice's title can stand in the PDF/A's metadata.
  *
  * The page and the XML are one invoice, or the page is a second one: a
  * picture that differs from the structured part in what the invoice says
@@ -138,10 +138,9 @@ function checkColumn(c: Ctx, table: TableComponent, key: EInvoiceLineColumn, id:
  * none): its id, and each term's column, printed in every render.
  */
 function checkLines(c: Ctx, path: string, locations: readonly ComponentLocation[], named: NamedColumns): void {
-  // The first table is the one over the detail dataset only because
-  // version 0 has one table and it is over that dataset (`readTable` and
-  // `second-detail-table`, validate-table.ts). A version that allows a
-  // second must find the table the lines name here instead.
+  // The first table is the lines' because a report that is an e-invoice
+  // holds one (`checkOneTable`, 0062). A version that allows a second
+  // there must find the table the lines name instead.
   const found = locations.find(({ component }) => component.kind === 'table')
   if (found === undefined) {
     c.f.report(
@@ -168,10 +167,35 @@ function checkLines(c: Ctx, path: string, locations: readonly ComponentLocation[
       'the lines are printed by a table that may be hidden, or that stands in a component that may be: every line the XML holds is printed',
     )
   }
+  if (table.rowsWhen !== undefined) {
+    c.f.report(
+      at(path, 'table'),
+      'invalid-e-invoice',
+      'the lines are printed by a table that prints only the rows its condition selects: every detail row is a line the XML holds, and is printed',
+    )
+  }
   const printedBy = new Map<string, EInvoiceLineColumn>()
   for (const key of Object.keys(E_INVOICE_LINE_COLUMNS) as EInvoiceLineColumn[]) {
     const id = named[key]
     if (id !== undefined) checkColumn(c, table, key, id, at(path, key), printedBy)
+  }
+}
+
+/**
+ * Reports every table after the first, each where it stands: the lines are
+ * every row of the report's one table, and a second would print lines, or
+ * a part of them, that the XML does not hold as printed (0062). Read from
+ * where the validation found each table, so it is said even where the
+ * regions could not be read whole.
+ */
+function checkOneTable(c: Ctx): void {
+  const [first, ...others] = c.tables
+  for (const other of others) {
+    c.f.report(
+      other,
+      'second-detail-table',
+      `an e-invoice's lines are every row of the report's one table, at ${String(first)}, and a report that is an e-invoice holds no other`,
+    )
   }
 }
 
@@ -246,7 +270,7 @@ function titleBreak(title: string): string | undefined {
 
 /**
  * Everything the e-invoice at `path` says of the report around it: a
- * Factur-X invoice's title, the lines' table and columns, and every
+ * Factur-X invoice's title, the one table, the lines' columns, and every
  * payment code. `pays` says whether it gives payment instructions,
  * `account` is their account when it is literal and its rule took it, and
  * `kind` is the e-invoice's.
@@ -259,6 +283,7 @@ export function checkEInvoiceReport(
 ): void {
   const broken = around.title === undefined || invoice.kind !== 'facturX' ? undefined : titleBreak(around.title)
   if (broken !== undefined) c.f.report('/title', 'invalid-e-invoice', broken)
+  checkOneTable(c)
   const locations = around.regions && walkRegions(around.regions)
   if (locations !== undefined) checkLines(c, at(path, 'lines'), locations, invoice.named)
   checkPaymentCodes(c, around, locations, invoice.pays, invoice.account)

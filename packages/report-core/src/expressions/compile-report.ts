@@ -21,7 +21,7 @@ import { aggregateOrder, aggregateReads, cycleDiagnostic } from './aggregates.js
 import { compileSite } from './compile-site.js'
 import type { CompiledExpression, Images, SiteOutcome } from './compile-site.js'
 import { invoiceMembers, paidMember } from './e-invoice.js'
-import { COMPUTES, fieldsOf, fieldTotalType, groupKeyOf, imagesOf, parametersOf, TOTALS } from './members.js'
+import { COMPUTES, fieldsOf, fieldTotalType, groupKeysOf, imagesOf, parametersOf, TOTALS } from './members.js'
 import type { ExpressionMember, Members } from './members.js'
 
 export interface ReportCompilation {
@@ -66,11 +66,13 @@ export function compiledSites(report: ReportDefinition, sites: readonly Expressi
   const invoiced = report.eInvoice !== undefined
   // What is compiled before the e-invoice's totals are known -- an
   // aggregate's expression, the paid amount -- cannot read them, and finds
-  // them empty.
+  // them empty. Neither stands in a group, whose keys are known from the
+  // first.
   const base = {
     params: parametersOf(report),
     header: fieldsOf(report.datasets.header),
     row: fieldsOf(report.datasets.detail),
+    groupKeys: groupKeysOf(report),
     ...invoiceMembers(undefined, undefined),
   }
   const outcomes = new Map<string, SiteOutcome>()
@@ -81,7 +83,7 @@ export function compiledSites(report: ReportDefinition, sites: readonly Expressi
       return fieldTotalType(report, aggregate.fn, aggregate.of?.field.field)
     }
     const site = siteOf(index)
-    const outcome = compileSite(site, { ...base, totals: known, group: known }, images, invoiced)
+    const outcome = compileSite(site, { ...base, totals: known, table: known, group: known }, images, invoiced)
     outcomes.set(site.path, outcome)
     if (!outcome.ok) return COMPUTES[aggregate.fn](undefined)
     const result = outcome.compiled.program.resultType
@@ -100,16 +102,22 @@ export function compiledSites(report: ReportDefinition, sites: readonly Expressi
   // circle is reported, once, where it closes.
   for (const id of unordered) known.set(id, { type: 'dyn', nullable: true })
   const totals = new Map(report.aggregates.map(({ id }) => [id, known.get(id) as ExpressionMember]))
-  // A group holds its aggregates and its key; report-spec keeps the key's name from every aggregate.
-  const key = groupKeyOf(report)
-  const group = key === undefined ? totals : new Map([...totals, key])
+  // A table's totals and a group's are the same aggregates over fewer
+  // rows, of the same types (0062); a group's key is its table's, in
+  // groupKeys, and report-spec keeps the key's name from every aggregate.
   // The paid amount reads none of the e-invoice's totals, and invoice.paid
   // is what it gives: it is compiled before the members that hold it, as
   // an aggregate's expression is, and that compilation is the one kept.
   const paid = byPath.get(PAID)
-  const paidOutcome = paid === undefined ? undefined : compileSite(paid, { ...base, totals, group }, images, invoiced)
+  const paidOutcome = paid === undefined ? undefined : compileSite(paid, { ...base, totals, table: totals, group: totals }, images, invoiced)
   if (paidOutcome !== undefined) outcomes.set(PAID, paidOutcome)
-  const members: Members = { ...base, totals, group, ...invoiceMembers(report.eInvoice, paidOutcome === undefined ? undefined : paidMember(paidOutcome)) }
+  const members: Members = {
+    ...base,
+    totals,
+    table: totals,
+    group: totals,
+    ...invoiceMembers(report.eInvoice, paidOutcome === undefined ? undefined : paidMember(paidOutcome)),
+  }
 
   const expressions = new Map<string, CompiledExpression>()
   const diagnostics: Diagnostic[] = []

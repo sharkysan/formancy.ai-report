@@ -39,12 +39,9 @@ that lands it.
    ([0059](decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
 3. **More than one dataset**: a second detail dataset, a subreport, and a
    detail nested in a detail -- an order's lines under each order -- each
-   resolved by the runtime as the one detail is; and more than one table,
-   each over a dataset of its own or over the detail rows a condition
-   selects, with its own columns, order, groups and totals. A record
-   decides what a report's totals read once it holds several tables, and
-   which one an e-invoice's lines are held to. Until then a second table
-   is refused.
+   resolved by the runtime as the one detail is, and a table over a
+   dataset of its own among them, as several tables over the detail rows
+   are ([0062](decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
 4. **Running totals**: a page's subtotal, carried forward at its foot and
    brought forward at the next page's head, as a German or Swiss invoice
    of many pages prints it.

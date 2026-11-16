@@ -191,6 +191,7 @@ export const DE_CH: Catalogue = {
   'field.borderColor': 'Rahmenfarbe',
   'field.columnWidth': 'Breite der Spalte {n}',
   'field.emptyText': 'Text ohne Zeilen',
+  'field.rowsWhen': 'Zeilen nur anzeigen, wenn',
   'field.headerStyle': 'Stil der Kopfzeile',
   'field.keepWithRows': 'Zeilen mit jedem Gruppenkopf zusammenhalten',
   'field.header': 'Überschrift',

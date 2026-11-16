@@ -24,6 +24,11 @@
   report-core's commands, its account changed with its payment codes' in
   one edit, and the e-invoice sample is a starter of the Studio's, which
   this record kept out of its picker; and extended by
+  [0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md),
+  under which a report may hold several tables, and one that is an
+  e-invoice still holds one, which selects no rows by a condition, so
+  that its lines stay every detail row and the table this record names
+  stays the report's one; and by
   [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md),
   under which a line's name follows a translated render into the XML
   where the column it is read from prints a word, every other text the

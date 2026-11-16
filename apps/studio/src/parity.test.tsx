@@ -383,9 +383,13 @@ describe('the two builders, side by side over one editor', () => {
             'the Preview hidden',
           ]),
         )
+        // A further table has a place in every starter with detail rows but an e-invoice, whose one table is its lines (0062), and none
+        // in a starter without them: a walk that found none where there is one would compare the place chooser and never a second
+        // table's rows, its columns or its condition.
+        const invoice = starter.report.eInvoice !== undefined
+        expect(states).toContain(starter.report.datasets.detail !== undefined && !invoice ? 'table placed' : 'table: no place')
         // The bill the walk selected is the one the starter has, or SIX's example added to it, and the e-invoice the one it has, edited:
         // an e-invoice in euro takes no bill of SIX's example, which asks for francs.
-        const invoice = starter.report.eInvoice !== undefined
         expect(mounted?.editor.state().outlineParts.map((row) => row.part)).toEqual(
           invoice ? [...(starter.report.paymentPart === undefined ? [] : ['paymentPart']), 'eInvoice'] : ['paymentPart'],
         )

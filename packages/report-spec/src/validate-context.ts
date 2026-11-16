@@ -1,7 +1,7 @@
 /**
  * What one validation knows while it reads a report: what the report
- * declares, which component ids it has seen, where its detail table is and
- * how much of the page its margins leave.
+ * declares, which component ids it has seen, where its tables are and how
+ * much of the page its margins leave.
  */
 import type { AnyAssetMediaType } from './assets.js'
 import { Findings, quote } from './check.js'
@@ -35,8 +35,8 @@ export interface Ctx {
   readonly declared: Declared
   /** Component ids seen so far, and the path of the first component with each. */
   readonly componentIds: Map<string, string>
-  /** Where the table over the detail dataset is, once one has been read. */
-  detailTable: string | undefined
+  /** Where each table over the detail dataset is, in the order they were read: the bound counts them, and an e-invoice holds one (0062). */
+  readonly tables: string[]
   /** What the margins leave of the page, once they are known to leave enough; fixed sizes are measured against it. */
   printable: PageDimensions | undefined
 }
@@ -46,7 +46,7 @@ export function newContext(): Ctx {
     f: new Findings(),
     declared: { styles: undefined, datasets: undefined, parameters: undefined, assets: undefined, aggregates: undefined, nullable: new Map() },
     componentIds: new Map(),
-    detailTable: undefined,
+    tables: [],
     printable: undefined,
   }
 }

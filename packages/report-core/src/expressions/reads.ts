@@ -14,6 +14,14 @@ import { pathParts } from './compile-site.js'
 /** The name an expression reads each dataset's fields under: `header.<id>`, `row.<id>`. */
 export const READ_AS: { readonly [R in DatasetRole]: 'header' | 'row' } = { header: 'header', detail: 'row' }
 
+/**
+ * The names an expression reads an aggregate under: over every detail row,
+ * over the rows its table prints (0062), and over its group's. One list, so
+ * that what counts as using an aggregate and what goes with one removed
+ * cannot disagree.
+ */
+export const AGGREGATE_NAMES: readonly string[] = ['totals', 'table', 'group']
+
 /** What expressions read, by name: the members read, or 'all' where one reads the whole map. */
 export type Reads = ReadonlyMap<string, ReadonlySet<string> | 'all'>
 

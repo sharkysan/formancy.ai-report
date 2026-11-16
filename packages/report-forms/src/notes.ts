@@ -32,7 +32,7 @@ export const NOTE_CODES = [
   'static-excluded',
   /** A field this release prints nothing of: a file, a signature, a ranking, or ticked boxes whose options a deployment resolves or that offer none. */
   'unsupported-excluded',
-  /** A repeater the table does not read: a report has one detail table, or none was asked for. */
+  /** A repeater the table does not read: a report has one detail dataset, or none was asked for. */
   'repeater-excluded',
   /** A group, a matrix or ticked boxes deeper than the format nests sections: its heading and its lines stand in the section around it. */
   'group-flattened',

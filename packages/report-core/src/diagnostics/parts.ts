@@ -287,7 +287,11 @@ const READERS: { readonly [K in ComponentKind]: Reader<K> } = {
   section: NOTHING,
   pageBreak: NOTHING,
   keepTogether: NOTHING,
+  // A table's condition is read once per detail row, as its cells are,
+  // and is the table's own: it goes with the table (0062). Its total rows
+  // read the table's totals, and its group's rows the group's too.
   table: (table, path, into) => {
+    into.expression(table.rowsWhen, `${path}/rowsWhen`, 'row', 'visible', { componentId: table.id })
     into.style(table.headerStyle)
     for (const [index, column] of table.columns.entries()) {
       const at = `${path}/columns/${index}`
@@ -307,7 +311,7 @@ const READERS: { readonly [K in ComponentKind]: Reader<K> } = {
       into.style(table.group.headerStyle)
       into.footer(table.group.footer, `${path}/group/footer`, 'group', owner)
     }
-    into.footer(table.totals, `${path}/totals`, 'report', owner)
+    into.footer(table.totals, `${path}/totals`, 'table', owner)
   },
   // A chart holds no expression: it names the field it groups by, the field
   // each series totals (a count of rows names none), and the currency its

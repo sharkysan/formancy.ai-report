@@ -4,6 +4,7 @@ import { describe, expect, test } from 'vitest'
 import type { EditorOutcome } from './model-actions.js'
 import type { PropertyField } from './model-properties.js'
 import { PROPERTY_KINDS, PROPERTY_ROLES } from './model-properties.js'
+import { eInvoiceReport } from './image-test-support.js'
 import { defaultComponent } from './palette.js'
 import { invoicedScenarioReport } from './scenario-e-invoice.js'
 import { billedReport, editorOver, richReport } from './test-support.js'
@@ -299,7 +300,7 @@ describe('a component’s properties', () => {
     expect(keys('gap')).toEqual(['/height'])
     expect(keys('heading')).toEqual(['/columns/0/width', '/columns/1/width'])
     expect(keys('notes')).toEqual(['/fill', '/padding', '/border/thickness', '/border/color'])
-    expect(keys('lines')).toEqual(['/emptyText', '/headerStyle', '/group/keepWithRows'])
+    expect(keys('lines')).toEqual(['/emptyText', '/rowsWhen', '/headerStyle', '/group/keepWithRows'])
     expect(keys('break')).toEqual([])
     expect(keys('keep')).toEqual([])
   })
@@ -531,6 +532,49 @@ describe('a component’s properties', () => {
     ok(editor.dispatch({ type: 'select', id: 'intro' }))
     ok(editor.dispatch({ type: 'setProperty', key: '/visibleWhen', value: 'params.nope' }))
     expect(field(editor.state().properties.fields, '/visibleWhen').error).toMatch(/nope/)
+  })
+
+  // A table's condition says which detail rows it prints, orders, groups
+  // and totals (0062): typed, it is the table's `rowsWhen`, one undo step
+  // named by the field; one that reads the table's groups, which are made
+  // of the rows it selects, shows the compiler's reason where it was
+  // typed; emptied, it goes, and the table prints every row again. A
+  // field written by hand for it in either builder would be a second
+  // reading of the format; it is the core's, as every condition is.
+  test('give a table the condition that selects its rows, show why one cannot be read, and take it away', () => {
+    const { editor, session } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    expect(field(editor.state().properties.fields, '/rowsWhen')).toEqual({
+      key: '/rowsWhen',
+      label: 'Show rows only when',
+      kind: 'expression',
+      value: '',
+      required: false,
+    })
+    ok(editor.dispatch({ type: 'setProperty', key: '/rowsWhen', value: 'row.site == "Bern"' }))
+    expect(componentAt(session.document(), 'lines')?.component).toMatchObject({ rowsWhen: { cel: 'row.site == "Bern"' } })
+    expect(field(editor.state().properties.fields, '/rowsWhen')).not.toHaveProperty('error')
+    expect(editor.state().history.undoLabel).toBe('Change Show rows only when')
+    ok(editor.dispatch({ type: 'setProperty', key: '/rowsWhen', value: 'group.key == "Bern"' }))
+    expect(field(editor.state().properties.fields, '/rowsWhen').error).toMatch(/group/)
+    ok(editor.dispatch({ type: 'setProperty', key: '/rowsWhen', value: '' }))
+    expect(componentAt(session.document(), 'lines')?.component).not.toHaveProperty('rowsWhen')
+  })
+
+  // A report that is an e-invoice prints every line its XML holds, once
+  // (0027, 0062). Its table has the condition's field, as every table
+  // has, so that whether a table may select its rows is decided by the
+  // validator alone; a condition typed there is refused with the
+  // validator's reason on the field, the report as it was.
+  test('refuse a condition on an e-invoice’s lines, with the validator’s reason on its field', () => {
+    const { editor, session } = editorOver(eInvoiceReport())
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    expect(editor.dispatch({ type: 'setProperty', key: '/rowsWhen', value: 'row.name != ""' })).toMatchObject({ ok: false, code: 'refused' })
+    expect(field(editor.state().properties.fields, '/rowsWhen')).toMatchObject({
+      value: 'row.name != ""',
+      error: 'the lines are printed by a table that prints only the rows its condition selects: every detail row is a line the XML holds, and is printed',
+    })
+    expect(session.revision()).toBe(0)
   })
 })
 

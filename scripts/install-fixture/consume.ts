@@ -17,7 +17,7 @@ import {
   validateReport,
   walkComponents,
 } from '@formancy/report-spec'
-import { EPC_CAPTION, EPC_MAX_BYTES, epcCaptionBreak, epcLeastVersion } from '@formancy/report-spec'
+import { EPC_CAPTION, EPC_MAX_BYTES, epcCaptionBreak, epcLeastVersion, MAX_TABLES } from '@formancy/report-spec'
 import { checkSvg, cleanSvg } from '@formancy/report-spec'
 import type {
   CleanSvg,
@@ -116,14 +116,21 @@ if (!outcome.valid) throw new Error(`a valid report was refused: ${outcome.error
 const hash = reportHash(outcome.report)
 if (!/^[0-9a-f]{64}$/.test(hash)) throw new Error(`reportHash gave ${hash}, not 64 hex digits`)
 
-// The refusals travel too: a second detail table is refused with its code,
-// and a report the validator refuses has no hash.
-const twoTables: ReportDefinition = { ...report, regions: { ...report.regions, summary: [{ ...table, id: 'again' }] } }
-const refused = validateReport(twoTables)
-if (refused.valid || !refused.errors.some((error) => error.code === 'second-detail-table')) throw new Error('a second detail table was not refused')
+// The refusals travel too: a table past MAX_TABLES is refused with its code
+// at its own path, and a report the validator refuses has no hash. A second
+// table is valid since 0062, so the bound is what a host meets, and the
+// published constant is the one the published validator counts to.
+const tooMany: ReportDefinition = {
+  ...report,
+  regions: { ...report.regions, summary: Array.from({ length: MAX_TABLES }, (_, index) => ({ ...table, id: `again-${index}` })) },
+}
+const refused = validateReport(tooMany)
+const past = `/regions/summary/${MAX_TABLES - 1}`
+if (refused.valid || !refused.errors.some((error) => error.code === 'too-many' && error.path === past))
+  throw new Error(`a table past MAX_TABLES was not refused at ${past}`)
 let unhashed = false
 try {
-  reportHash(twoTables)
+  reportHash(tooMany)
 } catch (error) {
   unhashed = error instanceof RangeError
 }

@@ -229,6 +229,10 @@ export const NOT_WORDS: readonly { readonly why: string; readonly at: readonly s
     at: ['*:/visibleWhen/cel', '*:/styleWhen/*/when/cel', 'table:/columns/*/visibleWhen/cel', 'table:/columns/*/styleWhen/*/when/cel'],
   },
   {
+    why: "a table's row condition (0062), which prints nothing and selects the rows the table prints: read as written in every language, so that a render selects the same rows in each",
+    at: ['table:/rowsWhen/cel'],
+  },
+  {
     why: "declarations the editor and the host show, and the page: a field's and a parameter's label is no word the report prints; a parameter's default is the value the host may replace",
     at: ['/page/**', '/styles/**', '/datasets/**', '/parameters/**', '/assets/**', '/aggregates/**', '/fonts/**', '/provenance/**'],
   },

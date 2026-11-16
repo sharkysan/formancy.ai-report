@@ -2,7 +2,7 @@ import { nextComponentId, validLocations } from '@formancy/report-core'
 import { COMPONENT_KINDS, emptyReport, mmToPt, validateReport } from '@formancy/report-spec'
 import type { Component, FieldContract, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import { recordingStore } from './image-test-support.js'
+import { eInvoiceReport, recordingStore } from './image-test-support.js'
 import { defaultComponent } from './palette.js'
 import { editorOver, richReport } from './test-support.js'
 import { contentLocale, EDITOR_LOCALES, editorText } from './text.js'
@@ -72,25 +72,29 @@ describe('the palette', () => {
   })
 
   // A default component the validator refuses everywhere would be a
-  // palette entry that never works; each goes somewhere in a report that
-  // has room for it -- the rich one already has its one table.
+  // palette entry that never works; each goes somewhere in the rich
+  // report, a table among them beside the table it holds, as a further
+  // table over the same rows (0062).
   test('offers default components the validator accepts somewhere', () => {
     const report = richReport()
     const { editor } = editorOver(report)
     for (const entry of editor.state().palette) {
       const places = validLocations(report, entry.component as NonNullable<typeof entry.component>)
-      if (entry.kind === 'table') expect(places, entry.kind).toEqual([])
-      else expect(places.length, entry.kind).toBeGreaterThan(0)
+      expect(places.length, entry.kind).toBeGreaterThan(0)
     }
-    const withoutTable: ReportDefinition = {
-      ...report,
-      regions: { ...report.regions, body: report.regions.body.filter((component) => component.kind !== 'table') },
-      aggregates: [],
-    }
-    const table = editorOver(withoutTable)
+  })
+
+  // A report that is an e-invoice holds one table, its lines, which the
+  // XML holds every row of, once (0027, 0062): a second would print lines
+  // the XML does not. Its default table is made, as anywhere, and the
+  // validator finds it no place, which the place chooser then says.
+  test('finds a table no place in a report that is an e-invoice', () => {
+    const report = eInvoiceReport()
+    const table = editorOver(report)
       .editor.state()
       .palette.find((entry) => entry.kind === 'table')
-    expect(validLocations(withoutTable, table?.component as NonNullable<NonNullable<typeof table>['component']>).length).toBeGreaterThan(0)
+    expect(table?.component).toMatchObject({ kind: 'table', dataset: 'detail' })
+    expect(validLocations(report, table?.component as NonNullable<NonNullable<typeof table>['component']>)).toEqual([])
   })
 
   // An image needs something to draw and a table a dataset to read; with

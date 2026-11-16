@@ -180,7 +180,7 @@ describe('groups, pages and repeaters', () => {
     expect(said(notes)).toEqual(['pages-not-breaks /form/model/fields/0'])
   })
 
-  // A report of version 0 has one detail table: a draft that read a
+  // A report of version 0 has one detail dataset: a draft that read a
   // second repeater would be refused, and one that dropped it unsaid would
   // lose its rows. The table stands where the repeater does, in its
   // group's section; its rows' groups are looked through for columns and

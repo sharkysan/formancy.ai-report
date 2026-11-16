@@ -1,17 +1,27 @@
 /**
- * The table over the detail dataset, lowered to the rows it prints.
+ * A table over the detail dataset, lowered to the rows it prints.
  *
- * Its rows are ordered and grouped by `sort-group.ts` (0007): the group's
- * key first, then the sort keys, ties in the provider's order. Then, in
- * that order:
+ * Its rows are those its condition selects (0062): `rowsWhen`, read once
+ * for each detail row in the row's scope, in the data's order, before
+ * anything is ordered, each reading counted against the render's budget;
+ * a table without one has every row. A preview whose data lacks what the
+ * condition reads leaves the row out, said once. The rows are ordered and
+ * grouped by `sort-group.ts` (0007): the group's key first, then the sort
+ * keys, ties in the provider's order. Then, in that order:
  *
  * - for each group, one line across the table read in the group's scope,
  *   which keeps as many of the group's first rows as the group states, or
  *   all of them where it has fewer, and says so only above one (0059); its
  *   rows; and its footer rows, whose aggregates are the group's;
- * - the totals rows, whose aggregates are over every row;
+ * - the totals rows, read in the table's scope, whose `table` is the
+ *   table's aggregates over its rows and `totals` every row's;
  * - with no detail rows, the table's empty text in their place, and its
  *   totals still printed: a count and a sum of nothing are 0.
+ *
+ * The table's aggregates are `Totals.over` its rows, the function a
+ * group's are, and a table without a condition is handed the report's
+ * totals themselves, so that its `table` and `totals` are one value and a
+ * report without conditions prints as it did.
  *
  * A column whose condition does not hold is left out, read once per report:
  * its header, every cell under it and its footer cells, and the fill columns
@@ -22,8 +32,8 @@
 import type { TableColumn as ReportColumn, TableComponent, TableFooterRow } from '@formancy/report-spec'
 import type { Table, TableRow, TextStyle } from './document.js'
 import { runOf, textOfRuns } from './inlines.js'
-import { groupScope, holds, reportScope, rowScope } from './render-context.js'
-import type { Render, Scope } from './render-context.js'
+import { groupScope, holds, reportScope, rowScope, tableScope } from './render-context.js'
+import type { AggregateValues, Render, Scope } from './render-context.js'
 import { orderTable } from './sort-group.js'
 import type { OrderedRow } from './sort-group.js'
 import { layered, styled } from './styles.js'
@@ -42,6 +52,8 @@ interface Lowering {
   readonly shown: readonly Shown[]
   /** The table's own style, laid under every row's. */
   readonly base: TextStyle | undefined
+  /** The table's aggregates, over the rows it prints. */
+  readonly totals: AggregateValues
 }
 
 /** `style` as a row's: the table's under the named print style; absent when neither sets anything. */
@@ -87,7 +99,7 @@ function groupedRows(lowering: Lowering, groups: NonNullable<ReturnType<typeof o
   const rows: TableRow[] = []
   for (const each of groups) {
     if (render.problems.full) break
-    const scope = groupScope(render, each, render.totals.over(each.rows), group.by.field)
+    const scope = groupScope(render, each, render.totals.over(each.rows), lowering.totals, group.by.field)
     const runs = group.header.map((inline, index) => runOf(render, scope, inline, `${path}/group/header/${index}`, { componentId: table.id }))
     // Counted against the group made here, so that no engine counts a group again; one row kept is every header's rule, and no member.
     const keep = Math.min(group.keepWithRows ?? 1, each.rows.length)
@@ -105,6 +117,23 @@ function groupedRows(lowering: Lowering, groups: NonNullable<ReturnType<typeof o
 }
 
 /**
+ * The detail rows `table`'s condition, at `path`, selects, in the data's
+ * order; undefined for a table without one, which has every row. A row
+ * whose condition could not be read is left out and recorded as an error,
+ * so the report is refused.
+ */
+function selectedRows(render: Render, table: TableComponent, path: string): OrderedRow[] | undefined {
+  if (table.rowsWhen === undefined) return undefined
+  const selected: OrderedRow[] = []
+  for (const [index, record] of render.data.detail.entries()) {
+    if (render.problems.full) break
+    const row: OrderedRow = { index, record }
+    if (holds(render, rowScope(render, render.totals.report, row), `${path}/rowsWhen/cel`) === true) selected.push(row)
+  }
+  return selected
+}
+
+/**
  * `table`, at `path`, as the document's table, `base` its own resolved
  * style; undefined when every column is hidden. A value that could not be
  * read prints nothing here, and is recorded as an error, so the report is
@@ -116,8 +145,10 @@ export function tableBlock(render: Render, table: TableComponent, path: string, 
     .map((column, index) => ({ column, index }))
     .filter(({ column, index }) => column.visibleWhen === undefined || holds(render, scope, `${path}/columns/${index}/visibleWhen/cel`) === true)
   if (shown.length === 0) return undefined
-  const lowering: Lowering = { render, table, path, shown, base }
-  const ordered = orderTable(render.report, table, render.data.detail)
+  const selected = selectedRows(render, table, path)
+  const totals = selected === undefined ? render.totals.report : render.totals.over(selected)
+  const lowering: Lowering = { render, table, path, shown, base, totals }
+  const ordered = orderTable(render.report, table, render.data.detail, selected)
   const rows: TableRow[] = []
   if (ordered.groups !== undefined) rows.push(...groupedRows(lowering, ordered.groups))
   else {
@@ -126,7 +157,7 @@ export function tableBlock(render: Render, table: TableComponent, path: string, 
       rows.push(detailRow(lowering, row))
     }
   }
-  rows.push(...footerRows(lowering, table.totals, `${path}/totals`, 'total', scope))
+  rows.push(...footerRows(lowering, table.totals, `${path}/totals`, 'total', tableScope(render, totals)))
   const headerStyle = layered(base, table.headerStyle === undefined ? undefined : render.styles.get(table.headerStyle))
   return {
     kind: 'table',

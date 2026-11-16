@@ -123,6 +123,7 @@ const KIND_FIELDS: { readonly [K in ComponentKind]: Fields<Extract<Component, { 
   },
   table: (component, context) => [
     wordOrTextField('/emptyText', { id: 'field.emptyText' }, component.emptyText, context),
+    expressionField('/rowsWhen', { id: 'field.rowsWhen' }, component.rowsWhen?.cel, false), // the rows it prints, orders, groups and totals (0062)
     styleField('/headerStyle', { id: 'field.headerStyle' }, context.report.styles, component.headerStyle, context.t),
     // The group's own, as the format has it: a table without a group has no header to keep with its rows (0059).
     ...(component.group === undefined ? [] : [countField('/group/keepWithRows', { id: 'field.keepWithRows' }, component.group.keepWithRows)]),

@@ -512,3 +512,127 @@ describe('fieldReaders', () => {
       for (const field of report.datasets[role]?.fields ?? []) expect(readers.removal(role, field.id)).toEqual(removeFieldWithReaders(report, role, field.id))
   })
 })
+
+/**
+ * The unbilled sample with a second table at the end of its summary, of
+ * the shipped rows alone, whose total row prints a total over its own rows
+ * of a field nothing else reads.
+ */
+function withShipped(): ReportDefinition {
+  const report = unbilled()
+  const detail = report.datasets.detail as NonNullable<ReportDefinition['datasets']['detail']>
+  const shipped: TableComponent = {
+    id: 'shipped',
+    kind: 'table',
+    dataset: 'detail',
+    rowsWhen: { cel: 'row.shipped == true' },
+    columns: [
+      { id: 'sku', header: 'SKU', width: 'fill', align: 'left', value: { kind: 'field', field: { dataset: 'detail', field: 'sku' } } },
+      { id: 'amount', header: 'Amount', width: 80, align: 'right', value: { kind: 'field', field: { dataset: 'detail', field: 'amount' } } },
+    ],
+    totals: [
+      {
+        cells: [
+          { column: 'sku', value: { kind: 'text', text: 'Shipped' } },
+          { column: 'amount', value: { kind: 'expression', expression: { cel: 'table.weight' } } },
+        ],
+      },
+    ],
+    emptyText: 'Nothing shipped.',
+    repeatHeader: true,
+  }
+  return frozen<ReportDefinition>({
+    ...report,
+    datasets: {
+      ...report.datasets,
+      detail: { ...detail, fields: [...detail.fields, { id: 'weight', type: 'decimal', label: 'Weight', nullable: false, scale: 2 }] },
+    },
+    aggregates: [...report.aggregates, { id: 'weight', fn: 'sum', of: { kind: 'field', field: { dataset: 'detail', field: 'weight' } } }],
+    regions: { ...report.regions, summary: [...report.regions.summary, shipped] },
+  })
+}
+
+/** `withShipped`, its second table grouped by quantity, its group's header printing the key plus one. */
+function groupedTwice(): ReportDefinition {
+  const report = withShipped()
+  return frozen<ReportDefinition>({
+    ...report,
+    regions: {
+      ...report.regions,
+      summary: report.regions.summary.map((component) =>
+        component.id === 'shipped'
+          ? {
+              ...(component as TableComponent),
+              group: {
+                by: { dataset: 'detail', field: 'quantity' },
+                direction: 'asc',
+                header: [{ kind: 'expression', expression: { cel: 'string(group.key + 1)' } }],
+                footer: [],
+              },
+            }
+          : component,
+      ),
+    },
+  })
+}
+
+describe('removeFieldWithReaders of tables that select their rows', () => {
+  // A table whose condition read a removed field would refuse every
+  // render; left printing every row, it would be a table nobody wrote,
+  // its totals every row's. So it goes whole, as a component goes whose
+  // condition reads the field, and the other table stays (0062).
+  test('removes a table its condition reads it in, whole, and keeps the other', () => {
+    const { report, removed: gone } = removed(withShipped(), 'detail', 'shipped')
+    expect(gone).toEqual(['/regions/body/2/columns/4/styleWhen/0', '/regions/summary/4', '/datasets/detail/fields/7'])
+    expect(componentAt(report, 'shipped')).toBeUndefined()
+    expect(table(report).columns.map(({ id }) => id)).toEqual(['sku', 'qty', 'price', 'amount', 'shipped-at'])
+  })
+
+  // `table.<id>` reads the aggregate as `totals.<id>` does: a total of a
+  // removed field printed under a table would refuse every render, so the
+  // cell that prints it goes with the aggregate, and the row stays.
+  test('removes a reader of an aggregate as table.<id> with the aggregate', () => {
+    const { report, removed: gone } = removed(withShipped(), 'detail', 'weight')
+    expect(gone).toEqual(['/regions/summary/4/totals/0/cells/1', '/aggregates/5', '/datasets/detail/fields/8'])
+    expect((componentAt(report, 'shipped')?.component as TableComponent).totals?.map((row) => row.cells.map(({ column }) => column))).toEqual([['sku']])
+  })
+})
+
+describe('fieldReaders of tables that select their rows', () => {
+  // A retyped field a condition reads changes what the condition compiles
+  // to, so a review compiles it; and a group's key is its own table's, so
+  // a field one table groups by reaches that table's reads of the key and
+  // not another's.
+  test("names a table's condition, and each table's reads of its own group's key", () => {
+    const readers = fieldReaders(groupedTwice())
+    expect(readers.expressions('detail', 'shipped')).toContain('/regions/summary/4/rowsWhen/cel')
+    expect([...readers.expressions('detail', 'quantity')]).toContain('/regions/summary/4/group/header/0/expression/cel')
+    expect([...readers.expressions('detail', 'site')]).not.toContain('/regions/summary/4/group/header/0/expression/cel')
+  })
+
+  // The property `fieldReaders` holds over the samples, over two tables
+  // grouped by fields of two types, one selecting its rows and totalling
+  // them as `table`: what the set compiled alone adds is what the whole
+  // report compiled adds.
+  test("names every expression a change of a field's type can reach, under two tables", () => {
+    const report = groupedTwice()
+    const readers = fieldReaders(report)
+    const before = said(report)
+    let reached = 0
+    for (const field of report.datasets.detail?.fields ?? []) {
+      const only = readers.expressions('detail', field.id)
+      const beforeOnly = said(report, only)
+      for (const body of retypings(field)) {
+        const outcome = tryEdit(report, (draft) => draft.apply({ command: 'putField', args: ['detail', field.id, body] }))
+        if (!outcome.ok) continue
+        const added = [...said(outcome.report)].filter((diagnostic) => !before.has(diagnostic))
+        expect(
+          [...said(outcome.report, only)].filter((diagnostic) => !beforeOnly.has(diagnostic)),
+          `detail.${field.id} as ${body.type}${body.nullable ? ', nullable' : ''}`,
+        ).toEqual(added)
+        reached += added.length
+      }
+    }
+    expect(reached).toBeGreaterThan(0)
+  }, 60_000)
+})

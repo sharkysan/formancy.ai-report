@@ -43,7 +43,7 @@ describe('expressionSites', () => {
       'row visible lines/shipped-at /regions/body/2/columns/4/styleWhen/0/when/cel',
       'group computed lines /regions/body/2/group/header/2/expression/cel',
       'group computed lines /regions/body/2/group/footer/0/cells/1/value/expression/cel',
-      'report computed lines /regions/body/2/totals/1/cells/1/value/expression/cel',
+      'table computed lines /regions/body/2/totals/1/cells/1/value/expression/cel',
       'report visible closing /regions/summary/0/visibleWhen/cel',
       'report computed statistics /regions/summary/0/components/1/content/3/expression/cel',
       'report computed order-code /regions/summary/2/content/2/expression/cel',
@@ -52,6 +52,37 @@ describe('expressionSites', () => {
       'report computed - /paymentPart/amount/cel',
       'report computed - /paymentPart/message/1/expression/cel',
       'row computed - /aggregates/2/of/expression/cel',
+    ])
+  })
+})
+
+describe("a table's condition and its totals", () => {
+  // A table's condition selects its rows one by one, so it reads the row,
+  // as a cell does, and is a condition its table owns: compiled in the
+  // table's scope, it would refuse every condition on a row; owned by no
+  // component, a removed field it reads would leave the table printing
+  // every row (0062). Its total rows read the table's own totals, in the
+  // table's scope, and a group's header and footer theirs.
+  test("names a table's condition as a condition of the row's scope, owned by the table, and its total rows as of the table's", () => {
+    const report = sampleReport()
+    const lines = report.regions.body[2]
+    if (lines?.kind !== 'table') throw new Error('the sample has moved its table')
+    const conditioned = { ...lines, rowsWhen: { cel: 'row.quantity > 1' } }
+    const sites = expressionSites({
+      ...report,
+      regions: { ...report.regions, body: report.regions.body.map((each) => (each.id === 'lines' ? conditioned : each)) },
+    })
+    const said = ({ path, scope, kind, componentId, columnId }: ExpressionSite): string =>
+      `${scope} ${kind} ${componentId ?? '-'}${columnId === undefined ? '' : `/${columnId}`} ${path}`
+    expect(sites.filter(({ componentId }) => componentId === 'lines').map(said)).toEqual([
+      'row visible lines /regions/body/2/rowsWhen/cel',
+      'row computed lines/amount /regions/body/2/columns/3/value/expression/cel',
+      'row visible lines/amount /regions/body/2/columns/3/styleWhen/0/when/cel',
+      'report visible lines/shipped-at /regions/body/2/columns/4/visibleWhen/cel',
+      'row visible lines/shipped-at /regions/body/2/columns/4/styleWhen/0/when/cel',
+      'group computed lines /regions/body/2/group/header/2/expression/cel',
+      'group computed lines /regions/body/2/group/footer/0/cells/1/value/expression/cel',
+      'table computed lines /regions/body/2/totals/1/cells/1/value/expression/cel',
     ])
   })
 })

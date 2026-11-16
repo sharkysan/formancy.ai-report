@@ -121,7 +121,9 @@ const editor = createReportEditor(opening.session, {
   payment code by its kind and whom it pays ("EPC payment code: Franz
   Mustermänn"), a bound run by what it binds. Labels are unique in the
   report, so each can be an accessible name; where two would read the
-  same, each gets its id.
+  same, each gets its id, and a column that still reads as another
+  table's column, a duplicate's keeping its ids, gets its table's id
+  before its own ("Amount (lines-2/amount)", 0062).
 - **`outlineParts`**: a row for each part of the report's own level, after
   the regions: a report's payment part, its Swiss QR-bill, named as SIX
   names the part ("Payment part", "Zahlteil", "Section paiement"), with
@@ -163,7 +165,10 @@ const editor = createReportEditor(opening.session, {
   [0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
   Where the report lacks what a kind needs (an image with nothing to
   draw, a table with no detail dataset), the entry says what to declare
-  first.
+  first. Table is offered beside a table the report already holds, as a
+  further table over the same detail rows, and the place chooser finds it
+  no place in a report that is an e-invoice, whose one table is its lines
+  ([0062](../../docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
 - **`images`**: whether the host gave a store (`store`), so a builder
   draws Add image…; the file chooser's `accept`, each type the store keeps
   and its usual extensions; the name of the file being added, from the
@@ -194,6 +199,12 @@ const editor = createReportEditor(opening.session, {
   content is edited run by run as a text's is, with no buttons, as the
   format refuses a baseline in what a code encodes, and each of its levels
   of error correction says the share of the code it restores.
+  A table's condition, "Show rows only when", is an expression edited as
+  a component's condition is: the detail rows the table prints, orders,
+  groups and totals. Every table has the field, an e-invoice's lines'
+  table among them, where a condition typed is refused with the
+  validator's reason on the field, since every line the XML holds is
+  printed ([0062](../../docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
   A table with a group has one field more, after its heading style: how
   many of the group's first rows its header is kept on its page with,
   `/group/keepWithRows`, a `number` written into the group through
@@ -807,6 +818,13 @@ bytes in the package: `SCENARIO_PNG`, a 2 × 1 PNG whose digest is pinned as
 `SCENARIO_PNG_DIGEST`, taken by `node:crypto`, so the first scenario holds
 `assetDigest` to it; a GIF; and an SVG.
 
+Two are about a report's several tables ([0062](../../docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)), over an
+order's lines of their own: a second table inserted into the summary by
+keyboard through the place chooser, given the condition that selects its
+rows, and both undone; and a table duplicated, its copy given a
+condition, and the problems then warning of the total of every row the
+copy kept.
+
 Each framework's test runs every scenario with Testing Library, and fails
 when one is skipped. The scenarios use every kind of step, so each runner
 has to implement every kind. `builderScenarios(locale)` gives the same list
@@ -935,7 +953,13 @@ the other's steps in English.
 - **Not every property is editable yet.** These need editors of their own,
   and have none:
   - a table's sort, its group but for the rows its header is kept with
-    (0059), its group and total rows, and its footer cells;
+    (0059), its group and total rows, and its footer cells: a further
+    table is given its columns and its condition in a builder, and its
+    order, its group and its totals, `over: 'table'` among them, in the
+    report's JSON or by a host. A duplicate keeps its
+    table's total rows, and one that prints a total over the report, of
+    every detail row, report-core warns of as `total-of-every-row` once the
+    copy is given a condition ([0062](../../docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md));
   - conditional style rules (`styleWhen`);
   - value formats;
   - adding or removing a run in a text, a QR code's content or an EPC

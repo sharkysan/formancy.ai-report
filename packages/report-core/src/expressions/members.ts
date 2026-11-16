@@ -4,13 +4,14 @@
  *
  * The names are the format's: `EXPRESSION_NAMES` lists, for each scope, the
  * names the runtime binds (0007) -- `params`, `header` and `totals`
- * everywhere, `row` in a table's cells and in what an aggregate reads from
- * each row, `group` in a group's header and footer. A report that is an
- * e-invoice binds `invoice`, `vatBasis` and `vatAmount` besides, wherever
- * `totals` is but where they are computed from (`e-invoice.ts`). Each name
- * holds members -- a parameter, a field, an aggregate, a group's key, a
- * total of the e-invoice -- read as `<name>.<id>`, and every member is a
- * single value, never a map.
+ * everywhere, `row` in a table's cells, its row condition and what an
+ * aggregate reads from each row, `table` in a table's total rows and its
+ * group's header and footer (0062), `group` in a group's header and
+ * footer. A report that is an e-invoice binds `invoice`, `vatBasis` and
+ * `vatAmount` besides, wherever `totals` is but where they are computed
+ * from (`e-invoice.ts`). Each name holds members -- a parameter, a field,
+ * an aggregate, a group's key, a total of the e-invoice -- read as
+ * `<name>.<id>`, and every member is a single value, never a map.
  */
 import type { DeclaredType } from '@formancy/expressions'
 import { GROUP_KEY, walkComponents } from '@formancy/report-spec'
@@ -52,12 +53,20 @@ export interface ExpressionMember {
 }
 
 /** Every name the format binds, in some scope or in an e-invoice. A test holds this to the union of `EXPRESSION_NAMES` and `E_INVOICE_NAMES`. */
-export const SCOPE_NAMES = ['params', 'header', 'row', 'totals', 'group', 'invoice', 'vatBasis', 'vatAmount'] as const
+export const SCOPE_NAMES = ['params', 'header', 'row', 'totals', 'table', 'group', 'invoice', 'vatBasis', 'vatAmount'] as const
 
 export type ScopeName = (typeof SCOPE_NAMES)[number]
 
-/** What each name holds in one report, member by member, in declaration order. */
-export type Members = { readonly [N in ScopeName]: ReadonlyMap<string, ExpressionMember> }
+/**
+ * What each name holds in one report, member by member, in declaration
+ * order; `group` the aggregates alone. A group's key, `group.key`, is its
+ * own table's, and two tables may group by fields of two types (0062), so
+ * each table that groups has its key in `groupKeys`, by the table's id,
+ * and a group's header and footer are compiled with their table's.
+ */
+export type Members = { readonly [N in ScopeName]: ReadonlyMap<string, ExpressionMember> } & {
+  readonly groupKeys: ReadonlyMap<string, ExpressionMember>
+}
 
 /** The type a field of `type` is read as; undefined for an image, which is not read. */
 export function readAs(type: FieldType | undefined): DeclaredType | undefined {
@@ -83,20 +92,28 @@ export function parametersOf(report: ReportDefinition): ReadonlyMap<string, Expr
 }
 
 /**
- * `group.key`, the value the report's group is keyed by: the field grouped
- * by, read as its type and null where it may be, since the rows without a
- * value are a group of their own. Undefined when the report's table does
- * not group, or groups by a field nothing can read.
+ * `group.key` in each table that groups, by the table's id: the value its
+ * group is keyed by, the field the table groups by, read as its type and
+ * null where it may be, since the rows without a value are a group of
+ * their own. A table that does not group, or groups by a field nothing can
+ * read, has none.
  */
-export function groupKeyOf(report: ReportDefinition): readonly [typeof GROUP_KEY, ExpressionMember] | undefined {
+export function groupKeysOf(report: ReportDefinition): ReadonlyMap<string, ExpressionMember> {
+  const keys = new Map<string, ExpressionMember>()
   for (const { component } of walkComponents(report)) {
     if (component.kind !== 'table' || component.group === undefined) continue
     const by = component.group.by.field
     const field = report.datasets.detail?.fields.find(({ id }) => id === by)
     const type = readAs(field?.type)
-    return field === undefined || type === undefined ? undefined : [GROUP_KEY, { type, nullable: field.nullable }]
+    if (field !== undefined && type !== undefined) keys.set(component.id, { type, nullable: field.nullable })
   }
-  return undefined
+  return keys
+}
+
+/** What `group` holds in a group's header and footer of the table `table`: the aggregates, and its key as `GROUP_KEY` where it has one. */
+export function groupOf(members: Members, table: string): ReadonlyMap<string, ExpressionMember> {
+  const key = members.groupKeys.get(table)
+  return key === undefined ? members.group : new Map([...members.group, [GROUP_KEY, key]])
 }
 
 /** The image fields of a dataset: drawn, and never read as a value. */

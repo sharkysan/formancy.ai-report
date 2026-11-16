@@ -79,9 +79,13 @@ clamps when what it names is not there:
   `nextComponentId`, which also names a new component after its kind:
   `pageBreak` gives `page-break`, `qrCode` gives `qr-code`, `epcQrCode`
   gives `epc-qr-code`;
-- **the table:** `insertColumn`, `removeColumn` (with its footer cells),
+- **a table:** `insertColumn`, `removeColumn` (with its footer cells),
   `moveColumn`, `updateColumn`, `setGroup`, `setSort`, and the footer rows
-  under the table and under each group, row by row and cell by cell. How
+  under the table and under each group, row by row and cell by cell; its
+  condition, `rowsWhen`, changes through `updateComponent`, and a further
+  table comes in by `insertComponent` or `duplicateComponent`, which the
+  session refuses in a report that is an e-invoice
+  ([0062](../../docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)). How
   many of its first rows a group header is kept with, the group's
   `keepWithRows`, has no command of its own: `setGroup` and
   `updateComponent` carry it with the rest of the group, and the session
@@ -130,9 +134,9 @@ clamps when what it names is not there:
   aggregate in turn; a style rule that reads it goes alone, what it
   styled kept, and so does a chart's series that totals it, the chart's
   other series kept; a footer row left with no cell goes whole, and so
-  does a table every column of which goes, a chart every series of which
-  goes and a chart whose category it is, and what stands in a component
-  that goes goes with it, once. What reads a
+  does a table every column of which goes, a table whose condition reads
+  it, a chart every series of which goes and a chart whose category it
+  is, and what stands in a component that goes goes with it, once. What reads a
   field is what the diagnostics find, from one walk, and in an
   expression what the parser the compiler asks says it reads (an
   expression that does not parse reads nothing). The outcome lists what
@@ -146,7 +150,7 @@ clamps when what it names is not there:
   the expressions a change of the field's type, or of whether it may be
   null, reaches -- each that reads it, each that reads an aggregate that
   does, in turn, and, for a field a table is grouped by, each that reads
-  the group's key
+  that table's group's key, and no other table's (0062)
   ([0048](../../docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md));
 - **several as one:** `batch(report, steps)` runs command descriptors one
   after the other as one command -- a transaction written down, so that an
@@ -244,7 +248,9 @@ of a change to one field's type (0048). It gives:
 
 - the programs, keyed by the JSON Pointer to each expression;
 - what each program reads;
-- the members each name holds, typed;
+- the members each name holds, typed: `table` the aggregates, as
+  `totals` and `group` are, and `groupKeys` the key of each table that
+  groups, by the table's id, typed by the field it groups by (0062);
 - the order to compute the aggregates in;
 - its errors.
 
@@ -303,8 +309,10 @@ a report with an error, so the editor and the runtime cannot disagree about
 one.
 
 - **Errors:** syntax, limits, types, policy (a condition that is not a
-  boolean), a name or member nothing declares, `row` or `group` where there is
-  none, an image field read as a value, a name read whole (`size(params)`),
+  boolean), a name or member nothing declares, `row`, `group` or `table`
+  where there is none (`table` has a value in a table's total rows and
+  its group's header and footer, and a table's condition reads neither),
+  an image field read as a value, a name read whole (`size(params)`),
   a call to `now()`, `today()` or `random()`, an aggregate whose expression
   gives what its function cannot total, and aggregates that read their own
   total. And what would make a printed number inexact or a render unbounded:
@@ -337,7 +345,11 @@ one.
   A quantity's and a price's places are the data's, and the runtime holds
   them row by row.
 - **Warnings:** an unused style, asset, parameter, field or aggregate, an
-  empty body, a text that prints nothing, and a QR-bill that holds SIX's
+  empty body, a text that prints nothing, a total of every detail row in
+  the total rows of a table that selects its rows -- an aggregate run
+  `over: 'report'`, or an expression that reads `totals` and not
+  `table` -- since printed there it reads as those rows'
+  (`total-of-every-row`, 0062), and a QR-bill that holds SIX's
   examples, written in the report: an account of report-spec's
   `QR_BILL_EXAMPLE_ACCOUNTS`, which pays no creditor, or the creditor, the
   debtor or the QR reference a builder puts in, report-spec's

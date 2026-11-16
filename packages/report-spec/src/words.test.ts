@@ -17,7 +17,7 @@
  */
 import { describe, expect, test, vi } from 'vitest'
 import type { ReportDefinition } from './definition.js'
-import { eInvoiceReport, editable, getAt, readFromForm, richReport, setAt, xrechnungReport } from './test-support.js'
+import { append, eInvoiceReport, editable, getAt, readFromForm, richReport, setAt, xrechnungReport } from './test-support.js'
 import { isWord, NOT_WORDS, reportWords, wordExpressionSites, wordPlaces } from './translation.js'
 import { validateReport } from './validate.js'
 import { walkComponents } from './walk.js'
@@ -49,9 +49,29 @@ vi.mock('./check.js', async (importOriginal) => {
   return { ...original, strictKeys, shape }
 })
 
-/** `richReport` with a translation, a debtor's whole address, a chart's null label, a parameter's text default and a form's binding whole. */
+/**
+ * `report`, editable, with a second table over the detail rows (0062): a
+ * copy of its table given an id, a heading, an empty text and words of its
+ * own, and a condition that selects its rows. Appended to the body, it
+ * stands at `/regions/body/5`.
+ */
+function withSecondTable(report: ReportDefinition): Record<string, unknown> {
+  const editableReport = editable(report)
+  const copy = editable(getAt(editableReport, '/regions/body/2'))
+  copy.id = 'large-lines'
+  copy.rowsWhen = { cel: 'row.quantity >= params.min_quantity' }
+  copy.emptyText = 'No large lines.'
+  append(editableReport, '/regions/body', copy)
+  setAt(editableReport, '/regions/body/5/columns/0/header', 'Large SKU')
+  setAt(editableReport, '/regions/body/5/totals/0/cells/0/value/text', 'Large total')
+  return editableReport
+}
+
+/** `richReport` with a translation, a debtor's whole address, a chart's null label, a parameter's text default, a form's binding whole and a second table that selects its rows. */
 function wholeReport(): ReportDefinition {
-  const report = editable(richReport())
+  // A table's row condition (0062), on a second table: a key no fixture
+  // holds is one whose string the guard below never judges.
+  const report = withSecondTable(richReport())
   readFromForm(report)
   setAt(report, '/datasets/detail/fields/0/form', { path: 'site', member: 'name', read: 'value', overrides: { ['c'.repeat(64)]: { path: 'place' } } })
   setAt(report, '/datasets/detail/form/overrides', { ['c'.repeat(64)]: { repeater: 'items' } })
@@ -212,6 +232,30 @@ describe('reportWords', () => {
     })
     expect(words.find(({ path }) => path === '/title')).toEqual({ path: '/title', text: 'Orders by site' })
     expect(words.find(({ path }) => path === '/regions/summary/4/emptyText')?.componentId).toBe('site-chart')
+  })
+
+  // A report holds several tables (0062), and each prints its own column
+  // headers, group header, footer and total rows, and empty text: a walk
+  // that read the first table alone would print a second table's words in
+  // the report's own language in every other. Its condition is no word,
+  // and selects the same rows in every language.
+  test("yields every table's words, each at its own table's places and named by it, and no word of its condition", () => {
+    const report = withSecondTable(richReport()) as unknown as ReportDefinition
+    const words = reportWords(report)
+    const own = (id: string, prefix: string): string[] =>
+      words.filter(({ componentId }) => componentId === id).map(({ path, text, columnId }) => `${path.slice(prefix.length)} ${text} ${columnId ?? ''}`)
+    const first = own('lines', '/regions/body/2')
+    expect(own('large-lines', '/regions/body/5')).toEqual(
+      first.map((word) =>
+        word
+          .replace('/columns/0/header SKU', '/columns/0/header Large SKU')
+          .replace('/totals/0/cells/0/value/text Total ', '/totals/0/cells/0/value/text Large total ')
+          .replace('/emptyText No order lines.', '/emptyText No large lines.'),
+      ),
+    )
+    expect(own('large-lines', '/regions/body/5')).toEqual(expect.arrayContaining(['/columns/0/header Large SKU sku', '/emptyText No large lines. ']))
+    expect(wordExpressionSites(report).map(({ path }) => path)).not.toContain('/regions/body/5/rowsWhen/cel')
+    expect(wordExpressionSites(report).filter(({ componentId }) => componentId === 'large-lines')).toHaveLength(2)
   })
 
   // A table without a group or totals rows has no words there: the walk

@@ -22,6 +22,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **Design a report** in a native React or Angular builder, with undo, and see what is wrong before anything renders ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
 - **Print it as a paginated PDF**, in Node or in a browser, from your application's JSON. Totals are exact, values are formatted for the report's locale, and a report that cannot be drawn whole is refused, never truncated ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 - **Groups that start with their rows**: a table's group header is kept on its page with its group's first row, or with as many of its first rows as the report states, as many as fit where they do not, and both builders edit that number ([0059](./docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+- **Several tables over the detail rows**, each printing the rows its own condition selects -- an order's goods apart from its services, open items apart from settled ones -- with its own columns, order, group and totals: a table's total is of the rows it prints, and `totals` stays every row's. A report holds up to `MAX_TABLES`, and one that is an e-invoice one, of every row. Both builders add a further table and give it its condition; its order, group and totals are written in the report's JSON for now ([0062](./docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
 - **One template in several languages**: a report's own words -- its title, its texts, its tables' headers, cells and empty texts, a chart's words and a QR-bill's message -- written in each language it declares, and a render that names one prints in it: its words, its numbers and dates, the order of its rows, a formancy form's labels and the QR-bill slip's headings. A word missing in that language refuses the render, never printed in another, and no language falls back to another. The builders edit one language at a time and show what each still lacks, and the Studio's Preview prints the one the builder shows. A report without translations prints as it did ([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 - **Read its data from [Formancy Data](https://github.com/sharkysan/formancy.ai-data) 0.1.0**, optionally and best-effort ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 - **Print a [formancy](https://github.com/sharkysan/formancy.ai) form's submissions**, each against the exact form version that collected it: its labels in the language the render prints in, a field the version moved refused rather than printed wrong, and a number by its digits or not at all. Your application hands over the version and the submission ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
@@ -68,11 +69,15 @@ and what is not planned at all.
 > Apache ECharts, and the builders do not offer yet; and a final render of
 > any report that is no e-invoice may be drawn as a PDF/A-2b; a report's
 > first page may print a header of its own, or none, in place of the page
-> header; and a report may be written in several languages, its own words
-> in each, which the format, the editing core, the runtime, the form
-> bridge, both builders and the Studio know, and a render names the one it
-> prints in. The report format is still version "0", the draft: a report
-> written now is not promised to be read by a later release
+> header; a report may hold several tables over its detail rows, each
+> printing, ordering, grouping and totalling the rows its own condition
+> selects, which the format, the editing core, the runtime, the renderer
+> and both builders know; and a report may be written in several
+> languages, its own words in each, which the format, the editing core,
+> the runtime, the form bridge, both builders and the Studio know, and a
+> render names the one it prints in. The report format is still version
+> "0", the draft: a report written now is not promised to be read by a
+> later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
 
 **Start with [the getting-started guide](./docs/getting-started.md)**: a

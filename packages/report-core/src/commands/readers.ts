@@ -9,7 +9,8 @@
  * expression, wherever it stands, that reads it by what the parser the
  * compiler asks says it reads (`reads.ts`), never a second reading of CEL.
  * Each reader goes with what holds it: the component, for its content or
- * its condition; the table's column, for its value or its condition; a
+ * its condition; the table, for its condition on its rows (0062); the
+ * table's column, for its value or its condition; a
  * style rule alone, since a rule says how something prints and never
  * what; a footer cell, and its row where no cell of it is left; a sort
  * key, and the sort with its last; the group, for its key or its header;
@@ -27,13 +28,14 @@
  * `fieldReaders` walks a report and reads its expressions once, for every
  * field a review asks about: the removal, and the expressions a change of
  * the field's type can reach -- those that read it, directly, through an
- * aggregate or as the group's key -- which a review compiles alone.
+ * aggregate or as the key of a group its table groups by it -- which a
+ * review compiles alone.
  */
 import { GROUP_KEY, walkComponents } from '@formancy/report-spec'
 import type { ChartComponent, Component, DatasetRole, ReportDefinition, SortKey, StyleRule, TableComponent, TableFooterRow } from '@formancy/report-spec'
 import { reportParts } from '../diagnostics/parts.js'
 import type { ExpressionSite, NamedUse } from '../diagnostics/parts.js'
-import { expressionReads, READ_AS, readsMember } from '../expressions/reads.js'
+import { AGGREGATE_NAMES, expressionReads, READ_AS, readsMember } from '../expressions/reads.js'
 import type { Reads } from '../expressions/reads.js'
 import { quote, refuse } from '../outcome.js'
 import type { CommandOutcome } from '../outcome.js'
@@ -133,7 +135,7 @@ function readsOf(walk: Walk, slot: DatasetRole, fieldId: string): { readonly pla
     if (index === undefined || gone.has(index)) continue
     gone.add(index)
     const id = (walk.report.aggregates[index] as { readonly id: string }).id
-    places.push(...readers((use) => use.kind === 'aggregate' && use.aggregate === id, ['totals', 'group'], id))
+    places.push(...readers((use) => use.kind === 'aggregate' && use.aggregate === id, AGGREGATE_NAMES, id))
   }
   return { places, expressions }
 }
@@ -352,7 +354,8 @@ export interface FieldReaders {
    * a change of the field's type, or of whether it may be null, can
    * change: each that reads it, each that reads an aggregate that reads
    * it, in turn, and, for a field a table is grouped by, each that reads
-   * the group's key. `compileReport(report, them)` compiles them alone.
+   * that table's group's key (0062). `compileReport(report, them)`
+   * compiles them alone.
    */
   readonly expressions: (slot: DatasetRole, fieldId: string) => ReadonlySet<string>
 }
@@ -372,12 +375,19 @@ export function fieldReaders(report: ReportDefinition): FieldReaders {
     removal: (slot, fieldId) => removal(walk, slot, fieldId),
     expressions: (slot, fieldId) => {
       const { expressions } = readsOf(walk, slot, fieldId)
-      const grouped =
-        slot === 'detail' &&
-        walk.named.some((use) => use.kind === 'field' && use.field.dataset === 'detail' && use.field.field === fieldId && use.path.endsWith('/group/by'))
-      return grouped
-        ? new Set([...expressions, ...walk.sites.filter(({ reads }) => readsMember(reads, ['group'], GROUP_KEY)).map(({ site }) => site.path)])
-        : expressions
+      // A group's key is its own table's: the tables grouped by the field, whose group's header and footer name them.
+      const grouping = new Set(
+        walk.named
+          .filter(
+            (use) =>
+              slot === 'detail' && use.kind === 'field' && use.field.dataset === 'detail' && use.field.field === fieldId && use.path.endsWith('/group/by'),
+          )
+          .map(({ componentId }) => componentId),
+      )
+      const keyed = walk.sites
+        .filter(({ site, reads }) => grouping.has(site.componentId) && readsMember(reads, ['group'], GROUP_KEY))
+        .map(({ site }) => site.path)
+      return keyed.length === 0 ? expressions : new Set([...expressions, ...keyed])
     },
   }
 }

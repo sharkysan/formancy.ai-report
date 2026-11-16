@@ -64,7 +64,7 @@ describe('a first page header (0060)', () => {
   // there has no defined layout, so each is refused as it is in the page
   // header.
   test('holds no table, chart, page break or keep-together block', () => {
-    // The table is taken out of the body, so that it is the report's one detail table still.
+    // The table is taken out of the body, so that the region's is the report's one table.
     const table = edited((r) => {
       const lines = getAt(r, '/regions/body/2')
       removeAt(r, '/regions/body/2')
@@ -72,6 +72,13 @@ describe('a first page header (0060)', () => {
     })
     expect(getAt(table, `${REGION}/0`)).toMatchObject({ kind: 'table' })
     expect(refusals(table), 'table').toEqual([`misplaced-flow-component ${REGION}/0`])
+    // A report may hold several tables (0062), and a second is still no
+    // page region's: a copy beside the body's, given its own id and a
+    // condition, is refused for where it stands and for nothing else.
+    const lines = getAt(editable(richReport()), '/regions/body/2') as object
+    const second = headed([{ ...lines, id: 'large-lines', rowsWhen: { cel: 'row.quantity >= params.min_quantity' } }])
+    expect(getAt(second, '/regions/body/2')).toMatchObject({ kind: 'table', id: 'lines' })
+    expect(refusals(second), 'a second table').toEqual([`misplaced-flow-component ${REGION}/0`])
     const chart = getAt(editable(richReport()), '/regions/summary/4')
     expect(chart).toMatchObject({ kind: 'chart' })
     for (const component of [

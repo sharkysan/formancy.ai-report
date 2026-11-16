@@ -2,6 +2,7 @@ import { schemaHash } from '@formancy/spec'
 import { describe, expect, test } from 'vitest'
 import type { ReportDefinition } from './definition.js'
 import { reportHash } from './hash.js'
+import { MAX_TABLES } from './limits.js'
 import { eInvoiceReport, richReport } from './test-support.js'
 import { REPORT_FORMAT } from './version.js'
 
@@ -117,15 +118,17 @@ describe('reportHash', () => {
   })
 
   // A hash names a valid template. A report the validator refuses -- here
-  // one with two detail tables, which its type cannot tell from one -- is
-  // refused rather than given a hash that something might later publish.
+  // one with a table past MAX_TABLES, which its type cannot tell from one
+  // within the bound -- is refused rather than given a hash that something
+  // might later publish.
   test('refuses to hash a report the validator refuses, naming why', () => {
     const report = richReport()
     const table = report.regions.body[2]
     if (table?.kind !== 'table') throw new Error('the fixture has its table third in the body')
-    const twoTables: ReportDefinition = { ...report, regions: { ...report.regions, summary: [...report.regions.summary, { ...table, id: 'again' }] } }
-    expect(() => reportHash(twoTables)).toThrow(RangeError)
-    expect(() => reportHash(twoTables)).toThrow(/second-detail-table \/regions\/summary\/5/)
+    const copies = Array.from({ length: MAX_TABLES }, (_, index) => ({ ...table, id: `again-${index}` }))
+    const tooMany: ReportDefinition = { ...report, regions: { ...report.regions, summary: [...report.regions.summary, ...copies] } }
+    expect(() => reportHash(tooMany)).toThrow(RangeError)
+    expect(() => reportHash(tooMany)).toThrow(new RegExp(`too-many /regions/summary/${report.regions.summary.length + MAX_TABLES - 1}`))
   })
 
   // Upstream's canonicalisation builds each object by assignment, so an own

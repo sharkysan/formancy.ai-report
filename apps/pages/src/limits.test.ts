@@ -14,9 +14,9 @@ import { inputs, repo, site } from './test-site.js'
  * in the order `LIMIT_ORDER` gives), held to the code where a predicate can
  * read it: each sentence is true while the code it rests on is as it was
  * when the sentence was read, and a change to that code fails here until
- * somebody reads the sentence again and says what is true then. One detail
- * table, grouped by one field at most, has no predicate here: review holds
- * it, and the start page's status sends a release back to it
+ * somebody reads the sentence again and says what is true then. One list
+ * of detail rows, grouped by one field at most, has no predicate here:
+ * review holds it, and the start page's status sends a release back to it
  * (START_STATUS). The status section's sentence that the report format is
  * still a draft is held here too.
  */

@@ -10,6 +10,110 @@ later.
 
 ## Unreleased
 
+**A report may hold several tables over its detail rows, each printing,
+ordering, grouping and totalling the rows its own condition selects**
+([0062](docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
+An order's goods and its services, a statement's open items apart from its
+settled ones, the largest lines before all of them: the same rows printed in
+parts, each part under its own heading with its own subtotal. A report could
+print one table of every detail row, refused a second as
+`second-detail-table`, and read a table's total rows in the report's scope,
+so a total under some of the rows would have been every row's. Each table's
+total is now of the rows it prints, so two tables over parts of one dataset
+never print a total of rows neither shows. A report that does not use it
+resolves and prints exactly as before: every starter and sample, final and
+preview, the Factur-X and the XRechnung among them, resolved by the changed
+runtime and drawn, had the inflated digest it had before, and the e-invoice
+gate, run without `--record`, judged every XML and PDF it draws as its
+recording holds them.
+- **report-spec: a table's `rowsWhen`**, optional, an expression read once a
+  detail row, in the row's scope, that selects the rows the table prints;
+  absent, every row. A report holds at most `MAX_TABLES`, eight, chosen and
+  not measured, counted in every region and container, the ninth refused as
+  `too-many` at its own path. A table's total rows are read in a new scope,
+  `table`, which binds what the report's does and `table`, each declared
+  aggregate over the table's rows: `VALUE_SCOPES` is now `report`,
+  `table`, `group`, `row`, in that order, `EXPRESSION_NAMES` gains the
+  scope and `group` the name, and `AGGREGATE_SCOPES` gains `table`, an
+  aggregate run `over: 'table'` in a table's total rows and its group's
+  header and footer and refused anywhere else as the new
+  `misplaced-table-aggregate`. `totals` stays every detail row's,
+  everywhere. **`second-detail-table` is narrowed**: it refuses a second
+  table only in a report that is an e-invoice, whose lines are every row of
+  its one table, and a condition on that table is `invalid-e-invoice`; a
+  host that read the code as "a report holds one table" meets it less, and a
+  report with two tables it stored as refused is valid.
+- **report-core** compiles a condition as `visibleWhen` is, in the row's
+  scope, where `group` and `table` are out of scope, and `table.<id>`
+  where the format binds it. **`Members` gains `groupKeys`**, each grouping
+  table's key by its id, typed by the field that table groups by, and
+  `members.group` holds the aggregates alone, no `key`, so that two tables
+  grouped by fields of two types each check their own `group.key`;
+  `ScopeName` gains `table`. `READERS.table` names the condition, so the
+  diagnostics, `fieldReaders`, `removeFieldWithReaders` and a form review
+  find it, and a removed field the condition reads takes the table whole;
+  `fieldReaders` reaches a `group.key` read only in the table grouped by
+  the field. A new warning, `total-of-every-row`, names a total row in a
+  table that selects its rows that prints a total of every row.
+- **report-runtime** reads each condition once a row, in the data's order and
+  within the render's step budget, orders and groups the rows it selected,
+  each kept at its index in the data, and totals them by the function a
+  group's are; `orderTable` takes the selected rows as an optional fourth
+  argument. A table without a condition is handed the report's totals
+  themselves, and one that selects nothing prints its empty text and its
+  totals of nothing. At `MAX_DETAIL_ROWS`, eight tables each selecting every
+  row resolved in a median of 12.2 s against 1.4 s for one table, on one
+  machine on 15 November 2026, the figures beside `MAX_TABLES`.
+- **Beside a report's languages, charts and kept rows.** A condition is no
+  word: `NOT_WORDS` names it, so a render in any language the report
+  declares selects the same rows, and a translation keyed by a condition's
+  source is never read. A chart beside a table that selects its rows still
+  totals every detail row, before it or after it. A group header keeps as
+  many rows as its group states among the rows its table selects, and in a
+  second table as in the first; and a table in page 1's own header is
+  refused for where it stands, as before, whichever table it is.
+- **The renderer is unchanged**, and proved on the PDF it draws of an order
+  in three tables, `several-tables.test.ts`: each table's rows, order,
+  groups and totals line by line, the summary's total of every row, and the
+  empty table's text and total. A fourth table over lines the services
+  print too prints each of them in both, held line by line alone, since the
+  corpus's checks know a row by its key, once on the page.
+- **Both builders add a further table and give it its condition.** The
+  palette's Table is placed beside a table the report holds, and nowhere in
+  a report that is an e-invoice, so the Studio's palette now places one in
+  every starter with detail rows but the e-invoice; a table's properties
+  gain "Show rows only when" ("Zeilen nur anzeigen, wenn", "Afficher les
+  lignes seulement si"), after its empty text. A duplicate keeps its
+  columns' ids, so a column whose label and id read as another table's
+  column's is named by its table's id and its own, "Amount
+  (lines-2/amount)", in its outline row, its properties heading and a
+  problem's place: two of one name could be told apart by no screen reader.
+  A label its id already made unique is unchanged. **`BUILDER_SCENARIOS`
+  gains two scenarios**, a second table inserted and given its condition
+  and a duplicate's condition warned of, its copied column selected by
+  name, which every host's runner of the scenarios now runs.
+- **report-forms' `repeater-excluded` note** gives its reason as "a report
+  has one detail dataset", where it said one detail table, which a report
+  may now hold several of; the code and what the generator leaves out are
+  unchanged.
+- **The start page's first absence**, in all four languages, says that a
+  report reads one list of detail rows and that its tables print rows of
+  that list alone, each grouped by one field or by none, where it said one
+  detail table: true of 0.2.0 and of this release alike. Its date is
+  unchanged, since the sentence was as true of both on that day.
+- **What it costs.** One detail dataset still: two lists from two sources, a
+  subreport and a nested detail are the roadmap's. A table's own total
+  prints inside the table alone, and a cell cannot read it. In a builder a
+  further table gets its columns and its condition alone, its order, group
+  and totals written in the report's JSON, and a duplicate given a
+  condition keeps its totals of every row, warned of; the condition's field
+  is offered on an e-invoice's lines and refused there. A form review's
+  print-nothing moves a version's rows between tables that select by the
+  field, and does not say so. 0.2.0 refuses such a report whole, as
+  `second-detail-table`, `unknown-property` or `not-one-of`.
+- **The install gate** holds the packed validator to refusing a table past
+  `MAX_TABLES`, where it held it to refusing a second one.
+
 **A run of a text may be set below or above the line, in any character
 its face draws**
 ([0061](docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
@@ -380,10 +484,10 @@ what a report can hold, what a render can be, the editor, the server and
 AI, each in order, code a report carries run in a sandbox among them,
 and the three things Report does not mean to do -- connect to a
 database, fetch by address, drill down -- with the reason for each. What
-a report can hold takes in more than one table, each over rows of its
-own with columns of its own; a group's header kept with a stated number
-of its rows (0059), a first page's own page header (0060), sub- and
-superscript (0061) and one template in several languages (0063) have
+a report can hold takes in a second dataset and a table over it; several
+tables over the detail rows (0062), a group's header kept with a stated
+number of its rows (0059), a first page's own page header (0060), sub-
+and superscript (0061) and one template in several languages (0063) have
 since been built. It promises nothing: an item is
 built when its record is written, and that record may narrow it or turn
 it down.

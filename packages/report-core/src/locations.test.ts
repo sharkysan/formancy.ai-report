@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest'
 import { insertComponent, moveComponent, removeComponent } from './commands/components.js'
 import { locationOf, locations, validLocations } from './locations.js'
 import type { Location } from './tree.js'
-import { accepted, frozenSample, sampleReport } from './test-support.js'
+import { accepted, eInvoiceSample, frozen, frozenSample, sampleReport } from './test-support.js'
 
 const spacer: Component = { id: 'added', kind: 'spacer', height: 4 }
 
@@ -99,11 +99,18 @@ describe('validLocations', () => {
     expect(table.some(({ parent }) => parent === 'keep' || parent === 'heading')).toBe(false)
   })
 
-  // A second detail table is refused everywhere, and a component the
-  // report lacks cannot be moved anywhere: no destination, not an error.
-  test('are none for a second detail table, or a component the report lacks', () => {
+  // A second table stands wherever the first may (0062): in the body and
+  // the summary, a section there, never a columns or keep-together block.
+  // In a report that is an e-invoice, whose lines are every row of its one
+  // table, it stands nowhere; and a component the report lacks cannot be
+  // moved anywhere: no destination, not an error.
+  test('are those of a table for a second one, none in an e-invoice, and none for a component the report lacks', () => {
     const second = { ...(sampleReport().regions.body[2] as Component), id: 'again' }
-    expect(validLocations(frozenSample(), second)).toEqual([])
+    const places = validLocations(frozenSample(), second)
+    expect(new Set(places.map(({ region }) => region))).toEqual(new Set(['body', 'summary']))
+    expect(places.some(({ parent }) => parent === 'closing')).toBe(true)
+    expect(places.some(({ parent }) => parent === 'keep' || parent === 'heading')).toBe(false)
+    expect(validLocations(frozen(eInvoiceSample()), second)).toEqual([])
     expect(validLocations(frozenSample(), 'nowhere')).toEqual([])
   })
 })

@@ -23,8 +23,9 @@
  * prints at its top (`scenario-first-page.ts`), a host's view
  * (`scenario-host-view.ts`), images (`scenario-images.ts`), the rows a
  * table's group header is kept with (`scenario-table-group.ts`), a
- * report's languages (`scenario-languages.ts`) and a run set below or
- * above the line (`scenario-baselines.ts`).
+ * report's several tables (`scenario-tables.ts`), a report's languages
+ * (`scenario-languages.ts`) and a run set below or above the line
+ * (`scenario-baselines.ts`).
  */
 import { emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
@@ -40,6 +41,7 @@ import { paymentScenarios } from './scenario-payments.js'
 import { body, scenarioReport } from './scenario-report.js'
 import { tableGroupScenarios } from './scenario-table-group.js'
 import type { BuilderScenario, ScenarioQuery, ScenarioStep } from './scenario-steps.js'
+import { tablesScenarios } from './scenario-tables.js'
 import { contentLocale, editorText, formatZoom } from './text.js'
 import type { EditorLocale } from './text.js'
 
@@ -303,6 +305,7 @@ export function builderScenarios(locale: EditorLocale): readonly BuilderScenario
     ...hostViewScenarios(locale),
     ...imageScenarios(locale),
     ...tableGroupScenarios(locale),
+    ...tablesScenarios(locale),
     ...languageScenarios(locale),
     ...baselineScenarios(locale),
   ]

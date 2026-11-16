@@ -195,6 +195,17 @@ const CASES: { readonly [C in DiagnosticCode]: Case } = {
   },
   // A bill left paying SIX's example account, as one a builder adds starts.
   'example-payment-part': { edit: set('/paymentPart/account', [{ kind: 'text', text: 'CH44 3199 9123 0008 8901 2' }]), expected: { path: '/paymentPart' } },
+  // A table given a condition, two of its totals taken over its own rows and
+  // one left over every row: printed under some of the rows, that one reads
+  // as theirs (0062).
+  'total-of-every-row': {
+    edit: (report) => {
+      setAt(report, '/regions/body/2/rowsWhen', { cel: 'row.quantity > 0' })
+      setAt(report, '/regions/body/2/totals/0/cells/1/value/over', 'table')
+      setAt(report, TOTAL_VALUE, 'table.gross')
+    },
+    expected: { path: '/regions/body/2/totals/0/cells/2/value/over', componentId: 'lines' },
+  },
 }
 
 describe('diagnose', () => {
@@ -623,6 +634,24 @@ describe('unused declarations', () => {
         edited(set(INTRO_VALUE, 'header.spare'), (r) => r.datasets.header?.fields.push({ id: 'spare', type: 'string', label: 'Spare', nullable: true })),
       ),
     ).toEqual([expect.objectContaining({ code: 'unused-parameter', path: '/parameters/4' })])
+  })
+})
+
+describe('unused declarations under tables that select their rows', () => {
+  // `table.<id>` reads the aggregate, and a table's condition reads the
+  // fields it selects by (0062): neither is computed or fetched for
+  // nothing, and a warning that said so would ask an author to remove
+  // what a table prints by.
+  test("counts an aggregate read as table.<id>, and a field a table's condition reads", () => {
+    const report = edited(
+      (r) => r.aggregates.push({ id: 'spare', fn: 'count' }),
+      (r) => r.datasets.detail?.fields.push({ id: 'kind', type: 'string', label: 'Kind', nullable: false }),
+      set('/regions/body/2/rowsWhen', { cel: 'row.kind == "service"' }),
+      set('/regions/body/2/totals/0/cells/1/value/over', 'table'),
+      set('/regions/body/2/totals/0/cells/2/value/over', 'table'),
+      set(TOTAL_VALUE, 'totals.gross + dec(string(table.spare))'),
+    )
+    expect(diagnose(report)).toEqual([])
   })
 })
 

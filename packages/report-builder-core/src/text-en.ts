@@ -216,6 +216,7 @@ export const EN = {
   'field.borderColor': 'Border colour',
   'field.columnWidth': 'Column {n} width',
   'field.emptyText': 'Text when there are no rows',
+  'field.rowsWhen': 'Show rows only when',
   'field.headerStyle': 'Heading style',
   // How many of its group's first rows a group header is kept on its page with (0059).
   'field.keepWithRows': 'Rows kept with each group header',

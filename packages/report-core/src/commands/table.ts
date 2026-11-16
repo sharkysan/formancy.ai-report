@@ -1,7 +1,9 @@
 /**
- * Commands on the table over the detail dataset: its columns, its one
+ * Commands on a table over the detail dataset: its columns, its one
  * grouping level, its sort keys, and the rows under its groups and under
- * the table -- subtotals, tax lines, totals -- cell by cell.
+ * the table -- subtotals, tax lines, totals -- cell by cell. Its condition
+ * on its rows changes through `updateComponent`, as its empty text does
+ * (0062).
  *
  * Each names the table by its component id. A column is named by its id,
  * which footer cells refer to, so a column's id never changes in place; a

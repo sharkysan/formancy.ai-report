@@ -34,6 +34,13 @@ if (!outcome.valid) {
   resolved before there are pages; and a run set below or above the line
   anywhere but in a text's paragraph (`misplaced-baseline`): see
   [A run below or above the line](#a-run-below-or-above-the-line);
+- more than `MAX_TABLES` tables, counted in every region and container,
+  the one past the bound refused at its own path (`too-many`); a
+  table's own total, `over: 'table'`, outside its total rows and its
+  group's header and footer (`misplaced-table-aggregate`); and, in a
+  report that is an e-invoice, a second table (`second-detail-table`)
+  or a condition on its lines' table (`invalid-e-invoice`): see
+  [Several tables](#several-tables);
 - a QR code of no runs, which would encode nothing;
 - a fixed size the page cannot hold, a QR code's and an EPC QR code's
   square measured against `squareRoom`;
@@ -109,10 +116,44 @@ It checks structure, and what a payment code's literal texts say: whether
 an expression compiles, what a code's data resolves to, and whether the
 rendered output fits, are the runtime's and the renderer's questions.
 
+## Several tables
+
+A report may hold up to `MAX_TABLES` tables over its detail dataset
+([0062](../../docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)), each where a table may stand: in the body and the
+summary, and in a section there. Each prints the detail rows its own
+`rowsWhen` selects, an expression read once a row in the row's scope,
+before anything is ordered; absent, every row. Its sort keys, group,
+empty text and totals act on those rows alone:
+
+```ts
+{
+  id: 'services',
+  kind: 'table',
+  dataset: 'detail',
+  rowsWhen: { cel: 'row.kind == "service"' },
+  columns: [/* its own */],
+  sort: [{ field: { dataset: 'detail', field: 'amount' }, direction: 'desc' }],
+  totals: [{ cells: [{ column: 'amount', value: { kind: 'aggregate', aggregate: 'net', over: 'table' } }] }],
+  emptyText: 'No services on this order.',
+  repeatHeader: true,
+}
+```
+
+A table's total rows are read in a scope of their own, `table`
+(`VALUE_SCOPES`), which binds what the report's scope binds and
+`table`: each declared aggregate over the rows the table prints. A
+group's header and footer read `table` too (`EXPRESSION_NAMES`), and an
+aggregate run is taken `over: 'table'` (`AGGREGATE_SCOPES`) there and
+nowhere else. `totals` is every detail row's wherever it is read. A
+report that is an e-invoice holds one table, which selects every row,
+since its lines are every detail row. A release that predates it, 0.2.0
+among them, refuses a second table as `second-detail-table`, a condition
+as `unknown-property` and a total over a table as `not-one-of`.
+
 ## A table's group
 
-The table over the detail dataset groups its rows by one detail field, one
-level in version 0: its `group` names the field (`by`) and its order, a
+A table groups the rows it prints by one detail field, one level in
+version 0: its `group` names the field (`by`) and its order, a
 header of runs read once per group, its style, and the footer rows that
 total the group. A group header is kept on its page with the group's first
 row; `keepWithRows` states how many of its first rows instead
@@ -596,8 +637,9 @@ MAX_WORDS // 1024 words, and as many expressions, in each translation
   string prints as written in every language -- a QR code's content, an
   EPC QR code's texts, a bill's account, parties, reference and billing
   information, an e-invoice's texts, a field's and a parameter's label, a
-  parameter's default -- and `NOT_WORDS`, beside the walk, names each,
-  which `words.test.ts` holds every string of the format to.
+  parameter's default, a table's row condition, so that a render selects
+  the same rows in every language -- and `NOT_WORDS`, beside the walk,
+  names each, which `words.test.ts` holds every string of the format to.
 - **An expression run where a word stands** is translated whole, by its
   source; which of them print words, report-core's diagnostics say.
 - **The validator** holds a translation's shape: a locale written as the

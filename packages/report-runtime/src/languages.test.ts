@@ -391,6 +391,36 @@ describe('a render in a translation’s locale', () => {
     expect(names('sv-SE')).toEqual(['Plats Zug', 'Zange', 'Ärmel', 'Plats Örebro', 'Öse'])
   })
 
+  // A table's row condition (0062) is no word: it selects the rows the
+  // table prints, and is read as written in every language, so that a
+  // French render and a Swedish one list what the German does. A
+  // translator who wrote every quoted string in French, the condition's
+  // among them, would otherwise empty the table in French; the entry is
+  // the editor's unused translation, never printed and never read.
+  test('selects the same rows by a table’s condition in every language, a translation of the condition read nowhere', () => {
+    const report = order()
+    const zug: Component = {
+      id: 'zug',
+      kind: 'table',
+      dataset: 'detail',
+      rowsWhen: { cel: 'row.site == "Zug"' },
+      columns: [{ id: 'name', header: 'Artikel', width: 'fill', align: 'left', value: { kind: 'field', field: detail('name') } }],
+      emptyText: 'Keine Positionen.',
+      repeatHeader: true,
+    }
+    const french = { ...FRENCH, expressions: [...FRENCH.expressions, { cel: 'row.site == "Zug"', expression: { cel: 'row.site == "Zoug"' } }] }
+    const both = translated({ ...report, regions: { ...report.regions, body: [...report.regions.body, zug] } }, french, SWEDISH)
+    const selected = (locale: string): string[] => {
+      const tables = blocks(resolved(both, orderData(), { ...FINAL, locale }).document.body).filter((block): block is Table => block.kind === 'table')
+      return (tables.find((table) => table.id === 'zug')?.rows ?? []).map((row) => row.cells[0] as string)
+    }
+    expect(['de-CH', 'fr-CH', 'sv-SE'].map(selected)).toEqual([
+      ['Zange', 'Ärmel'],
+      ['Zange', 'Ärmel'],
+      ['Zange', 'Ärmel'],
+    ])
+  })
+
   // A word missing in the language a render names is refused, never
   // printed in the report's own: a preview as a final render, since a
   // preview prints the report's words as a final render does. The report's

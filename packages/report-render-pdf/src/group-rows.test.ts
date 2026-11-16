@@ -360,3 +360,52 @@ describe('a group header where its breaks are not planned', () => {
     TIMEOUT,
   )
 })
+
+describe('group headers in two tables', () => {
+  /** Where `key`'s header and its first three rows print, or a failure naming them. */
+  function apart(pdf: ReadPdf, label: string, first: number): string | undefined {
+    const pages = [`Delivery ${label}`, ...[0, 1, 2].map((at) => `ROW-${String(first + at).padStart(4, '0')}`)].map((key) => pageOf(pdf, key))
+    return new Set(pages).size === 1 ? undefined : `${label}: ${pages.join(', ')}`
+  }
+
+  // A report holds several tables (0062), each its own block, whose rows
+  // keep what the runtime counted in that table alone (0059). Each header
+  // stands on the page of its first three rows wherever the page ends, in
+  // the first table and in the one after it: a plan that kept rows in a
+  // document's first table, or counted a header's rows on into the next
+  // table, would leave one of them at the foot of a page. Each sweep
+  // crosses its page's foot, which the pages its header lands on show.
+  test(
+    'keeps each table’s group header on the page of its first three rows, wherever the page ends',
+    async () => {
+      const failures: string[] = []
+      const landed = { first: new Set<number>(), second: new Set<number>() }
+      for (let before = 42; before <= 50; before++) {
+        const document = documentOf('Kept in the first table', [
+          ledger('goods', [...details(1, before), ...group('G01', 3, details(before + 1, before + 4))]),
+          ledger('services', group('S01', 3, details(before + 5, before + 8))),
+        ])
+        const pdf = await rendered(document)
+        expect(verify(fixtureOf(`kept-first-table-${before}`, document, { minPagesExpected: 1, maxPagesExpected: 2 }), pdf)).toEqual([])
+        failures.push(...[apart(pdf, 'G01', before + 1), apart(pdf, 'S01', before + 5)].filter((failure) => failure !== undefined))
+        landed.first.add(pageOf(pdf, 'Delivery G01'))
+      }
+      for (let between = 30; between <= 40; between++) {
+        const document = documentOf('Kept in the second table', [
+          ledger('goods', details(1, 10)),
+          ledger('services', [...details(11, 10 + between), ...group('S02', 3, details(11 + between, 14 + between))]),
+        ])
+        const pdf = await rendered(document)
+        expect(verify(fixtureOf(`kept-second-table-${between}`, document, { minPagesExpected: 1, maxPagesExpected: 2 }), pdf)).toEqual([])
+        failures.push(...[apart(pdf, 'S02', 11 + between)].filter((failure) => failure !== undefined))
+        landed.second.add(pageOf(pdf, 'Delivery S02'))
+      }
+      expect(failures).toEqual([])
+      expect([[...landed.first].sort(), [...landed.second].sort()]).toEqual([
+        [1, 2],
+        [1, 2],
+      ])
+    },
+    TIMEOUT,
+  )
+})

@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:89be0d58d8bdbe1933a69e2643655e0fbab49b8bfc97d54f6d24e0e99a0a89d3",
+      "reviewed": "sha256:e215d23755da18f0f99f875505270364d65eb8f0869475beee1832aa63d3b5c7",
       "limitations": [
         {
           "area": "format",
@@ -116,7 +116,7 @@
         },
         {
           "area": "format",
-          "says": "A report has one detail table over one dataset, with one grouping level, and draws images from its header only, so two lists, subtotals within subtotals, or a photo per row cannot be expressed."
+          "says": "A report has one detail dataset, each of its tables one grouping level, and draws images from its header only, so two lists from two sources, subtotals within subtotals, or a photo per row cannot be expressed."
         },
         {
           "area": "format",
@@ -177,7 +177,7 @@
       ]
     },
     "0009": {
-      "reviewed": "sha256:6e7967e54d8017ea6afd2f48ab91aa386cf2d1562228993cbcc034222270a048",
+      "reviewed": "sha256:8ac6fd2b2b86ff6666cc60d409f4fdd9b1dfd729d332eca283c4a10e85dd92df",
       "limitations": [
         {
           "area": "runtime",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:8b4c3b737777ea5ed15b482b9643af1f8d6bf21240bf317a83ba5da63d7e981c",
+      "reviewed": "sha256:0647ca6ffb6941b2c03d71559d11289d1c5363add3e8e2e03ec91fb18baaab86",
       "limitations": [
         {
           "area": "runtime",
@@ -738,7 +738,7 @@
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     },
     "0027": {
-      "reviewed": "sha256:f389e7d2e899d679159d57fd5521495bfed4e99047bc7a1e3c75a7012e1c221e",
+      "reviewed": "sha256:b75297617244e8f983cc58b738127423532906494b714504bfed1c470f2bb1ad",
       "limitations": [
         {
           "area": "format",
@@ -2788,6 +2788,93 @@
         {
           "area": "testing",
           "says": "No browser gate sets a run below or above the line through the Studio and reads it from its Download PDF: the scenarios hold both builders in jsdom, the parity checks compare their trees in Chromium too, and the renderer’s tests hold the PDF."
+        }
+      ]
+    },
+    "0062": {
+      "reviewed": "sha256:587adff1ec1f4b84e36755809b8033761000c3a403aa1e429585f13cff0b39c6",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "Several tables print parts of one detail dataset alone, so two lists from two sources, a subreport and a detail nested in a detail still cannot be printed."
+        },
+        {
+          "area": "format",
+          "says": "A report holds at most eight tables, counted in every region and container, a bound chosen and not measured, and the ninth is refused as `too-many`.",
+          "heldBy": "packages/report-spec/src/validate-tables.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A table's own total prints in its total rows and its group's header and footer alone, refused elsewhere as `misplaced-table-aggregate`, so a paragraph or the summary prints one table's total only through an aggregate that writes its condition again, which nothing holds to the table's.",
+          "heldBy": "packages/report-spec/src/validate-tables.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A cell cannot read its table's totals, so a row's share of its table cannot be printed, only its share of every row.",
+          "heldBy": "packages/report-core/src/expressions/compile-report.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "Under a table that selects its rows `totals` is still every row's: a total row that prints it is warned of as `total-of-every-row`, and a group's header or footer that prints it is not.",
+          "heldBy": "packages/report-core/src/diagnostics/tables.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A `row` read where there is none is refused as having a value only in a table's cells and what an aggregate reads from each row, words that leave out a table's condition, where it has one too."
+        },
+        {
+          "area": "runtime",
+          "says": "A table whose condition selects no row still prints its empty text and its totals, since its own condition is read where its count is not bound.",
+          "heldBy": "packages/report-runtime/src/lower-table.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "Each table reads its condition once a detail row within the render's step budget and orders its rows outside any budget, so several conditioned tables over many rows may be refused where one table would print: at 100,000 rows, eight tables each of every row resolved in a median of 12.2 s against 1.4 s for one table, on an Intel i9-10900K under Node 24.21 on 15 November 2026.",
+          "heldBy": "packages/report-runtime/src/lower-table.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A preview whose data lacks a field a table's condition reads leaves those rows out of that table, said once in a warning.",
+          "heldBy": "packages/report-runtime/src/lower-table.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A chart reads every detail row whatever the tables beside it select, so it may show totals no table prints.",
+          "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A report that is an e-invoice holds one table, of every row, a second refused as `second-detail-table` and a condition on its lines' table as `invalid-e-invoice`, so an invoice cannot print a breakdown of its lines in a second table.",
+          "heldBy": "packages/report-spec/src/validate-e-invoice.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "`second-detail-table` refuses a second table only in a report that is an e-invoice, so a host that read it as a report's one table meets it less, and a report with two tables it stored as refused is valid.",
+          "heldBy": "packages/report-spec/src/validate.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A table's total rows are read in the `table` scope, not the report's, so a tool that walks a report's expressions by scope finds one more.",
+          "heldBy": "packages/report-core/src/diagnostics/parts.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A report with a second table, a table's condition or a total over a table is refused whole by 0.2.0, as `second-detail-table`, `unknown-property` or `not-one-of`, so it opens only in a release that has them."
+        },
+        {
+          "area": "builders",
+          "says": "In either builder a further table gets its columns and its condition alone: its order, group and totals, `over: 'table'` among them, are written in the report's JSON or by a host, and a duplicate given a condition keeps its totals of every row, warned of.",
+          "heldBy": "packages/report-builder-core/src/scenarios.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The condition's field, \"Show rows only when\", is offered on an e-invoice's lines' table as on every table, and every condition typed there is refused with the validator's reason.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A form review's print-nothing makes a field null in one version's rows, so a table that selects by that field's value leaves those rows out and one that selects by any other takes them in, and the review does not say which rows change table.",
+          "heldBy": "packages/report-forms/src/review-tables.test.ts"
         }
       ]
     },
