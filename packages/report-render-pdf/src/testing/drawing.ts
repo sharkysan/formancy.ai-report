@@ -48,6 +48,8 @@ export interface Shown {
   /** The font's name in the PDF, without its subset prefix. */
   readonly font: string
   readonly size: number
+  /** How many painting operators the page ran before it: a shape whose `paint` is lower was painted under it. */
+  readonly painted: number
 }
 
 export interface DrawnPage {
@@ -222,7 +224,7 @@ function interpret(content: string, height: number, fonts: ReadonlyMap<string, s
         case 'Tj':
         case 'TJ': {
           const [x, y] = apply(multiply(textMatrix, state.ctm), 0, 0)
-          shown.push({ x, baseline: height - y, color: state.fill, font: font.name, size: font.size })
+          shown.push({ x, baseline: height - y, color: state.fill, font: font.name, size: font.size, painted: paints })
           break
         }
       }

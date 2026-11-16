@@ -78,9 +78,8 @@ describe('what the start page says Formancy Report does not do yet', () => {
   })
 
   // "No codes but QR codes" was read against these kinds, the chart among
-  // them (0052), which is no code and prints nothing yet: a kind added
-  // later, a barcode among them, fails here until the sentence is read
-  // again.
+  // them (0052), which is no code: a kind added later, a barcode among
+  // them, fails here until the sentence is read again.
   test("says QR codes are the only codes while report-spec's component kinds are those it was read against", () => {
     expect(COMPONENT_KINDS).toEqual([
       'text',

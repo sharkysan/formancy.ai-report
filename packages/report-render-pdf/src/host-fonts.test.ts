@@ -41,6 +41,14 @@ import {
  * lacks or the renderer does not print as `unsupported`. A face PDFKit
  * would draw as another is `face-identity.test.ts`'s.
  */
+// Every digest the renderer takes, counted, and passed through to report-spec's:
+// a face's key is a SHA-256 of its bytes, which a render that draws no chart
+// should never pay for.
+vi.mock('@formancy/report-runtime', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@formancy/report-runtime')>()
+  return { ...actual, assetDigest: vi.fn(actual.assetDigest) }
+})
+
 const REGULAR = LIBERATION_REGULAR
 const BOLD = LIBERATION_BOLD
 const OPTIONS = { maxPages: 5 }
@@ -96,11 +104,22 @@ describe('the plan for a report that maps nothing', () => {
 
   // sans and token-less text print in Roboto, as before a report could name
   // a host font; the default family and the family of sans are Roboto.
+  // Each face is known by its own key, so a measurer that keeps widths by
+  // it never lays bold words out by the regular face's widths, and placed
+  // by Roboto's own ascender and descender, 1900 and -500 of its 2048
+  // units (`fonts.test.ts`).
   test('prints sans and the default in Roboto', () => {
     expect(plan.defaultFamily).toBe('Roboto')
     expect(plan.familyOf('sans')).toBe('Roboto')
-    expect(plan.face(undefined, false, false, 'x')).toEqual({ glyphs: ROBOTO.normal, lineFactor: LINE_FACTOR, name: 'Roboto' })
-    expect(plan.face('sans', true, false, 'x')).toEqual({ glyphs: ROBOTO.bold, lineFactor: LINE_FACTOR, name: 'Roboto' })
+    const roboto = { lineFactor: LINE_FACTOR, ascent: 1900 / 2048, descent: -500 / 2048, name: 'Roboto' }
+    const faced = (token: 'sans' | undefined, bold: boolean, italic: boolean): object => {
+      const { key, ...face } = plan.face(token, bold, italic, 'x')
+      return { ...face, key: key() }
+    }
+    expect(faced(undefined, false, false)).toEqual({ ...roboto, glyphs: ROBOTO.normal, key: 'Roboto/normal' })
+    expect(faced('sans', true, false)).toEqual({ ...roboto, glyphs: ROBOTO.bold, key: 'Roboto/bold' })
+    expect(faced('sans', false, true)).toEqual({ ...roboto, glyphs: ROBOTO.italics, key: 'Roboto/italics' })
+    expect(faced(undefined, true, true)).toEqual({ ...roboto, glyphs: ROBOTO.bolditalics, key: 'Roboto/bolditalics' })
     expect(plan.usable('sans')).toBe(true)
   })
 
@@ -150,6 +169,65 @@ describe('the plan for a report that maps a face twice', () => {
     },
     TIMEOUT,
   )
+})
+
+describe('what a measurer knows a host face by', () => {
+  // A chart's widths are kept process-wide by the key of the face they were
+  // measured in (zrender's cache). Keyed by the digest a face was handed
+  // under, a claim nothing holds to its bytes, two faces under one digest
+  // would share widths and the second be laid out by the first's: each is
+  // known by the digest of the bytes the render embeds for it, stripped as
+  // they are embedded, and never by the digest it was declared under.
+  test('knows a face by the bytes the render embeds, never by the digest it was handed under', () => {
+    const declared = assetDigest(HOST_SANS)
+    const plan = planFonts({ sans: { normal: face('brand', HOST_SANS, declared) }, serif: { normal: face('other', HOST_SANS_BOLD, declared) } }, ROBOTO)
+    const keys = [plan.face('sans', false, false, 'x').key(), plan.face('serif', false, false, 'x').key()]
+    expect(keys).toEqual([...plan.engine.files.values()].map((bytes) => assetDigest(bytes)))
+    expect(new Set(keys).size).toBe(2)
+    expect(keys).not.toContain(declared)
+  })
+
+  // The renderer's own Liberation Sans, handed as a host's face, is
+  // embedded whole (`face-identity.ts`), so it is known by its file's
+  // digest, measured with `shasum -a 256 fonts/LiberationSans-Regular.ttf`
+  // on 12 November 2026: a key of the bytes as handed rather than as
+  // embedded would tell a stripped face and a whole one apart by nothing.
+  test("knows the renderer's own bytes by their file's digest", () => {
+    expect(
+      planFonts({ sans: { normal: face('brand', REGULAR) } }, ROBOTO)
+        .face('sans', false, false, 'x')
+        .key(),
+    ).toBe('sha256:76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8')
+  })
+
+  // A face's key is a SHA-256 of the bytes it embeds, 3.3 ms for Liberation
+  // Serif's 384 KiB: taken for every face as the render planned its fonts,
+  // it was a quarter of the corpus's host-fonts render, of six faces and no
+  // chart (12 November 2026). It is taken the first time a chart asks for
+  // it, once however often it is asked, and for no face nobody asks about.
+  test("takes a face's digest the first time its key is asked for, and once", () => {
+    vi.mocked(assetDigest).mockClear()
+    const plan = planFonts({ sans: { normal: face('brand', HOST_SANS) }, serif: { normal: face('other', HOST_SANS_BOLD) } }, ROBOTO)
+    const [sans, serif] = [...plan.engine.files.values()]
+    const digests = (bytes: Uint8Array | undefined): number => vi.mocked(assetDigest).mock.calls.filter(([each]) => each === bytes).length
+    expect([digests(sans), digests(serif)]).toEqual([0, 0])
+    const regular = plan.face('sans', false, false, 'x')
+    expect(regular.key()).toBe(regular.key())
+    expect(plan.face(undefined, false, false, 'x').key()).toBe(regular.key())
+    expect([digests(sans), digests(serif)]).toEqual([1, 0])
+  })
+
+  // A chart's word is placed in its line and boxed from its baseline, its
+  // ascender below the line's top: an ascent read from another table than
+  // the line, or taken from Roboto, would box a word in a host's face off
+  // where pdfmake prints it. Liberation Sans's are 1854 and -434 of its
+  // 2048 units (`fonts.test.ts`), and a face whose header says 1600 and
+  // -400 is placed by those.
+  test("places a host face's baseline by its own ascender and descender, whose difference is its line", () => {
+    const plan = planFonts({ sans: { normal: face('brand', REGULAR) }, serif: { normal: face('short', withLine(HOST_SANS, 1600, -400)) } }, ROBOTO)
+    expect(plan.face('sans', false, false, 'x')).toMatchObject({ ascent: 1854 / 2048, descent: -434 / 2048, lineFactor: 2288 / 2048 })
+    expect(plan.face('serif', false, false, 'x')).toMatchObject({ ascent: 1600 / 2048, descent: -400 / 2048, lineFactor: 2000 / 2048 })
+  })
 })
 
 describe('a host font the renderer embeds', () => {

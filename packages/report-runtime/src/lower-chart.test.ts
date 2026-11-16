@@ -1,5 +1,5 @@
 import { compareDecimal, decimalFromString } from '@formancy/expressions'
-import { CHART_PALETTE } from '@formancy/report-spec'
+import { CHART_PALETTE, MAX_CHART_SERIES } from '@formancy/report-spec'
 import type { ChartComponent, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { AxisChart, Chart, ChartValue, PieChart } from './chart-document.js'
@@ -515,11 +515,14 @@ describe("a chart's formats", () => {
 
 describe('what the runtime hands on of a chart', () => {
   // The bounds and the places a share prints at are the runtime's, and a
-  // host that says so to an author reads them rather than a copy of the
-  // number, which could disagree and nobody would find out.
+  // host that says so to an author, or a renderer that holds a block to
+  // them, reads them rather than a copy of the number, which could
+  // disagree and nobody would find out; report-spec's bound on a chart's
+  // series, handed on with them, among them.
   test('exports its bounds', () => {
     expect(runtime.MAX_CHART_CATEGORIES).toBe(MAX_CHART_CATEGORIES)
     expect(runtime.MAX_TICK_INTERVALS).toBe(5)
     expect(runtime.SHARE_PLACES).toBe(SHARE_PLACES)
+    expect(runtime.MAX_CHART_SERIES).toBe(MAX_CHART_SERIES)
   })
 })

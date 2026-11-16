@@ -51,6 +51,8 @@ export { groupRows, orderKeys, orderRows, orderTable } from './sort-group.js'
 export type { OrderedRow, OrderedTable, OrderKey, RowGroup } from './sort-group.js'
 export { MAX_CHART_CATEGORIES, SHARE_PLACES } from './lower-chart.js'
 export { MAX_TICK_INTERVALS } from './chart-ticks.js'
+/** report-spec's bound on a chart's series, one colour each from its palette, handed on beside the runtime's own, so that a renderer holds a block to it rather than to a copy. */
+export { MAX_CHART_SERIES } from '@formancy/report-spec'
 export { CAPABILITIES, EVALUATION_ERROR_CODES, EXPRESSION_STEP_BUDGET, prepareExpressions, RENDER_STEP_BUDGET } from './evaluate.js'
 export type { ConditionEvaluation, Evaluation, EvaluationError, EvaluationErrorCode, ExpressionsPreparation, ReportExpressions } from './evaluate.js'
 

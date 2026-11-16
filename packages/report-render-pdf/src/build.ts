@@ -1,7 +1,9 @@
 import type { Node, NodeQueries } from 'pdfmake/interfaces.js'
-import type { Block, EpcQrCode, FontFamily, ImageAsset, QrCode, Table, TableRow } from '@formancy/report-runtime'
+import type { Block, Chart, EpcQrCode, FontFamily, ImageAsset, QrCode, Table, TableRow } from '@formancy/report-runtime'
 import type { CheckedImage } from './assets.js'
 import type { KeepBlock } from './breaks.js'
+import type { DrawnChart } from './chart-draw.js'
+import type { PlacedWord } from './chart-svg.js'
 import type { RenderFonts } from './host-fonts.js'
 import type { QrSymbol } from './qr.js'
 import type { WordRoom } from './words.js'
@@ -50,6 +52,9 @@ export const UNPLANNED: TablePlan = { dontBreakRows: false, keepWithHeaderRows: 
 /** What a row of a table is, as pdfmake lays it out: the column header, the empty text, or one of the document's rows. */
 export type RowKind = TableRow['kind'] | 'header' | 'empty'
 
+/** A chart as the render drew it (`drawCharts`): ECharts' marks and its words (`chart-draw.ts`), or, for a chart with nothing to draw, its words alone, which the renderer placed (`chart-empty.ts`). */
+export type ChartDrawing = DrawnChart | { readonly words: readonly PlacedWord[] }
+
 /** A table's row as the body pass measures it: its kind, the mark on its first cell, the rows it keeps and whether it prints, as its plan reads them. */
 export interface MeasuredRow {
   readonly kind: RowKind
@@ -81,6 +86,8 @@ export interface Build {
   readonly assets: ReadonlyMap<ImageAsset, CheckedImage>
   /** Each QR code's and EPC QR code's symbol, as the checks encoded it. */
   readonly codes: ReadonlyMap<QrCode | EpcQrCode, QrSymbol>
+  /** Each chart of the body as the render drew it, every pass alike; none in a build made before the charts are drawn, the page regions', where check.ts refuses a chart. */
+  readonly charts: ReadonlyMap<Chart, ChartDrawing>
   /** Filled in: each asset's key in pdfmake's image dictionary, and the dictionary. */
   readonly imageKeys: Map<ImageAsset, string>
   readonly images: Record<string, string>
@@ -104,12 +111,13 @@ export function newBuild(
     readonly assets: ReadonlyMap<ImageAsset, CheckedImage>
     readonly codes: ReadonlyMap<QrCode | EpcQrCode, QrSymbol>
     readonly paths: ReadonlyMap<Block, string>
+    readonly charts: ReadonlyMap<Chart, ChartDrawing>
   },
   fonts: RenderFonts,
   body: { readonly top: number; readonly bottom: number; readonly firstShift?: number } = { top: 0, bottom: 0 },
   plans: ReadonlyMap<Table, TablePlan> = new Map(),
 ): Build {
-  const { assets, codes, paths } = checked
+  const { assets, codes, paths, charts } = checked
   return {
     mode,
     bodyTop: body.top,
@@ -118,6 +126,7 @@ export function newBuild(
     plans,
     assets,
     codes,
+    charts,
     paths,
     familyOf: fonts.familyOf,
     imageKeys: new Map(),

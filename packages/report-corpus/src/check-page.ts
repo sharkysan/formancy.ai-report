@@ -1,3 +1,4 @@
+import type { PlacedChart, PlacedDrawings } from './drawings.js'
 import { normalise, type Expectation, type ExpectedImage } from './fixture.js'
 import { pageLines, type Line } from './lines.js'
 import type { PdfBox, PdfPage, ReadPdf } from './read-pdf.js'
@@ -22,6 +23,8 @@ export interface Page {
   readonly body: readonly Line[]
   /** The boxes of the SVG images drawn on the page, the page regions' and the body's: the clips their drawings are painted inside (`drawings.ts`). */
   readonly drawings: readonly PdfBox[]
+  /** The charts drawn on the page, each found by its clip in the same walk as the SVG images (`drawings.ts`). */
+  readonly charts: readonly PlacedChart[]
 }
 
 /** What a page shows of its page regions: on page 1, page 1's own where the document gives it a header of its own (0060), and every page's otherwise. */
@@ -46,8 +49,8 @@ export function regionsOn(expected: Expectation, number: number): PageRegions {
   return { own, ...(own ? firstPage : every), otherLines: other.filter((line) => !shared.has(normalise(line))) }
 }
 
-/** `pdf`'s pages as the checks read them, each with the boxes of the SVG images `drawings` found on it, page by page. */
-export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: readonly (readonly PdfBox[])[]): Page[] {
+/** `pdf`'s pages as the checks read them, each with the SVG images' boxes and the charts `drawings` placed on it, page by page. */
+export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: Pick<PlacedDrawings, 'boxes' | 'charts'>): Page[] {
   const footer = new Set(expected.pageFooterLines.map(normalise))
   const numbered = expected.footerEveryPage === undefined ? undefined : once(expected.footerEveryPage)
   return pdf.pages.map((page, index) => {
@@ -63,7 +66,8 @@ export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: readonly 
       header: lines.filter((line) => region(line) === 'header'),
       footer: lines.filter((line) => region(line) === 'footer'),
       body: lines.filter((line) => region(line) === 'body'),
-      drawings: drawings[index] ?? [],
+      drawings: drawings.boxes[index] ?? [],
+      charts: drawings.charts[index] ?? [],
     }
   })
 }
@@ -123,7 +127,22 @@ export function drawingLabel(drawing: PdfBox): string {
   return `a drawing at ${points(drawing.x)}, ${points(drawing.top)}`
 }
 
-/** What a page shows that is not text: its images and its SVG images' drawings, each with the words a problem names it by. */
-export function pictures(page: Page): { readonly label: string; readonly box: PdfBox }[] {
-  return [...page.page.images.map((box) => ({ label: imageLabel(box), box })), ...page.drawings.map((box) => ({ label: drawingLabel(box), box }))]
+export function chartLabel({ id, box }: PlacedChart): string {
+  return `the chart ${id} at ${points(box.x)}, ${points(box.top)}`
+}
+
+/** Something a page shows that is not text, by the words a problem names it by; a chart's by its id too. */
+export interface Picture {
+  readonly label: string
+  readonly box: PdfBox
+  readonly chart?: string
+}
+
+/** What a page shows that is not text: its images, its SVG images' drawings and its charts, each by their boxes, which the layout's checks hold as they hold an image's. */
+export function pictures(page: Page): Picture[] {
+  return [
+    ...page.page.images.map((box) => ({ label: imageLabel(box), box })),
+    ...page.drawings.map((box) => ({ label: drawingLabel(box), box })),
+    ...page.charts.map((chart) => ({ label: chartLabel(chart), box: chart.box, chart: chart.id })),
+  ]
 }

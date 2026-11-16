@@ -52,10 +52,9 @@ describe('the palette', () => {
   })
 
   // A chart inserted now would be a box whose own properties no builder
-  // edits, in a report the renderer refuses to print until it draws charts
-  // (0052, 0055): offered, it would be a button that makes a report nobody
-  // can edit into shape or print. Sent anyway, an insert or a drag of one
-  // is refused as of a kind the palette does not have.
+  // edits (0052): offered, it would be a button that makes a report nobody
+  // can edit into shape. Sent anyway, an insert or a drag of one is
+  // refused as of a kind the palette does not have.
   test('offers no chart yet, and refuses one inserted or dragged', () => {
     const { editor, session } = editorOver(richReport())
     expect(editor.state().palette.some((entry) => entry.kind === 'chart')).toBe(false)

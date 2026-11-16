@@ -4,7 +4,7 @@ import { normalise } from './fixture.js'
 import { lineHas } from './lines.js'
 
 /** A font's subset prefix in a PDF: six upper-case letters and a plus sign before the PostScript name. */
-const SUBSET_PREFIX = /^[A-Z]{6}\+/
+export const SUBSET_PREFIX = /^[A-Z]{6}\+/
 
 /**
  * Each run held to the face it prints in (0043): every text item whose text

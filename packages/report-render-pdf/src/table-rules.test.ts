@@ -11,7 +11,7 @@ const ROBOTO_ONLY = {
   familyOf: () => 'Roboto',
   usable: () => true,
   defaultFamily: 'Roboto',
-  face: () => ({ glyphs: new Set<number>(), lineFactor: 2400 / 2048, name: 'Roboto' }),
+  face: () => ({ glyphs: new Set<number>(), lineFactor: 2400 / 2048, ascent: 1900 / 2048, descent: -500 / 2048, key: () => 'Roboto/normal', name: 'Roboto' }),
   engine: { families: {}, files: new Map() },
 } satisfies RenderFonts
 
@@ -38,7 +38,7 @@ function rowsOf(kinds: readonly RowKind[]): Row[] {
 
 function setUp(kinds: readonly RowKind[], blocks: readonly KeepBlock[], keepWithHeaderRows = 1): { rows: Row[]; build: Build; plan: TablePlan } {
   const rows = rowsOf(kinds)
-  const build = newBuild('render', { assets: new Map(), codes: new Map(), paths: new Map() }, ROBOTO_ONLY, BODY)
+  const build = newBuild('render', { assets: new Map(), codes: new Map(), paths: new Map(), charts: new Map() }, ROBOTO_ONLY, BODY)
   const plan: TablePlan = { dontBreakRows: true, keepWithHeaderRows, pitches: rows.map(() => 10), blocks }
   tableRules(rows, plan, build, CONTINUED)
   return { rows, build, plan }
@@ -114,7 +114,7 @@ describe('a table’s planned breaks', () => {
   test('are not planned without a row that prints before the first block', () => {
     const rows = rowsOf(kinds)
     for (const row of rows.slice(1, 9)) row.cells.forEach((cell) => ((cell as { text: string }).text = ''))
-    const build = newBuild('render', { assets: new Map(), codes: new Map(), paths: new Map() }, ROBOTO_ONLY, BODY)
+    const build = newBuild('render', { assets: new Map(), codes: new Map(), paths: new Map(), charts: new Map() }, ROBOTO_ONLY, BODY)
     tableRules(rows, { dontBreakRows: true, keepWithHeaderRows: 1, pitches: rows.map(() => 10), blocks }, build, CONTINUED)
     expect(rows.slice(1, 9).every((row) => row.cells[0]!.headlineLevel === undefined)).toBe(true)
     expect(build.rules.size).toBe(2)

@@ -19,7 +19,15 @@ function item(text: string, font: string): PdfTextItem {
 
 /** A page of these items, as the checks read one; the fontNames check reads only the items. */
 function page(...items: PdfTextItem[]): Page {
-  return { page: { number: 1, width: 595, height: 842, items, images: [], paths: [], clips: [] }, lines: [], header: [], footer: [], body: [], drawings: [] }
+  return {
+    page: { number: 1, width: 595, height: 842, items, images: [], paths: [], clips: [] },
+    lines: [],
+    header: [],
+    footer: [],
+    body: [],
+    drawings: [],
+    charts: [],
+  }
 }
 
 const expected: readonly ExpectedFontName[] = [

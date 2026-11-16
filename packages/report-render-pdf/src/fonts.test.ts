@@ -7,7 +7,7 @@ import type { Font } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { OWN_FACES } from './face-identity.js'
 import { characterMap } from './glyphs.js'
-import { LIBERATION_LINE, LINE_FACTOR } from './style.js'
+import { LIBERATION_ASCENDER, LIBERATION_LINE, LINE_FACTOR, ROBOTO_ASCENT, ROBOTO_DESCENT } from './style.js'
 import { TIMEOUT } from './testing/documents.js'
 
 /**
@@ -244,11 +244,18 @@ describe("the renderer's faces, read by report-spec's reader", () => {
 
   // The two line constants the renderer lays text out by are these faces'
   // horizontal headers, ascender less descender; a constant that drifted
-  // from its face would measure every line of a report wrong.
+  // from its face would measure every line of a report wrong. And the
+  // ascender and descender a baseline is placed by: a chart's word is
+  // placed by ECharts in its line, and boxed from its baseline, so an
+  // ascent of another face would box every word of a chart in Roboto a
+  // fraction of its size off where pdfmake prints it.
   test("the renderer's line constants are the faces' own lines", () => {
     for (const face of FACES) {
       const { metrics } = read(bytesOf(face.directory, face.file))
-      expect((metrics.ascender - metrics.descender) / metrics.unitsPerEm, face.file).toBe(face.family === 'Roboto' ? LINE_FACTOR : LIBERATION_LINE)
+      const roboto = face.family === 'Roboto'
+      expect((metrics.ascender - metrics.descender) / metrics.unitsPerEm, face.file).toBe(roboto ? LINE_FACTOR : LIBERATION_LINE)
+      expect(metrics.ascender / metrics.unitsPerEm, face.file).toBe(roboto ? ROBOTO_ASCENT : LIBERATION_ASCENDER)
+      if (roboto) expect(metrics.descender / metrics.unitsPerEm, face.file).toBe(ROBOTO_DESCENT)
     }
   })
 })

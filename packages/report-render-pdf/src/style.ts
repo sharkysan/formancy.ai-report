@@ -40,11 +40,20 @@ export const LIBERATION_LINE = 2288 / 2048
 export const FONTS: Readonly<Partial<Record<NonNullable<TextStyle['font']>, string>>> = { sans: ROBOTO }
 
 /**
+ * Roboto's ascender and descender, as multiples of the font size: 1900 and
+ * -500 of its 2048 units per em, from its `hhea` table, the same in all
+ * four faces. pdfmake sets a line's baseline its ascender below the line's
+ * top; a chart's word, placed in its line by ECharts, is boxed from them.
+ */
+export const ROBOTO_ASCENT = 1900 / 2048
+export const ROBOTO_DESCENT = -500 / 2048
+
+/**
  * Roboto's line, as a multiple of the font size: its ascender less its
  * descender, 2400 of its 2048 units per em. pdfmake lays out a line exactly
  * this tall.
  */
-export const LINE_FACTOR = 2400 / 2048
+export const LINE_FACTOR = ROBOTO_ASCENT - ROBOTO_DESCENT
 
 /** Text when a paragraph names no size. */
 export const DEFAULT_SIZE = 10

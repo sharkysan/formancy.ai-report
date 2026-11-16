@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import type { Block, ResolvedDocument } from './document.js'
-import { epcCodes, expectation, footerPattern } from './fixture.js'
+import type { ReadPdf } from './read-pdf.js'
+import { verify } from './checks.js'
+import { chartsOf, drawingsOf, epcCodes, expectation, footerPattern, type Expectation, type Fixture, type Stated } from './fixture.js'
+import { hostFonts } from './fixtures/host-fonts.js'
 
 const page = { size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 } } as const
 const text = (value: string): Block => ({ kind: 'paragraph', runs: [{ text: value }] })
@@ -198,5 +201,287 @@ describe('epcCodes', () => {
     ]
     expect(epcCodes(blocks).map((block) => block.id)).toEqual(['first', 'in-column', 'kept-in-section'])
     expect(epcCodes([text('none')])).toEqual([])
+  })
+})
+
+describe('drawingsOf', () => {
+  const image = (mediaType: 'image/png' | 'image/svg+xml', width: number): Block => ({
+    kind: 'image',
+    asset: { id: `image-${width}`, mediaType, bytes: new Uint8Array() },
+    width,
+    height: width,
+    fit: 'contain',
+  })
+  const chart = (id: string, empty?: string): Block => ({
+    kind: 'chart',
+    chart: 'line',
+    id,
+    width: 200,
+    height: 100,
+    legend: [],
+    categories: [],
+    series: [],
+    ticks: [],
+    valueLabels: false,
+    ...(empty === undefined ? {} : { empty }),
+  })
+
+  // An SVG image and a chart are each found by a clip of their box, in one
+  // walk in document order (`drawings.ts`): a walk that missed a container
+  // would seek a chart in a column after the image below it and take its
+  // clip, and one that listed a PNG, or a chart with nothing to draw, would
+  // seek a clip none of them has.
+  test('lists SVG images and charts that draw something, inside columns, sections and keep-together blocks, in document order', () => {
+    const blocks: Block[] = [
+      image('image/svg+xml', 10),
+      image('image/png', 20),
+      {
+        kind: 'columns',
+        columns: [
+          { width: 'fill', blocks: [chart('in-column')] },
+          { width: 'fill', blocks: [image('image/svg+xml', 30)] },
+        ],
+      },
+      { kind: 'section', blocks: [{ kind: 'keepTogether', blocks: [text('heading'), chart('kept-in-section'), chart('nothing', 'No data')] }] },
+    ]
+    expect(drawingsOf(blocks)).toEqual([
+      { kind: 'image', width: 10, height: 10 },
+      { kind: 'chart', id: 'in-column', width: 200, height: 100 },
+      { kind: 'image', width: 30, height: 30 },
+      { kind: 'chart', id: 'kept-in-section', width: 200, height: 100 },
+    ])
+  })
+})
+
+describe('chartsOf', () => {
+  const value = (exact: string, text = exact) => ({ exact, text })
+  const documentOf = (body: readonly Block[], fonts?: ResolvedDocument['fonts']): ResolvedDocument => ({
+    info: { title: 'Charts', creationDate: '2026-01-01T00:00:00Z' },
+    page,
+    pageHeader: [],
+    pageFooter: [],
+    body,
+    ...(fonts === undefined ? {} : { fonts }),
+  })
+  const bars: Block = {
+    kind: 'chart',
+    chart: 'bar',
+    id: 'sales',
+    width: 300,
+    height: 200,
+    title: ' Sales ',
+    categoryTitle: 'Region',
+    valueTitle: ' ',
+    categories: ['North', ' ', 'A  B'],
+    series: [
+      { color: '#1f77b4', values: [value('10.25', '10.25'), null, value('0', '0')] },
+      { color: '#ff7f0e', values: [value('-5', '−5'), value('15'), null] },
+    ],
+    ticks: ['-5', '0', '5', '10', '15'].map((exact) => value(exact)),
+    valueLabels: true,
+    legend: [
+      { text: 'Plan', color: '#1f77b4' },
+      { text: '', color: '#ff7f0e' },
+    ],
+  }
+  const pie: Block = {
+    kind: 'chart',
+    chart: 'pie',
+    id: 'shares',
+    width: 200,
+    height: 200,
+    slices: [
+      { color: '#1f77b4', value: value('3') },
+      { color: '#ff7f0e', value: value('0') },
+    ],
+    legend: [
+      { text: 'North: 3 (100.0 %)', color: '#1f77b4' },
+      { text: 'East: 0 (0.0 %)', color: '#ff7f0e' },
+    ],
+  }
+  const drawn = (id: string): Block => ({ ...bars, id, title: id })
+  const empty = (id: string): Block => ({
+    kind: 'chart',
+    chart: 'line',
+    id,
+    width: 200,
+    height: 100,
+    title: 'Balance',
+    empty: 'No data',
+    legend: [],
+    categories: [],
+    series: [],
+    ticks: [],
+    valueLabels: false,
+  })
+
+  // A chart's words are the runtime's, and the check holds the PDF to them
+  // as PDF.js extracts them: a title with a space at either end, or two
+  // spaces in a category, expected as written would be missing from a
+  // PDF that prints it. A word that prints nothing -- a blank axis title,
+  // a blank category, an empty legend entry -- is none to find, and its
+  // slot stays; a pie's labels print in its legend alone, so it has no
+  // category or tick to find. A value prints only where the chart labels
+  // values, as its text, its label held at its mark; it is placed by its
+  // exact value. Each legend entry is held beside its swatch in the paint
+  // of what it names, which an entry that prints nothing keeps.
+  test("derives each chart's words, categories, ticks and marks from its block", () => {
+    const [sales, shares] = chartsOf(documentOf([bars, pie]))
+    expect(sales).toEqual({
+      id: 'sales',
+      chart: 'bar',
+      width: 300,
+      height: 200,
+      words: ['Sales', 'Region', 'North', 'A B', '10.25', '0', '−5', '15', 'Plan'],
+      categories: ['North', '', 'A B'],
+      ticks: ['-5', '0', '5', '10', '15'].map((exact) => value(exact)),
+      marks: [
+        { paint: '#1f77b4', values: ['10.25', null, '0'], labels: ['10.25', null, '0'] },
+        { paint: '#ff7f0e', values: ['-5', '15', null], labels: ['−5', '15', null] },
+      ],
+      // An entry that prints nothing keeps its swatch, which is held.
+      legend: [
+        { text: 'Plan', paint: '#1f77b4' },
+        { text: '', paint: '#ff7f0e' },
+      ],
+      faces: [
+        { text: 'Sales', postScriptName: 'Roboto-Medium' },
+        ...['Region', 'North', 'A B', '10.25', '0', '−5', '15', 'Plan', '-5', '0', '5', '10', '15'].map((text) => ({ text, postScriptName: 'Roboto-Regular' })),
+      ],
+      empty: false,
+    })
+    expect(shares).toEqual({
+      id: 'shares',
+      chart: 'pie',
+      width: 200,
+      height: 200,
+      words: ['North: 3 (100.0 %)', 'East: 0 (0.0 %)'],
+      categories: [],
+      ticks: [],
+      marks: [
+        { paint: '#1f77b4', values: ['3'] },
+        { paint: '#ff7f0e', values: ['0'] },
+      ],
+      legend: [
+        { text: 'North: 3 (100.0 %)', paint: '#1f77b4' },
+        { text: 'East: 0 (0.0 %)', paint: '#ff7f0e' },
+      ],
+      faces: ['North: 3 (100.0 %)', 'East: 0 (0.0 %)'].map((text) => ({ text, postScriptName: 'Roboto-Regular' })),
+      empty: false,
+    })
+    // A value whose label is blank prints none.
+    const blank = chartsOf(documentOf([{ ...bars, series: [{ ...bars.series[0]!, values: [value('10.25', ' '), null, value('0')] }] }]))[0]!
+    expect(blank.marks[0]!.labels).toEqual([null, null, '0'])
+    // Values not labelled print no label, and none is held.
+    const unlabelled = chartsOf(documentOf([{ ...bars, valueLabels: false }]))[0]!
+    expect(unlabelled.words).toEqual(['Sales', 'Region', 'North', 'A B', 'Plan'])
+    expect(unlabelled.marks.map(({ labels }) => labels)).toEqual([undefined, undefined])
+    expect(chartsOf(documentOf([empty('nothing')]))[0]).toMatchObject({ words: ['Balance', 'No data'], categories: [], ticks: [], marks: [], empty: true })
+  })
+
+  // A chart prints in its style's token, its title bold in it (0058):
+  // each word, its ticks' labels among them, is held to the face it
+  // prints in, its token's host face, or Roboto's where the sans token
+  // maps none, so that a chart printed in Roboto where a host's face was
+  // mapped, or its title in the regular face, is seen. A serif or mono
+  // token the report maps no face for is refused by the renderer, and
+  // names no face here.
+  test('holds each word to the face it prints in, a host face or Roboto', () => {
+    const fonts = hostFonts.document.fonts
+    const [serif] = chartsOf(documentOf([{ ...bars, style: { font: 'serif' } }], fonts))
+    expect(serif!.faces).toEqual([
+      { text: 'Sales', postScriptName: 'LiberationSerif-Bold' },
+      ...['Region', 'North', 'A B', '10.25', '0', '−5', '15', 'Plan', '-5', '0', '5', '10', '15'].map((text) => ({ text, postScriptName: 'LiberationSerif' })),
+    ])
+    const [italic] = chartsOf(documentOf([{ ...pie, title: 'Shares', style: { font: 'serif', italic: true } }], fonts))
+    expect(italic!.faces).toEqual([
+      { text: 'Shares', postScriptName: 'LiberationSerif-BoldItalic' },
+      { text: 'North: 3 (100.0 %)', postScriptName: 'LiberationSerif-Italic' },
+      { text: 'East: 0 (0.0 %)', postScriptName: 'LiberationSerif-Italic' },
+    ])
+    const [sans] = chartsOf(documentOf([{ ...bars, style: { italic: true } }], fonts))
+    expect(sans!.faces.slice(0, 2)).toEqual([
+      { text: 'Sales', postScriptName: 'Roboto-MediumItalic' },
+      { text: 'Region', postScriptName: 'Roboto-Italic' },
+    ])
+    expect(chartsOf(documentOf([{ ...bars, style: { font: 'mono' } }]))[0]!.faces).toEqual([])
+    // A mapped token with no such face, or a face that is no font, is refused by the renderer, and names none.
+    expect(chartsOf(documentOf([{ ...bars, style: { font: 'mono', italic: true } }], fonts))[0]!.faces).toEqual([])
+    const broken = { serif: { normal: { id: 'broken', digest: `sha256:${'0'.repeat(64)}`, bytes: new Uint8Array([1, 2, 3]) } } }
+    expect(chartsOf(documentOf([{ ...pie, style: { font: 'serif' } }], broken))[0]!.faces).toEqual([])
+  })
+
+  // A chart with nothing to draw has no box to be found by: its words are
+  // sought after the chart drawn before it in its flow, else after the
+  // page breaks before it (`check-charts.ts`). Anchored wrongly they are
+  // sought from the first page, where the same words printed as other
+  // text pass for them, or after a chart beside it in another column,
+  // which may stand lower, where a correct PDF fails. A section or a
+  // keep-together block flows in its flow, a column below what stands
+  // before its columns, and what follows a columns block below all of
+  // them.
+  test('anchors an empty chart after the chart drawn before it in its flow, else after the page breaks before it', () => {
+    const body: Block[] = [
+      { kind: 'pageBreak' },
+      { kind: 'section', blocks: [{ kind: 'keepTogether', blocks: [empty('framed')] }] },
+      {
+        kind: 'columns',
+        columns: [
+          { width: 'fill', blocks: [empty('beside')] },
+          { width: 'fill', blocks: [drawn('right'), empty('under-right')] },
+        ],
+      },
+      empty('below-columns'),
+      { kind: 'section', blocks: [drawn('last')] },
+      { kind: 'pageBreak' },
+      { kind: 'section', blocks: [empty('after-break')] },
+      { kind: 'columns', columns: [{ width: 'fill', blocks: [empty('in-column')] }] },
+    ]
+    expect(chartsOf(documentOf(body)).map(({ id, after, breaks }) => ({ id, after, breaks }))).toEqual([
+      { id: 'framed', after: undefined, breaks: 1 },
+      { id: 'beside', after: undefined, breaks: 1 },
+      { id: 'right', after: undefined, breaks: undefined },
+      { id: 'under-right', after: 'right', breaks: undefined },
+      { id: 'below-columns', after: 'right', breaks: undefined },
+      { id: 'last', after: undefined, breaks: undefined },
+      { id: 'after-break', after: 'last', breaks: undefined },
+      { id: 'in-column', after: 'last', breaks: undefined },
+    ])
+    expect(chartsOf(documentOf([empty('first')]))[0]).toMatchObject({ breaks: 0 })
+  })
+
+  // The drawings an expectation seeks and the charts it proves are derived
+  // together, and never stated: a fixture that stated its drawings away
+  // sought no drawing for its chart, and a chart drawn with no bar passed
+  // every check (N3). What is stated of either is the derived list again;
+  // and an expectation built by hand whose two lists name other charts,
+  // in order, is refused by `verify` as the expectation's mistake, before
+  // a page is read.
+  test('derives its drawings and its charts whatever is stated, and verify refuses two that disagree', () => {
+    const document = documentOf([bars, empty('nothing'), pie])
+    const derived = expectation(document, { maxPagesExpected: 1 })
+    const stated = { maxPagesExpected: 1, drawings: [], charts: [] } as unknown as Stated
+    expect(expectation(document, stated)).toEqual(derived)
+    const fixture = (expect: Expectation): Fixture => ({ id: 'charts', title: 'Charts', document, maxPages: 1, expect })
+    const pdf: ReadPdf = { pages: [], fonts: [], attachments: [] }
+    expect(() => verify(fixture({ ...derived, drawings: [] }), pdf)).toThrow(
+      'the expectation of charts seeks the charts none and proves the charts sales, shares that draw something: the two are derived together, in document order (`drawingsOf`, `chartsOf`)',
+    )
+    expect(() => verify(fixture({ ...derived, charts: derived.charts.slice(0, 1) }), pdf)).toThrow(
+      'the expectation of charts seeks the charts sales, shares and proves the charts sales that draw something',
+    )
+    expect(() => verify(fixture({ ...derived, drawings: [...derived.drawings].reverse() }), pdf)).toThrow('seeks the charts shares, sales and proves')
+  })
+
+  // The expectation proves every chart it holds, and the drawings it seeks
+  // are those charts' that draw something, in the same order.
+  test('is the expectation’s charts, the drawn ones among its drawings', () => {
+    const document = documentOf([empty('nothing'), bars, { kind: 'columns', columns: [{ width: 'fill', blocks: [pie] }] }])
+    const derived = expectation(document, { maxPagesExpected: 1 })
+    expect(derived.charts).toEqual(chartsOf(document))
+    expect(derived.drawings).toEqual([
+      { kind: 'chart', id: 'sales', width: 300, height: 200 },
+      { kind: 'chart', id: 'shares', width: 200, height: 200 },
+    ])
   })
 })

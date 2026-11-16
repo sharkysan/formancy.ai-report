@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:af379adbd4d96d87d46f549fc5a0e31bc5a5413a26c4831ef094962ccc35bdb4",
+      "reviewed": "sha256:60266b133f898cda16acfff6bfd514f8908662f31f40f2d3f1e4c2312fc738d6",
       "limitations": [
         {
           "area": "testing",
@@ -70,7 +70,7 @@
       ]
     },
     "0005": {
-      "reviewed": "sha256:2bc54ba2021b4cd2cf44fb8c9f54001b95c88e52d1de45ded470b04cce2a5c4e",
+      "reviewed": "sha256:8bda540b6fca5bf83be25db1ea2cefcb87a2c15f2fa9cebb5f49351169f44150",
       "limitations": [
         {
           "area": "rendering",
@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:c30f43961eac53f46eaf689cd83fb15adc20c2932494e6f27ccde589d63a7753",
+      "reviewed": "sha256:8caa1b599fe40057ff5fa73f459b3b32e62620af6c26cc7ab0685e0772993bb3",
       "limitations": [
         {
           "area": "licence",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:d534c3c7ffc18f6177f5c2a01d9a5640aa065b9862b1d1abe1e6cb9f701f344f",
+      "reviewed": "sha256:e5a07ef16d5def8918dfcb3b410f7cdf0355fea5018035df1265ddfaa40545e3",
       "limitations": [
         {
           "area": "rendering",
@@ -1731,6 +1731,137 @@
         }
       ]
     },
+    "0043": {
+      "reviewed": "sha256:c99ad415011fc46d40780945b6e442bb2d0eb7529c22957642a2ce0f222e82ed",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A report prints its sans, serif and mono text in fonts a host approved, mapped to its three tokens and pinned by digest; a token a report leaves unmapped prints in the renderer's own face, so serif and mono print nothing until a report maps them, exactly as before 0.3.0.",
+          "heldBy": "packages/report-render-pdf/src/corpus.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "A host's font is the customer's to license: its OS/2 fsType is a vendor's hint the runtime and the renderer honour, so a font that says Installable may still be under an agreement that forbids a server generating documents with it, which nothing here reads, and 0006's guard, which reads the fonts a published package ships, never sees it.",
+          "heldBy": "packages/report-runtime/src/lower-fonts.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A character a mapped face has no glyph for is refused, naming the face and the code point, never drawn in another face: there is no fallback across the three families, and a report that needs a character its font lacks maps a font that has it.",
+          "heldBy": "packages/report-render-pdf/src/host-fonts.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Latin, Greek and Cyrillic, with the punctuation, symbols and marks written with them, are the scripts a report prints, by an allowlist of Unicode blocks: every other script is refused by code point in any face, Roboto's included -- the right-to-left, shaping and CJK scripts, and simple alphabets such as Armenian, Georgian and Coptic -- until a fixture proves it, and so are the bidirectional controls, since pdfmake lays out no bidirectional text and the renderer runs no shaping.",
+          "heldBy": "packages/report-spec/src/font-scripts.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A font whose outlines hold more points, more points times contours or more composite components together than report-spec's MAX_FONT_POINTS, MAX_FONT_OUTLINE_WORK and MAX_FONT_COMPONENTS allow is refused as too large, so that subsetting it cannot hold a render for minutes; the bounds sit just past the largest TrueType fonts measured, which are Hangul and Han fonts no report prints in.",
+          "heldBy": "packages/report-spec/src/font.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A CFF-flavoured OpenType font (`.otf`) is refused, as 0040 refuses one, because report-spec's reader reads no CFF outlines, so the renderer cannot hold one to its rules, though veraPDF accepted a PDF/A-3b PDFKit drew in one; a TrueType file (`.ttf`) of each face is mapped instead, until a later release reads CFF outlines and the e-invoice gate proves a CFF face.",
+          "heldBy": "packages/report-spec/src/font-map.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A host face's layout tables -- GSUB, GPOS, GDEF, kern and the AAT morx state machine -- are stripped before it is embedded, so that a crafted one can neither hang nor crash a render, and its ligatures, kerning and contextual shaping are lost, combining marks placed by their boxes; the Latin, Greek and Cyrillic a report prints needs none of them. A face of the very bytes of the renderer's own Roboto or Liberation Sans keeps them, since PDFKit draws it and the renderer's own as one. The list was read from fontkit 2.0.4, which a test pins.",
+          "heldBy": "packages/report-render-pdf/src/strip-layout.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Every render reads each face it maps again, under a millisecond for a typical font, and holds it twice until the render ends, the runtime's copy and the stripped one; nothing of a face is kept from one render to the next, and two renders at once write their faces into pdfmake's process-wide virtual files under names of their own, which each pass removes.",
+          "heldBy": "packages/report-render-pdf/src/host-fonts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Each line counts toward the page limit by the face it prints in, so a report set in a host face of a short line passes the bound that refuses it before layout with up to 2.3 times the lines Roboto's would, at a face's shortest line of half its size, and pdfmake measures them all before its page limit refuses what does not fit; text in Roboto beside such a face is bounded as before.",
+          "heldBy": "packages/report-render-pdf/src/host-fonts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A host face is refused as an invalid asset where any of its PostScript names is another face's of the render with other bytes -- another host asset's, or the renderer's own Roboto's or Liberation Sans's, whether or not the report prints in it -- or is `null` or a name every JavaScript object has, since PDFKit draws two faces of one name as whichever it opened first: a host's own Roboto or Liberation Sans of another release than the renderer's is refused, and a family whose two faces state one name, while the renderer's own bytes of either are accepted.",
+          "heldBy": "packages/report-render-pdf/src/face-identity.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A document handed to the renderer with text set outside the format's 4 to 96 pt is refused, as report-spec's validator refuses such a report, since the page bound counts each line by its size; a document the runtime resolved never holds one.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "Which face a run printed in is read back from the PDF by its PostScript name, on Liberation Serif and Mono printing Latin, Greek and Cyrillic; the corpus's text box still assumes a descent of a fifth of the font size, so those faces are chosen for descenders that reach about that far, and a host face with a deeper descender is not proved against the overlap checks.",
+          "heldBy": "packages/report-corpus/src/check-text.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "A report that maps a font is refused by 0.2.0's validator as an unknown property, and its runtime and renderer must be of one release: a 0.2.0 renderer handed this runtime's document prints a mapped sans in Roboto without a word. No serif or mono face is shipped: the Liberation Sans a package ships is for the QR-bill slip and the EPC caption alone."
+        }
+      ]
+    },
+    "0044": {
+      "reviewed": "sha256:85f210371429a1c1812c23141edb1086035dcfc7b2f808fb97ddfccbaf204095",
+      "limitations": [
+        {
+          "area": "editing",
+          "says": "An e-invoice is edited and never made from nothing in the builders: a report becomes one through the host, a paste or the Studio's e-invoice starter, and the editor's `addPart` of one is refused as `unavailable`.",
+          "heldBy": "packages/report-builder-core/src/editor.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "The account an e-invoice shares with its QR-bill and its EPC QR codes is changed by one command, `setPaymentAccount`, which changes no BIC, so an EPC QR code whose BIC is of another country refuses the new account until its BIC is changed or emptied, an account outside the EEA, which needs a BIC, cannot follow one inside it in one edit, and a report with a QR-bill keeps a Swiss or Liechtenstein account.",
+          "heldBy": "packages/report-core/src/commands/e-invoice.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "Where the e-invoice, its QR-bill or an EPC QR code reads its account from the data, `setPaymentAccount` refuses as `read-from-data`, naming the place, rather than write over the binding.",
+          "heldBy": "packages/report-core/src/commands/e-invoice.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Where any of the e-invoice, its QR-bill and its EPC QR codes reads its account from the data, a builder's IBAN field writes its own place's account alone, which the render compares with the data's, and where two others are written, one changed alone is refused until the person binds them alike or writes the third.",
+          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "report-core holds an e-invoice's totals and its lines to the page and no other term, so the seller's name, address or VAT identifier, the issue or due date, the BIC or the account's name, changed in a builder, is accepted with no warning where the page prints it in its own words, as the e-invoice starter does, and the XML then says another thing than the page, which § 14c UStG may count as a second invoice: the person changes both."
+        },
+        {
+          "area": "builders",
+          "says": "In a report with an e-invoice the palette's EPC payment code pays the e-invoice's account with its BIC and is unavailable until the e-invoice gives payment instructions, and Add QR-bill gives the bill the e-invoice's currency and account, so it is refused where that account is not one of Switzerland or Liechtenstein.",
+          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "What a template prints beside an e-invoice's totals in its own words, as the e-invoice starter's \"Umsatzsteuer 19 % auf\" and its \"IBAN:\" line do, is not changed when the e-invoice's rate or account is, so an author changes both."
+        },
+        {
+          "area": "builders",
+          "says": "A seller's contact, payment instructions and an exempt or reverse-charged VAT category added in a builder hold the editor's placeholder words and values, which reach nobody and are written into the XML until a person replaces them, with no warning, and an exempt category's reason names no provision, which § 14 Abs. 4 Satz 1 Nr. 8 UStG asks for.",
+          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "An e-invoice's properties are one long pane of fields in groups that scrolls, which no gate measures, and their German and French words have not been read by a native speaker."
+        },
+        {
+          "area": "release",
+          "says": "report-builder-core's `PropertyGroup` holds a list of buttons, `actions`, each with `available` and `then`, where 0039's unreleased `action` was one, and `REPORT_LEVEL_PARTS` holds `eInvoice`, so a host's code that read one button or took the bill for the only part changes with this release.",
+          "heldBy": "packages/report-builder-core/src/invoice-fields.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "report-core refuses with a new code, `read-from-data`, so a host that maps every refusal code to its own message meets one it has no message for.",
+          "heldBy": "packages/report-core/src/outcome.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The browser gate holds the shared account on the e-invoice starter's XML and its EPC QR code, decoded from the PDF's pixels, and the starter has no QR-bill, so the bill's half is held by the builder scenarios in jsdom and not on a PDF.",
+          "heldBy": "packages/report-builder-core/src/scenarios.test.ts"
+        }
+      ]
+    },
     "0045": {
       "reviewed": "sha256:ad9eb30619167bbfae6b16d2df4cef8d1d8ff8c7bd7c94abca827f793f2d5160",
       "limitations": [
@@ -1799,134 +1930,98 @@
         }
       ]
     },
-    "0044": {
-      "reviewed": "sha256:85f210371429a1c1812c23141edb1086035dcfc7b2f808fb97ddfccbaf204095",
+    "0046": {
+      "reviewed": "sha256:85cab2f9b7a1c87ceda03d3c96b4421938df831054a973bf588ba12fe0a4b553",
       "limitations": [
         {
-          "area": "editing",
-          "says": "An e-invoice is edited and never made from nothing in the builders: a report becomes one through the host, a paste or the Studio's e-invoice starter, and the editor's `addPart` of one is refused as `unavailable`.",
-          "heldBy": "packages/report-builder-core/src/editor.test.ts"
+          "area": "server",
+          "says": "The server answers GET /health, GET /v1/whoami and the routes later records add, a template’s draft and its images since 0049, and nothing else: no publication, render job or artifact exists in this release, and every other method and path is answered 404.",
+          "heldBy": "packages/report-server/src/app.test.ts"
         },
         {
-          "area": "editing",
-          "says": "The account an e-invoice shares with its QR-bill and its EPC QR codes is changed by one command, `setPaymentAccount`, which changes no BIC, so an EPC QR code whose BIC is of another country refuses the new account until its BIC is changed or emptied, an account outside the EEA, which needs a BIC, cannot follow one inside it in one edit, and a report with a QR-bill keeps a Swiss or Liechtenstein account.",
-          "heldBy": "packages/report-core/src/commands/e-invoice.test.ts"
+          "area": "server",
+          "says": "A path with anything a proxy could normalise, an escape, a dot or an empty segment, a trailing slash or / alone among them, is answered 400 path-not-plain before any route, so a client that adds a trailing slash or escapes a character no name needs escaped is refused.",
+          "heldBy": "packages/report-server/src/app.test.ts"
         },
         {
-          "area": "editing",
-          "says": "Where the e-invoice, its QR-bill or an EPC QR code reads its account from the data, `setPaymentAccount` refuses as `read-from-data`, naming the place, rather than write over the binding.",
-          "heldBy": "packages/report-core/src/commands/e-invoice.test.ts"
+          "area": "server",
+          "says": "A request that takes longer than 300 seconds to arrive, Node’s own default, which Fastify turns off and nothing here measured, has its connection closed.",
+          "heldBy": "packages/report-server/src/app.test.ts"
         },
         {
-          "area": "builders",
-          "says": "Where any of the e-invoice, its QR-bill and its EPC QR codes reads its account from the data, a builder's IBAN field writes its own place's account alone, which the render compares with the data's, and where two others are written, one changed alone is refused until the person binds them alike or writes the third.",
-          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+          "area": "server",
+          "says": "Every token must carry the claim FORMANCY_REPORT_ATTRIBUTES names as its tenant, so a single-tenant host puts a constant in every token, and a token without it is refused with the same 401 as a forgery.",
+          "heldBy": "packages/report-server/src/identity.test.ts"
         },
         {
-          "area": "editing",
-          "says": "report-core holds an e-invoice's totals and its lines to the page and no other term, so the seller's name, address or VAT identifier, the issue or due date, the BIC or the account's name, changed in a builder, is accepted with no warning where the page prints it in its own words, as the e-invoice starter does, and the XML then says another thing than the page, which § 14c UStG may count as a second invoice: the person changes both."
+          "area": "server",
+          "says": "A token is trusted until its exp: the server keeps no session and asks the host nothing, so a person removed at the host keeps their token’s access until it expires."
         },
         {
-          "area": "builders",
-          "says": "In a report with an e-invoice the palette's EPC payment code pays the e-invoice's account with its BIC and is unavailable until the e-invoice gives payment instructions, and Add QR-bill gives the bill the e-invoice's currency and account, so it is refused where that account is not one of Switzerland or Liechtenstein.",
-          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+          "area": "server",
+          "says": "The actions table names the actions of R14 before the routes that take them, so whoami lists the version and policy actions no route answers yet, and a later release may change a row.",
+          "heldBy": "packages/report-server-core/src/actions.test.ts"
         },
         {
-          "area": "editing",
-          "says": "What a template prints beside an e-invoice's totals in its own words, as the e-invoice starter's \"Umsatzsteuer 19 % auf\" and its \"IBAN:\" line do, is not changed when the e-invoice's rate or account is, so an author changes both."
+          "area": "server",
+          "says": "The audit trail names who asked only by a keyed hash under FORMANCY_REPORT_AUDIT_KEY, and nobody without one, so an operator finds a person’s events by computing the reference, where Formancy Data’s trail names its actor plainly.",
+          "heldBy": "packages/report-server/src/audit.test.ts"
         },
         {
-          "area": "builders",
-          "says": "A seller's contact, payment instructions and an exempt or reverse-charged VAT category added in a builder hold the editor's placeholder words and values, which reach nobody and are written into the XML until a person replaces them, with no warning, and an exempt category's reason names no provision, which § 14 Abs. 4 Satz 1 Nr. 8 UStG asks for.",
-          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+          "area": "server",
+          "says": "The audit trail is operational, not evidence: written to the server’s log by the same process after the answer, so an event can be lost, and a request no route answered, a 404 or a path that does not decode, writes none.",
+          "heldBy": "packages/report-server/src/audit.test.ts"
         },
         {
-          "area": "builders",
-          "says": "An e-invoice's properties are one long pane of fields in groups that scrolls, which no gate measures, and their German and French words have not been read by a native speaker."
+          "area": "server",
+          "says": "A FORMANCY_REPORT_ variable the server does not read stops it at start, naming it, so a setting of a later release cannot be set before that release runs.",
+          "heldBy": "packages/report-server/src/settings.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A list of trusted proxies is refused only when its entries together trust every IPv4 or every IPv6 peer as @fastify/proxy-addr 5.1.2 matches one, so a list that trusts half of IPv4 starts, and so does ::/1, which holds the IPv4-mapped range and which that matcher compares with no IPv4 peer.",
+          "heldBy": "packages/report-server/src/proxies.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "The server is one instance: its rate limit is counted in its own memory and starts again with it, and two instances behind one address are not a supported deployment."
+        },
+        {
+          "area": "server",
+          "says": "HEAD is answered on /health alone, so a client that probes the API with HEAD is answered 404.",
+          "heldBy": "packages/report-server/src/app.test.ts"
         },
         {
           "area": "release",
-          "says": "report-builder-core's `PropertyGroup` holds a list of buttons, `actions`, each with `available` and `then`, where 0039's unreleased `action` was one, and `REPORT_LEVEL_PARTS` holds `eInvoice`, so a host's code that read one button or took the bill for the only part changes with this release.",
-          "heldBy": "packages/report-builder-core/src/invoice-fields.test.ts"
+          "says": "The server’s image builds and runs on Node 26, at the digest packages/report-server/Dockerfile pins in both of its stages, while the packages run on Node 22.13 or later.",
+          "heldBy": "packages/report-server/src/dockerfile.test.ts"
         },
         {
           "area": "release",
-          "says": "report-core refuses with a new code, `read-from-data`, so a host that maps every refusal code to its own message meets one it has no message for.",
-          "heldBy": "packages/report-core/src/outcome.test.ts"
+          "says": "This release publishes no server image: an operator builds it from the repository with packages/report-server/Dockerfile."
         },
         {
-          "area": "testing",
-          "says": "The browser gate holds the shared account on the e-invoice starter's XML and its EPC QR code, decoded from the PDF's pixels, and the starter has no QR-bill, so the bill's half is held by the builder scenarios in jsdom and not on a PDF.",
-          "heldBy": "packages/report-builder-core/src/scenarios.test.ts"
+          "area": "release",
+          "says": "The image’s operating system layer, Alpine Linux with BusyBox under GPL-2.0 among its packages, is not read by the dependency licence guard, which reads npm packages, and no record yet says how it is read."
         }
       ]
     },
-    "0043": {
-      "reviewed": "sha256:c99ad415011fc46d40780945b6e442bb2d0eb7529c22957642a2ce0f222e82ed",
+    "0047": {
+      "reviewed": "sha256:171e6e8ce7c4966ed7b603c47dfd713d1462a0fbf5738de26c533d2f794e65ae",
       "limitations": [
         {
-          "area": "format",
-          "says": "A report prints its sans, serif and mono text in fonts a host approved, mapped to its three tokens and pinned by digest; a token a report leaves unmapped prints in the renderer's own face, so serif and mono print nothing until a report maps them, exactly as before 0.3.0.",
-          "heldBy": "packages/report-render-pdf/src/corpus.test.ts"
-        },
-        {
           "area": "licence",
-          "says": "A host's font is the customer's to license: its OS/2 fsType is a vendor's hint the runtime and the renderer honour, so a font that says Installable may still be under an agreement that forbids a server generating documents with it, which nothing here reads, and 0006's guard, which reads the fonts a published package ships, never sees it.",
-          "heldBy": "packages/report-runtime/src/lower-fonts.test.ts"
+          "says": "The server depends on Formancy Data’s @formancy/data-identity, under Data’s source-available licence, so running it in production needs a production licence for Formancy Data as well as for Report, even beside no Data server.",
+          "heldBy": "scripts/dependency-licences.test.mjs"
         },
         {
-          "area": "format",
-          "says": "A character a mapped face has no glyph for is refused, naming the face and the code point, never drawn in another face: there is no fallback across the three families, and a report that needs a character its font lacks maps a font that has it.",
-          "heldBy": "packages/report-render-pdf/src/host-fonts.test.ts"
+          "area": "server",
+          "says": "The server verifies tokens under exactly Data 0.3.0’s rules, through its verifier at that version, so a rule Data changes later reaches Report only through a release of report-server that moves the pin.",
+          "heldBy": "scripts/upstream-deps.test.mjs"
         },
         {
-          "area": "format",
-          "says": "Latin, Greek and Cyrillic, with the punctuation, symbols and marks written with them, are the scripts a report prints, by an allowlist of Unicode blocks: every other script is refused by code point in any face, Roboto's included -- the right-to-left, shaping and CJK scripts, and simple alphabets such as Armenian, Georgian and Coptic -- until a fixture proves it, and so are the bidirectional controls, since pdfmake lays out no bidirectional text and the renderer runs no shaping.",
-          "heldBy": "packages/report-spec/src/font-scripts.test.ts"
-        },
-        {
-          "area": "format",
-          "says": "A font whose outlines hold more points, more points times contours or more composite components together than report-spec's MAX_FONT_POINTS, MAX_FONT_OUTLINE_WORK and MAX_FONT_COMPONENTS allow is refused as too large, so that subsetting it cannot hold a render for minutes; the bounds sit just past the largest TrueType fonts measured, which are Hangul and Han fonts no report prints in.",
-          "heldBy": "packages/report-spec/src/font.test.ts"
-        },
-        {
-          "area": "format",
-          "says": "A CFF-flavoured OpenType font (`.otf`) is refused, as 0040 refuses one, because report-spec's reader reads no CFF outlines, so the renderer cannot hold one to its rules, though veraPDF accepted a PDF/A-3b PDFKit drew in one; a TrueType file (`.ttf`) of each face is mapped instead, until a later release reads CFF outlines and the e-invoice gate proves a CFF face.",
-          "heldBy": "packages/report-spec/src/font-map.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "A host face's layout tables -- GSUB, GPOS, GDEF, kern and the AAT morx state machine -- are stripped before it is embedded, so that a crafted one can neither hang nor crash a render, and its ligatures, kerning and contextual shaping are lost, combining marks placed by their boxes; the Latin, Greek and Cyrillic a report prints needs none of them. A face of the very bytes of the renderer's own Roboto or Liberation Sans keeps them, since PDFKit draws it and the renderer's own as one. The list was read from fontkit 2.0.4, which a test pins.",
-          "heldBy": "packages/report-render-pdf/src/strip-layout.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "Every render reads each face it maps again, under a millisecond for a typical font, and holds it twice until the render ends, the runtime's copy and the stripped one; nothing of a face is kept from one render to the next, and two renders at once write their faces into pdfmake's process-wide virtual files under names of their own, which each pass removes.",
-          "heldBy": "packages/report-render-pdf/src/host-fonts.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "Each line counts toward the page limit by the face it prints in, so a report set in a host face of a short line passes the bound that refuses it before layout with up to 2.3 times the lines Roboto's would, at a face's shortest line of half its size, and pdfmake measures them all before its page limit refuses what does not fit; text in Roboto beside such a face is bounded as before.",
-          "heldBy": "packages/report-render-pdf/src/host-fonts.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "A host face is refused as an invalid asset where any of its PostScript names is another face's of the render with other bytes -- another host asset's, or the renderer's own Roboto's or Liberation Sans's, whether or not the report prints in it -- or is `null` or a name every JavaScript object has, since PDFKit draws two faces of one name as whichever it opened first: a host's own Roboto or Liberation Sans of another release than the renderer's is refused, and a family whose two faces state one name, while the renderer's own bytes of either are accepted.",
-          "heldBy": "packages/report-render-pdf/src/face-identity.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "A document handed to the renderer with text set outside the format's 4 to 96 pt is refused, as report-spec's validator refuses such a report, since the page bound counts each line by its size; a document the runtime resolved never holds one.",
-          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
-        },
-        {
-          "area": "testing",
-          "says": "Which face a run printed in is read back from the PDF by its PostScript name, on Liberation Serif and Mono printing Latin, Greek and Cyrillic; the corpus's text box still assumes a descent of a fifth of the font size, so those faces are chosen for descenders that reach about that far, and a host face with a deeper descender is not proved against the overlap checks.",
-          "heldBy": "packages/report-corpus/src/check-text.test.ts"
-        },
-        {
-          "area": "release",
-          "says": "A report that maps a font is refused by 0.2.0's validator as an unknown property, and its runtime and renderer must be of one release: a 0.2.0 renderer handed this runtime's document prints a mapped sans in Roboto without a word. No serif or mono face is shipped: the Liberation Sans a package ships is for the QR-bill slip and the EPC caption alone."
+          "area": "server",
+          "says": "The verifier tolerates 30 seconds of clock skew on exp and nbf, data-identity’s default, which the server does not change and nothing here measured."
         }
       ]
     },
@@ -2025,101 +2120,6 @@
         {
           "area": "runtime",
           "says": "Reviewing the site visit starter against its version 3 took 7 to 11 ms, a draft of 64 fields against a version that removed or renamed every one 75 to 118 ms, and a batch of 1,000 commands applied and undone 2 to 3 ms; a report at the format's bounds, 2,500 components each reading ten of 64 header fields, against a version that removed every field, 6.4 to 6.6 s where every field may be null and 49 to 50 s where none may, each nothing printed then compiled over the expressions its field reaches: from the built packages on an Intel i9-10900K under Node 24.21.0 at 1 to 11 % load from other work, on 22 October 2026."
-        }
-      ]
-    },
-    "0046": {
-      "reviewed": "sha256:85cab2f9b7a1c87ceda03d3c96b4421938df831054a973bf588ba12fe0a4b553",
-      "limitations": [
-        {
-          "area": "server",
-          "says": "The server answers GET /health, GET /v1/whoami and the routes later records add, a template’s draft and its images since 0049, and nothing else: no publication, render job or artifact exists in this release, and every other method and path is answered 404.",
-          "heldBy": "packages/report-server/src/app.test.ts"
-        },
-        {
-          "area": "server",
-          "says": "A path with anything a proxy could normalise, an escape, a dot or an empty segment, a trailing slash or / alone among them, is answered 400 path-not-plain before any route, so a client that adds a trailing slash or escapes a character no name needs escaped is refused.",
-          "heldBy": "packages/report-server/src/app.test.ts"
-        },
-        {
-          "area": "server",
-          "says": "A request that takes longer than 300 seconds to arrive, Node’s own default, which Fastify turns off and nothing here measured, has its connection closed.",
-          "heldBy": "packages/report-server/src/app.test.ts"
-        },
-        {
-          "area": "server",
-          "says": "Every token must carry the claim FORMANCY_REPORT_ATTRIBUTES names as its tenant, so a single-tenant host puts a constant in every token, and a token without it is refused with the same 401 as a forgery.",
-          "heldBy": "packages/report-server/src/identity.test.ts"
-        },
-        {
-          "area": "server",
-          "says": "A token is trusted until its exp: the server keeps no session and asks the host nothing, so a person removed at the host keeps their token’s access until it expires."
-        },
-        {
-          "area": "server",
-          "says": "The actions table names the actions of R14 before the routes that take them, so whoami lists the version and policy actions no route answers yet, and a later release may change a row.",
-          "heldBy": "packages/report-server-core/src/actions.test.ts"
-        },
-        {
-          "area": "server",
-          "says": "The audit trail names who asked only by a keyed hash under FORMANCY_REPORT_AUDIT_KEY, and nobody without one, so an operator finds a person’s events by computing the reference, where Formancy Data’s trail names its actor plainly.",
-          "heldBy": "packages/report-server/src/audit.test.ts"
-        },
-        {
-          "area": "server",
-          "says": "The audit trail is operational, not evidence: written to the server’s log by the same process after the answer, so an event can be lost, and a request no route answered, a 404 or a path that does not decode, writes none.",
-          "heldBy": "packages/report-server/src/audit.test.ts"
-        },
-        {
-          "area": "server",
-          "says": "A FORMANCY_REPORT_ variable the server does not read stops it at start, naming it, so a setting of a later release cannot be set before that release runs.",
-          "heldBy": "packages/report-server/src/settings.test.ts"
-        },
-        {
-          "area": "server",
-          "says": "A list of trusted proxies is refused only when its entries together trust every IPv4 or every IPv6 peer as @fastify/proxy-addr 5.1.2 matches one, so a list that trusts half of IPv4 starts, and so does ::/1, which holds the IPv4-mapped range and which that matcher compares with no IPv4 peer.",
-          "heldBy": "packages/report-server/src/proxies.test.ts"
-        },
-        {
-          "area": "server",
-          "says": "The server is one instance: its rate limit is counted in its own memory and starts again with it, and two instances behind one address are not a supported deployment."
-        },
-        {
-          "area": "server",
-          "says": "HEAD is answered on /health alone, so a client that probes the API with HEAD is answered 404.",
-          "heldBy": "packages/report-server/src/app.test.ts"
-        },
-        {
-          "area": "release",
-          "says": "The server’s image builds and runs on Node 26, at the digest packages/report-server/Dockerfile pins in both of its stages, while the packages run on Node 22.13 or later.",
-          "heldBy": "packages/report-server/src/dockerfile.test.ts"
-        },
-        {
-          "area": "release",
-          "says": "This release publishes no server image: an operator builds it from the repository with packages/report-server/Dockerfile."
-        },
-        {
-          "area": "release",
-          "says": "The image’s operating system layer, Alpine Linux with BusyBox under GPL-2.0 among its packages, is not read by the dependency licence guard, which reads npm packages, and no record yet says how it is read."
-        }
-      ]
-    },
-    "0047": {
-      "reviewed": "sha256:171e6e8ce7c4966ed7b603c47dfd713d1462a0fbf5738de26c533d2f794e65ae",
-      "limitations": [
-        {
-          "area": "licence",
-          "says": "The server depends on Formancy Data’s @formancy/data-identity, under Data’s source-available licence, so running it in production needs a production licence for Formancy Data as well as for Report, even beside no Data server.",
-          "heldBy": "scripts/dependency-licences.test.mjs"
-        },
-        {
-          "area": "server",
-          "says": "The server verifies tokens under exactly Data 0.3.0’s rules, through its verifier at that version, so a rule Data changes later reaches Report only through a release of report-server that moves the pin.",
-          "heldBy": "scripts/upstream-deps.test.mjs"
-        },
-        {
-          "area": "server",
-          "says": "The verifier tolerates 30 seconds of clock skew on exp and nbf, data-identity’s default, which the server does not change and nothing here measured."
         }
       ]
     },
@@ -2268,7 +2268,7 @@
       ]
     },
     "0052": {
-      "reviewed": "sha256:4de5a780be26666f87fc9d589ac2c323fc88b24b030b9d9eae4fd28b815a74dd",
+      "reviewed": "sha256:0ec5ceb3bef93036dbd858365409c8c4ddbcdf3caeeb9a20565bf367140fece6",
       "limitations": [
         {
           "area": "format",
@@ -2400,7 +2400,7 @@
       ]
     },
     "0055": {
-      "reviewed": "sha256:c541e2e34faf49a1736bf0bed0d087a45b1a2b23c6976720e5958d66935c5cfe",
+      "reviewed": "sha256:59d44940f247543ae085174c07bb594c7d732c5075078fb1462f704c66a2f4d4",
       "limitations": [
         {
           "area": "runtime",
@@ -2436,11 +2436,6 @@
           "area": "runtime",
           "says": "A pie whose values its format cannot print is refused even where it labels none of them.",
           "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "Until the renderer draws charts, a report that would print one is refused when it renders.",
-          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
         }
       ]
     },
@@ -2507,13 +2502,97 @@
         },
         {
           "area": "testing",
-          "says": "veraPDF judges as PDF/A-2b the starters that are no e-invoice, three variant pages on the quotation's and the corpus's two fonts fixtures, so a customer's template is held by the renderer's refusals and not by a validator.",
+          "says": "veraPDF judges as PDF/A-2b the starters that are no e-invoice, four variant pages on the quotation's, a page of charts among them, and the corpus's two fonts fixtures, so a customer's template is held by the renderer's refusals and not by a validator.",
           "heldBy": "scripts/e-invoice/pdfa-2b.test.mjs"
         },
         {
           "area": "testing",
           "says": "The e-invoice gate records every PDF/A-2b by the digest of its objects inflated, so a change to what a starter draws fails CI's `e-invoice` job and the judges' tests until somebody with a Java retakes the record with `--record` on a passing run.",
           "heldBy": "scripts/e-invoice/record.test.mjs"
+        }
+      ]
+    },
+    "0058": {
+      "reviewed": "sha256:34385f8201ebd18cb04931ce05f6d660237ff8fd0c44575dd57d575752f3504f",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A chart's category labels print across, never turned, wrapped or cut: a chart whose labels do not fit across is refused, to be widened or given shorter labels.",
+          "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart's words take its style's font, size, weight, slant and colour; its alignment is not read.",
+          "heldBy": "packages/report-render-pdf/src/chart-faces.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart's grid, category axis, bar spacing, line weights, markers and legend swatches are the renderer's; only its colours and its words' style are the report's.",
+          "heldBy": "packages/report-render-pdf/src/chart-option.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A bar chart whose bars would be narrower than 3.5 pt, the least the Studio's Preview draws apart at 100 % on a screen of device pixel ratio 2, is refused; at 75 %, or on a screen of ratio 1, the narrowest bars drawn may run together in the Preview, or in any reader that draws the PDF as coarsely, though the PDF keeps a gap between them.",
+          "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A pie whose square would be narrower than 24.75 pt, the least at which the Studio's Preview shows a slice of one percent as its own colour at 100 % on a screen of device pixel ratio 2, is refused, whether its box or its title and legend leave it that little, so that a box of 72 pt with an 8-pt title and a legend holds a pie only where its legend is short; at 75 %, or on a screen of ratio 1, such a slice of the smallest pies drawn may run into its neighbours in the Preview, and a slice under one percent is thin at any size.",
+          "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart that prints no word, and a keep-together block of an image alone, leave a heading kept with them at the foot of the page they leave when they move to the next.",
+          "heldBy": "packages/report-render-pdf/src/flow.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart's categories, legend entries and title stay in the Node process or the page after its render, in zrender's width cache of up to 500 words for each of 100 fonts, which nothing zrender exports clears.",
+          "heldBy": "packages/report-render-pdf/src/echarts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Every chart with something to draw is refused where a host's bundle gives ECharts another copy of zrender than the renderer's.",
+          "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A preprocessor, processor, visual, layout or update a host registers on the ECharts it shares with the renderer -- the one copy a Node install or a bundler dedupes ECharts 6.1.0 to -- runs on the renderer's charts too, and changes their marks with nothing refused: a host's preprocessor that halves a bar series' data halves every bar the PDF prints, beside the runtime's words.",
+          "heldBy": "packages/report-render-pdf/src/chart-registry.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A render whose charts together weigh more than 5,000 units -- each chart its kind's weight (a bar 40, a line 60, a pie 10), a unit for each series at each category or each slice, and each word it places by what the word is (a title 6, a legend entry 5, a tick 2, a category or a value 1) -- is refused as `content-too-large` at the chart that crossed it, so a document of many dense charts, three line charts of 8 series and 200 categories or 50 titled line charts of one series and twelve months among them, is split across renders.",
+          "heldBy": "packages/report-render-pdf/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The chart bound was measured on one Apple M2, the weights on the render and on PDF.js at scale 1 at a load average of 12 to 20, a line's, a title's and a tick's again at 3.0 to 3.2, each word's the larger of the two runs', and the bound by the slowest of seven runs of the forms tried at 3.3 to 5.6, where the slowest render of them took 878 ms and the slowest page 1,614 ms, a second run at 4.2 to 5.5 found two others slowest, at 1,258 and 1,255 ms, and a third, once a line weighed 60, at 3.0 to 3.9, 1,202 ms in one spike; nothing measured the slowest the bound admits, and at a load of 10 to 18.6 documents it admitted took up to 9.45 s.",
+          "heldBy": "packages/report-render-pdf/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A heading kept with the next block makes pdfmake lay the whole document out again for each page it moves a heading to, charts and all, which the chart bound does not count: 17 bar charts the bound admits took two and a half times as long behind kept headings as behind plain ones.",
+          "heldBy": "packages/report-render-pdf/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart's paint counts against no SVG budget: one line chart of 8 series and 200 categories, as wide as an A4 landscape page and a third of its height, weighs nearly four times the segments the body's SVG images may cost together, and the chart bound admits two of them on a page."
+        },
+        {
+          "area": "rendering",
+          "says": "Installing the renderer installs Apache ECharts 6.1.0 and zrender 6.1.0, 62,176 KiB and 5,168 KiB by `du -sk` on 15 November 2026, for a host that never draws a chart too; a browser loads the chart chunk, 189.00 kB gzipped by the Studio's build on that day, only with the first document that holds a chart with marks.",
+          "heldBy": "packages/report-render-pdf/src/browser.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "The renderer depends on Apache ECharts under Apache-2.0, whose NOTICE a host that bundles it carries, with d3's BSD-3-Clause for the code ECharts took from it, zrender under BSD-3-Clause and tslib under 0BSD.",
+          "heldBy": "scripts/dependency-licences.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "A chart is proved on its PDF by its clip, its paths and its words, so an empty chart's box, a pie's arc up to about half a point off its circle, a chart beside an SVG image of its very size but by their order, document order where columns break across pages, a label in a face whose metrics stand apart from the three its tolerance was measured on, a colour a reader cannot tell from its neighbour and a mark under a word are not seen.",
+          "heldBy": "packages/report-corpus/src/check-charts.test.ts"
         }
       ]
     },

@@ -92,6 +92,72 @@ group of the element's own size, and a callback for links, would be
 svg-to-pdfkit's to add; neither has been asked of it
 ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
+### The renderer leans on ECharts' and zrender's internals, and on pdfmake's detached nodes
+
+A chart is laid out by Apache ECharts 6.1.0, which draws through zrender
+6.1.0, and the renderer reads more of both than their API offers
+[0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md). It replaces zrender's process-wide `platformApi` around each layout
+to measure in pdfmake's widths, and answers its `国` probe with the face's
+line; it leans on zrender's width cache, keyed by the whole font string,
+to keep one face's widths apart from another's; a pie's label layout is
+null, which ECharts reads and its types do not admit; a slice of no share
+rests on ECharts' filter of a pie's negative values, and its legend entry
+on the legend reading the data before that filter; two words of one text
+are told apart by the order ECharts writes a chart's words in; the SVG it
+writes is held, element by element, to what 6.1.0 was seen to write, and
+a line's clip, which 6.1.0 writes whatever the series' `clip` says, is
+taken out, cutting nothing by the line's bevelled joins and butt ends,
+which the reader holds of every stroke inside a clip;
+and the plot is snapped where zrender moves a thin line. `echarts.test.ts`,
+`chart-svg.test.ts` and `chart-draw.test.ts` pin each, and
+`scripts/dependency-licences.mjs` admits both at one exact version, so an
+upgrade is a diff somebody reads, a second vendor's release notes with
+it, before those tests run on it; what a new release lays out
+differently, if nothing pinned sees it, prints. The renderer refuses a
+chart rather than measure it through another copy of zrender than its
+own, which a host's bundle may give ECharts.
+
+ECharts' registries are the process's, and a host's. A preprocessor, a
+processor, a visual, a layout or an update a host registers on the
+`echarts` it shares with the renderer -- the one module a Node install or
+a bundler dedupes every importer of ECharts 6.1.0 to -- runs on the
+renderer's charts too: a review's preprocessor that halved a bar series'
+data halved every bar printed, beside the runtime's words, and nothing
+was refused, so that a Preview can differ from the server's PDF and a
+chart's marks from its words. The host's code is trusted, and this is a
+stated limit, which `chart-registry.test.ts` pins as it stands. Holding
+each bar's ends and each marker's centre to its place in the drawing's
+reader would turn it into a refusal, and an ECharts release that moved a
+mark with it; it is not built.
+
+What a render's charts may cost together is bounded by
+`MAX_CHART_DRAWING`, and the bound is a measurement on one machine: its
+weights are the medians of seven rounds, at a load of 12 to 20, that
+spread widely, and a line's measured again at 3.0 to 3.2, a run that put
+a title and a tick above the first's, their weights now the larger; its value the slowest of seven
+runs of one page, a spike, at a quiet load of 3.3 to 5.6, confirmed
+again at 3.0 to 3.9 once a line weighed 60; and the 2 s it keeps holds at
+such a load, where at a load of 10 to 18.6 the documents it admitted took
+up to 9.45 s. A heading kept with a chart makes pdfmake lay the whole
+document out again for each page it moves, which the bound does not
+count.
+
+pdfmake is leant on further for it. A chart's words are detached nodes
+inside one unbreakable stack, and pdfmake 0.3.11 lays a detached node out
+where the flow stands, taking none of its room, and fits nothing inside
+an unbreakable block, whose room it reads as `NaN`; `pdfmake.test.ts`
+pins both, and a pdfmake that fitted them would fit each word against the
+room at the stack's top. The heading kept with a chart is kept with its
+first word, whose page pdfmake corrects when it moves the block, and with
+its drawing where it prints no word, whose page pdfmake does not: that
+heading is left behind, which `flow.test.ts` holds as it stands.
+
+zrender keeps what it measured. Its width cache outlives the render, up
+to 500 words for each of 100 font strings, in the Node process or the
+page, and nothing zrender exports clears it: a chart's categories, legend
+entries and title, a customer's words, stay there, beside the digest of
+the face they were measured in.
+
 ### Page 1's own header rests on pdfmake's page background
 
 A report's first page header is drawn in page 1's background, which
@@ -619,7 +685,7 @@ findings in its suite among it, meets the rules in that merge ([0050](../decisio
 | **A renderer that predates `eInvoice`** | `checkDocument` reads the keys it knows, and 0.1.0's knows no e-invoice ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) | It would draw a resolved e-invoice as a plain PDF, which only two runtimes in one install could hand it, since the packages pin each other exactly |
 | **PDFKit's `/CheckSum` and `/ID`, as PDFKit writes them** | A patch would be a copy of upstream (0002), and filing them upstream is the rightsholder's call; `report-render-pdf/src/pdfmake.test.ts` pins both ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) | An e-invoice's embedded file declares its MD5 in 32 hexadecimal digits where ISO 32000-1 asks for 16 bytes, which veraPDF does not flag, and two e-invoices of one title and creation date share a trailer `/ID` |
 | **A file beside the fonts, outside pdfmake's policy** | PDFKit reads the ICC profile of a PDF/A from its own `data` directory with `fs` (0031, 0057) | A host that bundles the Node entry puts the profile where the bundled PDFKit's `__dirname` points, or every PDF/A render fails, an e-invoice's and a PDF/A-2b's; nobody here has bundled one |
-| **veraPDF judges the starters, not a customer's template** | The e-invoice gate draws its PDF/A-2b corpus from the starters, three variant pages on the quotation's and the corpus's two fonts fixtures ([0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)) | A template that draws what none of them does is held by the renderer's refusals alone; what veraPDF would say of it is not known, and the limits of ISO 32000-1 that PDF/A-2 makes rules of, a string's length among them, the renderer does not check |
+| **veraPDF judges the starters, not a customer's template** | The e-invoice gate draws its PDF/A-2b corpus from the starters, four variant pages on the quotation's, a page of charts among them, and the corpus's two fonts fixtures ([0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)) | A template that draws what none of them does is held by the renderer's refusals alone; what veraPDF would say of it is not known, and the limits of ISO 32000-1 that PDF/A-2 makes rules of, a string's length among them, the renderer does not check |
 | **The demo's policy, held where a gate can see it and not where it is served** | Nothing here reads what the address serves (0018), and the gate runs in Chromium alone, listening in the page, which PDF.js's worker is not ([0051](../decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)) | A Cloudflare setting that drops or rewrites a header goes unnoticed until somebody reads the response, as RELEASING.md says to after a deploy; a refusal inside the worker, or in Firefox or WebKit, is heard by nobody, though a worker that did not start fails the gate; the product's pages are opened under it by a gate of their own, in Chromium alone too ([0053](../decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)) |
 | **The fx values wait for a registration** | The official ZUGFeRD package's XMP example sits behind a registration with FeRD only the rightsholder can make (0031) | The renderer's test holds the namespace, prefix and properties to the transcription's values, which agree with Mustang's reading, and to nothing more official |
 | **The corpus's table check and a word broken at its hyphen** | report-corpus's `verify` reads a cell's words by line, and misread "Gas-" over "Brennwertkessel", a word pdfmake broke at its hyphen, as measured on 18 October 2026 (0031) | The e-invoice samples' test on the PDF reads its table itself; a starter or a fixture whose cell breaks so is misreported by the corpus's table check |

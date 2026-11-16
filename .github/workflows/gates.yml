@@ -388,7 +388,7 @@ jobs:
   # and KoSIT, and over the PDF/A-3b the renderer draws of it and of
   # variants that carry the first sample's e-invoice on other pages, veraPDF
   # and Mustang, and over the PDF/A-2b it draws of every starter that is no
-  # e-invoice, of three variants on the quotation's page and of two of the
+  # e-invoice, of four variants on the quotation's page and of two of the
   # corpus's fixtures, veraPDF alone with its 2b profile (0057), and over
   # controls broken one named way each, which every tool must judge exactly
   # as each expects -- Mustang never by its exit status alone, which is 0

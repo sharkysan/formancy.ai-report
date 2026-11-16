@@ -1,6 +1,6 @@
 {
   "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the XML corpus it wrote (corpus/), Mustang's report and log on each file, XML and PDF (mustang/), KoSIT's report on each XML file and its console (kosit/), veraPDF's report on every PDF and what it wrote on stderr (verapdf/), how each run ended, and each PDF's digest of its objects with every stream inflated (`pdfs`, report-corpus's `inflatedDigest`): the PDFs themselves are not recorded, since their bytes are the zlib's that deflated them, which `machine` names. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus, a control or what the renderer draws changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options, with its seven XRechnung notices.",
-  "recordedAt": "2026-11-15T12:56:23.643Z",
+  "recordedAt": "2026-11-16T14:15:28.713Z",
   "machine": {
     "platform": "darwin",
     "arch": "arm64",
@@ -67,6 +67,7 @@
     "variant-blocks.pdf": 0,
     "variant-svg.pdf": 0,
     "variant-svg-bound.pdf": 0,
+    "variant-charts.pdf": 0,
     "variant-fonts.pdf": 0,
     "variant-host-fonts.pdf": 0,
     "variant-service-inspection.pdf": 0,
@@ -101,6 +102,7 @@
     "variant-blocks.pdf": "fb83eb9e15bab7be3dc2aa5a56c442bf69b432fd433162d6f8791f7835acc39f",
     "variant-svg.pdf": "ebd2db66d32fbe33208070ed1bc73111515c816e4073a12190c4b30ccb99a681",
     "variant-svg-bound.pdf": "7ea9ef348d44249dbbc49e686bcbd487c7d886be1aa4ea0d0e66f6a04051de80",
+    "variant-charts.pdf": "e329f88229cd9c8477ee51d4a4c995c178a3ccf298c172dc01c2ab835cccaed8",
     "variant-fonts.pdf": "35ea7fa09b02e04582c3b608f7b3476d9dd1b157bffc6c0cfbe72b8940a01de9",
     "variant-host-fonts.pdf": "f6771d8fe49ea79f7cf2cc64e6c1f6395405b4e20f2136235c79df285e22c98d",
     "variant-service-inspection.pdf": "d12d91f1eea3a36caaf1bedee71a588e20e715eefe5a494329732c195b8f1b5e",
@@ -126,6 +128,7 @@
     "pdfa-2b-blocks.pdf": "376248b75a0a4766c6079a17de188e893f2994f31be47ff37fd8f03ab224f049",
     "pdfa-2b-svg.pdf": "266654c976c89fea66c2fee0e6e2cc36d4674fff90893ebfff83e4299723ca91",
     "pdfa-2b-svg-bound.pdf": "51b65a9f6a26921ea80690f55bd635a197d4e333d5d38a0a1db781a9c84cebd9",
+    "pdfa-2b-charts.pdf": "9e840e1cf2d913caed10f95cc73d413f82785e4c2a1deea2614c18ab7388a1d5",
     "pdfa-2b-fonts.pdf": "75e50dbfd43bd4701ecd48d217fcad2ebfd47b94d7b4d97a625c52c9ca524e10",
     "pdfa-2b-host-fonts.pdf": "ac0e0c943094014de1a206905ecd1d79ecc66e9bb8fe8d4c72f3ba000b17aff3",
     "pdfa-2b-control-plain.pdf": "0e78f8a5adeea3f3de94b28b5cdd7ef0583e1a9c86a8772369ba129e71d2b29d",

@@ -60,6 +60,33 @@ export interface PdfPath extends PdfBox {
   readonly stroke?: PdfPaint
   /** The innermost rectangular clip in force when it was painted, by its index among the page's `clips`; none when no rectangle clipped it. */
   readonly clip?: number
+  /**
+   * Each of its subpaths, as the points it runs through on the page, in
+   * order: a move starts one, and a line or a curve ends at its next point
+   * -- a curve's control points are not among them -- and a close draws
+   * back to the first, which is not written again. A line ECharts draws
+   * with a gap is one path, a subpath each side of the gap (0058).
+   */
+  readonly subpaths: readonly (readonly (readonly [number, number])[])[]
+  /**
+   * Each curve it draws, in order, with the two control points `subpaths`
+   * leaves out: what a curve draws between its ends, which its ends do not
+   * say -- a pie's slice drawn on a circle other than its own (0058).
+   */
+  readonly curves: readonly PdfCurve[]
+}
+
+/**
+ * A curve a path draws, on the page: from where the path stands -- the
+ * point before it, or after a close its subpath's first -- to its end,
+ * each a point of the path's `subpaths`, through its two control points. A
+ * quadratic, which PDF.js codes only in a glyph's outline, is read as the
+ * cubic that draws it.
+ */
+export interface PdfCurve {
+  readonly from: readonly [number, number]
+  readonly through: readonly [readonly [number, number], readonly [number, number]]
+  readonly to: readonly [number, number]
 }
 
 export interface PdfPage {
