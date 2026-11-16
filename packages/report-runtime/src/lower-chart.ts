@@ -72,9 +72,9 @@ import { asDecimal, totalOf, totalsInDecimals } from './totals.js'
  * 123 categories, 430 ms; the most categories a bar chart draws, 186 of
  * one series, 77 ms. The bound stays, for one chart's work; how many
  * charts a render draws, and so what a page costs, is the renderer's
- * `MAX_CHART_DRAWING`, which admits that page of three 8 × 200 lines at
- * 4,998 units and refuses a fourth. The renderer's word checks took under
- * 1 ms of any page.
+ * `MAX_CHART_DRAWING`, which refuses that page of three 8 × 200 lines at
+ * its third chart, at 5,016 units, and admits two. The renderer's word
+ * checks took under 1 ms of any page.
  */
 export const MAX_CHART_CATEGORIES = 200
 

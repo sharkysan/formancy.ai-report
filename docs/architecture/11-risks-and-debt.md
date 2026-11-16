@@ -105,7 +105,8 @@ on the legend reading the data before that filter; two words of one text
 are told apart by the order ECharts writes a chart's words in; the SVG it
 writes is held, element by element, to what 6.1.0 was seen to write, and
 a line's clip, which 6.1.0 writes whatever the series' `clip` says, is
-taken out, cutting nothing by the line's bevelled joins and butt ends;
+taken out, cutting nothing by the line's bevelled joins and butt ends,
+which the reader holds of every stroke inside a clip;
 and the plot is snapped where zrender moves a thin line. `echarts.test.ts`,
 `chart-svg.test.ts` and `chart-draw.test.ts` pin each, and
 `scripts/dependency-licences.mjs` admits both at one exact version, so an
@@ -132,7 +133,7 @@ What a render's charts may cost together is bounded by
 `MAX_CHART_DRAWING`, and the bound is a measurement on one machine: its
 weights are the medians of seven rounds, at a load of 12 to 20, that
 spread widely, and a line's measured again at 3.0 to 3.2, a run that put
-a title and a tick above their weights; its value the slowest of seven
+a title and a tick above the first's, their weights now the larger; its value the slowest of seven
 runs of one page, a spike, at a quiet load of 3.3 to 5.6, confirmed
 again at 3.0 to 3.9 once a line weighed 60; and the 2 s it keeps holds at
 such a load, where at a load of 10 to 18.6 the documents it admitted took

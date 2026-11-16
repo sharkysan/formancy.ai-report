@@ -591,13 +591,16 @@ describe('a chart drawn', () => {
   // A pie's square is the largest its title and its legend leave, and a
   // box of report-spec's least height with both left a valid pie of eight
   // slices 9.75 points across (the final review's probe), one of 0.24: a
-  // pie whose slices nobody can tell apart, drawn with nothing said. A pie
-  // whose square is narrower than MIN_PIE_DIAMETER is refused, naming the
-  // chart and the diameter, whether its box or its words leave it that
-  // little; one exactly that wide is drawn, its eight slices each a path.
+  // pie whose shares nobody can read, drawn with nothing said. A pie whose
+  // square is narrower than MIN_PIE_DIAMETER, the number its comment
+  // measured, the least at which a slice of one percent shows, is
+  // refused, naming the chart and the diameter, whether its box or its
+  // words leave it that little; one exactly that wide is drawn, its eight
+  // slices each a path.
   test(
     'refuses a pie narrower than MIN_PIE_DIAMETER, and draws one that wide',
     () => {
+      expect(MIN_PIE_DIAMETER).toBe(24.75)
       const eight = (id: string, width: number, height: number, title?: string): PieChart => ({
         kind: 'chart',
         chart: 'pie',

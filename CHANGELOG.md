@@ -228,10 +228,11 @@ registers on it (below).
   bars narrower than `MIN_BAR_WIDTH`, 3.5 pt, the least the Studio's
   Preview draws apart at 100 % on a screen of device pixel ratio 2,
   measured, so that **bar charts denser than that are refused**; **a pie
-  narrower than `MIN_PIE_DIAMETER`**, 3.25 pt, the least at which the
-  Preview tells eight equal slices apart at that density, measured, so
-  that a pie whose title and legend leave it a dot is refused rather than
-  printed; and a bar or a line chart of more than `MAX_CHART_CATEGORIES`
+  narrower than `MIN_PIE_DIAMETER`**, 24.75 pt, the least at which the
+  Preview shows a slice of one percent as its own colour at that density,
+  measured, so that a pie whose title and legend leave it too small for
+  its shares is refused rather than printed, and a box of 72 pt with an
+  8-pt title and a legend holds one only where its legend is short; and a bar or a line chart of more than `MAX_CHART_CATEGORIES`
   categories, built by hand past the runtime's own refusal.
 - **A render's charts are bounded together**, by `MAX_CHART_DRAWING`, and
   a render past it is refused as `content-too-large` before any chart is
@@ -247,9 +248,9 @@ registers on it (below).
   3.2; and the bound, 5,000 units, was confirmed at quiet loads of 3.3 to
   5.6 and 3.0 to 3.9, where every render and page of the forms tried
   stayed under 2 s at its slowest. **A document of many dense charts is
-  refused**, to be split across renders: three line charts of 8 series and
-  200 categories fit in one, and four do not; 53 small titled line charts
-  of one series and twelve months fit, and 54 do not. A heading
+  refused**, to be split across renders: two line charts of 8 series and
+  200 categories fit in one, and three do not; 49 small titled line
+  charts of one series and twelve months fit, and 50 do not. A heading
   kept with a chart makes pdfmake lay the document out again for each page
   it moves the heading to, which the bound does not count.
 - **What the renderer cannot draw as written is refused** as
@@ -278,9 +279,13 @@ registers on it (below).
   clip as a group the size of the page under a soft mask, which every
   reader composites once for each series: a page of eight one-series line
   charts cost PDF.js 76 ms with it and 11 without. Every value stands
-  inside the ticks, so the clip cuts nothing, and the renderer takes it
-  out of ECharts' drawing before the converter draws it; a line weighs 60
-  units against the bound, beside a bar's 40.
+  inside the ticks and a line is stroked with bevelled joins and butt
+  ends, which the renderer refuses otherwise, so the clip cuts nothing,
+  and the renderer takes it out of ECharts' drawing before the converter
+  draws it; a line weighs 60 units against the bound, beside a bar's 40.
+  Above a line's plot the renderer keeps room for a marker at the highest
+  tick, which no clip holds and which a face of a short line left past
+  the box.
 - **A host's own registrations on ECharts reach the renderer's charts.** A
   preprocessor, processor, visual, layout or update a host registers on
   the ECharts it shares with the renderer, the one copy a Node install or

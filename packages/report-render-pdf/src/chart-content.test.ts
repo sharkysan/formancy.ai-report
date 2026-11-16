@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readPdf, type PdfBox, type PdfPage, type PdfTextItem, type ReadPdf } from '@formancy/report-corpus'
+import { curvePoints, readPdf, type PdfBox, type PdfPage, type PdfPath, type PdfTextItem, type ReadPdf } from '@formancy/report-corpus'
 import {
   readFont,
   type AxisChart,
@@ -17,7 +17,7 @@ import {
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { drawChart, type DrawnChart } from './chart-draw.js'
-import { TITLE_PADDING } from './chart-option.js'
+import { LINE_WIDTH, TITLE_PADDING } from './chart-option.js'
 import type { PlacedWord } from './chart-svg.js'
 import type { Engine, FaceWidths } from './engine.js'
 import { engine } from './node-engine.js'
@@ -25,6 +25,7 @@ import { renderPdf } from './node.js'
 import { render } from './render.js'
 import { BARS, EMPTY, LINE, MONO, PIE, SERIF, value } from './testing/charts.js'
 import { collected } from './testing/collector.js'
+import { face, HOST_SANS, withEms } from './testing/fonts.js'
 import { BODY_HEIGHT, bareDocument, documentOf, heading, paragraph, PAGE, TIMEOUT } from './testing/documents.js'
 import { readDrawing } from './testing/drawing.js'
 import { svg } from './testing/svg.js'
@@ -474,6 +475,61 @@ describe('a chart of each kind, in the report’s faces', () => {
       const box = placedOf(read, LINE)
       const stroked = box.page.paths.filter((path) => inside(path, box) && path.paint === 'stroke' && path.stroke === LINE.series[0]!.color)
       expect(stroked).toHaveLength(1)
+    },
+    TIMEOUT,
+  )
+
+  // A line's marker stands POINT_RADIUS past its value's place, above the
+  // plot at the highest tick and below it at the lowest, outside every
+  // clip ECharts writes; the converter's viewport, the chart's box, cuts
+  // what passes it, unseen. Above an untitled, unlabelled plot ECharts
+  // leaves half a tick label's line, which the drawing snaps down to a
+  // half point: at report-spec's least size, 4 pt, in a host face whose
+  // line is half an em, the least 0043 admits, that left the plot's top
+  // 1.5 pt down, and the marker at the highest tick 0.6 pt past the box.
+  // A line chart's top band keeps its marks' reach: every point the line
+  // and its markers paint, each curve sampled, and the line's half width
+  // beyond its own, stands inside the box at the highest tick and the
+  // lowest, under category labels and under none, in faces whose line is
+  // half an em and an em.
+  test.each([0.5, 1])(
+    "keeps a line's markers inside its box at its highest and lowest ticks, in a face whose line is %s em",
+    async (ems) => {
+      const color = '#2ca02c'
+      const highLow = (id: string, width: number, categories: readonly string[]): AxisChart => ({
+        kind: 'chart',
+        chart: 'line',
+        id,
+        width,
+        height: 120,
+        style: { size: 4 },
+        categories,
+        series: [{ color, values: ['100', '0', '100', '0'].map((exact) => value(exact)) }],
+        ticks: ['0', '50', '100'].map((exact) => value(exact)),
+        valueLabels: false,
+        legend: [],
+      })
+      const charts = [highLow('labelled', 300, ['A', 'B', 'C', 'D']), highLow('unlabelled', 280, ['', '', '', ''])]
+      const read = await readOf({ ...documentOf('Charts', charts), fonts: { sans: { normal: face('short-line', withEms(HOST_SANS, ems)) } } })
+      /** Every height `path` paints at, its curves sampled, and how far its ink stands beyond them: a stroke, bevelled and butt-ended, half the line's width. */
+      const ink = (path: PdfPath): { readonly heights: readonly number[]; readonly beyond: number } => ({
+        heights: [...path.subpaths.flat(), ...path.curves.flatMap((curve) => curvePoints(curve, 64))].map(([, y]) => y),
+        beyond: path.paint === 'fill' ? 0 : LINE_WIDTH / 2,
+      })
+      for (const chart of charts) {
+        const box = placedOf(read, chart)
+        const clip = box.page.clips.findIndex(({ x, top }) => x === box.x && top === box.top)
+        const own = box.page.paths.filter((path) => path.clip === clip && (path.fill === color || path.stroke === color))
+        expect(
+          own.map(({ paint }) => paint),
+          chart.id,
+        ).toEqual(['stroke', 'fill', 'fill', 'fill', 'fill'])
+        const past = own.flatMap((path) => {
+          const { heights, beyond } = ink(path)
+          return heights.filter((y) => y - beyond < box.top || y + beyond > box.top + box.height)
+        })
+        expect(past, `${chart.id}: heights past the box, ${String(box.top)} to ${String(box.top + box.height)}`).toEqual([])
+      }
     },
     TIMEOUT,
   )

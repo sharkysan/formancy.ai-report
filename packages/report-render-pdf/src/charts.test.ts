@@ -701,7 +701,7 @@ describe("a render's charts, bounded in all", { timeout: TIMEOUT }, () => {
     expect({ MAX_CHART_DRAWING, CHART_WEIGHT, WORD_WEIGHT, MAX_CHART_SERIES }).toEqual({
       MAX_CHART_DRAWING: 5000,
       CHART_WEIGHT: { bar: 40, line: 60, pie: 10 },
-      WORD_WEIGHT: { title: 3, legend: 5, tick: 1, category: 1, value: 1 },
+      WORD_WEIGHT: { title: 6, legend: 5, tick: 2, category: 1, value: 1 },
       MAX_CHART_SERIES: 8,
     })
   })

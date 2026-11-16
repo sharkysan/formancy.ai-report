@@ -100,7 +100,7 @@ export interface ChartWord {
 export interface ChartLayout {
   /** Every `tickEvery`-th tick from the lowest is labelled, 1 labelling each; every tick is a gridline. */
   readonly tickEvery: number
-  /** Set by the first layout: the title's band at the top, with a value label's line and its distance from its mark where values are labelled; the legend's rows at the foot. */
+  /** Set by the first layout: the title's band at the top, with a value label's line and its distance from its mark where values are labelled, or a line's marker's radius where they are not; the legend's rows at the foot. */
   readonly bands?: { readonly top: number; readonly bottom: number }
   /** Set by the second: the plot (axis charts) or the pie's square, in points, snapped. */
   readonly plot?: { readonly left: number; readonly top: number; readonly width: number; readonly height: number }

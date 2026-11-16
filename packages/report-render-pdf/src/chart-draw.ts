@@ -8,7 +8,7 @@ import type { ChartFaces } from './chart-faces.js'
 import { held, named, points, tooLarge, type Plot } from './chart-held.js'
 import { withMeasurer } from './chart-measure.js'
 import { pieArcs } from './chart-arcs.js'
-import { barWidth, chartOption, chartWords, pieCircle, VALUE_LABEL_DISTANCE, type ChartLayout } from './chart-option.js'
+import { barWidth, chartOption, chartWords, pieCircle, POINT_RADIUS, VALUE_LABEL_DISTANCE, type ChartLayout } from './chart-option.js'
 import { readChartSvg, type PlacedWord } from './chart-svg.js'
 import type { FaceWidths } from './engine.js'
 
@@ -26,8 +26,10 @@ import type { FaceWidths } from './engine.js'
  * 1. **The bands.** Across the whole box, read for where the title and
  *    the legend stand, which no plot moves: the band at the top is the
  *    title's line and a gap under it, with a value label's line and its
- *    distance from its mark where values are labelled; the band at the
- *    foot is the legend's rows and a gap above them. A bar below zero
+ *    distance from its mark where values are labelled, or a line's
+ *    marker's radius where they are not, which no clip of ECharts' holds
+ *    and the box's would cut; the band at the foot is the legend's rows
+ *    and a gap above them. A bar below zero
  *    labelled under its end has its room between the plot's foot and the
  *    category labels, which the option stands that much further down
  *    (`chart-option.ts`), and ECharts fits with them.
@@ -118,36 +120,38 @@ export const MIN_BAR_WIDTH = 3.5
 
 /**
  * Points: the narrowest a pie is drawn, its square's side: the least
- * diameter, to the quarter point, at which a pie of eight equal slices,
- * report-spec's palette, shows each slice along its rim as a run of at
- * least one pixel of its own colour (each channel within 8), and its
+ * diameter, to the quarter point, at which a pie whose first slice is one
+ * percent of it, its seven others sharing the rest in report-spec's
+ * palette, shows every slice along its rim as a run of at least one pixel
+ * of its own colour (each channel within 8), that slice among them, its
  * neighbours told apart, in the page PDF.js draws at the density of the
  * Studio's Preview at 100 % on a screen of device pixel ratio 2, 8/3
- * device pixels to the point, as `MIN_BAR_WIDTH`. The rim is the band one
- * pixel wide of the outermost pixels wholly inside the pie's circle;
- * taken in turn from noon, clockwise, its pixels of a palette colour make
- * eight runs, each of its own slice's colour and inside that slice's
- * sector, so that no slice is missing, split by another's colour or run
- * into its neighbour's. A pixel of no palette colour, a blend of two
- * slices, breaks no run and makes none.
+ * device pixels to the point, as `MIN_BAR_WIDTH`: so that a slice whose
+ * share prints as 1.0 % or more shows as its own colour. The rim is the
+ * band one pixel wide of the outermost pixels wholly inside the pie's
+ * circle; taken in turn from noon, clockwise, its pixels of a palette
+ * colour make eight runs, each of its own slice's colour and inside that
+ * slice's sector, so that no slice is missing, split by another's colour
+ * or run into its neighbour's. A pixel of no palette colour, a blend of
+ * two slices, breaks no run and makes none.
  *
- * Measured on 2026-11-15 on a Mac (Apple M2), Node 22.23.4, pdfjs-dist
- * 6.4.299 on @napi-rs/canvas 1.0.11, and ECharts 6.1.0, at a load of 2.6
- * to 3.1: pies drawn by `renderPdf` in a box of their diameter, with no
- * title and no legend, of 0.25 to 12 points in quarter points and of
- * every whole point to 40, each at 22 places: twenty across one device
- * pixel from 40 points, its left and its top each at every twentieth of
- * one, and the starters' margins, 56.69 and 42.52 points in from the
- * left and 56.69 down. 3 points failed at 2 of the 22, 3.25 and every
- * diameter above it at none; at 400 places, every pair of twentieths of
- * a pixel, 3 failed at 26 and 3.25 to 4 at none. Other densities, by the
- * same sweep, the least at which none failed: 6.25 at 4/3 pixels to the
- * point (100 % on ratio 1), 4.25 at 2 (75 % on ratio 2), 8.5 at 1. Eight
- * is the most slices a pie has (`check-chart.ts`), and fewer equal ones are
- * wider; a smaller share is a thinner slice at any size, as a smaller
- * value is a shorter bar, and is held to nothing.
+ * Measured on 2026-11-16 on a Mac (Apple M2), Node 22.23.4, pdfjs-dist
+ * 6.4.299 on @napi-rs/canvas 1.0.11, and ECharts 6.1.0, at a load of 2.2
+ * to 4.1: pies drawn by `renderPdf` in a box of their diameter, with no
+ * title and no legend, of 20 to 50 points in quarter points, each at 22
+ * places: twenty across one device pixel from 40 points, its left and its
+ * top each at every twentieth of one, and the starters' margins, 56.69
+ * and 42.52 points in from the left and 56.69 down. Below 24.75 some
+ * diameter failed at up to 10 of the 22, 24.5 at 1; 24.75 and every
+ * diameter above it, to 50, at none. At 400 places, every pair of
+ * twentieths of a pixel, from 23 to 31 points: 24.5 failed at 33, 24.75
+ * to 31 at none. A pie of eight equal slices, measured the same way the
+ * day before, told them apart from 3.25 points, which leaves a slice
+ * under about an eighth of the pie under a pixel of its rim: Daniel ruled
+ * for the slice of one percent. A smaller share is a thinner slice, as a
+ * smaller value is a shorter bar, and is held to nothing.
  */
-export const MIN_PIE_DIAMETER = 3.25
+export const MIN_PIE_DIAMETER = 24.75
 
 /** Lines: what the bands keep between the title, or the legend, and the plot's words. Chosen. */
 export const BAND_GAP = 0.5
@@ -245,17 +249,23 @@ export function drawChart(chart: AxisChart | PieChart, faces: ChartFaces, widths
  * box and a gap under it, and the legend's highest row and a gap above
  * it; and where values are labelled, room above the plot for a label of a
  * bar or a point at the highest tick, its line and its distance from its
- * mark. The label of a bar below zero at the lowest tick stands between
- * the plot's foot and the category labels, in room the option keeps
- * there.
+ * mark. Where a line's are not, room for its marker at the highest tick,
+ * `POINT_RADIUS` above its place: ECharts leaves only half a tick label's
+ * line above the plot, which in a face of a short line is less, and the
+ * marker would stand past the box, where the converter cuts it. The label
+ * of a bar below zero at the lowest tick stands between the plot's foot
+ * and the category labels, in room the option keeps there; a marker at
+ * the lowest tick stands in the category labels' margin, which ECharts
+ * keeps with every label empty.
  */
 function bandsOf(chart: AxisChart | PieChart, words: readonly PlacedWord[], line: number): Bands {
   const gap = BAND_GAP * line
   const title = words.find(({ key }) => key === 'title')
   const legend = words.filter(({ key }) => key.startsWith('legend/')).map(({ top }) => top)
   const labelled = chart.chart !== 'pie' && chart.valueLabels
+  const marked = chart.chart === 'line' ? POINT_RADIUS : 0
   return {
-    top: (title === undefined ? 0 : title.top + title.height + gap) + (labelled ? line + VALUE_LABEL_DISTANCE : 0),
+    top: (title === undefined ? 0 : title.top + title.height + gap) + (labelled ? line + VALUE_LABEL_DISTANCE : marked),
     bottom: legend.length === 0 ? 0 : chart.height - Math.min(...legend) + gap,
   }
 }

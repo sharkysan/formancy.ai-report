@@ -121,9 +121,11 @@ export function checkChart(chart: Chart, at: string, place: Place, walk: Walk): 
  * soft-masked groups had cost a reader 482; a line of one series 27 to
  * the render. A reader's cost no longer goes by series, and the render's
  * by about 4.5 units a series, which the one weight, the eight series',
- * holds. In that run a title cost 5.3 units and a tick 1.6, above their
- * weights, and a bar of 8 series 36, a pie of one slice 7, within theirs;
- * the bound's run below is what holds the render's time to 2 s.
+ * holds. In that run a title cost 5.3 units and a tick 1.6, above the
+ * first run's 2.74 and 0.35, and a bar of 8 series 36 and a pie of one
+ * slice 7, within their weights. A word's weight is the larger of the two
+ * runs', rounded up: a title 6 and a tick 2, the rest as the first run
+ * set them.
  *
  * The bound is set by the slowest of seven interleaved runs of the
  * costliest of the forms tried, and it keeps 2 s only at a quiet load: at
@@ -151,14 +153,17 @@ export function checkChart(chart: Chart, at: string, place: Place, walk: Walk): 
  * at about 6,017 units, and 6,000 would leave about 10 ms, so the bound is
  * 5,000. A review's run at a load of 4.2 to 5.5 put 17 value-labelled bars
  * of 120 categories (1,258 ms) ahead of the pies (1,235). With a line at
- * 60 and a pie of eight slices at most, the forms were run again at a
- * load of 3.0 to 3.9, among them pies of eight slices in place of 200, 53
- * line charts of twelve months and one series, titled, a review's, and
- * three 8 × 200 lines on one page, which the bound now admits at 4,998
- * units: the slowest render, the 53 lines, took 1,202 ms at its slowest,
- * one round's spike against a median of 338, the next 18 dressed bar
- * charts of 8 × 19 at 551; the slowest page, the three 8 × 200 lines, cost
- * PDF.js 142 ms. None measured the slowest the bound admits.
+ * 60 and a pie of eight slices at most, a title still at 3 and a tick at
+ * 1, the forms were run again at a load of 3.0 to 3.9, among them pies of
+ * eight slices in place of 200, 53 line charts of twelve months and one
+ * series, titled, a review's, and three 8 × 200 lines on one page, then
+ * admitted at 4,998 units: the slowest render, the 53 lines, took 1,202 ms
+ * at its slowest, one round's spike against a median of 338, the next 18
+ * dressed bar charts of 8 × 19 at 551; the slowest page, the three 8 × 200
+ * lines, cost PDF.js 142 ms. A title at 6 and a tick at 2 only admit less:
+ * 49 of those line charts fit, at 102 units each, and the third 8 × 200
+ * line brings its page to 5,016. None measured the slowest the bound
+ * admits.
  */
 export const MAX_CHART_DRAWING = 5000
 
@@ -166,7 +171,7 @@ export const MAX_CHART_DRAWING = 5000
 export const CHART_WEIGHT = { bar: 40, line: 60, pie: 10 } as const satisfies Readonly<Record<Chart['chart'], number>>
 
 /** What each word a chart places costs, by what it is, in `MAX_CHART_DRAWING`'s units: the larger of what it costs the render and a reader, rounded up. A title is the chart's or an axis's. */
-export const WORD_WEIGHT = { title: 3, legend: 5, tick: 1, category: 1, value: 1 } as const
+export const WORD_WEIGHT = { title: 6, legend: 5, tick: 2, category: 1, value: 1 } as const
 
 /**
  * What drawing `chart` costs, in `MAX_CHART_DRAWING`'s units: its kind's

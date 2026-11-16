@@ -2513,7 +2513,7 @@
       ]
     },
     "0058": {
-      "reviewed": "sha256:94a7efa37002d862e41ac2b21ddcae71c88428bef174d23a327625d641573066",
+      "reviewed": "sha256:107436bfe8940239c21739414cac4c36cbe3eec1b041421cd3459ced0faca1f4",
       "limitations": [
         {
           "area": "rendering",
@@ -2537,7 +2537,7 @@
         },
         {
           "area": "rendering",
-          "says": "A pie whose square would be narrower than 3.25 pt, the least at which the Studio's Preview tells eight equal slices apart at 100 % on a screen of device pixel ratio 2, is refused, whether its box or its title and legend leave it that little; at 75 %, or on a screen of ratio 1, the slices of the smallest pies drawn may run together in the Preview, and a slice of a small share is thin at any size.",
+          "says": "A pie whose square would be narrower than 24.75 pt, the least at which the Studio's Preview shows a slice of one percent as its own colour at 100 % on a screen of device pixel ratio 2, is refused, whether its box or its title and legend leave it that little, so that a box of 72 pt with an 8-pt title and a legend holds a pie only where its legend is short; at 75 %, or on a screen of ratio 1, such a slice of the smallest pies drawn may run into its neighbours in the Preview, and a slice under one percent is thin at any size.",
           "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
         },
         {
@@ -2562,12 +2562,12 @@
         },
         {
           "area": "rendering",
-          "says": "A render whose charts together weigh more than 5,000 units -- each chart its kind's weight (a bar 40, a line 60, a pie 10), a unit for each series at each category or each slice, and each word it places by what the word is (a title 3, a legend entry 5, a tick, a category or a value 1) -- is refused as `content-too-large` at the chart that crossed it, so a document of many dense charts, four line charts of 8 series and 200 categories or 54 titled line charts of one series and twelve months among them, is split across renders.",
+          "says": "A render whose charts together weigh more than 5,000 units -- each chart its kind's weight (a bar 40, a line 60, a pie 10), a unit for each series at each category or each slice, and each word it places by what the word is (a title 6, a legend entry 5, a tick 2, a category or a value 1) -- is refused as `content-too-large` at the chart that crossed it, so a document of many dense charts, three line charts of 8 series and 200 categories or 50 titled line charts of one series and twelve months among them, is split across renders.",
           "heldBy": "packages/report-render-pdf/src/charts.test.ts"
         },
         {
           "area": "rendering",
-          "says": "The chart bound was measured on one Apple M2, the weights on the render and on PDF.js at scale 1 at a load average of 12 to 20, a line's again at 3.0 to 3.2, and the bound by the slowest of seven runs of the forms tried at 3.3 to 5.6, where the slowest render of them took 878 ms and the slowest page 1,614 ms, a second run at 4.2 to 5.5 found two others slowest, at 1,258 and 1,255 ms, and a third, once a line weighed 60, at 3.0 to 3.9, 1,202 ms in one spike; nothing measured the slowest the bound admits, and at a load of 10 to 18.6 documents it admitted took up to 9.45 s.",
+          "says": "The chart bound was measured on one Apple M2, the weights on the render and on PDF.js at scale 1 at a load average of 12 to 20, a line's, a title's and a tick's again at 3.0 to 3.2, each word's the larger of the two runs', and the bound by the slowest of seven runs of the forms tried at 3.3 to 5.6, where the slowest render of them took 878 ms and the slowest page 1,614 ms, a second run at 4.2 to 5.5 found two others slowest, at 1,258 and 1,255 ms, and a third, once a line weighed 60, at 3.0 to 3.9, 1,202 ms in one spike; nothing measured the slowest the bound admits, and at a load of 10 to 18.6 documents it admitted took up to 9.45 s.",
           "heldBy": "packages/report-render-pdf/src/charts.test.ts"
         },
         {
@@ -2577,7 +2577,7 @@
         },
         {
           "area": "rendering",
-          "says": "A chart's paint counts against no SVG budget: one line chart of 8 series and 200 categories, as wide as an A4 landscape page and a third of its height, weighs nearly four times the segments the body's SVG images may cost together, and the chart bound admits three of them on a page."
+          "says": "A chart's paint counts against no SVG budget: one line chart of 8 series and 200 categories, as wide as an A4 landscape page and a third of its height, weighs nearly four times the segments the body's SVG images may cost together, and the chart bound admits two of them on a page."
         },
         {
           "area": "rendering",

@@ -215,6 +215,9 @@ const PAST = 'holds a number past its box by more than its size, 300 by 240 poin
 /** What it says of a clip by a path the drawing does not define once. */
 const CLIP = 'clips by a path it does not define once'
 
+/** What a stroke inside a clip, which the converter is not handed, is refused with when it could reach past what the clip held. */
+const CLIPPED = 'strokes a path inside a clip otherwise than with bevelled joins and butt ends, and the clip is not drawn'
+
 /** Every start tag in `svg`, in order: its element, and its attributes as written. */
 const tagsOf = (svg: string): (readonly [string, string])[] =>
   [...svg.matchAll(/<([A-Za-z]+)((?:\s+[^\s=>]+="[^"]*")*)\s*\/?>/g)].map(([, name = '', attributes = '']) => [name, attributes.trim()] as const)
@@ -342,6 +345,12 @@ describe('the SVG ECharts writes of a chart', () => {
     ['a path that does not start where it moves', MARKUP, (svg) => svg.replace(/<path d="M([\d.]+) ([\d.]+)L/, '<path d="L$1 $2L'), VALUE('path')],
     // An empty path is what ECharts writes for a line with no value, and reads; a path of a space is none of its.
     ['a path of a space', MARKUP, (svg) => svg.replace(/<path d="[^"]+"/, '<path d=" "'), VALUE('path')],
+    // The clip is taken out of what the converter is handed, and cut nothing only while what it held is stroked with bevelled joins and butt
+    // ends, which stand no farther from a line's points than half its width: a mitred join, which SVG draws where none is written, or a
+    // round or square end would stand past the plot where nothing cuts it now.
+    ['a line mitred inside its clip', LINE, (svg) => svg.replace('stroke-linejoin="bevel"', 'stroke-linejoin="miter"'), CLIPPED],
+    ['a line of no written join inside its clip', LINE, (svg) => svg.replace(' stroke-linejoin="bevel"', ''), CLIPPED],
+    ['a line of round ends inside its clip', LINE, (svg) => svg.replace('stroke-linejoin="bevel"', 'stroke-linejoin="bevel" stroke-linecap="round"'), CLIPPED],
     // zrender writes every shape's fill, `none` where it fills nothing (svg/mapStyleToAttrs.js); SVG paints a shape with none black.
     ['a path with no fill', MARKUP, (svg) => svg.replace(/(<path d="[^"]*") fill="[^"]*"/, '$1'), 'holds its <path> without an attribute it is read by'],
     ['a rectangle with no fill', MARKUP, (svg) => svg.replace(/(<rect [^>]*?) fill="[^"]*"/, '$1'), 'holds its <rect> without an attribute it is read by'],
@@ -683,6 +692,8 @@ describe('the SVG ECharts writes of a chart', () => {
       const line = await drawn(LINE)
       expect(line.svg).toMatch(/<g clip-path="url\(#[^)]+\)">/)
       expect([...line.svg.matchAll(/<clipPath /g)]).toHaveLength(1)
+      // ECharts 6.1.0 writes a clip of a line series alone: it clips a bar by working out each one, and a pie and a legend not at all.
+      for (const chart of [MARKUP, PIE]) expect((await drawn(chart)).svg, chart.id).not.toMatch(/clip/i)
       expect(readBack(line).svg).toContain('stroke="#2ca02c"')
       const drawing = await drawn(MARKUP)
       const { svg } = drawing

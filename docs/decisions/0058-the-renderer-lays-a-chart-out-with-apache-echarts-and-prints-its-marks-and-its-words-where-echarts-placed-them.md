@@ -59,7 +59,8 @@
     runtime's, told apart by the order ECharts writes them, for each kind
     and in bold, read back through the entities zrender writes, each boxed
     where pdfmake prints it; and returns the drawing with no `<text>`, no
-    `<style>` and no clip. `src/chart-arcs.test.ts` draws on the pie's own circle
+    `<style>` and no clip, refusing a stroke inside a clip but with
+    bevelled joins and butt ends. `src/chart-arcs.test.ts` draws on the pie's own circle
     the pies that printed off it, or blank, as zrender wrote them -- 9999
     and 1, 9998 and 2, a slice of 0.4938 of a pie 257.5 pt in radius, 45,
     2 and 44 -- writes every arc of a slice as two arcs or more of at most
@@ -107,7 +108,9 @@
     headings.
   - **The chart in the document.** `src/chart-content.test.ts` paints a
     chart's words after its marks; draws a line chart, a bar chart and a
-    pie under no soft mask; draws a chart as tall as the body;
+    pie under no soft mask; keeps a line's markers inside its box at its
+    highest and lowest ticks, in host faces whose line is half an em and
+    an em; draws a chart as tall as the body;
     keeps a heading kept with a chart on the chart's page; measures a
     keep-together block holding a chart as its box; hands the converter
     no `<text>` and opens no file for it in Node; holds each word to the
@@ -208,7 +211,13 @@
       the PDF of the fixture retitled; the reader's cases of a path and a
       rectangle with no fill, before it required one; and the guard's case
       with the walk recording a dependent only where it first found a
-      package.
+      package;
+    - in the re-review's follow-up, on 16 November 2026: the least pie's
+      pin at 3.25; the reader's three cases of a stroke inside a clip,
+      mitred, of no written join and round-ended, before it held one; the
+      bound's pins at a title of 3 and a tick of 1; and the marker's case
+      in a face whose line is half an em, a marker 0.6 pt past the box,
+      before the top band kept its radius.
 
 ## Context
 
@@ -488,9 +497,13 @@ render and on a reader.** In order:
    without it, eight of eight series 547 and 21 (the final review's probe
    and its rerun, 15 November 2026). The clip cuts nothing: every value
    stands inside the ticks, and a line's joins, bevelled, and its ends,
-   butt, stand no farther from its points than half its width. So each
-   clip is held as written, a path the drawing defines once in zrender's
-   black, and then taken out with every `clip-path` that names it.
+   butt, stand no farther from its points than half its width; a stroke
+   inside a clip otherwise, a join mitred, written or not, or an end
+   round or square, is refused, so that the removal fails closed. So
+   every clip is held as written, a path the drawing defines once in
+   zrender's black, and then taken out with every `clip-path` that names
+   it: ECharts 6.1.0 writes one of a line series alone, clipping a bar by
+   working out each one, and a pie and a legend not at all.
 7. **A pie is drawn on its own circle** (`chart-arcs.ts`). zrender writes
    a slice's arc between ends rounded to a tenth of a point, and the
    converter draws an arc on the circle through its two ends. As zrender
@@ -537,7 +550,13 @@ render and on a reader.** In order:
 
    A pie is laid out twice: the bands, then drawn in the largest square
    centred between them, refused where that square is narrower than
-   `MIN_PIE_DIAMETER` (9). Every layout is ECharts' own, under the render's
+   `MIN_PIE_DIAMETER` (9). Above an unlabelled line's plot the top band
+   keeps a marker's radius, `POINT_RADIUS`: ECharts leaves half a tick
+   label's line there, and a marker at the highest tick, which no clip of
+   ECharts' holds, stood 0.6 pt past the box in a face whose line is half
+   an em at 4 pt, where the converter's viewport would cut it. A marker
+   at the lowest tick stands in the category labels' margin, which
+   ECharts keeps with every label empty. Every layout is ECharts' own, under the render's
    measurer, disposed once it is read.
 9. **Refused, never cut, hidden or turned**, as `content-too-large`,
    naming the chart and its box and the sizes that do not fit:
@@ -560,23 +579,28 @@ render and on a reader.** In order:
      sets it, and lower densities need more: 4.25 pt at 75 % on a ratio of
      2, 6.25 at 100 % on a ratio of 1, 8.25 at one pixel to the point. It
      rose from a provisional 2.
-   - **A pie narrower than `MIN_PIE_DIAMETER`**, 3.25 pt, its square's
+   - **A pie narrower than `MIN_PIE_DIAMETER`**, 24.75 pt, its square's
      side, whether its box or its title and its legend leave it that
      little. It is the least diameter, to the quarter point, at which a
-     pie of eight equal slices, report-spec's palette, showed every slice
-     along its rim -- the band one pixel wide of the outermost pixels
-     wholly inside its circle -- as a run of its own colour, each inside
-     its own sector, and its neighbours told apart, at the density
-     `MIN_BAR_WIDTH` was measured at: measured on 15 November 2026 on the
-     Apple M2 under Node 22.23.4 at a load of 2.6 to 3.1, at 22 places --
-     twenty across one device pixel, its left and its top at every
-     twentieth, and the starters' margins -- of pies of 0.25 to 12 pt in
-     quarter points and every point to 40, 3 pt failing at 2 of the 22 and
-     3.25 at none; and at 400 places, every pair of twentieths, 3 at 26
-     and 3.25 to 4 at none. Lower densities need more: 4.25 pt at 75 % on
-     a ratio of 2, 6.25 at 100 % on a ratio of 1, 8.5 at one pixel to the
-     point. A valid pie of eight slices that a review drew 9.75 pt across
-     is drawn, and one it drew 0.24 pt across is refused.
+     pie whose first slice is one percent of it, its seven others sharing
+     the rest in report-spec's palette, showed every slice, that one among
+     them, along its rim -- the band one pixel wide of the outermost
+     pixels wholly inside its circle -- as a run of its own colour, each
+     inside its own sector, and its neighbours told apart, at the density
+     `MIN_BAR_WIDTH` was measured at, so that a slice whose share prints
+     as 1.0 % or more shows as its own colour: measured on 16 November
+     2026 on the Apple M2 under Node 22.23.4 at a load of 2.2 to 4.1, at
+     22 places -- twenty across one device pixel, its left and its top at
+     every twentieth, and the starters' margins -- of pies of 20 to 50 pt
+     in quarter points, diameters below 24.75 failing at up to 10 of the
+     22 and 24.5 at 1, and 24.75 and above at none; and at 400 places,
+     every pair of twentieths, from 23 to 31 pt, 24.5 at 33 and 24.75 to
+     31 at none. Daniel ruled for the slice of one percent over eight
+     equal slices told apart, which the same sweep held from 3.25 pt, a
+     size at which a slice under about an eighth of the pie has no pixel
+     of its own. A valid pie of eight slices a review drew 9.75 pt across
+     is refused, and so is one of four with a title in a box 200 by 72 pt
+     (16.5 pt); one of two in that box (33.9 pt) is drawn.
    - **Words that would meet, leave the box, or stand in the plot** but
      a value's label (`chart-held.ts`), the one rule a drawn chart's and
      an empty chart's words are held to.
@@ -623,7 +647,7 @@ render and on a reader.** In order:
       line 60, a pie 10); a unit for each series at each category, a null
       among them, or for each of a pie's slices, one of no share among
       them; and each word it places by what the word is (`WORD_WEIGHT`: a
-      title, the chart's or an axis's, 3, a legend entry 5, a tick, a
+      title, the chart's or an axis's, 6, a legend entry 5, a tick 2, a
       category and a value 1). A chart with nothing to draw weighs nothing:
       ECharts never lays it out.
     - **How the weights were measured.** On 15 November 2026 on an Apple
@@ -648,8 +672,10 @@ render and on a reader.** In order:
       to the render. A reader's cost no longer goes by series, and the
       render's by about 4.5 units a series, which one weight, the eight
       series', holds, as a bar's does. That run put a title at 5.3 units
-      and a tick at 1.6, above their weights, and a bar of 8 series at 36
-      and a pie of one slice at 7, within theirs.
+      and a tick at 1.6, above the first run's 2.74 and 0.35, and a bar of
+      8 series at 36 and a pie of one slice at 7, within their weights: a
+      word's weight is the larger of the two runs', rounded up, a title 6
+      and a tick 2.
     - **How the bound was set**: by the slowest of seven interleaved runs
       of the costliest of the forms tried, each render timed and each page
       drawn by PDF.js at scale 1, at a load average of 3.3 to 5.6, to keep
@@ -667,8 +693,10 @@ render and on a reader.** In order:
       load of 3.0 to 3.9, pies of eight slices in place of 200, bare and
       with every slice in the legend, and among them 53 titled line charts
       of one series and twelve months, the final review's, and three
-      8 × 200 lines on one page, which the bound now admits at 4,998
-      units.
+      8 × 200 lines on one page, then admitted at 4,998 units, while a
+      title weighed 3 and a tick 1. At 6 and 2 the bound admits less: 49
+      of those line charts, at 102 units each, and two of the 8 × 200
+      lines, the third bringing its page to 5,016.
     - **What the runs found.** At 5,000, in the run that set the bound, the
       slowest render of the forms tried was 263 dressed pies of one slice on
       3 pages, 878 ms at its slowest and 859 at its median, and the slowest
@@ -706,9 +734,10 @@ render and on a reader.** In order:
     4,869 lines and 33,600 curves, a close not counted -- which weigh
     115,572 as report-spec's `svg-cost.ts` weighs an SVG asset's for
     `MAX_SVG_SEGMENTS`, a curve three lines and a stroke twice a fill. The
-    chart bound admits that page, its three charts 4,998 units once a line
-    weighs 60, and refuses a fourth chart; PDF.js drew it in 142 ms at its
-    slowest at a load of 3.0 to 3.9. One of them alone draws
+    chart bound refuses that page at its third chart, at 5,016 units, a
+    line weighing 60 and a tick 2, and admits two; while a tick weighed 1
+    it admitted the three, which PDF.js drew in 142 ms at their slowest at
+    a load of 3.0 to 3.9. One of them alone draws
     1,623 paths, 14,446 segments, which weigh 38,524, nearly four times
     what the body's SVG images may cost together.
 14. **Proved on the PDF**, by report-corpus's `check-charts.ts` and the
@@ -747,7 +776,8 @@ to `check-chart.ts` and draws it.
 - **The same bytes.** One document of charts renders to the same bytes
   twice and in another process, though zrender's ids advance.
 - **Fail closed.** A word that would meet another, a label that does not
-  fit, a bar too thin to see, a pie too small to tell its slices apart, a
+  fit, a bar too thin to see, a pie too small to show a slice of one
+  percent, a
   drawing ECharts writes otherwise than it
   was read to write, a second zrender, and a render whose charts together
   cost past the bound are refused, naming the chart; none is drawn
@@ -848,12 +878,13 @@ to `check-chart.ts` and draws it.
   3.9, and the bound stayed. And the weights are medians, not upper
   bounds: over the seven rounds a title cost 1.2 to 5.9 units, and an axis
   chart's legend entry 2.7 to 20.4; the line's run put a title at 5.3 and
-  a tick at 1.6 units, above their weights of 3 and 1.
+  a tick at 1.6 units, above the first run's, and their weights are now
+  the larger of the two runs', 6 and 2.
 - **A document of many charts is refused.** A render whose charts weigh
   more than 5,000 units is refused, at the chart that crossed it, though
-  each chart would draw: three line charts of 8 series and 200 categories
-  fit, and four do not; 53 titled line charts of one series and twelve
-  months fit, and 54 do not. It is the host's to split across renders.
+  each chart would draw: two line charts of 8 series and 200 categories
+  fit, and three do not; 49 titled line charts of one series and twelve
+  months fit, and 50 do not. It is the host's to split across renders.
 - **A kept heading multiplies the cost the bound holds.** The bound holds
   one layout pass, and pdfmake lays the whole document out again for each
   page where it moves a kept heading to the next, the charts' share of a
@@ -866,27 +897,29 @@ to `check-chart.ts` and draws it.
   drawing, as it takes the words and the style sheet out, where a reader
   composited a soft mask for each series. The line is drawn as ECharts
   wrote it, inside the chart's box, and the clip cut nothing the check
-  admits by the line's bevelled joins and butt ends, which an ECharts
-  release could change, the corpus's points check with it; the reader
-  still holds the clip as written.
+  admits by the line's bevelled joins and butt ends, which the reader
+  holds of every stroke inside a clip, refusing an ECharts release that
+  mitred one; the reader still holds the clip as written.
 - **A chart's paint is not bounded as an SVG's.** One line chart of 8
   series and 200 categories, as wide as an A4 landscape page and a third
   of its height, weighs 38,524 segments as report-spec weighs an SVG
   asset's, nearly four times what the body's SVG images may cost together
-  (`MAX_SVG_SEGMENTS`), and the chart bound admits three of them on a
-  page, which PDF.js drew in 142 ms at its slowest; what painting them
-  costs another reader was not measured. Three of them, before the bound, took a median
+  (`MAX_SVG_SEGMENTS`), and the chart bound admits two of them on a
+  page; three, which it admitted while a tick weighed 1, PDF.js drew in
+  142 ms at their slowest; what painting them costs another reader was
+  not measured. Three of them, before the bound, took a median
   of 586 ms to render at a load average of about 5, and medians of 1.25
   and 1.67 s, a single run 3.0 s, at about 23.
-- **The least pie is a screen's.** `MIN_PIE_DIAMETER` was measured, as
-  `MIN_BAR_WIDTH` was, at the density of the Studio's Preview at 100 % on
-  a screen of device pixel ratio 2, on a pie of eight equal slices: at
-  75 %, or on a ratio of 1, the slices of the smallest pies drawn may run
-  together in the Preview, and a slice of a small share is thin at any
-  size. A pie whose square its box or its words leave narrower is
-  refused, where it printed before; it refused no starter or fixture of
-  the corpus. 3.25 pt tells eight slices apart, and holds no word: a pie
-  that small is legible as marks, its words all in its legend.
+- **The least pie is a screen's, and refuses small pies.**
+  `MIN_PIE_DIAMETER` was measured, as `MIN_BAR_WIDTH` was, at the density
+  of the Studio's Preview at 100 % on a screen of device pixel ratio 2,
+  on a pie whose first slice is one percent: at 75 %, or on a ratio of 1,
+  such a slice of the smallest pies drawn may run into its neighbours in
+  the Preview, and a slice of less than one percent is thin at any size.
+  A pie whose square its box or its words leave narrower than 24.75 pt is
+  refused, where it printed before: with an 8-pt title and a legend, a
+  box of report-spec's least height, 72 pt, holds one only where its
+  legend is short. It refused no starter or fixture of the corpus.
 - **A pie's arcs are within a bound, not exact.** Within 0.0707 pt plus
   10^-4 of the radius of their sectors, at most 0.0965 pt; a sliver
   shorter than 0.141 pt may draw no curve; and the renderer writes those
@@ -1018,3 +1051,12 @@ ECharts, as the corpus's checks do in tests: a host's registration that
 moved a mark, and an ECharts release that did, would be refused rather
 than printed. It is not built; the registries' cost states what it would
 close.
+
+**A pie of eight equal slices told apart.** The first measure of the
+least pie, on 15 November 2026: the least diameter at which a pie of eight
+equal slices showed each as its own colour along its rim, 3.25 pt by the
+same sweep. It holds the pie's marks apart, as `MIN_BAR_WIDTH` holds bars,
+and nothing of a share: at 3.25 pt, about 1.1 mm, a slice under about an
+eighth of the pie has no pixel of its own rim. The final review measured
+the one-percent criterion by the same sweep, and Daniel ruled for it on 16
+November 2026.

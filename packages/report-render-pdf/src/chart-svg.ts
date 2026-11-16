@@ -13,18 +13,21 @@ import { PDF_A_NESTING } from './svg-pdfa.js'
  * its word in, and the one `<style>` ECharts writes, of hover rules that
  * print nothing, is removed.
  *
- * So is a line's clip. ECharts 6.1.0 clips every line series to its plot,
+ * So is every clip it writes, which ECharts 6.1.0 writes of a line series
+ * alone (`chart-svg.test.ts`): it clips a bar by working out each one, and
+ * a pie and a legend not at all. It clips every line series to its plot,
  * whatever its `clip` says: to the plot widened by half the line's width,
  * or, with `clip: false`, as the option sets it, by the plot's longer side
  * (LineView.js `createLineClipPath`); and svg-to-pdfkit draws a clip path
  * as a group the size of the page under a luminosity soft mask, which a
  * reader composites for each series. It cuts nothing: every value stands
- * inside the ticks (`check-chart.ts`), and a line's joins, bevelled, and
- * its ends, butt, stand no farther from its points than half its width.
- * Each clip is still held as it is written, a path it defines once in
- * zrender's black, before it is taken out with every `clip-path` that
- * names it; the line is drawn as ECharts wrote it, inside the chart's box,
- * which the converter clips it to.
+ * inside the ticks (`check-chart.ts`), and what a clip holds is stroked
+ * with bevelled joins and butt ends, which stand no farther from a line's
+ * points than half its width, and is refused stroked otherwise. Each clip
+ * is still held as it is written, a path it defines once in zrender's
+ * black, before it is taken out with every `clip-path` that names it; the
+ * line is drawn as ECharts wrote it, inside the chart's box, which the
+ * converter clips it to.
  *
  * A pie's arcs alone are not as ECharts wrote them: the drawing writes them
  * again before they are read (`chart-arcs.ts`). zrender writes a slice's
@@ -63,6 +66,9 @@ import { PDF_A_NESTING } from './svg-pdfa.js'
  *   grid's, the axis's or the words' -- `none` and `transparent` aside, or
  *   in a clip path anything but zrender's black, a mask that paints
  *   nothing; or a clip by a path it does not define once;
+ * - a stroke inside a clip but with bevelled joins and butt ends, a
+ *   join written or not, since SVG mitres one it is not told of: the
+ *   condition on which the clip, taken out, cut nothing;
  * - a `<text>` turned or scaled, which the option never asks for;
  * - a `<text>` whose word, its entities read, is not one of the words the
  *   layout prints not yet placed, in its face; or a word the layout prints
@@ -344,14 +350,17 @@ function hoverRules(svg: string, at: number, refuse: Refuse): number {
   return end + '</style>'.length
 }
 
-/** `drawing` held, element by element, to its box, the nesting a PDF/A holds and the colours the option names, and each clip to a path it defines once. */
+/** Whether `element` strokes: a `stroke` written that paints. */
+const stroked = ({ attributes }: Element): boolean => !['none', 'transparent', undefined].includes(attributes.get('stroke'))
+
+/** `drawing` held, element by element, to its box, the nesting a PDF/A holds and the colours the option names, each clip to a path it defines once, and what a clip holds to the strokes it cuts nothing of. */
 function hold(drawing: Element, chart: AxisChart | PieChart, faces: ChartFaces, refuse: Refuse): void {
   const reach = Math.max(chart.width, chart.height)
   const painted = new Set([...namedColours(chart, faces), 'none', 'transparent'])
   const masks = new Set(['#000', 'none'])
   const clips: string[] = []
   const clipped: string[] = []
-  const walk = (element: Element, depth: number, masked: boolean): void => {
+  const walk = (element: Element, depth: number, masked: boolean, inClip: boolean): void => {
     // The converter saves the graphics state as it starts, and once for each element it draws inside the one before.
     if (depth + 1 > PDF_A_NESTING) refuse(`holds groups nested deeper than the ${String(PDF_A_NESTING)} graphics states a PDF/A holds`)
     for (const [attribute, value] of element.attributes) {
@@ -366,9 +375,15 @@ function hold(drawing: Element, chart: AxisChart | PieChart, faces: ChartFaces, 
       if (attribute === 'clip-path') clipped.push(value.slice('url(#'.length, -')'.length))
       if (attribute === 'id') clips.push(value)
     }
-    for (const child of element.children) walk(child, depth + 1, masked || element.name === 'clipPath')
+    if (
+      inClip &&
+      stroked(element) &&
+      !(element.attributes.get('stroke-linejoin') === 'bevel' && (element.attributes.get('stroke-linecap') ?? 'butt') === 'butt')
+    )
+      refuse('strokes a path inside a clip otherwise than with bevelled joins and butt ends, and the clip is not drawn')
+    for (const child of element.children) walk(child, depth + 1, masked || element.name === 'clipPath', inClip || element.attributes.has('clip-path'))
   }
-  walk(drawing, 1, false)
+  walk(drawing, 1, false, false)
   const box = [String(chart.width), String(chart.height), `0 0 ${String(chart.width)} ${String(chart.height)}`]
   if (['width', 'height', 'viewBox'].some((attribute, index) => drawing.attributes.get(attribute) !== box[index])) refuse('is of another size than its box')
   if (new Set(clips).size !== clips.length || clipped.some((id) => !clips.includes(id))) refuse('clips by a path it does not define once')
@@ -431,7 +446,7 @@ function namedColours(chart: AxisChart | PieChart, faces: ChartFaces): string[] 
   return [...marks, ...chart.legend.map(({ color }) => color), GRID.color, AXIS.color, ...words.map(({ font }) => font.color)]
 }
 
-/** `drawing` as the converter is handed it: every element, attribute and value as read, but its words and its clips. */
+/** `drawing` as the converter is handed it: every element, attribute and value as read, but its words and every clip, which 6.1.0 writes of a line series alone. */
 function serialised({ name, attributes, children }: Element): string {
   const written = [...attributes]
     .filter(([attribute]) => attribute !== 'clip-path')
