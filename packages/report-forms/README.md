@@ -65,6 +65,17 @@ submissions, complete })` reads a report of one row per submission, each
 least one, since the source names each it was read from; `complete` is
 the host's statement that these are all of them.
 
+**In the language a render names.** Both take `{ locale }`, the locale a
+render of the data will name: the report's own when absent, or one its
+translations declare, exactly, as the runtime holds a render to
+([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md));
+any other is refused as `undeclared-locale` before an answer is read. A
+choice's label is read in it, from the submission's own version, or in the
+form's default locale where the version has no catalogue in it. Data read
+in a translation's locale names that locale in its source, and data read
+in the report's own names none; the runtime refuses data whose labels
+were read in another locale than the render's.
+
 **The binding is in the report**, on its dataset contracts (report-spec
 validates its shape). The header reads `{ kind: 'submission' }`; the
 detail `{ kind: 'repeater', repeater: 'findings' }` or `{ kind:
@@ -94,7 +105,7 @@ version whose fields are where the report reads them prints.
 | `richtext` | `string` | its plain text, by formancy's `richTextToPlain`; the formatting is lost |
 | `number` | `integer`, `decimal` | by the number rule, below |
 | `checkbox` | `boolean` | |
-| `select`, `radio` | `string` | the option's label in the report's locale, from the submission's own version; or its stored value, with `read: 'value'`. Options a deployment resolves (`optionsSource`) are labelled by the host's `labels` |
+| `select`, `radio` | `string` | the option's label in the locale the read names, the report's own by default, from the submission's own version; or its stored value, with `read: 'value'`. Options a deployment resolves (`optionsSource`) are labelled by the host's `labels` |
 | `date` | `date` | |
 | `datetime` | `instant` | formancy's is UTC, with `Z` |
 | `matrix` | `string` | one row, its `member`: the chosen column's label or value |
@@ -332,7 +343,12 @@ the compiler refuses that it did not refuse before: printing nothing of a
 decimal compared with `==` is not offered, since a nullable decimal loses
 `==` (0009). The compiler is asked of the expressions report-core's
 `fieldReaders` says such a change reaches, each once, never of the whole
-report for each resolution.
+report for each resolution. A report written in several languages is
+judged in each (0063): such a resolution is offered only where report-core's
+`languageDiagnostics` gives no error in a language the report declares that
+it did not give before, since a translation of an expression may read the
+field otherwise than its source. A relabel says the report's own words, and
+leaves their translations unused until each is written again.
 
 **The override** a review writes is the report's, on the binding,
 keyed by the version's `schemaHash`:

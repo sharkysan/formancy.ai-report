@@ -85,7 +85,20 @@ clamps when what it names is not there:
   condition, `rowsWhen`, changes through `updateComponent`, and a further
   table comes in by `insertComponent` or `duplicateComponent`, which the
   session refuses in a report that is an e-invoice
-  ([0062](../../docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md));
+  ([0062](../../docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)). How
+  many of its first rows a group header is kept with, the group's
+  `keepWithRows`, has no command of its own: `setGroup` and
+  `updateComponent` carry it with the rest of the group, and the session
+  holds it to the validator, as every edit
+  ([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md));
+- **the first page header**, which page 1 prints in place of the page
+  header: `putFirstPageHeader(report, components)` gives page 1 a header of
+  its own, added or in place of the one it has, an empty one printing no
+  header; `removeFirstPageHeader` gives page 1 the page header back, what
+  its own held with it, and is refused as `not-found` where there is none.
+  Every component command works in it once it is there; a location in it
+  while it is not is refused as `not-found`
+  ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md));
 - **the payment part**, the report's Swiss QR-bill: `putPaymentPart` (the
   bill whole, added or in place of one), `updatePaymentPart` (a patch of
   its properties, never its kind) and `removePaymentPart`, which judge
@@ -104,6 +117,17 @@ clamps when what it names is not there:
   own account then; whether each place takes the account is the
   validator's to say, each by its own rule, and no BIC is changed
   ([0044](../../docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
+- **the report's languages** ([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)): `addLanguage(report,
+  locale)`, a language with no words yet, refused as `already-declared`
+  for the report's own and one it has; `removeLanguage(report, locale)`,
+  with its words, the last leaving the report without translations;
+  `translateWord(report, locale, word, text)`, a word of the report's own
+  language written in a language it has, or taken back for `null`; and
+  `translateExpression(report, locale, cel, expression)`, an expression
+  that stands where words do written again in it. A word or a source the
+  report prints nowhere a word stands, and a language it has no
+  translation in, are refused as `not-found`; a blank translation and a
+  locale written otherwise are the validator's, which the session asks;
 - **a field with what reads it:** `removeFieldWithReaders(report, role, id)`
   removes the field and every component, column, footer cell, sort key,
   group and aggregate that reads it, and every reader of such an
@@ -174,10 +198,11 @@ call to a command can pass none of these.
   move to it takes: the start of a keyboard move, the place to put focus
   after a deletion.
 - `locations(report)` is every place a component could be put, in reading
-  order.
+  order, in every region the report holds: a first page header's only where
+  it has one.
 - `validLocations(report, componentOrId)` is the places the validator
-  accepts it in: a page counter only in the page header and footer, a table
-  never inside columns.
+  accepts it in: a page counter only in the page header and footer, never
+  in the first page's own header, a table never inside columns.
 
 The validator decides what may stand where (0007), so `validLocations` asks
 it, place by place, rather than copying its rules. It validates the whole
@@ -330,6 +355,23 @@ one.
   debtor or the QR reference a builder puts in, report-spec's
   `QR_BILL_EXAMPLE` (`example-payment-part`, one warning on `/paymentPart`
   naming each term that is an example).
+- **In each language a report's translations declare**, after the
+  report's own and naming it as `language`, `languageDiagnostics(report,
+  locale)`'s (0063): each word the language does not translate, and each
+  expression that prints words, once where it first stands
+  (`word-missing`); a translated expression of another type than its
+  source, that reads another member or fails to read one, or that
+  translates an expression printing no words (`translation-differs`);
+  every diagnostic the report written in that language gives that its
+  own does not, a translated expression's at its translation; and a
+  translation of what the report no longer prints (`unused-translation`,
+  a warning). An expression where a word stands prints words where it
+  gives a string or a value the compiler cannot type, its run prints it
+  as text, and its source holds a quote. An error that names a language
+  refuses a render in that language alone; one that names none refuses
+  every render. `wordExpressions(report)` gives those expressions, every
+  place each stands, by the same verdict: what the builders mark and edit
+  as words, so that they ask for no translation the diagnostics do not.
 
 Every member read is checked as its type. `@formancy/expressions` 0.12.0,
 as 0.5.0 to 0.7.0 and 0.11.0 before it, declares a variable only by its whole name, so each read of `row.amount` is

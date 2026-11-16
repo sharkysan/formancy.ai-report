@@ -19,14 +19,37 @@
  * takes its own button away, and the keyboard goes to the first field, the
  * bill's IBAN, as it does when a Remove takes its row.
  * Under the report's own fields, its images (`image-library.ts`, 0033).
+ *
+ * Each run of a paragraph is such a group, its buttons Subscript and
+ * Superscript, each named after the run, showing only its own word, and
+ * `aria-pressed` as the run is set (0061). Pressed, one sends the
+ * selection of its group's text field -- its start, its end and the text
+ * it is of -- read from the element as the button is pressed: the one
+ * thing only the DOM knows, which the editor applies to the text the
+ * report holds and to nothing else. The keyboard then goes where the
+ * editor's outcome says, the run that holds the text now.
  */
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { PROPERTY_ROLES } from '@formancy/report-builder-core'
-import type { PropertyAction, PropertyField } from '@formancy/report-builder-core'
+import type { EditorAction, PropertyAction, PropertyField } from '@formancy/report-builder-core'
 import { ReportImageLibrary } from './image-library'
 import { CONTROLS, ReportPropertyRow } from './property-row'
 import type { Control, Shown } from './property-row'
 import { ReportEditorRoot } from './root'
+
+/**
+ * What a group's button sends: a run's `setBaseline` with what its group's
+ * text field has selected, read from the element now, as only the DOM
+ * knows it (0061); any other action as the state gives it. A field bound
+ * to a value is a select, and has no selection: its run is set whole.
+ */
+function sent(action: EditorAction, group: HTMLElement): EditorAction {
+  if (action.type !== 'setBaseline') return action
+  const field = group.querySelector('input, textarea')
+  if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) || field.selectionStart === null || field.selectionEnd === null)
+    return action
+  return { ...action, selected: { start: field.selectionStart, end: field.selectionEnd, text: field.value } }
+}
 
 /** A group of fields as the form draws it: its name, its fields and its buttons. */
 interface ShownGroup {
@@ -55,13 +78,19 @@ interface Row {
   template: `
     @for (row of rows(); track row.key) {
       @if (row.group; as group) {
-        <div role="group" data-report-part="property-group" [attr.aria-label]="group.label">
+        <div #element role="group" data-report-part="property-group" [attr.aria-label]="group.label">
           <span aria-hidden="true">{{ group.label }}</span>
           @for (shown of group.fields; track shown.id) {
             <div reportPropertyRow [shown]="shown"></div>
           }
           @for (action of group.actions; track $index) {
-            <button type="button" [attr.aria-disabled]="action.available ? null : 'true'" (click)="press(action)">{{ action.label }}</button>
+            <button
+              type="button"
+              [attr.aria-label]="action.text === undefined ? null : action.label"
+              [attr.aria-pressed]="action.pressed === undefined ? null : action.pressed"
+              [attr.aria-disabled]="action.available ? null : 'true'"
+              (click)="press(action, element)"
+            >{{ action.text ?? action.label }}</button>
           }
         </div>
       } @else {
@@ -91,7 +120,10 @@ export class ReportProperties {
       const id = `${this.root.id}-${owner}-${String(index)}`
       index += 1
       const control: Control = field.kind === 'multiline' ? 'textarea' : CONTROLS[PROPERTY_ROLES[field.kind]]
-      return { field, control, id, errorId: field.error === undefined ? null : `${id}-error` }
+      const errorId = field.error === undefined ? null : `${id}-error`
+      const noteId = field.note === undefined ? null : `${id}-note`
+      const described = [errorId, noteId].filter((part) => part !== null).join(' ')
+      return { field, control, id, errorId, noteId, describedBy: described === '' ? null : described }
     }
     return properties.rows.map((row): Row => {
       if ('field' in row) {
@@ -113,8 +145,7 @@ export class ReportProperties {
   }
 
   /** A group's button: what it says it does, the keyboard going where the editor says once it is done. */
-  protected press(action: PropertyAction): void {
-    if (action.then === undefined) this.root.dispatch(action.action)
-    else this.root.attempt(action.action, { to: 'group', ...action.then })
+  protected press(action: PropertyAction, group: HTMLElement): void {
+    this.root.attempt(sent(action.action, group), action.then === undefined ? undefined : { to: 'group', ...action.then })
   }
 }

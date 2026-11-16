@@ -8,12 +8,12 @@ import { duplicateComponent, insertComponent, moveComponent, nextComponentId, re
 
 const note = (id: string): TextComponent => ({ id, kind: 'text', content: [{ kind: 'text', text: id }] })
 
-/** The ids of a region's top-level components, or of a container's, as `where` names it. */
+/** The ids of a region's top-level components, or of a container's, as `where` names it; none in a region the report leaves out. */
 function idsAt(report: ReportDefinition, where: string): string[] {
   const [region, parent, column] = where.split(':')
   const list =
     parent === undefined
-      ? report.regions[region as keyof ReportDefinition['regions']]
+      ? (report.regions[region as keyof ReportDefinition['regions']] ?? [])
       : ((): readonly Component[] => {
           const found = componentAt(report, parent)?.component
           if (found?.kind === 'columns') return found.columns[Number(column)]?.components ?? []

@@ -10,7 +10,9 @@
  * keys, ties in the provider's order. Then, in that order:
  *
  * - for each group, one line across the table read in the group's scope,
- *   its rows, and its footer rows, whose aggregates are the group's;
+ *   which keeps as many of the group's first rows as the group states, or
+ *   all of them where it has fewer, and says so only above one (0059); its
+ *   rows; and its footer rows, whose aggregates are the group's;
  * - the totals rows, read in the table's scope, whose `table` is the
  *   table's aggregates over its rows and `totals` every row's;
  * - with no detail rows, the table's empty text in their place, and its
@@ -99,7 +101,15 @@ function groupedRows(lowering: Lowering, groups: NonNullable<ReturnType<typeof o
     if (render.problems.full) break
     const scope = groupScope(render, each, render.totals.over(each.rows), lowering.totals, group.by.field)
     const runs = group.header.map((inline, index) => runOf(render, scope, inline, `${path}/group/header/${index}`, { componentId: table.id }))
-    rows.push({ kind: 'groupHeader', cells: [textOfRuns(runs.filter((run) => run !== undefined))], across: true, ...rowStyle(lowering, group.headerStyle) })
+    // Counted against the group made here, so that no engine counts a group again; one row kept is every header's rule, and no member.
+    const keep = Math.min(group.keepWithRows ?? 1, each.rows.length)
+    rows.push({
+      kind: 'groupHeader',
+      cells: [textOfRuns(runs.filter((run) => run !== undefined))],
+      across: true,
+      ...rowStyle(lowering, group.headerStyle),
+      ...(keep > 1 ? { keepWithRows: keep } : {}),
+    })
     for (const row of each.rows) rows.push(detailRow(lowering, row))
     rows.push(...footerRows(lowering, group.footer, `${path}/group/footer`, 'groupFooter', scope))
   }

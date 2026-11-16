@@ -1,6 +1,19 @@
 import { createHash } from 'node:crypto'
 import pdfmake from 'pdfmake'
-import { inspectionData, rasterPixels, readAnnotations, readPdf, SERVICE_INSPECTION, SVG_MARK, SVG_WINDOW, verify, verifyInk } from '@formancy/report-corpus'
+import {
+  expectation,
+  inspectionData,
+  rasterPixels,
+  readAnnotations,
+  readPdf,
+  SERVICE_INSPECTION,
+  SVG_MARK,
+  SVG_WINDOW,
+  verify,
+  verifyInk,
+  type Fixture,
+  type ReadPdf,
+} from '@formancy/report-corpus'
 import {
   checkSvg,
   MAX_SVG_GROUPS,
@@ -17,7 +30,7 @@ import { describe, expect, test } from 'vitest'
 import { drawingUnits, MAX_SVG_DRAWING } from './assets.js'
 import { renderPdf } from './node.js'
 import { converterOptions } from './svg-content.js'
-import { bareDocument, fixtureOf, paragraph, TIMEOUT } from './testing/documents.js'
+import { bareDocument, documentOf, fixtureOf, paragraph, TIMEOUT } from './testing/documents.js'
 import { readDrawing } from './testing/drawing.js'
 import { colourAt, DRAWINGS, inkBox, MARK, MARK_COLOURS, svg, svgAsset } from './testing/svg.js'
 
@@ -181,6 +194,40 @@ describe('an SVG image', () => {
     TIMEOUT,
   )
 
+  // An SVG image stands where its author put it: beside text in a column,
+  // framed in a section. The corpus seeks the body's drawings through
+  // every container (`drawingsOf`), where it once sought only those
+  // outside a column or a section, and a logo lost from either passed. On
+  // the corpus's own expectation, the renderer's PDF passes, and the same
+  // PDF with the column's drawing taken out of its clip is said to lack it.
+  test(
+    'in a column and in a section, is found by the corpus where it stands',
+    async () => {
+      const document = documentOf('Containers', [
+        paragraph('Before'),
+        {
+          kind: 'columns',
+          columns: [
+            { width: 'fill', blocks: [paragraph('Beside the mark')] },
+            { width: 'fill', blocks: [image(svgAsset(MARK), 40, 40)] },
+          ],
+        },
+        { kind: 'section', padding: 6, blocks: [image(svgAsset(MARK), 50, 30)] },
+      ])
+      const each: Fixture = { id: 'containers', title: 'Containers', document, maxPages: 5, expect: expectation(document, { maxPagesExpected: 1 }) }
+      const pdf = await readPdf(await rendered(document))
+      expect(verify(each, pdf)).toEqual([])
+      const [page] = pdf.pages
+      const clip = page!.clips.findIndex(({ width, height }) => width === 40 && height === 40)
+      const lost: ReadPdf = { ...pdf, pages: [{ ...page!, paths: page!.paths.filter((path) => path.clip !== clip) }] }
+      expect(verify(each, lost)).toEqual([
+        // The second column: 40 + 515.28 / 2 across; down, the page header's 8 pt line, its 6 pt gap, and the 9 pt line above it.
+        'containers: the SVG image 1 of the body, 40 × 40 pt, has its clip at 297.64, 61.92 on page 1, and nothing painted inside it',
+      ])
+    },
+    TIMEOUT,
+  )
+
   // pdfmake lays a page region out again for every page and the converter
   // draws the drawing again each time: on each of three pages, the clip of
   // its box and its paths in its colours.
@@ -265,7 +312,7 @@ describe('what SVG images may cost a render', () => {
   // holds it to is drawn, and one more page is past it, though the report
   // prints one. In the body it counts once, at any limit.
   test(
-    'counts an SVG in a page region on every page the report may have, and refuses past MAX_SVG_DRAWING',
+    'counts an SVG in the page header on every page the report may have, and refuses past MAX_SVG_DRAWING',
     async () => {
       const asset = svgAsset(path(MAX_SVG_DRAWING / 100 - 1 - 24 - 2000), 'logo')
       const checked = checkSvg(asset.bytes)
@@ -279,7 +326,7 @@ describe('what SVG images may cost a render', () => {
       await expect(header(pages + 1)).rejects.toMatchObject({
         code: 'content-too-large',
         subject: 'logo',
-        message: `the SVG images up to logo cost ${cost * (pages + 1)} units to draw, each in a page region counted on every page the report may have; a render may draw ${MAX_SVG_DRAWING}`,
+        message: `the SVG images up to logo cost ${cost * (pages + 1)} units to draw, each in the page header or footer counted on every page the report may have, one in page 1's own header once; a render may draw ${MAX_SVG_DRAWING}`,
       })
       await expect(rendered(bareDocument('Body', [image(asset, 30, 30)]), pages + 1)).resolves.toBeInstanceOf(Uint8Array)
     },

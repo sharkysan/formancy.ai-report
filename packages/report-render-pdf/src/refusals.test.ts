@@ -1,13 +1,13 @@
 import pdfmake from 'pdfmake'
 import browserPdfmake from 'pdfmake/build/pdfmake.js'
 import { readPdf } from '@formancy/report-corpus'
-import { MAX_FONT_SIZE, MIN_FONT_SIZE, XRECHNUNG_COPY_PARAGRAPH } from '@formancy/report-runtime'
-import type { AxisChart, Block, Image, Paragraph, ResolvedDocument, Section, Table, TableColumn, TextStyle } from '@formancy/report-runtime'
+import { MAX_FONT_SIZE, MAX_KEEP_WITH_ROWS, MIN_FONT_SIZE, XRECHNUNG_COPY_PARAGRAPH } from '@formancy/report-runtime'
+import type { Block, Image, Paragraph, ResolvedDocument, Section, Table, TableColumn, TableRow, TextStyle } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { MAX_DEPTH } from './check.js'
 import { renderPdf } from './node.js'
-import { BODY_HEIGHT, details, documentOf, ledger, PAGE, paragraph, PRINTABLE_WIDTH } from './testing/documents.js'
+import { bareDocument, BODY_HEIGHT, details, documentOf, ledger, PAGE, paragraph, PRINTABLE_WIDTH, SMALL_SIZE } from './testing/documents.js'
 import { copied, E_INVOICE_FILE, invoiced, XRECHNUNG_FILE } from './testing/e-invoice.js'
 import { encodePng } from './testing/images.js'
 import { pageLines } from './testing/lines.js'
@@ -81,39 +81,6 @@ describe('what pdfmake cannot place', () => {
     expect(
       await refusal(documentOf('Table in a column', [{ kind: 'columns', columns: [{ width: 'fill', blocks: [ledger('beside', details(1, 2))] }] }])),
     ).toMatchObject({ code: 'unsupported', subject: 'beside' })
-  })
-})
-
-describe('a chart', () => {
-  const sales: AxisChart = {
-    kind: 'chart',
-    chart: 'bar',
-    id: 'sales',
-    width: 300,
-    height: 200,
-    title: 'Sales',
-    legend: [],
-    categories: ['North', 'South'],
-    series: [{ color: '#1f77b4', values: [{ exact: '10.25', text: '10.25' }, null] }],
-    ticks: ['0', '5', '10', '15'].map((exact) => ({ exact, text: exact })),
-    valueLabels: false,
-  }
-
-  // A chart skipped would print a report without it, and nothing would say
-  // so: until the renderer draws one it refuses it, naming it, in either
-  // entry and wherever it stands -- in the body, in a column, kept on a page.
-  test.each([
-    ['in the body', 'in Node', [paragraph('Before'), sales]],
-    ['in a column', 'in Node', [{ kind: 'columns', columns: [{ width: 'fill', blocks: [sales] }] }]],
-    ['kept together', 'in Node', [{ kind: 'keepTogether', blocks: [paragraph('Heading'), sales] }]],
-    ['in the body', 'in a browser', [sales]],
-  ] as const)('refuses a chart it does not draw yet, naming it, %s, %s', async (_, entry, body) => {
-    const render = entry === 'in Node' ? renderPdf : renderInBrowser
-    const error = await render(documentOf('Chart', body as readonly Block[]), { maxPages: 5 }).then(
-      () => 'rendered',
-      (refused: unknown) => refused,
-    )
-    expect(error).toMatchObject({ code: 'unsupported', subject: sales.id, message: 'the chart sales is not drawn by this release of the renderer' })
   })
 })
 
@@ -386,6 +353,72 @@ describe('what is malformed', () => {
   })
 })
 
+describe("a group header's kept rows", () => {
+  /** A group header keeping `keepWithRows`, over `details` detail rows and a subtotal. */
+  const kept = (keepWithRows: unknown, details: number, kind: TableRow['kind'] = 'groupHeader'): Table =>
+    ledger('kept', [
+      { kind, cells: ['Delivery D01', '', ''], keepWithRows: keepWithRows as number },
+      ...Array.from({ length: details }, (_, index): TableRow => ({ kind: 'detail', cells: [`ROW-${index + 1}`, 'An item', '1.00'] })),
+      { kind: 'groupFooter', cells: ['Subtotal D01', '', '1.00'] },
+    ])
+
+  // The count is the runtime's, resolved against the group it made, and
+  // the renderer counts no group (0059). A document the runtime did not
+  // resolve is held to what the runtime writes -- on a group header alone,
+  // a whole number from two, the one row every header keeps being no
+  // member, to the bound, and never past the detail rows under it -- so
+  // that a row which says it keeps rows is never guessed at: a header of
+  // two rows keeping three would take the next group's header with them,
+  // and a total keeping rows would keep what nothing asked for.
+  test.each([
+    ['on a row that is no group header', kept(2, 3, 'detail'), 'row 0 of table kept keeps rows with it, and only a group header does'],
+    [
+      'of one',
+      kept(1, 3),
+      `row 0 of table kept, a group header, keeps 1 rows; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    [
+      'of none',
+      kept(0, 3),
+      `row 0 of table kept, a group header, keeps 0 rows; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    [
+      'past the bound',
+      kept(MAX_KEEP_WITH_ROWS + 1, MAX_KEEP_WITH_ROWS + 1),
+      `row 0 of table kept, a group header, keeps ${MAX_KEEP_WITH_ROWS + 1} rows; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    [
+      'that is not whole',
+      kept(2.5, 3),
+      `row 0 of table kept, a group header, keeps 2.5 rows; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    // Text where the count stands joins a row's place as text: the header at place 1 keeping '3' would have kept rows to place 13.
+    [
+      'that is not a number',
+      kept('3', 3),
+      `row 0 of table kept, a group header, keeps rows by a count of type string; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    [
+      'that is no number at all',
+      kept(Number.NaN, 3),
+      `row 0 of table kept, a group header, keeps NaN rows; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    [
+      'of nothing',
+      kept(null, 3),
+      `row 0 of table kept, a group header, keeps rows by a count of type object; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
+    ],
+    ['past the detail rows under it', kept(3, 2), 'row 0 of table kept, a group header, keeps 3 rows, and 2 detail rows follow it'],
+  ] as const)('refuses a count %s, naming the table', async (_, table, message) => {
+    expect(await refusal(documentOf('Kept rows', [table]))).toMatchObject({ code: 'unsupported', subject: 'kept', message })
+  })
+
+  // What the runtime writes prints: two rows, and the bound over as many.
+  test.each([2, MAX_KEEP_WITH_ROWS])('prints a group header keeping %i of its rows', async (count) => {
+    expect(await refusal(documentOf('Kept rows', [kept(count, count)]))).toBe('rendered')
+  })
+})
+
 describe('an image asset that is not what it says', () => {
   // The media type picks the check the bytes are held to, and the engine's
   // way of drawing them: an SVG read as a PNG is refused as a broken PNG,
@@ -644,12 +677,204 @@ describe('an XRechnung', () => {
     }
   })
 
+  // Page 1 prints its own header in the page header's place (0060), so
+  // the label heads it too, as the runtime writes it: without it page 1,
+  // the page a reader sees first, would say nothing of what the PDF is.
+  // Its header that is none is refused alike: page 1 would print no label.
+  test.each([
+    ['a first page header without it', [paragraph('Briefkopf')]],
+    ['a first page header that is none', []],
+  ] as const)('with %s is refused, naming it', async (_, firstPageHeader) => {
+    for (const [, render] of ENTRIES) {
+      expect(await outcome(render, { ...copy(), firstPageHeader })).toMatchObject({
+        code: 'unsupported',
+        subject: 'firstPageHeader',
+        message:
+          "an XRechnung's PDF is a copy of its XML, labelled so at the top of every page, and this document's first page header does not open with the label as the runtime writes it",
+      })
+    }
+    expect(await outcome(renderPdf, { ...copy(), firstPageHeader: [XRECHNUNG_COPY_PARAGRAPH, ...firstPageHeader] })).toBe('rendered')
+  })
+
   // The XRechnung the renderer knows is drawn in either entry, as a plain
   // PDF: its title reaches no XMP, so one with an ampersand is drawn too
   // (`xrechnung.test.ts` reads what is drawn).
   test.each(ENTRIES)('it knows is drawn %s, its title whatever it is', async (_, render) => {
     expect(await outcome(render, copy())).toBe('rendered')
     expect(await outcome(render, { ...copy(), info: { ...copy().info, title: 'Müller & Söhne <AG>' } })).toBe('rendered')
+  })
+})
+
+describe("page 1's own header (0060)", () => {
+  // A page number or count in page 1's own header has no value: it is
+  // drawn when page 1 is added, before the pages are counted, and pdfmake
+  // knows the count only in the header and footer it draws after the
+  // layout. A 1 printed there would be text; nothing, a field lost.
+  test.each([
+    ['at its top level', [paragraph('Letterhead'), { kind: 'paragraph', runs: [{ text: 'Page ' }, { field: 'pageNumber' }] }], 'firstPageHeader[1]'],
+    [
+      'in a column',
+      [{ kind: 'columns', columns: [{ width: 'fill', blocks: [{ kind: 'paragraph', runs: [{ field: 'pageCount' }] }] }] }],
+      'firstPageHeader[0].columns[0].blocks[0]',
+    ],
+  ] as const)('refuses a page field %s', async (_, firstPageHeader, subject) => {
+    expect(await refusal({ ...documentOf('Own field', [paragraph('Body')]), firstPageHeader })).toMatchObject({
+      code: 'unsupported',
+      subject,
+      message: `${subject} prints a page field; page 1's own header is drawn before the pages are counted, and page 1's number and count print in the page footer`,
+    })
+  })
+
+  // It is a page region: a page break in it asks for two things at once.
+  test('refuses a page break in it', async () => {
+    expect(await refusal({ ...documentOf('Own break', [paragraph('Body')]), firstPageHeader: [paragraph('Letterhead'), { kind: 'pageBreak' }] })).toMatchObject(
+      {
+        code: 'unsupported',
+        subject: 'firstPageHeader[1]',
+        message: 'firstPageHeader[1] is a page break inside a page region',
+      },
+    )
+  })
+
+  // Page 1's own header is measured as the page header is: one that with
+  // the page footer leaves page 1 no body would print over it, and one
+  // taller than the printable area would lose lines in the box it is drawn
+  // in. Each is refused, naming it.
+  test.each([
+    [80, 'the first page header and the page footer leave page 1 no room for its body (-1.49 pt)'],
+    [100, 'the first page header is taller than the printable area'],
+  ])('refuses a first page header of %i lines of 8 pt', async (lines, message) => {
+    const firstPageHeader = Array.from({ length: lines }, (_, index) => paragraph(`Letterhead line ${index + 1}`, { size: 8 }))
+    expect(await refusal({ ...documentOf('Tall own header', [paragraph('Body')]), firstPageHeader })).toMatchObject({
+      code: 'content-too-large',
+      subject: 'firstPageHeader',
+      message,
+    })
+  })
+
+  // How many pages a report has is known only once they are laid out, so
+  // the page header is held to leaving a body though a one-page report
+  // prints its own header in its place: the cost the record names.
+  test('still refuses a page header that leaves the later pages no body', async () => {
+    const pageHeader = Array.from({ length: 80 }, (_, index) => paragraph(`Header line ${index + 1}`, { size: 8 }))
+    expect(await refusal({ ...documentOf('Tall header', [paragraph('Body')]), pageHeader, firstPageHeader: [paragraph('Letterhead')] })).toMatchObject({
+      code: 'content-too-large',
+      message: expect.stringMatching(/^the page header and footer leave no room for the body/),
+    })
+  })
+
+  // pdfmake draws an image, an SVG or a QR code first on a page that holds
+  // nothing whatever its room, and page 1 under a header of space alone --
+  // room left for a letterhead printed on the paper -- holds nothing: an
+  // image only a later page holds would be drawn past page 1's body, over
+  // its footer. A block of fixed height is held to the shorter body.
+  test('refuses an image page 1’s shorter body cannot hold, and draws one it can', async () => {
+    const image: Image = { kind: 'image', asset: dot('tall'), width: 100, height: 600, fit: 'cover' }
+    const spaced = (height: number): ResolvedDocument => ({ ...documentOf('Spaced', [image]), firstPageHeader: [{ kind: 'spacer', height }] })
+    expect(await refusal(spaced(200))).toMatchObject({
+      code: 'content-too-large',
+      subject: 'tall',
+      message: 'the image tall is 600.00 pt tall; the body is 548.51 pt where it stands',
+    })
+    expect(await refusal(spaced(100))).toBe('rendered')
+  })
+
+  describe('under a page header taller than its own', () => {
+    /**
+     * `body` on a printable area 300 pt tall, under a page header of ten
+     * 8 pt lines, which takes 99.75 pt of every later page, and a first
+     * page header that is none: page 1's body is the whole 300 pt, every
+     * later page's 200.25, ending at 570.95 pt.
+     */
+    const tallerPageOne = (title: string, body: readonly Block[]): ResolvedDocument => ({
+      ...bareDocument(title, body),
+      page: { ...PAGE, margins: { ...PAGE.margins, top: 270.945, bottom: 270.945 } },
+      pageHeader: Array.from({ length: 10 }, (_, index) => paragraph(`Header line ${index + 1}`, { size: SMALL_SIZE })),
+      firstPageHeader: [],
+    })
+    /** Twenty lines of 9 pt Roboto, 210.94 pt: page 1's body holds them, and not a block of 90 pt more. */
+    const filler = Array.from({ length: 20 }, (_, index) => paragraph(`Filler line ${index + 1}`))
+    const kept = (lines: number): Block => ({ kind: 'keepTogether', blocks: Array.from({ length: lines }, (_, index) => paragraph(`Kept line ${index + 1}`)) })
+    /** Each page as the PDF prints it, the page header's lines left out: its lines' text, and its images' boxes. */
+    const printed = async (document: ResolvedDocument): Promise<{ lines: string[]; images: { top: number; bottom: number }[] }[]> =>
+      (await readPdf(await renderPdf(document, { maxPages: 5 }))).pages.map((page) => ({
+        lines: pageLines(page)
+          .map((line) => line.text)
+          .filter((text) => !text.startsWith('Header line')),
+        images: page.images.map(({ top, bottom }) => ({ top, bottom })),
+      }))
+
+    // Page 1's body is taller than the later pages' where its own header
+    // takes less room than the page header, and where a kept block lands
+    // is known only once pdfmake has laid the body out, so it is held to
+    // the later pages' body: a block only page 1 could hold, moved past
+    // page 1 by what stands before it, reaches a page that cannot hold it
+    // whole. With it held to page 1's body (measured on 2026-11-15), 20
+    // kept lines, 210.94 pt, after the filler printed the filler on page 1
+    // and nothing on page 2, the block gone and the render a success. It
+    // is refused there, and at the head of a report that would end on page
+    // 1, as the record's cost says; 18 lines, 189.84 pt, print whole.
+    test('refuses a kept block only page 1’s taller body could hold, naming it', async () => {
+      const message = (at: string): string => `the keep-together block ${at} is 210.94 pt tall; a page's body is 200.25 pt where it stands`
+      expect(await refusal(tallerPageOne('Kept', [kept(20)]))).toMatchObject({ code: 'content-too-large', subject: 'body[0]', message: message('body[0]') })
+      expect(await refusal(tallerPageOne('Kept after', [...filler, kept(20)]))).toMatchObject({
+        code: 'content-too-large',
+        subject: 'body[20]',
+        message: message('body[20]'),
+      })
+      const pages = await printed(tallerPageOne('Kept after', [...filler, kept(18)]))
+      expect(pages.map((page) => page.lines.filter((line) => line.startsWith('Kept line')).length)).toEqual([0, 18])
+    })
+
+    // An image, or any block of fixed height, is held to the shorter body
+    // whichever page that is, here a later page's. With it held to page
+    // 1's body (measured on 2026-11-15), a 250 pt image after the filler
+    // was drawn on page 2 from 370.70 pt to 620.70, 49.75 pt past the
+    // body's foot, and nothing refused it. Refused there and alone, where
+    // page 1 would hold it; one of 200 pt is drawn within page 2's body.
+    test('refuses an image only page 1’s taller body could hold, naming it', async () => {
+      const image = (height: number): Image => ({ kind: 'image', asset: dot('tall'), width: 100, height, fit: 'cover' })
+      const refused = { code: 'content-too-large', subject: 'tall', message: 'the image tall is 250.00 pt tall; the body is 200.25 pt where it stands' }
+      expect(await refusal(tallerPageOne('Image', [image(250)]))).toMatchObject(refused)
+      expect(await refusal(tallerPageOne('Image after', [...filler, image(250)]))).toMatchObject(refused)
+      const [first, second] = await printed(tallerPageOne('Image after', [...filler, image(200)]))
+      expect(first?.images).toEqual([])
+      expect(second?.images).toHaveLength(1)
+      expect(second!.images[0]!.bottom).toBeLessThanOrEqual(570.945 + 0.01)
+    })
+
+    // A table's line must fit under its column header on every page the
+    // table continues on, which is a later page's body: a 96 pt row under
+    // a 96 pt header needs 234.50 pt and a point more, which page 1's 300
+    // pt holds and a later page's 200.25 does not. With the line held to
+    // page 1's body (measured on 2026-11-15), the table's first row printed
+    // on page 1 and its second was gone, page 2 printing the header alone.
+    // 40 pt rows under a 40 pt header need 103.25 pt, and print.
+    test('refuses a table whose line only page 1’s taller body could hold under its header, naming it', async () => {
+      const columns: TableColumn[] = [
+        { width: 'fill', align: 'left' },
+        { width: 'fill', align: 'left' },
+      ]
+      const table = (size: number): Table => ({
+        kind: 'table',
+        id: 'under',
+        columns,
+        header: ['H1', 'H2'],
+        headerStyle: { size },
+        rows: [
+          { kind: 'detail', cells: ['BIG', 'x'], style: { size } },
+          { kind: 'detail', cells: ['BIG2', 'y'], style: { size } },
+        ],
+        emptyText: 'none',
+      })
+      expect(await refusal(tallerPageOne('Table', [table(96)]))).toMatchObject({
+        code: 'content-too-large',
+        subject: 'under',
+        message:
+          "row 0 of table under, a detail row, has a line that needs 234.50 pt of a page under the table's repeated header, and a point more for rounding; a page's body is 200.25 pt where it stands",
+      })
+      expect((await printed(tallerPageOne('Table', [table(40)]))).map((page) => page.lines)).toEqual([['H1 H2', 'BIG x', 'BIG2 y']])
+    })
   })
 })
 

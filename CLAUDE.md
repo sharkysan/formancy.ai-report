@@ -50,7 +50,14 @@ this repository's terms from the same rightsholder: they are admitted each
 for one package alone -- Data's client and core for `report-data-provider`,
 Data's identity verifier for `report-server` -- at an exact version, with
 the licence file a review read (`FORMANCY_DATA`, 0006 as 0016 and 0047
-extend it). A commercial
+extend it). Apache ECharts and zrender, which the renderer lays a chart
+out with, are permissive and judged so, and admitted further for
+`report-render-pdf` alone, each at exactly 6.1.0, by the digests of the
+licence files a review read (`CONFINED`, 0006 as 0058 extends it):
+another version, a licence file of other bytes, and any other published package
+that depends on either itself, ECharts on zrender aside, are refused, so
+that no builder depends on a charting library; the tslib 2.3.0 they pin
+is judged as any package. A commercial
 component needs written redistribution rights. Fonts must be licensed for embedding in generated PDFs.
 `scripts/dependency-licences.mjs` holds this for the production dependencies
 of every publishable package and every font they ship, reading a font's
@@ -120,6 +127,12 @@ document and sends it, and the renderer draws its PDF as a plain copy,
 refused unless its header leads with the runtime's
 `XRECHNUNG_COPY_PARAGRAPH`
 ([0038](docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+A report that is no e-invoice is drawn as a PDF/A-2b where the host asks,
+`pdfa: '2b'`, what a document is drawn as decided once in the renderer's
+`pdfa-check.ts`, which refuses a Factur-X, an XRechnung's copy and a
+labelled preview as one, and holds the PDF/A-3b's refusals of a title and
+a CMYK JPEG, and 0030's bound on an SVG, for it
+([0057](docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 Both builders select a report's e-invoice, from its outline row after the
 bill's, and edit it field by field -- report-builder-core's
 `invoice-fields.ts` is a table over every term of either kind, its VAT
@@ -141,7 +154,8 @@ renderer draws, and `checkSvg`, which accepts only that form; the runtime
 hands both on and refuses an answer past `MAX_SVG_BYTES`; and the renderer
 draws only what `checkSvg` accepts, as vectors, behind its own list of
 elements in `svg-content.ts` and converter callbacks that refuse, a logo
-in a page region counted on every page against `MAX_SVG_DRAWING`
+in the page header or footer counted on every page against
+`MAX_SVG_DRAWING`, and one in page 1's own header once
 ([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 A font is read once, by report-spec's own reader: `readFont`, in
 `font.ts` and the `font-*.ts` beside it, reads a static TrueType font
@@ -173,8 +187,26 @@ the one walk that lays them out (`styledRows`), and refuses a face the
 family does not map and a character the face lacks, a page field's digits
 included; the QR-bill's slip and the EPC caption keep Liberation Sans
 ([0043](docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
-A chart, a component, is known to report-spec, report-core and the
-runtime, refused by the renderer, and not offered by the builders yet: its
+A run of a paragraph may be set below or above the line, in any character
+its face draws: report-spec's `BASELINE_SHIFTS` on a run of literal text,
+a field, a parameter, an expression or an aggregate in a text component
+alone, refused as `misplaced-baseline` wherever else a run is read and as
+`unknown-property` on a page counter (`validate-inline.ts`); the runtime's
+document carries it and states what it prints as, `SHIFTED_SIZE` and
+`SHIFTED_RISE`, pdfmake 0.3.11's own (`document.ts`); the renderer hands
+pdfmake its `sub` and `sup` (`content.ts`), gives a line that holds a
+lowered run `LOWERED_LINE` of room and counts it (`bound.ts`), and from
+pdfmake's own words refuses a word that holds such a run and no run on the
+line printing a character as `unsupported`, and one wider than its line as
+`content-too-large` (`shifted.ts`); the corpus's `lines.ts` reads such a
+run into its line and `shiftedRuns` holds its size and its move on the
+PDF; and builder-core's `baselines.ts` sets the characters a builder says
+were selected in a run's field, or the whole run, in one undo step, the
+whole run alone from another language, each run a group with its Subscript
+and Superscript
+([0061](docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+A chart, a component, runs through report-spec, report-core, the
+runtime and the renderer, and is not offered by the builders yet: its
 rules are report-spec's `chart.ts`, the palette `CHART_PALETTE` and the
 lists beside it, and `validate-chart.ts`, which holds its category and
 each series to the detail fields' types and the kinds' own rules, a bar's
@@ -202,10 +234,70 @@ of ten, exactly, at most `MAX_TICK_INTERVALS` intervals
 (`chart-ticks.ts`); a pie's negative value refused as
 `chart-negative-share`, and its shares ratios rounded once to
 `SHARE_PLACES` (`decimal.ts`'s `ratioRounded`) and printed by
-`format.ts`'s `percent`, which refuses rather than rounds again; and the
-renderer's `check.ts` refuses the block as `unsupported` until it draws
-charts
+`format.ts`'s `percent`, which refuses rather than rounds again
 ([0055](docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
+The renderer draws the block, laid out by Apache ECharts 6.1.0 and drawn
+by pdfmake ([0058](docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)): `check-chart.ts` holds it, before anything is laid out, to
+where it stands, the runtime's bounds, its parts, its words and its
+numbers, and weighs a render's charts together, refusing them past
+`MAX_CHART_DRAWING`; `chart-draw.ts`, the one module that imports
+ECharts' code, which
+`render.ts` loads through `loadOnce` for the first chart with marks, so
+that a browser loads it as a chunk of its own, lays it out three times, a
+pie twice, the plot only snapped, and refuses as `content-too-large` words
+that would meet, leave the box or stand in the plot, category labels that
+do not fit across, which are never turned, a plot too short for two tick
+labels and bars under `MIN_BAR_WIDTH`, measured, its words held by
+their one rule, `chart-held.ts`, which an empty chart's words meet too;
+`chart-measure.ts`
+replaces zrender's platform for one layout, answering in the widths each
+engine's `widths` measures in the faces the render embeds
+(`chart-faces.ts`, each named by the digest of its bytes);
+`chart-option.ts` hands ECharts the ticks' places, each value's worked
+out in BigInt, a pie's exact shares and every word by index, so that it
+decides no number and no word; `chart-svg.ts` holds the SVG ECharts
+writes to what 6.1.0 was seen to write and takes its words out, after
+`chart-arcs.ts` writes a pie's arcs again on its own circle;
+`chart-content.ts` prints one unbreakable stack, the marks through the
+converter and each word as pdfmake's text where ECharts placed it; and
+`chart-empty.ts` places a chart with nothing to draw without ECharts.
+A report's first page may print a header of its own, or none, in place
+of the page header, through all four and both builders: report-spec's
+optional sixth region, `firstPageHeader`, between the report header and
+the page header in `REGION_NAMES`, named by `OPTIONAL_REGIONS`, read by
+name in `validate.ts` and walked only where a report holds it
+(`heldRegions`), its presence the choice and its empty list none, a page
+field refused in it by `validate-inline.ts`; report-core's
+`putFirstPageHeader` and `removeFirstPageHeader`
+(`commands/first-page-header.ts`); the runtime's
+`ResolvedDocument.firstPageHeader`, headed with every label the page
+header carries; the renderer's `definition.ts` drawing it in page 1's
+background, page 1's body moved by the difference between the two
+headers' rooms, `render.ts` measuring it in a pass of its own, a kept
+block held to the later pages' body and a block of fixed height to the
+shorter, and `check-images.ts` counting its drawings once; the corpus's
+`FIRST_PAGE_FIXTURES`, apart from `ALL_FIXTURES`, and `regionsOn`, which
+reads page 1 by its own header; and builder-core's `report-fields.ts`,
+the report's properties choosing it, and `scenario-first-page.ts`
+([0060](docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+A report may be written in several languages: its own `locale` and the
+`translations` beside it, each a language's words keyed by their exact
+text in the report's own and the expressions that print words keyed by
+their source. Report-spec's `translation.ts` is the one walk of the words
+a report prints, `NOT_WORDS` every other string with its reason,
+`validate-translations.ts` holds each language to the rules every report
+is held to, and `report-in.ts`'s `reportIn` writes the report in a
+declared locale; report-core diagnoses each language as a report
+(`diagnostics/words.ts`'s `languageDiagnostics`), a word missing being
+`word-missing`, an error of that language alone, and edits one through
+`addLanguage`, `removeLanguage`, `translateWord` and
+`translateExpression`; the runtime prints in the locale a render names,
+the report's own or a declared one exactly, refusing a render only for
+its own language's errors (`languages.ts`), every word, value, row
+order, a form's labels and the slip's headings in that locale and never
+another's; and both builders edit one language at a time (builder-core's
+`languages.ts`)
+([0063](docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 `@formancy/report-documents` is the one reader of PDFs, beside report-spec,
 which holds no PDF engine, and nothing calls it yet: `readDocument`, in
 `read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
@@ -273,7 +365,8 @@ scopes indexed once and held to formancy's `modelDataPaths`
 (`version.test.ts`), every field the report reads checked against each
 version before an answer is read, formancy's kinds mapped once in
 `kinds.ts`, a number by its digits or refused (`numbers.ts`), labels from
-that version in the report's locale, and the data host-captured, its
+that version in the locale the render names (0063), and the data
+host-captured, its
 source naming each submission and its version; the binding is
 report-spec's, on the dataset contract (`validate-form-binding.ts`)
 ([0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)).
@@ -325,7 +418,9 @@ the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
 `readCodes`, which decodes the QR codes a page prints with ZXing from the
 pixels PDF.js draws, the drawings an SVG image paints and the ink around
-them, the e-invoice samples and a reader of their XML by
+them, a chart's words, axis, bars, lines, slices and legend held to its
+block (`check-charts.ts`) and `CHART_FIXTURES`, the charts the renderer
+draws and refuses, the e-invoice samples and a reader of their XML by
 namespace, a formancy form in three versions, the third renaming the inspector's
 group, declared, with submissions of each and
 a report of them (`forms/site-visit.ts`), the site visit starter the
@@ -335,7 +430,8 @@ Liberation Serif and Mono 2.1.5 as a host's fonts (`fixtures/host-fonts/`)
 and the face each run is drawn in, read from the PDF (`PdfTextItem.font`,
 held by `fontNames`), `expectation`, which derives
 what a document's PDF must show, `readPdfObjects` and `readXmp`, which read what a PDF embeds
-and says of itself with pdf-lib and saxes, `readPdfNumbers`, every number
+and says of itself with pdf-lib and saxes, its catalog's keys and its name
+tree's among it (`catalogKeys`, `nameTreeKeys`), `readPdfNumbers`, every number
 a PDF writes, content streams included, `inflatedDigest`, a PDF's
 objects hashed with every stream inflated, `IMAGE_KINDS`, an image of each
 kind PDFKit embeds, and the renderer trial that chose pdfmake. `apps/studio` is the
@@ -348,9 +444,16 @@ the product's pages, prerendered to static HTML in German, French, Italian
 and English, never published as a package and served beside the Studio at
 formancy.ai/report/<lang>/
 ([0021](docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)):
-the facts they state about the release and the licence are read from
-`CHANGELOG.md` and `LICENSE.md` when they are built, and `src/groups.ts`
-is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
+the release's number and date and the licence's terms are read from
+`CHANGELOG.md` and `LICENSE.md` when they are built; what a release
+holds, and what Formancy Report does not do yet, is said under a page's
+status, which stops the build once the changelog names a later release;
+every card names the tests it rests on; every absence on the start page
+but one detail table and one level of grouping, which review holds, is
+held by `limits.test.ts` to report-spec's built `dist`, a devDependency
+no page imports, and to the published packages' manifests
+([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md));
+and `src/groups.ts` is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
 before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical
@@ -367,6 +470,8 @@ before it:
    a renderer-neutral output.
 5. `report-render-pdf` -- the one chosen engine's adapter. It takes resolved
    input and approved asset bytes, never a database connection or a URL.
+   A chart is laid out inside it by ECharts, which no other published package
+   depends on (0058).
 6. `report-server-core` / `report-server` / `report-client` -- built: who
    may do what, a server that knows who is asking (0046) and keeps a
    template's draft and its images, and the client a host asks it with
@@ -486,6 +591,15 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
   white ([0030](docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), extending 0003).
   A drawing is known by its size, so say so where another of that size
   could stand in for it.
+- A chart is paths and pdfmake's text, so it is proved by the clip of its
+  box, its painted paths and its words
+  (`packages/report-corpus/src/check-charts.ts`): each word one run in its
+  box and its face, each bar its value's length, each line through its
+  markers, each slice its share's sector on its circle, each legend entry
+  beside its swatch
+  ([0058](docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), extending 0003).
+  An empty chart draws nothing, so it is found by its words alone, and a
+  chart beside an SVG image of its size is told from it by their order.
 - Never silently drop, clip or truncate content. A report that cannot fit says
   so in a diagnostic; a production render with incomplete data refuses.
 - Exact values -- decimals, large integers -- travel as strings with their type
@@ -630,7 +744,9 @@ What holds this section:
   only the Studio's stylesheets besides, and declares no colour and no
   variable of its own. The pages' checks,
   `apps/pages/src/checks/`, hold each page's head, links, words and
-  sitemap (0021).
+  sitemap (0021), every card's evidence to the checkout and to a test or
+  a gate's entry, one list in every language, and every word a page takes
+  from the Studio to `docs/images/readme/captured.json` (0056).
 - **The README's pictures**, `scripts/pictures/readme.test.mjs` in
   `pnpm test:repo` and the Studio's `pictures.mjs --check` as
   `test:pictures` in the same CI job: every picture is whole parts of a
@@ -810,12 +926,17 @@ exactly what CI does:
   the PDF/A-3b the renderer draws of each Factur-X and of variants that carry
   the first sample's e-invoice on other pages -- every starter's, a page
   of every image kind PDFKit embeds, a page of SVGs in every way
-  svg-to-pdfkit paints one, and one of an SVG at every bound an e-invoice
-  holds one to -- Mustang by its PDF part too,
-  never its exit status alone; each control is judged exactly as the
-  corpus expects, at least one tool refusing it and each tool refusing at
-  least one control of its format; and report-spec's code lists and rule
-  ids are held to the schematrons they run. A warning fails it unless
+  svg-to-pdfkit paints one, one of an SVG at every bound an e-invoice
+  holds one to, and a page each of four of the corpus's charts, laid out by
+  ECharts (0058) -- Mustang by its PDF part too,
+  never its exit status alone; veraPDF alone, with its PDF/A-2b profile
+  and `--flavour 2b`, the PDF/A-2b of every starter that is no e-invoice
+  and of the corpus's image, SVG, chart and font pages, and two controls
+  (0057, 0058);
+  each control is judged exactly as the corpus expects, at least one tool
+  refusing it and each tool refusing at least one control of its format;
+  and report-spec's code lists and rule ids are held to the schematrons
+  they run. A warning fails it unless
   `scripts/e-invoice/accepted.json` accepts it, with its reason, in that
   file. Locally it needs a Java at least as new as each JAR's `java` in
   the register.
@@ -848,7 +969,8 @@ exactly what CI does:
     than its register pins, ran a veraPDF below the register's floor, its
     own or Mustang's, ran in CI on a Java of another major version than
     the register names, judged no sample or made no control of a format,
-    XML or PDF, or judged a file otherwise than its corpus expects;
+    XML, PDF or PDF/A-2b, or judged a file otherwise than its corpus
+    expects;
   - two builds of one package differ, or a tarball's built files are not
     every job's;
   - the container gate left no record, failed or failed a check, did not
@@ -911,7 +1033,8 @@ Locally, run the same commands for what you changed.
   alone and type-checks `client.ts` against them (0049);
 - runs it: `consume.ts` under Node, which also draws an e-invoice, in
   `e-invoice.ts`, and reads the PDF/A-3b's bytes with `embedding.ts` and
-  Node alone (0031);
+  Node alone (0031), a PDF/A-2b, in `pdfa.ts` (0057), and the guide's
+  quotation with its chart, in `chart.ts` (0058);
   `server.ts`, the server made in its host's process and asked over a
   socket, a draft saved through the packed client, read back and a stale
   save refused `draft-changed`;

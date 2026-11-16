@@ -8,10 +8,14 @@
  * thing under the wrong name fails here, as it would fail a person using a
  * screen reader. But one: the file input Add image… opens, hidden and with
  * no role, which an `upload` step finds beside the button in the DOM, to
- * hand it the file a person would choose (0033).
+ * hand it the file a person would choose (0033). And one write: a
+ * `selectText` step selects characters with the field's own
+ * `setSelectionRange`, since user-event's keyboard extends no selection
+ * with Shift and an arrow, and the selection is what a run's button sends
+ * (0061).
  */
 import { createReportEditor } from '@formancy/report-builder-core'
-import type { AddedImage, EditorLocale, ImageStore, ReportEditor, ScenarioFile, ScenarioHost, ScenarioStep } from '@formancy/report-builder-core'
+import type { AddedImage, EditorLocale, ImageStore, ReportEditor, ScenarioFile, ScenarioHost, ScenarioQuery, ScenarioStep } from '@formancy/report-builder-core'
 import { openReportSession } from '@formancy/report-core'
 import type { ReportSession } from '@formancy/report-core'
 import type { ReportDefinition } from '@formancy/report-spec'
@@ -79,13 +83,22 @@ export async function violations(): Promise<{ readonly id: string; readonly node
   return results.violations.map((violation) => ({ id: violation.id, nodes: violation.nodes.map((node) => node.html) }))
 }
 
-/** The one element with this role and name, and the selected state when the query names one. */
-function find(query: { readonly role: string; readonly name: string; readonly selected?: boolean }): HTMLElement {
-  return screen.getByRole(query.role, { name: query.name, ...(query.selected === undefined ? {} : { selected: query.selected }) })
+/** What Testing Library finds an element by: its name, and the selected and pressed states where the query names them. */
+function options(query: ScenarioQuery): { readonly name: string; readonly selected?: boolean; readonly pressed?: boolean } {
+  return {
+    name: query.name,
+    ...(query.selected === undefined ? {} : { selected: query.selected }),
+    ...(query.pressed === undefined ? {} : { pressed: query.pressed }),
+  }
 }
 
-function query(step: { readonly role: string; readonly name: string; readonly selected?: boolean }): HTMLElement | null {
-  return screen.queryByRole(step.role, { name: step.name, ...(step.selected === undefined ? {} : { selected: step.selected }) })
+/** The one element with this role and name, in the states the query names. */
+function find(query: ScenarioQuery): HTMLElement {
+  return screen.getByRole(query.role, options(query))
+}
+
+function query(step: ScenarioQuery): HTMLElement | null {
+  return screen.queryByRole(step.role, options(step))
 }
 
 /** What a control holds: an input's, a textarea's or a select's value. */
@@ -175,8 +188,22 @@ export async function runStep(step: ScenarioStep, { user, session, editor }: Mou
         if (step.text !== '') await user.type(element, step.text)
         return user.tab()
       }
-      case 'choose':
-        return void (await user.selectOptions(find(step), step.option))
+      case 'selectText': {
+        const element = find(step)
+        if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) throw new Error(`a ${element.tagName} holds no text to select`)
+        act(() => {
+          element.focus()
+          element.setSelectionRange(step.start, step.end)
+        })
+        return
+      }
+      case 'choose': {
+        // The option by its label, as a person reads it: user-event compares its markup, where a no-break space is `&nbsp;`.
+        const select = find(step) as HTMLSelectElement
+        const option = [...select.options].find((candidate) => candidate.text === step.option)
+        expect(option, `an option ${step.option} in ${step.name}`).toBeDefined()
+        return void (await user.selectOptions(select, option as HTMLOptionElement))
+      }
       case 'host':
         // What the host's own control does -- the Studio's Preview, in its bar -- through the editor.
         return void act(() => {
@@ -202,6 +229,8 @@ export async function runStep(step: ScenarioStep, { user, session, editor }: Mou
       expect(element.getAttribute('aria-invalid')).toBe('true')
       return void expect(computeAccessibleDescription(element)).not.toBe('')
     }
+    case 'described':
+      return void expect(computeAccessibleDescription(find(step))).toContain(step.text)
     case 'document':
       return void expect(step.check(session.document()), step.says).toBe(true)
     case 'kept':

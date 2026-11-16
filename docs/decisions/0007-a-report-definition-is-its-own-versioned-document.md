@@ -1,6 +1,6 @@
 # 0007 — A report definition is its own versioned document, with a flowing body, one detail table, declared aggregates and print styles as tokens
 
-- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which adds an e-invoice and the names its totals are read by, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which adds an SVG asset in the one form report-spec's `cleanSvg` writes, by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose dataset contract says where a formancy form's submission holds each field, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose font map the report's hash covers, by [0052](0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md), which adds the chart, by [0054](0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md), under which a PDF is read beside the format, by a package of its own, since the format holds no PDF engine, and by [0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), under which a report holds several tables over its one detail dataset, each printing and totalling the rows its condition selects, so that where this record says one table it describes the format before that one
+- **Status:** accepted; extended by [0020](0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md), which adds the QR code, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which adds a payment part, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which adds the EPC QR code, by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which adds an e-invoice and the names its totals are read by, by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), which adds an SVG asset in the one form report-spec's `cleanSvg` writes, by [0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), whose dataset contract says where a formancy form's submission holds each field, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose font map the report's hash covers, by [0052](0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md), which adds the chart, by [0054](0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md), under which a PDF is read beside the format, by a package of its own, since the format holds no PDF engine, by [0059](0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md), whose table group may state how many of its first rows its header is kept with, by [0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md), which adds an optional sixth region, `firstPageHeader`, that page 1 prints in place of the page header, by [0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md), under which a paragraph's run may be set below or above the line, and nowhere else, by [0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), under which a report holds several tables over its one detail dataset, each printing and totalling the rows its condition selects, so that where this record says one table it describes the format before that one, and by [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md), whose `translations` write the report's own words in each language it declares beside its `locale`, a draft-format addition that leaves a report without them as it was
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `@formancy/report-spec` tests that fail when it is
@@ -424,6 +424,24 @@ unchanged, and so is every report that was valid. A release that predates
 the kind, 0.2.0 among them, refuses a report that holds one as
 `unknown-kind`. `validate-chart.test.ts` and `chart.test.ts` hold the
 shape, the placement, the palette and the refusals.
+
+**Added 2026-11-15: a run's baseline.** A run of literal text, a field, a
+parameter, an expression or an aggregate may carry `baseline`, one of
+`BASELINE_SHIFTS`, `subscript` or `superscript`, and stands on the line
+without one, as
+[0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)
+decides. A print style still attaches to a component or a cell, never to
+a run. Only a text component's runs, in any region, may carry one;
+anywhere else a run
+is read -- what a QR code, an EPC QR code, a QR-bill or an e-invoice
+encodes, and a table's column value, group header and footer cells and
+totals -- it is refused as `misplaced-baseline`, whatever its value, and
+on a page number or count as `unknown-property`. It is part of what the
+hash names. It is a draft-format addition: `reportSpecVersion` is
+unchanged, and so is every report that sets none, its hash among it. A
+release that predates it, 0.2.0 among them, refuses a report that sets
+one as `unknown-property`. `validate-baseline.test.ts` holds the shape,
+the places and the refusals.
 
 **Added 2026-11-15: several tables, and a table's own totals.** A report
 may hold more than one table over its detail dataset, as

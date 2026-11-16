@@ -372,6 +372,14 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     accept: set('/regions/body/0/content/1', { kind: 'field', field: { dataset: 'header', field: 'customer' } }),
     at: ['/regions/body/0/content/1/field'],
   },
+  // A table's cell prints one string at one size: a column's value set
+  // below the line would move the whole cell, or print on the line, where
+  // a paragraph's run sets only itself (0061).
+  'misplaced-baseline': {
+    refuse: set('/regions/body/2/columns/0/value/baseline', 'subscript'),
+    accept: set('/regions/body/0/content/0/baseline', 'subscript'),
+    at: ['/regions/body/2/columns/0/value/baseline'],
+  },
   // Under the table there is no current group: a group's subtotal there
   // would be the last group's, printed as though it were the whole table's.
   'misplaced-group-aggregate': {
@@ -507,6 +515,53 @@ const CASES: { readonly [C in ReportErrorCode]: Case } = {
     refuse: both(fromForm, set('/datasets/header/form', { kind: 'repeater', repeater: 'lines' })),
     accept: fromForm,
     at: ['/datasets/header/form/kind'],
+  },
+  // A translation into the report's own language would print over the
+  // words it is written in; two into one would leave which prints to the
+  // order they were read in (0063).
+  'duplicate-language': {
+    refuse: set('/translations', [{ locale: 'de-CH', words: [], expressions: [] }]),
+    accept: set('/translations', [{ locale: 'fr-CH', words: [], expressions: [] }]),
+    at: ['/translations/0/locale'],
+  },
+  // A text with no letter prints as written in every language, and is
+  // never looked up: its translation would translate nothing.
+  'not-a-word': {
+    refuse: set('/translations', [{ locale: 'fr-CH', words: [{ word: '12.50', text: '12,50' }], expressions: [] }]),
+    accept: set('/translations', [{ locale: 'fr-CH', words: [{ word: 'Qty', text: 'Qté' }], expressions: [] }]),
+    at: ['/translations/0/words/0/word'],
+  },
+  // One word, one translation in a language: two would leave which prints
+  // to the order they were read in.
+  'duplicate-word': {
+    refuse: set('/translations', [
+      {
+        locale: 'fr-CH',
+        words: [
+          { word: 'Qty', text: 'Qté' },
+          { word: 'Qty', text: 'Quantité' },
+        ],
+        expressions: [],
+      },
+    ]),
+    accept: set('/translations', [
+      {
+        locale: 'fr-CH',
+        words: [
+          { word: 'Qty', text: 'Qté' },
+          { word: 'Price', text: 'Prix' },
+        ],
+        expressions: [],
+      },
+    ]),
+    at: ['/translations/0/words/1/word'],
+  },
+  // A word a language leaves out cannot print nothing in its place: a
+  // blank translation would be a column with no header.
+  'blank-translation': {
+    refuse: set('/translations', [{ locale: 'fr-CH', words: [{ word: 'Qty', text: ' ' }], expressions: [] }]),
+    accept: set('/translations', [{ locale: 'fr-CH', words: [{ word: 'Qty', text: 'Qté' }], expressions: [] }]),
+    at: ['/translations/0/words/0/text'],
   },
 }
 

@@ -14,6 +14,8 @@ export const REPORT_PARTS = [
   'editor',
   /** The report's title, in the bar above the panes. */
   'title',
+  /** The switch between the languages a report is written in, beside the title: a select, drawn only for a report written in more than one (0063). */
+  'language',
   'toolbar',
   /** The zoom readout, an `<output>` named "Zoom". */
   'zoom',
@@ -60,6 +62,8 @@ export const REPORT_PARTS = [
   /** A group of fields in the properties -- a QR-bill's creditor or debtor -- its name drawn above them and its one button after them. */
   'property-group',
   'property-error',
+  /** The sentence under a field at a word in a language besides the report's own: which language it writes, and where the word stands (0063). */
+  'property-note',
   'diagnostics',
   'diagnostic',
   /** The live region that says what an action did. */
@@ -79,6 +83,8 @@ export const REPORT_ATTRIBUTES = [
   'data-selected',
   /** "true" on a box wider than the space it stands in. */
   'data-overflows',
+  /** "true" on a box, the payment part's band or a property row that prints a word not written yet in the language edited (0063). */
+  'data-missing',
   /** "true" on a region band with nothing in it. */
   'data-empty',
   /** "true" on the drop indicator the pointer is over. */
@@ -104,6 +110,8 @@ export const REPORT_ATTRIBUTES = [
   'aria-invalid',
   /** On a tool or a palette entry with nothing to act on, which stays focusable. */
   'aria-disabled',
+  /** On a run's Subscript or Superscript: "true" while the run is set so (0061). */
+  'aria-pressed',
 ] as const
 
 /**

@@ -3,7 +3,14 @@
 - **Status:** accepted; extended by [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md),
   under which either builder cleans an SVG a person adds with the same
   `cleanSvg`, the builder's upload this record names among the places an
-  SVG enters
+  SVG enters; and by
+  [0057](0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md),
+  under which an SVG in the PDF/A-2b a host asks for is held to the
+  integers and the nesting this record holds one to in an e-invoice alone;
+  and by [0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md),
+  under which a drawing in page 1's own header, drawn on page 1 alone,
+  counts once toward `MAX_SVG_DRAWING`, where the page header's and
+  footer's count on every page
 - **Date:** 2026-10-18
 - **Deciders:** Daniel Bacher
 - **Verified by:**

@@ -8,18 +8,26 @@ import * as components from './components.js'
 import * as declarations from './declarations.js'
 import * as document from './document.js'
 import * as eInvoice from './e-invoice.js'
+import * as firstPageHeader from './first-page-header.js'
 import * as paymentPart from './payment-part.js'
 import * as readers from './readers.js'
+import * as translations from './translations.js'
 import { ARGUMENTS, batch, COMMANDS, describedCommand, PART_COMMANDS } from './registry.js'
 import type { CommandDescriptor, CommandName } from './registry.js'
 import * as table from './table.js'
 
-/** `report` -- the sample unless another is given -- with a style and an asset nothing uses, so that removing one is an edit the validator accepts. */
+/**
+ * `report` -- the sample unless another is given -- with a style and an
+ * asset nothing uses, so that removing one is an edit the validator
+ * accepts, and a French translation, so that a word written in it, or the
+ * language removed, is one too (0063).
+ */
 function base(report: ReportDefinition = sampleReport()): ReportDefinition {
   return {
     ...report,
     styles: [...report.styles, { id: 'spare', italic: true }],
     assets: [...report.assets, { id: 'spare', mediaType: 'image/png', digest: `sha256:${'cd'.repeat(32)}` }],
+    translations: [{ locale: 'fr-CH', words: [{ word: 'Qty', text: 'Qté' }], expressions: [] }],
   }
 }
 
@@ -96,6 +104,9 @@ const EXAMPLES: { readonly [N in CommandName]: { readonly descriptor: Extract<Co
   updateFooterRow: { descriptor: { command: 'updateFooterRow', args: ['lines', 'totals', 1, { style: null }] } },
   putFooterCell: { descriptor: { command: 'putFooterCell', args: ['lines', 'totals', 1, { column: 'qty', value: { kind: 'text', text: '-' } }] } },
   removeFooterCell: { descriptor: { command: 'removeFooterCell', args: ['lines', 'groupFooter', 0, 'qty'] } },
+  // Page 1 given a header of its own, a letterhead; and, on the sample, which has none, refused its removal (0060).
+  putFirstPageHeader: { descriptor: { command: 'putFirstPageHeader', args: [[{ id: 'sender', kind: 'text', content: said('Orders by site') }]] } },
+  removeFirstPageHeader: { descriptor: { command: 'removeFirstPageHeader', args: [] }, refusedAs: 'not-found' },
   // The sample's bill with its headings in French, whole; then patched, its message removed and its account SIX's first example's; then taken away.
   putPaymentPart: { descriptor: { command: 'putPaymentPart', args: [{ ...BILL, language: 'fr' }] } },
   updatePaymentPart: {
@@ -114,6 +125,16 @@ const EXAMPLES: { readonly [N in CommandName]: { readonly descriptor: Extract<Co
   setPaymentAccount: { descriptor: { command: 'setPaymentAccount', args: ['CH58 0079 1123 0008 8901 2'] }, refusedAs: 'not-found' },
   // The column whose style rule reads whether a line shipped goes with the field.
   removeFieldWithReaders: { descriptor: { command: 'removeFieldWithReaders', args: ['detail', 'shipped'] } },
+  // Italian added beside the base's French; a word and the intro's expression written in French; French removed (0063).
+  addLanguage: { descriptor: { command: 'addLanguage', args: ['it-CH'] } },
+  removeLanguage: { descriptor: { command: 'removeLanguage', args: ['fr-CH'] } },
+  translateWord: { descriptor: { command: 'translateWord', args: ['fr-CH', 'Price', 'Prix'] } },
+  translateExpression: {
+    descriptor: {
+      command: 'translateExpression',
+      args: ['fr-CH', 'header.customer + " x" + string(params.copies)', { cel: 'header.customer + " fois " + string(params.copies)' }],
+    },
+  },
   // A title and the bill's language as one edit: a batch may hold any command, the bill's own among them.
   batch: {
     descriptor: {
@@ -156,7 +177,18 @@ describe('COMMANDS', () => {
   // commands. The batch is the registry's own: it runs commands by their
   // descriptors (0048).
   test('holds every command the command modules export, under its own name', () => {
-    const modules = { ...document, ...declarations, ...components, ...table, ...paymentPart, ...eInvoice, ...readers, batch }
+    const modules = {
+      ...document,
+      ...declarations,
+      ...components,
+      ...table,
+      ...firstPageHeader,
+      ...paymentPart,
+      ...eInvoice,
+      ...readers,
+      ...translations,
+      batch,
+    }
     const exported = Object.entries(modules)
       .filter(([name, value]) => typeof value === 'function' && !['nextComponentId', 'nextAssetId', 'fieldReaders'].includes(name))
       .map(([name]) => name)
@@ -238,10 +270,15 @@ const ON_E_INVOICE: { readonly [N in CommandName]?: Extract<CommandDescriptor, {
 /** Every example as it runs on the billed e-invoice. */
 const ON_BILLED: readonly CommandDescriptor[] = DESCRIPTORS.map((descriptor): CommandDescriptor => ON_E_INVOICE[descriptor.command] ?? descriptor)
 
-/** What refuses an example on the billed e-invoice: its lines are printed by the column and from the header the examples remove. */
+/**
+ * What refuses an example on the billed e-invoice: its lines are printed by
+ * the column and from the header the examples remove, and its page 1, as
+ * the sample's, has no header of its own to remove (0060).
+ */
 const REFUSED_ON_BILLED: { readonly [N in CommandName]?: RefusalCode } = {
   removeDataset: 'invalid-document',
   removeColumn: 'invalid-document',
+  removeFirstPageHeader: 'not-found',
 }
 
 /**

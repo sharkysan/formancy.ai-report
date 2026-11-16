@@ -6,6 +6,8 @@ import { corpus } from './corpus.mjs'
 import {
   blocksDocument,
   boundDocument,
+  CHART_VARIANT_FIXTURES,
+  chartsDocument,
   embeddingProblems,
   patched,
   PDF_BASE,
@@ -16,6 +18,7 @@ import {
   svgDocument,
   variantProblems,
 } from './pdf-corpus.mjs'
+import { pdfa2bPlan } from './pdfa-2b.mjs'
 
 /**
  * The PDFs the e-invoice gate judges (0031): each sample's, drawn from the
@@ -174,6 +177,36 @@ describe('the variants', () => {
         assets.filter((asset) => asset.id !== 'svg-window'),
       ),
     ).toThrow('variant-svg.pdf draws the SVG svg-window, which it was not given')
+  })
+
+  // The charts after the sample's page, one to a page, with the fonts their
+  // documents map: a variant that lost a chart would leave a way ECharts'
+  // drawing is laid into a PDF/A-3b unjudged, and one that lost the host's
+  // face would judge Roboto alone (0058).
+  test('add the charts of each fixture after a page break, and the fonts their documents map', () => {
+    const base = { info: { title: 'Rechnung' }, pageHeader: [], pageFooter: [], body: [{ kind: 'paragraph' }], eInvoice: { xml: '<x/>' } }
+    const fixture = (id, fonts) => ({
+      id,
+      document: {
+        body: [
+          { kind: 'paragraph', id },
+          { kind: 'chart', id: `chart-${id}` },
+        ],
+        ...(fonts === undefined ? {} : { fonts }),
+      },
+    })
+    const drawn = chartsDocument(base, [fixture('a'), fixture('b', { serif: { id: 'serif' } })])
+    expect(drawn.body.map((block) => block.id ?? block.kind)).toEqual(['paragraph', 'pageBreak', 'a', 'chart-a', 'pageBreak', 'b', 'chart-b'])
+    expect(drawn.fonts).toEqual({ serif: { id: 'serif' } })
+    expect([drawn.info, drawn.eInvoice, drawn.pageHeader, drawn.pageFooter]).toEqual([base.info, base.eInvoice, base.pageHeader, base.pageFooter])
+  })
+
+  // The variant takes a bar, a line, a pie and a chart in the host's font,
+  // each drawn and none empty: a refusal or an empty chart in its place
+  // would leave ECharts' marks out of the PDF/A-3b, or stop the gate.
+  test('name a bar, a line, a pie and a chart in a host font, and the variant draws them', () => {
+    expect(CHART_VARIANT_FIXTURES).toEqual(['chart-bars', 'chart-line', 'chart-pie', 'chart-host-font'])
+    expect(PDF_VARIANTS.find((variant) => variant.file === 'variant-charts.pdf')?.draws).toEqual({ charts: true })
   })
 
   // The drawing at the bound after the sample's page, alone and contained
@@ -364,6 +397,25 @@ describe('what a PDF embeds, read back', () => {
     const entries = plan.filter((entry) => entry.file === 'e-invoice.pdf').map((entry) => ({ ...entry, embeds: other }))
     expect(await embeddingProblems(entries, options({ 'e-invoice.pdf': embedding(other) }))).toEqual([
       'e-invoice.pdf embeds an XML of the guideline urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0, which no profile of report-spec’s names',
+    ])
+  })
+
+  // A PDF/A-2b may embed only a PDF/A-1 or -2, and the renderer embeds
+  // nothing in one (0057): a 2b that carried the e-invoice's XML, or any
+  // file, would be refused by no rule veraPDF's 2b profile runs on its
+  // name. So pdf-lib reads each as it reads a plain PDF, held to none; the
+  // control that is the e-invoice sample's 3b embeds that sample's XML.
+  test('holds a PDF/A-2b to embedding no file, as a plain PDF', async () => {
+    const starters = ['quotation', 'invoice', 'e-invoice'].map((id) => ({ id, eInvoice: id === 'e-invoice' }))
+    const pdfa2b = pdfa2bPlan(starters, { base3bXml: xmlOf('e-invoice.xml') }).map((entry) => ({ ...entry, pdf: Buffer.from(entry.file) }))
+    const none = { metadata: undefined, associatedFiles: [], embeddedFiles: [] }
+    const read = Object.fromEntries(pdfa2b.map((entry) => [entry.file, entry.embeds === null ? none : embedding(entry.embeds)]))
+    expect(await embeddingProblems(pdfa2b, options(read))).toEqual([])
+    read['pdfa-2b-quotation.pdf'] = embedding(xmlOf('e-invoice.xml'))
+    read['pdfa-2b-control-3b.pdf'] = none
+    expect(await embeddingProblems(pdfa2b, options(read))).toEqual([
+      'pdfa-2b-quotation.pdf associates 1 files with the document and names 1, where the corpus says it embeds 0',
+      'pdfa-2b-control-3b.pdf associates 0 files with the document and names 0, where the corpus says it embeds 1',
     ])
   })
 })

@@ -24,7 +24,9 @@ import type { Workspace } from './workspace.js'
  * QR-bill selected by its band and an IBAN its rules refuse typed into it,
  * in both builders, and a bill added to the blank report (0039); the
  * e-invoice's e-invoice selected from its row and a VAT rate EN 16931
- * refuses typed into it, in both builders (0044). What holds
+ * refuses typed into it, in both builders (0044); and a language added to
+ * the blank report and chosen in the bar, the Preview refused for the
+ * words it lacks (0063). What holds
  * across the steps rather than inside one is checked at each of them.
  *
  * The preview is the real pipeline -- the runtime, and the renderer's
@@ -420,6 +422,19 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await within(editor()).findByRole('button', { name: words('problem.item', { severity: words('severity.warning'), where: words('canvas.paymentPart') }) })
   await printed('blank', 'preview', 'Preview: printed.')
   await record(`Blank, a QR-bill added, in ${framework}`)
+
+  // A language added at the report's level and chosen in the bar: the
+  // switch drawn, its words missing as problems that name it, the Preview
+  // refused for them, and the report's own printed again (0063).
+  await user.click(within(editor()).getByRole('button', { name: words('properties.report') }))
+  await user.type(within(editor()).getByRole('textbox', { name: words('field.addLanguage') }), 'fr-CH')
+  await user.tab()
+  const language = await within(editor()).findByRole('combobox', { name: words('language.label') })
+  await user.selectOptions(language, 'fr-CH')
+  await screen.findByText(/^Preview: refused by the runtime, \d+ problems?\.$/)
+  await record(`Blank, a language added and shown, in ${framework}`)
+  await user.selectOptions(language, 'en-GB')
+  await printed('blank', 'preview', 'Preview: printed.')
 }
 
 /**
@@ -470,7 +485,7 @@ describe('the journey', () => {
       },
       kept,
     )
-    expect(Object.keys(findings)).toHaveLength(studioStarters(starters).length * 4 + 12)
+    expect(Object.keys(findings)).toHaveLength(studioStarters(starters).length * 4 + 13)
     expect(findings).toEqual(Object.fromEntries(Object.keys(findings).map((state) => [state, []])))
   })
 

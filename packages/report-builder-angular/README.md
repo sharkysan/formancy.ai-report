@@ -59,8 +59,9 @@ builder's suite and report-builder-core's model test.
 
 Exactly the structure report-builder-core's README sets out under *What a
 builder renders*, which the React builder renders too: a region named
-"Report editor" with a bar above the panes (the title and the toolbar, with
-its four pane buttons), the outline pane with the place chooser floating
+"Report editor" with a bar above the panes (the title, the switch between
+the report's languages where it is written in more than one, and the
+toolbar, with its four pane buttons), the outline pane with the place chooser floating
 over it, the design view -- or the host's view in its place -- the
 properties and the problems sharing the third column, and a bar below with
 the live region. Every name comes from the core's catalogue in English,
@@ -121,6 +122,26 @@ What is Angular's own:
   (`ReportEditorRoot.attempt`, a `group` focus): a category moved keeps
   it on the same button of the group it went to, one removed hands it to
   the list's Add, and one added to its first field.
+- **A report written in several languages**
+  ([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md))
+  has a switch between them in `<report-builder>`'s bar, a native
+  `<select>` beside the title that dispatches `setLanguage`, drawn only
+  while the report declares more than one; a language is added from the
+  report's own properties, its Languages group's Add language. In another
+  language than the report's own, a field at a word writes its
+  translation, `ReportPropertyRow` drawing its note under it and
+  describing it by it, and a box or a field whose word is missing there
+  is marked `data-missing`, the box described as missing by its `title`.
+- **A run of a paragraph is set below or above the line from its group**
+  ([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)): each run is a group with two buttons, Subscript and
+  Superscript, each showing its word, named after the run by `aria-label`
+  ("Part 2: Text, subscript") and `aria-pressed` as the run is set.
+  Pressed, one reads the selection of its group's text field and the text
+  it is of from the element, the one thing it reads from the DOM to send,
+  and adds them to the action; the editor decides what it sets, and
+  `ReportEditorRoot.attempt` puts the keyboard where the outcome's `then`
+  says, the pressed button of the run that holds the text now. A run bound
+  to a value is a select, and is set whole.
 - **Drag and drop is HTML's**, from the palette, from a canvas box or from an
   outline row, onto the sheet (the nearest place, `targetNear`, read inside
   the sheet's border) or onto a row (before or after it, `targetBeside`). A
@@ -147,8 +168,9 @@ and the parts inside it:
 ```
 
 Each part is an attribute on the element it is, so the DOM has no wrapper
-elements the React builder lacks. The bars, the panes' headers, the Report
-button and the problems' count are `<report-builder>`'s template, not parts;
+elements the React builder lacks. The bars, the switch between languages,
+the panes' headers, the Report button and the problems' count are
+`<report-builder>`'s template, not parts;
 a host that arranges the parts itself writes its own, and draws its own
 view where the state's `view` says, in place of `reportCanvas`. The parts inject
 `ReportEditorRoot`, which holds the state as a signal and the editor's words.
@@ -189,7 +211,9 @@ runs.
 - **Every `BUILDER_SCENARIOS` scenario**, in English, Swiss German and Swiss
   French. Each step finds elements by role and accessible name only, but an
   `upload`, which finds the hidden file input beside Add image… in the DOM,
-  since it has no role; and each scenario ends with axe over the whole page at WCAG 2.2 AA, as formancy.ai's
+  since it has no role, and a `selectText`, which selects characters with
+  the field's own `setSelectionRange`, as this runner's keys move no caret
+  (0061); and each scenario ends with axe over the whole page at WCAG 2.2 AA, as formancy.ai's
   conformance suite audits. A scenario left out, or a kind of step never
   taken, fails the file.
 - **The accessible tree:** every element a person operates or reads is
@@ -200,7 +224,8 @@ runs.
   the statuses and the place chooser are named in the editor's words, never
   after text on the page, which Chromium would read in the stylesheet's
   capitals; jsdom applies no stylesheet, so that test reads from the DOM
-  how each name is given. The Studio compares this tree with the React
+  how each name is given, and a run's buttons' word beside their name and
+  their pressed state (0061). The Studio compares this tree with the React
   builder's, in jsdom and in Chromium.
 - **The builder's life:** destroyed and made again, given another editor, and
   plan 21's switch over one session.
@@ -265,7 +290,8 @@ a host's own page is its own to measure.
 - **Text that is not a number never reaches the editor from a number field.**
   A browser empties an `<input type="number">` holding "tall" before any
   change event fires, so the field says "This cannot be empty." rather than
-  "Enter a number.".
+  "Enter a number.", and an optional one is emptied: the rows a group
+  header is kept with, emptied, are 1 again, the member's absence (0059).
 - **Most touch browsers fire no HTML drag and drop.** There, as everywhere,
   the place chooser is the path to every place.
 - **No measured cost.** Rendering a long report's outline and design view has

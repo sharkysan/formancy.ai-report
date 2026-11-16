@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { MAX_AGGREGATES, MAX_DATASET_FIELDS, MAX_FOOTER_ROWS, MAX_STYLE_RULES, MAX_STYLES } from './limits.js'
-import { isDigest, isFormId, isSchemaHash } from './syntax.js'
+import { isDigest, isFormId, isLocale, isSchemaHash } from './syntax.js'
 import { edited, getAt, refusals, removeAt, setAt } from './test-support.js'
 
 describe('parameters', () => {
@@ -159,6 +159,17 @@ describe('provenance', () => {
       expect(isSchemaHash(formHash), formHash).toBe(refusals(edited((r) => setAt(r, '/provenance', { kind: 'form', form: 'visit', formHash }))).length === 0)
     }
     expect([isFormId(7), isSchemaHash(null)]).toEqual([false, false])
+  })
+
+  // The runtime holds the locale a form source's labels were read in by
+  // `isLocale` (0063), and compares it with the locale a render prints in.
+  // Were it another reading than the report's own locale's, a source could
+  // name a locale no report is written in, or be refused one a report is.
+  test('isLocale accepts what a report’s locale accepts, and nothing else', () => {
+    for (const locale of ['en', 'de-CH', 'zh-Hans-CN', 'es-419', 'qaa', 'de_CH', 'DE-ch', 'de-CH-x-private', 'english', '', 'de-']) {
+      expect(isLocale(locale), locale).toBe(refusals(edited((r) => setAt(r, '/locale', locale))).every((refusal) => !refusal.startsWith('invalid-locale')))
+    }
+    expect(isLocale(42)).toBe(false)
   })
 })
 

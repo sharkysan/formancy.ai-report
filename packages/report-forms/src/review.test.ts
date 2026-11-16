@@ -436,6 +436,35 @@ describe('reviewFormVersion, a version that removes or retypes a field', () => {
     expect(summary(itemsOf(reviewed(retyped, report)).items)).toEqual([['header', 'count', 'field.typeChanged', true, ['print-nothing', 'remove']]])
   })
 
+  // A resolution is judged in every language the report declares, as in
+  // its own (0063): the English writes the count through `string()`, which
+  // any type passes, and its French translation appends it to text, which
+  // only a string does. A retype judged by the report's own words alone
+  // would be applied and refuse every French render after it.
+  test('offers no type a translation of an expression that reads the field would be refused at', () => {
+    const source = '"Visits: " + string(header.count)'
+    const counted: Component = { id: 'visits', kind: 'text', content: [{ kind: 'expression', expression: { cel: source } }] }
+    const header = REPORT.datasets.header as DatasetContract
+    const report: ReportDefinition = {
+      ...REPORT,
+      datasets: {
+        ...REPORT.datasets,
+        header: { ...header, fields: header.fields.map((field) => (field.id === 'count' ? { ...field, nullable: false } : field)) },
+      },
+      regions: { ...REPORT.regions, summary: [counted] },
+    }
+    const french: ReportDefinition = {
+      ...report,
+      translations: [{ locale: 'fr', words: [], expressions: [{ cel: source, expression: { cel: '"Visites : " + header.count' } }] }],
+    }
+    const retyped = version((fields) => changed(fields, 'count', (field) => ({ ...field, type: 'number', step: 1 })))
+    const kinds = (each: ReportDefinition) => summary(itemsOf(reviewed(retyped, each)).items)[0]?.[4]
+    expect([kinds(report), kinds(french)]).toEqual([
+      ['print-nothing', 'retype', 'retype', 'remove'],
+      ['print-nothing', 'remove'],
+    ])
+  })
+
   // A field renamed and retyped in one version is not read by following
   // the rename: offered, it would be applied and the version still
   // refused. Its other resolutions are offered.
@@ -603,6 +632,32 @@ describe('reviewFormVersion, a relabel', () => {
     const applied = resolved(reviewed(relabelled, report), 'site', 'relabel', report)
     expect(texts(applied)).toEqual(expect.arrayContaining(['Address: {field}', 'Site: {field}']))
     expect(applied.regions.summary).toEqual([other])
+  })
+
+  // A relabel says the new words and nothing else: a label run its author
+  // set above the line (0061) stays there. Rebuilt as a bare run, it would
+  // drop to the line in the one edit that was only to change its words.
+  test('keeps a label run set below or above the line where it was', () => {
+    const relabelled = version((fields) => changed(fields, 'site', (field) => ({ ...field, label: 'Address' })))
+    const raised = (report: ReportDefinition): ReportDefinition => ({
+      ...report,
+      regions: {
+        ...report.regions,
+        body: report.regions.body.map((component) =>
+          component.kind === 'text'
+            ? {
+                ...component,
+                content: component.content.map((run) => (run.kind === 'text' && run.text === 'Site: ' ? { ...run, baseline: 'superscript' as const } : run)),
+              }
+            : component,
+        ),
+      },
+    })
+    const report = raised(REPORT)
+    expect(texts(report)).toContain('Site: {field}')
+    const applied = resolved(reviewed(relabelled, report), 'site', 'relabel', report)
+    const runs = walkComponents(applied).flatMap(({ component }: { component: Component }) => (component.kind === 'text' ? component.content : []))
+    expect(runs.filter((run) => run.kind === 'text' && run.text === 'Address: ')).toEqual([{ kind: 'text', text: 'Address: ', baseline: 'superscript' }])
   })
 
   // A label the format cannot hold -- a field's past MAX_LABEL_LENGTH --

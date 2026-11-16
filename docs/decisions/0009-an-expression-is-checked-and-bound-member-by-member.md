@@ -1,6 +1,6 @@
 # 0009 — An expression is checked and bound member by member, by one compilation the editor and the runtime share
 
-- **Status:** accepted; extended by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which binds an e-invoice's totals member by member, in a report that is one and in no other, and by [0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), which binds `table`, the totals of a table's own rows, and types `group.key` by the table a group stands in
+- **Status:** accepted; extended by [0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), which binds an e-invoice's totals member by member, in a report that is one and in no other; by [0062](0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), which binds `table`, the totals of a table's own rows, and types `group.key` by the table a group stands in; and by [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md), under which an expression that prints words is translated whole, its translation compiled at every place its source stands by the same compilation, of its type and reading exactly what its source reads
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-core`, run by its

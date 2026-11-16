@@ -1,5 +1,5 @@
 import { readPdf, readPdfObjects, starterImages, XRECHNUNG_SAMPLE } from '@formancy/report-corpus'
-import { resolveReport, XRECHNUNG_COPY_LABEL, type ReportData, type ResolvedDocument } from '@formancy/report-runtime'
+import { resolveReport, XRECHNUNG_COPY_LABEL, type ReportData, type ReportDefinition, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { renderPdf as renderInBrowser } from './browser.js'
 import { renderPdf } from './node.js'
@@ -16,8 +16,8 @@ import { TIMEOUT } from './testing/documents.js'
 
 const CREATED = '2026-10-16T08:00:00Z'
 
-function resolved(data: ReportData = XRECHNUNG_SAMPLE.data): ResolvedDocument {
-  const outcome = resolveReport(XRECHNUNG_SAMPLE.report, data, {
+function resolved(data: ReportData = XRECHNUNG_SAMPLE.data, report: ReportDefinition = XRECHNUNG_SAMPLE.report): ResolvedDocument {
+  const outcome = resolveReport(report, data, {
     mode: 'final',
     parameters: XRECHNUNG_SAMPLE.parameters,
     images: starterImages,
@@ -71,6 +71,37 @@ describe("an XRechnung's copy", () => {
           page.items.filter((item) => item.text === XRECHNUNG_COPY_LABEL),
           `page ${page.number}`,
         ).toHaveLength(1)
+      }
+    },
+    TIMEOUT,
+  )
+
+  // Page 1 may print a header of its own in the page header's place
+  // (0060): the runtime heads it with the label too, and page 1, the page
+  // a reader sees first, still opens with it, once, above the letterhead.
+  test(
+    'says it at the head of page 1 under a header of its own, and of every later page',
+    async () => {
+      const { regions } = XRECHNUNG_SAMPLE.report
+      const lettered: ReportDefinition = {
+        ...XRECHNUNG_SAMPLE.report,
+        regions: { ...regions, firstPageHeader: [{ id: 'letterhead', kind: 'text', content: [{ kind: 'text', text: 'Briefkopf' }] }] },
+      }
+      const document = resolved(longer(12), lettered)
+      expect(document.firstPageHeader?.length).toBe(2)
+      const pdf = await readPdf(await renderPdf(document, { maxPages: 5 }))
+      expect(pdf.pages.length).toBeGreaterThanOrEqual(2)
+      for (const page of pdf.pages) {
+        const top = page.items.toSorted((a, b) => a.top - b.top || a.x - b.x)[0]
+        expect(top?.text, `page ${page.number}`).toBe(XRECHNUNG_COPY_LABEL)
+        expect(
+          page.items.filter((item) => item.text === XRECHNUNG_COPY_LABEL),
+          `page ${page.number}`,
+        ).toHaveLength(1)
+        expect(
+          page.items.some((item) => item.text === 'Briefkopf'),
+          `page ${page.number}`,
+        ).toBe(page.number === 1)
       }
     },
     TIMEOUT,

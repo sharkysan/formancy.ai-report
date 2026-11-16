@@ -100,6 +100,27 @@ change is drawn: a category moved keeps the keyboard on the same button of
 the group it went to, one removed hands it to the list's Add, and one
 added to its first field.
 
+**A report written in several languages**
+([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md))
+has a switch between them in the bar, a native `<select>` beside the
+title that dispatches `setLanguage`, drawn only while the report declares
+more than one; a language is added from the report's own properties, its
+Languages group's Add language. In another language than the report's
+own, a field at a word writes its translation, its note drawn under it
+and describing it, and a box or a field whose word is missing there is
+marked `data-missing`, the box described as missing by its `title`.
+
+**A run of a paragraph is set below or above the line from its group**
+([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)): each run is a group with two buttons, Subscript and
+Superscript, each showing its word, named after the run by `aria-label`
+("Part 2: Text, subscript") and `aria-pressed` as the run is set.
+Pressed, one reads the selection of its group's text field and the text it
+is of from the element, the one thing it reads from the DOM to send, and
+adds them to the action; the editor decides what it sets, and the
+keyboard goes where the outcome's `then` says, the pressed button of the
+run that holds the text now. A run bound to a value is a select, and is
+set whole.
+
 **`useEditorState(editor)`** is the subscription on its own, for a host
 that shows something of the editor's state outside the builder.
 
@@ -130,8 +151,9 @@ and go without losing anything, and two builders can share one session:
 
 Exactly the structure `report-builder-core`'s README sets out under *What a
 builder renders*, which the Angular builder renders too: a region named
-"Report editor" with a bar above the panes (the title and the toolbar,
-with its four pane buttons), the outline pane with the place dialog
+"Report editor" with a bar above the panes (the title, the switch between
+the report's languages where it is written in more than one, and the
+toolbar, with its four pane buttons), the outline pane with the place dialog
 floating over it, the design view -- or the host's view in its place --
 the properties and the problems sharing the third column, and a bar below
 with the live region.
@@ -216,7 +238,9 @@ jsdom with Testing Library and user-event:
 
 - **Every one of `BUILDER_SCENARIOS`, in all three languages.** Each
   scenario runs step by step, with axe over its end state. A last test
-  fails when a scenario was skipped or lost.
+  fails when a scenario was skipped or lost. A `selectText` step selects
+  characters with the field's own `setSelectionRange`, since user-event's
+  keyboard extends no selection with Shift and an arrow (0061).
 - **axe** holds the builder to WCAG 2.2 AA by its tags (`wcag2a` through
   `wcag22aa`). `best-practice` is left out, as formancy.ai's builders leave
   it out. Two rules are off because jsdom cannot decide them:
@@ -230,7 +254,10 @@ jsdom with Testing Library and user-event:
   property. Each group, the form, the list, the statuses and the dialog
   are named in the editor's words, never after text on the page, which
   Chromium would read in the stylesheet's capitals; jsdom applies no
-  stylesheet, so that test reads from the DOM how each name is given.
+  stylesheet, so that test reads from the DOM how each name is given. A
+  run's buttons show their word, are named after the run and say whether
+  they are pressed, which that test reads from the DOM too, as no query
+  by role and name returns what a button shows (0061).
 - **The keyboard, focus and the pointer** beyond the scenarios: the
   toolbar's tab stop and its arrows, focus after each action, the dialog's
   way out, the panes, a text field's own keys, every pointer drag above,
@@ -276,6 +303,11 @@ new child, the sheet's border, and a modified arrow taken by the toolbar.
 - **The place dialog's "nowhere" sentence** shows when a component has
   nowhere else to go. No report tried here has such a component. The test
   draws the dialog over a state that says so.
+- **Text that is not a number never reaches the editor from a number field.**
+  A browser empties an `<input type="number">` holding "tall" before any
+  change event fires, so the field says "This cannot be empty." rather than
+  "Enter a number.", and an optional one is emptied: the rows a group
+  header is kept with, emptied, are 1 again, the member's absence (0059).
 - Everything `report-builder-core` lists under *What it does not do*
   holds here too: the canvas is not the PDF, some properties have no
   editor yet, and two problems about the report as a whole share a name.

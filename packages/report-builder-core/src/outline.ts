@@ -9,7 +9,7 @@
  * hold components is decided there and nowhere here.
  */
 import type { DiagnosticSeverity } from '@formancy/report-core'
-import { REGION_NAMES, walkComponents } from '@formancy/report-spec'
+import { heldRegions, walkComponents } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { columnKey, partLabel, regionLabel } from './labels.js'
 import type { OutlineNode, OutlinePart, OutlineRegion, Selection } from './model.js'
@@ -41,7 +41,7 @@ const HELD = /^(.*?)(?:\/columns\/(\d+))?\/components\/\d+$/
 
 type Building = { -readonly [K in keyof OutlineNode]: OutlineNode[K] } & { children: OutlineNode[] }
 
-/** The outline: every region in reading order, each with its components as a tree. */
+/** The outline: every region the report holds in reading order, each with its components as a tree; a first page header only where the report has one (0060). */
 export function buildOutline(report: ReportDefinition, inputs: OutlineInputs, t: EditorText): readonly OutlineRegion[] {
   const chosen = inputs.selection === null ? undefined : selectionKey(inputs.selection)
   const row = (key: string, id: string, kind: OutlineNode['kind'], depth: number): Building => {
@@ -59,7 +59,8 @@ export function buildOutline(report: ReportDefinition, inputs: OutlineInputs, t:
       children: [],
     }
   }
-  const tops = new Map(REGION_NAMES.map((region) => [region, [] as OutlineNode[]]))
+  const held = heldRegions(report.regions).map(([region]) => region)
+  const tops = new Map(held.map((region) => [region, [] as OutlineNode[]]))
   const byPath = new Map<string, Building>()
   for (const { component, region, path, depth } of walkComponents(report)) {
     const node = row(component.id, component.id, component.kind, depth)
@@ -78,7 +79,7 @@ export function buildOutline(report: ReportDefinition, inputs: OutlineInputs, t:
     if (slot !== undefined) node.slot = Number(slot)
     byPath.get(parentPath ?? '')?.children.push(node)
   }
-  return REGION_NAMES.map((region) => ({ region, label: regionLabel(region, t), nodes: tops.get(region) ?? [] }))
+  return held.map((region) => ({ region, label: regionLabel(region, t), nodes: tops.get(region) ?? [] }))
 }
 
 /** The rows for the parts of the report's own level, after the regions, each the report has, in `REPORT_LEVEL_PARTS`' order: its payment part, then its e-invoice. */

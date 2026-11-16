@@ -2,6 +2,8 @@
  * The preview of a session's current document, kept current: every edit
  * asks for a render, the scheduler runs the latest once the edits stop
  * (`latest.ts`), and what it delivers is shown until the next one arrives.
+ * It prints in the language the builder shows, the editor's, which either
+ * framework's builder chooses and the switch between them keeps (0063).
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { DataMode, ImageResolver } from '@formancy/report-runtime'
@@ -33,8 +35,9 @@ export interface PreviewState {
 }
 
 export function usePreview(opened: Opened, images: ImageResolver, mode: DataMode): PreviewState {
-  const { session, starter } = opened
+  const { session, starter, editor } = opened
   const document = useSyncExternalStore(session.subscribe, session.document)
+  const locale = useSyncExternalStore(editor.subscribe, () => editor.state().languages.edited)
   const [state, setState] = useState<PreviewState>({ shown: null, rendering: true, fault: null })
   const renders = useRef<Latest<PreviewRequest> | null>(null)
   const lastMode = useRef<DataMode | null>(null)
@@ -65,8 +68,8 @@ export function usePreview(opened: Opened, images: ImageResolver, mode: DataMode
     const now = lastMode.current !== mode
     lastMode.current = mode
     setState((was) => (was.rendering ? was : { ...was, rendering: true }))
-    renders.current?.request({ report: document, starter, mode, images, creationDate: new Date().toISOString() }, { now })
-  }, [document, starter, mode, images])
+    renders.current?.request({ report: document, starter, mode, images, creationDate: new Date().toISOString(), locale }, { now })
+  }, [document, starter, mode, images, locale])
 
   return state
 }

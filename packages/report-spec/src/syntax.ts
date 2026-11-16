@@ -70,6 +70,11 @@ export function isFormId(value: unknown): value is string {
  */
 export const LOCALE = /^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|\d{3}))?$/
 
+/** Whether `value` is a locale as a report writes one: what the runtime holds the locale a form source's labels were read in to (0063), so that the two cannot read a locale differently. */
+export function isLocale(value: unknown): value is string {
+  return typeof value === 'string' && LOCALE.test(value)
+}
+
 /** A colour: `#rrggbb`, lower case. */
 export const COLOR = /^#[0-9a-f]{6}$/
 

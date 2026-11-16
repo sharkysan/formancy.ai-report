@@ -69,7 +69,8 @@ function contextOf(inputs: SiteInputs, group: PageGroup, language: Language, gro
 /**
  * What each page whose status `inputs` outdates must say again, a sentence
  * for each: a page's status was written against the release the changelog
- * named then (0024), and a later one may have its feature.
+ * named then (0024), and a later one may have its feature, or, for the
+ * start page, hold what it did not and do what it said was not done yet.
  */
 function staleStatuses(inputs: SiteInputs, groups: readonly PageGroup[]): string[] {
   const { version } = inputs.release
@@ -77,7 +78,7 @@ function staleStatuses(inputs: SiteInputs, groups: readonly PageGroup[]): string
     status === undefined || status.release === version
       ? []
       : [
-          `the ${status.feature} page's status was written when ${status.release} was the newest release, and CHANGELOG.md now names ${version}: say whether that release has the ${status.feature} in each sentence of ${status.copy} that says where it stands -- ${status.sentences} -- then change ${status.constant} with them`,
+          `the ${status.feature} page's status was written when ${status.release} was the newest release, and CHANGELOG.md now names ${version}: say ${status.ask ?? `whether that release has the ${status.feature}`} in each sentence of ${status.copy} that says where it stands -- ${status.sentences} -- then change ${status.constant} with them`,
         ],
   )
 }

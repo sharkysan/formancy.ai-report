@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:e6f2d8c459335d773e1b768c78ea900d8bbed9b8c96055b2e2d90f125e4631d7",
+      "reviewed": "sha256:135a7c25bb9e387d993c7b1c4ced1b0dd1d1abaaa6fd1519d0c1e3af275c33f5",
       "limitations": [
         {
           "area": "testing",
@@ -70,7 +70,7 @@
       ]
     },
     "0005": {
-      "reviewed": "sha256:c25a62ca9a3c112b80f6aaaa7ac267870ff11cde01f4776d85d11beb8b4f2f97",
+      "reviewed": "sha256:8bda540b6fca5bf83be25db1ea2cefcb87a2c15f2fa9cebb5f49351169f44150",
       "limitations": [
         {
           "area": "rendering",
@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:c30f43961eac53f46eaf689cd83fb15adc20c2932494e6f27ccde589d63a7753",
+      "reviewed": "sha256:8caa1b599fe40057ff5fa73f459b3b32e62620af6c26cc7ab0685e0772993bb3",
       "limitations": [
         {
           "area": "licence",
@@ -108,7 +108,7 @@
       ]
     },
     "0007": {
-      "reviewed": "sha256:4c70f6d93d839c12eda8166d2048e2321835de9eb8023df0ba9a7ee7a2c8afc1",
+      "reviewed": "sha256:e215d23755da18f0f99f875505270364d65eb8f0869475beee1832aa63d3b5c7",
       "limitations": [
         {
           "area": "format",
@@ -177,7 +177,7 @@
       ]
     },
     "0009": {
-      "reviewed": "sha256:acb8320b29845672626b1b0a85dedc89738630a704e9e435ce491587182557b8",
+      "reviewed": "sha256:8ac6fd2b2b86ff6666cc60d409f4fdd9b1dfd729d332eca283c4a10e85dd92df",
       "limitations": [
         {
           "area": "runtime",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:5d6cfdfd749d8c6207c5e58aeec106ae4469e62fe5d1b27e7a8c93a50769dc57",
+      "reviewed": "sha256:0647ca6ffb6941b2c03d71559d11289d1c5363add3e8e2e03ec91fb18baaab86",
       "limitations": [
         {
           "area": "runtime",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:358a559280561418d1bafe9fe9f0cc201f522ceeb621729c28bc67651f7069a2",
+      "reviewed": "sha256:fb643d2417e18c0825ca43c158827a11b04d79c782000c3474fa126f09afe4e5",
       "limitations": [
         {
           "area": "rendering",
@@ -296,7 +296,7 @@
       ]
     },
     "0012": {
-      "reviewed": "sha256:f3a9d8ddfbcc523d096dbc4c69c2ed58613a3942e8c54ee4ab59d63f28638e31",
+      "reviewed": "sha256:60ad9f36ef82b59ca9905036382319855880eab1fd1ab317b81eda7332c75f1c",
       "limitations": [
         {
           "area": "builders",
@@ -342,7 +342,7 @@
       ]
     },
     "0014": {
-      "reviewed": "sha256:06a03ba759bb15bfef91b3487f2989dce887509ace25f045510166ef1778a7e5",
+      "reviewed": "sha256:28c1efdab03ae332a6680afb0010adad1e9c2460eaab507b3f000f7507982079",
       "limitations": [
         {
           "area": "release",
@@ -477,7 +477,7 @@
       ]
     },
     "0021": {
-      "reviewed": "sha256:5411d2907df970202d4bb9f598d28680d3013d345fe25e06691c7d331a4370dc",
+      "reviewed": "sha256:852ea6de826aea9284caff3bd56cff1696b427b600a93c1f4e9e49a7802da321",
       "limitations": [
         {
           "area": "release",
@@ -499,7 +499,7 @@
       ]
     },
     "0022": {
-      "reviewed": "sha256:2be7cd0a270c9ee7c9ee7cefe355364a4402302e96a0fafaa80220f1deadd776",
+      "reviewed": "sha256:5bf3e4e77f1e23f6a5ae838186d966c7488e0ffbec3c931be4d129cd3301687a",
       "limitations": [
         {
           "area": "format",
@@ -596,7 +596,7 @@
       ]
     },
     "0024": {
-      "reviewed": "sha256:334f70fff4d20f21c43ced6d8b9917e7b955b7fd1194d9c31dbb2eb6f7856293",
+      "reviewed": "sha256:999b293306959499755457928aa826fa0603fa9076bd9218b8956ff8458a7b49",
       "limitations": [
         {
           "area": "release",
@@ -738,7 +738,7 @@
       "none": "It decides how the repository documents its architecture and what holds those documents in pnpm test:repo; its costs fall on a contributor's pull request, and nothing in a published package, a release or the Studio changes with it."
     },
     "0027": {
-      "reviewed": "sha256:6ad94384669d1863d4e92d41a4a7424f491757a3148e69063f8c3f4ac207f806",
+      "reviewed": "sha256:b75297617244e8f983cc58b738127423532906494b714504bfed1c470f2bb1ad",
       "limitations": [
         {
           "area": "format",
@@ -886,7 +886,7 @@
       ]
     },
     "0028": {
-      "reviewed": "sha256:a86e98e4e19caa22de089e1a478cc85dd1b84f4e8498d9e52c0ed2fced1efdde",
+      "reviewed": "sha256:56bc6a6ac2a3a24a6a194f372cc4d69f96e8598afc07cda5a133c713944ea50e",
       "limitations": [
         {
           "area": "release",
@@ -918,7 +918,8 @@
         },
         {
           "area": "release",
-          "says": "The EPC QR code page names the Studio's starter \"Euro invoice\", its picker's \"Starter\" and its palette's \"EPC payment code\" as words nothing here reads, and its hero opens the Studio at its first starter, not at the euro invoice."
+          "says": "The EPC QR code page names the Studio's starter \"Euro invoice\", its picker's \"Starter\" and its palette's \"EPC payment code\" as the Studio's recorded pictures say them, not as the Studio says them as it runs, and its hero opens the Studio at its first starter, not at the euro invoice.",
+          "heldBy": "apps/pages/src/studio-words.test.ts"
         },
         {
           "area": "testing",
@@ -1024,7 +1025,7 @@
       ]
     },
     "0030": {
-      "reviewed": "sha256:c64937d3fb7ac564b9eb61a2a27edeb159d2e71ff0008609840f9c5ec5a85f37",
+      "reviewed": "sha256:c980687fa2390ad5a9de4fcf806f628a740c6bdc529f4f2038aa534a2bfc30b2",
       "limitations": [
         {
           "area": "format",
@@ -1077,7 +1078,7 @@
         },
         {
           "area": "rendering",
-          "says": "A render may draw `MAX_SVG_DRAWING` units of SVG, an image in a page region counted on every page `maxPages` allows and not on the pages printed, so at a limit of 200 pages a header logo may cost 5,000 units however short the report: a logo of 9,999 short lines, the most one drawing may hold, costs 12,152 and may head a report of 82 pages at most, which the Studio's Preview, limited to 40, draws and a render limited to 200 refuses.",
+          "says": "A render may draw `MAX_SVG_DRAWING` units of SVG, an image in the page header or footer counted on every page `maxPages` allows and not on the pages printed, so at a limit of 200 pages a header logo may cost 5,000 units however short the report: a logo of 9,999 short lines, the most one drawing may hold, costs 12,152 and may head a report of 82 pages at most, which the Studio's Preview, limited to 40, draws and a render limited to 200 refuses.",
           "heldBy": "packages/report-render-pdf/src/svg.test.ts"
         },
         {
@@ -1111,7 +1112,7 @@
         },
         {
           "area": "testing",
-          "says": "An e-invoice's SVG is held to PDF/A by a bound on the numbers the converter will write, never by reading its PDF back at print, and the bound assumes the converter's arithmetic strays from the cleaner's by no more than its margin, which matrices built to cancel one another term by term could defeat, and which nothing holds; the tests and the e-invoice gate read the numbers back, veraPDF none in a soft mask's group, a clip's."
+          "says": "A PDF/A's SVG, an e-invoice's or a PDF/A-2b's, is held to PDF/A by a bound on the numbers the converter will write, never by reading its PDF back at print, and the bound assumes the converter's arithmetic strays from the cleaner's by no more than its margin, which matrices built to cancel one another term by term could defeat, and which nothing holds; the tests and the e-invoice gate read the numbers back, veraPDF none in a soft mask's group, a clip's."
         },
         {
           "area": "testing",
@@ -1121,7 +1122,7 @@
       ]
     },
     "0031": {
-      "reviewed": "sha256:6710aabd88c105f8e8f501fef033acf5ce854a9d77234fe9e0c320e82feba0fd",
+      "reviewed": "sha256:f0e255ec7c8a57fa61a982cb7a262f0c5eaa7cfbd2551736b5c8d3b1e0b2e2b8",
       "limitations": [
         {
           "area": "rendering",
@@ -1399,7 +1400,7 @@
       ]
     },
     "0038": {
-      "reviewed": "sha256:c004c5e3dbade806092187a42896bd13c1e9a6c7fe0f29af725f99d6ced24210",
+      "reviewed": "sha256:4ca7d26925b6ac72abe339de81c315f79488c342804564d3a02a5d80968f2122",
       "limitations": [
         {
           "area": "format",
@@ -1581,7 +1582,7 @@
       ]
     },
     "0041": {
-      "reviewed": "sha256:04928d4a2a1d91c56800adef42ea4c54f6594e1bdddfaec1de21aac5785176ca",
+      "reviewed": "sha256:fd9d2465dd2072023ce3fc4523103235b863564890d6eb809741f973b1e59709",
       "limitations": [
         {
           "area": "data",
@@ -1627,7 +1628,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:ceb2357d0b57c15c26f56e1d35e94d30c6af8c318fb58dafa3962afa87d78271",
+      "reviewed": "sha256:c0464289531480835eb82268415fb2610c988f51597e4d1c1e2b503d8c4471cd",
       "limitations": [
         {
           "area": "format",
@@ -1682,7 +1683,7 @@
         },
         {
           "area": "data",
-          "says": "Labels print from the version's catalogue for the report's locale, or from its default catalogue where it has none for that locale, formancy's own fallback, so a report in de-CH of a form with only German and English catalogues prints its default's labels.",
+          "says": "Labels print from the version's catalogue for the locale a render prints in, the report's own unless the render names a translation's (0063), or from its default catalogue where it has none for that locale, formancy's own fallback, so a report in de-CH of a form with only German and English catalogues prints its default's labels.",
           "heldBy": "packages/report-forms/src/kinds.test.ts"
         },
         {
@@ -1727,136 +1728,6 @@
         {
           "area": "runtime",
           "says": "Reading one submission of 100,000 repeater rows of six fields took a median of 966 ms, and 100,000 submissions of eleven fields, one a row, 2,135 ms, from the built package on an Intel i9-10900K under Node 24.21.0 at about a tenth of its load from other work, on 22 October 2026, before the runtime checks the data again when it resolves."
-        }
-      ]
-    },
-    "0045": {
-      "reviewed": "sha256:ad9eb30619167bbfae6b16d2df4cef8d1d8ff8c7bd7c94abca827f793f2d5160",
-      "limitations": [
-        {
-          "area": "editing",
-          "says": "A report generated from a formancy form is a first draft -- a line for each answer under the form's own title, whatever the report's language, sections with no space between them and every column of its table as wide as the next -- which nobody would print as it is, and which an author makes the report."
-        },
-        {
-          "area": "editing",
-          "says": "A generated report is in the form's model order and follows none of the layouts the form names, so a print layout that leaves a field out, or orders the fields otherwise, is not what the draft prints.",
-          "heldBy": "packages/report-forms/src/generate.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "A tick box or a ticked option in a generated report prints `[x]` or `[ ]`, in no language, and an unanswered one as nothing.",
-          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "A form whose generated report would declare more than 64 fields or hold more components than a region holds, that heads a column with a label longer than 200 characters, labels anything with a control character or nests a field past 16 keys, gives no report at all: it is refused, and nothing picks the fields to keep.",
-          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "A generated report's table of more than six columns stands on a landscape page, and one of more than nine gives no report at all -- the site visit form read one row per submission, thirteen columns, among them -- since every column is as wide as the next and needs 80 pt for a heading's word.",
-          "heldBy": "packages/report-forms/src/generate-print.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "A generated report whose heading or answer holds a word wider than its column -- `Zusammenfassung`, 77.8 pt, wider than the 72 pt a column of a full page holds -- or a label in characters Roboto has no glyph for, such as Chinese or an emoji, is generated, and refused by the renderer when it prints: the generator holds no font to see it."
-        },
-        {
-          "area": "editing",
-          "says": "A field labelled longer than 200 characters in a form prints its label whole on its line in a generated report, and is labelled in the report's data by its row's or option's label, or by its key, with a note saying so.",
-          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "A field of a generated report is nullable unless the version requires it and no visible or skip rule can hide it, so an expression over most form fields reads a member that may be null, which CEL types as dyn.",
-          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "Where any row or option of a matrix or of ticked boxes has a value that is no field key, every member of that field takes its place among its kind's as its id in a generated report, `checks_2`, so an expression names it by place, and a later version that moves the option moves what that id would mean.",
-          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "No generated base is kept beside a report, so nothing regenerates a report from a later form version: a review offers its new labels for the texts that say an old one and says its new fields, and applies neither.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "A generated report takes one repeater as its table, the one asked for, and lists the others as left out, so a form with two lists prints one.",
-          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
-        },
-        {
-          "area": "testing",
-          "says": "That a generated report opens with no warning in the editor is held by report-core's diagnose on the Studio's site visit starter alone; every other generated report is held to the runtime's checkReport, which refuses errors and passes warnings.",
-          "heldBy": "packages/report-corpus/src/starters/starters.test.ts"
-        },
-        {
-          "area": "runtime",
-          "says": "Generating the site visit took 1.8 to 3.9 ms, refusing a form of 100,000 fields 2.3 to 5.2 s, most of it formancy's validator, and refusing a grid of 100,000 columns 0.89 to 3.1 s, from the built package on an Intel i9-10900K under Node 24.21.0 at 3 to 100 % of its load from other work, on 22 October 2026.",
-          "heldBy": "packages/report-forms/src/generate-untrusted.test.ts"
-        }
-      ]
-    },
-    "0044": {
-      "reviewed": "sha256:85f210371429a1c1812c23141edb1086035dcfc7b2f808fb97ddfccbaf204095",
-      "limitations": [
-        {
-          "area": "editing",
-          "says": "An e-invoice is edited and never made from nothing in the builders: a report becomes one through the host, a paste or the Studio's e-invoice starter, and the editor's `addPart` of one is refused as `unavailable`.",
-          "heldBy": "packages/report-builder-core/src/editor.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "The account an e-invoice shares with its QR-bill and its EPC QR codes is changed by one command, `setPaymentAccount`, which changes no BIC, so an EPC QR code whose BIC is of another country refuses the new account until its BIC is changed or emptied, an account outside the EEA, which needs a BIC, cannot follow one inside it in one edit, and a report with a QR-bill keeps a Swiss or Liechtenstein account.",
-          "heldBy": "packages/report-core/src/commands/e-invoice.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "Where the e-invoice, its QR-bill or an EPC QR code reads its account from the data, `setPaymentAccount` refuses as `read-from-data`, naming the place, rather than write over the binding.",
-          "heldBy": "packages/report-core/src/commands/e-invoice.test.ts"
-        },
-        {
-          "area": "builders",
-          "says": "Where any of the e-invoice, its QR-bill and its EPC QR codes reads its account from the data, a builder's IBAN field writes its own place's account alone, which the render compares with the data's, and where two others are written, one changed alone is refused until the person binds them alike or writes the third.",
-          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "report-core holds an e-invoice's totals and its lines to the page and no other term, so the seller's name, address or VAT identifier, the issue or due date, the BIC or the account's name, changed in a builder, is accepted with no warning where the page prints it in its own words, as the e-invoice starter does, and the XML then says another thing than the page, which § 14c UStG may count as a second invoice: the person changes both."
-        },
-        {
-          "area": "builders",
-          "says": "In a report with an e-invoice the palette's EPC payment code pays the e-invoice's account with its BIC and is unavailable until the e-invoice gives payment instructions, and Add QR-bill gives the bill the e-invoice's currency and account, so it is refused where that account is not one of Switzerland or Liechtenstein.",
-          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "What a template prints beside an e-invoice's totals in its own words, as the e-invoice starter's \"Umsatzsteuer 19 % auf\" and its \"IBAN:\" line do, is not changed when the e-invoice's rate or account is, so an author changes both."
-        },
-        {
-          "area": "builders",
-          "says": "A seller's contact, payment instructions and an exempt or reverse-charged VAT category added in a builder hold the editor's placeholder words and values, which reach nobody and are written into the XML until a person replaces them, with no warning, and an exempt category's reason names no provision, which § 14 Abs. 4 Satz 1 Nr. 8 UStG asks for.",
-          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
-        },
-        {
-          "area": "builders",
-          "says": "An e-invoice's properties are one long pane of fields in groups that scrolls, which no gate measures, and their German and French words have not been read by a native speaker."
-        },
-        {
-          "area": "release",
-          "says": "report-builder-core's `PropertyGroup` holds a list of buttons, `actions`, each with `available` and `then`, where 0039's unreleased `action` was one, and `REPORT_LEVEL_PARTS` holds `eInvoice`, so a host's code that read one button or took the bill for the only part changes with this release.",
-          "heldBy": "packages/report-builder-core/src/invoice-fields.test.ts"
-        },
-        {
-          "area": "release",
-          "says": "report-core refuses with a new code, `read-from-data`, so a host that maps every refusal code to its own message meets one it has no message for.",
-          "heldBy": "packages/report-core/src/outcome.test.ts"
-        },
-        {
-          "area": "testing",
-          "says": "The browser gate holds the shared account on the e-invoice starter's XML and its EPC QR code, decoded from the PDF's pixels, and the starter has no QR-bill, so the bill's half is held by the builder scenarios in jsdom and not on a PDF.",
-          "heldBy": "packages/report-builder-core/src/scenarios.test.ts"
         }
       ]
     },
@@ -1929,101 +1800,133 @@
         }
       ]
     },
-    "0048": {
-      "reviewed": "sha256:a2b622b1842d1ecfc1a3ee6a96f8fc22379482ce113a6312d51c466f849867eb",
+    "0044": {
+      "reviewed": "sha256:85f210371429a1c1812c23141edb1086035dcfc7b2f808fb97ddfccbaf204095",
       "limitations": [
         {
-          "area": "data",
-          "says": "A form version that removed, moved or retyped a field a report reads refuses every submission of it until someone applies a resolution of its review: nothing is followed by itself, a rename the form's author declared included.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "A review needs every version the report names -- the one it was made from and each its overrides name -- handed over beside the new one, and is refused as `missing-version` without one, so a host that did not keep a version cannot review against it.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "A followed rename keeps reading where it read each version the host handed the review over; a version it kept and did not hand over, which printed at the old path, is refused once the binding moves, until its own review offers the path the version the report was made from reads.",
-          "heldBy": "packages/report-forms/src/review-later.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "A field a version removed blocks every later version that lacks it too, each reviewed in turn, since printing nothing of it names one version; or the field is removed from the report.",
-          "heldBy": "packages/report-forms/src/review-later.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "A field moved without a declared rename is offered nothing but printing nothing of it from that version, another type or its removal, or the path a version the report names reads where formancy's diff finds the same field: a path is never guessed from a name, so the author moves the binding by hand.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "A field renamed and retyped in the same version is offered no rename, since following it alone would still refuse that version's submissions.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "A field the QR-bill or the e-invoice reads, directly or through an aggregate, is offered only a rename by its review: printing nothing of it, another type or its removal would change what the bill or the invoice says, so a version that removed one blocks until the part is changed by its own commands.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "A version that removed the detail's repeater, or holds another kind there, is offered nothing but a rename of it, declared or read so by a version the report names; printing none of its rows, or removing the detail, is the author's to do.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "Printing nothing of a field from a version declares the field nullable, which an expression reads as dyn; where that would leave an expression the compiler refuses, a decimal compared with `==` among them, it is not offered.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "A retype is judged by the fields' kinds, never by the answers: a version that holds the field as text, retyped to a number, has each of its submissions whose answer spells no number refused as `invalid-answer`, which the resolution says of that version and cannot say of a submission.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
-        },
-        {
-          "area": "data",
-          "says": "A key a version removed a field from, never reviewed, and a later version reused for another field, prints that field's answers as the report's; a review says so only against a version the report names that printed nothing of the field there.",
-          "heldBy": "packages/report-forms/src/review-later.test.ts"
+          "area": "editing",
+          "says": "An e-invoice is edited and never made from nothing in the builders: a report becomes one through the host, a paste or the Studio's e-invoice starter, and the editor's `addPart` of one is refused as `unavailable`.",
+          "heldBy": "packages/report-builder-core/src/editor.test.ts"
         },
         {
           "area": "editing",
-          "says": "A relabel is offered only for a text that says a label of a version the report names, word for word -- the field's own label, a line's label run before the run that prints it, or a column's heading over it -- so a label reworded, inside a sentence, given by a version the report never named, or a matrix row's or option's composite label is not found, and one the format cannot hold, past `MAX_LABEL_LENGTH`, or holding a direction control or a separator, is not offered.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
+          "says": "The account an e-invoice shares with its QR-bill and its EPC QR codes is changed by one command, `setPaymentAccount`, which changes no BIC, so an EPC QR code whose BIC is of another country refuses the new account until its BIC is changed or emptied, an account outside the EEA, which needs a BIC, cannot follow one inside it in one edit, and a report with a QR-bill keeps a Swiss or Liechtenstein account.",
+          "heldBy": "packages/report-core/src/commands/e-invoice.test.ts"
         },
         {
           "area": "editing",
-          "says": "A field a version adds is said by its review and never added; an option or a matrix row a version adds to a field the report reads is not said.",
-          "heldBy": "packages/report-forms/src/review.test.ts"
+          "says": "Where the e-invoice, its QR-bill or an EPC QR code reads its account from the data, `setPaymentAccount` refuses as `read-from-data`, naming the place, rather than write over the binding.",
+          "heldBy": "packages/report-core/src/commands/e-invoice.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Where any of the e-invoice, its QR-bill and its EPC QR codes reads its account from the data, a builder's IBAN field writes its own place's account alone, which the render compares with the data's, and where two others are written, one changed alone is refused until the person binds them alike or writes the third.",
+          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "report-core holds an e-invoice's totals and its lines to the page and no other term, so the seller's name, address or VAT identifier, the issue or due date, the BIC or the account's name, changed in a builder, is accepted with no warning where the page prints it in its own words, as the e-invoice starter does, and the XML then says another thing than the page, which § 14c UStG may count as a second invoice: the person changes both."
+        },
+        {
+          "area": "builders",
+          "says": "In a report with an e-invoice the palette's EPC payment code pays the e-invoice's account with its BIC and is unavailable until the e-invoice gives payment instructions, and Add QR-bill gives the bill the e-invoice's currency and account, so it is refused where that account is not one of Switzerland or Liechtenstein.",
+          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "What a template prints beside an e-invoice's totals in its own words, as the e-invoice starter's \"Umsatzsteuer 19 % auf\" and its \"IBAN:\" line do, is not changed when the e-invoice's rate or account is, so an author changes both."
+        },
+        {
+          "area": "builders",
+          "says": "A seller's contact, payment instructions and an exempt or reverse-charged VAT category added in a builder hold the editor's placeholder words and values, which reach nobody and are written into the XML until a person replaces them, with no warning, and an exempt category's reason names no provision, which § 14 Abs. 4 Satz 1 Nr. 8 UStG asks for.",
+          "heldBy": "packages/report-builder-core/src/e-invoice.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "An e-invoice's properties are one long pane of fields in groups that scrolls, which no gate measures, and their German and French words have not been read by a native speaker."
+        },
+        {
+          "area": "release",
+          "says": "report-builder-core's `PropertyGroup` holds a list of buttons, `actions`, each with `available` and `then`, where 0039's unreleased `action` was one, and `REPORT_LEVEL_PARTS` holds `eInvoice`, so a host's code that read one button or took the bill for the only part changes with this release.",
+          "heldBy": "packages/report-builder-core/src/invoice-fields.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "report-core refuses with a new code, `read-from-data`, so a host that maps every refusal code to its own message meets one it has no message for.",
+          "heldBy": "packages/report-core/src/outcome.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The browser gate holds the shared account on the e-invoice starter's XML and its EPC QR code, decoded from the PDF's pixels, and the starter has no QR-bill, so the bill's half is held by the builder scenarios in jsdom and not on a PDF.",
+          "heldBy": "packages/report-builder-core/src/scenarios.test.ts"
+        }
+      ]
+    },
+    "0045": {
+      "reviewed": "sha256:ad9eb30619167bbfae6b16d2df4cef8d1d8ff8c7bd7c94abca827f793f2d5160",
+      "limitations": [
+        {
+          "area": "editing",
+          "says": "A report generated from a formancy form is a first draft -- a line for each answer under the form's own title, whatever the report's language, sections with no space between them and every column of its table as wide as the next -- which nobody would print as it is, and which an author makes the report."
+        },
+        {
+          "area": "editing",
+          "says": "A generated report is in the form's model order and follows none of the layouts the form names, so a print layout that leaves a field out, or orders the fields otherwise, is not what the draft prints.",
+          "heldBy": "packages/report-forms/src/generate.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A tick box or a ticked option in a generated report prints `[x]` or `[ ]`, in no language, and an unanswered one as nothing.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A form whose generated report would declare more than 64 fields or hold more components than a region holds, that heads a column with a label longer than 200 characters, labels anything with a control character or nests a field past 16 keys, gives no report at all: it is refused, and nothing picks the fields to keep.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A generated report's table of more than six columns stands on a landscape page, and one of more than nine gives no report at all -- the site visit form read one row per submission, thirteen columns, among them -- since every column is as wide as the next and needs 80 pt for a heading's word.",
+          "heldBy": "packages/report-forms/src/generate-print.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A generated report whose heading or answer holds a word wider than its column -- `Zusammenfassung`, 77.8 pt, wider than the 72 pt a column of a full page holds -- or a label in characters Roboto has no glyph for, such as Chinese or an emoji, is generated, and refused by the renderer when it prints: the generator holds no font to see it."
+        },
+        {
+          "area": "editing",
+          "says": "A field labelled longer than 200 characters in a form prints its label whole on its line in a generated report, and is labelled in the report's data by its row's or option's label, or by its key, with a note saying so.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
         },
         {
           "area": "data",
-          "says": "A version that no longer requires a field the report declares never null, or that hides it by a rule, blocks nothing and is not said by its review: a final render of a submission that left the field out is refused as `unexpected-null`."
+          "says": "A field of a generated report is nullable unless the version requires it and no visible or skip rule can hide it, so an expression over most form fields reads a member that may be null, which CEL types as dyn.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
         },
         {
-          "area": "data",
-          "says": "A version that names its form by another id is said by its review and blocks nothing: the per-render check reads a field of any form wherever it stands where the report reads it.",
+          "area": "editing",
+          "says": "Where any row or option of a matrix or of ticked boxes has a value that is no field key, every member of that field takes its place among its kind's as its id in a generated report, `checks_2`, so an expression names it by place, and a later version that moves the option moves what that id would mean.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "No generated base is kept beside a report, so nothing regenerates a report from a later form version: a review offers its new labels for the texts that say an old one and says its new fields, and applies neither.",
           "heldBy": "packages/report-forms/src/review.test.ts"
         },
         {
           "area": "editing",
-          "says": "Removing a field with its readers removes every component, column, style rule, footer cell, sort key, group and aggregate that reads it, a footer row left with no cell, a table left with no column and a section whose condition reads it with all they hold, and refuses a field the QR-bill or the e-invoice reads, as `read-by-part`.",
-          "heldBy": "packages/report-core/src/commands/readers.test.ts"
+          "says": "A generated report takes one repeater as its table, the one asked for, and lists the others as left out, so a form with two lists prints one.",
+          "heldBy": "packages/report-forms/src/generate-kinds.test.ts"
         },
         {
-          "area": "format",
-          "says": "A report whose binding names an override for a form version is refused whole by 0.2.0, as `unknown-property`, and a field or the detail holds at most 64 of them, a followed rename naming each version handed over that read the old path; past that no rename is offered.",
-          "heldBy": "packages/report-spec/src/validate-form-binding.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "A batch holds at most 1,000 commands, chosen, refused past it before any of it runs, and no batch inside it; a step that throws on what the steps before it left is refused, the batch with it.",
-          "heldBy": "packages/report-core/src/commands/batch.test.ts"
+          "area": "testing",
+          "says": "That a generated report opens with no warning in the editor is held by report-core's diagnose on the Studio's site visit starter alone; every other generated report is held to the runtime's checkReport, which refuses errors and passes warnings.",
+          "heldBy": "packages/report-corpus/src/starters/starters.test.ts"
         },
         {
           "area": "runtime",
-          "says": "Reviewing the site visit starter against its version 3 took 7 to 11 ms, a draft of 64 fields against a version that removed or renamed every one 75 to 118 ms, and a batch of 1,000 commands applied and undone 2 to 3 ms; a report at the format's bounds, 2,500 components each reading ten of 64 header fields, against a version that removed every field, 6.4 to 6.6 s where every field may be null and 49 to 50 s where none may, each nothing printed then compiled over the expressions its field reaches: from the built packages on an Intel i9-10900K under Node 24.21.0 at 1 to 11 % load from other work, on 22 October 2026."
+          "says": "Generating the site visit took 1.8 to 3.9 ms, refusing a form of 100,000 fields 2.3 to 5.2 s, most of it formancy's validator, and refusing a grid of 100,000 columns 0.89 to 3.1 s, from the built package on an Intel i9-10900K under Node 24.21.0 at 3 to 100 % of its load from other work, on 22 October 2026.",
+          "heldBy": "packages/report-forms/src/generate-untrusted.test.ts"
         }
       ]
     },
@@ -2119,6 +2022,104 @@
         {
           "area": "server",
           "says": "The verifier tolerates 30 seconds of clock skew on exp and nbf, data-identity’s default, which the server does not change and nothing here measured."
+        }
+      ]
+    },
+    "0048": {
+      "reviewed": "sha256:e3a49ba324f7f0fc1e4d95f8d491e32062419b1f17f00aa54b80d3ba393a46e2",
+      "limitations": [
+        {
+          "area": "data",
+          "says": "A form version that removed, moved or retyped a field a report reads refuses every submission of it until someone applies a resolution of its review: nothing is followed by itself, a rename the form's author declared included.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A review needs every version the report names -- the one it was made from and each its overrides name -- handed over beside the new one, and is refused as `missing-version` without one, so a host that did not keep a version cannot review against it.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A followed rename keeps reading where it read each version the host handed the review over; a version it kept and did not hand over, which printed at the old path, is refused once the binding moves, until its own review offers the path the version the report was made from reads.",
+          "heldBy": "packages/report-forms/src/review-later.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field a version removed blocks every later version that lacks it too, each reviewed in turn, since printing nothing of it names one version; or the field is removed from the report.",
+          "heldBy": "packages/report-forms/src/review-later.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field moved without a declared rename is offered nothing but printing nothing of it from that version, another type or its removal, or the path a version the report names reads where formancy's diff finds the same field: a path is never guessed from a name, so the author moves the binding by hand.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field renamed and retyped in the same version is offered no rename, since following it alone would still refuse that version's submissions.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A field the QR-bill or the e-invoice reads, directly or through an aggregate, is offered only a rename by its review: printing nothing of it, another type or its removal would change what the bill or the invoice says, so a version that removed one blocks until the part is changed by its own commands.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A version that removed the detail's repeater, or holds another kind there, is offered nothing but a rename of it, declared or read so by a version the report names; printing none of its rows, or removing the detail, is the author's to do.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "Printing nothing of a field from a version declares the field nullable, which an expression reads as dyn; where that would leave an expression the compiler refuses, a decimal compared with `==` among them, it is not offered.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A retype is judged by the fields' kinds, never by the answers: a version that holds the field as text, retyped to a number, has each of its submissions whose answer spells no number refused as `invalid-answer`, which the resolution says of that version and cannot say of a submission.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A key a version removed a field from, never reviewed, and a later version reused for another field, prints that field's answers as the report's; a review says so only against a version the report names that printed nothing of the field there.",
+          "heldBy": "packages/report-forms/src/review-later.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A relabel is offered only for a text that says a label of a version the report names, word for word -- the field's own label, a line's label run before the run that prints it, or a column's heading over it -- so a label reworded, inside a sentence, given by a version the report never named, or a matrix row's or option's composite label is not found, and one the format cannot hold, past `MAX_LABEL_LENGTH`, or holding a direction control or a separator, is not offered.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A field a version adds is said by its review and never added; an option or a matrix row a version adds to a field the report reads is not said.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A version that no longer requires a field the report declares never null, or that hides it by a rule, blocks nothing and is not said by its review: a final render of a submission that left the field out is refused as `unexpected-null`."
+        },
+        {
+          "area": "data",
+          "says": "A version that names its form by another id is said by its review and blocks nothing: the per-render check reads a field of any form wherever it stands where the report reads it.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "Removing a field with its readers removes every component, column, style rule, footer cell, sort key, group and aggregate that reads it, a footer row left with no cell, a table left with no column and a section whose condition reads it with all they hold, and refuses a field the QR-bill or the e-invoice reads, as `read-by-part`.",
+          "heldBy": "packages/report-core/src/commands/readers.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A report whose binding names an override for a form version is refused whole by 0.2.0, as `unknown-property`, and a field or the detail holds at most 64 of them, a followed rename naming each version handed over that read the old path; past that no rename is offered.",
+          "heldBy": "packages/report-spec/src/validate-form-binding.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A batch holds at most 1,000 commands, chosen, refused past it before any of it runs, and no batch inside it; a step that throws on what the steps before it left is refused, the batch with it.",
+          "heldBy": "packages/report-core/src/commands/batch.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "Reviewing the site visit starter against its version 3 took 7 to 11 ms, a draft of 64 fields against a version that removed or renamed every one 75 to 118 ms, and a batch of 1,000 commands applied and undone 2 to 3 ms; a report at the format's bounds, 2,500 components each reading ten of 64 header fields, against a version that removed every field, 6.4 to 6.6 s where every field may be null and 49 to 50 s where none may, each nothing printed then compiled over the expressions its field reaches: from the built packages on an Intel i9-10900K under Node 24.21.0 at 1 to 11 % load from other work, on 22 October 2026."
         }
       ]
     },
@@ -2267,7 +2268,7 @@
       ]
     },
     "0052": {
-      "reviewed": "sha256:f6d9a17cf3e61f5718fa61fd297820d0797ba0a7e364630e8f57a760c86912f2",
+      "reviewed": "sha256:0ec5ceb3bef93036dbd858365409c8c4ddbcdf3caeeb9a20565bf367140fece6",
       "limitations": [
         {
           "area": "format",
@@ -2399,7 +2400,7 @@
       ]
     },
     "0055": {
-      "reviewed": "sha256:79068db0b7e10a6ee8dba6fe1f41c9a87c641fe9a150416bbe8a3044c1b426e8",
+      "reviewed": "sha256:59d44940f247543ae085174c07bb594c7d732c5075078fb1462f704c66a2f4d4",
       "limitations": [
         {
           "area": "runtime",
@@ -2435,11 +2436,358 @@
           "area": "runtime",
           "says": "A pie whose values its format cannot print is refused even where it labels none of them.",
           "heldBy": "packages/report-runtime/src/lower-chart.test.ts"
+        }
+      ]
+    },
+    "0056": {
+      "reviewed": "sha256:75982876d3032b721818ddb05fabbda9e7184b5f07d4bc9f5ca7ebe965486c8b",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "A release commit fails the pages' suite until the start page's status is written again beside the QR-bill and EPC QR code pages': what the release holds, said in the start page's hero, what Formancy Report does not do yet, what its totals do not do and that the report format is still a draft, each true of the release and of main, in four languages; and the release commit opens a new, empty Unreleased in CHANGELOG.md, whose heading the start page links, or the pages' link check refuses the site.",
+          "heldBy": "apps/pages/src/product.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "What the start page says Formancy Report does not do yet fails the pages' suite in the pull request that changes the code it rests on, but for one detail table grouped by one field at most; that sentence, the hero's standing and the totals' limits are read again only by a release commit, so between releases the start page at formancy.ai/report/, which is main's, can still say one of them after main has made it false. The other absences match packages by name and report-spec's lists, so a renderer, a viewer or a server published under another name passes them, and so do a barcode added as a property of an existing component kind and a new output format inside report-render-pdf.",
+          "heldBy": "apps/pages/src/limits.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The start page's topic cards, its exact totals and what it says Formancy Report does not do yet are no native speaker's words in French or Italian, and no review of them is recorded."
+        },
+        {
+          "area": "testing",
+          "says": "Every card on the product pages names the tests it rests on, each a test file or a gate's entry of the checkout, which the pages' suite holds; whether each still tests what its card says, whether a card's list holds every test its claim needs, and every sentence outside a card, the healthcare page's title, h1, description and lead among them, are held by review.",
+          "heldBy": "apps/pages/src/evidence.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "A word the product pages name as the Studio's, a starter's, the picker's or a button's, is held to the Studio's recorded pictures in docs/images/readme/captured.json, which the README pictures' check compares with the Studio's own text, and not to the Studio as it runs: the pages pass a starter renamed in the Studio until its pictures are taken again.",
+          "heldBy": "apps/pages/src/studio-words.test.ts"
+        }
+      ]
+    },
+    "0057": {
+      "reviewed": "sha256:9e5492d7d7b68b0f19be4f85fe6cc5a20a6ba5bfdd8c671845780651e483f684",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A PDF/A-2b, which a host asks for with `pdfa: '2b'`, is level b alone, so it has no structure tree and is no tagged, accessible PDF, and a receiver who asks for PDF/A-2a or 2u gets level b.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-2b.test.ts"
         },
         {
           "area": "rendering",
-          "says": "Until the renderer draws charts, a report that would print one is refused when it renders.",
+          "says": "Whether a render is a PDF/A-2b is the host's choice at that render and no report says it, so a CMYK JPEG, an SVG whose box carries its numbers past what a PDF/A holds, or a title holding `&`, `<` or `>` is refused only by a render asked for as one, and neither the builders nor the validator warn of it beforehand.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-check.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A Factur-X e-invoice, an XRechnung's copy and a preview the runtime labels so are refused as `unsupported` when asked for as a PDF/A-2b, each to be rendered without `pdfa`, so a host that sets it on every render drops it for them.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-check.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A PDF/A-2b's render in Node reads PDFKit's ICC profile from `data/sRGB_IEC61966_2_1.icc` beside PDFKit's own code, as an e-invoice's does, so a host that bundles the Node entry ships that file where the bundled PDFKit's `__dirname` points, or every PDF/A-2b render fails with the file system's error, which nobody here has tried.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A preview that lacks nothing and is of no e-invoice carries no label, so it is drawn as a PDF/A-2b like its final render, which the renderer cannot tell it from and the tests show to be the same document for the quotation alone.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-2b.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The starters that are no e-invoice, drawn as a PDF/A-2b, were 4,243 to 4,262 bytes larger than drawn plain, 25,037 to 77,558 bytes against 20,791 to 73,297, and the quotation's and grouped-equipment's medians of nine renders, the two timed, within 2 ms of the plain ones, within the noise of a machine at a load average about 6 from other work, measured on 11 November 2026 from the built packages on Node 22.23.3 and an Apple M2."
+        },
+        {
+          "area": "testing",
+          "says": "veraPDF judges as PDF/A-2b the starters that are no e-invoice, four variant pages on the quotation's, a page of charts among them, and the corpus's two fonts fixtures, so a customer's template is held by the renderer's refusals and not by a validator.",
+          "heldBy": "scripts/e-invoice/pdfa-2b.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "The e-invoice gate records every PDF/A-2b by the digest of its objects inflated, so a change to what a starter draws fails CI's `e-invoice` job and the judges' tests until somebody with a Java retakes the record with `--record` on a passing run.",
+          "heldBy": "scripts/e-invoice/record.test.mjs"
+        }
+      ]
+    },
+    "0058": {
+      "reviewed": "sha256:34385f8201ebd18cb04931ce05f6d660237ff8fd0c44575dd57d575752f3504f",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A chart's category labels print across, never turned, wrapped or cut: a chart whose labels do not fit across is refused, to be widened or given shorter labels.",
+          "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart's words take its style's font, size, weight, slant and colour; its alignment is not read.",
+          "heldBy": "packages/report-render-pdf/src/chart-faces.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart's grid, category axis, bar spacing, line weights, markers and legend swatches are the renderer's; only its colours and its words' style are the report's.",
+          "heldBy": "packages/report-render-pdf/src/chart-option.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A bar chart whose bars would be narrower than 3.5 pt, the least the Studio's Preview draws apart at 100 % on a screen of device pixel ratio 2, is refused; at 75 %, or on a screen of ratio 1, the narrowest bars drawn may run together in the Preview, or in any reader that draws the PDF as coarsely, though the PDF keeps a gap between them.",
+          "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A pie whose square would be narrower than 24.75 pt, the least at which the Studio's Preview shows a slice of one percent as its own colour at 100 % on a screen of device pixel ratio 2, is refused, whether its box or its title and legend leave it that little, so that a box of 72 pt with an 8-pt title and a legend holds a pie only where its legend is short; at 75 %, or on a screen of ratio 1, such a slice of the smallest pies drawn may run into its neighbours in the Preview, and a slice under one percent is thin at any size.",
+          "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart that prints no word, and a keep-together block of an image alone, leave a heading kept with them at the foot of the page they leave when they move to the next.",
+          "heldBy": "packages/report-render-pdf/src/flow.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart's categories, legend entries and title stay in the Node process or the page after its render, in zrender's width cache of up to 500 words for each of 100 fonts, which nothing zrender exports clears.",
+          "heldBy": "packages/report-render-pdf/src/echarts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Every chart with something to draw is refused where a host's bundle gives ECharts another copy of zrender than the renderer's.",
+          "heldBy": "packages/report-render-pdf/src/chart-draw.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A preprocessor, processor, visual, layout or update a host registers on the ECharts it shares with the renderer -- the one copy a Node install or a bundler dedupes ECharts 6.1.0 to -- runs on the renderer's charts too, and changes their marks with nothing refused: a host's preprocessor that halves a bar series' data halves every bar the PDF prints, beside the runtime's words.",
+          "heldBy": "packages/report-render-pdf/src/chart-registry.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A render whose charts together weigh more than 5,000 units -- each chart its kind's weight (a bar 40, a line 60, a pie 10), a unit for each series at each category or each slice, and each word it places by what the word is (a title 6, a legend entry 5, a tick 2, a category or a value 1) -- is refused as `content-too-large` at the chart that crossed it, so a document of many dense charts, three line charts of 8 series and 200 categories or 50 titled line charts of one series and twelve months among them, is split across renders.",
+          "heldBy": "packages/report-render-pdf/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The chart bound was measured on one Apple M2, the weights on the render and on PDF.js at scale 1 at a load average of 12 to 20, a line's, a title's and a tick's again at 3.0 to 3.2, each word's the larger of the two runs', and the bound by the slowest of seven runs of the forms tried at 3.3 to 5.6, where the slowest render of them took 878 ms and the slowest page 1,614 ms, a second run at 4.2 to 5.5 found two others slowest, at 1,258 and 1,255 ms, and a third, once a line weighed 60, at 3.0 to 3.9, 1,202 ms in one spike; nothing measured the slowest the bound admits, and at a load of 10 to 18.6 documents it admitted took up to 9.45 s.",
+          "heldBy": "packages/report-render-pdf/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A heading kept with the next block makes pdfmake lay the whole document out again for each page it moves a heading to, charts and all, which the chart bound does not count: 17 bar charts the bound admits took two and a half times as long behind kept headings as behind plain ones.",
+          "heldBy": "packages/report-render-pdf/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart's paint counts against no SVG budget: one line chart of 8 series and 200 categories, as wide as an A4 landscape page and a third of its height, weighs nearly four times the segments the body's SVG images may cost together, and the chart bound admits two of them on a page."
+        },
+        {
+          "area": "rendering",
+          "says": "Installing the renderer installs Apache ECharts 6.1.0 and zrender 6.1.0, 62,176 KiB and 5,168 KiB by `du -sk` on 15 November 2026, for a host that never draws a chart too; a browser loads the chart chunk, 189.00 kB gzipped by the Studio's build on that day, only with the first document that holds a chart with marks.",
+          "heldBy": "packages/report-render-pdf/src/browser.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "The renderer depends on Apache ECharts under Apache-2.0, whose NOTICE a host that bundles it carries, with d3's BSD-3-Clause for the code ECharts took from it, zrender under BSD-3-Clause and tslib under 0BSD.",
+          "heldBy": "scripts/dependency-licences.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "A chart is proved on its PDF by its clip, its paths and its words, so an empty chart's box, a pie's arc up to about half a point off its circle, a chart beside an SVG image of its very size but by their order, document order where columns break across pages, a label in a face whose metrics stand apart from the three its tolerance was measured on, a colour a reader cannot tell from its neighbour and a mark under a word are not seen.",
+          "heldBy": "packages/report-corpus/src/check-charts.test.ts"
+        }
+      ]
+    },
+    "0059": {
+      "reviewed": "sha256:238371799707aa0d3cb1088bceebad96950a481ab545cbc4fbc675c038b81095",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A group header that states how many of its rows it is kept with moves to the next page with them where fewer would fit at the foot of one, leaving that room blank, so a report that states a count can need more pages than without, and is refused as too-many-pages where that passes the host's limit, once it is measured whole.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group header's count is a most: where its stated rows do not fit on a page under the table's repeated column header, it is kept with as many as fit, or with its first row alone, and nothing says that fewer were kept.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A count of one and no count print alike and hash differently: the builders write the absence, and a host or a proposal may write either.",
+          "heldBy": "packages/report-spec/src/validate-table.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A group header is kept with at most 32 of its rows, MAX_KEEP_WITH_ROWS, a bound chosen, not measured.",
+          "heldBy": "packages/report-spec/src/validate-table.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A row with no text ends no count: a group header whose last stated rows print nothing is kept with the rows before them that do, and those that print nothing may stand on the next page.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group no longer than its count whose footer row or total after its subtotal prints nothing is kept whole with that blank row, and, where the table's breaks are planned, in the body outside a frame, moves whole to the next page where the blank row would not fit with it.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A group header that prints nothing is kept with no more than its first row, whatever its count: a table's first group header still moves with that row under the column header, and any other is left where it falls.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The builders show a group's count of kept rows on its table's properties though the group's header has no text, where the renderer keeps no more than the header's first row with it.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "In a table whose rows may split across pages, the last row a group header keeps starts on the header's page and may continue on the next.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "A report that states a count is refused whole by 0.2.0 as an unknown property, and a 0.2.0 renderer handed a document this release's runtime resolved keeps each group header with its first row alone, reading no member of a row it does not know."
+        },
+        {
+          "area": "testing",
+          "says": "The corpus's fixture for kept rows is built of rows that fit, so a header kept with fewer rows than its count, where they do not, is proved by the renderer's own cases alone, each stating the count it expects from the heights it computes.",
+          "heldBy": "packages/report-render-pdf/src/group-rows.test.ts"
+        }
+      ]
+    },
+    "0060": {
+      "reviewed": "sha256:1058803f8ce803090286576cbd49d5f2fdbe9ed2c73eb2b2bb76cb47d3f376a4",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A page number or a page count is refused in page 1's own header, since it is drawn before the pages are counted: page 1's number and count print in the page footer, and a first page header copied from a page header that numbers its pages is refused until the number is taken out.",
+          "heldBy": "packages/report-spec/src/validate-first-page-header.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "No header on page 1 is written as an empty header of page 1's own, which the format has no other word for: a person who chooses a header of page 1's own and adds nothing to it gets no header on page 1.",
+          "heldBy": "packages/report-spec/src/validate-first-page-header.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "`REGION_NAMES` lists six regions and a report may hold five of them, so an integrator who iterates the list meets `firstPageHeader` missing from a report without one; report-spec's `heldRegions` lists the regions a report holds.",
+          "heldBy": "packages/report-spec/src/walk.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Choosing the page header again for page 1 in either builder's report properties removes page 1's own header with everything it holds, in one step that undo brings back.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "In a report with a header of page 1's own, an image, a QR code or another block of fixed height taller than the shorter of page 1's body and the later pages' bodies is refused, though a later page could hold it.",
           "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Where page 1's own header takes more room than the page header, a block kept together, or a table's first rows kept with its column header, that page 1's body cannot hold starts page 2, and page 1 prints its header with nothing under it.",
+          "heldBy": "packages/report-render-pdf/src/first-page-header.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Where page 1's own header takes less room than the page header, a kept block, a table's line under its repeated header or an image that only page 1's taller body could hold is refused, even in a report that would end on page 1.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A header of page 1's own that reaches into a QR-bill's slip is refused, though the report runs on to a later page whose page header leaves the slip its room, since which page is the last is known only once the pages are laid out.",
+          "heldBy": "packages/report-render-pdf/src/first-page-header.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The page header of a report with a header of page 1's own is measured and held to leaving the later pages' body room, even where the report has one page and no page prints it.",
+          "heldBy": "packages/report-render-pdf/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "No e-invoice gate variant draws a header of page 1's own, so veraPDF and Mustang have not judged a PDF/A-3b whose page 1 prints one."
+        },
+        {
+          "area": "release",
+          "says": "A report that holds a first page header is refused whole by 0.2.0 as an unknown property, so a report saved with one opens only in a release that has the region; and a 0.2.0 renderer handed a document this runtime resolved prints the page header on page 1 without a word, so the runtime and the renderer must be of one release."
+        }
+      ]
+    },
+    "0061": {
+      "reviewed": "sha256:451ab5fe113a6810aa047435c76a5e3e3cb7d22415fd4f696ec2b5485e374eb2",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A run is set below or above the line only in a text component’s paragraph: a table’s column value, group header and footer cells and totals, and what a QR code, an EPC QR code, a QR-bill or an e-invoice encodes refuse a `baseline` as `misplaced-baseline`, and a page number or count as `unknown-property`, so a unit’s power in a cell is printed as Unicode’s raised form where the face maps it, or not at all.",
+          "heldBy": "packages/report-spec/src/validate-baseline.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "No text format lowers a formula’s digits read from a field, so C6H12O6 from the data prints on the line unless the data carries Unicode’s lowered digits, U+2080 to U+2089, which Roboto and Liberation Serif both map."
+        },
+        {
+          "area": "release",
+          "says": "A report that sets a run below or above the line is refused whole by 0.2.0 as `unknown-property`, so a report saved with one opens only in a release that has the property, and a host that maps every one of report-spec’s error codes to its own message meets `misplaced-baseline`, which it has none for."
+        },
+        {
+          "area": "rendering",
+          "says": "A run set below or above the line prints at pdfmake’s one size and move, 58 % of its paragraph’s size, raised 43.5 % of the size or lowered 20.3 %; a face’s own superscript and subscript metrics are not read, and a run cannot be set smaller, larger, higher or lower.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Such a run prints only inside a word that holds text on the line, as pdfmake breaks words: a footnote’s mark after a space or before one, a run beside a value that prints nothing, a run whose value leads with a space and a word of nothing but such runs refuse the render as `unsupported`, a preview as a final one, the data deciding as the template does, and a mark is written against its word or with a no-break space, U+00A0.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A word that holds such a run and is wider than its line is refused as `content-too-large`, where a paragraph breaks another word across up to sixteen lines.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A line that holds a run set below the line is given room under it, 1.218 of its paragraph’s size to the next line’s baseline, so a wrapped paragraph’s lines stand apart unevenly, 0.046 of the size in Roboto and 0.111 in Liberation Serif; a raised run makes no room above, and by their glyphs a lowered g still reaches a raised Ä under it and a raised Ä a g on the line above, which the corpus’s boxes do not see, computed and not proved, and nothing is proved in a host face whose line is shorter than 1.099 ems.",
+          "heldBy": "packages/report-render-pdf/src/shifted.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The PDF’s text reads such a run as typed, on the line: a search or a copy finds “H2O”, not “H₂O”, and an untagged PDF tells a screen reader nothing of where it was set."
+        },
+        {
+          "area": "rendering",
+          "says": "The renderer reads pdfmake’s words of a paragraph that holds such a run -- `_inlines`, `noNewLine`, `sup`, `sub`, `width`, `leadingCut` and `trailingCut` -- which are not pdfmake’s API, at pdfmake 0.3.11, so an upgrade reads them again.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Every run of a text is a group of its own in both builders’ properties, with Subscript and Superscript named after the run and its name drawn above its field’s label, which says it again, so every text’s properties are longer.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The design view draws a run set below or above the line on the line, labelled with its text as every text is, and neither builder foresees a run that would stand alone on a line: the Preview is refused, naming the paragraph."
+        },
+        {
+          "area": "builders",
+          "says": "While a run’s field shows a value the session refused, its Subscript and Superscript are refused until the field is committed or given back with Escape, even with nothing selected in it.",
+          "heldBy": "packages/report-builder-core/src/baselines.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A selection is split from its run at whole characters, adding up to two runs, so a text near `MAX_INLINES` refuses a split that would pass it, with nothing changed.",
+          "heldBy": "packages/report-builder-core/src/baselines.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A host that draws the properties itself reads a run’s field’s selection and its text into the editor’s `setBaseline`, draws a button’s `text` and `pressed`, and follows the outcome’s `then` over a button’s own, as both builders do."
+        },
+        {
+          "area": "testing",
+          "says": "No test presses Shift with the arrows: neither jsdom runner’s keyboard extends a selection, so the scenarios select a run’s characters with its field’s own `setSelectionRange`, and that a browser’s Shift and arrows leave the selection a builder reads is the platform’s."
+        },
+        {
+          "area": "testing",
+          "says": "No browser gate sets a run below or above the line through the Studio and reads it from its Download PDF: the scenarios hold both builders in jsdom, the parity checks compare their trees in Chromium too, and the renderer’s tests hold the PDF."
         }
       ]
     },
@@ -2526,6 +2874,127 @@
           "area": "data",
           "says": "A form review's print-nothing makes a field null in one version's rows, so a table that selects by that field's value leaves those rows out and one that selects by any other takes them in, and the review does not say which rows change table.",
           "heldBy": "packages/report-forms/src/review-tables.test.ts"
+        }
+      ]
+    },
+    "0063": {
+      "reviewed": "sha256:266e3aa7087ccb8159c1b883dbf7cad469193f73f1999324bd8327a208b74e06",
+      "limitations": [
+        {
+          "area": "format",
+          "says": "A word is translated once in each language, whatever its place, so two places that need two words in one language need two different words in the report's own.",
+          "heldBy": "packages/report-spec/src/report-in.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A translation is keyed by its word's exact text, so a word changed in the report's own language -- a typo fixed, or a form review's relabel -- is missing again in every other, and its old translation is left unused.",
+          "heldBy": "packages/report-core/src/diagnostics/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A text's runs keep their order in every language, so a language that puts a value elsewhere in a sentence writes that sentence as an expression."
+        },
+        {
+          "area": "format",
+          "says": "A translation is never blank, so a word cannot print as nothing in one language.",
+          "heldBy": "packages/report-spec/src/validate-translations.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "Every literal that holds a letter is a word, so a firm's name or an address written into a paragraph is written again, the same, in each language.",
+          "heldBy": "packages/report-spec/src/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "An expression is taken to print words where it prints text and its source holds a quote, so one that only compares a quoted value is translated too, one that prints words without a quote never is, and its translation is written in CEL, reading exactly the members its source reads.",
+          "heldBy": "packages/report-core/src/diagnostics/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A QR code's content, an EPC QR code's texts, a QR-bill's account, parties, reference and billing information, a parameter's default and an e-invoice's texts print as written in every language; a host that wants them in each hands them over as data.",
+          "heldBy": "packages/report-spec/src/words.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A render names a locale the report declares exactly, or prints in the report's own: de-CH and de-DE are two languages, each written whole, and nothing falls back from one to the other or to the report's own.",
+          "heldBy": "packages/report-spec/src/report-in.test.ts"
+        },
+        {
+          "area": "format",
+          "says": "A report that holds more words than `MAX_WORDS` validates, and cannot be translated whole: each word past the bound stays missing in every language."
+        },
+        {
+          "area": "format",
+          "says": "A report is validated and diagnosed once for each language it declares, at most `MAX_LANGUAGES` times, and a report in many languages is a larger draft, nearer `MAX_REPORT_BYTES`."
+        },
+        {
+          "area": "format",
+          "says": "A report that holds translations is refused whole by 0.2.0, which does not know the property, so a report saved with them opens only in a release that has them."
+        },
+        {
+          "area": "format",
+          "says": "The report's own language is the key of every translation and is not swapped for another, so making a translation's language the report's own is writing the report again."
+        },
+        {
+          "area": "editing",
+          "says": "A word missing in a language is an error of that language, which refuses a render in it alone, so a report being translated shows an error for each word until it is written.",
+          "heldBy": "packages/report-core/src/diagnostics/words.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Every report's own fields end with a Languages group, before the images a report declares, a report in one language among them.",
+          "heldBy": "packages/report-builder-core/src/properties.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The builders edit one language at a time: a word's field writes its translation in the language shown, the report's own word its placeholder, and every other field, the Language field among them, edits the report's own.",
+          "heldBy": "packages/report-builder-core/src/languages.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Every language's problems are counted on the outline's rows whichever language is shown, so a report whose French is unfinished shows its errors in its own language's view too.",
+          "heldBy": "packages/report-builder-core/src/languages.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "A translator sees no PDF of a language until it is whole: the Studio's Preview refuses a render in it, a preview among them, while a word is missing, and the builders show the words it lacks instead.",
+          "heldBy": "apps/studio/src/studio.test.tsx"
+        },
+        {
+          "area": "runtime",
+          "says": "A render in a translation's locale prints the QR-bill's headings in that locale's language where SIX has headings in it, so no such render keeps the bill's own language.",
+          "heldBy": "packages/report-runtime/src/languages.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "The runtime's own words -- a preview's and a copy's labels, and a boolean's true and false -- are English in every language a report prints in."
+        },
+        {
+          "area": "runtime",
+          "says": "Data prints as the host hands it over, in whatever language the host chose: nothing holds a field's or a parameter's value to the render's language but a form's labels."
+        },
+        {
+          "area": "runtime",
+          "says": "A translated e-invoice's XML names each line in the render's language where its column prints a word, beside terms in the report's own, and no external judge of the e-invoice gate sees a translated e-invoice."
+        },
+        {
+          "area": "rendering",
+          "says": "The PDF names no language of its own, in whichever language a report prints, and a character a translation needs that the faces lack is refused when it prints, not when it is written."
+        },
+        {
+          "area": "data",
+          "says": "Form data read without a locale holds the report's own language's labels and is refused in a render in a translation's locale, so a host reads the submissions again for each language it prints.",
+          "heldBy": "packages/report-runtime/src/languages.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A report generated from a form version is written in one language, and its translations are written by a person afterwards.",
+          "heldBy": "packages/report-forms/src/generate.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A form review judges a field's new type in every language a report declares, so a resolution one language's expression could not take is withheld for every language.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
         }
       ]
     }

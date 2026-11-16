@@ -36,6 +36,7 @@
 // XMP states of it (`embeddingProblems`).
 
 import { KINDS } from './corpus.mjs'
+import { PDF_FORMATS } from './registers.mjs'
 
 /** The sample every control is made from, as the XML corpus's controls are. */
 export const PDF_BASE = 'e-invoice'
@@ -139,7 +140,7 @@ export const PDF_CONTROLS = [
 /**
  * Each variant: its file, what it draws, and how -- `blocks`, the base
  * sample's page followed by `blocksDocument`'s; `svg`, by `svgDocument`'s;
- * `bound`, by `boundDocument`'s; `fixture`, a document of
+ * `bound`, by `boundDocument`'s; `charts`, by `chartsDocument`'s; `fixture`, a document of
  * report-corpus's `ALL_FIXTURES`; or `starter`, a starter of its `STARTERS`
  * resolved as a host resolves it, with `STARTER_IMAGES` -- each carrying the
  * base sample's e-invoice. `variantProblems` holds the list to every
@@ -160,6 +161,11 @@ export const PDF_VARIANTS = [
     file: 'variant-svg-bound.pdf',
     why: 'the sample’s page, a page break, and report-corpus’s SVG_BOUND in the smallest box the renderer draws it in an e-invoice, SVG_BOUND_SIDE square: its page-sized groups’ boxes and the matrix of its gradient inside a group come within the renderer’s margin of the largest integer a PDF/A-3 holds, and it nests the graphics state as deep as one may (0030)',
     draws: { bound: true },
+  },
+  {
+    file: 'variant-charts.pdf',
+    why: 'the sample’s page, a page break, and report-corpus’s CHART_FIXTURES’ charts -- a bar, a line and a pie, laid out by ECharts, their marks drawn by the SVG converter and their words as pdfmake’s text, in Roboto and in a host’s Liberation Serif, which the document’s font map also gives the sample’s page (0058)',
+    draws: { charts: true },
   },
   {
     file: 'variant-fonts.pdf',
@@ -264,6 +270,21 @@ export function svgDocument(base, assets) {
   const images = SVG_IMAGES.map(({ asset, width, height, fit }) => ({ kind: 'image', asset: assetOf(asset), width, height, fit }))
   const mark = { kind: 'image', asset: assetOf('svg-mark'), width: 24, height: 24, fit: 'contain' }
   return { ...base, pageHeader: [...base.pageHeader, mark], body: [...base.body, { kind: 'pageBreak' }, ...images] }
+}
+
+/** The ids of report-corpus's `CHART_FIXTURES` that `variant-charts.pdf` draws: a bar, a line, a pie and a bar in a host's serif face -- all drawn, none a refusal, none empty. */
+export const CHART_VARIANT_FIXTURES = ['chart-bars', 'chart-line', 'chart-pie', 'chart-host-font']
+
+/**
+ * The base sample's resolved document `base` with, after its page, a page
+ * break and the body of each of `fixtures` (report-corpus's chart fixtures,
+ * `CHART_VARIANT_FIXTURES`), each on a page of its own, and the font map
+ * their documents give: what `variant-charts.pdf` draws.
+ */
+export function chartsDocument(base, fixtures) {
+  const body = fixtures.flatMap((fixture) => [{ kind: 'pageBreak' }, ...fixture.document.body])
+  const fonts = Object.assign({}, base.fonts, ...fixtures.map((fixture) => fixture.document.fonts))
+  return { ...base, fonts, body: [...base.body, ...body] }
 }
 
 /**
@@ -376,7 +397,9 @@ const said = (values) => (values.length === 0 ? 'none' : values.map((value) => `
  * the corpus says it embeds, with the name `fileName`, or bytes that are not
  * that XML's. The XML the other tools judged is then the one inside the
  * PDF, byte for byte, as a second reader than veraPDF reads it; veraPDF's
- * feature report gives the file's /Params as the PDF declares them.
+ * feature report gives the file's /Params as the PDF declares them. A
+ * PDF/A-2b is read so too, and embeds nothing, as a plain PDF does (0057),
+ * where a control made of a PDF/A-3b embeds what that PDF/A-3b does.
  *
  * And, of a sample's PDF and a variant's -- what the renderer draws as it
  * is, where a control is broken on purpose -- an XMP whose
@@ -391,7 +414,7 @@ const said = (values) => (values.length === 0 ? 'none' : values.map((value) => `
  */
 export async function embeddingProblems(entries, { readObjects, fileName, fx, guidelineOf, profiles }) {
   const problems = []
-  for (const entry of entries.filter((each) => each.format === 'pdf')) {
+  for (const entry of entries.filter((each) => PDF_FORMATS.includes(each.format))) {
     const objects = await readObjects(new Uint8Array(entry.pdf))
     const wanted = entry.embeds === null ? 0 : 1
     if (objects.associatedFiles.length !== wanted || objects.embeddedFiles.length !== wanted) {

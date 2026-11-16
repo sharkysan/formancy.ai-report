@@ -64,9 +64,20 @@ if (resolution.ok) {
   more categories than its palette has colours (`resolve`,
   `chart-too-many-categories`), and a pie with a negative value
   (`chart-negative-share`), each naming the chart by its id and saying
-  counts, never a value or a category: see [A chart](#a-chart).
+  counts, never a value or a category: see [A chart](#a-chart);
+- a locale the report is not written in (`resolve`, `undeclared-locale`),
+  and a word missing in the one it names (`expressions`, `word-missing`):
+  see [A report in several languages](#a-report-in-several-languages).
 
 It never returns part of a document.
+
+A table's group header row carries `keepWithRows`, how many of its group's
+first rows an engine keeps it on its page with: the number its group
+states, or the group's rows where it has fewer, and only where that is
+more than one. How many rows a group has is this package's grouping,
+counted once, and a report that states no count resolves to the document
+it did before
+([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
 
 ## The data
 
@@ -132,7 +143,53 @@ or none for one it does, and a provider the runtime does not know are
 each refused, as `invalid-source`, never naming the value or the key. Its
 syntax is checked, not its truth: that the host read what it names is the
 provider's word, as its completeness is. Data that names no source is
-read as before, and its manifest has none.
+read as before, and its manifest has none. A formancy form's source names
+the `locale` its labels were read in, where that is not the report's own,
+held to the syntax a report's locale is (report-spec's `isLocale`): see
+[A report in several languages](#a-report-in-several-languages).
+
+## A report in several languages
+
+A report may write its own words in each language its `translations`
+declare, and a render names the one it prints in with `locale`
+([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)):
+
+```ts
+const french = resolveReport(report, data, { mode: 'final', creationDate: '2026-10-15T08:00:00Z', locale: 'fr-CH' })
+```
+
+- **A declared locale, exactly.** The report's own `locale` or one its
+  translations declare; any other is refused as `undeclared-locale`, a
+  near one among them: `fr-FR` is not `fr-CH`, and `fr` is neither. A
+  render that names none prints in the report's own, and one that names
+  the report's own prints the same document as one that names none.
+- **The report written in it.** What every stage reads is report-spec's
+  `reportIn`: each word and each expression that prints words in that
+  language, `locale` the render's, so that its values are formatted, its
+  rows, groups and a chart's categories ordered, in it, and a QR-bill's
+  headings in its language where SIX has headings in it. No stage of the
+  runtime has a language step of its own.
+- **An error refuses its own language.** Of report-core's diagnostics, an
+  error that names a language -- a word missing in it, `word-missing`, a
+  translated expression that would print another thing -- refuses a
+  render in that language alone; one that names none refuses every
+  render. A report whose French lacks a word prints in German as the same
+  report without translations does. A word is never printed in another
+  language than the one a render names.
+- **The manifest** names the template's hash, translations and all, and
+  the locale the render printed in.
+- **A form's labels in it.** Data read from a formancy form whose labels
+  were read in another locale than the render's is refused as
+  `labels-locale-differs`: a source that names no locale was read in the
+  report's own, so submissions read once in German are refused in a French
+  render rather than print German labels in it. A report's other data, a
+  parameter's value among it, prints as the host hands it over, in
+  whatever language the host chose.
+
+The runtime's own words -- a preview's label, an XRechnung copy's label and
+paragraph, a boolean's `true` and `false` -- are English in every
+language. A translation's locale the engine's `Intl` cannot write is
+refused as `unsupported-locale`, at the translation that declares it.
 
 ## Several tables
 
@@ -230,7 +287,8 @@ document's `eInvoice`, an `EInvoiceFile` of its kind:
   since a PDF drawn of it is a copy, in the paragraph the runtime exports
   frozen as `XRECHNUNG_COPY_PARAGRAPH`, small, bold and red; the renderer
   draws the document as a plain PDF that embeds nothing, and refuses one
-  whose page header does not open with that paragraph, style and all.
+  whose page header, or page 1's own header where it has one, does not
+  open with that paragraph, style and all.
 
 ```ts
 const resolution = resolveReport(xrechnung, data, { mode: 'final', creationDate })
@@ -357,6 +415,54 @@ in its legend, makes a coordinate of a value's `exact`, and formats no
 number. This release's renderer does not
 draw a chart yet, and refuses one.
 
+## Page 1's own header
+
+A report whose regions hold `firstPageHeader` gives page 1 a header of its
+own, which page 1 prints in place of the page header
+([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+The document carries it as `firstPageHeader`, beside `pageHeader`, present
+exactly when the report's is:
+
+- **Lowered as the page header is**, each component to the block it
+  prints, a component whose condition does not hold left out; one whose
+  every component is hidden is an empty list, page 1 with no header, never
+  the page header's blocks: the choice is the report's, not the data's.
+- **An empty list is none.** Page 1 prints no header, and its body starts
+  at the top margin. A report without the region resolves to a document
+  without the key, as it always did.
+- **Labelled as the page header is.** A preview's label, an e-invoice
+  preview's and an XRechnung's `XRECHNUNG_COPY_PARAGRAPH` head it too,
+  each header with a paragraph of its own, so that page 1 says it as every
+  page does; page 1's header that is none is the label alone.
+- **No page field.** report-spec refuses a page number or count in it,
+  since the renderer draws it before the pages are counted; which page
+  prints which header is the renderer's to decide, and nothing here
+  evaluates anything per page.
+
+## A run below or above the line
+
+A paragraph's run carries the `baseline` its report's run sets,
+`subscript` or `superscript`, a field's, a parameter's, an expression's
+and an aggregate's value as literal text's, and a run that sets none
+carries no key, so the document of a report that sets none is the one it
+was ([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+A table's cell joins its runs into one string, as before, where
+report-spec refuses a baseline. What such a run prints as is the
+document's, for any engine:
+
+```ts
+import { SHIFTED_RISE, SHIFTED_SIZE } from '@formancy/report-runtime'
+
+SHIFTED_SIZE // 0.58: the run's size, of its paragraph's, in the paragraph's face
+SHIFTED_RISE // { superscript: 0.75 * 0.58, subscript: -0.35 * 0.58 }: its baseline's move, of the paragraph's size, up positive
+```
+
+They are pdfmake 0.3.11's own figures, 0.435 up and 0.203 down, which
+the renderer has pdfmake draw and the corpus reads a PDF by: a renderer
+that drew another fails there. `BASELINE_SHIFTS` and `BaselineShift` are
+report-spec's, handed on, so that the format and the document name a
+shift alike.
+
 ## What else is exported
 
 Each stage is exported for a host or a tool that needs one alone:
@@ -368,11 +474,18 @@ the decimal arithmetic; the form bridge reads `readValue`,
 `MAX_STRING_LENGTH`, `isSubmissionId` and `SUBMISSION_ID_SYNTAX`, the
 words a refusal says that rule in, so that it holds an answer and an id
 by this package's rules, and says them in its words, rather than a copy
-of them (0042). The document's types, `RenderRefusal` and `REFUSAL_CODES` are
+of them (0042). `checkReport(report, locale?)` checks a report for a
+render in a locale and hands back both the copy validation read and
+`printed`, that copy written in the locale; `checkData` checks data
+against the printed copy, told the report's own locale by
+`reportLocale` (0063). The document's types, `RenderRefusal` and `REFUSAL_CODES` are
 the renderer's contract, declared here so that no engine defines them; a
 chart's among them, and `MAX_CHART_CATEGORIES`, `MAX_TICK_INTERVALS` and
 `SHARE_PLACES`, the runtime's bounds on a chart, which a host that tells an
-author of them reads rather than copies (0055).
+author of them reads rather than copies (0055), with report-spec's
+`MAX_CHART_SERIES` beside them, which the renderer holds a chart's block to;
+and `MAX_KEEP_WITH_ROWS`, report-spec's bound on the rows a group header
+row keeps, is handed on for an engine to hold that row to (0059).
 What report-spec decides of a QR-bill that an engine needs to draw its
 slip is handed on as report-spec's own objects: `QR_BILL_SIZE` and
 `QR_BILL_TOP`, the slip's size and place; `qrBillPageBreak` and its type

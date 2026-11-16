@@ -30,9 +30,11 @@
   },
   "dependencies": {
     "@formancy/report-runtime": "workspace:*",
+    "echarts": "6.1.0",
     "pdfkit": "0.19.1",
     "pdfmake": "0.3.11",
-    "uqr": "0.1.3"
+    "uqr": "0.1.3",
+    "zrender": "6.1.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",

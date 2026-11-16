@@ -140,7 +140,7 @@ describe('the sitemap', () => {
 describe('the body', () => {
   // Two h1 split the page's one subject; none leaves it without one.
   test('a second h1', () => {
-    expect(problemsOf(editing('en/index.html', (html) => html.replace('<h2 id="today">', '<h1>Again</h1><h2 id="today">')))).toContain(
+    expect(problemsOf(editing('en/index.html', (html) => html.replace('<h2 id="behaves">', '<h1>Again</h1><h2 id="behaves">')))).toContain(
       'en/index.html: 2 h1, not one with words in it',
     )
   })
@@ -197,7 +197,7 @@ describe('the body', () => {
   // Its teaser dropped from the German product page, the QR-bill page is
   // still in the bar, and the check must say what the content lost.
   test('a topic page the product page does not introduce', () => {
-    const untold = editing('de/index.html', (html) => html.replace(/<section class="band" aria-labelledby="topic-qr-bill">[\s\S]*?<\/section>/, ''))
+    const untold = editing('de/index.html', (html) => html.replace(/<li class="card topic"><article aria-labelledby="topic-qr-bill">[\s\S]*?<\/li>/, ''))
     const said = problemsOf(untold)
     expect(said).toContain("de/index.html: its content does not link to qr-bill's page https://formancy.ai/report/de/qr-rechnung/")
     expect(said).not.toContain('healthcare')

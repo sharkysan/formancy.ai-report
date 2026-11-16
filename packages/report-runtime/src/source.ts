@@ -8,7 +8,8 @@
  *   form's id and the `schemaHash` of the version that collected it -- one
  *   for a report of one submission, one a row for a report of many,
  *   whatever versions they answered. The form's id is a submission's too,
- *   since formancy lets a new version change it.
+ *   since formancy lets a new version change it. And the locale a
+ *   choice's labels were read in, where it is not the report's own (0063).
  * - **Formancy Data**: the published form each dataset was read from. Never
  *   a record's token, which spells the record's key (formancy.ai-data
  *   0012), and a key can be the customer's own data.
@@ -28,7 +29,7 @@
  * read; `checkData` refuses the data when any was reported, so what a
  * render keeps is a source read whole.
  */
-import { isFormId, isSchemaHash } from '@formancy/report-spec'
+import { isFormId, isLocale, isSchemaHash } from '@formancy/report-spec'
 import type { DatasetRole, Datasets } from '@formancy/report-spec'
 import { at } from './data-errors.js'
 import type { DataErrorCode, DataFindings } from './data-errors.js'
@@ -54,6 +55,13 @@ export interface FormSource {
   readonly provider: 'formancy-form'
   /** Each submission the data was read from, once, in the order the provider read them; at least one. */
   readonly submissions: readonly FormSubmission[]
+  /**
+   * The locale a choice's labels were read in, where it is not the
+   * report's own, written as a report writes its locale; absent where
+   * they were read in the report's own (0063). A render refuses labels
+   * read in another locale than its own.
+   */
+  readonly locale?: string
 }
 
 /** Data read from Formancy Data: the published form each of the report's datasets was read from, by its id. */
@@ -96,7 +104,13 @@ const NOTHING_ELSE = 'and nothing else: a source names identifiers, and no answe
 const SUBMISSION = 'a submission is { "id": its id, "form": the form\'s id, "formHash": the schemaHash of the version that collected it }'
 
 /** What each provider's source names besides its provider. */
-const NAMES: { readonly [P in SourceProvider]: readonly string[] } = { 'formancy-form': ['submissions'], 'formancy-data': ['forms'] }
+const NAMES: { readonly [P in SourceProvider]: readonly string[] } = { 'formancy-form': ['submissions', 'locale'], 'formancy-data': ['forms'] }
+
+/** What each provider's source names, as a refusal says it. */
+const SHAPES: { readonly [P in SourceProvider]: string } = {
+  'formancy-form': "a formancy-form source names submissions, and the locale its labels were read in where that is not the report's own",
+  'formancy-data': 'a formancy-data source names forms',
+}
 
 /** A container that could not be read, as a source's error: what is not data stays `not-data`. */
 const container = (code: ContainerCode): DataErrorCode => (code === 'not-data' ? 'not-data' : 'invalid-source')
@@ -171,7 +185,11 @@ function readFormSource(errors: DataFindings, entries: ReadonlyMap<string, unkno
     const submission = readSubmission(errors, item, path, seen)
     if (submission !== undefined) submissions.push(submission)
   }
-  return Object.freeze({ provider: 'formancy-form', submissions: Object.freeze(submissions) })
+  const locale = entries.get('locale')
+  // A locale refused is said once, here, and is not compared with the render's as well.
+  if (entries.has('locale') && !isLocale(locale))
+    errors.report('/source/locale', 'invalid-source', "the locale the form's labels were read in, as a report writes its locale: a BCP 47 tag such as fr-CH")
+  return Object.freeze({ provider: 'formancy-form', submissions: Object.freeze(submissions), ...(isLocale(locale) ? { locale } : {}) })
 }
 
 /** Formancy Data's source: a form for each dataset the report declares, for no other, and at least one. */
@@ -226,7 +244,7 @@ export function checkSource(errors: DataFindings, raw: unknown, datasets: Datase
     return undefined
   }
   const names = NAMES[provider]
-  onlyKnown(errors, '/source', read.entries, ['provider', ...names], `a ${provider} source names ${names.join(' and ')}`)
+  onlyKnown(errors, '/source', read.entries, ['provider', ...names], SHAPES[provider])
   // What is not data was said where it stands, and is not said again as missing.
   if (names.some((name) => unreadable.has(name))) return undefined
   return provider === 'formancy-form' ? readFormSource(errors, read.entries, maxSubmissions) : readDataSource(errors, read.entries, datasets)

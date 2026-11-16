@@ -14,7 +14,9 @@
  * token and weight and slant: the characters that face draws, the line
  * pdfmake lays it out by (its hhea, ascender less descender, over its
  * units, which report-spec's reader holds to `MIN_FONT_LINE` to
- * `MAX_FONT_LINE` ems), and the pdfmake family a style names it by.
+ * `MAX_FONT_LINE` ems) and its baseline in that line, the key a measurer
+ * keeps its widths by -- the digest of the bytes it embeds, taken only for
+ * a face a chart prints in -- and the pdfmake family a style names it by.
  *
  * A token a report does not map prints in the renderer's own face: `sans`
  * is Roboto, and `serif` and `mono` are refused, exactly as before a report
@@ -46,12 +48,29 @@ import {
 import { drawnAs, type HostFace } from './face-identity.js'
 import { type Face, faceOf, type Glyphs } from './glyphs.js'
 import { withoutLayoutTables } from './strip-layout.js'
-import { LINE_FACTOR, ROBOTO } from './style.js'
+import { LINE_FACTOR, ROBOTO, ROBOTO_ASCENT, ROBOTO_DESCENT } from './style.js'
 
-/** What the renderer needs of one face to check and lay out text: the characters it draws, the line pdfmake lays it out by, as a multiple of the font size, and what a refusal calls it. */
+/** What the renderer needs of one face to check, lay out and measure text: the characters it draws, the line pdfmake lays it out by, as a multiple of the font size, where its baseline stands, what a measurer knows it by, and what a refusal calls it. */
 export interface RenderFace {
   readonly glyphs: ReadonlySet<number>
   readonly lineFactor: number
+  /** Its ascender and its descender over its units per em, from the horizontal header its line is read from: the descender is negative, below the baseline, and the line their difference: what a chart's word, placed in its line, is boxed by from its baseline. */
+  readonly ascent: number
+  readonly descent: number
+  /**
+   * What a measurer that keeps widths by face knows it by -- zrender's,
+   * process-wide, which ECharts measures a chart's words through: the
+   * digest of the bytes this render embeds for it, stripped as they are
+   * embedded, never the digest it was handed under, which nothing holds to
+   * its bytes; or `Roboto/<face>` for the renderer's own, whose bytes a
+   * release fixes. Two faces of one key draw every word alike.
+   *
+   * Taken the first time it is asked for, and kept for the render: a
+   * SHA-256 of Liberation Serif's 384 KiB took 3.3 ms, and six of them a
+   * quarter of the corpus's `host-fonts` render, which draws no chart
+   * (measured on 12 November 2026, Node 22.23.3 on an Apple M2).
+   */
+  readonly key: () => string
   /** "Roboto", or "the serif font's bold face, the asset brand-bold,": the face a refusal says a character is missing from. */
   readonly name: string
 }
@@ -93,10 +112,13 @@ const hostFamily = (token: FontFamily): string => `formancy-host-${token}`
 /** Renders planned in this process or page, so that each names its virtual files apart from every other's. */
 let renders = 0
 
-/** A face read for this render: its glyphs, its line, what a refusal calls it, and the virtual file the engine embeds it from. */
+/** A face read for this render: its glyphs, its line and baseline, its key, what a refusal calls it, and the virtual file the engine embeds it from. */
 interface PlannedFace extends RenderFace {
   readonly file: string
 }
+
+/** A face asset as this render read it, before a token and a face name it. */
+type ReadFace = Omit<PlannedFace, 'name'>
 
 /**
  * The plan for `fonts` -- the document's resolved font map -- over the
@@ -109,7 +131,7 @@ interface PlannedFace extends RenderFace {
  */
 export function planFonts(fonts: ResolvedFonts | undefined, roboto: Glyphs): RenderFonts {
   const render = (renders += 1)
-  const read = new Map<string, { readonly bytes: Uint8Array; readonly glyphs: ReadonlySet<number>; readonly lineFactor: number; readonly file: string }>()
+  const read = new Map<string, ReadFace & { readonly bytes: Uint8Array }>()
   const hosts: HostFace[] = []
   const files = new Map<string, Uint8Array>()
   /**
@@ -119,7 +141,7 @@ export function planFonts(fonts: ResolvedFonts | undefined, roboto: Glyphs): Ren
    * document built by hand; the runtime resolves each id once -- it is
    * refused, since a face read by that id would print in the first bytes.
    */
-  const readAsset = (asset: FontAsset): { readonly glyphs: ReadonlySet<number>; readonly lineFactor: number; readonly file: string } => {
+  const readAsset = (asset: FontAsset): ReadFace => {
     const known = read.get(asset.id)
     if (known !== undefined) {
       if (known.bytes !== asset.bytes && assetDigest(known.bytes) !== assetDigest(asset.bytes)) {
@@ -138,9 +160,19 @@ export function planFonts(fonts: ResolvedFonts | undefined, roboto: Glyphs): Ren
     hosts.push(host)
     const { ascender, descender, unitsPerEm } = font.metrics
     const file = `formancy-report-render-pdf/font/${render}/${read.size}.ttf`
-    const made = { bytes: asset.bytes, glyphs: font.characters, lineFactor: (ascender - descender) / unitsPerEm, file }
+    const embedded = own === undefined ? withoutLayoutTables(asset.bytes) : asset.bytes
+    let digest: string | undefined
+    const made = {
+      bytes: asset.bytes,
+      glyphs: font.characters,
+      lineFactor: (ascender - descender) / unitsPerEm,
+      ascent: ascender / unitsPerEm,
+      descent: descender / unitsPerEm,
+      key: (): string => (digest ??= assetDigest(embedded)),
+      file,
+    }
     read.set(asset.id, made)
-    files.set(file, own === undefined ? withoutLayoutTables(asset.bytes) : asset.bytes)
+    files.set(file, embedded)
     return made
   }
 
@@ -167,7 +199,17 @@ export function planFonts(fonts: ResolvedFonts | undefined, roboto: Glyphs): Ren
     const effective: FontFamily = token ?? 'sans'
     const faces = mapped[effective]
     if (faces === undefined) {
-      if (effective === 'sans') return { glyphs: roboto[faceOf(bold, italic)], lineFactor: LINE_FACTOR, name: 'Roboto' }
+      if (effective === 'sans') {
+        const robotoFace = faceOf(bold, italic)
+        return {
+          glyphs: roboto[robotoFace],
+          lineFactor: LINE_FACTOR,
+          ascent: ROBOTO_ASCENT,
+          descent: ROBOTO_DESCENT,
+          key: () => `${ROBOTO}/${robotoFace}`,
+          name: 'Roboto',
+        }
+      }
       throw new RenderRefusal(
         'unsupported',
         `${subject} is set in the ${token} font, which the report maps to no host font; the renderer embeds Roboto alone, as the sans font, and prints no other in its place`,

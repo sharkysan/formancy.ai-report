@@ -29,6 +29,7 @@ export { BIDI_CONTROLS, PRINTED_BLOCKS, refusedCharacter, UNICODE_VERSION } from
 export type { CharacterRefusal, PrintedBlock } from './font-scripts.js'
 export {
   AGGREGATE_SCOPES,
+  BASELINE_SHIFTS,
   CURRENCY_SOURCE_KINDS,
   DATE_STYLES,
   EXPRESSION_NAMES,
@@ -41,6 +42,7 @@ export {
 export type {
   AggregateInline,
   AggregateScope,
+  BaselineShift,
   CurrencyFormat,
   CurrencySource,
   CurrencySourceKind,
@@ -91,8 +93,8 @@ export { CHART_CATEGORY_TYPES, CHART_KINDS, CHART_ORDERS, CHART_PALETTE, PIE_FUN
 export type { ChartCategory, ChartComponent, ChartKind, ChartOrder, ChartSeries } from './chart.js'
 export { SORT_DIRECTIONS } from './table.js'
 export type { SortDirection, SortKey, TableColumn, TableComponent, TableFooterCell, TableFooterRow, TableGroup } from './table.js'
-export { PROVENANCE_KINDS, REGION_NAMES } from './definition.js'
-export type { Provenance, ProvenanceKind, RegionName, Regions, ReportDefinition } from './definition.js'
+export { OPTIONAL_REGIONS, PROVENANCE_KINDS, REGION_NAMES } from './definition.js'
+export type { OptionalRegionName, Provenance, ProvenanceKind, RegionName, Regions, ReportDefinition } from './definition.js'
 
 export { PAYMENT_PART_KINDS, QR_BILL_CURRENCIES, QR_BILL_LANGUAGES } from './payment-part.js'
 export type { PaymentPart, PaymentPartKind, QrBillAddress, QrBillCurrency, QrBillLanguage, SwissQrBill } from './payment-part.js'
@@ -257,8 +259,10 @@ export {
   MAX_FORM_OVERRIDES,
   MAX_FORM_PATH_KEYS,
   MAX_INLINES,
+  MAX_KEEP_WITH_ROWS,
   MAX_KEY_LENGTH,
   MAX_LABEL_LENGTH,
+  MAX_LANGUAGES,
   MAX_LENGTH_PT,
   MAX_NESTING_DEPTH,
   MAX_PARAMETERS,
@@ -283,13 +287,14 @@ export {
   MAX_TABLES,
   MAX_TEXT_LENGTH,
   MAX_VAT_CATEGORIES,
+  MAX_WORDS,
   MIN_CHART_SIDE,
   MIN_COLUMNS,
   MIN_FONT_LINE,
   MIN_FONT_SIZE,
   MIN_PRINTABLE_PT,
 } from './limits.js'
-export { isDigest, isFieldKey, isFormId, isFormPath, isIdentifier, isSchemaHash } from './syntax.js'
+export { isDigest, isFieldKey, isFormId, isFormPath, isIdentifier, isLocale, isSchemaHash } from './syntax.js'
 
 export { assetDigest } from './digest.js'
 export { IMAGE_REFUSAL_CODES, imageHeader, sniffImage } from './image-header.js'
@@ -314,8 +319,12 @@ export type { FontEmbeddingRefusal, FontFormat, FontRefusal, FontRefusalCode } f
 
 export { reportHash } from './hash.js'
 export { emptyReport } from './empty.js'
-export { componentAt, walkComponents } from './walk.js'
+export { componentAt, heldRegions, walkComponents } from './walk.js'
 export type { ComponentLocation } from './walk.js'
+export { isWord, reportWords, wordExpressionSites } from './translation.js'
+export type { TranslatedExpression, TranslatedWord, Translation, WordExpressionSite, WordPlace } from './translation.js'
+export { declaredLocales, renderLocale, reportIn, writtenIn } from './report-in.js'
+export type { LocaleChoice } from './report-in.js'
 export { MILLIMETRES_PER_INCH, mmToPt, POINTS_PER_INCH, ptToMm, roundPt } from './units.js'
 export { PAGE_SIZES, pageDimensions, printableArea, squareRoom } from './page.js'
 export type { PageDimensions } from './page.js'

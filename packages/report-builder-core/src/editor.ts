@@ -10,10 +10,11 @@
  *
  * Here are the editor's state, its listeners and the actions that edit the
  * report or walk it. Its views -- the panes, the host's view and the zoom
- * -- are `views.ts`'s, its drag `dragging.ts`'s, its images `images.ts`'s
- * and what adds or removes a part or a group `part-actions.ts`'s: each is
- * lent what it needs of the editor, and every action of each runs through
- * the one `dispatch` here.
+ * -- are `views.ts`'s, its drag `dragging.ts`'s, its images `images.ts`'s,
+ * what adds or removes a part or a group `part-actions.ts`'s and what sets
+ * a run below or above the line `baselines.ts`'s: each is lent what it
+ * needs of the editor, and every action of each runs through the one
+ * `dispatch` here.
  *
  * `state()` is the same frozen object until something changes, which is
  * what React's `useSyncExternalStore` and an Angular signal compare by. An
@@ -25,21 +26,23 @@ import { insertComponent, moveComponent } from '@formancy/report-core'
 import type { Command, CommandOutcome, Location, ReportSession } from '@formancy/report-core'
 import { componentAt } from '@formancy/report-spec'
 import type { ComponentKind } from '@formancy/report-spec'
+import { setRunBaseline } from './baselines.js'
 import { dragActions } from './dragging.js'
 import { duplicate, indent, moveBy, outdent, remove } from './edits.js'
 import type { Edit, Planned } from './edits.js'
+import { fieldWords } from './field-specs.js'
 import { clampZoom } from './geometry.js'
 import { shownLabel, stepLabel } from './history.js'
 import type { ImageFile, ImageStore } from './image-store.js'
 import { imageActions, imagesOf } from './images.js'
 import { columnKey, kindLabel, partLabel } from './labels.js'
+import { editedLanguage, languageActions } from './languages.js'
 import { DONE } from './model-actions.js'
 import type { EditorState, Selection } from './model.js'
 import type { EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode } from './model-actions.js'
 import { selectionKey } from './outline.js'
 import { partActions } from './part-actions.js'
 import { fieldLabel, fieldsOf, pageRoomMessage, propertyChange, propertyTarget, refusalMessage } from './properties.js'
-import { fieldWords } from './property-fields.js'
 import { isReportLevelPart, selected } from './selection.js'
 import type { Selected } from './selection.js'
 import { buildState, derive, viewOf } from './state.js'
@@ -105,6 +108,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     errors: new Map(),
     status: { text: '', sequence: 0 },
     adding: null,
+    language: null,
   }
   let derived: Derived | undefined
   let cached: EditorState | undefined
@@ -119,7 +123,11 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
 
   function current(): Derived {
     const report = session.document()
-    if (derived?.report !== report) derived = derive(report, t, images.held !== null)
+    if (derived?.report !== report || derived.edited.chosen !== local.language) {
+      // Another language of the same document has the same diagnostics: they are every language's.
+      const known = derived?.report === report ? derived.diagnostics : undefined
+      derived = derive(report, t, images.held !== null, editedLanguage(report, local.language, locale), known)
+    }
     return derived
   }
 
@@ -190,8 +198,11 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     const { selection, drag } = local
     const gone = selection !== null && selected(report, selection) === undefined
     const subjectGone = drag !== null && 'id' in drag.subject && componentAt(report, drag.subject.id) === undefined
+    // A language removed, or its adding undone, gives the view back to the report's own.
+    const language = report.translations?.some((translation) => translation.locale === local.language) === true ? local.language : null
     local = {
       ...local,
+      language,
       selection: gone ? null : selection,
       errors: local.errors.size === 0 ? local.errors : new Map(),
       drag: drag === null || subjectGone ? null : { ...drag, over: null },
@@ -362,7 +373,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     const report = current().report
     // The editor keeps its selection one the document has, so there is a target.
     const target = propertyTarget(report, local.selection) as NonNullable<ReturnType<typeof propertyTarget>>
-    const spec = fieldsOf(target, report, t, locale).find((candidate) => candidate.key === key)
+    const spec = fieldsOf(target, report, t, locale, current().edited).find((candidate) => candidate.key === key)
     if (spec === undefined) return refuse('not-found', t('status.notFound', { name: key }))
     const label = fieldLabel(spec, t)
     const written = spec.write(value)
@@ -378,8 +389,9 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
       return DONE
     }
     const at = written.at ?? key
-    const change = propertyChange(report, target, at, written.value)
-    const outcome = commit(change.command, stepLabel({ do: 'change', field: spec.words }))
+    // A word's translation, or a language added, is no property of the target's own (0063).
+    const change = spec.change?.(written.value) ?? propertyChange(report, target, at, written.value)
+    const outcome = commit(change.command, stepLabel(change.step ?? { do: 'change', field: spec.words }))
     if (!outcome.ok) {
       const path = `${target.path}${at}`
       const message =
@@ -387,7 +399,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
       setLocal(keep(message))
       return refuse('refused', t('status.invalid', { field: label, reason: message }), outcome)
     }
-    setLocal({ errors: forget, ...announce(t(change.said ?? 'status.changed', { field: fieldWords(spec.words, t) })) })
+    setLocal({ errors: forget, ...announce(t(change.said ?? 'status.changed', { ...change.values, field: fieldWords(spec.words, t) })) })
     return DONE
   }
 
@@ -404,6 +416,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   const dragging = dragActions({ current, local: () => local, setLocal, announce, refuse, labelOf, insert, move }, t)
   const imaging = imageActions(images, { current, local: () => local, setLocal, announce, refuse, commit, act, raise, disposed: () => disposed })
   const parts = partActions({ current, local: () => local, refuse, applyEdit }, t, locale)
+  const languages = languageActions({ current, local: () => local, setLocal, announce, refuse, applyEdit }, t, locale)
 
   const handlers: Handlers = {
     select: (action) =>
@@ -453,6 +466,9 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     addItem: (action) => parts.addItem(action.key),
     removeItem: (action) => parts.removeItem(action.key),
     moveItem: (action) => parts.moveItem(action.key, action.to),
+    setLanguage: (action) => languages.setLanguage(action.locale),
+    removeLanguage: (action) => languages.removeLanguage(action.locale),
+    setBaseline: (action) => setRunBaseline({ current, local: () => local, refuse, applyEdit }, t, locale, action.key, action.baseline, action.selected),
   }
 
   return {

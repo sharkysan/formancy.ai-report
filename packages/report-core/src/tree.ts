@@ -96,7 +96,10 @@ export function listAt(report: ReportDefinition, location: Omit<Location, 'index
   const { region, parent, column } = location
   if (parent === undefined) {
     if (column !== undefined) return refuse('invalid-location', 'a column is chosen only inside a columns block')
-    return { pointer: `/regions/${region}`, list: report.regions[region] }
+    const list = report.regions[region]
+    // A region the report may leave out, left out, has no list to put a component in: it is given one by its own command (0060).
+    if (list === undefined) return refuse('not-found', `the report has no ${region}`, { path: `/regions/${region}` })
+    return { pointer: `/regions/${region}`, list }
   }
   const found = componentAt(report, parent)
   if (found === undefined) return refuse('not-found', `no component is ${quote(parent)}`, { componentId: parent })

@@ -28,7 +28,12 @@
   under which a report may hold several tables, and one that is an
   e-invoice still holds one, which selects no rows by a condition, so
   that its lines stay every detail row and the table this record names
-  stays the report's one
+  stays the report's one; and by
+  [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md),
+  under which a line's name follows a translated render into the XML
+  where the column it is read from prints a word, every other text the
+  XML holds is the report's own, and no external judge sees a translated
+  e-invoice
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

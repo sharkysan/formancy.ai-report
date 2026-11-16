@@ -1,6 +1,6 @@
 import { SITE_VISIT_HIGH, SITE_VISIT_REPORT, SITE_VISIT_SUBMISSION_V1, SITE_VISIT_SUBMISSION_V2, SITE_VISIT_V1, SITE_VISIT_V2 } from '@formancy/report-corpus'
 import { resolveReport, SUBMISSION_ID_SYNTAX } from '@formancy/report-runtime'
-import type { ReportDefinition } from '@formancy/report-spec'
+import type { ReportDefinition, Translation } from '@formancy/report-spec'
 import { schemaHash } from '@formancy/spec'
 import { describe, expect, test } from 'vitest'
 import { answers, field, formOf, headerOf, read, readData, readOne, refusals, reportOf, rowsOf, SUBMISSION } from './test-support.js'
@@ -536,5 +536,86 @@ describe('a submission of every spec version', () => {
     const outcome = read(report, formOf([{ key: 'site', type: 'text', label: { $t: 'site' } }], catalogue), {})
     expect(refusals(outcome)).toEqual(['invalid-form /form/i18n/messages/en', 'invalid-form /form/i18n/messages'])
     if (!outcome.ok) expect(JSON.stringify(outcome.errors)).not.toContain('Erika')
+  })
+})
+
+/** The site visit report's words in English, every one, so that a render in English prints it whole. */
+const ENGLISH: Translation = {
+  locale: 'en',
+  words: [
+    { word: 'Begehungsbericht', text: 'Site visit report' },
+    { word: 'Objekt: ', text: 'Site: ' },
+    { word: 'Besucht am: ', text: 'Visited on: ' },
+    { word: 'Angekommen: ', text: 'Arrived: ' },
+    { word: ', begonnen um ', text: ', started at ' },
+    { word: 'Inspektor: ', text: 'Inspector: ' },
+    { word: ', Ausweis ', text: ', licence ' },
+    { word: 'Ergebnis: ', text: 'Outcome: ' },
+    { word: 'Sicherheit: ', text: 'Safety: ' },
+    { word: 'Begehung · ', text: 'Visit · ' },
+    { word: 'Nr.', text: 'Ref.' },
+    { word: 'Bereich', text: 'Area' },
+    { word: 'Dringlichkeit', text: 'Severity' },
+    { word: 'Stunden', text: 'Hours' },
+    { word: 'Teile', text: 'Parts' },
+    { word: 'Behoben', text: 'Fixed' },
+    { word: 'Total', text: 'Total' },
+    { word: 'Keine Befunde.', text: 'No findings.' },
+    { word: 'Seite ', text: 'Page ' },
+    { word: ' von ', text: ' of ' },
+    { word: 'Zusammenfassung', text: 'Summary' },
+  ],
+  expressions: [
+    {
+      cel: 'header.roofChecked == true ? "Dach geprüft" : "Dach nicht geprüft"',
+      expression: { cel: 'header.roofChecked == true ? "Roof checked" : "Roof not checked"' },
+    },
+    { cel: 'row.fixed == true ? "ja" : "nein"', expression: { cel: 'row.fixed == true ? "yes" : "no"' } },
+  ],
+}
+
+describe('a read in a language the report declares (0063)', () => {
+  const VISIT_IN_ENGLISH: ReportDefinition = { ...SITE_VISIT_REPORT, translations: [ENGLISH] }
+  const visitIn = (locale?: unknown, submission: unknown = SITE_VISIT_SUBMISSION_V1) =>
+    readOne(VISIT_IN_ENGLISH, { form: SITE_VISIT_V1, submission }, locale === undefined ? {} : { locale: locale as string })
+  const source = { provider: 'formancy-form', submissions: [{ id: SITE_VISIT_SUBMISSION_V1.id, form: 'site-visit', formHash: V1 }] }
+
+  // A choice's label is read in the locale the render prints in: an
+  // English report of a visit whose outcome was read in German would
+  // print "Reparaturen nötig" in an English PDF. The source says so, and
+  // the render in that locale prints it.
+  test('reads a choice’s labels in the locale it names, and names that locale in the source', () => {
+    const data = readData(visitIn('en'))
+    expect([data.header?.['outcome'], data.header?.['safety'], data.detail?.[0]?.['severity']]).toEqual(['Repairs needed', 'Fair', 'High'])
+    expect(data.source).toEqual({ ...source, locale: 'en' })
+    const resolution = resolveReport(VISIT_IN_ENGLISH, data, { ...RESOLVE, locale: 'en' })
+    expect(resolution.ok ? resolution.manifest.source : resolution.errors).toEqual(data.source)
+  })
+
+  // The report's own locale named is none named: data read in it names no
+  // locale, as all data did before, so a source has one spelling and a
+  // render that names no locale takes it.
+  test('names no locale in the source where it reads in the report’s own', () => {
+    for (const locale of [undefined, 'de-CH']) {
+      const data = readData(visitIn(locale))
+      expect([data.header?.['outcome'], data.source]).toEqual(['Reparaturen nötig', source])
+    }
+  })
+
+  // A locale the report is not written in is refused before an answer is
+  // read, as the runtime refuses a render in it: labels read in en-GB for
+  // a report written in en would print in a locale no render names.
+  test('refuses a locale the report does not declare, before reading an answer', () => {
+    for (const locale of ['fr-CH', 'en-GB', 'en_US', 42]) {
+      expect(refusals(visitIn(locale, { id: SITE_VISIT_SUBMISSION_V1.id, data: { nothing: 'of this form' } }))).toEqual(['undeclared-locale /options/locale'])
+    }
+  })
+
+  // Submissions read once, in the report's own locale, and rendered in
+  // English would print German labels in an English PDF: the runtime
+  // refuses that data, and the read in English is what it prints.
+  test('hands over data read in the report’s own locale that a render in another refuses', () => {
+    const outcome = resolveReport(VISIT_IN_ENGLISH, readData(visitIn()), { ...RESOLVE, locale: 'en' })
+    expect(outcome.ok ? [] : outcome.errors.map((error) => `${error.code} ${error.path}`)).toEqual(['labels-locale-differs /source'])
   })
 })

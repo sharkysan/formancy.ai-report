@@ -1,0 +1,895 @@
+{"report":{"buildInformation":{"releaseDetails":[{
+  "id" : "core",
+  "version" : "1.30.3",
+  "buildDate" : 1791360120000
+},{
+  "id" : "validation-model",
+  "version" : "1.30.3",
+  "buildDate" : 1791373440000
+},{
+  "id" : "apps",
+  "version" : "1.30.3",
+  "buildDate" : 1791373800000
+}]},"jobs":[{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-service-inspection.pdf",
+  "size" : 77558
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 57322,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838527300,
+  "finish" : 1794838527878,
+  "difference" : 578,
+  "duration" : "00:00:00.578"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-quotation.pdf",
+  "size" : 30608
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 8993,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838527892,
+  "finish" : 1794838527963,
+  "difference" : 71,
+  "duration" : "00:00:00.071"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-grouped-equipment.pdf",
+  "size" : 35931
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 20038,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838527967,
+  "finish" : 1794838528034,
+  "difference" : 67,
+  "duration" : "00:00:00.067"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-invoice.pdf",
+  "size" : 58332
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 16900,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838528035,
+  "finish" : 1794838528087,
+  "difference" : 52,
+  "duration" : "00:00:00.052"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-euro-invoice.pdf",
+  "size" : 36170
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 12677,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838528088,
+  "finish" : 1794838528126,
+  "difference" : 38,
+  "duration" : "00:00:00.038"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-site-visit.pdf",
+  "size" : 25037
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 3896,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838528128,
+  "finish" : 1794838528146,
+  "difference" : 18,
+  "duration" : "00:00:00.018"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-blocks.pdf",
+  "size" : 40844
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 11926,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838528148,
+  "finish" : 1794838528184,
+  "difference" : 36,
+  "duration" : "00:00:00.036"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-svg.pdf",
+  "size" : 36081
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 10442,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838528185,
+  "finish" : 1794838528221,
+  "difference" : 36,
+  "duration" : "00:00:00.036"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-svg-bound.pdf",
+  "size" : 34952
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 9951,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838528222,
+  "finish" : 1794838528251,
+  "difference" : 29,
+  "duration" : "00:00:00.029"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-charts.pdf",
+  "size" : 52351
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 15059,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838528252,
+  "finish" : 1794838528290,
+  "difference" : 38,
+  "duration" : "00:00:00.038"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-fonts.pdf",
+  "size" : 27999
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 3366,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838528291,
+  "finish" : 1794838528307,
+  "difference" : 16,
+  "duration" : "00:00:00.016"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-host-fonts.pdf",
+  "size" : 74746
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 144,
+    "failedRules" : 0,
+    "passedChecks" : 4478,
+    "failedChecks" : 0,
+    "ruleSummaries" : [ ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is compliant with Validation Profile requirements.",
+  "compliant" : true
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838528309,
+  "finish" : 1794838528328,
+  "difference" : 19,
+  "duration" : "00:00:00.019"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-control-plain.pdf",
+  "size" : 26365
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 142,
+    "failedRules" : 2,
+    "passedChecks" : 7890,
+    "failedChecks" : 1026,
+    "ruleSummaries" : [ {
+      "ruleStatus" : "FAILED",
+      "specification" : "ISO 19005-2:2011",
+      "clause" : "6.2.4.3",
+      "testNumber" : 2,
+      "status" : "failed",
+      "failedChecks" : 1025,
+      "description" : "DeviceRGB shall only be used if a device independent DefaultRGB colour space has been set when the DeviceRGB colour space is used, or if the file has a PDF/A OutputIntent that contains an RGB destination profile",
+      "object" : "PDDeviceRGB",
+      "test" : "gOutputCS != null && gOutputCS == \"RGB \"",
+      "checks" : [ {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[13]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[14]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[24]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[27]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[28]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[38]/strokeCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[41]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[42]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[51]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[56]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[57]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[58]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[64]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[68]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[69]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[70]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[76]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[80]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[81]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[82]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[88]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[92]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[93]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[94]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[100]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[104]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[105]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[106]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[112]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[116]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[117]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[118]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[124]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[128]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[129]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[130]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[136]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[140]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[141]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[142]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[148]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[152]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[153]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[154]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[160]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[164]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[165]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[166]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[172]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[176]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[177]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[178]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[184]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[188]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[189]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[190]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[196]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[200]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[201]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[202]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[208]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[212]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[213]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[214]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[220]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[224]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[225]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[226]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[232]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[236]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[237]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[238]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[244]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[248]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[249]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[250]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[256]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[260]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[261]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[262]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[268]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[272]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[273]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[274]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[280]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[284]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[285]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[286]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[292]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[296]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[297]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[298]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[304]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[308]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[309]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[310]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[316]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[320]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[321]/colorSpace[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      }, {
+        "status" : "failed",
+        "context" : "root/document[0]/pages[0](7 0 obj PDPage)/contentStream[0](5 0 obj PDContentStream)/operators[322]/fillCS[0]",
+        "errorMessage" : "DeviceRGB colour space is used without RGB output intent profile",
+        "errorArguments" : [ ]
+      } ]
+    }, {
+      "ruleStatus" : "FAILED",
+      "specification" : "ISO 19005-2:2011",
+      "clause" : "6.6.2.1",
+      "testNumber" : 1,
+      "status" : "failed",
+      "failedChecks" : 1,
+      "description" : "The Catalog dictionary of a conforming file shall contain the Metadata key whose value is a metadata stream as defined in ISO 32000-1:2008, 14.3.2. The metadata stream dictionary shall contain entry Type with value /Metadata and entry Subtype with value /XML",
+      "object" : "PDDocument",
+      "test" : "containsMetadata == true",
+      "checks" : [ {
+        "status" : "failed",
+        "context" : "root/document[0]",
+        "errorMessage" : "The document catalog dictionary doesn't contain metadata key or metadata stream dictionary does not contain either entry Type with value /Metadata or entry Subtype with value /XML",
+        "errorArguments" : [ ]
+      } ]
+    } ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is not compliant with Validation Profile requirements.",
+  "compliant" : false
+} ],"featuresReport":{ },"processingTime":{
+  "start" : 1794838528329,
+  "finish" : 1794838528355,
+  "difference" : 26,
+  "duration" : "00:00:00.026"
+}},{"itemDetails":{
+  "name" : "{repository}/test-results/e-invoice/corpus/pdfa-2b-control-3b.pdf",
+  "size" : 37908
+},"validationResult":[ {
+  "details" : {
+    "passedRules" : 142,
+    "failedRules" : 2,
+    "passedChecks" : 11780,
+    "failedChecks" : 2,
+    "ruleSummaries" : [ {
+      "ruleStatus" : "FAILED",
+      "specification" : "ISO 19005-2:2011",
+      "clause" : "6.8",
+      "testNumber" : 5,
+      "status" : "failed",
+      "failedChecks" : 1,
+      "description" : "A file specification dictionary, as defined in ISO 32000-1:2008, 7.11.3, may contain the EF key, provided that the embedded file is compliant with either ISO 19005-1 or this part of ISO 19005",
+      "object" : "EmbeddedFile",
+      "test" : "isValidPDFA12 == true",
+      "checks" : [ {
+        "status" : "failed",
+        "context" : "root/EmbeddedFiles[0]/EF[0](13 0 obj EmbeddedFile)",
+        "errorMessage" : "An embedded file does not comply to either ISO 19005-1 or ISO 19005-2",
+        "errorArguments" : [ ]
+      } ]
+    }, {
+      "ruleStatus" : "FAILED",
+      "specification" : "ISO 19005-2:2011",
+      "clause" : "6.6.4",
+      "testNumber" : 2,
+      "status" : "failed",
+      "failedChecks" : 1,
+      "description" : "The value of \"pdfaid:part\" shall be the part number of ISO 19005 to which the file conforms",
+      "object" : "PDFAIdentification",
+      "test" : "part == 2",
+      "checks" : [ {
+        "status" : "failed",
+        "context" : "root/document[0]/metadata[0](30 0 obj PDMetadata)/XMPPackage[0]/PDFAIdentification[0]",
+        "errorMessage" : "The \"part\" property of the PDF/A Identification Schema is 3 instead of 2 for PDF/A-2 conforming file",
+        "errorArguments" : [ "3" ]
+      } ]
+    } ]
+  },
+  "jobEndStatus" : "normal",
+  "profileName" : "PDF/A-2b validation profile",
+  "statement" : "PDF file is not compliant with Validation Profile requirements.",
+  "compliant" : false
+} ],"featuresReport":{
+  "embeddedFiles" : {
+    "id" : "file1",
+    "fileName" : "factur-x.xml",
+    "description" : "E-invoice XML, EN 16931",
+    "afRelationship" : "Alternative",
+    "subtype" : "text/xml",
+    "filter" : "FlateDecode",
+    "creationDate" : "2026-10-17T08:00:00.000Z",
+    "modDate" : "2026-10-17T08:00:00.000Z",
+    "checkSum" : "e14c33d9ffa5fab96b0478be239b56f3",
+    "size" : "12668"
+  }
+},"processingTime":{
+  "start" : 1794838528370,
+  "finish" : 1794838528421,
+  "difference" : 51,
+  "duration" : "00:00:00.051"
+}}],"batchSummary":{
+  "duration" : {
+    "start" : 1794838527262,
+    "finish" : 1794838528423,
+    "difference" : 1161,
+    "duration" : "00:00:01.161"
+  },
+  "totalJobs" : 14,
+  "outOfMemory" : 0,
+  "veraExceptions" : 0,
+  "multiJob" : true,
+  "failedEncryptedJobs" : 0,
+  "failedParsingJobs" : 0,
+  "validationSummary" : {
+    "nonCompliantPdfaCount" : 2,
+    "compliantPdfaCount" : 12,
+    "failedJobCount" : 0,
+    "totalJobCount" : 14,
+    "successfulJobCount" : 14
+  },
+  "featuresSummary" : {
+    "failedJobCount" : 0,
+    "totalJobCount" : 14,
+    "successfulJobCount" : 14
+  },
+  "repairSummary" : {
+    "failedJobCount" : 0,
+    "totalJobCount" : 0,
+    "successfulJobCount" : 0
+  }
+}}}

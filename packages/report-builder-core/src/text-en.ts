@@ -39,6 +39,7 @@ export const EN = {
 
   // The report's regions and the kinds of thing in them.
   'region.reportHeader': 'Report header',
+  'region.firstPageHeader': 'First page header',
   'region.pageHeader': 'Page header',
   'region.body': 'Body',
   'region.pageFooter': 'Page footer',
@@ -159,6 +160,7 @@ export const EN = {
   'field.marginRight': 'Right margin',
   'field.marginBottom': 'Bottom margin',
   'field.marginLeft': 'Left margin',
+  'field.firstPageHeader': 'Header on page 1',
   'field.style': 'Style',
   'field.visibleWhen': 'Show only when',
   'field.keepWithNext': 'Keep with next',
@@ -216,6 +218,8 @@ export const EN = {
   'field.emptyText': 'Text when there are no rows',
   'field.rowsWhen': 'Show rows only when',
   'field.headerStyle': 'Heading style',
+  // How many of its group's first rows a group header is kept on its page with (0059).
+  'field.keepWithRows': 'Rows kept with each group header',
   'field.header': 'Heading',
   'field.align': 'Alignment',
   'field.value': 'Value',
@@ -237,6 +241,9 @@ export const EN = {
   'option.noBic': 'Empty: none, which a payer’s bank outside the EEA may need',
   'option.portrait': 'Portrait',
   'option.landscape': 'Landscape',
+  // The region's presence is the choice, and an empty one prints no header (0060).
+  'option.runningHeader': 'The page header',
+  'option.ownHeader': 'A header of its own (none while empty)',
   'option.contain': 'Fit inside',
   'option.cover': 'Fill and crop',
   'option.errorCorrectionL': 'Low ({share})',
@@ -308,6 +315,8 @@ export const EN = {
   'status.removed': 'Removed {name}.',
   'status.qrBillAdded': 'Added a QR-bill with SIX’s example values. Give the creditor’s own account and address before it is sent.',
   'status.qrBillDeleted': 'Deleted the QR-bill.',
+  'status.ownHeaderChosen': 'Page 1 prints a header of its own, the First page header, and none while it is empty. The page header prints from page 2 on.',
+  'status.pageHeaderChosen': 'Page 1 prints the page header again. Its own header is gone, with what it held. Undo brings it back.',
   'status.alreadyThere': '{name} is there already.',
   'status.notThere': '{name} is not there.',
   'status.notOptional': '{name} is part of every bill, and is not added or removed.',
@@ -437,6 +446,45 @@ export const EN = {
   'status.notOptionalInvoice': '{name}: part of every {kind} invoice, never added or removed.',
   'status.notOptionalItem': '{name} belongs to a list: its own buttons add and remove its items.',
   'status.vatCategoriesFull': 'The e-invoice declares every VAT breakdown a category added could be: change one of its categories instead.',
+
+  // A report's languages (0063): the switch between them in the bar, the
+  // report's own Languages, a word not written in one yet, and a problem
+  // that names its language.
+  'language.label': 'Edited language',
+  'language.own': '{name}, the report’s own',
+  'language.missing': '{name}, words missing: {count}',
+  'languages.heading': 'Languages',
+  'field.addLanguage': 'Add language',
+  'option.languageTag': 'A language tag, such as fr-CH',
+  'action.removeLanguage': 'Remove {name}',
+  'history.addLanguage': 'Add language',
+  'history.removeLanguage': 'Remove language',
+  'canvas.missing': 'Not written in {language} yet',
+  'field.wordIn': 'In {language}. Places it stands in: {count}',
+  'field.wordMissing': 'Not written in {language} yet. Places it stands in: {count}',
+  'problem.itemIn': '{severity} in {language}: {where}',
+  'status.languageAdded': 'Added {name}. Its words are missing until they are written: choose it as the edited language to write them.',
+  'status.languageRemoved': 'Removed {name} and its words.',
+  'status.languageShown': 'Showing the words in {name}.',
+  'status.notWrittenIn': 'The report is not written in {name}.',
+
+  // A run of a paragraph set below or above the line, or back on it (0061).
+  'action.subscript': 'Subscript',
+  'action.superscript': 'Superscript',
+  'action.subscriptOf': '{name}, subscript',
+  'action.superscriptOf': '{name}, superscript',
+  'history.subscript': 'Set below the line',
+  'history.superscript': 'Set above the line',
+  'history.onTheLine': 'Set back on the line',
+  'status.subscript': 'Set {name} below the line.',
+  'status.superscript': 'Set {name} above the line.',
+  'status.onTheLine': 'Set {name} back on the line.',
+  'status.selectionStale':
+    '{name} shows what was typed, not what the report holds: commit it, or press Escape, before setting part of it below or above the line.',
+  'status.baselineUnchanged': '{name} is set so already.',
+  'status.baselineInOwnLanguage':
+    "Part of {name} is set below or above the line in the report's own language: switch to it, or select nothing to set all of {name}.",
+  'status.notOptionalRun': '{name} is part of the text: it is edited in its field, never added or removed.',
 } as const
 
 export type MessageId = keyof typeof EN

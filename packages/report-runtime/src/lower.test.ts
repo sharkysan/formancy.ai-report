@@ -168,6 +168,90 @@ describe('text', () => {
   })
 })
 
+describe('a run set below or above the line (0061)', () => {
+  // A formula's digit, an exponent read from the data and a footnote's
+  // number from a parameter print below or above the line only if the
+  // document says so: a baseline the runtime dropped would print H2O with
+  // its digit on the line, and nothing would refuse it. Each kind that
+  // takes one carries it, literal and bound alike.
+  test("carries each run's baseline into the document, and none for a run that sets none", () => {
+    const report = probe(
+      body({
+        id: 'formula',
+        kind: 'text',
+        content: [
+          { kind: 'text', text: 'H' },
+          { kind: 'text', text: '2', baseline: 'subscript' },
+          { kind: 'text', text: 'O, ' },
+          { kind: 'field', field: header('amount'), baseline: 'superscript' },
+          { kind: 'parameter', parameter: 'currency', baseline: 'subscript' },
+          { kind: 'expression', expression: { cel: 'string(header.amount * dec("2"))' }, baseline: 'superscript' },
+          { kind: 'aggregate', aggregate: 'visits', over: 'report', baseline: 'subscript' },
+        ],
+      }),
+    )
+    const withCount: ReportDefinition = {
+      ...report,
+      aggregates: [{ id: 'visits', fn: 'count' }],
+      datasets: { ...report.datasets, detail: { id: 'none', fields: [{ id: 'x', type: 'string', label: 'X', nullable: true }] } },
+    }
+    const outcome = resolveReport(withCount, { ...data(), detail: [] }, OPTIONS)
+    if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
+    // Strictly: a run that sets no baseline holds no `baseline` key at all, so that a document of a report that sets none is the one it was.
+    expect(outcome.document.body[0]).toStrictEqual({
+      kind: 'paragraph',
+      runs: [
+        { text: 'H' },
+        { text: '2', baseline: 'subscript' },
+        { text: 'O, ' },
+        { text: '1234.50', baseline: 'superscript' },
+        { text: 'CHF', baseline: 'subscript' },
+        { text: '2469.00', baseline: 'superscript' },
+        { text: '0', baseline: 'subscript' },
+      ],
+    })
+  })
+
+  // A null value prints as nothing, set below the line or not: the run is
+  // still there, with its baseline, for the renderer to hold to its word.
+  test('keeps the baseline of a run whose value prints nothing', () => {
+    const report = probe(
+      body({
+        id: 'mark',
+        kind: 'text',
+        content: [
+          { kind: 'text', text: 'Area' },
+          { kind: 'field', field: header('note'), baseline: 'superscript' },
+        ],
+      }),
+    )
+    const fields = [...report.datasets.header!.fields, { id: 'note', type: 'string', label: 'Note', nullable: true } as const]
+    const withNote: ReportDefinition = { ...report, datasets: { ...report.datasets, header: { ...report.datasets.header!, fields } } }
+    const outcome = resolveReport(withNote, data({ note: null }), OPTIONS)
+    if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
+    expect(outcome.document.body[0]).toStrictEqual({ kind: 'paragraph', runs: [{ text: 'Area' }, { text: '', baseline: 'superscript' }] })
+  })
+
+  // The geometry any engine draws such a run at, stated once in the
+  // document: pdfmake 0.3.11's own 0.58 of the size, moved 0.75 or 0.35 of
+  // that. The renderer's bound and the corpus's line reader read these, so
+  // a figure that changed here changes both and the PDF proof catches the
+  // engine that did not follow.
+  test('states the size and the move a run so set prints at', () => {
+    expect(runtime.SHIFTED_SIZE).toBe(0.58)
+    expect(runtime.SHIFTED_RISE).toEqual({ superscript: 0.75 * 0.58, subscript: -0.35 * 0.58 })
+    expect(runtime.SHIFTED_RISE.superscript).toBeCloseTo(0.435, 12)
+    expect(runtime.SHIFTED_RISE.subscript).toBeCloseTo(-0.203, 12)
+  })
+
+  // The renderer depends on the runtime alone: the names it reads must be
+  // report-spec's own, or the format and the document could name a shift
+  // differently and nothing would say so until a run printed on the line.
+  test("hands on report-spec's names for a baseline", () => {
+    expect(runtime.BASELINE_SHIFTS).toBe(spec.BASELINE_SHIFTS)
+  })
+})
+
 describe('styles', () => {
   // A section styled small prints its text small; a component's own style
   // is laid over what it stands in, and each rule that holds over that, a

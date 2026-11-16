@@ -142,7 +142,8 @@ A report is a JSON document: what it prints, from which data, laid out how.
 It names the data it reads -- one header record and one list of detail rows
 -- as contracts with typed fields, and never says where the data comes
 from. This one is a short quotation: a heading, a table of lines, a total
-the runtime computes, and a footer with the page count. In `quotation.ts`:
+the runtime computes, a bar chart of the lines' amounts, and a footer with
+the page count. In `quotation.ts`:
 
 ```ts guide=node
 import type { ReportData, ReportDefinition } from '@formancy/report-runtime'
@@ -211,7 +212,21 @@ const quotation: ReportDefinition = {
         repeatHeader: true,
       },
     ],
-    summary: [],
+    summary: [
+      {
+        id: 'amounts',
+        kind: 'chart',
+        chart: 'bar',
+        dataset: 'detail',
+        width: 480,
+        height: 160,
+        category: { field: { dataset: 'detail', field: 'description' }, order: 'data' },
+        series: [{ id: 'amount', label: 'Amount', fn: 'sum', of: { dataset: 'detail', field: 'amount' } }],
+        valueFormat: chf,
+        valueLabels: true,
+        emptyText: 'No lines.',
+      },
+    ],
     pageFooter: [
       { id: 'page', kind: 'text', style: 'footer', content: [{ kind: 'text', text: 'Page ' }, { kind: 'pageNumber' }, { kind: 'text', text: ' of ' }, { kind: 'pageCount' }] },
     ],
@@ -255,6 +270,13 @@ const pdf = await renderPdf(resolution.document, { maxPages: 50 })
 await writeFile('quotation.pdf', pdf)
 ```
 
+The chart in the summary is a component of the report like the table: it
+totals the detail rows by a category, here each line's description, and
+prints a bar for each. Every number on it -- each bar's value, each tick of
+its axis, each label -- is the runtime's, computed exactly from the strings
+and formatted once for the locale; the renderer places the words and marks
+and rounds, converts and prints no number of its own.
+
 `resolveReport` holds every value to its field's contract, evaluates the
 report's expressions, computes the totals and formats each value for the
 report's locale, once; nothing in it fetches anything. `renderPdf` draws the
@@ -264,6 +286,31 @@ order pdfmake opened them however long each takes to decode
 ([0035](./decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)).
 `maxPages` is required, and a
 report that needs more is refused rather than cut short.
+
+Still in `quotation.ts`, the same final render can be drawn as an archival
+PDF:
+
+```ts guide=node
+// The same final render, drawn as a PDF/A-2b for an archive.
+await writeFile('quotation-archive.pdf', await renderPdf(resolution.document, { maxPages: 50, pdfa: '2b' }))
+```
+
+That is a PDF/A-2b: part 2, level b, the sRGB profile embedded as its output
+intent and nothing attached. An e-invoice and a labelled preview are refused
+as one, since a Factur-X is drawn as the PDF/A-3b that embeds its XML and a
+preview must never be kept as the report. PDFKit reads the profile with `fs`
+from `data/sRGB_IEC61966_2_1.icc`, beside its own `js/pdfkit.js`, so a host
+that bundles the Node entry ships that file where the bundled PDFKit's
+`__dirname` points, or every PDF/A render fails, an e-invoice's and an
+archival one alike. Nobody here has bundled one.
+
+A template that prints today may be refused as a PDF/A-2b: a CMYK JPEG
+logo, an SVG drawn so small that its numbers pass what a PDF/A holds, and
+a title holding `&`, `<` or `>` are each refused as `unsupported`, naming
+the image or `info.title`, and the same report still prints without
+`pdfa`. Nothing says so before that render. Why it is drawn so, and
+what it does not hold, is
+[0057](./decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)'s.
 
 What it costs: pdfmake lays out a whole document in one synchronous pass on
 the thread that calls it. The render yields between its passes, so an
@@ -496,8 +543,9 @@ bundle carries them. A report with a Swiss QR-bill prints its slip in
 Liberation Sans, and one with an EPC QR code in Austria's frame its
 caption, which the entry imports from a chunk of its own the first time a
 document has either, so a bundler that splits dynamic imports keeps it out
-of a page that prints neither. Nothing in it touches a file system or
-follows an address.
+of a page that prints neither. The browser entry takes `pdfa: '2b'` too, its
+profile the base64 copy in pdfmake's browser build. Nothing in it touches a
+file system or follows an address.
 
 In `print.ts`, a preview prints the report against sample data, with the
 approved assets -- a logo -- that the page hands over. The runtime asks

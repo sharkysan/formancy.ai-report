@@ -4,13 +4,20 @@
   [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md),
   under which a render of an e-invoice reads one file besides its fonts,
   the ICC profile PDFKit embeds in a PDF/A, outside pdfmake's access
-  policy; and extended by
+  policy, and by
+  [0057](0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md),
+  under which a render a host asks for as a PDF/A-2b reads it too; and
+  extended by
   [0035](0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md),
   under which its claim that one document renders to the same bytes every
   time holds of a document whose PNGs PDFKit decodes before it embeds
   them only because the renderer has them written in the order pdfmake
   opened them, which report-render-pdf's `image-order.test.ts` holds in
-  both entries and the install gate on the PDFKit a host resolves
+  both entries and the install gate on the PDFKit a host resolves; and
+  extended by
+  [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md),
+  under which a second library runs inside the one adapter: Apache
+  ECharts lays a chart out, and pdfmake draws its marks and its words
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the engine's corpus tests in `packages/report-corpus`,
@@ -251,6 +258,22 @@ which refuses `<image>`; the renderer's own list of the elements that form
 holds refuses one again; and the converter's image callback refuses the
 asset before a file is opened, in Node and in the browser build, whose
 virtual files it would read instead.
+
+**Added 2026-11-15: a chart, laid out by ECharts inside the adapter.** A
+chart is laid out by Apache ECharts 6.1.0, a second library, and drawn by
+pdfmake: the converter draws the marks ECharts wrote as an SVG, and each
+word prints as pdfmake's text where ECharts placed it
+([0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)).
+*There is no second engine to plug in* still holds: ECharts writes no
+PDF, and pdfmake is what does. ECharts is no engine behind an interface;
+it lays out what pdfmake then draws, measured in the very widths pdfmake
+prints in. It reads no file, and its canvas and its image loader are
+refused by the measurer that stands in for them, so *no other file, and
+no address at all* holds of a chart too. That the words are pdfmake's
+rests on two behaviours of pdfmake 0.3.11 that are not its API, a
+detached node laid out where the flow stands and taking none of its room,
+and nothing fitted inside an unbreakable block, which `pdfmake.test.ts`
+now pins.
 
 ## Alternatives considered
 

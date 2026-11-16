@@ -1,14 +1,17 @@
-import { normalise, type Expectation } from './fixture.js'
+import type { PlacedChart, PlacedDrawings } from './drawings.js'
+import { normalise, type Expectation, type ExpectedImage } from './fixture.js'
 import { pageLines, type Line } from './lines.js'
 import type { PdfBox, PdfPage, ReadPdf } from './read-pdf.js'
 
 /**
  * A page as the checks read it: its lines, sorted into the page header's,
  * the page footer's and the body's. A line belongs to a page region when it
- * reads as one of that region's lines -- the page header's and footer's
- * plain lines exactly, the footer's numbered line by its pattern -- wherever
- * on the page it is, so that a region drawn in the wrong place is still
- * found, and is then reported for where it is.
+ * reads as one of that region's lines -- the header's and footer's plain
+ * lines exactly, the footer's numbered line by its pattern -- wherever on
+ * the page it is, so that a region drawn in the wrong place is still found,
+ * and is then reported for where it is. Page 1's header is its own where
+ * the document gives it one (0060), and the page header on every other
+ * page (`regionsOn`).
  */
 export interface Page {
   readonly page: PdfPage
@@ -20,14 +23,38 @@ export interface Page {
   readonly body: readonly Line[]
   /** The boxes of the SVG images drawn on the page, the page regions' and the body's: the clips their drawings are painted inside (`drawings.ts`). */
   readonly drawings: readonly PdfBox[]
+  /** The charts drawn on the page, each found by its clip in the same walk as the SVG images (`drawings.ts`). */
+  readonly charts: readonly PlacedChart[]
 }
 
-/** `pdf`'s pages as the checks read them, each with the boxes of the SVG images `drawings` found on it, page by page. */
-export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: readonly (readonly PdfBox[])[]): Page[] {
-  const header = new Set(expected.pageHeaderLines.map(normalise))
+/** What a page shows of its page regions: on page 1, page 1's own where the document gives it a header of its own (0060), and every page's otherwise. */
+export interface PageRegions {
+  /** Whether these are page 1's own. */
+  readonly own: boolean
+  readonly headerLines: readonly string[]
+  readonly regionImages: readonly ExpectedImage[]
+  /** The lines of the other header, which this page must not print: the page header's on page 1 under its own, page 1's own on every other page. */
+  readonly otherLines: readonly string[]
+}
+
+/** What page `number` shows of its page regions, by what `expected` says of page 1 and of every page. */
+export function regionsOn(expected: Expectation, number: number): PageRegions {
+  const { firstPage } = expected
+  const every = { headerLines: expected.pageHeaderLines, regionImages: expected.pageRegionImages }
+  if (firstPage === undefined) return { own: false, ...every, otherLines: [] }
+  const own = number === 1
+  const [mine, other] = own ? [firstPage.headerLines, expected.pageHeaderLines] : [expected.pageHeaderLines, firstPage.headerLines]
+  // A line both headers print, or the footer does, is no sign of the wrong one: a preview's label heads both.
+  const shared = new Set([...mine, ...expected.pageFooterLines].map(normalise))
+  return { own, ...(own ? firstPage : every), otherLines: other.filter((line) => !shared.has(normalise(line))) }
+}
+
+/** `pdf`'s pages as the checks read them, each with the SVG images' boxes and the charts `drawings` placed on it, page by page. */
+export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: Pick<PlacedDrawings, 'boxes' | 'charts'>): Page[] {
   const footer = new Set(expected.pageFooterLines.map(normalise))
   const numbered = expected.footerEveryPage === undefined ? undefined : once(expected.footerEveryPage)
   return pdf.pages.map((page, index) => {
+    const header = new Set(regionsOn(expected, page.number).headerLines.map(normalise))
     const lines = pageLines(page)
     const region = (line: Line): 'header' | 'footer' | 'body' => {
       if (header.has(line.text)) return 'header'
@@ -39,7 +66,8 @@ export function pagesOf(pdf: ReadPdf, expected: Expectation, drawings: readonly 
       header: lines.filter((line) => region(line) === 'header'),
       footer: lines.filter((line) => region(line) === 'footer'),
       body: lines.filter((line) => region(line) === 'body'),
-      drawings: drawings[index] ?? [],
+      drawings: drawings.boxes[index] ?? [],
+      charts: drawings.charts[index] ?? [],
     }
   })
 }
@@ -99,7 +127,22 @@ export function drawingLabel(drawing: PdfBox): string {
   return `a drawing at ${points(drawing.x)}, ${points(drawing.top)}`
 }
 
-/** What a page shows that is not text: its images and its SVG images' drawings, each with the words a problem names it by. */
-export function pictures(page: Page): { readonly label: string; readonly box: PdfBox }[] {
-  return [...page.page.images.map((box) => ({ label: imageLabel(box), box })), ...page.drawings.map((box) => ({ label: drawingLabel(box), box }))]
+export function chartLabel({ id, box }: PlacedChart): string {
+  return `the chart ${id} at ${points(box.x)}, ${points(box.top)}`
+}
+
+/** Something a page shows that is not text, by the words a problem names it by; a chart's by its id too. */
+export interface Picture {
+  readonly label: string
+  readonly box: PdfBox
+  readonly chart?: string
+}
+
+/** What a page shows that is not text: its images, its SVG images' drawings and its charts, each by their boxes, which the layout's checks hold as they hold an image's. */
+export function pictures(page: Page): Picture[] {
+  return [
+    ...page.page.images.map((box) => ({ label: imageLabel(box), box })),
+    ...page.drawings.map((box) => ({ label: drawingLabel(box), box })),
+    ...page.charts.map((chart) => ({ label: chartLabel(chart), box: chart.box, chart: chart.id })),
+  ]
 }

@@ -1,39 +1,22 @@
 /**
  * What an editor shows about a valid report: the errors the runtime would
- * refuse it for, and the warnings an author probably wants to see.
+ * refuse it for, and the warnings an author probably wants to see, in its
+ * own language and in each language its translations declare.
  */
 import type { ReportDefinition } from '@formancy/report-spec'
-import { compiledSites } from '../expressions/compile-report.js'
 import type { Diagnostic } from './codes.js'
-import { chartDiagnostics } from './chart.js'
-import { contentDiagnostics } from './content.js'
-import { eInvoiceDiagnostics } from './e-invoice.js'
-import { examplePaymentPartDiagnostics } from './example-payment-part.js'
-import { reportParts } from './parts.js'
-import { roundingDiagnostics } from './rounding.js'
-import { tableDiagnostics } from './tables.js'
-import { unusedDiagnostics } from './unused.js'
+import { diagnosis } from './diagnosis.js'
+import { inLanguage } from './words.js'
 
 /**
  * Every diagnostic for `report`, a report the validator accepts -- a
- * session's document is one. Expressions first, in document order, the
- * aggregates' last, then roundings, then a chart's series' roundings, then
- * a total of every row under a table that selects its rows, then the e-invoice's unprinted totals,
- * then content, then a bill that holds SIX's examples, then unused
- * declarations in the order they are declared. The expressions' are `compileReport`'s,
- * so the editor reports exactly what the runtime refuses.
+ * session's document is one: its own language's first, in `diagnosis`'s
+ * order, then each translation's, in the order the report declares them,
+ * each naming its `language` (0063). An error that names none refuses
+ * every render; one that names a language refuses a render in that
+ * language alone.
  */
 export function diagnose(report: ReportDefinition): Diagnostic[] {
-  const parts = reportParts(report)
-  const compiled = compiledSites(report, parts.expressions)
-  return [
-    ...compiled.diagnostics,
-    ...roundingDiagnostics(report, parts.printedTotals, compiled.members.totals),
-    ...chartDiagnostics(report),
-    ...tableDiagnostics(report),
-    ...eInvoiceDiagnostics(report, parts.expressions),
-    ...contentDiagnostics(report),
-    ...examplePaymentPartDiagnostics(report),
-    ...unusedDiagnostics(report, parts),
-  ]
+  const own = diagnosis(report)
+  return [...own.diagnostics, ...(report.translations ?? []).flatMap(({ locale }) => inLanguage(report, locale, own))]
 }

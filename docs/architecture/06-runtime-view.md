@@ -43,19 +43,54 @@ way to the same commands, its targets the places `validLocations` found by
 trying each ([formancy.ai 0046](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0046-keyboard-before-drag.md),
 [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)).
 
+An edit in another language than the report's own takes the same path.
+The language shown is the editor's view state, chosen in the bar's
+switch, which stands there only while the report declares a
+translation:
+
+```
+a person types "Commande" into the Title field, French shown
+   │
+   ▼
+the field stands at a word ──▶ report-core's translateWord('fr-CH', 'Bestellung', 'Commande');
+   │                           an expression that prints words, translateExpression;
+   │                           any other field, the command it always dispatches
+   ▼
+session.apply, validateReport and commit, as above: one undo step
+   │
+   ▼
+the editor derives its state again: the words it shows from report-spec's
+writtenIn(report, 'fr-CH'), a word French lacks the report's own, marked
+missing; and diagnose(), which lists every language's, a word missing an
+error that names its language
+```
+
+So the field, the design view and the problems read the report in the
+language shown by the walk the runtime prints it by, and a word still
+missing is shown as missing, never as written
+([0063](../decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+
 ## 6.2 A render, from data to bytes
 
 ```
-host: resolveReport(report, data, { mode, parameters, images, creationDate, timeZone })
+host: resolveReport(report, data, { mode, locale, parameters, images, creationDate, timeZone })
    │
    ▼
 validate the report again, compile every expression     it arrives as untrusted input
-   ├─ an error the editor's diagnostics would give ──▶ refused
+   ├─ a locale neither the report's own nor a translation's ──▶ undeclared-locale
+   ├─ an error the editor's diagnostics would give, of no language or of the
+   │  render's: a word missing in it among them ──▶ refused
+   ▼
+the report written in the render's locale: reportIn, its words and the
+expressions that print words that locale's, its locale and its slip's
+language the render's, no translations (languages.ts); every stage below
+reads it, as it read a report in one language
    ▼
 check the data: one header record and one detail list, each value held to its
 field's type, a field the report does not declare refused, MAX_DETAIL_ROWS;
 where it names its source, the syntax of identifiers and its shape's keys (0041)
    ├─ a source past either, more submissions than rows, or a provider unknown ──▶ refused
+   ├─ a form's labels read in another locale than the render's ──▶ labels-locale-differs
    ├─ final, and a field missing or the data incomplete ──▶ refused
    ├─ preview ──▶ go on: nothing printed for it, one warning per field
    ▼
@@ -63,7 +98,7 @@ evaluate conditions and expressions        fixed capabilities; EXPRESSION_STEP_B
    │                                       each, RENDER_STEP_BUDGET a render
    ▼
 order and group the rows; compute each aggregate exactly, then round it once;
-each table's rows those its condition selects, its totals over them (6.19)
+each table's rows those its condition selects, its totals over them (6.21)
    ▼
 an e-invoice's lines, read once from its table's rows; its totals computed
 once; its other terms held to EN 16931's rules (6.8)
@@ -89,33 +124,49 @@ rules; the EPC QR code's payload written (6.7)
 in a final render, an e-invoice's CII XML, written from those values (6.8)
    │
    ▼
-ResolvedDocument + manifest, naming the data's source where it has one
+ResolvedDocument + manifest, naming the template's hash, the render's locale
+and the data's source where it has one
 (+ a preview's warnings)                                     every reason, or none
    │
    ▼
-renderPdf(document, { maxPages, signal })
+renderPdf(document, { maxPages, signal, pdfa })
+   ├─ pdfa neither '2b' nor left out ────────────────────────▶ RangeError
    ├─ before pdfmake sees it: a glyph per character, nothing malformed or
    │ wider than where it stands, each asset's bytes, an SVG's in the form
    │ cleanSvg writes and within what SVGs may cost (6.9), a bill, each
    │ code encoded once and held to its square ───────────────▶ RenderRefusal
-   │ an e-invoice it does not know; in a Factur-X invoice, a title
-   │ its XMP cannot hold, a CMYK JPEG, an SVG whose numbers or
-   │ nesting its PDF/A cannot hold (6.9) ────────────────────▶ unsupported
-   │ a chart, which this release does not draw yet (6.18) ───▶ unsupported
+   │ an e-invoice it does not know; asked for as pdfa: '2b', a
+   │ Factur-X, an XRechnung's copy or a labelled preview (6.19);
+   │ in a Factur-X invoice or a PDF/A-2b, a title its XMP cannot
+   │ hold, a CMYK JPEG, an SVG whose numbers or nesting its
+   │ PDF/A cannot hold (6.9) ────────────────────────────────▶ unsupported
+   │ a chart in a page region, of a kind it does not know, past
+   │ MAX_TICK_INTERVALS or MAX_CHART_SERIES, or with a word its
+   │ face cannot draw (6.18) ────────────────────────────────▶ unsupported
+   │ a chart of more than MAX_CHART_CATEGORIES, and a render's
+   │ charts past MAX_CHART_DRAWING together (6.18) ──────────▶ content-too-large
    ├─ a bill or a captioned EPC QR code: Liberation Sans read, and in a
    │ browser its chunk imported
-   ├─ measure the page regions; the body's margins follow
+   ├─ measure the page regions, and page 1's own header in a pass of its
+   │ own (6.20); the body's margins follow
    ├─ a block of fixed height taller than the body ──────────▶ content-too-large
    ├─ least height already past maxPages ────────────────────▶ too-many-pages
+   ├─ the body's charts laid out by ECharts, in the widths pdfmake
+   │ prints in; words that would meet, labels that do not fit
+   │ across, bars too thin (6.18) ───────────────────────────▶ content-too-large
    ├─ measure kept blocks and table rows; one no page holds,
    │ or a row's line no page holds under its table's
    │ repeated header (0011) ─────────────────────────────────▶ content-too-large
    ├─ plan where each table breaks
    ├─ lay out the PDF; a page past maxPages ─────────────────▶ too-many-pages
    │       in every pass, a word wider than its column ──────▶ content-too-large
+   │       a word that holds a run set below or above the
+   │       line and no run on it (0061) ─────────────────────▶ unsupported
+   │       such a word wider than its line ──────────────────▶ content-too-large
    │       an abort is read between passes ──────────────────▶ cancelled
    ├─ an e-invoice: a PDF/A-3b, and on this last pass alone its XML embedded
    │ and its XMP written, through PDFKit's document before it ends (6.8)
+   ├─ pdfa: '2b': a PDF/A-2b on this last pass, nothing embedded (6.19)
    ▼
 Uint8Array
 ```
@@ -124,6 +175,11 @@ The runtime never returns part of a document and the renderer never
 resolves to part of a PDF
 ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md),
 [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+A run set below or above the line travels with its baseline, and the
+document states what it prints as; the renderer hands it to pdfmake as
+pdfmake's own `sub` or `sup`, and reads pdfmake's words of only the
+paragraphs that hold one
+([0061](../decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
 Every value reaching the renderer is already the string it prints, so the
 renderer has no total to round twice. The PDF's creation date is the one the
 host passed, so one document renders to the same bytes every time
@@ -132,6 +188,10 @@ and the images PDFKit is still decoding when pdfmake hands the document
 over are written in the order pdfmake opened them, however their decodes
 finish
 ([0035](../decisions/0035-the-renderer-writes-the-images-pdfkit-decodes-in-the-order-pdfmake-opened-them.md)).
+A render that names a locale is that report printed in it: a report
+without translations, rendered with no locale or its own named, takes
+the path it took before the option, and one whose French lacks a word
+prints in its own language and in every other that is whole (0063).
 
 ## 6.3 A read from Formancy Data
 
@@ -197,7 +257,8 @@ latest(): the request waits a moment for the next one; a newer one aborts the
           render under way, whose result is then delivered to nobody
    │
    ▼
-preview(): resolveReport, in the mode the Preview is in ──▶ renderPdf from
+preview(): resolveReport, in the mode the Preview is in and the language the
+           builder shows ──▶ renderPdf from
            '@formancy/report-render-pdf/browser', up to PREVIEW_PAGE_LIMIT pages
    ├─ refused by the runtime ──▶ every reason, each with a button that selects
    │                             the component it is about
@@ -209,6 +270,10 @@ the bytes those pages were drawn from
 
 The Preview makes the same two calls a host makes, with nothing decided in
 the Studio ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)).
+It prints in the language the builder shows, the editor's
+`languages.edited`, which a framework switch keeps, so a language whose
+words are not all written is refused there as the runtime refuses it,
+`word-missing` by word, until the last one is (0063).
 A render the renderer cannot stop mid-pass finishes into nothing rather
 than replacing a newer one.
 
@@ -415,8 +480,9 @@ no Factur-X file: `{ kind: 'xrechnung', xml, syntax, guideline, version
 }`, the invoice, which the host takes from the resolved document and
 sends, and the runtime heads every page with `XRECHNUNG_COPY_LABEL`. The
 renderer draws that document as a plain PDF, the copy, a CMYK image in it
-drawn, and refuses one whose page header does not open with the label as
-the runtime writes it, `XRECHNUNG_COPY_PARAGRAPH`, style and all
+drawn, and refuses one whose page header, or page 1's own header where it
+has one (6.20), does not open with the label as the runtime writes it,
+`XRECHNUNG_COPY_PARAGRAPH`, style and all
 ([0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
 
 ```
@@ -459,8 +525,9 @@ resolveReport: images through the host's lookup (6.2)
 renderPdf: checkSvg(bytes)                            report-spec's, through the runtime
    ├─ anything cleaning would change ──────────────────▶ invalid-asset, naming
    │                                                     the asset and the change
-   ├─ the SVGs past MAX_SVG_DRAWING, a page region's counted
-   │  on every page maxPages allows; the body's past one
+   ├─ the SVGs past MAX_SVG_DRAWING, the page header's and
+   │  footer's counted on every page maxPages allows, page
+   │  1's own header's once (6.20); the body's past one
    │  drawing's bounds, as though on one page ──────────▶ content-too-large
    ├─ in an e-invoice, numbers that at the image's box,
    │  anywhere on its page, could pass the PDF/A-3's
@@ -474,7 +541,7 @@ cover as xMidYMid slice, clipped to the box
    ├─ it would open an image, or it warns ─────────────▶ invalid-asset, from
    │                                                     its callbacks
    ▼
-vectors on the page, drawn again on every page in a page region
+vectors on the page, drawn again on every page in the page header or footer
 ```
 
 The rules are report-spec's alone, so the host's approval, a builder's
@@ -601,8 +668,9 @@ Download PDF draws from its pixels (`apps/studio/scripts/gate-payment-part.mjs`)
 host: a form version it kept, and a submission of it, as formancy stored them
    │
    ▼
-readSubmission(report, { form, formHash?, submission: { id, data } }, { labels })
+readSubmission(report, { form, formHash?, submission: { id, data } }, { labels, locale? })
    ├─ the report valid, its datasets read from a form, not one row per submission?
+   ├─ the locale it names, if any, the report's own or one its translations declare?
    ├─ the input { form, formHash?, submission: { id, data } }, and nothing else?
    ├─ the submission's id one a source names (the runtime's isSubmissionId)?
    ├─ the form copied as data, its specVersion one the pinned @formancy/spec reads?
@@ -614,10 +682,12 @@ the submission walked by the version's model
    │       an answer under no data path of the version ──▶ refused, by its path
    ▼
 each field's answer: absent or null is null; a choice's label from this version,
-in the report's locale; a number by the number rule; held to its type by readValue
+in the locale read, the report's own unless a translation's is named; a number
+by the number rule; held to its type by readValue
    ▼
-ReportData, 'host-captured', its source the submission, the form's id and the
-version's hash ──▶ resolveReport, as in 6.2
+ReportData, 'host-captured', its source the submission, the form's id, the
+version's hash and, where it is not the report's own, the locale read
+──▶ resolveReport, as in 6.2, which refuses it in another locale
 ```
 
 `readSubmissions(report, { forms, submissions, complete })` is the same
@@ -914,9 +984,8 @@ kind than it declares, is refused, naming it.
 
 ## 6.18 A chart, from the rows to its marks
 
-The runtime's half: what a chart prints, decided once. How the renderer
-draws the block is its own record's, and until it has one the renderer
-refuses the block.
+What a chart prints is decided once, by the runtime; the renderer draws
+the block, and decides nothing a reader reads.
 
 ```
 resolveReport, a chart in the body or the summary, its condition true
@@ -952,7 +1021,45 @@ a legend of its series, two or more        a legend of its categories,
 the chart block: every word it prints, each value's exact digits beside its text,
 its ticks, its colours by place ──▶ the ResolvedDocument (6.2)
    ▼
-renderPdf: check.ts ──────────────────────────────────▶ unsupported, naming the chart
+renderPdf (6.2): checkChart, before pdfmake sees it      report-render-pdf's check-chart.ts
+   ├─ in a page region; a kind, a box, a colour or a style it does not know;
+   │  past MAX_TICK_INTERVALS or MAX_CHART_SERIES; its parts unmatched; a
+   │  word with a control character, or one its face has no glyph for; a
+   │  value no decimal, uneven ticks, a slice below zero ───▶ unsupported
+   ├─ more than MAX_CHART_CATEGORIES categories or slices; wider than
+   │  where it stands; taller than the body ──────────────▶ content-too-large
+   ▼
+checkChartDrawing: the render's charts weighed together, each its kind's
+weight, a unit a point and each word's weight, before any is laid out
+   ├─ past MAX_CHART_DRAWING, at the chart that crossed it ─▶ content-too-large
+   ▼
+drawCharts: each chart's faces from the render's plan, opened by Engine.widths
+   ├─ nothing to draw ──▶ drawEmpty: its title and empty text placed, no ECharts
+   ▼
+chart-draw.ts, imported through loadOnce with the first chart that has marks
+   ▼
+withMeasurer: zrender's measureText answers in pdfmake's widths, 国 in the
+face's line, for one layout, and is put back after it
+   ▼
+layout 1, the bands: where the title and the legend stand
+layout 2, the plot: ECharts fits it between the bands, read by convertToPixel
+   ├─ bars narrower than MIN_BAR_WIDTH ───────────────────▶ content-too-large
+   ▼
+snapped: its top on a half point, each interval whole points; tickEvery
+   ├─ too short for two tick labels TICK_CLEARANCE apart, or
+   │  a category label wider than its slot less half a line ─▶ content-too-large
+   ▼
+layout 3, drawn; a pie, laid out in its square, its arcs written again on its circle
+   ├─ a pie's square narrower than MIN_PIE_DIAMETER ──────▶ content-too-large
+   ▼
+readChartSvg: the SVG held to what ECharts 6.1.0 writes, each <text> taken out
+and read back as the box pdfmake prints its word in, its clips taken out
+   ├─ anything else, or a word the block does not hold ───▶ unsupported
+   ▼
+held: words that would meet, leave the box or stand in the plot ──▶ content-too-large
+   ▼
+chartContent, in every pass: one unbreakable stack of the SVG, each word as
+pdfmake text where ECharts placed it, and a spacer of the box's height
 ```
 
 Every refusal names the chart by its id and says counts, never a value, a
@@ -963,11 +1070,111 @@ rows in the same format, they print the same text
 ([0055](../decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)).
 The ticks are BigInt division on a decimal's units, and a share an exact
 ratio rounded once and printed without rounding again, so nothing a chart
-prints passes through a double. What a renderer may make of the block is
-a coordinate from a value's `exact`, with `Number`, and nothing else:
-every word it draws is in the block.
+prints passes through a double. The renderer makes nothing of the block
+but coordinates: a value's place, its distance from the lowest tick in
+the ticks' interval worked out in BigInt and made a double at the end,
+and a slice's exact share; every word it draws is in the block, looked up
+by index, and a word ECharts wrote that the block does not hold is
+refused. ECharts lays the chart out, and the renderer only snaps the plot
+it chose and reads back where every word went: a chart whose words would
+meet or leave its box, whose labels do not fit across, or whose bars are
+too thin to see, is refused, naming it and its box and saying sizes,
+never moved, cut or turned to fit; and a render whose charts together
+weigh more than `MAX_CHART_DRAWING` is refused before any of them is laid
+out [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 
-## 6.19 Several tables, from the detail rows to each table's totals
+## 6.19 A PDF/A-2b, from the host's option to the PDF
+
+Numbered 6.19 while 6.18, a chart's resolution, was held by a branch not
+yet merged, the chart runtime's pull request (#72).
+
+```
+host: renderPdf(document, { maxPages, pdfa: '2b' })        a final render
+   ├─ pdfa anything but '2b' or left out ────────────────────▶ RangeError
+   ▼
+checkPdfA(document, '2b'), once, before pdfmake sees it:
+   ├─ an e-invoice it does not know ─────────────────────────▶ unsupported, as without pdfa
+   ├─ a Factur-X, or an XRechnung's copy ────────────────────▶ unsupported, eInvoice
+   ├─ a page header opening with the runtime's PREVIEW_LABEL
+   │  or E_INVOICE_PREVIEW_LABEL, one run ───────────────────▶ unsupported, pageHeader
+   ├─ a title its XMP cannot hold ───────────────────────────▶ unsupported, info.title
+   ▼
+Checked.pdfa = { subset: 'PDF/A-2b' }, which each reader takes:
+   ├─ the images: a CMYK JPEG, an SVG past PDF/A's integers
+   │  or 28 graphics states (6.9) ───────────────────────────▶ unsupported, the image
+   ├─ the measuring passes: neither version nor subset, the pages
+   │  laid out as the final pass lays them out
+   ├─ the final pass: version 1.7, subset PDF/A-2b; no hook runs,
+   │  so nothing is embedded
+   ▼
+PDFKit ends it: the pdfaid identification, part 2 and B, the
+sRGB output intent with the ICC profile it reads from its own
+package, the XMP ────────────────────────────────────────────▶ a PDF/A-2b
+```
+
+A document is drawn as a PDF/A-2b only where the host asks, and the
+renderer decides what it is drawn as in one place, `checkPdfA` in
+`pdfa-check.ts`: the definition, the hook and the image checks read its
+answer and none of them decides it again. The renderer has no mode, so a
+preview is known by the label the runtime heads its every page with, as
+an XRechnung's copy is by its own (0038): a labelled preview is refused
+as a PDF/A-2b, since it would be kept as the report, and one that lacks
+nothing carries no label and is drawn as its final render is. The pages
+are the plain render's, so an archive holds the PDF the person saw. The
+e-invoice gate draws every starter that is no e-invoice so, and has
+veraPDF judge them with its PDF/A-2b profile, `--flavour 2b` and never by
+what the file says it is
+([0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
+
+## 6.20 A first page's own header, from the region to page 1's top
+
+```
+the definition's firstPageHeader, beside the page header      absent, [] or components
+   ├─ a table, a chart, a page break, a kept block ─────────▶ misplaced-flow-component
+   ├─ a page number or count ───────────────────────────────▶ misplaced-page-counter,
+   ▼                                                          sent to the page footer
+resolveReport: lowered as the page header is, each condition once
+   ├─ every component hidden, or none written ──▶ [], never the page header's blocks
+   ├─ a preview, an e-invoice preview, an XRechnung ──▶ its label heads both headers
+   ▼
+document.firstPageHeader                        present exactly when the report's is
+   ▼
+renderPdf: walked as a page region drawn once
+   ├─ a page field, a page break ───────────────────────────▶ unsupported
+   ├─ an XRechnung's that does not open with the copy ──────▶ unsupported, naming
+   │                                                          firstPageHeader
+   ├─ its SVGs counted once toward MAX_SVG_DRAWING
+   ├─ the page header and footer measured, as for every report
+   ├─ page 1's own header measured in a pass of its own
+   │  taller than the printable area, or leaving page 1
+   │  no body with the footer ──────────────────────────────▶ content-too-large,
+   │                                                          naming firstPageHeader
+   ├─ a block of fixed height past the shorter body ────────▶ content-too-large
+   ├─ kept blocks and table lines held to the later pages' body, the page
+   │  limit to page 1's body and the later pages' it leaves, the slip to
+   │  the taller header
+   ▼
+pdfmake, its top margin the page header's
+   page 1: no header; its background is page 1's own header, at the margins,
+           in a box as large as the page; the body opened by an empty node
+           whose top margin is the two rooms' difference, down or up
+   page 2 on: the page header, as before
+```
+
+Which header a page prints is decided by the renderer, which alone knows
+the pages, as the slip's page is (6.6); the runtime resolves every value
+once and evaluates nothing per page. Page 1's own header cannot stand in
+pdfmake's header, whose box is the top margin, one for every page: a
+taller one would lose lines there, and room given to it there would be
+taken from every later page. So it is drawn in page 1's background, and
+page 1's body is moved by the difference, on behaviours of pdfmake 0.3.11
+that `report-render-pdf/src/pdfmake.test.ts` holds. A report without the
+region is resolved to a document without the key, measured in the passes,
+on the sheets and with the messages it always was, and drawn object for
+object as before
+([0060](../decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+
+## 6.21 Several tables, from the detail rows to each table's totals
 
 ```
 resolveReport, a table in the body or the summary, its condition true

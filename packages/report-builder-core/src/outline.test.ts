@@ -27,6 +27,30 @@ describe('the outline', () => {
     ])
   })
 
+  // A first page header is a region of the outline only where the report
+  // has one, before the page header whose place on page 1 it takes (0060):
+  // one listed for every report would show a region nobody chose, and one
+  // listed after the page header would be met after the page it heads.
+  test('lists a first page header only where the report has one, before the page header, with what it holds', () => {
+    const report = richReport()
+    const headed = {
+      ...report,
+      regions: { ...report.regions, firstPageHeader: [{ id: 'sender', kind: 'text', content: [{ kind: 'text', text: 'Orders by site' }] }] },
+    } as ReportDefinition
+    const outline = editorOver(headed, { locale: 'fr-CH' }).editor.state().outline
+    expect(outline.map((region) => [region.region, region.label])).toEqual([
+      ['reportHeader', 'En-tête du rapport'],
+      ['firstPageHeader', 'En-tête de la première page'],
+      ['pageHeader', 'En-tête de page'],
+      ['body', 'Corps'],
+      ['pageFooter', 'Pied de page'],
+      ['summary', 'Résumé'],
+    ])
+    expect(outline[1]?.nodes.map(({ id, depth }) => [id, depth])).toEqual([['sender', 0]])
+    // Every other region is the outline the report without it has.
+    expect(outline.filter(({ region }) => region !== 'firstPageHeader')).toEqual(editorOver(report, { locale: 'fr-CH' }).editor.state().outline)
+  })
+
   // Every component is in the outline exactly once, at its depth, in the
   // walk's order: a component missing from it is one no keyboard reaches.
   test('holds every component once, in the walk’s order, at its depth', () => {
@@ -240,7 +264,7 @@ describe('the outline', () => {
             return {
               ...component,
               columns: component.columns.map((column) =>
-                column.id === 'sku' ? { ...column, value: { kind: 'expression', expression: { cel: 'params.nope' } } } : column,
+                column.id === 'sku' ? { ...column, value: { kind: 'expression' as const, expression: { cel: 'params.nope' } } } : column,
               ),
             }
           return component.id === 'gap' ? { id: 'blank', kind: 'text', content: [{ kind: 'text', text: '' }] } : component

@@ -60,10 +60,13 @@ import type {
   VatCategory,
   XRechnungInvoice,
 } from '@formancy/report-spec'
+import { choiceField, expressionField, textField } from './field-specs.js'
+import type { FieldSpec, Written } from './field-specs.js'
 import type { PropertyOption } from './model-properties.js'
 import { NO_ACCOUNT } from './palette.js'
-import { choiceField, codeTextFields, expressionField, isGroup, optionalCodeTextFields, optionalGroup, textField } from './property-fields.js'
-import type { FieldContext, FieldSpec, GroupButton, GroupSpec, PanelSpec, Written } from './property-fields.js'
+import { isGroup, optionalGroup } from './property-fields.js'
+import type { FieldContext, GroupButton, GroupSpec, PanelSpec } from './property-fields.js'
+import { codeTextFields, optionalCodeTextFields } from './run-fields.js'
 import { contentLocale, editorText } from './text.js'
 import type { MessageId } from './text.js'
 

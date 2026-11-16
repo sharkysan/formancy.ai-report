@@ -18,7 +18,7 @@ import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
 
 try {
   const pdf: Uint8Array = await renderPdf(document, { maxPages: 200, signal })
-  // the whole report, every page of it
+  // the whole report, every page of it; with pdfa: '2b', a PDF/A-2b of it
 } catch (error) {
   if (!(error instanceof RenderRefusal)) throw error // the engine failing, not the report
   // error.code says what stopped it; error.subject names the asset, table
@@ -30,7 +30,8 @@ try {
 `renderPdf` resolves to the PDF's bytes, or rejects with a `RenderRefusal`.
 A refusal is decided before the PDF is written: a refused report has no
 PDF at all. Anything else it rejects with is a fault, and a `maxPages` that
-is not a whole number of pages, at least 1, is the caller's: a `RangeError`.
+is not a whole number of pages, at least 1, or a `pdfa` other than `'2b'`,
+is the caller's: a `RangeError`.
 
 The same document renders to the same bytes: the creation date is the
 document's own (`info.creationDate`), and nothing else in the file varies.
@@ -49,7 +50,7 @@ same objects, each stream inflated, not to the same file.
 
 | Entry | pdfmake | Fonts |
 |---|---|---|
-| `@formancy/report-render-pdf` | the Node build | the four Roboto files in pdfmake's package, and for a QR-bill's slip and an EPC QR code's caption the two Liberation Sans files in this package's `fonts`, read from disk; for an e-invoice, PDFKit reads its ICC profile from its own package (below) |
+| `@formancy/report-render-pdf` | the Node build | the four Roboto files in pdfmake's package, and for a QR-bill's slip and an EPC QR code's caption the two Liberation Sans files in this package's `fonts`, read from disk; for a PDF/A, an e-invoice's or a PDF/A-2b, PDFKit reads its ICC profile from its own package (below) |
 | `@formancy/report-render-pdf/browser` | the browser build, `pdfmake/build/pdfmake.js` | the same Roboto, from pdfmake's `build/vfs_fonts.js`, and the same Liberation Sans from a chunk of the build's own, imported the first time a document has a bill or a captioned EPC QR code |
 
 The two entries share everything but the build of pdfmake and where the
@@ -66,6 +67,16 @@ then fails the render that asked for it and no render after.
 Whether a browser fetches a chunk again after a failure, or a chunk a
 deploy removed is still there, is not the renderer's to decide: a page
 reload is.
+
+A chart is laid out by Apache ECharts, which only `src/chart-draw.ts`
+imports, and both entries import that module, through the same `loadOnce`,
+the first time a document holds a chart with something to draw. In a
+browser it is a chunk of its own, with ECharts and zrender in it, which a
+page that draws no chart, or only empty ones, never loads, and
+`src/browser.test.ts` counts the loads. ECharts' components are registered
+at the first chart, never at import, and the package is
+`sideEffects: false`. A chart's words are measured, in either entry, by
+the entry's own pdfmake, in the faces it embeds (below).
 
 What the tests show about the browser entry, run in Node: for every fixture
 in the corpus it hands pdfmake the definitions the Node entry does, its PDFs
@@ -88,13 +99,26 @@ after a report, the renderer's configuration is in place.
 Every block of the resolved document:
 
 - **Paragraphs**, in their size, weight, slant, colour and alignment, and
-  a run in bold inside a paragraph that is not.
+  a run in bold inside a paragraph that is not, or set below or above the
+  line (below).
 - **Tables**, their header row repeated on every page they span, each row
   in its kind's style or its own, each cell in its own when it has one, each
   column aligned as it says unless a cell says otherwise. A group header
   `across` the table is one cell over every column. A group header is never
   the last row on a page, and a row that fits on a page is never split. A
-  group's footers and the totals under the last row stand on the page of
+  group header row that keeps more of its group's first rows
+  (`keepWithRows`) stands on the page of as many of them as fit there under
+  the repeated column header, and of its first row where no more do: a
+  group no longer than its count stands whole, with its footers, where it
+  fits, held by the last of them that prints though a footer row after it
+  prints nothing; a block short of its group ends on the last of those
+  rows that prints, since a rule finds a row on its page by its text; a
+  header that prints nothing keeps no more than its first row; and a
+  count on a row that is
+  no group header, outside 2 to `MAX_KEEP_WITH_ROWS`, or past the detail
+  rows under the header is refused as `unsupported`, naming the table
+  ([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
+  A group's footers and the totals under the last row stand on the page of
   the row before them, and with its group header when that row is its
   group's first: a subtotal or a total never stands alone at the top of a
   page. Every column is as wide as it says, a fill column its share of
@@ -139,19 +163,29 @@ Every block of the resolved document:
 - **The page header and footer**, on every page, with the page number and
   the page count. The body is laid out between them, after both are
   measured.
+- **Page 1's own header**, where the document has one ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)), on
+  page 1 in the page header's place; the page header then prints from page
+  2 on. It is drawn in page 1's background, at the margin the page header
+  stands at, measured in a pass of its own, and page 1's body starts below
+  it and the gap, or at the top margin where it is empty, which is page 1
+  with no header. It holds no page field: page 1's number and count print in
+  the page footer, which page 1 prints as every page does.
 - **A QR-bill's payment part**, the receipt and the payment part with its
   Swiss QR Code, across the foot of the last page in place of its page
   footer (below).
+- **Charts**, a bar, a line or a pie chart in its box, laid out by Apache
+  ECharts, its marks drawn as vectors and its words as text in the
+  report's faces (below).
 
 ## What it refuses
 
 | Code | When |
 |---|---|
 | `too-many-pages` | The report needs more pages than `maxPages`, a QR-bill's page included. pdfmake's own limit would return the first pages as though they were all of it. A body whose least height already needs more, the room a bill's slip keeps included, is refused before pdfmake measures it. |
-| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below). |
+| `content-too-large` | Something no page can hold: a keep-together block, an image, a QR code, a rectangle, a rule, a frame's border and padding, or a line of text taller than the body where it stands; a line of a table's row that a page does not hold under the table's repeated header with a point to spare, which pdfmake would drop, naming the table, the row and its kind and both heights (0011); anything wider than where it stands; a word in a table cell wider than its column, or a word in a paragraph longer than 16 lines of it; images holding more than 268,443,648 bytes of image data together; SVG images past what a render may draw or a page may cost a reader (below); page regions that leave no body, and page 1's own header that leaves page 1 none or is taller than the printable area, naming `firstPageHeader` (0060); where page 1 has a header of its own, a block of fixed height or a line taller than the shorter of page 1's body and the later pages', and a keep-together block or a table's line under its repeated header that the later pages' body cannot hold, though page 1's taller body could; a QR code's text that no version holds at its level, or a square too small for that version's modules to be 0.4 mm, the message naming the size it needs; an EPC QR code past the EPC's 331 bytes or the PSA's modules (below); a QR-bill the slip cannot hold (below); a chart whose words would meet, leave its box or stand in its plot, whose category labels do not fit across their slots, whose plot is too short for two tick labels, whose bars would be narrower than 3.5 pt, or whose pie would be narrower than 24.75 pt, and a bar or a line chart of more than `MAX_CHART_CATEGORIES` categories; a render whose charts together weigh more than `MAX_CHART_DRAWING`, at the chart that crossed it (below); a word that holds a run set below or above the line and is wider than its line (below). |
 | `invalid-asset` | An image's bytes are not the PNG, JPEG or SVG they are declared as, are cut off, or are past the limits: 20 MB, 4096 pixels a side, and for an SVG a mebibyte; a JPEG that PDFKit would read otherwise than its frame header says -- a JPG or DAC segment before the frame header, which PDFKit takes for it, as an arithmetic-coded JPEG may write its DAC segment, a second frame header, or a frame of other than 1, 3 or 4 components, which PDFKit gives no colour space (0031); an SVG is not exactly the drawing report-spec's `cleanSvg` writes (below). A PNG's or a JPEG's structure is read by report-spec's `imageHeader`, which a builder refuses an image a person adds by too, in the same words (0033); whether a PNG's image data inflates to the scanlines its header promises is read here alone, since it needs the platform's decompressor. A host's font `readFont` refuses, one PDFKit would draw as another face, or one asset id handed in two byte strings, naming the asset (0043). |
 | `cancelled` | The signal was aborted. |
-| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or one its PDF/A-3b cannot hold, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them (below); a chart, which this release does not draw yet, wherever it stands ([0055](../../docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)). |
+| `unsupported` | What the renderer cannot draw as written: text set outside the format's 4 to 96 pt, which the page bound counts each line by, a character the font has no glyph for, a page field's digit included, a character of any script but Latin, Greek and Cyrillic, or a bidirectional control, a `serif` or `mono` token the report does not map or a face a mapped family lacks, text that is not a string, a colour that is not `#rrggbb` in lower case, a QR code's level other than L, M, Q and H, an EPC QR code's caption it does not know, half of a surrogate pair without the other in a code's text, which has no UTF-8, a page field outside the page header and footer, page 1's own header among them, which is drawn before the pages are counted, a page break inside a page region, a keep-together block or a column, a table inside a column, a table row of the wrong number of cells, a block kind, page size or page field it does not know, blocks nested past 16 deep; a run set below or above the line in a word with no text on the line, or set in a way it does not know (below); a QR-bill it cannot draw as SIX prints one (below); an e-invoice it does not know, or what a PDF/A cannot hold, an e-invoice's PDF/A-3b or a PDF/A-2b, a CMYK JPEG or an SVG whose numbers or nesting it cannot hold among them; as a PDF/A-2b, a Factur-X, an XRechnung's copy and a labelled preview (below); a count of kept rows (`keepWithRows`) on a table row that is no group header, outside 2 to `MAX_KEEP_WITH_ROWS`, or past the detail rows under its header, naming the table (0059); and a chart it cannot draw as written: in a page region, page 1's own header among them, past `MAX_TICK_INTERVALS` or `MAX_CHART_SERIES`, with a control character in any of its words, or whose drawing ECharts writes otherwise than it was read to write, or that ECharts lays out through another copy of zrender than the renderer's (below). |
 
 ## SVG images
 
@@ -183,29 +217,105 @@ the form that was approved.
   whatever its callbacks say; the check and the list do. The list may
   refuse more than report-spec's tables, never less: a test holds it to
   their `SVG_ELEMENTS`.
-- **Drawn again on every page in a page region.** pdfmake lays the page
-  header and footer out for each page, and the converter draws the drawing
-  each time: a PNG is embedded once, an SVG grows the PDF and the render
-  by its drawing on every page.
+- **Drawn again on every page in the page header or footer.** pdfmake
+  lays the page header and footer out for each page, and the converter
+  draws the drawing each time: a PNG is embedded once, an SVG grows the PDF
+  and the render by its drawing on every page. One in page 1's own header
+  is drawn on page 1 alone (0060).
 - **Bounded per render.** What drawing the SVGs costs the renderer is held
   to `MAX_SVG_DRAWING` units of what the converter draws -- lines, curves,
   elements, gradient stops and page-sized transparency groups, each
   weighted by what it was measured to cost beside a line, and every 32
   bytes of the drawing, which pdfmake and the converter read again each
   time it is drawn, whatever it draws -- counting an
-  image in a page region on every one of `maxPages`, the pages the report
-  may have, which is known before the render: a detailed header logo can
+  image in the page header or footer on every one of `maxPages`, the pages
+  the report may have, which is known before the render, and one in page
+  1's own header once: a detailed header logo can
   be refused at a high page limit though the report prints two pages. At
   the budget the renderer spends about what `MAX_IMAGE_DATA`'s largest
   images cost it to decode (`assets.ts` says how both were measured, on
   what and when). What they cost a reader is held
   to what one drawing may cost, which was measured as a page's:
   `MAX_SVG_SEGMENTS` and `MAX_SVG_GROUPS` over every SVG image of the body,
-  as though all fell on one page, and those of the page regions. A
-  translucent logo printed twice in the body can be refused for it.
-- **Held to PDF/A in an e-invoice** (below): an SVG whose numbers could
-  pass the integers a PDF/A-3 holds, or whose drawing nests deeper than
-  its graphics state may, is refused there and drawn in any other report.
+  as though all fell on one page, and those of the page regions, page 1's
+  own header's among them. A translucent logo printed twice in the body can
+  be refused for it.
+- **Held to PDF/A's limits in a PDF/A** (below), an e-invoice's PDF/A-3b or a
+  PDF/A-2b: an SVG whose numbers could pass the integers a PDF/A holds, or
+  whose drawing nests deeper than its graphics state may, is refused there
+  and drawn in a report drawn as no PDF/A.
+
+## Charts
+
+A chart block, which the runtime resolves with every word it prints and
+each value's exact digits, is laid out by Apache ECharts 6.1.0 and drawn
+by pdfmake [0058](../../docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md). ECharts places every mark and every word; pdfmake's SVG
+converter draws the marks, and each word prints as pdfmake's text where
+ECharts placed it, so a chart's words are text in the PDF, in the report's
+faces.
+
+- **Its words** take the chart's style's font, size -- 8 pt where it names
+  none -- weight, slant and colour, the title bold; its alignment is not
+  read. Each is measured, for ECharts, in the width pdfmake prints it in,
+  in the face the render embeds, through zrender's platform replaced for
+  one layout and put back after it, and held to that width once pdfmake
+  has measured it.
+- **Its numbers** are the runtime's. ECharts is handed the ticks as the
+  axis, each value as its place among them, worked out exactly from its
+  decimals, a pie's slices as their exact shares, and every word by its
+  index; it rounds, formats and ticks nothing. A slice of no share draws
+  nothing and keeps its legend entry, and a pie's arcs are drawn on its
+  own circle, within 0.0965 pt.
+- **Its layout** is ECharts' own, three times: where the title and the
+  legend stand, then the plot between them, then the plot snapped so that
+  every gridline stands on its tick; a pie twice. The renderer reads back
+  where every word went, and refuses the chart as `content-too-large`
+  where two words would meet, a word would leave the box or stand in the
+  plot but a value's label, a category label would not fit across its
+  slot, a plot would be too short for two tick labels a line and a
+  quarter apart, a bar would be narrower than `MIN_BAR_WIDTH`, 3.5 pt, or
+  a pie than `MIN_PIE_DIAMETER`, 24.75 pt, the least at which the
+  Studio's Preview draws bars apart, and a slice of one percent as its own
+  colour, at 100 % on a screen of device pixel ratio 2, measured. A label is never turned, wrapped or cut, and nothing is
+  dropped.
+- **On the page** it is one unbreakable stack, moved whole to the next
+  page where it does not fit. A chart with nothing to draw prints its
+  title and its empty text, without ECharts.
+
+A render's charts are weighed together before any is laid out, and a
+render past `MAX_CHART_DRAWING`, 5,000 units, is refused as
+`content-too-large` at the chart that crossed it. A chart weighs its
+kind's weight, a unit for each series at each category or each slice of a
+pie, and each word it places by what the word is; one with nothing to
+draw weighs nothing. The weights were measured on the render and on
+PDF.js at a load of 12 to 20, a line's again at 3.0 to 3.2, and the
+bound confirmed at quiet loads of 3.3 to 5.6 and 3.0 to 3.9, on one
+machine, as the constant's comment says: two line charts of 8 series
+and 200 categories fit in a render, and three do not.
+The bound holds one layout pass, and a heading kept with a chart makes
+pdfmake lay the document out again for each page it moves the heading
+to, which it does not count.
+
+What ECharts writes is held, before anything of it is used, to what
+6.1.0 was seen to write, and refused otherwise as `unsupported`: the
+SVG's elements, attributes, entities, numbers and colours, and every word
+one the block holds. The converter is handed it with no word, no style
+sheet and no clip: ECharts clips every line series to its plot whatever
+the series says, which the converter would draw as a soft mask a reader
+composites for each series, and every value stands inside the ticks and
+a line is stroked with bevelled joins and butt ends, which the reader
+refuses otherwise inside a clip, so the clip cuts nothing and is taken
+out. ECharts and zrender are
+dependencies at exactly 6.1.0, which the repository's licence guard
+admits for this package alone. zrender's platform is one for the process
+or the page, and a host's own ECharts measures through it too; the
+renderer replaces it for one synchronous layout and puts it back.
+ECharts' registries are one for the process or the page too: a
+preprocessor, a processor, a visual, a layout or an update a host
+registers on the ECharts it shares with the renderer runs on the
+renderer's charts, and changes their marks with nothing refused. zrender keeps the widths it measured,
+up to 500 words for each of 100 fonts, after the render, and nothing it
+exports clears them, so a chart's words stay in the process.
 
 ## QR codes
 
@@ -301,8 +411,9 @@ what that costs, is [0022](../../docs/decisions/0022-a-report-carries-one-swiss-
 
 - **Where.** The slip spans the paper's width and ends at its foot (IG 3.1),
   whatever the page margins. It is the last page's footer, drawn there in
-  place of the page footer; the page header is drawn as on every page. The
-  body keeps the slip's room at its end: when the last page has less room
+  place of the page footer; the page header is drawn as on every page, or
+  page 1's own header where the slip is on page 1 of a report that has one.
+  The body keeps the slip's room at its end: when the last page has less room
   left, the slip takes a page of its own, which the footers before it count.
 - **The code.** The payload as UTF-8 at level M, in the smallest version
   that holds it and none past 25 (IG 6), 46 mm square without a quiet zone
@@ -339,7 +450,7 @@ value, which may be a name, an address or an account:
 | Code | When |
 |---|---|
 | `unsupported` | A payment part of a kind the renderer does not know; a page that is not A4 in portrait; text that is not text, half of a surrogate pair in the payload, or a character Liberation Sans has no glyph for; an amount not written as the slip prints one, or outside report-spec's range, 0.01 to 999 999 999.99; a currency other than CHF and EUR; an address of more than three lines, additional information of more than two, or a value longer than 140 characters, the longest SIX allows. |
-| `content-too-large` | A payload of more than 997 characters, refused unencoded, or whose UTF-8 is more than version 25 holds at level M, 997 bytes (IG 6.2); a page whose top margin, with the page header and the instruction to separate, reaches into the slip, by report-spec's `qrBillPageBreak`, and a top margin alone in the editor's words; information taller than its section, 56 mm on the receipt and 85 mm in the payment part (SG 6). |
+| `content-too-large` | A payload of more than 997 characters, refused unencoded, or whose UTF-8 is more than version 25 holds at level M, 997 bytes (IG 6.2); a page whose top margin, with the page header and the instruction to separate, reaches into the slip, by report-spec's `qrBillPageBreak`, the taller of the page header and page 1's own header where a report has one, since which page is the last is known only once the pages are laid out (0060), and a top margin alone in the editor's words; information taller than its section, 56 mm on the receipt and 85 mm in the payment part (SG 6). |
 
 What the slip does not do:
 
@@ -358,6 +469,80 @@ What the slip does not do:
   decides: the lines an address and the additional information print,
   each section's height, an amount's printed form, and the code's 997.
 
+## PDF/A-2b
+
+`renderPdf(document, { maxPages, pdfa: '2b' })` draws a final render of a
+report that is no e-invoice as a PDF/A-2b, in either entry
+([0057](../../docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)):
+part 2, which Switzerland's electronic patient record stores a PDF as, at
+the level pdfmake and PDFKit reach. `'2b'` is the one value, and any other
+is a `RangeError` before anything is read. Without `pdfa` nothing changes.
+
+- **What it is.** The final pass's definition gets `version` 1.7 and
+  `subset` `PDF/A-2b`, so PDFKit writes the pdfaid identification, part 2
+  and level B, an sRGB output intent with its ICC profile, and the XMP, as
+  it does for an e-invoice's PDF/A-3b. No hook runs, and nothing is
+  embedded. The measuring passes have neither version nor subset, and lay
+  the pages out as the final pass does, so a PDF/A-2b's pages are the
+  plain render's. Level b alone: no structure tree, so no tagged,
+  accessible PDF.
+- **Decided once.** `checkPdfA` (`pdfa-check.ts`) decides what a document
+  is drawn as -- a Factur-X's PDF/A-3b, the PDF/A-2b a host asked for, or a
+  plain PDF -- and the definition, the final pass's hook and the image
+  checks read its answer.
+
+It refuses, as `unsupported` and before pdfmake sees the document, each
+message saying what to do:
+
+- a Factur-X e-invoice and an XRechnung's copy, naming `eInvoice`: a
+  Factur-X is drawn as the PDF/A-3b that embeds its XML, which a PDF/A-2b
+  may not embed, and an XRechnung's PDF is the copy of the XML a host
+  sends, never an archival PDF. Each is rendered without `pdfa`. An
+  e-invoice the renderer does not know is refused for what it is, with
+  `pdfa` or without;
+- a preview the runtime labels so, naming `pageHeader`: a page header
+  whose first block is a paragraph of one run, the runtime's
+  `PREVIEW_LABEL` or `E_INVOICE_PREVIEW_LABEL`, in any style. The renderer
+  has no mode, so it reads the runtime's label, as it reads an XRechnung's
+  copy's, and a PDF/A-2b of a preview would be kept as the report. A
+  preview that lacks nothing and is of no e-invoice carries no label, is
+  the same document as its final render, as the tests show for the
+  quotation, and is drawn as one. A label
+  among other runs or below another block is not read;
+- what an e-invoice's PDF/A-3b refuses (below), each message naming the
+  PDF/A-2b: a title holding `&`, `<`, `>` or a character XML 1.0 cannot
+  write, naming `info.title`, which report-spec refuses in an e-invoice
+  report alone, so a report that is none may hold one; a CMYK JPEG, naming
+  the image; and an SVG whose numbers could pass the integers a PDF/A
+  holds, or whose drawing nests deeper than 28 graphics states, naming it.
+
+None of these is said before the render: whether a render is a PDF/A-2b is
+the host's choice at that render, which the builders and the validator do
+not know. What holds by construction: pdfmake embeds a subset of every face
+it draws, and a character a face lacks is refused; the renderer hands
+pdfmake no password, and neither writes JavaScript, an action, a form or
+an annotation; the transparency an RGBA PNG's soft mask or an SVG's group
+makes stands beside the one output intent, which veraPDF's PDF/A-2b
+profile accepted in the gate's variants. What it does not
+hold: the limits of ISO 32000-1 that PDF/A-2 makes rules of, a string's or
+a name's length among them.
+
+**What the tests show, and what they do not.** `src/pdfa-check.test.ts`
+holds the decision and every refusal above, each document drawn without
+`pdfa`, and `src/assets.test.ts` and `src/svg-pdfa.test.ts` the images,
+every number of a drawn SVG read back with report-corpus's
+`readPdfNumbers`. `src/pdfa-2b.test.ts` draws every starter that is no
+e-invoice both ways and reads the PDF/A-2b back with readers that are not
+PDFKit: PDF 1.7, its XMP part 2 and B, one sRGB output intent byte for
+byte PDFKit's profile, nothing embedded, no action, form or annotation,
+and the plain render's pages, faces and fonts; and the same bytes twice.
+`src/browser.test.ts` holds the browser entry's to the Node entry's.
+Whether a validator takes the PDF is the e-invoice gate's: veraPDF judges
+every starter so drawn, four variant pages on the quotation's, a page of
+charts among them, and the corpus's two fonts fixtures, with its PDF/A-2b
+profile, and nothing here.
+A customer's template is judged by nothing.
+
 ## E-invoices
 
 A document that carries an e-invoice, `document.eInvoice`, as
@@ -366,11 +551,12 @@ Germany: a PDF/A-3b that embeds the XML the runtime wrote, the hybrid
 invoice whose XML is the invoice
 ([0031](../../docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)), in either entry.
 
-- **PDF/A-3b, for an e-invoice alone.** Its definition gets `version`
+- **PDF/A-3b, for a Factur-X alone.** Its definition gets `version`
   1.7 and `subset` `PDF/A-3b`, so PDFKit writes the pdfaid identification,
   an sRGB output intent with its ICC profile, and the XMP. Level b is the
   one in reach: level a needs a structure tree pdfmake does not build, and
-  PDFKit has no level u. Every other report is drawn as it was.
+  PDFKit has no level u. A report that is no e-invoice is drawn as it was,
+  or as a PDF/A-2b where its host asks (above).
 - **The file, changed in nothing.** On the final pass alone, through
   PDFKit's own document before it ends, `pdfa.ts` embeds the XML's UTF-8
   bytes as `factur-x.xml`, `text/xml`, related as `Alternative` -- the
@@ -394,7 +580,8 @@ invoice whose XML is the invoice
   as every report is -- no PDF/A, no file, no XMP, a title of any text and
   a CMYK logo drawn -- and its page header opens with the runtime's
   `XRECHNUNG_COPY_PARAGRAPH`, `XRECHNUNG_COPY_LABEL` in small red bold,
-  so every page says it is the copy. Never a ZUGFeRD hybrid of the
+  and so does page 1's own header where it has one, so every page says it
+  is the copy. Never a ZUGFeRD hybrid of the
   XRECHNUNG profile.
 
 It refuses, as `unsupported` and before pdfmake sees the document:
@@ -405,7 +592,8 @@ It refuses, as `unsupported` and before pdfmake sees the document:
   XRechnung's whose syntax, version or guideline is not report-spec's;
 - an XRechnung whose page header does not open with the copy's label as
   the runtime writes it, `XRECHNUNG_COPY_PARAGRAPH`, its style and all,
-  naming `pageHeader`: a final picture of an invoice that says nothing of
+  naming `pageHeader`, or whose first page header, where it has one, does
+  not, its none among them, naming `firstPageHeader` (0060): a final picture of an invoice that says nothing of
   what it is, or says it in white or at one point, where PDF.js would
   still find the text. That the label names no font, and prints in the
   renderer's, and that the paper is white, the renderer drawing none, are
@@ -449,11 +637,11 @@ It refuses, as `unsupported` and before pdfmake sees the document:
   is not held for matrices built to cancel one another term by term, whose
   products floating point gets wrong.
 
-Every other kind of image PDFKit embeds is drawn in an e-invoice:
-report-corpus's `IMAGE_KINDS` -- grey and colour JPEGs, and PNGs of every
-colour type, with alpha, a palette, its transparency or a colour key, at
-1 and 16 bits, interlaced -- which the e-invoice gate has veraPDF and
-Mustang judge in one. A colour key is drawn as PDFKit's PNG reader,
+Every other kind of image PDFKit embeds is drawn in an e-invoice, and in
+a PDF/A-2b: report-corpus's `IMAGE_KINDS` -- grey and colour JPEGs, and
+PNGs of every colour type, with alpha, a palette, its transparency or a
+colour key, at 1 and 16 bits, interlaced -- which the e-invoice gate has
+veraPDF and Mustang judge in one e-invoice, and veraPDF in one PDF/A-2b. A colour key is drawn as PDFKit's PNG reader,
 png-js 1.1.0, reads it, in every report since 0.1.0: a grey key by its
 high byte, and an RGB key as twelve numbers where ISO 32000-1 asks two a
 component, which a viewer may ignore; report-corpus's test pins both.
@@ -466,11 +654,12 @@ and creation date.
 
 **One file besides the fonts.** PDFKit reads the output intent's profile
 from its own `data/sRGB_IEC61966_2_1.icc` with `fs`, past pdfmake's access
-policy, which governs only what pdfmake opens: a render of an e-invoice
-reads that file and the fonts, and nothing else through
-`fs.readFileSync`, which a test holds. A
+policy, which governs only what pdfmake opens: a render of a PDF/A, an
+e-invoice's or a PDF/A-2b, reads that file and the fonts, and nothing else
+through `fs.readFileSync`, which a test holds, and one whose profile PDFKit
+cannot read rejects with the file system's error and no PDF. A
 host that bundles the Node entry puts the profile where the bundled
-PDFKit's `__dirname` points, or every e-invoice render fails. The browser
+PDFKit's `__dirname` points, or every PDF/A render fails. The browser
 entry's profile is the base64 copy in pdfmake's browser build, held to the
 same bytes. The profile is the ICC's sRGB2014, which the dependency-licence
 guard admits by its digest, with the ICC's licence sentence a review read
@@ -491,6 +680,53 @@ is the e-invoice gate's: veraPDF and Mustang judge the samples' PDFs
 there, an SVG at every bound among the variants, and nothing here. The fx namespace, prefix and properties rest on a
 transcription of the specification, which no validator reads; the tests
 compare them with the transcription's values, and say so.
+
+## Runs below or above the line
+
+A paragraph's run set below or above the line
+([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md))
+is handed to pdfmake with pdfmake's own `sub` or `sup`, and nothing
+else: pdfmake sets it at 0.58 of its paragraph's size, in the paragraph's
+face, and moves its baseline 0.435 of that size up or 0.203 down, the
+runtime's `SHIFTED_SIZE` and `SHIFTED_RISE`. The page bound counts its
+line at that size.
+
+pdfmake makes no room for such a run in its line. The renderer makes room
+below a line that holds a run set below the line, for a raised run on the
+next: it asks pdfmake for that run's own line as `LOWERED_LINE` of the
+paragraph's size, 1.218 -- the lowered run's drop, a raised run's rise
+and the small run's own size -- through its `lineHeight`, which pdfmake
+lays out below the baseline, so the two are set solid and their boxes
+meet nowhere. A face whose line is that tall needs none, and a line that
+holds no lowered run is laid out as it was, so a wrapped paragraph's lines
+stand apart unevenly: in Roboto 0.046 of the size farther under such a
+line, in Liberation Serif 0.111. The page bound counts the room.
+
+pdfmake lays a line out as tall as its runs' own lines and moves such a
+run only when it draws it, so a line of nothing but such runs would be
+laid out small and drawn into the line before. Once pdfmake has measured a
+paragraph that holds one, and before it lays out a line, the renderer
+reads pdfmake's own words -- the runs it chains with `noNewLine`, which
+no line break separates -- and refuses, naming the paragraph:
+
+- **as `unsupported`**, a word that holds such a run and no run on the
+  line that prints a character other than a space: a footnote's mark
+  after a space, or at the head of its text before one, a word of nothing
+  but such runs, and one whose only neighbour prints nothing, as an empty
+  field does. A mark is written against its word, or with a no-break
+  space, U+00A0. A value read from the data decides it too, in a preview
+  as in a final render.
+- **as `content-too-large`**, a word that holds one and is wider than its
+  line, measured as pdfmake measures a word that starts one, its leading
+  and trailing spaces left out: pdfmake would break it anywhere.
+
+A page region's paragraph is read in the pass that measures the regions,
+and a baseline the renderer does not know, or one on a page field, is
+refused as `unsupported` before anything is laid out. The text layer reads
+such a run on the line: PDF.js extracts "H2O", and a search or a copy finds
+the digit as typed. `_inlines`, `noNewLine`, `sup`, `sub`, `width`,
+`leadingCut` and `trailingCut` are pdfmake's own, not its API;
+`pdfmake.test.ts` holds 0.3.11 to them.
 
 ## Fonts
 
@@ -588,11 +824,35 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
   keep-together block, a column or a page region, and not past the end of a
   framed section: a heading that ends a framed section is not kept with
   what follows it.
+- **Say when a group header keeps fewer rows than its row says.** Where
+  the rows it keeps do not fit on a page with it under the repeated column
+  header, it is kept with as many as fit, and nothing says so: the heights
+  are the data's, and a render has no warning to give (0059).
 - **Refuse a spacer at the foot of a page.** One that does not fit what is
   left of a page moves to the next and starts there, without its space.
 - **Measure page regions per page.** They are measured once, every page
   field printed as `maxPages`, so a region that wraps only for some page
-  numbers is measured at its widest.
+  numbers is measured at its widest. Page 1's own header, which holds no
+  page field, is measured once, in a pass of its own.
+- **Print a page number in page 1's own header, or a footer of page 1's
+  own.** Page 1's own header is drawn when page 1 is added, before the
+  pages are counted, and page 1 prints the page footer every page prints.
+  Where page 1's own header is taller than the page header, a block page
+  1's body cannot hold whole starts page 2, page 1 printing its header
+  alone; where it is shorter, or none, a kept block, a table's line under
+  its repeated header or an image that only page 1's taller body could
+  hold is refused, even in a report that would end on page 1, since where
+  a block lands is known only once the body is laid out; and where a
+  report has one, the page header is still measured and held to leaving a
+  body, though a report of one page prints it on no page
+  ([0060](../../docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+- **Make room above a raised run.** pdfmake places a line's baseline its
+  tallest ascender down, and room above cannot be asked of it, so a raised
+  run reaches above its line's text: by the corpus's boxes it stays clear
+  of the line above in Roboto and Liberation Serif, and in a host face
+  whose line is shorter than 1.099 ems it is not proved. A line that holds
+  a lowered run is given room below it (above); the glyphs themselves can
+  still touch an accent, which the boxes do not see.
 - **Draw an SVG as a browser does, compared.** That the PDF shows what a
   browser draws of the same cleaned drawing is held by report-spec's allow
   lists and by review; no browser's rendering is compared with the PDF.
@@ -613,7 +873,10 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
 `@formancy/report-corpus` and proves each PDF with the corpus's checks, or
 holds a refusal to the one the fixture allows
 ([0003](../../docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)).
-These are the tests decision 0005 names. Each block kind is read back from
+These are the tests decision 0005 names; the corpus's kept rows' fixture
+(`KEEP_WITH_FIXTURES`), which the trial never drew, is rendered beside
+them, and `group-rows.test.ts` holds a group header to the rows its row
+keeps, or as many as fit, on the PDFs (0059). Each block kind is read back from
 the PDF it produced: its text and images with PDF.js, through the corpus's
 reader, and its lines, rectangles, clips and text colours from the PDF's own
 content streams (`src/testing/drawing.ts`), which PDF.js's text does not
@@ -631,6 +894,15 @@ them. `samples.test.ts` does the same for the corpus's invoice samples,
 the invoice in German, French, Italian and English: one page each, its
 totals in its locale's format, its slip's headings in its language and in
 no other's, and its code asking for the total it prints.
+`languages.test.ts` prints the corpus's invoice written in the same four
+languages as one report, in each of them: that language's words and none
+of the report's own in another, its total in that locale's format, its
+slip's headings in its language and its code carrying the message in it,
+each PDF equal by `inflatedDigest` to the invoice written in that language
+alone; and every starter and sample prints the same bytes with its own
+locale named as with none. The renderer draws a translated report's
+document as it draws any other, and the PDF names no language of its own
+([0063](../../docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 `euro-samples.test.ts` does it for the euro invoice's samples, the
 starter and the invoice from Austria, France, Italy, Spain, the
 Netherlands and Ireland: one page each, its totals as `Intl` formats its
@@ -663,7 +935,7 @@ corpus's reader through the transparency groups a clip path draws into,
 `contain`'s proportions, and from the pixels `cover` and a
 root's transform painting nothing outside the box, each beside the same
 drawing as it came, which does; and the budget at its bound and one past
-it, an image in a page region counted on every page. `svg-threats.test.ts`
+it, an image in the page header or footer counted on every page. `svg-threats.test.ts`
 refuses each hazard svg-to-pdfkit meets in an SVG as it came -- a local
 image, text, a style sheet, an entity, a `use` fan-out, a link -- before
 pdfmake runs, and shows each guard behind the check hold without it; holds
@@ -680,6 +952,35 @@ access policy, the link it writes whatever its callbacks say, the drawing
 xmldoc hands it, its warnings, its clip and the page-sized groups it draws
 for every reference. Every SVG the renderer draws in these tests is held
 to carrying no annotation.
+
+`first-page-header.test.ts` proves page 1's own header on its PDF (0060):
+each of the corpus's `FIRST_PAGE_FIXTURES`, a long grouped table under a
+letterhead taller than the page header, under none and under a header
+shorter than it, reads on page 1, line by line and drawing by drawing,
+exactly as the same document under a page header like its own, and on every
+later page exactly as under the page header alone; a one-page report prints
+its own header and the page header nowhere, with a QR-bill's slip under it,
+its code decoded; a heading kept with the next block stays first on page 1,
+a kept block page 1 cannot hold starts page 2 whole, and the slip is held
+below the taller header; its SVG counts once, and a heading in it names no
+destination. `pdfmake.test.ts` pins what that rests on: the background laid
+out in a box as large as the page, an empty node's top margin moving the
+next line up or down by itself, a header function returning null, as the
+renderer's does, and a table's fill painted under its own text beneath the
+background.
+
+`shifted.test.ts` proves a run set below or above the line on its PDF,
+read from PDF.js's runs and not through a line reader: drawn at
+`SHIFTED_SIZE` of its paragraph's size and moved by `SHIFTED_RISE`, to a
+hundredth of a point, in Roboto at two sizes and in the corpus's
+Liberation Serif; clear of the lines above and below where its paragraph
+wraps; in page 1's own header, page 1's body starting below the room its
+lowered run takes (0060); in the language a render names, the translation's
+word at the baseline the report's run sets (0063); and each way a word
+could leave it alone on a line refused, naming the paragraph, a page
+region's and page 1's own header's among them. The corpus's
+`SHIFTED_FIXTURES` are rendered and proved with the rest, page 1 held to
+its own header's runs and every later page to the page header's.
 
 `fonts.test.ts` reads the faces the package embeds, Roboto's four and
 Liberation Sans's two, through report-spec's reader to the values measured

@@ -8,7 +8,9 @@
  * the field, or Enter in a single-line one -- and a value the editor refuses
  * stays as typed, `aria-invalid`, with the reason beside it as its
  * description. Escape gives back what the report holds. Under the
- * report's own fields, its images (`library`, 0033).
+ * report's own fields, its images (`library`, 0033). A field at a word in
+ * a language besides the report's own has its note under it, which
+ * describes it too, and is marked while the word is missing (0063).
  *
  * Fields the editor groups -- a QR-bill's creditor and debtor (0039), an
  * e-invoice's parties, its VAT categories and its payment instructions
@@ -22,8 +24,17 @@
  * QR-bill, which gives the properties the bill's in place of the report's,
  * takes its own button away, and the keyboard goes to the first field, the
  * bill's IBAN, as it does when a Remove takes its row.
+ *
+ * Each run of a paragraph is such a group, its buttons Subscript and
+ * Superscript, each named after the run, showing only its own word, and
+ * `aria-pressed` as the run is set (0061). Pressed, one sends the
+ * selection of its group's text field -- its start, its end and the text
+ * it is of -- read from the element as the button is pressed: the one
+ * thing only the DOM knows, which the editor applies to the text the
+ * report holds and to nothing else. The keyboard then goes where the
+ * editor's outcome says, the run that holds the text now.
  */
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { KeyboardEvent, ReactElement, ReactNode } from 'react'
 import type { EditorAction, EditorState, PropertyAction, PropertyField, PropertyGroup } from '@formancy/report-builder-core'
 
@@ -124,9 +135,15 @@ function Row({
 }): ReactElement {
   const id = `${ids}-field-${at}`
   const error = `${id}-error`
-  const validity: Validity = field.error === undefined ? {} : { 'aria-invalid': true, 'aria-describedby': error }
+  const note = `${id}-note`
+  // Described by why it was refused, and by what its note says of the language it writes.
+  const described = [field.error === undefined ? null : error, field.note === undefined ? null : note].filter((part) => part !== null).join(' ')
+  const validity: Validity = {
+    ...(field.error === undefined ? {} : { 'aria-invalid': true }),
+    ...(described === '' ? {} : { 'aria-describedby': described }),
+  }
   return (
-    <div data-report-part="property" data-kind={field.kind}>
+    <div data-report-part="property" data-kind={field.kind} data-missing={field.missing === true ? 'true' : undefined}>
       <label htmlFor={id}>{field.label}</label>
       <Control field={field} id={id} validity={validity} commit={(value) => act({ type: 'setProperty', key: field.key, value })} />
       {field.error === undefined ? null : (
@@ -134,8 +151,27 @@ function Row({
           {field.error}
         </p>
       )}
+      {field.note === undefined ? null : (
+        <p id={note} data-report-part="property-note">
+          {field.note}
+        </p>
+      )}
     </div>
   )
+}
+
+/**
+ * What a group's button sends: a run's `setBaseline` with what its group's
+ * text field has selected, read from the element now, as only the DOM
+ * knows it (0061); any other action as the state gives it. A field bound
+ * to a value is a select, and has no selection: its run is set whole.
+ */
+function sent(action: PropertyAction, group: HTMLElement | null): PropertyAction {
+  if (action.action.type !== 'setBaseline') return action
+  const field = group?.querySelector('input, textarea')
+  if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) || field.selectionStart === null || field.selectionEnd === null)
+    return action
+  return { ...action, action: { ...action.action, selected: { start: field.selectionStart, end: field.selectionEnd, text: field.value } } }
 }
 
 /** A group of fields, named in the editor's words, with its buttons after them, each keyed by its place so that it keeps the keyboard as its words change. */
@@ -152,16 +188,24 @@ function Group({
   readonly act: PropertiesProps['act']
   readonly press: PropertiesProps['press']
 }): ReactElement {
+  const element = useRef<HTMLDivElement>(null)
   return (
-    <div role="group" aria-label={group.label} data-report-part="property-group">
+    <div ref={element} role="group" aria-label={group.label} data-report-part="property-group">
       <span aria-hidden="true">{group.label}</span>
       {group.fields.map((field, at) => (
         // A draft never outlives its field: leaving the field commits it, before anything else can be selected.
         <Row key={field.key} field={field} at={first + at} ids={ids} act={act} />
       ))}
       {group.actions.map((action, at) => (
-        <button key={`action-${String(at)}`} type="button" aria-disabled={action.available ? undefined : true} onClick={() => press(action)}>
-          {action.label}
+        <button
+          key={`action-${String(at)}`}
+          type="button"
+          aria-label={action.text === undefined ? undefined : action.label}
+          aria-pressed={action.pressed}
+          aria-disabled={action.available ? undefined : true}
+          onClick={() => press(sent(action, element.current))}
+        >
+          {action.text ?? action.label}
         </button>
       ))}
     </div>

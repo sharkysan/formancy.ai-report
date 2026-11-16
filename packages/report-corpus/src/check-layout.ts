@@ -1,6 +1,6 @@
-import { EDGE, imageLabel, once, OVERLAP, pictures, plural, points, quoted, TOP_EDGE_PER_POINT, type Page } from './check-page.js'
+import { EDGE, imageLabel, once, OVERLAP, pictures, plural, points, quoted, regionsOn, TOP_EDGE_PER_POINT, type Page, type Picture } from './check-page.js'
 import { pageDimensions, type PageSetup } from './document.js'
-import { normalise, type Expectation, type ExpectedImage } from './fixture.js'
+import { normalise, type Expectation, type ExpectedChart, type ExpectedImage } from './fixture.js'
 import { lineHas, type Line } from './lines.js'
 import type { PdfBox } from './read-pdf.js'
 
@@ -16,10 +16,15 @@ import type { PdfBox } from './read-pdf.js'
  * line below, in text set tighter than any fixture sets it -- are not seen.
  * Page images are the evidence for those, and for anything drawn as vector
  * paths rather than text or images, text clipped by a clipping path, and
- * colour: white text on white extracts perfectly. An SVG image is the one
- * vector drawing read here, by the box of the clip it is painted inside
- * (`drawings.ts`), where an image is read by its own.
+ * colour: white text on white extracts perfectly. SVG images and charts
+ * are the vector drawings read here, each by the box of the clip it is
+ * painted inside (`drawings.ts`), where an image is read by its own; a
+ * chart's own words print inside its box, and are its check's to hold
+ * (`check-charts.ts`), not text drawn over it.
  */
+
+/** A run of text or a picture on a page, a run by its text as the checks compare it. */
+type Shown = Picture & { readonly text?: string }
 
 export function pageCount(pages: readonly Page[], expected: Expectation): string[] {
   if (pages.length < expected.minPagesExpected) return [`${plural(pages.length, 'page')}; at least ${expected.minPagesExpected} expected`]
@@ -39,20 +44,31 @@ export function pageSizes(pages: readonly Page[], setup: PageSetup): string[] {
  * above every line of the body and the footer's below every line and image
  * of the body. A footer drawn at the top of the page, or into the last row
  * between two of its cells where no box crosses another, is reported here.
+ * Where the document gives page 1 a header of its own (0060), page 1 is
+ * held to it and every other page to the page header, and no page prints a
+ * line of the header it does not print.
  */
 export function regions(pages: readonly Page[], expected: Expectation): string[] {
   return pages.flatMap((each) => {
-    const { page, header, footer, body } = each
+    const { page, lines, header, footer, body } = each
+    const { own, headerLines, otherLines } = regionsOn(expected, page.number)
+    const [named, foot] = own ? ['first page header', "page 1's own header"] : ['page header', 'the page header']
+    const printed = (text: string): boolean => lines.some((line) => line.text === normalise(text))
     const problems = [
-      ...missing(header, expected.pageHeaderLines).map((text) => `page ${page.number}: the page header line ${quoted(text)} is missing`),
+      ...missing(header, headerLines).map((text) => `page ${page.number}: the ${named} line ${quoted(text)} is missing`),
+      ...otherLines
+        .filter(printed)
+        .map((text) =>
+          own
+            ? `page 1: the page header line ${quoted(text)} is printed, where page 1 prints its own header in the page header's place`
+            : `page ${page.number}: page 1's own header line ${quoted(text)} is printed on page ${page.number}`,
+        ),
       ...missing(footer, expected.pageFooterLines).map((text) => `page ${page.number}: the page footer line ${quoted(text)} is missing`),
     ]
     const headerFoot = Math.max(...header.map((line) => line.bottom))
     const highest = body[0]
     if (highest !== undefined && highest.top < headerFoot - OVERLAP) {
-      problems.push(
-        `page ${page.number}: ${quoted(highest.text)} starts at ${points(highest.top)} pt, above the foot of the page header at ${points(headerFoot)}`,
-      )
+      problems.push(`page ${page.number}: ${quoted(highest.text)} starts at ${points(highest.top)} pt, above the foot of ${foot} at ${points(headerFoot)}`)
     }
     const footerTop = Math.min(...footer.map((line) => line.top))
     const lowest = body.reduce<Line | undefined>((low, line) => (low === undefined || line.bottom > low.bottom ? line : low), undefined)
@@ -159,15 +175,28 @@ export function outsidePrintable(pages: readonly Page[], setup: PageSetup): stri
   })
 }
 
-/** Every pair of text runs, images and drawings on a page that share more than `OVERLAP` both ways. */
-export function overlaps(pages: readonly Page[]): string[] {
+/**
+ * Every pair of text runs, images, drawings and charts on a page that
+ * share more than `OVERLAP` both ways, but a chart and a run of one of its
+ * own words -- its words and its ticks' labels, as `charts` holds them --
+ * which print inside its box, and are the chart's check's to hold
+ * (`check-charts.ts`): a run of any other text over a chart is text its
+ * marks hide.
+ */
+export function overlaps(pages: readonly Page[], charts: readonly ExpectedChart[]): string[] {
+  const own = new Map(charts.map((chart) => [chart.id, new Set([...chart.words, ...chart.ticks.map(({ text }) => text)].map(normalise))]))
+  /** Whether `chart` is a chart and `run` a run of one of its own words. */
+  const ownWord = (chart: Shown, run: Shown): boolean => chart.chart !== undefined && run.text !== undefined && own.get(chart.chart)?.has(run.text) === true
   return pages.flatMap((each) => {
     const { page } = each
-    const boxes = [...page.items.map((item) => ({ label: quoted(item.text), box: item })), ...pictures(each)].sort((a, b) => a.box.top - b.box.top)
+    const runs = page.items.map((item): Shown => ({ label: quoted(item.text), box: item, text: normalise(item.text) }))
+    const boxes = [...runs, ...pictures(each)].sort((a, b) => a.box.top - b.box.top)
     const found: string[] = []
-    boxes.forEach(({ label, box }, index) => {
+    boxes.forEach((shown, index) => {
+      const { label, box } = shown
       for (const other of boxes.slice(index + 1)) {
         if (other.box.top >= box.bottom - OVERLAP) break
+        if (ownWord(shown, other) || ownWord(other, shown)) continue
         const across = Math.min(box.x + box.width, other.box.x + other.box.width) - Math.max(box.x, other.box.x)
         const down = Math.min(box.bottom, other.box.bottom) - Math.max(box.top, other.box.top)
         if (across > OVERLAP && down > OVERLAP) found.push(`page ${page.number}: ${label} overlaps ${other.label} by ${points(across)} × ${points(down)} pt`)
@@ -179,18 +208,19 @@ export function overlaps(pages: readonly Page[]): string[] {
 
 /**
  * The images the PDF embeds against the document's PNGs and JPEGs: each
- * page region's on every page, then the body's in page order and the order
- * each page draws them, as many, each at its size. An SVG image is drawn
- * as vectors, never as an image, and `drawings.ts` finds it.
+ * page region's on every page that prints it -- page 1's own header's on
+ * page 1 alone (0060) -- then the body's in page order and the order each
+ * page draws them, as many, each at its size. An SVG image is drawn as
+ * vectors, never as an image, and `drawings.ts` finds it.
  */
 export function images(pages: readonly Page[], expected: Expectation): string[] {
   const raster = (list: readonly ExpectedImage[]): ExpectedImage[] => list.filter((image) => image.kind === 'raster')
-  const [regions, body] = [raster(expected.pageRegionImages), raster(expected.images)]
+  const body = raster(expected.images)
   const sized = (image: PdfBox, { width, height }: ExpectedImage): boolean => Math.abs(image.width - width) <= EDGE && Math.abs(image.height - height) <= EDGE
   const problems: string[] = []
   const drawn = pages.flatMap(({ page }) => {
     const left = [...page.images]
-    for (const image of regions) {
+    for (const image of raster(regionsOn(expected, page.number).regionImages)) {
       const at = left.findIndex((each) => sized(each, image))
       if (at < 0) problems.push(`page ${page.number}: the page regions' image of ${image.width} × ${image.height} pt is not drawn`)
       else left.splice(at, 1)

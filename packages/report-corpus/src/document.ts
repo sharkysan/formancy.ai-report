@@ -22,6 +22,7 @@ import type { PageSetup, ResolvedDocument } from '@formancy/report-runtime'
 export { REFUSAL_CODES, RenderRefusal } from '@formancy/report-runtime'
 export type {
   AxisChart,
+  BaselineShift,
   Block,
   Chart,
   ChartLegendEntry,

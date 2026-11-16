@@ -1,16 +1,32 @@
-import { ALL_FIXTURES, type Expectation, type ExpectedCell, type ExpectedImage, type ExpectedTable, type Fixture } from '@formancy/report-corpus'
+import {
+  ALL_FIXTURES,
+  chartsOf,
+  drawingsOf,
+  shiftedRunsOf,
+  type Expectation,
+  type ExpectedCell,
+  type ExpectedImage,
+  type ExpectedTable,
+  type Fixture,
+} from '@formancy/report-corpus'
 import type { Block, Image, Inline, Paragraph, ResolvedDocument, Table, TableColumn, TableRow, TextStyle } from '@formancy/report-runtime'
 
 /**
  * Documents for the renderer's own tests, built as the corpus builds its
  * fixtures, and the expectation the corpus derives from a document.
  *
- * These are copies of `@formancy/report-corpus`'s `fixtures/build.ts` and
- * `fixture.ts`, which its index does not export; they go once it does. One
+ * The documents are copies of `@formancy/report-corpus`'s
+ * `fixtures/build.ts`, which its index does not export. The expectation is
+ * a copy of its `fixture.ts`'s, which it does export, kept for one
  * difference: `flatten` here reads the blocks of sections and columns as
  * well as keep-together blocks, so that a table or a kept block inside a
- * section is expected like any other. The corpus's reads keep-together
- * blocks alone, because its fixtures hold no sections.
+ * section or a column is expected like any other; the corpus's reads
+ * keep-together blocks alone, because no fixture of its holds a table or
+ * a kept block inside either. What the corpus derives of drawings and
+ * charts is taken, not copied: the drawings an expectation seeks and the
+ * charts it proves are the corpus's `drawingsOf` and `chartsOf`, never
+ * stated, so that a chart here is proved as a fixture's is, and never
+ * found by nothing.
  */
 
 /** Long enough for the corpus's largest documents on a slow runner; a render that hangs still fails. */
@@ -108,8 +124,8 @@ export function totalRow(rows: readonly TableRow[], label = 'Total'): TableRow {
   return { kind: 'total', cells: [label, '', amount(sum)] }
 }
 
-/** What a test states about a document; everything else in its expectation is derived. */
-export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expectation, 'maxPagesExpected'>>
+/** What a test states about a document; everything else in its expectation is derived, and the drawings it seeks and the charts it proves always are. */
+export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expectation, 'maxPagesExpected' | 'drawings' | 'charts'>>
 
 /** A fixture of `document`, its expectation derived, with a page limit of 20. */
 export function fixtureOf(id: string, document: ResolvedDocument, stated: Stated): Fixture {
@@ -120,8 +136,8 @@ export function fixtureOf(id: string, document: ResolvedDocument, stated: Stated
  * The expectation a document implies, with what the test states laid over
  * it: keys from the first cell of every table row and the lines of every
  * keep-together block, every table's header and rows, the page header's and
- * footer's lines, the body's and the page regions' images, and every layout
- * check on.
+ * footer's lines, and page 1's own header's where it has one, the body's and
+ * the page regions' images, and every layout check on.
  */
 export function expectation(document: ResolvedDocument, stated: Stated): Expectation {
   const footerEveryPage = footerPattern(document.pageFooter)
@@ -132,6 +148,16 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
       .filter((block) => block.kind === 'table')
       .map(expectedTable),
     pageHeaderLines: plainLines(document.pageHeader),
+    // Page 1's own header (0060), as the corpus derives it: page 1 is held to its lines and images in place of the page header's.
+    ...(document.firstPageHeader === undefined
+      ? {}
+      : {
+          firstPage: {
+            headerLines: plainLines(document.firstPageHeader),
+            regionImages: imagesOf([...document.firstPageHeader, ...document.pageFooter]),
+            shiftedRuns: shiftedRunsOf([...document.firstPageHeader, ...document.pageFooter]),
+          },
+        }),
     pageFooterLines: plainLines(document.pageFooter),
     ...(footerEveryPage === undefined ? {} : { footerEveryPage }),
     exactText: [],
@@ -150,7 +176,13 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     fontNames: [],
     images: imagesOf(document.body),
     pageRegionImages: imagesOf([...document.pageHeader, ...document.pageFooter]),
+    // The corpus's own: which runs a document sets below or above the line is no copy's to decide again (0061).
+    shiftedRuns: shiftedRunsOf(document.body),
+    pageRegionShiftedRuns: shiftedRunsOf([...document.pageHeader, ...document.pageFooter]),
     ...stated,
+    // Derived together and never stated, so that a drawing is never sought apart from the chart it proves (N3).
+    drawings: drawingsOf(document.body),
+    charts: chartsOf(document),
   }
 }
 
@@ -197,7 +229,12 @@ function expectedTable(table: Table): ExpectedTable {
   return {
     id: table.id,
     header: printed(table.header).map((cell) => cell.text),
-    rows: table.rows.map((row) => ({ kind: row.kind, key: normalise(row.cells[0] ?? ''), cells: printed(row.cells) })),
+    rows: table.rows.map((row) => ({
+      kind: row.kind,
+      key: normalise(row.cells[0] ?? ''),
+      cells: printed(row.cells),
+      ...(row.keepWithRows === undefined ? {} : { keepWithRows: row.keepWithRows }),
+    })),
     emptyText: table.rows.some((row) => row.kind === 'detail') ? '' : normalise(table.emptyText),
   }
 }

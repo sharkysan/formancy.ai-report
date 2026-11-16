@@ -8,7 +8,7 @@
  * So the destinations are found by asking it, place by place, rather than
  * by a second copy of its placement rules that could disagree with it.
  */
-import { REGION_NAMES, validateReport, walkComponents } from '@formancy/report-spec'
+import { heldRegions, validateReport, walkComponents } from '@formancy/report-spec'
 import type { Component, RegionName, ReportDefinition } from '@formancy/report-spec'
 import { insertComponent, moveComponent, removeComponent } from './commands/components.js'
 import type { CommandOutcome } from './outcome.js'
@@ -38,9 +38,11 @@ export function locationOf(report: ReportDefinition, id: string): Location | und
 }
 
 /**
- * Every place a component could be put, in reading order: before each
- * component and at the end of each list, a container's places right after
- * the place before the container. Each is a location `insertComponent`
+ * Every place a component could be put, in reading order, in every region
+ * the report holds: before each component and at the end of each list, a
+ * container's places right after the place before the container. A region
+ * the report leaves out has none; it is given one by its own command
+ * (0060). Each is a location `insertComponent`
  * takes; whether the validator accepts what is put there is
  * `validLocations`' question.
  */
@@ -53,7 +55,7 @@ export function locations(report: ReportDefinition): Location[] {
     }
     found.push({ region, ...place, index: list.length })
   }
-  for (const region of REGION_NAMES) visit(region, report.regions[region], {})
+  for (const [region, list] of heldRegions(report.regions)) visit(region, list, {})
   return found
 }
 

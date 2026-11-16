@@ -2,9 +2,11 @@ import type { Content, CustomTableLayout } from 'pdfmake/interfaces.js'
 import type { Block, Columns, Image, ImageAsset, Inline, Paragraph, Rectangle, Rule, Section, TextStyle } from '@formancy/report-runtime'
 import { base64 } from './bytes.js'
 import { startsOnPage, type Build, type Fields } from './build.js'
+import { chartContent } from './chart-content.js'
 import { epcContent } from './epc.js'
 import type { FaceWanted } from './host-fonts.js'
 import { qrContent } from './qr.js'
+import { isShifted, loweredLineHeight } from './shifted.js'
 import { DEFAULT_SIZE, textProperties } from './style.js'
 import { svgContent } from './svg-content.js'
 import { tableContent } from './table.js'
@@ -37,17 +39,24 @@ interface Scope {
   readonly width: number
   /** No rule may break inside: a keep-together block, a page region, a column. */
   readonly kept: boolean
-  /** Where a page's first line of these blocks would start: the body's top, below every frame around them. */
+  /** Where a page's first line of these blocks would start: the body's top, below every frame around them; on page 1, `Build.firstShift` lower. */
   readonly top: number
+  /** The page fields' values, in a page region pdfmake draws on every page; none in page 1's own header (0060), which holds none. */
   readonly fields?: Fields
   /** Whether its text nodes are recorded for the word check: not a page region's in the last pass, which pdfmake builds anew for each page and a measuring pass has checked. */
   readonly record: boolean
 }
 
-/** Content for the body's blocks, laid out `width` wide, or a page region's when `fields` are given. */
-export function contentOf(blocks: readonly Block[], build: Build, width: number, fields?: Fields): Content[] {
-  const record = fields === undefined || build.mode === 'measure'
-  return sequence(blocks, build, fields === undefined ? { width, kept: false, top: build.bodyTop, record } : { width, kept: true, top: 0, fields, record })
+/**
+ * Content for the body's blocks, laid out `width` wide, or a page region's
+ * when `region` is given: kept, so that no rule breaks it and no node of it
+ * gets an id, with the values of its page fields where it has them -- page
+ * 1's own header (0060) has none, and is a page region all the same.
+ */
+export function contentOf(blocks: readonly Block[], build: Build, width: number, region?: { readonly fields?: Fields }): Content[] {
+  const record = region === undefined || build.mode === 'measure'
+  if (region === undefined) return sequence(blocks, build, { width, kept: false, top: build.bodyTop, record })
+  return sequence(blocks, build, { width, kept: true, top: 0, record, ...(region.fields === undefined ? {} : { fields: region.fields }) })
 }
 
 /** Border and padding on each side of a section: what it takes from the width, and from a page's height above and below. */
@@ -83,7 +92,12 @@ function sequence(given: readonly Block[], build: Build, scope: Scope): Content[
     const ids = new Set([anchor.id])
     const own = build.next++
     ;(contents[index] as Anchor).headlineLevel = own
-    build.rules.set(own, (node, queries) => node.startPosition.top > scope.top + AT_TOP && !startsOnPage(queries, ids, node.startPosition.pageNumber))
+    build.rules.set(own, (node, queries) => {
+      const { top, pageNumber } = node.startPosition
+      // Page 1's body starts below its own header where it has one (0060), and a node first there is first on its page.
+      const first = scope.top + (pageNumber === 1 ? build.firstShift : 0)
+      return top > first + AT_TOP && !startsOnPage(queries, ids, pageNumber)
+    })
   })
   return contents
 }
@@ -92,34 +106,62 @@ function sequence(given: readonly Block[], build: Build, scope: Scope): Content[
 interface Anchor {
   readonly text?: unknown
   readonly image?: unknown
-  /** A QR code or an EPC QR code: what the renderer draws as an SVG (`qr.ts`, `epc.ts`). */
+  /** A QR code or an EPC QR code, or a chart's marks: what the renderer draws as an SVG (`qr.ts`, `epc.ts`, `chart-content.ts`). */
   readonly svg?: unknown
   readonly stack?: readonly Anchor[]
   readonly columns?: readonly Anchor[]
   readonly table?: { readonly body: readonly (readonly Anchor[])[] }
+  /** A keep-together block in the PDF's pass, or a chart: laid out where it starts and moved whole. */
+  readonly unbreakable?: boolean
   id?: string
   headlineLevel?: number
 }
 
-/** The first node of `node` that prints text, or an image or a QR code when no text comes first: where pdfmake records the content's start. */
+/**
+ * The first node of `node` that prints text, or an image or a QR code when
+ * no text comes first: where pdfmake records the content's start. Of an
+ * unbreakable node -- a keep-together block, a chart -- the first that
+ * prints text wherever it stands in it, and an image or an SVG only where
+ * none does: pdfmake records where each of its nodes starts on the page
+ * its layout began on, and corrects that page, once it moves the node to
+ * the next, for text with an id alone (`pdfmake.test.ts`); and a chart
+ * paints its marks before its first word.
+ */
 function anchorOf(node: Anchor): Anchor | undefined {
-  const inner = node.stack ?? node.columns ?? node.table?.body.flat()
-  if (inner !== undefined) {
-    for (const each of inner) {
-      const anchor = anchorOf(each)
-      if (anchor !== undefined) return anchor
-    }
-    return undefined
+  if (node.unbreakable === true) return firstOf(node, printsText) ?? firstOf(node, prints)
+  const inner = innerOf(node)
+  if (inner === undefined) return prints(node) ? node : undefined
+  for (const each of inner) {
+    const anchor = anchorOf(each)
+    if (anchor !== undefined) return anchor
   }
-  // A paragraph's text is an array of runs, and the renderer keeps nothing with a paragraph that prints nothing.
-  const printsText = typeof node.text === 'string' ? node.text.trim() !== '' : Array.isArray(node.text)
-  return printsText || node.image !== undefined || node.svg !== undefined ? node : undefined
+  return undefined
 }
+
+/** The nodes `node` holds, in the order pdfmake lays them out: a stack's, columns', or a table's cells, row by row; none for a leaf. */
+const innerOf = (node: Anchor): readonly Anchor[] | undefined => node.stack ?? node.columns ?? node.table?.body.flat()
+
+/** The first node of `node`, itself or one it holds, in the order pdfmake lays them out, that `takes`. */
+function firstOf(node: Anchor, takes: (leaf: Anchor) => boolean): Anchor | undefined {
+  const inner = innerOf(node)
+  if (inner === undefined) return takes(node) ? node : undefined
+  for (const each of inner) {
+    const found = firstOf(each, takes)
+    if (found !== undefined) return found
+  }
+  return undefined
+}
+
+/** Whether `leaf` prints text: a paragraph's text is an array of runs, and the renderer keeps nothing with a paragraph that prints nothing. */
+const printsText = (leaf: Anchor): boolean => (typeof leaf.text === 'string' ? leaf.text.trim() !== '' : Array.isArray(leaf.text))
+
+/** Whether `leaf` prints text, an image or an SVG. */
+const prints = (leaf: Anchor): boolean => printsText(leaf) || leaf.image !== undefined || leaf.svg !== undefined
 
 /**
  * Where the block a keep-with-next paragraph at `index` stays with starts:
- * the anchor of the next block that prints text, an image or a QR code,
- * past spacers, rules, rectangles and other keep-with-next paragraphs, so
+ * the anchor of the next block that prints text, an image, a QR code or a
+ * chart, past spacers, rules, rectangles and other keep-with-next paragraphs, so
  * that a run of headings moves as one. None when a page break or the end of
  * the list comes first: a heading over nothing is not kept with anything.
  */
@@ -167,21 +209,21 @@ function blockContent(block: Block, build: Build, scope: Scope): Content {
     case 'section':
       return sectionContent(block, build, scope)
     case 'chart':
-      // check.ts refuses every chart before anything is built.
-      throw new Error(`the chart ${block.id} reached the pdfmake content`)
+      return chartContent(block, build)
   }
 }
 
 function paragraphContent(paragraph: Paragraph, build: Build, scope: Scope): Content {
   const style = paragraph.style ?? {}
   const content = {
-    text: paragraph.runs.length === 0 ? '' : paragraph.runs.map((run) => inline(run, scope.fields)),
+    text: paragraph.runs.length === 0 ? '' : paragraph.runs.map((run) => inline(run, scope.fields, () => build.lineOf(runFace(paragraph.style, run)))),
     alignment: style.align ?? 'left',
     ...textProperties(style, { size: DEFAULT_SIZE }, build.familyOf),
   }
   // check.ts walks every paragraph, and records where it stands, before anything is built.
   const at = build.paths.get(paragraph) as string
   if (scope.record) build.words.push({ node: content, width: scope.width, lines: MAX_WORD_LINES, what: at, subject: at })
+  if (scope.record && paragraph.runs.some(isShifted)) build.shifted.push({ node: content, width: scope.width, subject: at })
   return content
 }
 
@@ -196,10 +238,20 @@ export function runFace(style: TextStyle | undefined, run: Inline): FaceWanted {
   return { token: style?.font, bold: ('text' in run ? run.bold : undefined) ?? style?.bold ?? false, italic: style?.italic ?? false }
 }
 
-function inline(run: Inline, fields: Fields | undefined): { text: string; bold?: boolean } {
-  if ('text' in run) return run.bold === undefined ? { text: run.text } : { text: run.text, bold: run.bold }
-  // The renderer refuses a page field outside a page region before building anything.
-  if (fields === undefined) throw new Error(`a ${run.field} field outside a page region`)
+/** pdfmake's own property for a run set below or above the line (0061), which sets it at the size and the move the document states. */
+const SHIFT = { subscript: { sub: true }, superscript: { sup: true } } as const
+
+/** A run as pdfmake takes it; one set below the line asks for its line's room, `lineOf` being the line of the face it prints in (`shifted.ts`). */
+function inline(run: Inline, fields: Fields | undefined, lineOf: () => number): { text: string; bold?: boolean; sub?: true; sup?: true; lineHeight?: number } {
+  if ('text' in run)
+    return {
+      text: run.text,
+      ...(run.bold === undefined ? {} : { bold: run.bold }),
+      ...(run.baseline === undefined ? {} : SHIFT[run.baseline]),
+      ...(run.baseline === 'subscript' ? { lineHeight: loweredLineHeight(lineOf()) } : {}),
+    }
+  // The renderer refuses a page field outside the page header and footer before building anything, page 1's own header among them.
+  if (fields === undefined) throw new Error(`a ${run.field} field outside the page header and footer`)
   return { text: String(fields[run.field]) }
 }
 

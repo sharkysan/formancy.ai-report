@@ -139,13 +139,18 @@ Before the tag, the same workflow is rehearsed: a `workflow_dispatch` on
 any branch runs `tag`, the gates and `check` as a tag would, names the
 release `dry-run`, and skips `npm-token` and `publish`, so it holds no
 secret and can neither sign nor publish. And a release commit has one step
-no gate writes for it: the QR-bill page and the EPC QR code page each say
-which release holds their code, so `pnpm build` and the pages' suite fail
-on the commit that renames *Unreleased* until each page's status is written
-again, every such page named in one error, as RELEASING.md's second step
-says
+no gate writes for it: the start page says what the newest release holds
+and what Formancy Report does not do yet, and the QR-bill page and the EPC
+QR code page each say which release holds their code, so `pnpm build` and
+the pages' suite fail on the commit that renames *Unreleased* until each
+page's status is written again, every such page named in one error, the
+start page's first
 ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
-[0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+[0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
+[0056](../decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md)).
+The start page links *Unreleased* from its hero and its status, so the same
+commit opens a new, empty `## Unreleased` above the release's heading, or
+the pages' link check refuses the site, as RELEASING.md's second step says.
 
 ## What a host sends for an XRechnung
 
@@ -253,12 +258,13 @@ serve the Studio under the same function of their own address
   holds the bundle, which is where the bundle looks
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
   [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
-  And for an e-invoice, PDFKit's ICC profile, `sRGB_IEC61966_2_1.icc` in
+  And for a PDF/A, an e-invoice's or the PDF/A-2b a host asks for,
+  PDFKit's ICC profile, `sRGB_IEC61966_2_1.icc` in
   its `data` directory, which PDFKit reads with `fs` from beside its own
   code, at `${__dirname}/data/`, past
   pdfmake's access policy: a host that bundles the Node entry puts it where
-  the bundled PDFKit's `__dirname` points, or every e-invoice render
-  fails; nobody here has bundled one ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+  the bundled PDFKit's `__dirname` points, or every PDF/A render
+  fails; nobody here has bundled one ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
   PDFKit is pinned at 0.19.1 by report-render-pdf, which imports nothing
   of it, so that npm places that release where pdfmake finds it; a host
   on another package manager, or with a PDFKit of its own, may resolve
@@ -275,7 +281,23 @@ serve the Studio under the same function of their own address
   or the font chunk that a slip and a captioned EPC QR code print from
   lands in every page
   ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md),
-  0025).
+  0025), and so does the chunk a chart is laid out by, which holds ECharts
+  and zrender and is imported the first time a document holds a chart
+  with something to draw.
+- **For a chart:** nothing to configure, and nothing to install beside the
+  renderer, which depends on ECharts and zrender at exactly 6.1.0. A
+  host's bundle gives ECharts the renderer's own zrender, or every chart
+  with something to draw is refused, naming it: the renderer measures a
+  chart's words by replacing zrender's platform, and through another copy
+  ECharts would measure them in widths nobody chose. A host that also
+  draws charts of its own with ECharts shares that platform with the
+  renderer, which replaces it for one synchronous layout and puts it back.
+  A document whose charts together weigh more than `MAX_CHART_DRAWING` is
+  refused, for the host to split across renders. A host that bundles the
+  renderer's browser entry carries ECharts' `NOTICE` and d3's licence, for
+  the code ECharts took from d3, among its notices, as the Studio's build
+  does
+  [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 - **A worker it can terminate**, if a render must stop at once: an abort is
   read only between pdfmake's passes
   ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
@@ -315,6 +337,14 @@ serve the Studio under the same function of their own address
   report-runtime carries the e-invoice's rules and writer whether its
   reports have one or not, which 0027 measures
   ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+- **For a PDF/A-2b:** `renderPdf(document, { maxPages, pdfa: '2b' })` on
+  a final render of a report that is no e-invoice, in either entry, and
+  the profile above in Node. A Factur-X, an XRechnung's copy and a preview
+  the runtime labels so are refused as one, so a host renders them
+  without `pdfa`; a CMYK JPEG, an SVG past a PDF/A's integers or its
+  graphics states, and a title holding `&`, `<` or `>` are refused by
+  that render alone, which no builder warns of. The Studio offers none
+  (0057).
 - **For the provider:** a Formancy Data 0.1.0 server and a data client
   carrying the person's token
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).

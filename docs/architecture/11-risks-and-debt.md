@@ -37,20 +37,25 @@ part, the EPC QR code, the e-invoice and the SVG asset — went into the same
 draft version, and 0.1.0 refuses a report that uses any of them, whole;
 0.3.0's binding of a dataset to a formancy form went in too, and so did
 a second table over the detail rows, a table's condition and its own
-totals, and 0.2.0 refuses a report that carries any of them
+totals, and a report's translations, and 0.2.0 refuses a report that
+carries any of them
 ([0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md),
 [0007](../decisions/0007-a-report-definition-is-its-own-versioned-document.md),
 [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md),
 [0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md),
 [0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md),
 [0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md),
-[0062](../decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
+[0062](../decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md),
+0063).
 
 ### The renderer leans on pdfmake's defaults and internals
 
 Most of the adapter exists to stop pdfmake doing what it does by default,
 and some of it reads what is not pdfmake's API: the widest word it writes
-on each text node, and the positions it records on a node. A pdfmake
+on each text node, the positions it records on a node, and, in a
+paragraph that sets a run below or above the line, its words -- the
+`_inlines` it chains with `noNewLine`, each with its `sup`, `sub`,
+`width`, `leadingCut` and `trailingCut` (0061). A pdfmake
 upgrade can move any of it. Each behaviour is pinned by
 `report-render-pdf/src/pdfmake.test.ts` and the corpus, at an exact
 version, so an upgrade is a diff somebody runs those tests on
@@ -93,6 +98,122 @@ group of the element's own size, and a callback for links, would be
 svg-to-pdfkit's to add; neither has been asked of it
 ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
+### The renderer leans on ECharts' and zrender's internals, and on pdfmake's detached nodes
+
+A chart is laid out by Apache ECharts 6.1.0, which draws through zrender
+6.1.0, and the renderer reads more of both than their API offers
+[0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md). It replaces zrender's process-wide `platformApi` around each layout
+to measure in pdfmake's widths, and answers its `国` probe with the face's
+line; it leans on zrender's width cache, keyed by the whole font string,
+to keep one face's widths apart from another's; a pie's label layout is
+null, which ECharts reads and its types do not admit; a slice of no share
+rests on ECharts' filter of a pie's negative values, and its legend entry
+on the legend reading the data before that filter; two words of one text
+are told apart by the order ECharts writes a chart's words in; the SVG it
+writes is held, element by element, to what 6.1.0 was seen to write, and
+a line's clip, which 6.1.0 writes whatever the series' `clip` says, is
+taken out, cutting nothing by the line's bevelled joins and butt ends,
+which the reader holds of every stroke inside a clip;
+and the plot is snapped where zrender moves a thin line. `echarts.test.ts`,
+`chart-svg.test.ts` and `chart-draw.test.ts` pin each, and
+`scripts/dependency-licences.mjs` admits both at one exact version, so an
+upgrade is a diff somebody reads, a second vendor's release notes with
+it, before those tests run on it; what a new release lays out
+differently, if nothing pinned sees it, prints. The renderer refuses a
+chart rather than measure it through another copy of zrender than its
+own, which a host's bundle may give ECharts.
+
+ECharts' registries are the process's, and a host's. A preprocessor, a
+processor, a visual, a layout or an update a host registers on the
+`echarts` it shares with the renderer -- the one module a Node install or
+a bundler dedupes every importer of ECharts 6.1.0 to -- runs on the
+renderer's charts too: a review's preprocessor that halved a bar series'
+data halved every bar printed, beside the runtime's words, and nothing
+was refused, so that a Preview can differ from the server's PDF and a
+chart's marks from its words. The host's code is trusted, and this is a
+stated limit, which `chart-registry.test.ts` pins as it stands. Holding
+each bar's ends and each marker's centre to its place in the drawing's
+reader would turn it into a refusal, and an ECharts release that moved a
+mark with it; it is not built.
+
+What a render's charts may cost together is bounded by
+`MAX_CHART_DRAWING`, and the bound is a measurement on one machine: its
+weights are the medians of seven rounds, at a load of 12 to 20, that
+spread widely, and a line's measured again at 3.0 to 3.2, a run that put
+a title and a tick above the first's, their weights now the larger; its value the slowest of seven
+runs of one page, a spike, at a quiet load of 3.3 to 5.6, confirmed
+again at 3.0 to 3.9 once a line weighed 60; and the 2 s it keeps holds at
+such a load, where at a load of 10 to 18.6 the documents it admitted took
+up to 9.45 s. A heading kept with a chart makes pdfmake lay the whole
+document out again for each page it moves, which the bound does not
+count.
+
+pdfmake is leant on further for it. A chart's words are detached nodes
+inside one unbreakable stack, and pdfmake 0.3.11 lays a detached node out
+where the flow stands, taking none of its room, and fits nothing inside
+an unbreakable block, whose room it reads as `NaN`; `pdfmake.test.ts`
+pins both, and a pdfmake that fitted them would fit each word against the
+room at the stack's top. The heading kept with a chart is kept with its
+first word, whose page pdfmake corrects when it moves the block, and with
+its drawing where it prints no word, whose page pdfmake does not: that
+heading is left behind, which `flow.test.ts` holds as it stands.
+
+zrender keeps what it measured. Its width cache outlives the render, up
+to 500 words for each of 100 font strings, in the Node process or the
+page, and nothing zrender exports clears it: a chart's categories, legend
+entries and title, a customer's words, stay there, beside the digest of
+the face they were measured in.
+
+### Page 1's own header rests on pdfmake's page background
+
+A report's first page header is drawn in page 1's background, which
+pdfmake lays out first, under the body, through the hook the renderer
+already reads the page limit in, and page 1's body is moved below it by an
+empty node's top margin, which pdfmake does not clamp
+([0060](../decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)).
+`report-render-pdf/src/pdfmake.test.ts` holds both on the release the
+renderer pins, and that a page whose header function returns null, as the
+renderer's does, is drawn without a header. Two more behaviours nothing of the renderer's asks
+for are held as far as one case each: pdfmake hands the background's
+nodes to `pageBreakBefore` with the body's, and no node of a page region
+is marked for a rule; and it inserts a table's fill at the count of the
+background's positions rather than of its items, held for a filled table
+first on page 1 beneath a background of text, a rule and an image. A
+background drawn under page 1, which the roadmap plans apart, will have to
+share the hook. What it costs a report is page 1's: no page number or
+count in page 1's own header; a block page 1's taller header leaves no
+room for starts page 2, page 1 printing its header alone; an image page
+1's shorter body cannot hold refused, though a later page could hold it;
+where page 1's own header is shorter, or none, a kept block, a table's
+line under its repeated header or an image only page 1's taller body could
+hold refused, even in a report that would end on page 1;
+and a tall own header held above a QR-bill's slip, though the report may
+end under the page header. No e-invoice variant draws one, so veraPDF and
+Mustang have not judged a PDF/A-3b whose page 1 prints its own header; and
+a 0.2.0 renderer handed a later runtime's document prints the page header
+on page 1 without a word, which only two releases in one install could do,
+since the packages pin each other exactly.
+
+### A raised run makes no room of its own, and a lowered one spaces its line
+
+pdfmake lays a line out as though such a run stood on it, and moves the
+run only when it draws it, so a raised run reaches above its line's text
+and a lowered one below. The renderer makes room below a line that holds
+a lowered run, `LOWERED_LINE` of the size to the next line's baseline,
+which `report-render-pdf/src/shifted.test.ts` holds on the PDF, so a
+wrapped paragraph's lines stand apart unevenly, 0.046 of the size in
+Roboto and 0.111 in Liberation Serif. Room above a raised run cannot be
+asked of pdfmake. By the corpus's box, one size tall and a fifth below the
+baseline, a raised run's reaches 0.899 of its paragraph's size above the
+baseline, against the line's own 0.8, clear of the line above in Roboto,
+whose line is 1.172 ems, and in Liberation Serif, 1.107, by 0.008 of the
+size. By the glyphs, read with fontkit 2.0.4 on 16 November 2026, a
+lowered g still reaches a raised Ä under it, and a raised Ä a g on the
+line above, which the corpus's boxes do not see, as they see no touching
+accent. A host face whose line is shorter than 1.099 ems is not proved.
+Room above would have to be pdfmake's to make, or the line drawn outside
+pdfmake's text ([0061](../decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+
 ### An SVG logo costs every reader, and some files are refused
 
 Every recipient's viewer, and the Studio's Preview on every edit, pays to
@@ -112,12 +233,13 @@ drawing past 10,000 weighted segments, which a detailed crest can be. The sample
 many real logos are refused is not known
 ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 
-### An SVG in an e-invoice is held to PDF/A by a bound, not by reading the PDF
+### An SVG in a PDF/A is held to it by a bound, not by reading the PDF
 
 An e-invoice is drawn as a PDF/A-3b
 ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)),
-which holds an integer to 2,147,483,647 and nests the graphics state 28
-deep at most. svg-to-pdfkit writes a page-sized group's box and a
+and a report a host asks for as one as a PDF/A-2b
+([0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)), each of which holds an integer to 2,147,483,647 and nests the
+graphics state 28 deep at most. svg-to-pdfkit writes a page-sized group's box and a
 gradient's matrix through the inverse of the drawing's transform and the
 image's box, a gradient's and a clip's in the box it measures on the
 outline, and an outline in points of its own, an arc's grown to reach its
@@ -126,17 +248,19 @@ logo could pass the range: one whose clip and transparency are shrunk a
 millionfold, a point square, wrote a box of 78,520,000,000 into an
 e-invoice that said it was a PDF/A-3b, which veraPDF 1.30.3 failed, and an
 arc of radii a millionth and a million wrote control points of 5 ×
-10^17 at any size. The renderer now refuses such an image in an e-invoice
+10^17 at any size. The renderer now refuses such an image in a PDF/A
 before pdfmake runs, by an upper bound on every number the converter will
 write for it, from the extent report-spec's cleaner measured -- over every
 box inside a shape's, since the cleaner holds a curve by its control
 points and the converter by its outline -- the image's box and the page,
 less a margin of 5.7 % for rounding
-(`report-render-pdf/src/svg-pdfa.ts`); a report that is no e-invoice
-draws it as before. PDF/A-3 keeps none of PDF/A-1's 32,767 for a
+(`report-render-pdf/src/svg-pdfa.ts`); a report drawn as no PDF/A
+draws it as before, and a report that is no e-invoice finds it out only
+at a render its host asks for as a PDF/A-2b. PDF/A-3 keeps none of PDF/A-1's 32,767 for a
 real: veraPDF's PDF/A-3b profile holds a real to 3.403 × 10^38, past the
 10^21 at which PDFKit throws; and the groups' `/DeviceRGB` is accepted
-beside the sRGB output intent, in the gate's two SVG variants.
+beside the sRGB output intent, in the gate's two SVG variants of each
+PDF/A.
 
 What is not held: the bound assumes the converter's arithmetic agrees with
 the cleaner's to that margin, which matrices built to cancel one another
@@ -384,6 +508,26 @@ quotes until they are taken again
 [0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
 [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 
+### A report's languages rest on its own words, and on a quote
+
+A translation is looked up by its word's exact text in the report's own
+language, so a word fixed there is missing again in every other, a form
+review's relabel among them, and nothing carries its old translation
+across. An expression counts as words only where it prints text and its
+source holds a quote, since upstream's parser shows none of its
+literals: one that only compares a quoted value is asked for in every
+language, and one that builds words without a quote never is, and
+prints the report's own in every language. A form's label in a locale
+its version has no catalogue for is the form's default locale's,
+formancy's fallback, in a translated render as in the report's own
+(0042). The runtime's own words -- a preview's label, an XRechnung
+copy's, a boolean's `true` and `false` -- are English in every language,
+and data prints in whatever language the host chose. Whether a
+translation says what the report's own word says is held by review
+alone, and no external judge of the e-invoice gate reads a translated
+e-invoice
+([0063](../decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+
 ### Tax and invoicing law nobody here checks
 
 The euro invoice's samples print each country's standard VAT rate as one
@@ -551,25 +695,27 @@ findings in its suite among it, meets the rules in that merge ([0050](../decisio
 | **Revisions never pruned** | The compare-and-swap needs the numbered files, and retention is a decision of its own (0049) | A template's directory grows by a file a save, and nothing measured how fast a tenant's store grows; an operator removes files by hand, never a draft's newest, whose number the next save would issue again, and nothing removes them for it |
 | **The list reads every newest draft** | No index until one is measured slow, since an index is a second write a crash can separate from the first (0049) | Listing a tenant's templates opens a file per template, unmeasured, and one record the store did not write fails the whole list |
 | **Two `@formancy/spec` under the Data provider** | report-spec takes 0.12.0, and Formancy Data 0.1.0's packages pin 0.5.0 exactly ([0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) | A consumer of the provider installs both until Data releases against a newer one; nothing of one reaches the other |
-| **English where a person reads it** | The session's undo labels, the validator's and the diagnostics' sentences, and the preview's label are English ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) | A German or French builder shows an English sentence for a refusal the validator words, and an EPC payment code's square too small for its frame is refused in points, in a field edited in millimetres ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
-| **Properties without an editor** | A table's sort, its group and total rows and its footer cells, conditional styles, value formats, a run added to or removed from a text, a QR code's content or an EPC QR code's text (only an optional text that is absent, or one literal run, is typed in and emptied out), a column added to or removed from a columns block or added to a table, and the declarations, but for an image a person adds and the removal of one nothing draws (0033), have commands and no property kind to edit them ([`report-builder-core`'s README](../../packages/report-builder-core/README.md#what-it-does-not-do)) | Written in the definition instead |
+| **English where a person reads it** | The session's undo labels, the validator's and the diagnostics' sentences, and the preview's label are English, the label in a translated render too ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0012](../decisions/0012-the-builders-are-native-and-share-one-session.md), 0063) | A German or French builder shows an English sentence for a refusal the validator words, and an EPC payment code's square too small for its frame is refused in points, in a field edited in millimetres ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
+| **Properties without an editor** | A table's sort, its group but for the rows its header is kept with ([0059](../decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)), its group and total rows and its footer cells, conditional styles, value formats, a run added to or removed from a text, a QR code's content or an EPC QR code's text (only an optional text that is absent, or one literal run, is typed in and emptied out), a column added to or removed from a columns block or added to a table, and the declarations, but for an image a person adds and the removal of one nothing draws (0033), have commands and no property kind to edit them ([`report-builder-core`'s README](../../packages/report-builder-core/README.md#what-it-does-not-do)) | Written in the definition instead |
 | **A QR-bill's texts are edited run by run** | Its fields are a payment code's: a run added or removed, a literal made a binding or a binding a literal, have no field ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)) | A bill's bound debtor removed comes back as SIX's example in literal text, and is bound again only by undo or in the definition |
 | **An e-invoice's long pane** | Its properties are every term of either kind, a field each, in groups, one pane that scrolls ([0044](../decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)) | No gate measures how a person finds a field in it, nor the pane's scrolling; the browser gate fills fields by their names |
 | **The page's own words are not held to the XML** | report-core holds an e-invoice's totals and its lines to the page and no other term ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)); a warning for a term the page does not print waits for a decision of its own (0044) | The seller, the dates or the bank changed in a builder are accepted with no warning where a template prints them in its own words, as the e-invoice starter's header does, and the XML then names another than the page, which § 14c UStG may count as a second invoice |
 | **What an e-invoice adds from nothing prints** | A seller's contact, payment instructions and an exempt or reverse-charged VAT category added in a builder hold the editor's placeholders (0044) | They reach nobody and are written into the XML until replaced, and nothing warns of them, as 0039 warns of SIX's examples; an exempt category's reason names no provision |
 | **The shared account changes no BIC** | `setPaymentAccount` writes the account alone (0044) | An EPC QR code's BIC of another country refuses the new account until it is changed or emptied, so an account moves across countries in more than one step, and outside the EEA not at all while the code holds a BIC of inside it |
 | **A shared account read from the data in one place** | `setPaymentAccount` writes literals over literals only, so where one place reads the account from the data each IBAN field writes its own (0044) | The render, not the editor, compares a written account with the data's; where two places are written beside a third that reads the data, each is held to the other and one changed alone is refused until they are bound alike or the third is written |
-| **Each payment code page's status, by hand at every release** | The QR-bill page and the EPC QR code page each say which release holds their code, and the site refuses to render once the changelog names a release a status does not ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md), [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)) | A release commit fails `pnpm build` and the pages' suite until each page's three sentences are written again, every stale page named in one error (`RELEASING.md`, step 2); and from its merge until the tag publishes the packages, each page says the guide installs a release npm does not serve yet, held by nothing but tagging right after the merge (step 4) |
+| **Each page's status, by hand at every release** | The start page says what the newest release holds and what Formancy Report does not do yet, and the QR-bill page and the EPC QR code page each say which release holds their code; the site refuses to render once the changelog names a release a status does not ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md), [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md), [0056](../decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md)) | A release commit fails `pnpm build` and the pages' suite until each page's sentences are written again, the start page's three sets and each payment code page's three, every stale page named in one error; the same commit opens a new, empty Unreleased, which the start page links (`RELEASING.md`, step 2); one detail table and one level of grouping, the start page's standing and its totals' limits rest on that reading alone, where every other absence it states has a predicate in its suite; and from its merge until the tag publishes the packages, each payment code page says the guide installs a release npm does not serve yet, held by nothing but tagging right after the merge (step 4) |
 | **Data's contract version is not read** | [0004](../decisions/0004-three-version-lines-each-refused-when-unknown.md) decided the provider would check the version Data states and refuse one it was not built against; the provider that arrived reads Data through a client of exactly 0.1.0 and reads no version ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) | A Data that changes its replies is refused as `unexpected` by the client's shape checks, or by its server, and the refusal names no version |
 | **No viewer to install** | Publishing one waits for a reviewed exception for `pdfjs-dist`'s fonts, or a viewer that leaves PDF.js to the host ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) | A host shows the PDF with a viewer of its own |
 | **A label over a label in the design view** | A container's label sits at its top end and a component's at its top start, so a component at the top of a narrow column at a container's right end has its label printed over the container's. The euro invoice's code first stood so, and the browser gate's axe could not tell the colour behind the labels ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)); a container no taller than two labels, as each of the e-invoice starter's totals is, now draws no label of its own ([0044](../decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md), `report-builder-core/src/css.test.ts`) | The starter was laid out otherwise; nothing keeps an author from the layout it left in a container taller than that, and a short container shows no name of its own on the canvas, its outline row alone saying what it is |
 | **Two picture manifests** | The browser gate holds `pictures.json` to the starters the picker offers, and the samples are not starters ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)) | A third list of pictures is a third manifest, or a change to the gate |
 | **A renderer that predates `eInvoice`** | `checkDocument` reads the keys it knows, and 0.1.0's knows no e-invoice ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) | It would draw a resolved e-invoice as a plain PDF, which only two runtimes in one install could hand it, since the packages pin each other exactly |
 | **PDFKit's `/CheckSum` and `/ID`, as PDFKit writes them** | A patch would be a copy of upstream (0002), and filing them upstream is the rightsholder's call; `report-render-pdf/src/pdfmake.test.ts` pins both ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) | An e-invoice's embedded file declares its MD5 in 32 hexadecimal digits where ISO 32000-1 asks for 16 bytes, which veraPDF does not flag, and two e-invoices of one title and creation date share a trailer `/ID` |
-| **A file beside the fonts, outside pdfmake's policy** | PDFKit reads the ICC profile of a PDF/A from its own `data` directory with `fs` (0031) | A host that bundles the Node entry puts the profile where the bundled PDFKit's `__dirname` points, or every e-invoice render fails; nobody here has bundled one |
+| **A file beside the fonts, outside pdfmake's policy** | PDFKit reads the ICC profile of a PDF/A from its own `data` directory with `fs` (0031, 0057) | A host that bundles the Node entry puts the profile where the bundled PDFKit's `__dirname` points, or every PDF/A render fails, an e-invoice's and a PDF/A-2b's; nobody here has bundled one |
+| **veraPDF judges the starters, not a customer's template** | The e-invoice gate draws its PDF/A-2b corpus from the starters, four variant pages on the quotation's, a page of charts among them, and the corpus's two fonts fixtures ([0057](../decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)) | A template that draws what none of them does is held by the renderer's refusals alone; what veraPDF would say of it is not known, and the limits of ISO 32000-1 that PDF/A-2 makes rules of, a string's length among them, the renderer does not check |
 | **The demo's policy, held where a gate can see it and not where it is served** | Nothing here reads what the address serves (0018), and the gate runs in Chromium alone, listening in the page, which PDF.js's worker is not ([0051](../decisions/0051-the-demo-is-served-under-a-content-security-policy-that-admits-its-own-files-alone.md)) | A Cloudflare setting that drops or rewrites a header goes unnoticed until somebody reads the response, as RELEASING.md says to after a deploy; a refusal inside the worker, or in Firefox or WebKit, is heard by nobody, though a worker that did not start fails the gate; the product's pages are opened under it by a gate of their own, in Chromium alone too ([0053](../decisions/0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)) |
 | **The fx values wait for a registration** | The official ZUGFeRD package's XMP example sits behind a registration with FeRD only the rightsholder can make (0031) | The renderer's test holds the namespace, prefix and properties to the transcription's values, which agree with Mustang's reading, and to nothing more official |
 | **The corpus's table check and a word broken at its hyphen** | report-corpus's `verify` reads a cell's words by line, and misread "Gas-" over "Brennwertkessel", a word pdfmake broke at its hyphen, as measured on 18 October 2026 (0031) | The e-invoice samples' test on the PDF reads its table itself; a starter or a fixture whose cell breaks so is misreported by the corpus's table check |
+| **A group header keeps fewer rows than it states, and says nothing** | The heights are the data's, known only at render, and the renderer has no warning to give; refusing instead would refuse for a long description a report that loses nothing by printing (0059) | Where a header's stated rows do not fit on a page under the column header, it is kept with as many as fit, or with its first row alone; a header that prints nothing keeps no more than its first row, which a table's first group header still moves with under the column header, though the builders show its count; and the corpus's fixture is built of rows that fit, so the fallback is proved by the renderer's own cases alone |
 | **Every host carries the e-invoice** | `validateReport` reads an e-invoice in every report, and the runtime imports its writer statically (0027) | Bundled minified from each package's source, report-spec, report-core and report-runtime grew from 145,932 to 194,092 bytes, measured with esbuild 0.28.2 on 17 October 2026, whether a host's reports have an e-invoice or not |
 | **The XML has no bound of its own** | It is written before a page is counted, so only `MAX_DETAIL_ROWS` bounds it; a bound of its own is the rightsholder's to choose (0027) | At 100,000 lines the XML held 117,280,919 bytes, and resolving took a median of 5.4 s against 2.0 s without it, over five runs from the built package on Node 24.21.0 and an Intel i9-10900K on 17 October 2026 |
 | **A header logo counted on every page the limit allows** | `MAX_SVG_DRAWING` is checked before the render, when only `maxPages` is known, not the pages the report will print ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)) | At a limit of 200 pages a header logo may cost 5,000 units however short the report; refusing inside pdfmake's header callback, which knows the count, would admit more |

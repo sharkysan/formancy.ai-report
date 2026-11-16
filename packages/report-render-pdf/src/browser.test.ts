@@ -9,16 +9,22 @@ import vfs from 'pdfmake/build/vfs_fonts.js'
 import type { ContentSvg, TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import {
   ALL_FIXTURES,
+  CHART_FIXTURES,
   E_INVOICE,
+  FIRST_PAGE_FIXTURES,
   inflatedDigest,
+  KEEP_WITH_FIXTURES,
+  QUOTATION,
   readAnnotations,
   readCodes,
   readPdf,
   readPdfObjects,
+  SHIFTED_FIXTURES,
   starterImages,
   SVG_FIXTURES,
   verify,
   verifyRefusal,
+  type Starter,
 } from '@formancy/report-corpus'
 import { resolveReport, type ResolvedDocument } from '@formancy/report-runtime'
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
@@ -29,6 +35,7 @@ import { converterOptions } from './svg-content.js'
 import { billDocument, resolvedBill, SIX_EXAMPLES } from './testing/bills.js'
 import { dataUrl, DECODED, imageOrder, SIDE } from './testing/decoding.js'
 import { documentOf, fixture, paragraph, TIMEOUT } from './testing/documents.js'
+import { BARS, EMPTY, LINE, PIE } from './testing/charts.js'
 import { face, THROWING } from './testing/fonts.js'
 import { encodePng } from './testing/images.js'
 import { DRAWINGS, MARK, rawSvgAsset, svg, SVG_THREATS, svgAsset } from './testing/svg.js'
@@ -66,11 +73,11 @@ afterAll(() => {
   expect([...warnings].filter((each) => !each.startsWith('No local access policy defined'))).toEqual([])
 })
 
-/** The de-DE e-invoice sample, resolved by the runtime in a final render: a document that carries its XML. */
-function eInvoiceDocument(): ResolvedDocument {
-  const outcome = resolveReport(E_INVOICE.report, E_INVOICE.data, {
+/** `starter` resolved by the runtime in a final render: the de-DE e-invoice sample's document carries its XML, and the quotation's none. */
+function finalDocument(starter: Starter): ResolvedDocument {
+  const outcome = resolveReport(starter.report, starter.data, {
     mode: 'final',
-    parameters: E_INVOICE.parameters,
+    parameters: starter.parameters,
     images: starterImages,
     creationDate: '2026-10-16T08:00:00Z',
   })
@@ -89,8 +96,11 @@ function serialised(definition: TDocumentDefinitions): string {
   return JSON.stringify({ definition, regions }, (_, value: unknown) => (typeof value === 'function' ? `function ${String(value)}` : value))
 }
 
-/** Every definition `render` hands `pdfmake`, in order. */
-async function definitions(pdfmake: typeof nodePdfmake, render: () => Promise<unknown>): Promise<string[]> {
+/** Every definition `render` hands `pdfmake`, in order, and the PDF it rendered, or none where it refused. */
+async function rendering(
+  pdfmake: typeof nodePdfmake,
+  render: () => Promise<Uint8Array>,
+): Promise<{ readonly passes: string[]; readonly bytes: Uint8Array | undefined }> {
   const seen: string[] = []
   const createPdf = pdfmake.createPdf.bind(pdfmake)
   const spy = vi.spyOn(pdfmake, 'createPdf').mockImplementation((definition, options) => {
@@ -98,27 +108,46 @@ async function definitions(pdfmake: typeof nodePdfmake, render: () => Promise<un
     return createPdf(definition, options)
   })
   try {
-    await render().catch(() => undefined)
+    return { passes: seen, bytes: await render().catch(() => undefined) }
   } finally {
     spy.mockRestore()
   }
-  return seen
 }
+
+/** Every definition `render` hands `pdfmake`, in order. */
+const definitions = async (pdfmake: typeof nodePdfmake, render: () => Promise<Uint8Array>): Promise<string[]> => (await rendering(pdfmake, render)).passes
 
 describe('the browser entry', () => {
   // Two entries that built their definitions apart could disagree about a
   // page break and nobody would find out until a browser preview and a
   // server's PDF differed. Every pass of every fixture: the measuring passes
-  // and the PDF, refusals included.
+  // and the PDF, refusals included. A chart's drawing names its classes
+  // and its clip paths by the zrender instance that laid it out and a
+  // count of each (`zr2-cls-8`, `zr8-c0`), numbers zrender advances with
+  // every chart laid out in the process: nothing is drawn by a class, the
+  // reader having removed the one style that read them (`chart-svg.ts`),
+  // and a clip path's name only ties it to where it is used. Each name is
+  // read as the order it first stands in its pass, so that which marks
+  // share a class or a clip is compared, and not what zrender numbered
+  // them. Each fixture either entry renders, the other renders too, and
+  // to the same PDF, every stream inflated (`inflatedDigest`).
   test(
-    'hands pdfmake the definitions the Node entry does, for every fixture',
+    'hands pdfmake the definitions the Node entry does, and renders the PDF it does, for every fixture',
     async () => {
-      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES]) {
+      const unnumbered = (passes: readonly string[]): string[] =>
+        passes.map((pass) => {
+          const order = new Map<string, number>()
+          return pass.replace(/\bzr\d+-[a-z]+(?:-\d+|\d+)\b/g, (name) => `zr-${String(order.get(name) ?? order.set(name, order.size).size - 1)}`)
+        })
+      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES, ...SHIFTED_FIXTURES]) {
         const options = { maxPages: each.maxPages }
-        const inNode = await definitions(nodePdfmake, () => renderInNode(each.document, options))
-        const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(each.document, options))
-        expect(inBrowser.length, each.id).toBe(inNode.length)
-        expect(inBrowser, each.id).toEqual(inNode)
+        const inNode = await rendering(nodePdfmake, () => renderInNode(each.document, options))
+        const inBrowser = await rendering(browserPdfmake, () => renderInBrowser(each.document, options))
+        expect(inBrowser.passes.length, each.id).toBe(inNode.passes.length)
+        expect(unnumbered(inBrowser.passes), each.id).toEqual(unnumbered(inNode.passes))
+        expect(inBrowser.bytes === undefined, each.id).toBe(inNode.bytes === undefined)
+        if (inNode.bytes !== undefined && inBrowser.bytes !== undefined)
+          expect(await inflatedDigest(inBrowser.bytes), each.id).toBe(await inflatedDigest(inNode.bytes))
       }
     },
     TIMEOUT,
@@ -130,7 +159,7 @@ describe('the browser entry', () => {
   test(
     'renders every fixture of the corpus as its checks expect, or refuses it as they allow',
     async () => {
-      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES]) {
+      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES, ...SHIFTED_FIXTURES]) {
         const rendered = await renderInBrowser(each.document, { maxPages: each.maxPages }).then(
           (bytes) => ({ bytes }),
           (error: unknown) => ({ error }),
@@ -252,7 +281,7 @@ describe('the browser entry', () => {
   test(
     'hands pdfmake the definitions the Node entry does for an e-invoice, which embeds the same XML beside the reviewed profile',
     async () => {
-      const document = eInvoiceDocument()
+      const document = finalDocument(E_INVOICE)
       const options = { maxPages: 5 }
       const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
       const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(document, options))
@@ -279,8 +308,52 @@ describe('the browser entry', () => {
   test(
     'renders an e-invoice to the same bytes',
     async () => {
-      const document = eInvoiceDocument()
+      const document = finalDocument(E_INVOICE)
       const [first, second] = await Promise.all([renderInBrowser(document, { maxPages: 5 }), renderInBrowser(document, { maxPages: 5 })])
+      expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
+    },
+    TIMEOUT,
+  )
+
+  // A PDF/A-2b drawn in a browser is the same archive a server draws: the
+  // same definitions, PDF/A-2b's version and subset among them, no file
+  // embedded, the output intent's profile the reviewed sRGB2014, and
+  // every object the Node entry draws, each stream inflated. The profile
+  // comes from the browser build's base64 copy here, as an e-invoice's
+  // does, which the licence guard cannot read inside a script (0006): the
+  // Node entry's test of a 2b would pass whatever the browser carried.
+  test(
+    'hands pdfmake the definitions the Node entry does for a PDF/A-2b, which carries the reviewed profile and embeds nothing',
+    async () => {
+      const document = finalDocument(QUOTATION)
+      const options = { maxPages: 5, pdfa: '2b' } as const
+      const inNode = await definitions(nodePdfmake, () => renderInNode(document, options))
+      const inBrowser = await definitions(browserPdfmake, () => renderInBrowser(document, options))
+      expect(inBrowser).toEqual(inNode)
+      expect(inBrowser.at(-1)).toContain('"version":"1.7","subset":"PDF/A-2b"')
+      const [nodeBytes, browserBytes] = [await renderInNode(document, options), await renderInBrowser(document, options)]
+      const browser = await readPdfObjects(browserBytes)
+      expect(
+        browser.outputIntents.map((intent) =>
+          createHash('sha256')
+            .update(intent.profile?.bytes ?? new Uint8Array())
+            .digest('hex'),
+        ),
+      ).toEqual([SRGB2014])
+      expect([browser.associatedFiles, browser.embeddedFiles]).toEqual([[], []])
+      expect(await inflatedDigest(browserBytes)).toBe(await inflatedDigest(nodeBytes))
+    },
+    TIMEOUT,
+  )
+
+  // An archived PDF is found again by its digest, or by nothing, in a
+  // browser as on a server.
+  test(
+    'renders a PDF/A-2b to the same bytes',
+    async () => {
+      const document = finalDocument(QUOTATION)
+      const options = { maxPages: 5, pdfa: '2b' } as const
+      const [first, second] = [await renderInBrowser(document, options), await renderInBrowser(document, options)]
       expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true)
     },
     TIMEOUT,
@@ -399,8 +472,10 @@ describe('the browser entry', () => {
     }
     const browser = reach('browser.ts')
     expect([...browser.external].sort()).toEqual(['@formancy/report-runtime', 'pdfmake/build/pdfmake.js', 'pdfmake/build/vfs_fonts.js', 'uqr'])
-    expect([...browser.dynamic]).toEqual(['./bill-fonts.js'])
+    expect([...browser.dynamic].sort()).toEqual(['./bill-fonts.js', './chart-draw.js'])
     expect(browser.files.has('bill-fonts.ts')).toBe(false)
+    // The drawing, which alone imports ECharts, is the render's import of a document with a chart that is not empty (R23).
+    expect(browser.files.has('chart-draw.ts')).toBe(false)
     const fonts = reach('bill-fonts.ts')
     expect([...fonts.external].sort()).toEqual(['../fonts/LiberationSans-Bold.ttf', '../fonts/LiberationSans-Regular.ttf'])
     expect(fonts.dynamic.size).toBe(0)
@@ -622,6 +697,75 @@ describe('the slip’s fonts in a browser', () => {
       }))
       for (let each = 0; each < 3; each += 1) await renderPdf(bill(), { maxPages: 5 })
       expect(loads).toBe(1)
+    },
+    TIMEOUT,
+  )
+})
+
+describe('the chart chunk in a browser', () => {
+  /** How many times a loader `loadOnce` was handed has run and resolved to the drawing, which only `chart-draw.js` exports. */
+  let loads = 0
+  /** A browser entry of its own, whose `loadOnce` counts each run of the loader it is handed that imports the drawing. */
+  async function freshEntry(): Promise<typeof renderInBrowser> {
+    loads = 0
+    vi.resetModules()
+    vi.doMock('./engine.js', async (importOriginal) => {
+      const original = await importOriginal<typeof import('./engine.js')>()
+      return {
+        ...original,
+        loadOnce: <T>(load: () => Promise<T>) =>
+          original.loadOnce(async () => {
+            const loaded = await load()
+            if (typeof loaded === 'object' && loaded !== null && 'drawChart' in loaded) loads += 1
+            return loaded
+          }),
+      }
+    })
+    return (await import('./browser.js')).renderPdf
+  }
+  afterEach(() => {
+    vi.doUnmock('./engine.js')
+    vi.resetModules()
+  })
+
+  // ECharts and zrender are most of a browser bundle's weight; a page that
+  // prints no chart, or only a chart with nothing to draw, would fetch them
+  // for nothing, and a host that renders many charts would import them
+  // again for each, a browser's module map aside. A `vi.doMock` factory runs
+  // once per registry whatever is imported, so it cannot count that: the
+  // count is of the loader `render.ts` hands `loadOnce`, which runs and
+  // resolves to the drawing once for every load. None for a document without
+  // a chart or with an empty one, one for the first chart that has marks,
+  // and no more for the next charts, which are drawn from the kept one.
+  // The renders run one after another.
+  test(
+    'never loads ECharts for a document without a chart, or with only an empty one, and loads it once for the first',
+    async () => {
+      const renderPdf = await freshEntry()
+      await renderPdf(documentOf('Text', [paragraph('Invoice 2026-0042')]), { maxPages: 5 })
+      await renderPdf(documentOf('Empty', [EMPTY]), { maxPages: 5 })
+      expect(loads).toBe(0)
+      await renderPdf(documentOf('Charts', [BARS]), { maxPages: 5 })
+      expect(loads).toBe(1)
+      await renderPdf(documentOf('More', [PIE, LINE]), { maxPages: 5 })
+      expect(loads).toBe(1)
+    },
+    TIMEOUT,
+  )
+
+  // A browser preview whose chart differed from the server's would show a
+  // layout nobody prints. The same definitions are not enough (ECharts runs
+  // in the entry's own pdfmake measurements), so the PDFs are compared as
+  // the e-invoice's are: every object, each stream inflated, since the
+  // browser build deflates with a zlib of its own.
+  test(
+    'renders a document with charts to the same document as the Node entry, every stream inflated',
+    async () => {
+      const document = documentOf('Charts', [BARS, PIE, LINE, EMPTY])
+      const options = { maxPages: 5 }
+      const [inNode, inBrowser] = [await renderInNode(document, options), await renderInBrowser(document, options)]
+      expect(await inflatedDigest(inBrowser)).toBe(await inflatedDigest(inNode))
+      expect((await readPdf(inBrowser)).pages[0]!.items.map((item) => item.text)).toContain('Sales')
     },
     TIMEOUT,
   )

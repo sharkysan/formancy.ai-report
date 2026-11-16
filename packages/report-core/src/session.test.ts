@@ -1,9 +1,11 @@
 import { componentAt, reportHash } from '@formancy/report-spec'
-import type { Component, ReportDefinition } from '@formancy/report-spec'
+import type { Component, ReportDefinition, TextComponent } from '@formancy/report-spec'
 import { describe, expect, test, vi } from 'vitest'
-import { duplicateComponent, insertComponent, removeComponent } from './commands/components.js'
+import { duplicateComponent, insertComponent, removeComponent, updateComponent } from './commands/components.js'
 import { putStyle, removeStyle } from './commands/declarations.js'
 import { setTitle } from './commands/document.js'
+import { updateColumn } from './commands/table.js'
+import { diagnose } from './diagnostics/diagnose.js'
 import type { CommandOutcome } from './outcome.js'
 import type { Draft } from './draft.js'
 import { openReportSession } from './session.js'
@@ -111,6 +113,33 @@ describe('apply', () => {
     expect(refusal).toMatchObject({ code: 'invalid-document', path: '/regions/reportHeader/0/columns/1/components/0/style', componentId: 'title' })
     expect(refusal.errors?.map(({ code }) => code)).toEqual(['unknown-style'])
     expectUnchanged(session, before, 0, notified, 0)
+  })
+
+  // A run set below or above the line (0061) is a property of the run, and
+  // the session carries it whole: one edit, one undo step, and what the
+  // diagnostics find is what they found with the run on the line. Where
+  // the format has no place for one, a table's cell, the validator refuses
+  // the edit, and nothing changes (0008). A session that rebuilt runs, or
+  // took the cell's, would print a formula on the line or a cell moved.
+  test("carries a run set below the line as one undo step, and refuses one in a table's cell, changing nothing", () => {
+    const { session, notified } = watched()
+    const before = session.document()
+    const intro = componentAt(before, 'intro')?.component as TextComponent
+    const content = intro.content.map((run, index) => (index === 1 ? { ...run, baseline: 'subscript' as const } : run))
+    accepted(session.apply((report) => updateComponent(report, 'intro', 'text', { content })))
+    expect((componentAt(session.document(), 'intro')?.component as TextComponent).content).toEqual(content)
+    expect(diagnose(session.document())).toEqual(diagnose(before))
+    expect([session.revision(), notified()]).toEqual([1, 1])
+    expect(session.undo()).toBe(true)
+    expect(session.document()).toBe(before)
+
+    const now = session.document()
+    const value = { kind: 'field', field: { dataset: 'detail', field: 'sku' }, baseline: 'superscript' } as const
+    const refusal = refused(session.apply((report) => updateColumn(report, 'lines', 'sku', { value })))
+    expect(refusal).toMatchObject({ code: 'invalid-document', path: '/regions/body/2/columns/0/value/baseline', componentId: 'lines' })
+    expect(refusal.errors?.map(({ code }) => code)).toEqual(['misplaced-baseline'])
+    expect([session.document(), session.revision(), notified(), session.canRedo()]).toEqual([now, 2, 2, true])
+    expect(session.document()).toBe(now)
   })
 
   // An edit that changes nothing -- a property field committed on blur with

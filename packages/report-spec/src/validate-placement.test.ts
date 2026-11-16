@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { REGION_NAMES } from './definition.js'
 import { MAX_NESTING_DEPTH, MAX_REGION_COMPONENTS } from './limits.js'
-import { append, edited, editable, getAt, refusals, removeAt, richReport, setAt } from './test-support.js'
+import { append, edited, editable, everyRegionReport, getAt, refusals, removeAt, setAt } from './test-support.js'
 import { EXPRESSION_NAMES } from './values.js'
 
 const FLOW_REGIONS: readonly string[] = ['body', 'summary']
@@ -14,10 +14,11 @@ function takeTable(report: Record<string, unknown>): unknown {
 }
 
 describe('where components may stand', () => {
-  // Page regions repeat on every page at a fixed height; a block that flows,
-  // breaks or holds a growing table there has no defined layout. Each of the
-  // three is refused in each of the three page-bound regions and read in
-  // both flowing ones.
+  // Page regions are drawn at a fixed height, on every page or on the
+  // first; a block that flows, breaks or holds a growing table there has no
+  // defined layout. Each of the three is refused in each page-bound region
+  // -- the first page header among them, put in empty to be found (0060)
+  // -- and read in both flowing ones.
   test('tables, page breaks and keep-together blocks only in the body and the summary', () => {
     for (const region of REGION_NAMES) {
       const allowed = FLOW_REGIONS.includes(region)
@@ -25,11 +26,11 @@ describe('where components may stand', () => {
         { id: 'moved', kind: 'pageBreak' },
         { id: 'moved', kind: 'keepTogether', components: [] },
       ]) {
-        const report = editable(richReport())
+        const report = editable(everyRegionReport())
         const at = append(report, `/regions/${region}`, component)
         expect(refusals(report), `${component.kind} in ${region}`).toEqual(allowed ? [] : [`misplaced-flow-component ${at}`])
       }
-      const report = editable(richReport())
+      const report = editable(everyRegionReport())
       const at = append(report, `/regions/${region}`, takeTable(report))
       expect(refusals(report), `table in ${region}`).toEqual(allowed ? [] : [`misplaced-flow-component ${at}`])
     }
@@ -140,12 +141,13 @@ describe('where values may stand', () => {
   })
 
   // A page number has a value only where pages are drawn: in the page
-  // header and footer. Everywhere else -- the report header, the body, the
+  // header and footer. Everywhere else -- the report header, the first
+  // page's own header, drawn before pages are counted (0060), the body, the
   // summary, a table's cells, group headers and footers -- it is refused.
   test('page numbers and counts only in the page header and footer', () => {
     for (const region of REGION_NAMES) {
       for (const counter of [{ kind: 'pageNumber' }, { kind: 'pageCount' }]) {
-        const report = edited((r) => setAt(r, `/regions/${region}/0`, { id: 'counter', kind: 'text', content: [counter] }))
+        const report = edited((r) => setAt(r, `/regions/${region}/0`, { id: 'counter', kind: 'text', content: [counter] }), everyRegionReport())
         const allowed = region === 'pageHeader' || region === 'pageFooter'
         expect(refusals(report), `${counter.kind} in ${region}`).toEqual(allowed ? [] : [`misplaced-page-counter /regions/${region}/0/content/0`])
       }

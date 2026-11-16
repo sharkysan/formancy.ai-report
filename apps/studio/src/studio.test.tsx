@@ -2,8 +2,11 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { editorText, SCENARIO_PNG } from '@formancy/report-builder-core'
+import { wordExpressions } from '@formancy/report-core'
 import type { ReportSession } from '@formancy/report-core'
 import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
+import { reportWords } from '@formancy/report-spec'
+import type { ReportDefinition } from '@formancy/report-spec'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest'
@@ -50,6 +53,8 @@ const seen = vi.hoisted(() => ({
   requests: [] as { readonly id: string; readonly mode: string; readonly title: string; readonly account: string | undefined }[],
   /** How each preview ended -- printed, refused with the runtime's codes, or not drawn with the renderer's -- and the assets its report declared. */
   outcomes: [] as { readonly assets: readonly string[]; readonly kind: string }[],
+  /** The language each preview was asked to print in (0063), and how it ended, as `outcomes` says. */
+  languages: [] as { readonly locale: string | undefined; readonly kind: string }[],
   /** Each session the workspace opened, and how many subscriptions it has now. */
   subscriptions: new Map<object, number>(),
 }))
@@ -68,6 +73,7 @@ vi.mock('./preview/pipeline.js', async (importOriginal) => {
             ? `refused: ${outcome.errors.map((error) => error.code).join()}`
             : `not drawn: ${outcome.refusal.code}`
       seen.outcomes.push({ assets: request.report.assets.map((asset) => asset.id), kind })
+      seen.languages.push({ locale: request.locale, kind })
       return outcome
     },
   }
@@ -131,6 +137,7 @@ afterEach(() => {
   workspace?.dispose()
   seen.requests.length = 0
   seen.outcomes.length = 0
+  seen.languages.length = 0
 })
 
 type User = ReturnType<typeof userEvent.setup>
@@ -169,6 +176,24 @@ const tool = (name: 'Undo' | 'Redo', description?: string): HTMLElement =>
 const available = (button: HTMLElement): boolean => button.getAttribute('aria-disabled') !== 'true'
 const picker = (): HTMLElement => screen.getByRole('combobox', { name: 'Starter' })
 const subscriptions = (session: ReportSession): number | undefined => seen.subscriptions.get(session)
+/** The bar's switch between the languages a report is written in (0063). */
+const language = (): HTMLSelectElement => within(editor()).getByRole('combobox', { name: t('language.label') })
+
+/**
+ * `report` written in French too: every word, and every expression that
+ * prints words, as itself -- each therefore valid where it stands -- but
+ * `missing`, which the French lacks.
+ */
+function frenchBut(report: ReportDefinition, missing: string): ReportDefinition {
+  const words = [...new Set(reportWords(report).map(({ text }) => text))].filter((word) => word !== missing)
+  const expressions = [...new Set(wordExpressions(report).map(({ cel }) => cel))]
+  return {
+    ...report,
+    translations: [
+      { locale: 'fr-CH', words: words.map((word) => ({ word, text: word })), expressions: expressions.map((cel) => ({ cel, expression: { cel } })) },
+    ],
+  }
+}
 
 /**
  * Which framework drew the builder. The one question no role answers: the
@@ -339,6 +364,41 @@ describe('the Studio', () => {
     await user.click(tool('Redo'))
     await waitFor(() => expect(iban().value).toBe(typed))
     await waitFor(() => expect(seen.requests.at(-1)?.account).toBe(typed))
+    expect(await violations()).toEqual([])
+  })
+
+  // The Preview prints in the language the builder shows (0063), which is
+  // the editor's, so the switch between frameworks keeps it: French chosen
+  // in React is Angular's too; refused by the runtime while a word is
+  // missing in it, it prints once the word is written in Angular; and the
+  // report's own, chosen again, prints the report's own. A Preview that
+  // printed the report's own words under a French switch would show a
+  // translator nothing of their work, and one that lost the language with
+  // the framework would print another than the builder shows.
+  test('previews the language the builder shows, across the framework switch', async () => {
+    const { workspace: opened, user } = mount()
+    await user.selectOptions(picker(), 'Quotation')
+    await screen.findByText('Preview: printed.')
+    const { session } = opened.open('quotation')
+    act(() => {
+      session.apply((report) => ({ ok: true, report: frenchBut(report, 'Offerte') }), { label: 'Write the quotation in French' })
+    })
+    await user.selectOptions(language(), 'fr-CH')
+    await screen.findByText(/^Preview: refused by the runtime/, undefined, { timeout: 5000 })
+    expect(seen.languages.at(-1)).toMatchObject({ locale: 'fr-CH', kind: expect.stringMatching(/word-missing/) as string })
+
+    await show(user, 'Angular')
+    expect(language().value).toBe('fr-CH')
+    expect(title().value).toBe('')
+    expect(title().placeholder).toBe('Offerte')
+    await user.type(title(), 'Offre')
+    await user.tab()
+    await waitFor(() => expect(seen.languages.at(-1)).toMatchObject({ locale: 'fr-CH', kind: 'printed' }), { timeout: 5000 })
+    await screen.findByText('Preview: printed.')
+
+    await user.selectOptions(language(), 'de-CH')
+    await waitFor(() => expect(seen.languages.at(-1)).toMatchObject({ locale: 'de-CH', kind: 'printed' }), { timeout: 5000 })
+    expect(title().value).toBe('Offerte')
     expect(await violations()).toEqual([])
   })
 

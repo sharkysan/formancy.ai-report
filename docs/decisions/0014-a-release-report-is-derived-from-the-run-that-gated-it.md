@@ -15,7 +15,10 @@
   ([0027](0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)),
   and which judges the PDF/A-3b too, with veraPDF, so that the report
   judges each file by the tools of its format
-  ([0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)).
+  ([0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md));
+  and extended by
+  [0057](0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md),
+  whose PDF/A-2b format veraPDF alone judges.
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `report` job in `.github/workflows/gates.yml`, which

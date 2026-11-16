@@ -217,14 +217,18 @@ const select = (node: OutlineNode | null): EditorAction =>
  * given its place back; the place chooser for every kind the palette
  * offers, each kind that has a place then placed there; every row
  * selected; a move's chooser; a condition naming no parameter, with its
- * problem; a top margin the page cannot hold, refused; the QR-bill --
+ * problem; page 1 given a header of its own, a text put in it from the
+ * place chooser, and the page header given back (0060); a top margin the
+ * page cannot hold, refused; the QR-bill --
  * the invoice's, or one added from SIX's example to a starter without one
  * -- selected, an IBAN its rules refuse refused on its field, its debtor
  * taken away and given back, the bill deleted and brought back (0039); the
  * e-invoice, where the starter has one, selected, its seller's name typed,
  * a rate refused on its field, a VAT category taken away, added, moved and
  * the three undone, its IBAN typed once for every payment code and undone,
- * and the e-invoice deleted and brought back (0044); an
+ * and the e-invoice deleted and brought back (0044); a language added at
+ * the report's level, chosen in the bar, a row of each kind selected in
+ * it, a word written in it, and the language removed (0063); an
  * image being added, Add image… pressed while it is, and the image listed,
  * then removed; undo and redo; each pane; the zoom; and the Preview shown in
  * the middle again, a pane hidden and shown beside it, the Preview placed
@@ -270,6 +274,18 @@ async function walk({ editor, react, angular, app, release }: Mounted): Promise<
   if (condition === undefined) throw new Error('a text has no condition field')
   await dispatch({ type: 'setProperty', key: condition.key, value: 'params.missing' }, 'a condition naming no parameter')
   await dispatch(select(null), 'the report selected')
+  // Page 1 given a header of its own from the report's properties, which
+  // no starter has (0060): its group in the outline and its band in the
+  // design view, before the page header's, a place in it in the chooser, a
+  // text put there, and the page header given back, taking both away.
+  const choice = '/regions/firstPageHeader'
+  await dispatch({ type: 'setProperty', key: choice, value: 'firstPageHeader' }, 'page 1 given a header of its own')
+  await dispatch({ type: 'startDrag', subject: { kind: 'text' }, via: 'keyboard' }, 'the place chooser with page 1’s own header')
+  const own = editor.state().dropTargets.find((target) => target.location.region === 'firstPageHeader')
+  if (own === undefined) throw new Error('page 1’s own header offers a text no place')
+  await dispatch({ type: 'insert', kind: 'text', target: own.location }, 'a text in page 1’s own header')
+  await dispatch(select(null), 'the report selected, page 1 printing its own header')
+  await dispatch({ type: 'setProperty', key: choice, value: 'pageHeader' }, 'page 1 given the page header back')
   const margin = editor.state().properties.fields.find((field) => field.kind === 'length')
   if (margin === undefined) throw new Error('the report has no length field')
   await dispatch({ type: 'setProperty', key: margin.key, value: '400' }, 'a margin the page cannot hold, refused')
@@ -300,6 +316,18 @@ async function walk({ editor, react, angular, app, release }: Mounted): Promise<
     await dispatch({ type: 'delete' }, 'the e-invoice deleted')
     await dispatch({ type: 'undo' }, 'the e-invoice brought back')
   }
+  // A language added and chosen: the switch in the bar, the boxes marked
+  // missing and described so, and the fields at words with their notes,
+  // in a form of each kind (0063).
+  await dispatch(select(null), 'the report selected for its languages')
+  await dispatch({ type: 'setProperty', key: '/translations/-', value: 'fr-CH' }, 'a language added')
+  await dispatch({ type: 'setLanguage', locale: 'fr-CH' }, 'the language added shown')
+  for (const node of kinds.values()) await dispatch(select(node), `${node.label} selected in the language added`)
+  await dispatch(select(text), 'a text selected in the language added')
+  const word = editor.state().properties.fields.find((field) => field.missing === true)
+  if (word === undefined) throw new Error('a text in the language added shows no word to write')
+  await dispatch({ type: 'setProperty', key: word.key, value: 'Mot' }, 'a word written in the language added')
+  await dispatch({ type: 'removeLanguage', locale: 'fr-CH' }, 'the language removed')
   await dispatch(select(null), 'the report selected again')
   const file = { name: 'logo.png', size: SCENARIO_PNG.length, arrayBuffer: async () => Uint8Array.from(SCENARIO_PNG).buffer }
   let adding: Promise<unknown> = Promise.resolve()
@@ -341,9 +369,14 @@ describe('the two builders, side by side over one editor', () => {
           expect.arrayContaining([
             'opened, the Preview in the design view’s place',
             'a condition naming no parameter',
+            'page 1 given a header of its own',
+            'a text in page 1’s own header',
+            'page 1 given the page header back',
             'a margin the page cannot hold, refused',
             'the QR-bill selected',
             'the QR-bill deleted',
+            'the language added shown',
+            'a word written in the language added',
             'an image being added',
             'the image removed',
             'zoomed in',

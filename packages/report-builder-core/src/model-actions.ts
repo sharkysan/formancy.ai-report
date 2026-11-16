@@ -4,7 +4,7 @@
  * `model.ts`'s state because actions change for reasons of their own.
  */
 import type { Location, Refusal } from '@formancy/report-core'
-import type { ComponentKind } from '@formancy/report-spec'
+import type { BaselineShift, ComponentKind } from '@formancy/report-spec'
 import type { DragSubject, EditorPanel, HideablePanel, HostViewPlace, ReportLevelPart } from './model.js'
 
 /** What a builder asks of the editor. Every pointer gesture has one a keyboard reaches too. */
@@ -71,6 +71,39 @@ export type EditorAction =
   | { readonly type: 'removeItem'; readonly key: string }
   /** Moves the item at `key` to the position `to` of its list, in one undo step. */
   | { readonly type: 'moveItem'; readonly key: string; readonly to: number }
+  /** Shows and edits the report's words in `locale`, its own or one a translation declares: the editor's own, never the report's (0063). */
+  | { readonly type: 'setLanguage'; readonly locale: string }
+  /** Removes the report's translation into `locale`, with its words, in one undo step. A language is added by typing its tag into the report's Add language. */
+  | { readonly type: 'removeLanguage'; readonly locale: string }
+  /**
+   * Sets the run at `key` of the selected text -- "/content/1" -- below or
+   * above the line, or back on it with `null`, in one undo step (0061): the
+   * characters `selected` in its field, where a builder adds the field's
+   * selection, else the whole run.
+   */
+  | { readonly type: 'setBaseline'; readonly key: string; readonly baseline: BaselineShift | null; readonly selected?: FieldSelection }
+
+/**
+ * What a builder reads from a run's field when one of its buttons is
+ * pressed, the one thing the DOM knows and the editor does not: the
+ * selection's start and end, in UTF-16 code units as a text field counts
+ * them, and the text the field showed, which the selection is of (0061).
+ */
+export interface FieldSelection {
+  readonly start: number
+  readonly end: number
+  readonly text: string
+}
+
+/**
+ * Where the keyboard goes once an action is done and drawn: the button at
+ * `button` of the properties' group whose key is `group`, or, without
+ * `button`, that group's first field.
+ */
+export interface GroupFocus {
+  readonly group: string
+  readonly button?: number
+}
 
 export type EditorActionType = EditorAction['type']
 
@@ -80,7 +113,7 @@ export const EDITOR_REFUSAL_CODES = [
   'disposed',
   /** The action is about the selection, and nothing is selected. */
   'nothing-selected',
-  /** The component, column or target the action names is not there. */
+  /** The component, column, target or language the action names is not there. */
   'not-found',
   /** First or last already: a move up, a move down, an indent or an outdent with nowhere to go, or a step out of a top-level row or into one that holds nothing; any move or copy of a part of the report's own level, which has one place; and an item of a list moved past either end. */
   'at-edge',
@@ -117,8 +150,14 @@ export const EDITOR_REFUSAL_CODES = [
 
 export type EditorRefusalCode = (typeof EDITOR_REFUSAL_CODES)[number]
 
+/**
+ * What became of an action: done, and, where it decided where the keyboard
+ * goes only once it was done, there (`then`) -- a run's button after a
+ * split moved the run it set (0061); or refused, and why.
+ */
 export type EditorOutcome =
-  { readonly ok: true } | { readonly ok: false; readonly code: EditorRefusalCode; readonly message: string; readonly refusal?: Refusal }
+  | { readonly ok: true; readonly then?: GroupFocus }
+  | { readonly ok: false; readonly code: EditorRefusalCode; readonly message: string; readonly refusal?: Refusal }
 
 /** The outcome of an action that did what it was asked: one frozen object, the editor's and each of its parts'. */
 export const DONE: EditorOutcome = Object.freeze({ ok: true })

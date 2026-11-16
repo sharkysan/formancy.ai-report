@@ -1,7 +1,8 @@
-import { RenderRefusal, type Block, type Paragraph, type Table, type TextStyle } from '@formancy/report-runtime'
+import { RenderRefusal, SHIFTED_SIZE, type Block, type Paragraph, type Table, type TextStyle } from '@formancy/report-runtime'
 import type { RowKind } from './build.js'
 import { frameOf, runFace } from './content.js'
 import type { FaceWanted, RenderFonts } from './host-fonts.js'
+import { isShifted, loweredLineHeight } from './shifted.js'
 import { DEFAULT_SIZE } from './style.js'
 import { cellFace, cellSize, PADDING_Y, styledRows } from './table.js'
 
@@ -73,14 +74,21 @@ function line(size: number, wanted: FaceWanted, fonts: Pick<RenderFonts, 'face'>
 /**
  * One line of the paragraph, as tall as its tallest run's, since pdfmake
  * lays a line out as tall as the tallest run on it; nothing for a paragraph
- * of no runs. It is the least a paragraph takes of the body, and a line of
- * it no page can hold, which check.ts refuses where it is taller than the
- * body.
+ * of no runs. A run set below or above the line is laid out at
+ * `SHIFTED_SIZE` of the paragraph's size, as pdfmake sets it, and one below
+ * it with the room the renderer asks of pdfmake for it, `loweredLineHeight`
+ * (0061). It is the least a paragraph takes of the body, and a line of it
+ * no page can hold, which check.ts refuses where it is taller than the body.
  */
 export function paragraphLine(paragraph: Paragraph, fonts: Pick<RenderFonts, 'face'>): number {
   const size = paragraph.style?.size ?? DEFAULT_SIZE
   let tallest = 0
-  for (const run of paragraph.runs) tallest = Math.max(tallest, line(size, runFace(paragraph.style, run), fonts))
+  for (const run of paragraph.runs) {
+    const wanted = runFace(paragraph.style, run)
+    const own = line(isShifted(run) ? SHIFTED_SIZE * size : size, wanted, fonts)
+    const room = 'text' in run && run.baseline === 'subscript' ? loweredLineHeight(line(1, wanted, fonts)) : 1
+    tallest = Math.max(tallest, own * room)
+  }
   return tallest
 }
 
@@ -104,19 +112,27 @@ function tableHeight(table: Table, fonts: Pick<RenderFonts, 'face'>): number {
 
 /**
  * Refuses a body whose least height needs more than `maxPages` pages of
- * `bodyHeight`, with `reserved` points more at its end: the room a QR-bill's
- * slip keeps on the last page. That room is less than a page's body, so it
- * takes at least its own height of the pages whether it ends the last page
- * of the body or starts one of its own, and the two heights together stay
- * a least height.
+ * body -- page 1's, `bodies.first`, under its own header where it has one
+ * (0060), and the later pages', `bodies.later` -- with `reserved` points
+ * more at its end: the room a QR-bill's slip keeps on the last page. That
+ * room is less than a page's body, so it takes at least its own height of
+ * the pages whether it ends the last page of the body or starts one of its
+ * own, and the two heights together stay a least height.
  */
-export function refuseOversized(blocks: readonly Block[], bodyHeight: number, maxPages: number, fonts: Pick<RenderFonts, 'face'>, reserved = 0): void {
+export function refuseOversized(
+  blocks: readonly Block[],
+  bodies: { readonly first: number; readonly later: number },
+  maxPages: number,
+  fonts: Pick<RenderFonts, 'face'>,
+  reserved = 0,
+): void {
   const height = leastHeight(blocks, fonts) + reserved
-  if (height > maxPages * bodyHeight) {
+  const room = maxPages * bodies.later + (bodies.first - bodies.later)
+  if (height > room) {
     const slip = reserved > 0 ? `, the ${reserved.toFixed(2)} pt the payment part's slip keeps at its end included` : ''
     throw new RenderRefusal(
       'too-many-pages',
-      `the report needs more than ${maxPages} pages: its body is at least ${height.toFixed(2)} pt tall${slip}, and ${maxPages} pages hold ${(maxPages * bodyHeight).toFixed(2)} pt`,
+      `the report needs more than ${maxPages} pages: its body is at least ${height.toFixed(2)} pt tall${slip}, and ${maxPages} pages hold ${room.toFixed(2)} pt`,
     )
   }
 }

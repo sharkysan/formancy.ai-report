@@ -110,12 +110,20 @@ function printed(
   return undefined
 }
 
-/** `inline`, at `path` in the report, as the run it prints in `scope`; undefined when it could not be, which is recorded. */
+/**
+ * `inline`, at `path` in the report, as the run it prints in `scope`;
+ * undefined when it could not be, which is recorded. A run carries the
+ * baseline its source sets (0061), and a run that sets none carries no key,
+ * so that the document of a report that sets none is the one it was. A
+ * table's cell joins its runs' text and drops it, where report-spec refuses
+ * one.
+ */
 export function runOf(render: Render, scope: Scope, inline: ReportInline, path: string, owner: Owner): Inline | undefined {
-  if (inline.kind === 'text') return { text: inline.text }
   if (inline.kind === 'pageNumber' || inline.kind === 'pageCount') return { field: inline.kind }
+  const shift = inline.baseline === undefined ? {} : { baseline: inline.baseline }
+  if (inline.kind === 'text') return { text: inline.text, ...shift }
   const run = printed(render, scope, inline, path, owner)
-  return run && { text: run.text }
+  return run && { text: run.text, ...shift }
 }
 
 /** What holds runs a code encodes, as an error names it: a QR code's or an EPC QR code's component, or the payment part. */

@@ -1,9 +1,12 @@
 import type { Node, NodeQueries } from 'pdfmake/interfaces.js'
-import type { Block, EpcQrCode, FontFamily, ImageAsset, QrCode, Table, TableRow } from '@formancy/report-runtime'
+import type { Block, Chart, EpcQrCode, FontFamily, ImageAsset, QrCode, Table, TableRow } from '@formancy/report-runtime'
 import type { CheckedImage } from './assets.js'
 import type { KeepBlock } from './breaks.js'
-import type { RenderFonts } from './host-fonts.js'
+import type { DrawnChart } from './chart-draw.js'
+import type { PlacedWord } from './chart-svg.js'
+import type { FaceWanted, RenderFonts } from './host-fonts.js'
 import type { QrSymbol } from './qr.js'
+import type { ShiftedRoom } from './shifted.js'
 import type { WordRoom } from './words.js'
 
 /**
@@ -50,6 +53,17 @@ export const UNPLANNED: TablePlan = { dontBreakRows: false, keepWithHeaderRows: 
 /** What a row of a table is, as pdfmake lays it out: the column header, the empty text, or one of the document's rows. */
 export type RowKind = TableRow['kind'] | 'header' | 'empty'
 
+/** A chart as the render drew it (`drawCharts`): ECharts' marks and its words (`chart-draw.ts`), or, for a chart with nothing to draw, its words alone, which the renderer placed (`chart-empty.ts`). */
+export type ChartDrawing = DrawnChart | { readonly words: readonly PlacedWord[] }
+
+/** A table's row as the body pass measures it: its kind, the mark on its first cell, the rows it keeps and whether it prints, as its plan reads them. */
+export interface MeasuredRow {
+  readonly kind: RowKind
+  readonly mark: number
+  readonly keep: number
+  readonly prints: boolean
+}
+
 /** The values of the page fields, known only in a page region and only to pdfmake's header and footer functions. */
 export interface Fields {
   readonly pageNumber: number
@@ -58,28 +72,40 @@ export interface Fields {
 
 export interface Build {
   readonly mode: 'measure' | 'render'
-  /** Where the body starts on every page, from the top of the paper. */
+  /** Where the body starts on every page, from the top of the paper: under the page header, and on page 1 too but where page 1 prints a header of its own (`firstShift`). */
   readonly bodyTop: number
   /** Where it ends. */
   readonly bodyBottom: number
+  /**
+   * How much lower page 1's body starts than `bodyTop`: the room page 1's
+   * own header takes less the page header's (0060), negative where it takes
+   * less; nothing where page 1 prints the page header.
+   */
+  readonly firstShift: number
   readonly plans: ReadonlyMap<Table, TablePlan>
   /** Each image asset as the asset checks read it. */
   readonly assets: ReadonlyMap<ImageAsset, CheckedImage>
   /** Each QR code's and EPC QR code's symbol, as the checks encoded it. */
   readonly codes: ReadonlyMap<QrCode | EpcQrCode, QrSymbol>
+  /** Each chart of the body as the render drew it, every pass alike; none in a build made before the charts are drawn, the page regions', where check.ts refuses a chart. */
+  readonly charts: ReadonlyMap<Chart, ChartDrawing>
   /** Filled in: each asset's key in pdfmake's image dictionary, and the dictionary. */
   readonly imageKeys: Map<ImageAsset, string>
   readonly images: Record<string, string>
   /** Filled in: the rules for marked nodes, by mark. */
   readonly rules: Map<number, BreakRule>
-  /** Filled in, in measure mode: each table's rows as pdfmake lays them out, with the mark on each one's first cell. */
-  readonly measuredRows: Map<Table, readonly { readonly kind: RowKind; readonly mark: number }[]>
+  /** Filled in, in measure mode: each table's rows as pdfmake lays them out, with the mark on each one's first cell, how many rows each keeps and whether it prints (`breaks.ts`). */
+  readonly measuredRows: Map<Table, readonly MeasuredRow[]>
   /** Where each paragraph stands in the document, `body[2]`, for a refusal to name. */
   readonly paths: ReadonlyMap<Block, string>
   /** The pdfmake family a font token prints in (0043): Roboto, or the host family the report maps it to. */
   readonly familyOf: (token: FontFamily) => string
+  /** The line of the face a run prints in, as a fraction of its size: check.ts resolved every face a block prints in before anything is built. */
+  readonly lineOf: (wanted: FaceWanted) => number
   /** Filled in: every text node whose widest word is held to its room once pdfmake has measured it (`words.ts`). */
   readonly words: WordRoom[]
+  /** Filled in: every paragraph that sets a run below or above the line, whose words are held to it once pdfmake has measured them (`shifted.ts`). */
+  readonly shifted: ShiftedRoom[]
   /** The next unused mark. */
   next: number
 }
@@ -90,26 +116,31 @@ export function newBuild(
     readonly assets: ReadonlyMap<ImageAsset, CheckedImage>
     readonly codes: ReadonlyMap<QrCode | EpcQrCode, QrSymbol>
     readonly paths: ReadonlyMap<Block, string>
+    readonly charts: ReadonlyMap<Chart, ChartDrawing>
   },
   fonts: RenderFonts,
-  body: { readonly top: number; readonly bottom: number } = { top: 0, bottom: 0 },
+  body: { readonly top: number; readonly bottom: number; readonly firstShift?: number } = { top: 0, bottom: 0 },
   plans: ReadonlyMap<Table, TablePlan> = new Map(),
 ): Build {
-  const { assets, codes, paths } = checked
+  const { assets, codes, paths, charts } = checked
   return {
     mode,
     bodyTop: body.top,
     bodyBottom: body.bottom,
+    firstShift: body.firstShift ?? 0,
     plans,
     assets,
     codes,
+    charts,
     paths,
     familyOf: fonts.familyOf,
+    lineOf: (wanted) => fonts.face(wanted.token, wanted.bold, wanted.italic, '').lineFactor,
     imageKeys: new Map(),
     images: {},
     rules: new Map(),
     measuredRows: new Map(),
     words: [],
+    shifted: [],
     next: 1,
   }
 }

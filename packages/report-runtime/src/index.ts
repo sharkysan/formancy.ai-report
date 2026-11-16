@@ -1,4 +1,4 @@
-export { REFUSAL_CODES, RenderRefusal } from './document.js'
+export { REFUSAL_CODES, RenderRefusal, SHIFTED_RISE, SHIFTED_SIZE } from './document.js'
 export type {
   Block,
   Columns,
@@ -51,6 +51,8 @@ export { groupRows, orderKeys, orderRows, orderTable } from './sort-group.js'
 export type { OrderedRow, OrderedTable, OrderKey, RowGroup } from './sort-group.js'
 export { MAX_CHART_CATEGORIES, SHARE_PLACES } from './lower-chart.js'
 export { MAX_TICK_INTERVALS } from './chart-ticks.js'
+/** report-spec's bound on a chart's series, one colour each from its palette, handed on beside the runtime's own, so that a renderer holds a block to it rather than to a copy. */
+export { MAX_CHART_SERIES } from '@formancy/report-spec'
 export { CAPABILITIES, EVALUATION_ERROR_CODES, EXPRESSION_STEP_BUDGET, prepareExpressions, RENDER_STEP_BUDGET } from './evaluate.js'
 export type { ConditionEvaluation, Evaluation, EvaluationError, EvaluationErrorCode, ExpressionsPreparation, ReportExpressions } from './evaluate.js'
 
@@ -63,6 +65,15 @@ export type { ResolveErrorCode, RuntimeError, RuntimeStage } from './resolve-err
 export type { AssetResolver, ImageBytes, ImageRef, ImageResolver } from './render-context.js'
 /** The definition `resolveReport` reads, so that a caller of the runtime names it without depending on report-spec itself. */
 export type { ReportDefinition } from '@formancy/report-spec'
+/** report-spec's bound on the rows a group header is kept with, handed on so that an engine holds a group header row's `keepWithRows` to it rather than to a copy (0059). */
+export { MAX_KEEP_WITH_ROWS } from '@formancy/report-spec'
+/**
+ * What report-spec names a run's place against its line (0061), handed on
+ * so that the document's run, an engine and the corpus name a shift as the
+ * format does: `subscript` below the line, `superscript` above it.
+ */
+export { BASELINE_SHIFTS } from '@formancy/report-spec'
+export type { BaselineShift } from '@formancy/report-spec'
 /**
  * What report-spec decides of a QR-bill that an engine needs to draw its
  * slip, handed on so that an engine, which depends on the runtime alone,

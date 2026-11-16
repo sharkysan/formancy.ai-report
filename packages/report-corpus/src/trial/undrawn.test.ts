@@ -127,6 +127,11 @@ const UNDRAWN: readonly (readonly [string, ResolvedDocument, string])[] = [
   ],
   // A slip left out would print an invoice nobody can pay by, and say nothing.
   ['a payment part', { ...documentOf('Bill', [paragraph('Invoice')]), paymentPart: BILL }, 'paymentPart'],
+  // Page 1's own header (0060) left out would print the page header on page
+  // 1 in its place, and say nothing; and page 1's header that is none, the
+  // empty list, would print the page header there all the same.
+  ['a first page header', { ...documentOf('First page', [paragraph('Body')]), firstPageHeader: [paragraph('Letterhead')] }, 'firstPageHeader'],
+  ['a first page header that is none', { ...documentOf('No first header', [paragraph('Body')]), firstPageHeader: [] }, 'firstPageHeader'],
   // An e-invoice left out would print a plain PDF of an invoice whose XML
   // is the invoice, and say nothing: the buyer would hold a picture.
   ['an e-invoice', { ...documentOf('E-invoice', [paragraph('Invoice')]), eInvoice: E_INVOICE }, 'eInvoice'],

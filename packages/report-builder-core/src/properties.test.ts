@@ -1,12 +1,13 @@
-import { COMPONENT_KINDS, componentAt, emptyReport, mmToPt, ptToMm, validateReport } from '@formancy/report-spec'
-import type { Component, ComponentKind, PageSettings, QrCodeComponent, ReportDefinition } from '@formancy/report-spec'
+import { COMPONENT_KINDS, componentAt, emptyReport, MAX_KEEP_WITH_ROWS, mmToPt, ptToMm, validateReport } from '@formancy/report-spec'
+import type { Component, ComponentKind, PageSettings, QrCodeComponent, ReportDefinition, TableComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { EditorOutcome } from './model-actions.js'
 import type { PropertyField } from './model-properties.js'
 import { PROPERTY_KINDS, PROPERTY_ROLES } from './model-properties.js'
 import { eInvoiceReport } from './image-test-support.js'
 import { defaultComponent } from './palette.js'
-import { editorOver, richReport } from './test-support.js'
+import { invoicedScenarioReport } from './scenario-e-invoice.js'
+import { billedReport, editorOver, richReport } from './test-support.js'
 
 function ok(outcome: EditorOutcome): void {
   if (!outcome.ok) throw new Error(`refused: ${outcome.code} ${outcome.message}`)
@@ -37,7 +38,10 @@ const OF_KIND: { readonly [K in ComponentKind]: string } = {
 
 describe('the report’s own properties', () => {
   // With nothing selected the panel is the report's: its title, language
-  // and page, the page's margins in millimetres.
+  // and page, the page's margins in millimetres, and after them what page
+  // 1 prints at its top, the page header while the report has no first
+  // page header of its own (0060); then its languages' Add language, the
+  // way a report comes to be written in another (0063).
   test('are shown when nothing is selected', () => {
     const { editor } = editorOver()
     const { heading, fields } = editor.state().properties
@@ -51,6 +55,8 @@ describe('the report’s own properties', () => {
       ['/page/margins/right', 'Right margin (mm)', 'length', '20'],
       ['/page/margins/bottom', 'Bottom margin (mm)', 'length', '20'],
       ['/page/margins/left', 'Left margin (mm)', 'length', '20'],
+      ['/regions/firstPageHeader', 'Header on page 1', 'select', 'pageHeader'],
+      ['/translations/-', 'Add language', 'text', ''],
     ])
   })
 
@@ -93,6 +99,78 @@ describe('the report’s own properties', () => {
     ok(editor.dispatch({ type: 'setProperty', key: '/height', value: ' 4.23 ' }))
     expect(session.revision()).toBe(0)
     expect(editor.state()).toBe(state)
+  })
+})
+
+describe('the choice of what page 1 prints at its top (0060)', () => {
+  const CHOICE = '/regions/firstPageHeader'
+
+  // The region's presence is the choice: a header of its own is put in
+  // empty, and the page header given back by taking it away with what it
+  // holds, one undo step each. Every key of the report's but its title and
+  // language is otherwise a page setting, so a choice that reached setPage
+  // would be refused, or write the region into the page; the page is the
+  // one the report had, before and after.
+  test('puts in a header of its own and takes it away, one undo step each, and leaves the page alone', () => {
+    const { editor, session } = editorOver()
+    const { page } = session.document()
+    ok(editor.dispatch({ type: 'setProperty', key: CHOICE, value: 'firstPageHeader' }))
+    expect(session.document().regions.firstPageHeader).toEqual([])
+    expect(session.document().page).toEqual(page)
+    expect(field(editor.state().properties.fields, CHOICE).value).toBe('firstPageHeader')
+    expect(editor.state().history.undoLabel).toBe('Change Header on page 1')
+    expect(editor.state().status.text).toBe(
+      'Page 1 prints a header of its own, the First page header, and none while it is empty. The page header prints from page 2 on.',
+    )
+    ok(editor.dispatch({ type: 'insert', kind: 'text', target: { region: 'firstPageHeader', index: 0 } }))
+    ok(editor.dispatch({ type: 'select', id: null }))
+    ok(editor.dispatch({ type: 'setProperty', key: CHOICE, value: 'pageHeader' }))
+    expect(Object.hasOwn(session.document().regions, 'firstPageHeader')).toBe(false)
+    expect(session.document().page).toEqual(page)
+    expect(field(editor.state().properties.fields, CHOICE).value).toBe('pageHeader')
+    expect(editor.state().status.text).toBe('Page 1 prints the page header again. Its own header is gone, with what it held. Undo brings it back.')
+    ok(editor.dispatch({ type: 'undo' }))
+    expect(session.document().regions.firstPageHeader?.map((component) => component.kind)).toEqual(['text'])
+    ok(editor.dispatch({ type: 'undo' }))
+    ok(editor.dispatch({ type: 'undo' }))
+    expect(session.document()).toEqual(richReport())
+  })
+
+  // Chosen again, the choice changes nothing: a header of its own put in
+  // afresh would empty the one page 1 has, and the page header chosen
+  // again where it prints already would be a refusal or an empty step.
+  test('leaves the report alone when the option it shows is chosen again', () => {
+    const plain = editorOver()
+    ok(plain.editor.dispatch({ type: 'setProperty', key: CHOICE, value: 'pageHeader' }))
+    expect(plain.session.revision()).toBe(0)
+    const report = richReport()
+    const sender = { id: 'sender', kind: 'text', content: [{ kind: 'text', text: 'Orders by site' }] } as const
+    const headed = editorOver({ ...report, regions: { ...report.regions, firstPageHeader: [sender] } })
+    ok(headed.editor.dispatch({ type: 'setProperty', key: CHOICE, value: 'firstPageHeader' }))
+    expect(headed.session.revision()).toBe(0)
+    expect(headed.session.document().regions.firstPageHeader).toEqual([sender])
+  })
+
+  // An option the field does not offer is a builder's mistake, refused
+  // before the report is touched, rather than read as either choice.
+  test('refuses an option it does not offer', () => {
+    const { editor, session } = editorOver()
+    expect(editor.dispatch({ type: 'setProperty', key: CHOICE, value: 'lastPageHeader' })).toMatchObject({ ok: false, code: 'invalid-value' })
+    expect(editor.dispatch({ type: 'setProperty', key: CHOICE, value: true })).toMatchObject({ ok: false, code: 'invalid-value' })
+    expect(session.revision()).toBe(0)
+  })
+
+  // A person choosing a header of its own and putting nothing in it gets no
+  // header on page 1: the option says so, in each of the editor's
+  // languages, since the format has no other word for none.
+  test('names its options in each language, a header of its own printing none while it is empty', () => {
+    const named = (locale: 'en' | 'de-CH' | 'fr-CH') => {
+      const shown = field(editorOver(richReport(), { locale }).editor.state().properties.fields, CHOICE)
+      return [shown.label, ...(shown.options ?? []).map((option) => `${option.value}: ${option.label}`)]
+    }
+    expect(named('en')).toEqual(['Header on page 1', 'pageHeader: The page header', 'firstPageHeader: A header of its own (none while empty)'])
+    expect(named('de-CH')).toEqual(['Kopf auf Seite 1', 'pageHeader: Der Seitenkopf', 'firstPageHeader: Ein eigener Kopf (keiner, solange leer)'])
+    expect(named('fr-CH')).toEqual(['En-tête de la page 1', 'pageHeader: L’en-tête de page', 'firstPageHeader: Un en-tête propre (aucun tant qu’il est vide)'])
   })
 })
 
@@ -222,7 +300,7 @@ describe('a component’s properties', () => {
     expect(keys('gap')).toEqual(['/height'])
     expect(keys('heading')).toEqual(['/columns/0/width', '/columns/1/width'])
     expect(keys('notes')).toEqual(['/fill', '/padding', '/border/thickness', '/border/color'])
-    expect(keys('lines')).toEqual(['/emptyText', '/rowsWhen', '/headerStyle'])
+    expect(keys('lines')).toEqual(['/emptyText', '/rowsWhen', '/headerStyle', '/group/keepWithRows'])
     expect(keys('break')).toEqual([])
     expect(keys('keep')).toEqual([])
   })
@@ -520,5 +598,254 @@ describe('a table column’s properties', () => {
     ok(editor.dispatch({ type: 'setProperty', key: '/align', value: 'center' }))
     const table = componentAt(session.document(), 'lines')?.component as Extract<Component, { kind: 'table' }>
     expect(table.columns[1]).toMatchObject({ header: 'Total', align: 'center' })
+  })
+})
+
+describe('a paragraph’s runs', () => {
+  /** The rich report with its title's bound run set above the line: a value raised as literal text is (0061). */
+  function raisedTitle(): ReportDefinition {
+    const report = richReport()
+    const [columns] = report.regions.reportHeader
+    if (columns?.kind !== 'columns') throw new Error('the rich report starts with its heading')
+    const [title] = columns.columns[1]?.components ?? []
+    if (title?.kind !== 'text') throw new Error('the heading holds the title')
+    const content = title.content.map((run) => (run.kind === 'field' ? { ...run, baseline: 'superscript' as const } : run))
+    const raised = { ...title, content }
+    const heading = { ...columns, columns: columns.columns.map((column, at) => (at === 1 ? { ...column, components: [raised] } : column)) }
+    return { ...report, regions: { ...report.regions, reportHeader: [heading, ...report.regions.reportHeader.slice(1)] } }
+  }
+
+  /** The groups the panel draws, each by its key, its name, its fields' keys and its buttons as a builder draws them. */
+  const groupsOf = (editor: ReturnType<typeof editorOver>['editor']) =>
+    editor.state().properties.rows.flatMap((row) =>
+      'group' in row
+        ? [
+            {
+              key: row.group.key,
+              label: row.group.label,
+              fields: row.group.fields.map((one) => one.key),
+              buttons: row.group.actions.map((action) => [action.label, action.text, action.pressed, action.action]),
+            },
+          ]
+        : [],
+    )
+
+  // Each run of a paragraph is a group named as its field is, holding the
+  // field and its two buttons, named after the run so that two runs' are
+  // never one name, showing only what they set, and pressed while the run
+  // is set so: one button for the whole text would act on a field a
+  // screen reader's user can no longer see named (0061). Pressed, a button
+  // sets the run back on the line.
+  test('are each a group with its field and its two buttons, pressed as the run is set', () => {
+    const { editor } = editorOver(raisedTitle())
+    ok(editor.dispatch({ type: 'select', id: 'title' }))
+    expect(groupsOf(editor)).toEqual([
+      {
+        key: '/content/0',
+        label: 'Part 1: Text',
+        fields: ['/content/0/text'],
+        buttons: [
+          ['Part 1: Text, subscript', 'Subscript', false, { type: 'setBaseline', key: '/content/0', baseline: 'subscript' }],
+          ['Part 1: Text, superscript', 'Superscript', false, { type: 'setBaseline', key: '/content/0', baseline: 'superscript' }],
+        ],
+      },
+      {
+        key: '/content/1',
+        label: 'Part 2: Field',
+        fields: ['/content/1'],
+        buttons: [
+          ['Part 2: Field, subscript', 'Subscript', false, { type: 'setBaseline', key: '/content/1', baseline: 'subscript' }],
+          ['Part 2: Field, superscript', 'Superscript', true, { type: 'setBaseline', key: '/content/1', baseline: null }],
+        ],
+      },
+    ])
+    // The fields are where they were, every one of them, so a field is found by its name as before.
+    expect(editor.state().properties.fields.map((one) => one.label)).toEqual(['Part 1: Text', 'Part 2: Field', 'Keep with next', 'Style', 'Show only when'])
+    expect(editor.state().properties.rows.flatMap((row) => ('field' in row ? [row.field.key] : []))).toEqual(['/keepWithNext', '/style', '/visibleWhen'])
+  })
+
+  // A lone run is named by what it is, and so are its buttons; a page
+  // counter, which takes no baseline and has nothing to edit, has no group,
+  // and the runs around it keep their places.
+  test('name a lone run by what it is, and give a page counter none', () => {
+    const { editor } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'intro' }))
+    expect(groupsOf(editor).map((group) => [group.key, group.label, group.buttons.map(([label]) => label)])).toEqual([
+      ['/content/0', 'Text', ['Text, subscript', 'Text, superscript']],
+    ])
+    ok(editor.dispatch({ type: 'select', id: 'page-of' }))
+    expect(groupsOf(editor).map((group) => [group.key, group.label])).toEqual([
+      ['/content/0', 'Part 1: Text'],
+      ['/content/2', 'Part 3: Text'],
+    ])
+  })
+
+  // The buttons in the editor's other languages, from their catalogues.
+  test('name the buttons in each language', () => {
+    for (const [locale, names] of [
+      ['de-CH', ['Text, tiefgestellt', 'Tiefgestellt', 'Text, hochgestellt', 'Hochgestellt']],
+      ['fr-CH', ['Texte, indice', 'Indice', 'Texte, exposant', 'Exposant']],
+    ] as const) {
+      const { editor } = editorOver(richReport(), { locale })
+      ok(editor.dispatch({ type: 'select', id: 'intro' }))
+      expect(
+        groupsOf(editor)[0]?.buttons.flatMap(([label, text]) => [label, text]),
+        locale,
+      ).toEqual(names)
+    }
+  })
+
+  // What a code encodes is its text alone, and a table's cell prints one
+  // string at one size, so the format refuses a baseline there
+  // (misplaced-baseline): a button that set one would offer an edit the
+  // validator refuses every time. A QR code's content, an EPC code's
+  // texts, a QR-bill's and an e-invoice's, and a column's value have none.
+  test('are offered in a paragraph alone', () => {
+    const baselines = (editor: ReturnType<typeof editorOver>['editor']) =>
+      editor.state().properties.rows.flatMap((row) => ('group' in row ? row.group.actions.filter((action) => action.action.type === 'setBaseline') : []))
+    const rich = editorOver().editor
+    for (const selection of [{ id: 'order-code' }, { id: 'pay-code' }, { id: 'lines', column: 'sku' }] as const) {
+      ok(rich.dispatch({ type: 'select', ...selection }))
+      expect(baselines(rich), selection.id).toEqual([])
+      expect(
+        rich.state().properties.rows.some((row) => 'group' in row),
+        selection.id,
+      ).toBe(false)
+    }
+    const billed = editorOver(billedReport()).editor
+    ok(billed.dispatch({ type: 'select', part: 'paymentPart' }))
+    expect(baselines(billed)).toEqual([])
+    const invoiced = editorOver(invoicedScenarioReport()).editor
+    ok(invoiced.dispatch({ type: 'select', part: 'eInvoice' }))
+    expect(baselines(invoiced)).toEqual([])
+  })
+
+  // A run rebound to another field or a parameter is the same run: set
+  // above the line, it stays there, as it keeps its format. Rebound to
+  // the run the binding builds afresh, its exponent would drop to the line.
+  test('keep a bound run’s baseline when it is rebound', () => {
+    const { editor, session } = editorOver(raisedTitle())
+    ok(editor.dispatch({ type: 'select', id: 'title' }))
+    ok(editor.dispatch({ type: 'setProperty', key: '/content/1', value: 'parameter:from' }))
+    expect(componentAt(session.document(), 'title')?.component).toMatchObject({
+      content: [
+        { kind: 'text', text: 'Orders for ' },
+        { kind: 'parameter', parameter: 'from', baseline: 'superscript' },
+      ],
+    })
+  })
+})
+
+describe('the rows a group header is kept with', () => {
+  const KEY = '/group/keepWithRows'
+
+  /** The rich report's table, as the session holds it. */
+  const table = (report: ReportDefinition): TableComponent => componentAt(report, 'lines')?.component as TableComponent
+
+  /** The rich report with its table's group stating `count`, or with no group where `count` is null. */
+  function withTable(count: number | null): ReportDefinition {
+    const report = richReport()
+    const body = report.regions.body.map((component): Component => {
+      if (component.kind !== 'table') return component
+      const { group, ...rest } = component
+      return count === null || group === undefined ? rest : { ...rest, group: { ...group, keepWithRows: count } }
+    })
+    return { ...report, regions: { ...report.regions, body } }
+  }
+
+  // A count on a table with no group would be a group of one member, which
+  // the format refuses; and a field that read nothing where the report
+  // states none would say the header is kept with no row, when it is kept
+  // with its first, as every group header is.
+  test('is a number on a grouped table alone, reading one where the report states none', () => {
+    const { editor } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    expect(field(editor.state().properties.fields, KEY)).toEqual({
+      key: KEY,
+      label: 'Rows kept with each group header',
+      kind: 'number',
+      value: '1',
+      required: false,
+    })
+    const { editor: ungrouped } = editorOver(withTable(null))
+    ok(ungrouped.dispatch({ type: 'select', id: 'lines' }))
+    const keys = ungrouped.state().properties.fields.map((candidate) => candidate.key)
+    expect(keys).toContain('/emptyText')
+    expect(keys).not.toContain(KEY)
+  })
+
+  // A group whose header is no text at all still states its count, and the
+  // field shows it, though no page can hold such a header to its rows: the
+  // renderer keeps the first row with it at most (0059), and a field that
+  // vanished with the header's text would hide a member the report states.
+  test('is shown on a group whose header has no text', () => {
+    const report = withTable(3)
+    const body = report.regions.body.map((component): Component =>
+      component.kind === 'table' && component.group !== undefined ? { ...component, group: { ...component.group, header: [] } } : component,
+    )
+    const headerless = { ...report, regions: { ...report.regions, body } }
+    expect(validateReport(headerless).valid).toBe(true)
+    const { editor } = editorOver(headerless)
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    expect(field(editor.state().properties.fields, KEY)).toMatchObject({ kind: 'number', value: '3' })
+  })
+
+  // The count is the group's, and nothing else of the group moves with it.
+  // One, or nothing, is the rule every header already has, written as the
+  // member's absence, as a boolean's default is: a report edited back to
+  // one hashes as one never edited.
+  test('writes a count into the group, and one or nothing as no count', () => {
+    const { editor, session } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    const group = table(session.document()).group
+    ok(editor.dispatch({ type: 'setProperty', key: KEY, value: '3' }))
+    expect(table(session.document()).group).toStrictEqual({ ...group, keepWithRows: 3 })
+    expect(field(editor.state().properties.fields, KEY).value).toBe('3')
+    expect(editor.state().history.undoLabel).toBe('Change Rows kept with each group header')
+    ok(editor.dispatch({ type: 'setProperty', key: KEY, value: '1' }))
+    expect(table(session.document()).group).toStrictEqual(group)
+    ok(editor.dispatch({ type: 'setProperty', key: KEY, value: '4' }))
+    ok(editor.dispatch({ type: 'setProperty', key: KEY, value: '' }))
+    expect(table(session.document()).group).toStrictEqual(group)
+    expect(field(editor.state().properties.fields, KEY).value).toBe('1')
+    ok(editor.dispatch({ type: 'undo' }))
+    expect(table(session.document()).group).toStrictEqual({ ...group, keepWithRows: 4 })
+  })
+
+  // A field that reads one where nothing is stated, given one back or
+  // emptied -- a person tabbing through it -- would otherwise be an edit
+  // that changes nothing, with an Undo of its own and "Changed" said; and
+  // so would a stated count given back as it reads, or written otherwise.
+  test('leaves the count alone when given back as it reads', () => {
+    const { editor, session } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    const state = editor.state()
+    for (const value of ['1', ' 1 ', '', '01']) ok(editor.dispatch({ type: 'setProperty', key: KEY, value }))
+    expect([session.revision(), session.canUndo()]).toEqual([0, false])
+    expect(editor.state()).toBe(state)
+    const { editor: stated, session: holding } = editorOver(withTable(3))
+    ok(stated.dispatch({ type: 'select', id: 'lines' }))
+    for (const value of ['3', ' 3 ', '3.0']) ok(stated.dispatch({ type: 'setProperty', key: KEY, value }))
+    expect([holding.revision(), holding.canUndo()]).toEqual([0, false])
+  })
+
+  // What is no number at all is the field's to refuse; a number out of
+  // range or not whole is the validator's, and the validator's own reason
+  // stands on the field, the group as it was (0008). A field that clamped
+  // or rounded it would keep a count nobody typed.
+  test('refuses what is no number, and shows the validator’s reason for a count it refuses', () => {
+    const { editor, session } = editorOver()
+    ok(editor.dispatch({ type: 'select', id: 'lines' }))
+    expect(editor.dispatch({ type: 'setProperty', key: KEY, value: 'three' })).toMatchObject({ ok: false, code: 'invalid-value' })
+    expect(field(editor.state().properties.fields, KEY)).toMatchObject({ value: 'three', error: 'Enter a number.' })
+    expect(editor.dispatch({ type: 'setProperty', key: KEY, value: true })).toMatchObject({ ok: false, code: 'invalid-value' })
+    for (const count of [0, MAX_KEEP_WITH_ROWS + 1, 2.5]) {
+      const verdict = validateReport(withTable(count))
+      const reason = verdict.valid ? undefined : verdict.errors.find((error) => error.path.endsWith(KEY))?.message
+      expect(reason, String(count)).toBeDefined()
+      expect(editor.dispatch({ type: 'setProperty', key: KEY, value: String(count) })).toMatchObject({ ok: false, code: 'refused' })
+      expect(field(editor.state().properties.fields, KEY), String(count)).toMatchObject({ value: String(count), error: reason })
+    }
+    expect(session.revision()).toBe(0)
   })
 })

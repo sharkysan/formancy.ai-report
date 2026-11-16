@@ -14,6 +14,8 @@ export type {
   DragState,
   DragSubject,
   DropTarget,
+  EditorLanguage,
+  EditorLanguages,
   EditorPanel,
   EditorState,
   HideablePanel,
@@ -29,7 +31,7 @@ export type {
   ReportLevelPart,
   Selection,
 } from './model.js'
-export type { EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode } from './model-actions.js'
+export type { EditorAction, EditorActionType, EditorOutcome, EditorRefusalCode, FieldSelection, GroupFocus } from './model-actions.js'
 export type { Box, Canvas, CanvasBox, CanvasPaymentPart, CanvasRegion, PageGeometry, RulerTick, Size } from './model-canvas.js'
 export type { PropertyAction, PropertyField, PropertyGroup, PropertyKind, PropertyOption, PropertyPanel, PropertyRow } from './model-properties.js'
 

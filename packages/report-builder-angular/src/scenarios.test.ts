@@ -11,7 +11,10 @@
  * But for one element: the file input Add image… opens, hidden and with
  * no role, which an `upload` step finds beside the button in the DOM to
  * hand it the file (0033). A scenario about images makes its editor with
- * the store `scenarioStore` gives it.
+ * the store `scenarioStore` gives it. And one write: a `selectText` step
+ * selects characters with the field's own `setSelectionRange`, as this
+ * runner's keys move no caret, and the selection is what a run's button
+ * sends (0061).
  */
 import { TestBed } from '@angular/core/testing'
 import {
@@ -31,19 +34,28 @@ import { afterAll, afterEach, describe, expect, test } from 'vitest'
 import { mountBuilder, mountWithHostView } from './test-mount'
 import type { Mounted } from './test-mount'
 import { audit, sessionOver } from './test-support'
-import { choose, click, fileInputOf, fill, pick, press } from './test-user'
+import { choose, click, fileInputOf, fill, pick, press, selectText } from './test-user'
 
 afterEach(() => {
   TestBed.resetTestingModule()
 })
 
-/** The element a step names, by its role and accessible name, and its selection where the step says. */
+/** What Testing Library finds an element by: its name, and the selected and pressed states where the query names them. */
+function options(query: ScenarioQuery): { readonly name: string; readonly selected?: boolean; readonly pressed?: boolean } {
+  return {
+    name: query.name,
+    ...(query.selected === undefined ? {} : { selected: query.selected }),
+    ...(query.pressed === undefined ? {} : { pressed: query.pressed }),
+  }
+}
+
+/** The element a step names, by its role and accessible name, in the states the step names. */
 function find(query: ScenarioQuery): HTMLElement {
-  return screen.getByRole(query.role, { name: query.name, ...(query.selected === undefined ? {} : { selected: query.selected }) })
+  return screen.getByRole(query.role, options(query))
 }
 
 function absent(query: ScenarioQuery): boolean {
-  return screen.queryByRole(query.role, { name: query.name, ...(query.selected === undefined ? {} : { selected: query.selected }) }) === null
+  return screen.queryByRole(query.role, options(query)) === null
 }
 
 /**
@@ -95,6 +107,9 @@ async function run(step: ScenarioStep, mounted: Mounted<unknown>, session: Repor
       case 'fill':
         fill(find(step), step.text)
         break
+      case 'selectText':
+        selectText(find(step), step.start, step.end)
+        break
       case 'choose':
         choose(find(step), step.option)
         break
@@ -125,6 +140,8 @@ async function run(step: ScenarioStep, mounted: Mounted<unknown>, session: Repor
       expect(field.getAttribute('aria-invalid')).toBe('true')
       return void expect(computeAccessibleDescription(field)).not.toBe('')
     }
+    case 'described':
+      return void expect(computeAccessibleDescription(find(step))).toContain(step.text)
     case 'document':
       return void expect(step.check(session.document()), step.says).toBe(true)
     case 'kept':
