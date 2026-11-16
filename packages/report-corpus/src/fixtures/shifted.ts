@@ -10,7 +10,8 @@ import { hostFonts } from './host-fonts.js'
  * footnote's mark, each in a word with text on the line, as the renderer
  * prints them; in a column, in a paragraph that wraps so that such runs
  * stand under a line and over another, a lowered run over a raised one on
- * the next line, in the page footer on every page, and in a host's
+ * the next line, in the page footer on every page, in page 1's own
+ * header and in the page header every later page prints, and in a host's
  * Liberation Serif. The checks read each run into the line it stands on,
  * hold its size and its move (`shiftedRuns`), and see that nothing is
  * drawn over anything (`noOverlaps`).
@@ -192,6 +193,38 @@ export const shiftedStacked: Fixture = {
   expect: expectation(stackedDocument, { maxPagesExpected: 1, wrappedText: [STACKED_SERIF, STACKED_SANS].map(lineOf) }),
 }
 
+/**
+ * Page 1's own header (0060), a letterhead that sets runs below and above
+ * the line, over a body that runs on to page 2 under a page header that
+ * sets one of its own: page 1 prints the letterhead's runs and none of the
+ * page header's, and every later page the page header's, each read into
+ * its line. The letterhead is measured in a pass of its own, which must
+ * hold its words to a run on the line and count the room its lowered run
+ * takes, or page 1's body would start inside its last line.
+ */
+const LETTERHEAD: readonly Block[] = [
+  paragraph([run('Invented Supplies Ltd')], { size: 14, bold: true }),
+  paragraph([run('Order 2026-0042: 12 m'), run('2', 'superscript'), run(' of flooring and 2 m'), run('3', 'superscript'), run(' of sand')]),
+  paragraph([run('Delivered with low CO'), run('2', 'subscript'), run(' transport, gate 3')]),
+]
+const CONTINUED = paragraph([run('Order 2026-0042, continued: volumes in m'), run('3', 'superscript')], { size: SMALL_SIZE })
+/** Lines enough to run on to page 2, whose body holds some seventy of them. */
+const DELIVERY = Array.from({ length: 90 }, (_, index) => paragraph([run(`Delivery note, line ${index + 1}, checked at the gate`)]))
+
+const firstPageDocument: ResolvedDocument = {
+  ...documentOf("Runs below and above the line in page 1's own header", [heading('Under the letterhead'), WATER, ROOM, ...DELIVERY]),
+  firstPageHeader: LETTERHEAD,
+  pageHeader: [CONTINUED],
+}
+
+export const shiftedFirstPage: Fixture = {
+  id: 'shifted-first-page',
+  title: "Runs set below and above the line in page 1's own header, and one in the page header every later page prints, each read on its page alone",
+  document: firstPageDocument,
+  maxPages: 3,
+  expect: expectation(firstPageDocument, { minPagesExpected: 2, maxPagesExpected: 2, exactText: [WATER, ROOM].map(lineOf) }),
+}
+
 /** A document under its heading that the renderer refuses: as `unsupported`, naming the paragraph after the heading, `body[1]`, unless `refusal` says otherwise. */
 function refused(id: string, title: string, blocks: readonly Block[], refusal: ExpectedRefusal = { code: 'unsupported', subject: 'body[1]' }): Fixture {
   const document = documentOf(title, [heading(title), ...blocks])
@@ -242,6 +275,7 @@ export const SHIFTED_FIXTURES: readonly Fixture[] = [
   shiftedFormulas,
   shiftedHostFonts,
   shiftedStacked,
+  shiftedFirstPage,
   shiftedAlone,
   shiftedAfterSpace,
   shiftedBeforeSpace,

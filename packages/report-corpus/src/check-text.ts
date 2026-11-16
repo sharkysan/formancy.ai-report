@@ -126,14 +126,16 @@ const SET = { subscript: 'below the line', superscript: 'above the line' } as co
  * only a run drawn at `SHIFTED_SIZE` of the run beside it and moved by
  * `SHIFTED_RISE` of that run's size (`lines.ts`), set the way the document
  * sets it, and drawn at `SHIFTED_SIZE` of its paragraph's size where the
- * paragraph states one. A page region's run is held on every page, the
- * body's once. A run printed on the line, at another size or moved
- * otherwise is not read so, and is missing here; and a run read so that
- * the document does not set is reported too, so that a document that sets
- * none -- every fixture before 0061 -- holds that the reader read none so.
+ * paragraph states one. A page region's run is held on every page that
+ * prints it -- page 1 to its own header's where it has one (0060), and to
+ * none of the page header's -- the body's once. A run printed on the line,
+ * at another size or moved otherwise is not read so, and is missing here;
+ * and a run read so that the document does not set is reported too, so
+ * that a document that sets none -- every fixture before 0061 -- holds that
+ * the reader read none so.
  * A run is matched by its text as one run of extracted text has it.
  */
-export function shiftedRuns(pages: readonly Page[], expected: Pick<Expectation, 'shiftedRuns' | 'pageRegionShiftedRuns'>): string[] {
+export function shiftedRuns(pages: readonly Page[], expected: Pick<Expectation, 'shiftedRuns' | 'pageRegionShiftedRuns' | 'firstPage'>): string[] {
   const left = pages.map(({ lines }) => lines.flatMap((line) => line.shifted.map((run) => ({ run, line: line.text }))))
   const problems: string[] = []
   const take = (found: { run: ShiftedRun }[], sought: ExpectedShiftedRun): boolean => {
@@ -142,7 +144,8 @@ export function shiftedRuns(pages: readonly Page[], expected: Pick<Expectation, 
     return at >= 0
   }
   pages.forEach(({ page }, index) => {
-    for (const sought of expected.pageRegionShiftedRuns) {
+    const regions = index === 0 && expected.firstPage !== undefined ? expected.firstPage.shiftedRuns : expected.pageRegionShiftedRuns
+    for (const sought of regions) {
       if (!take(left[index]!, sought)) problems.push(`page ${page.number}: the page region's ${described(sought)} is not read so`)
     }
   })

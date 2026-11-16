@@ -119,6 +119,7 @@ describe('the corpus', () => {
       'shifted-formulas',
       'shifted-host-fonts',
       'shifted-stacked',
+      'shifted-first-page',
       'shifted-alone',
       'shifted-after-space',
       'shifted-before-space',

@@ -135,7 +135,13 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     // Page 1's own header (0060), as the corpus derives it: page 1 is held to its lines and images in place of the page header's.
     ...(document.firstPageHeader === undefined
       ? {}
-      : { firstPage: { headerLines: plainLines(document.firstPageHeader), regionImages: imagesOf([...document.firstPageHeader, ...document.pageFooter]) } }),
+      : {
+          firstPage: {
+            headerLines: plainLines(document.firstPageHeader),
+            regionImages: imagesOf([...document.firstPageHeader, ...document.pageFooter]),
+            shiftedRuns: shiftedRunsOf([...document.firstPageHeader, ...document.pageFooter]),
+          },
+        }),
     pageFooterLines: plainLines(document.pageFooter),
     ...(footerEveryPage === undefined ? {} : { footerEveryPage }),
     exactText: [],

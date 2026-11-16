@@ -1,5 +1,15 @@
 import { baselineOf, readPdf, SHIFTED_FIXTURES, type PdfTextItem } from '@formancy/report-corpus'
-import { RenderRefusal, SHIFTED_RISE, SHIFTED_SIZE, type BaselineShift, type Inline, type Paragraph, type ResolvedDocument } from '@formancy/report-runtime'
+import {
+  RenderRefusal,
+  resolveReport,
+  SHIFTED_RISE,
+  SHIFTED_SIZE,
+  type BaselineShift,
+  type Inline,
+  type Paragraph,
+  type ReportDefinition,
+  type ResolvedDocument,
+} from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { renderPdf } from './node.js'
 import { checkShifted, LOWERED_LINE } from './shifted.js'
@@ -16,7 +26,9 @@ import { bareDocument, documentOf, LINE, TIMEOUT } from './testing/documents.js'
  * The geometry is read here from PDF.js's runs directly, never through the
  * corpus's line reader, which joins a run only where it is drawn at exactly
  * this geometry and so cannot be the proof of it. The corpus's checks over
- * `SHIFTED_FIXTURES` are `corpus.test.ts`'s.
+ * `SHIFTED_FIXTURES` are `corpus.test.ts`'s. A run is set so in page 1's
+ * own header (0060) as anywhere, and in the language a render names
+ * (0063) as in the report's own.
  */
 
 /** How near, in points, what PDF.js reads must be to what the document states: a hundredth of a point. */
@@ -249,6 +261,99 @@ describe('a run set below or above the line, on the PDF', () => {
     },
     TIMEOUT,
   )
+
+  // A render in a language the report declares (0063) prints the
+  // translation's text where the report's own stood, at the baseline the
+  // report's run sets: a translation writes a run's text and nothing else
+  // of it, so a word set below the line in German is set below it in
+  // French, at the size and the move every such run is drawn at, and a
+  // digit set above it prints as written. The runtime holds the document;
+  // here it is held on the PDF, the German word printed nowhere.
+  test(
+    'sets a word below or above the line in the language a render names, as the report sets it',
+    async () => {
+      const report: ReportDefinition = {
+        reportSpecVersion: '0',
+        id: 'area',
+        title: 'Fläche',
+        locale: 'de-CH',
+        page: { size: 'A4', orientation: 'portrait', margins: { top: 40, right: 40, bottom: 40, left: 40 } },
+        styles: [{ id: 'body', size: 10 }],
+        datasets: {},
+        parameters: [],
+        assets: [],
+        aggregates: [],
+        regions: {
+          reportHeader: [],
+          pageHeader: [],
+          body: [
+            {
+              id: 'area',
+              kind: 'text',
+              style: 'body',
+              content: [
+                { kind: 'text', text: 'Fläche in m' },
+                { kind: 'text', text: '2', baseline: 'superscript' },
+                { kind: 'text', text: ', Spitze bei t' },
+                { kind: 'text', text: 'Ende', baseline: 'subscript' },
+              ],
+            },
+          ],
+          pageFooter: [],
+          summary: [],
+        },
+        translations: [
+          {
+            locale: 'fr-CH',
+            words: [
+              { word: 'Fläche', text: 'Surface' },
+              { word: 'Fläche in m', text: 'Surface en m' },
+              { word: ', Spitze bei t', text: ', pic à t' },
+              { word: 'Ende', text: 'fin' },
+            ],
+            expressions: [],
+          },
+        ],
+      }
+      const data = { completeness: { complete: true, captured: 0 }, consistency: 'host-captured' } as const
+      const outcome = resolveReport(report, data, { mode: 'final', parameters: {}, creationDate: '2026-10-15T08:00:00Z', locale: 'fr-CH' })
+      if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join('; ')}`)
+      const items = await rendered(outcome.document)
+      expect(shiftedRunsOn(items, 10).map(({ text, shift }) => [text, shift])).toEqual([
+        ['2', 'superscript'],
+        ['fin', 'subscript'],
+      ])
+      expect(items.map((item) => item.text).join('|')).not.toMatch(/Fläche|Spitze|Ende/u)
+    },
+    TIMEOUT,
+  )
+
+  // Page 1's own header (0060) is laid out in page 1's background, and page
+  // 1's body moved below the room a pass of its own measured for it. A run
+  // set off the line there is drawn as anywhere else, and a line of it that
+  // holds a lowered run takes `LOWERED_LINE` of its size: a pass that
+  // measured the header without that room would start page 1's body by as
+  // much inside the header's last line, where a raised run of the body's
+  // first line would meet the lowered one.
+  test(
+    "sets one in page 1's own header, page 1's body below the room a lowered run takes",
+    async () => {
+      const size = 10
+      const formula = paragraphOf([run('Order of H'), run('2', 'subscript'), run('O in 1 m'), run('3', 'superscript')], size)
+      const plain = paragraphOf([run('Order of H2O in 1 m3')], size)
+      const under = (header: Paragraph): Promise<PdfTextItem[]> =>
+        rendered({ ...bareDocument('First page', [paragraphOf([run('Body.')], size)]), firstPageHeader: [header] })
+      const [items, flat] = await Promise.all([under(formula), under(plain)])
+      expect(shiftedRunsOn(items, size).map(({ text, shift }) => [text, shift])).toEqual([
+        ['2', 'subscript'],
+        ['3', 'superscript'],
+      ])
+      const body = (read: readonly PdfTextItem[]): number => baselineOf(read.find((item) => item.text === 'Body.')!)
+      expect(LINE).toBeLessThan(LOWERED_LINE)
+      expect(body(items) - body(flat)).toBeCloseTo((LOWERED_LINE - LINE) * size, 2)
+    },
+    TIMEOUT,
+  )
 })
 
 describe('a paragraph whose run could stand alone on a line', () => {
@@ -286,6 +391,23 @@ describe('a paragraph whose run could stand alone on a line', () => {
         pageFooter: [paragraphOf([run('Note '), run('1', 'superscript')], 8)],
       }
       expect(await refusalOf(document)).toMatchObject({ code: 'unsupported', subject: 'pageFooter[0]' })
+    },
+    TIMEOUT,
+  )
+
+  // Page 1's own header (0060) is drawn in page 1's background, laid out
+  // after the check has read the body's words, and is recorded in no pass
+  // but the one that measures it alone: read there, as its words are, or
+  // nowhere, and then printed with its run on a line of its own, drawn
+  // into the line above. Refused, naming the header's block.
+  test(
+    "refuses one in page 1's own header, naming the header's block",
+    async () => {
+      const document: ResolvedDocument = {
+        ...documentOf('First page', [paragraphOf([run('Body.')], 9)]),
+        firstPageHeader: [paragraphOf([run('Letterhead.')], 9), paragraphOf([run('Order '), run('1', 'superscript')], 9)],
+      }
+      expect(await refusalOf(document)).toMatchObject({ code: 'unsupported', subject: 'firstPageHeader[1]' })
     },
     TIMEOUT,
   )

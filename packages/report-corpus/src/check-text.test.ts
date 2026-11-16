@@ -131,4 +131,22 @@ describe('shiftedRuns', () => {
     expect(problems).toHaveLength(1)
     expect(problems[0]).toContain('page 2')
   })
+
+  // Page 1 prints its own header in the page header's place (0060), and so
+  // that header's runs and none of the page header's: held to the page
+  // header's, a page 1 printed as it should would fail on both, and one
+  // that printed the page header there would pass.
+  test("holds page 1 to its own header's runs where it has one, and every later page to the page header's", () => {
+    const raised = read(1, at('m', 50, 100, 10, 8.75), at('3', 58.75, 95.65, 5.8, 3.26))
+    const regions = {
+      shiftedRuns: [],
+      pageRegionShiftedRuns: [{ text: '2', shift: 'subscript' }],
+      firstPage: { headerLines: [], regionImages: [], shiftedRuns: [{ text: '3', shift: 'superscript' }] },
+    } as const
+    expect(shiftedRuns([raised, formula(lowered, 2)], regions)).toEqual([])
+    const asEveryPage = shiftedRuns([formula(lowered, 1), formula(lowered, 2)], regions)
+    expect(asEveryPage.filter((problem) => problem.startsWith('page 1:'))).toHaveLength(2)
+    expect(asEveryPage.some((problem) => problem.includes("'3'") && problem.includes('not read so'))).toBe(true)
+    expect(asEveryPage.some((problem) => problem.includes("'2'") && problem.includes('does not set'))).toBe(true)
+  })
 })

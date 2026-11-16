@@ -322,6 +322,40 @@ describe('a render in a translation’s locale', () => {
     })
   })
 
+  // A run set below or above the line (0061) is a word where it holds a
+  // letter, and a translation writes its text and nothing else of it: a
+  // French render keeps every run's baseline, a digit so set printed as
+  // written and a word so set in French. A translation that rebuilt the
+  // run would print the French word on the line; and a word so set that
+  // the language lacks is missing, as any word is, never printed in German.
+  test('keeps each run’s baseline, a word set below or above the line printed in the translation', () => {
+    const unit: Component = {
+      id: 'unit',
+      kind: 'text',
+      content: [
+        { kind: 'text', text: 'Fläche in m' },
+        { kind: 'text', text: '2', baseline: 'superscript' },
+        { kind: 'text', text: ', Spitze bei t' },
+        { kind: 'text', text: 'Ende', baseline: 'subscript' },
+      ],
+    }
+    const report = order()
+    const shifted = { ...report, regions: { ...report.regions, body: [...report.regions.body, unit] } }
+    const words = [...FRENCH.words, { word: 'Fläche in m', text: 'Surface en m' }, { word: ', Spitze bei t', text: ', pic à t' }, { word: 'Ende', text: 'fin' }]
+    const { document } = resolved(translated(shifted, { ...FRENCH, words }), orderData(), { ...FINAL, locale: 'fr-CH' })
+    const last = blocks(document.body)
+      .filter((block): block is Paragraph => block.kind === 'paragraph')
+      .at(-1)
+    expect(last?.runs).toEqual([
+      { text: 'Surface en m' },
+      { text: '2', baseline: 'superscript' },
+      { text: ', pic à t' },
+      { text: 'fin', baseline: 'subscript' },
+    ])
+    const lacking = translated(shifted, { ...FRENCH, words: words.filter(({ word }) => word !== 'Ende') })
+    expect(refusals(lacking, orderData(), { ...FINAL, locale: 'fr-CH' })).toEqual(['expressions word-missing /regions/body/2/content/3/text'])
+  })
+
   // A word that follows a number is written as an expression, whole: one
   // line, one position, three positions, in French as in German.
   test('prints a translated expression, a plural, as that language writes it', () => {

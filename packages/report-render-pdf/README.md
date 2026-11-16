@@ -888,9 +888,13 @@ read from PDF.js's runs and not through a line reader: drawn at
 `SHIFTED_SIZE` of its paragraph's size and moved by `SHIFTED_RISE`, to a
 hundredth of a point, in Roboto at two sizes and in the corpus's
 Liberation Serif; clear of the lines above and below where its paragraph
-wraps; and each way a word could leave it alone on a line refused, naming
-the paragraph, a page region's among them. The corpus's
-`SHIFTED_FIXTURES` are rendered and proved with the rest.
+wraps; in page 1's own header, page 1's body starting below the room its
+lowered run takes (0060); in the language a render names, the translation's
+word at the baseline the report's run sets (0063); and each way a word
+could leave it alone on a line refused, naming the paragraph, a page
+region's and page 1's own header's among them. The corpus's
+`SHIFTED_FIXTURES` are rendered and proved with the rest, page 1 held to
+its own header's runs and every later page to the page header's.
 
 `fonts.test.ts` reads the faces the package embeds, Roboto's four and
 Liberation Sans's two, through report-spec's reader to the values measured

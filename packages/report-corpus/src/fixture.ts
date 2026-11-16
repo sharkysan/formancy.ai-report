@@ -79,6 +79,8 @@ export interface ExpectedFirstPage {
   readonly headerLines: readonly string[]
   /** Page 1's own header's images and the page footer's, in place of `pageRegionImages` on page 1. */
   readonly regionImages: readonly ExpectedImage[]
+  /** Page 1's own header's runs set below or above the line and the page footer's, in place of `pageRegionShiftedRuns` on page 1 (0061). */
+  readonly shiftedRuns: readonly ExpectedShiftedRun[]
 }
 
 /**
@@ -168,7 +170,7 @@ export interface Expectation {
    * document does not set, on any page (`shiftedRuns`).
    */
   readonly shiftedRuns: readonly ExpectedShiftedRun[]
-  /** The page header's and footer's runs set below or above the line, each read so on every page. */
+  /** The page header's and footer's runs set below or above the line, each read so on every page that prints them: on every page but page 1 where `firstPage` is present. */
   readonly pageRegionShiftedRuns: readonly ExpectedShiftedRun[]
 }
 
@@ -213,7 +215,8 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
 
 /** Page 1's regions under its own header, `firstPageHeader`, and the page footer every page prints. */
 function firstPageOf(firstPageHeader: readonly Block[], pageFooter: readonly Block[]): ExpectedFirstPage {
-  return { headerLines: plainLines(firstPageHeader), regionImages: imagesOf([...firstPageHeader, ...pageFooter]) }
+  const regions = [...firstPageHeader, ...pageFooter]
+  return { headerLines: plainLines(firstPageHeader), regionImages: imagesOf(regions), shiftedRuns: shiftedRunsOf(regions) }
 }
 
 /**
