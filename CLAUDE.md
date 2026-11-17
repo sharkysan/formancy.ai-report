@@ -447,6 +447,10 @@ the order confirmation and the product data sheet, the starters that print
 what 0059 to 0063 added (`starters/order-confirmation.ts`,
 `starters/product-data-sheet.ts`,
 [0064](docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)),
+the payment reminder, which pays the balance of a customer's overdue
+invoices by a QR-bill in the customer's language
+(`starters/payment-reminder.ts`,
+[0066](docs/decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)),
 `offLine`, the rule a run set off the line is read into its line by,
 which the renderer's tests' line reader takes,
 Liberation Serif and Mono 2.1.5 as a host's fonts (`fixtures/host-fonts/`)

@@ -14,6 +14,7 @@ import {
   INVOICE_IT,
   drawingsOn,
   ORDER_CONFIRMATION,
+  PAYMENT_REMINDER,
   PRODUCT_DATA_SHEET,
   QUOTATION,
   rasterPage,
@@ -151,6 +152,23 @@ export const PICTURES: readonly PictureSpec[] = [
     caption:
       "The product data sheet starter, a Produktdatenblatt under the firm's mark: its Technische Daten and its Ökobilanz, each value beside its label, the units' powers, CO₂'s index and the footnotes' marks set as runs above and below the line, as in 30 kg/m³, 1.11 W/(m²·K) and 2.9 kg CO₂-Äq. pro m²",
     shows: ['Produktdatenblatt', 'Technische Daten', 'Ökobilanz'],
+  },
+  {
+    file: 'starter-payment-reminder.png',
+    starter: PAYMENT_REMINDER,
+    page: 1,
+    caption:
+      "The payment reminder starter, a Mahnung under the firm's letterhead: the overdue invoices, each with its due date and its days overdue, down to Total überfällige Rechnungen CHF 4'773.65, the payments and the credit note received against them down to Total Zahlungen und Gutschriften CHF-1'586.35, each table totalling its own items, then Mahngebühr CHF 20.00 and Zu bezahlen CHF 3'207.30, and across the foot of the page its QR-bill, the Empfangsschein and the Zahlteil with its Swiss QR Code, each for CHF 3 207.30",
+    shows: [
+      'Mahnung',
+      "Total überfällige Rechnungen CHF 4'773.65",
+      "Total Zahlungen und Gutschriften CHF-1'586.35",
+      'Mahngebühr CHF 20.00',
+      "Zu bezahlen CHF 3'207.30",
+      'Empfangsschein',
+      'Zahlteil',
+      'CHF 3 207.30',
+    ],
   },
 ]
 

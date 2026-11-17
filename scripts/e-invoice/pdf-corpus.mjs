@@ -217,6 +217,11 @@ export const PDF_VARIANTS = [
     why: 'the product data sheet starter, in its own Swiss German: runs set below and above the line, a unit’s power, an index and a footnote’s mark, under the mark (0064)',
     draws: { starter: 'product-data-sheet' },
   },
+  {
+    file: 'variant-payment-reminder.pdf',
+    why: 'the payment reminder starter, in its own Swiss German: two tables over one list of open items, each picking its kinds, the balance of every item paid by a Swiss QR-bill drawn in Liberation Sans, under page 1’s own header with the mark (0066)',
+    draws: { starter: 'payment-reminder' },
+  },
 ]
 
 /** The image of `IMAGE_KINDS` that `blocksDocument` puts in the page header: the one with an alpha channel, as a logo comes. */

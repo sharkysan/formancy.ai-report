@@ -45,6 +45,7 @@ const STARTERS = [
   'site-visit',
   'order-confirmation',
   'product-data-sheet',
+  'payment-reminder',
 ].map((id) => ({
   id,
   eInvoice: id.startsWith('e-invoice'),
@@ -201,6 +202,7 @@ describe('veraPDF’s verdict', () => {
       ['variant-site-visit.pdf', 'as expected', []],
       ['variant-order-confirmation.pdf', 'as expected', []],
       ['variant-product-data-sheet.pdf', 'as expected', []],
+      ['variant-payment-reminder.pdf', 'as expected', []],
       ['control-plain.pdf', 'as expected', ['6.2.4.3-2', '6.6.2.1-1']],
       ['control-pdfa.pdf', 'as expected', ['6.2.4.3-2']],
       ['control-xmp.pdf', 'as expected', []],
@@ -238,6 +240,7 @@ describe('veraPDF’s verdict', () => {
       ['pdfa-2b-site-visit.pdf', 'as expected', []],
       ['pdfa-2b-order-confirmation.pdf', 'as expected', []],
       ['pdfa-2b-product-data-sheet.pdf', 'as expected', []],
+      ['pdfa-2b-payment-reminder.pdf', 'as expected', []],
       ['pdfa-2b-blocks.pdf', 'as expected', []],
       ['pdfa-2b-svg.pdf', 'as expected', []],
       ['pdfa-2b-svg-bound.pdf', 'as expected', []],

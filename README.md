@@ -173,9 +173,9 @@ data and drawn by PDF.js. `report-render-pdf`'s `pictures.test.ts` fails
 when a page stops printing or drawing what its picture shows, or its
 caption quotes what the page does not print. It does not see a drawing
 changed inside its own box, a rule, a border, an image or the colour of
-text. The quotation, the invoices, the order confirmation and the product
-data sheet print an invented firm's mark, an SVG your application hands
-over like any other asset
+text. The quotation, the invoices, the order confirmation, the product
+data sheet and the payment reminder print an invented firm's mark, an SVG
+your application hands over like any other asset
 ([0032](./docs/decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md)).
 
 ![The quotation starter, an Offerte under the firm's mark: line items in Swiss francs, then Zwischensumme, MWST 8.1 %, Rundung and Total CHF 3'143.00](docs/images/starter-quotation.png)
@@ -293,6 +293,22 @@ each locale writes them
 ([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 The board it describes and its values are invented, and no native speaker
 has reviewed its French, Italian or English.
+
+![The payment reminder starter, a Mahnung under the firm's letterhead: the overdue invoices, each with its due date and its days overdue, down to Total überfällige Rechnungen CHF 4'773.65, the payments and the credit note received against them down to Total Zahlungen und Gutschriften CHF-1'586.35, each table totalling its own items, then Mahngebühr CHF 20.00 and Zu bezahlen CHF 3'207.30, and across the foot of the page its QR-bill, the Empfangsschein and the Zahlteil with its Swiss QR Code, each for CHF 3 207.30](docs/images/starter-payment-reminder.png)
+
+The payment reminder is the firm's reminder of the invoices a customer has
+not paid: one list of open items printed as two tables, each picking its
+items by their kind, the overdue invoices with their days overdue and the
+payments and the credit note received against them, each with its own
+total. Under them, the reminder's fee and what is due, the balance of every
+item computed once, which the QR-bill at the foot of the page asks for. It
+is written in Swiss German with its words in French, Italian and English,
+and a render in the customer's language prints the slip's headings in
+SIX's words for it. A reminder of more invoices runs on to page 2 under a
+running header, the slip at the foot of its last page. Its firm, customer
+and dealings are invented, it pays SIX's example account, and no native
+speaker has reviewed its French, Italian or English
+([0066](./docs/decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)).
 
 ## Render a report
 
