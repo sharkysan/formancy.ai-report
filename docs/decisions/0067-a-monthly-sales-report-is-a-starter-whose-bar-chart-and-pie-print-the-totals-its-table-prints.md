@@ -1,7 +1,6 @@
 # 0067 — A monthly sales report is a starter whose bar chart and pie print the totals its table prints
 
-- **Status:** accepted; numbered while 0066 was held by a branch not yet
-  merged
+- **Status:** accepted
 - **Date:** 2026-11-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -20,12 +19,12 @@
     letterhead to page 1's own header, its running header to the month and
     its page count to the page regions; and each product line's header to
     being kept with its first three lines. `src/starters/starters.test.ts`
-    holds the eleven starters by id, in order, each validating, opening
+    holds the twelve starters by id, in order, each validating, opening
     with no diagnostic and resolving its own data in a final render with
     no warning; `src/starters/logo.test.ts` holds it beside the order
-    confirmation as a letter that begins page 1's own header with the
-    firm's mark; `src/report-size.test.ts` holds it to `MAX_REPORT_BYTES`
-    and `MAX_WORDS` and their factors.
+    confirmation and the payment reminder as a letter that begins page 1's
+    own header with the firm's mark; `src/report-size.test.ts` holds it to
+    `MAX_REPORT_BYTES` and `MAX_WORDS` and their factors.
   - **The PDF** ([0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)).
     report-render-pdf's `src/sales-report.test.ts`: the table line by
     line across the page break, each product line's lines picked, ordered
@@ -271,7 +270,7 @@ recorded with `--record`.
   corpus's charts made by hand.
 
 **What it costs.**
-- **An eleventh starter in every walk.** The parity walk in three
+- **A twelfth starter in every walk.** The parity walk in three
   languages, the journey, the preview pipeline and the browser gate's
   passes each open one starter more, and the e-invoice gate draws two
   PDFs more. Not measured apart from the rest of the run.

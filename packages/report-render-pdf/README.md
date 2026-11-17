@@ -907,6 +907,14 @@ code, decoded from the page, asking for what is due by the reminder's
 reference; and, with forty invoices more, its running header from page 2
 and its slip on the last page alone
 ([0066](../../docs/decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)).
+`sales-report.test.ts` proves the monthly sales report: its table line by
+line across its page break, every total recomputed in BigInt; each bar
+measured against the gridlines the PDF draws, as tall as its product
+line's total and labelled with the digits that group's total prints in
+the table; each slice by the turn it sweeps, its legend entry its region's
+total and its share rounded once; and its letterhead on page 1 alone and
+its running header from page 2
+([0067](../../docs/decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md)).
 `samples.test.ts` does the same for the corpus's invoice samples,
 the invoice in German, French, Italian and English: one page each, its
 totals in its locale's format, its slip's headings in its language and in
