@@ -77,7 +77,7 @@ function tableLines(): string[] {
     ...deliveries().flatMap(([each, lines]) => [`Lieferung vom ${day(each, 'long')}`, ...lines.map(goods), `Zwischensumme Lieferung ${francs(sum(lines))}`]),
     `Total Waren ${francs(sum(of('goods')))}`,
     'Leistungen',
-    'Leistung Menge Einheit Ansatz Total',
+    'Leistung Menge Einheit Ansatz Betrag',
     ...byArticle(of('service')).map(service),
     `Total Leistungen ${francs(sum(of('service')))}`,
     'Rücknahmen',

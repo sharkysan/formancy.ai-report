@@ -41,8 +41,8 @@ describe('the product data sheet', () => {
   test('is the German sheet, with a translation for French, Italian and English', () => {
     const { translations, ...report } = PRODUCT_DATA_SHEET.report
     expect(report).toEqual(productDataSheetAlone(GERMAN!))
-    expect([report.locale, translations?.map(({ locale }) => locale)]).toEqual(['de-CH', ['fr-CH', 'it-CH', 'en']])
-    expect(SHEET_EDITIONS.map(({ locale }) => locale)).toEqual(['de-CH', 'fr-CH', 'it-CH', 'en'])
+    expect([report.locale, translations?.map(({ locale }) => locale)]).toEqual(['de-CH', ['fr-CH', 'it-CH', 'en-CH']])
+    expect(SHEET_EDITIONS.map(({ locale }) => locale)).toEqual(['de-CH', 'fr-CH', 'it-CH', 'en-CH'])
   })
 
   // Every language is whole: a word left out of one would refuse the

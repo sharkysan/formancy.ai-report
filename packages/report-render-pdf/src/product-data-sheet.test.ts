@@ -101,7 +101,13 @@ function sheetLines(words: SheetWords): string[] {
   ].map(normalise)
 }
 
-/** Every word of `words` the sheet prints, each a label, a heading or a sentence of its own. */
+/**
+ * Every word of `words` the sheet prints as whole words of a line, each a
+ * label, a heading or a sentence of its own. Not the words after CO₂'s
+ * index, which stand between two runs set off the line, "CO2-Äq. pro
+ * m2", and are never whole words there: the exact lines of
+ * `sheetLines` hold them in each language.
+ */
 const ownWords = (words: SheetWords): string[] =>
   [
     words.title,
@@ -117,7 +123,6 @@ const ownWords = (words: SheetWords): string[] =>
     words.fire,
     words.environment,
     words.warming,
-    words.carbon[1],
     ...words.notes,
     ...words.issued,
   ].map(normalise)

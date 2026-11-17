@@ -34,7 +34,7 @@ export const UNITS = {
 
 /** The sheet in one language: its locale, and every word it prints there but the units. */
 export interface SheetWords {
-  readonly locale: 'de-CH' | 'fr-CH' | 'it-CH' | 'en'
+  readonly locale: 'de-CH' | 'fr-CH' | 'it-CH' | 'en-CH'
   /** The report's title, which the sheet's heading prints too. */
   readonly title: string
   /** What the firm's UID is followed by, as the VAT number it is. */
@@ -128,7 +128,7 @@ export const ITALIAN_SHEET: SheetWords = {
 }
 
 export const ENGLISH_SHEET: SheetWords = {
-  locale: 'en',
+  locale: 'en-CH',
   title: 'Product data sheet',
   vatNumber: 'VAT',
   article: 'Item ',

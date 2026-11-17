@@ -69,8 +69,10 @@ export const SHIFT_TOLERANCE = 0.01
  * holds text on the line (`shifted.ts`), so none stands farther from the
  * nearest run of its word: the run on the line, or another run set off it
  * that is read against that one, as a charge's after its count, SO₄²⁻.
+ * The Studio's browser gate reads the Preview's text layer by it too
+ * (0064).
  */
-const JOIN_GAP = 0.3
+export const JOIN_GAP = 0.3
 
 /**
  * The page's lines, top to bottom, and after them each run that does not

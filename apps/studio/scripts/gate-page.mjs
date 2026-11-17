@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { drawingsOn, readPdf } from '@formancy/report-corpus'
+import { drawingsOn, JOIN_GAP, readPdf } from '@formancy/report-corpus'
 import { SHIFTED_SIZE } from '@formancy/report-runtime'
 
 export const app = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -283,13 +283,6 @@ export function cutControls(page) {
     return { controls: controls.length, cut, scrolled }
   })
 }
-
-/**
- * How far from the run beside it, as a fraction of that run's size, a run
- * set below or above the line may stand and still be read into its line:
- * report-corpus's `JOIN_GAP`, which its `offLine` reads the PDF's runs by.
- */
-const JOIN_GAP = 0.3
 
 /**
  * Each page PDF.js drew, read once its text layer has text, its canvas has

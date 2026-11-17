@@ -2996,11 +2996,16 @@
       ]
     },
     "0064": {
-      "reviewed": "sha256:f8cb4ce78a292bf6c416bfa5ffad13af4462604183aaa5207cf28ee9e27b9294",
+      "reviewed": "sha256:1af4c710f9df11e7c391fc6b88c4d40942d882b237afbb994f7f57b5335e94ce",
       "limitations": [
         {
           "area": "rendering",
           "says": "A heading kept with what follows it over a table that runs past its page moves to the next page with the whole table, leaving its own page without either, so the order confirmation's goods heading is not kept with its table, and nothing fixes that yet."
+        },
+        {
+          "area": "builders",
+          "says": "A table's columns label their boxes in the design view on the line under the table's own label, and a column shorter than two labels shows no label there, its outline row alone naming it.",
+          "heldBy": "packages/report-builder-core/src/css.test.ts"
         },
         {
           "area": "testing",
@@ -3013,7 +3018,7 @@
         },
         {
           "area": "release",
-          "says": "The product data sheet's board, values and class are invented and claim no test of any board, its French, Italian and English have been reviewed by no native speaker, and its English, written as `en`, dates the sheet as ICU's English does, \"November 2, 2026\".",
+          "says": "The product data sheet's board, values and class are invented and claim no test of any board, and its French, Italian and English have been reviewed by no native speaker.",
           "heldBy": "packages/report-render-pdf/src/product-data-sheet.test.ts"
         }
       ]

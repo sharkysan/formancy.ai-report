@@ -16,14 +16,14 @@ confirmation and a product data sheet**
 A group header kept with its first rows, a first page's own header, a run
 set off the line, several tables over the detail rows and a report's words
 in several languages were each held by fixtures and by the renderer's
-tests, and none by a report a person opens: the Studio's seven starters
-printed none of them, and veraPDF and Mustang had judged no PDF whose page
-1 prints its own header. Both are letters of the corpus's one invented
+tests, and none by a report a person opens: the Studio's starters printed
+none of them, and veraPDF and Mustang had judged no PDF whose page 1
+prints its own header. Both are letters of the corpus's one invented
 firm, under its mark; every existing starter is unchanged, and the
 e-invoice gate, recorded again, holds every PDF it drew before at the
 digest it had.
 - **The order confirmation**, `ORDER_CONFIRMATION`, in Swiss German: one
-  list of 43 order lines printed as three tables, the goods, the services
+  list of order lines printed as three tables, the goods, the services
   and the returns, each picking its lines by their `kind` with `rowsWhen`
   and totalling its own, and the order's net, VAT and total over every
   line under them; the goods grouped by delivery, each delivery's header
@@ -50,6 +50,15 @@ digest it had.
   Studio's browser gate reads the Preview's text layer so, by the same
   sizes. Read as they were, the geometry says the two would read the data
   sheet's lowered digit two ways, a hair inside and outside a line.
+- **report-builder-core: a table column's label stands on the line under
+  its table's in the design view**, and a column shorter than two labels
+  shows none. The order confirmation found the two printing over each
+  other: a table's own label sits at its top end on its first line, and
+  the last column's label, as wide as the column where two tables end in
+  one header and the builders label each by its id, "Betrag
+  (goods/amount)", covered it there, and the browser gate's axe could not
+  tell the colour behind it. Every table a person duplicates could meet
+  it. The stylesheet alone changes, through no new variable.
 - **Found, not fixed: a heading kept with a table that runs past its
   page moves, with the whole table, to the next page**, leaving its own
   page without either; the order confirmation's goods heading is not kept

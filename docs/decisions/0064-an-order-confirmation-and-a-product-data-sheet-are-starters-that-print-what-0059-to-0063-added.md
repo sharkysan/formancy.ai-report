@@ -9,9 +9,8 @@
     no diagnostic and resolving its own data in a final render with no
     warning. `src/starters/order-confirmation.test.ts` holds the order
     confirmation's three tables to the three kinds its lines have and no
-    other, each table's last column to a header no other column of the
-    report has, its lines to arriving out of the order the tables print them
-    and its deliveries to being of unlike sizes, its goods' group to
+    other, each kind's lines to arriving out of the order its table
+    prints them in and its deliveries to being of unlike sizes, its goods' group to
     keeping three lines, its letterhead to page 1's own header and its
     running header and page count to the page regions.
     `src/starters/product-data-sheet.test.ts` holds the data sheet to the
@@ -59,7 +58,12 @@
     `src/starters/starters.test.ts` holds the picker's labels. The
     browser gate walks both in Chromium in both builders at every pass and
     holds each Preview's pictured page to `docs/images/pictures.json`, its
-    text layer read with runs set off the line read into their line.
+    text layer read with runs set off the line read into their line, and
+    axe's contrast of every label of the design view decided, the order
+    confirmation's two "Betrag" columns among them.
+    report-builder-core's `src/css.test.ts` holds a table column's label
+    to the line under its table's and to none in a column shorter than
+    two labels.
   - **The e-invoice gate.** `scripts/e-invoice/pdf-corpus.mjs` draws
     `variant-order-confirmation.pdf` and `variant-product-data-sheet.pdf`
     as PDF/A-3b, and `variantProblems` holds the variants to every
@@ -88,8 +92,16 @@
       view stands beside the Preview, in both builders: "the contrast of
       every text in view decided", undecided for "Betrag (goods/amount)"
       and "Betrag (services/amount)" (`bgOverlap`), with both amounts
-      headed "Betrag"; and `order-confirmation.test.ts`'s case of the
-      last columns' headers, written then, the same way.
+      headed "Betrag" and the builders' stylesheet as it was; the same
+      reproduced, after, by the gate's own `audit` alone at those widths,
+      and an opaque ground for a box's label, the room's glass surface,
+      changing nothing; and with the column's label on the line under the
+      table's, every contrast decided there in all nine starters;
+    - report-builder-core's `css.test.ts` case of a table column's label
+      before the rule;
+    - `order-confirmation.test.ts`'s case of the lines' order with each
+      kind, in turn, put in the order its table prints it: the goods, the
+      services and the returns each failed it by name.
 
     Not watched failing: the browser gate's reading of the text layer
     without the join, which a run of the whole gate would take. It read
@@ -141,18 +153,12 @@ firm's, under its mark: an order confirmation, which prints 0059, 0060 and
 
 **The order confirmation** (`starters/order-confirmation.ts`), in Swiss
 German, "Auftragsbestätigung":
-- **One list, three tables.** Its 43 lines are goods, services and
+- **One list, three tables.** Its lines are goods, services and
   returns, by their `kind`, given out of every order the tables print
   them in. Three tables pick theirs by `rowsWhen` -- `row.kind ==
   "goods"`, `"service"`, `"return"` -- each with its own columns (the
   services have no article column, the returns no price and a credit
-  column), its own order and its own total row, `over: 'table'`. Each
-  table's last column is headed as no other column of the report is --
-  the goods' amount "Betrag", the services' "Total", the returns'
-  "Gutschrift" -- since the builders label two columns of one header by
-  their ids, and at a table's right end that longer label stands over the
-  table's own in the design view, whose contrast axe cannot decide (the
-  debt 0032 names). A
+  column), its own order and its own total row, `over: 'table'`. A
   return is credited, its amount negative. Under the tables, outside
   them, the order's net amount over every line (`totals`), its VAT
   rounded to the centime and its total, the invoice's arithmetic.
@@ -218,6 +224,23 @@ its line, as the corpus does (0061): the corpus exports its rule,
 and over it, into that box's line, the text layer drawing each box as
 tall as its run's size.
 
+**A table's column labels its box on the line under its table's.** The
+order confirmation found the design view printing two labels over each
+other: a table's own label sits at its top end on its first line, and its
+columns' labels at their top start on that line, so the last column's,
+as wide as the column -- "Betrag (goods/amount)", where two tables end in
+"Betrag" and the builders label each by its id (`labels.ts`'s
+`reportLabels`) -- printed over the table's, and the browser gate's axe
+could not tell the colour behind it. A column's box is painted after its
+table's, each box its own stacking context, so the table's label was the
+one covered, whatever its `z-index`. report-builder-core's stylesheet
+(`styles/canvas.css`) now draws a table column's label one label's height
+down, on the line under the table's, and none in a column shorter than
+two labels, as it draws none in a box shorter than one; both amounts are
+headed "Betrag". A ground for the label instead was tried: the room's
+surface is glass, not opaque, and axe still read through it to the label
+beneath.
+
 **The walks.** The parity walk adds a language the report is not written
 in, French or else Romansh, where it added French to every starter; the
 e-invoice gate draws both as variants and as PDF/A-2b, recorded with
@@ -248,9 +271,12 @@ this one's.
   header, and the first of a run set off the line.
 - **A translated report in the Studio.** The bar's language switch shows
   on a starter, and each of its four languages prints whole.
-- **A defect found.** The order confirmation showed the renderer moving a
-  heading and a long table to the next page; nothing before held a
-  heading over a table that runs past its page.
+- **Two defects found, one fixed.** The order confirmation showed the
+  renderer moving a heading and a long table to the next page, which
+  nothing before held, left for a change of its own; and the design view
+  printing a table's last column's label over the table's wherever the
+  two are as wide as the column, which every table a person duplicates
+  (0062) could meet, fixed in the builders' stylesheet.
 - **One reading of a formula.** The corpus's checks, the renderer's
   tests, the README's pictures and the browser gate read "CO2-Äq." on the
   line it stands on.
@@ -277,9 +303,6 @@ this one's.
   invented and claim no test of any board; EN 13501-1 and EN 15804 are
   named as a data sheet names them, and the board meets neither. No
   native speaker has reviewed the French, the Italian or the English.
-- **English as `en` writes it.** The sheet's English is `en`, so its date
-  prints as "November 2, 2026", ICU's English, not as a Swiss firm writing
-  English might date it.
 - **The gate reads sizes, not moves.** The browser gate's text layer
   says no baseline, so it reads a box at `SHIFTED_SIZE` of one beside it
   into its line wherever it stands over it, where the corpus reads only
@@ -294,8 +317,8 @@ this one's.
   gate's tests, the picker's labels and the preview pipeline's titles
   name each starter, as they are written to, and each grew by two.
 - **Inside the bounds, measured.** The order confirmation's report is
-  10,426 bytes with 33 words and 2 expressions at word places, the data
-  sheet's, translations and all, 12,828 bytes with 28 and 1, between the
+  10,427 bytes with 32 words and 2 expressions at word places, the data
+  sheet's, translations and all, 12,831 bytes with 28 and 1, between the
   smallest report the corpus holds and the next to the XRechnung sample,
   and under its 49 words and expressions, so `limits.ts`'s comments hold
   as written (measured on 16 November 2026 under Node 24.21.0 on Windows
@@ -316,8 +339,8 @@ starters so that the four samples stay four reports.
 **One starter for all five.** An order confirmation in four languages with
 formulas in it. A unit's power has no place in an order's lines, whose
 cells refuse a baseline; and one report holding both documents' words
-and expressions, 35 and 29, would hold more than the XRechnung sample,
-which `limits.ts` names as the report with the most, and exactly
+and expressions, 34 and 29, would hold more than the XRechnung sample,
+which `limits.ts` names as the report with the most, within a word of
 `MAX_WORDS`' sixteenth, the factor the bound is to leave. Two documents
 each print what they would print anyway.
 

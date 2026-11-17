@@ -63,7 +63,7 @@ export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from '.
 export { CHART_FIXTURES } from './fixtures/charts.js'
 export { FIRST_PAGE_FIXTURES } from './fixtures/first-page-header.js'
 export { SHIFTED_FIXTURES } from './fixtures/shifted.js'
-export { offLine } from './lines.js'
+export { JOIN_GAP, offLine } from './lines.js'
 export { baselineOf, readPdf } from './read-pdf.js'
 export { curvePoints, curveSamples, onCurve } from './curves.js'
 export { drawingsOn } from './drawings.js'

@@ -231,8 +231,7 @@ const REPORT: ReportDefinition = {
           quantity,
           unit,
           column('rate', 'Ansatz', 78, 'right', { kind: 'field', field: detail('unitPrice'), format: CHF }),
-          // Not "Betrag", the goods' word: two columns of one header are labelled by their ids in the design view, and at a table's right end that label stands over the table's.
-          amount('Total'),
+          amount('Betrag'),
         ],
         sort: [{ field: detail('article'), direction: 'asc' }],
         totals: [tableTotal('description', 'Total Leistungen')],

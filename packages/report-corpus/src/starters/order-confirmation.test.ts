@@ -32,18 +32,6 @@ describe('the order confirmation', () => {
     ])
   })
 
-  // Each table's last column, at its right end, is headed as no other
-  // column of the report is. The builders label two columns of one header
-  // by their ids, "Betrag (goods/amount)", and at a table's right end that
-  // longer label stands over the table's own in the design view, where the
-  // browser gate's axe could not tell the colour behind it: it failed so
-  // on the goods' and the services' amounts, both headed "Betrag".
-  test('heads each table’s last column as no other column of the report', () => {
-    const headers = tables().flatMap((table) => table.columns.map(({ header }) => header))
-    const last = tables().map((table) => table.columns.at(-1)?.header ?? '')
-    expect(last.filter((header) => headers.filter((each) => each === header).length > 1)).toEqual([])
-  })
-
   // Every line is one of the three kinds, and each kind has lines: a line
   // of a fourth kind would print in no table and still count in the
   // order's total, a total no table shows; and a kind with none would
@@ -55,13 +43,28 @@ describe('the order confirmation', () => {
 
   // Order and grouping are only proved by rows that arrive out of the
   // order the tables print them in, and a delivery's subtotal only by
-  // deliveries that differ in how many lines they hold: lines already in
-  // the report's order would pass a report that never sorted, and
-  // deliveries alike would pass a subtotal of another delivery's lines.
-  test('arrives out of the order its tables print, its deliveries of unlike sizes', () => {
-    const goods = orderConfirmationLines().filter(({ kind }) => kind === 'goods')
-    const printed = [...goods].sort((a, b) => (a.delivery === b.delivery ? (a.article < b.article ? -1 : 1) : a.delivery < b.delivery ? -1 : 1))
-    expect(goods.map(({ article }) => article)).not.toEqual(printed.map(({ article }) => article))
+  // deliveries that differ in how many lines they hold: lines of a kind
+  // already in their table's order would pass a table that never sorted
+  // -- the goods by delivery and article, the services and the returns by
+  // article -- and deliveries alike would pass a subtotal of another
+  // delivery's lines.
+  test('arrives out of the order each of its tables prints, its deliveries of unlike sizes', () => {
+    const lines = orderConfirmationLines()
+    const byArticle = (a: { article: string }, b: { article: string }): number => (a.article < b.article ? -1 : a.article > b.article ? 1 : 0)
+    const printed: Record<string, (a: (typeof lines)[number], b: (typeof lines)[number]) => number> = {
+      goods: (a, b) => (a.delivery === b.delivery ? byArticle(a, b) : a.delivery < b.delivery ? -1 : 1),
+      service: byArticle,
+      return: byArticle,
+    }
+    for (const [kind, order] of Object.entries(printed)) {
+      const given = lines.filter((line) => line.kind === kind).map(({ article }) => article)
+      const sorted = lines
+        .filter((line) => line.kind === kind)
+        .sort(order)
+        .map(({ article }) => article)
+      expect(given, kind).not.toEqual(sorted)
+    }
+    const goods = lines.filter(({ kind }) => kind === 'goods')
     const sizes = new Map<string, number>()
     for (const { delivery } of goods) sizes.set(delivery, (sizes.get(delivery) ?? 0) + 1)
     expect(sizes.size).toBe(3)

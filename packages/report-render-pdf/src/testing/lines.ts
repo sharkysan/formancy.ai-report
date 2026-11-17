@@ -3,15 +3,20 @@ import { expect } from 'vitest'
 import { normalise } from './documents.js'
 
 /**
- * A page's text as lines a reader sees, rebuilt from PDF.js's runs: a copy
- * of `@formancy/report-corpus`'s `lines.ts`, which its index does not export,
- * and goes once it does. Runs on one baseline make one line, read left to
- * right, and lines are read top to bottom. A run set below or above the
- * line (0061) is read into the line of the run beside it, as the corpus's
- * reader reads it and by its rule, `offLine`: so that a page that prints a
- * formula, the product data sheet's among them, reads "kg/m3" on the line
- * it stands on, here, in the README's pictures and in the Studio's browser
- * gate alike (0064). `shifted.test.ts` reads PDF.js's runs themselves.
+ * A page's text as lines a reader sees, rebuilt from PDF.js's runs. By its
+ * own rule, a copy of `@formancy/report-corpus`'s `pageLines`, which the
+ * corpus's index does not export, and which goes once it does: runs on one
+ * baseline make one line, read left to right, a gap wider than a word's
+ * a space, and lines are read top to bottom; a run turned off the
+ * horizontal, which the corpus's reader puts after the lines, is read here
+ * by its baseline among them, as the README's pictures were read before.
+ * By the corpus's rule, `offLine`, which the corpus does export: which
+ * runs are set below or above the line (0061) and which run on the line
+ * each stands beside, each then read into that run's line here. So a page
+ * that prints a formula, the product data sheet's among them, reads
+ * "kg/m3" on the line it stands on, here, in the README's pictures and in
+ * the Studio's browser gate alike (0064). `shifted.test.ts` reads PDF.js's
+ * runs themselves.
  */
 export interface Line {
   readonly text: string
