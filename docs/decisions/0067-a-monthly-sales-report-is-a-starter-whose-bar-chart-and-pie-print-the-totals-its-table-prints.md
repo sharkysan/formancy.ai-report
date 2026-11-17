@@ -1,6 +1,6 @@
 # 0067 — A monthly sales report is a starter whose bar chart and pie print the totals its table prints
 
-- **Status:** accepted
+- **Status:** accepted; numbered while 0066 was held by a branch not yet merged
 - **Date:** 2026-11-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -38,7 +38,8 @@
     digits its group's total prints in the table, and the bars' labels
     adding up to the month's total the table prints; each slice measured
     by the turn its outline sweeps from where the regions before it end,
-    within a quarter of a point of arc of its region's exact share, its
+    within a tenth of a point of arc of its region's exact share, which a
+    pie drawn from the legend's rounded shares misses by up to 0.133 pt, its
     legend entry the region's total and that share rounded once, and the
     slices' totals adding up to the month's; and page 1's mark at the
     margins' corner with the firm's line first under it, no running header
@@ -64,7 +65,9 @@
     that walks the journey, holds its Preview's pictured page to
     `docs/images/pictures.json`, measures it with axe, contrast and target
     size among its rules, and compares the two builders' trees over it. On
-    17 November 2026, on Windows 11 in Chromium as `scripts/browsers.mjs`
+    17 November 2026, on this branch before the payment reminder (0066) was
+    merged into it, so over eleven starters, on Windows 11 in Chromium as
+    `scripts/browsers.mjs`
     launches it, the whole gate passed: twelve passes, the journey in
     eight, 5,890 checks and none failed, in 18 minutes 22 seconds by its
     own record, alone on the machine. The README's Studio pictures were
@@ -158,7 +161,7 @@ The forces:
 ## Decision
 
 **A monthly sales report, "Umsatzbericht" (`starters/sales-report.ts`),
-follows the product data sheet in `STARTERS`: the firm's sales of November
+follows the payment reminder in `STARTERS`: the firm's sales of November
 2026, drawn as a bar chart by product line and a pie by region, beside one
 table of the same lines grouped by the bar chart's category, every total
 to the centime.**
@@ -200,7 +203,7 @@ than they credit. They arrive in no order the report prints them in.
 - **Each group's header kept with its first three lines** (0059), as a
   report that runs onto a second page should be. At this data, page 1
   ends four lines under the ventilation group's header, so the rule is
-  stated and not met at this page end; the order confirmation is the
+  stated, and never put to work at this page end; the order confirmation is the
   starter that shows it at work (0064).
 - **The heading is not kept with its table**, for 0064's defect: a heading
   kept with a table that runs past its page moves, with the whole table,
@@ -289,7 +292,7 @@ recorded with `--record`.
   change to any of them moves the page end, and the picture's lines and
   places fail `pictures.test.ts` until it is drawn again. The table's own
   test reads the lines across the break wherever it falls.
-- **A keep stated and not met.** The group headers ask for three lines,
+- **A keep stated, and never put to work here.** The group headers ask for three lines,
   and no header stands near page 1's foot at this data; the rule is shown
   at work by the order confirmation, not here.
 - **Shares that happen to add up.** The five shares print 8.0, 24.3,

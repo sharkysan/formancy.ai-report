@@ -147,7 +147,7 @@ describe('the sales report', () => {
   // The runtime totals each bar and each slice once, exactly (0055), and
   // each total here is recomputed from the data in plain BigInt: a bar of
   // another product line's lines, a slice of another region's, a total
-  // rounded or carried through Number, or a share rounded twice, reads
+  // left unrounded, or a share rounded twice, reads
   // otherwise here. Each share is the slice's total over the sum of the
   // slices, rounded once, half away from zero, to a tenth of a percent;
   // the shares need not add up to 100.0 %.

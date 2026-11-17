@@ -153,14 +153,22 @@ const COLUMN_HEADER = 'Beleg Datum Region Beschreibung Menge Einheit Betrag'
 
 /**
  * Points: how far a bar's measured height may stand from the height its
- * total is worth on the gridlines the PDF draws, and a slice's arc from
- * the arc its share sweeps. The renderer places a mark's ends within a
- * tenth of a point (`check-chart-marks.ts`, `check-chart-pie.ts`); a bar
- * a cent off stands far less than that from its true height, so this
- * holds a bar to its total's height, not to the cent: the cent is held by
- * its label, which prints the digits.
+ * total is worth on the gridlines the PDF draws. Measured on 17 November
+ * 2026, the bars stand at most 0.049 pt from their heights; on this plot
+ * 0.25 pt is about CHF 139, so this holds a bar to its total's height, a
+ * credit note left out moving one by 0.68 pt or more, and not to the cent:
+ * the cent is held by its label, which prints the digits.
  */
 const ON_THE_PAGE = 0.25
+
+/**
+ * Points along the arc: how far a slice's measured end may stand from
+ * where its exact share ends. Measured on 17 November 2026, the slices end
+ * at most 0.041 pt from their exact sectors, and a pie drawn from the
+ * legend's shares, rounded to a tenth of a percent, would end up to
+ * 0.133 pt from them; a tenth of a point tells the two apart.
+ */
+const ON_THE_ARC = 0.1
 
 describe('the sales report', () => {
   // The table, line by line, across the page break: each product line under
@@ -271,7 +279,8 @@ describe('the sales report', () => {
 
   // Each slice, measured on the page by the turn its outline sweeps from
   // noon, clockwise, from where the regions before it end: its region's
-  // total over the month's, exactly, as the sectors are drawn; and its
+  // total over the month's, as the sectors are drawn, to a tenth of a
+  // point, which a pie drawn from the legend's rounded shares misses; and its
   // legend entry saying the region's total, recomputed here, and that
   // share rounded once, half away from zero, to a tenth of a percent. A
   // slice of another region's lines, a share of another whole than the
@@ -303,8 +312,8 @@ describe('the sales report', () => {
         const from = Number((before * 1_000_000n) / MONTH) / 1_000_000
         const sweep = Number((worth * 1_000_000n) / MONTH) / 1_000_000
         const arc = (a: number, b: number): number => Math.min(Math.abs(a - b), 1 - Math.abs(a - b)) * turn * radius
-        expect(arc(at(start, centre) / turn, from), `where ${region} starts`).toBeLessThanOrEqual(ON_THE_PAGE)
-        expect(arc(at(end, centre) / turn, (from + sweep) % 1), `where ${region} ends`).toBeLessThanOrEqual(ON_THE_PAGE)
+        expect(arc(at(start, centre) / turn, from), `where ${region} starts`).toBeLessThanOrEqual(ON_THE_ARC)
+        expect(arc(at(end, centre) / turn, (from + sweep) % 1), `where ${region} ends`).toBeLessThanOrEqual(ON_THE_ARC)
         before += worth
         const entry = words.filter((word) => word.startsWith(`${region}:`))
         expect(entry).toEqual([`${region}: ${digits(worth)} (${percent(halfAway(worth * 1000n, MONTH))})`])
