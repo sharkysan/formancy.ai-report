@@ -10,6 +10,37 @@ later.
 
 ## Unreleased
 
+**A starter draws charts: a monthly sales report whose bar chart and pie
+print the totals its table prints**
+([0067](docs/decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md)).
+A report has held a bar, line or pie chart since 0052, and the renderer
+draws one since 0058, but no starter held one: the Studio never showed a
+chart, the README pictured none, and that a chart and the table beside it
+print the same total was held of the runtime's blocks, never on a page a
+person reads. Every existing starter is unchanged.
+- **The sales report**, `SALES_REPORT`, the firm's sales of November 2026
+  in Swiss German: 42 lines in four product lines and five regions, two
+  of them credit notes; a bar chart of each product line's sales and a
+  pie of each region's share side by side, every value to the centime;
+  and under them one table of every line, grouped by the bar chart's
+  category, each group closed by its total and the table by the month's.
+  Each bar's label prints the digits its group's total prints, and each
+  entry of the pie's legend its region's total and its share, rounded
+  once. The firm's letterhead stands in page 1's own header, and a running
+  header with the month from page 2.
+- **Proved on the PDF**: report-render-pdf's `sales-report.test.ts`
+  recomputes every total in BigInt from the data, measures each bar
+  against the gridlines the PDF draws and each slice by the turn it
+  sweeps, and holds each bar's label to the total its group prints in the
+  table, the labels together to the month's, and each legend entry to its
+  region's total and share.
+- **The Studio offers it**, "Sales report"; the README pictures its page
+  1; every walk over the starters walks it, so both builders now open,
+  select, undo and print a report with charts, which they draw as boxes
+  and do not edit yet; and the e-invoice gate draws it as a PDF/A-3b
+  variant and as a PDF/A-2b, recorded again. Its value axis prints its
+  ticks to the centime, since one format prints every value of a chart.
+
 **A payment reminder is a starter: the balance of a customer's overdue
 invoices, paid by a QR-bill in the customer's language**
 ([0066](docs/decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)).

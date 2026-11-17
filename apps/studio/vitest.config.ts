@@ -38,12 +38,17 @@ export default mergeConfig(
       // again by each builder it is shown in, and the design view walked for
       // each starter: the journey took 47.3 s, its walk again with requests
       // recorded 27.6 s, and plan 21's switch 6.7 s, against vitest's 5 s
-      // default (on 2026-10-16, before it: 22.2 s, 7.4 s and 4.0 s). 120 s
-      // is the journey two and a half times over. formancy.ai saw suites like
-      // this run nine to fourteen times slower on a loaded CI runner (its
-      // vitest.coverage.ts, on RENDER_TIMEOUT_MS); a runner that slow fails
-      // the journey here, and is the measurement to raise it by.
-      testTimeout: 120_000,
+      // default (on 2026-10-16, before it: 22.2 s, 7.4 s and 4.0 s).
+      // formancy.ai saw suites like this run nine to fourteen times slower
+      // on a loaded CI runner (its vitest.coverage.ts, on RENDER_TIMEOUT_MS);
+      // a runner that slow fails the journey here, and is the measurement to
+      // raise it by. It was: on 2026-11-17, on the test job's GitHub runner
+      // under coverage, the journey took 105.1 s over eleven starters (the
+      // run of #88) and passed 120 s, the bound then, over twelve, the sales
+      // report's charts among them (the first run of #89). 240 s is that
+      // twice over; the walk grows with every starter, and a starter that
+      // takes it past this is the next measurement.
+      testTimeout: 240_000,
     },
   }),
 )

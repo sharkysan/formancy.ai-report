@@ -38,6 +38,8 @@ const STARTER_FILES: Readonly<Record<string, Outcome>> = {
   // An invoice in law: its final render is its PDF/A-3b or the copy of its XML, and its preview is labelled as not the invoice, a label a Word file would hold as a paragraph.
   'e-invoice': { final: refused('eInvoice'), preview: refused('pageHeader') },
   'e-invoice-xrechnung': { final: refused('eInvoice'), preview: refused('pageHeader') },
+  // Draws two charts, which ECharts lays out for the PDF renderer alone: refused for the first of them, the bar chart, by its id.
+  'sales-report': both('by-category'),
 }
 
 // A starter added to the corpus is read before it is said to export: one that draws a chart is refused, and must say so here.

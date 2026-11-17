@@ -174,8 +174,8 @@ when a page stops printing or drawing what its picture shows, or its
 caption quotes what the page does not print. It does not see a drawing
 changed inside its own box, a rule, a border, an image or the colour of
 text. The quotation, the invoices, the order confirmation, the product
-data sheet and the payment reminder print an invented firm's mark, an SVG
-your application hands over like any other asset
+data sheet, the payment reminder and the sales report print an invented
+firm's mark, an SVG your application hands over like any other asset
 ([0032](./docs/decisions/0032-the-invoices-and-the-quotation-print-one-invented-wordless-mark-at-the-top-left-of-their-first-page.md)).
 
 ![The quotation starter, an Offerte under the firm's mark: line items in Swiss francs, then Zwischensumme, MWST 8.1 %, Rundung and Total CHF 3'143.00](docs/images/starter-quotation.png)
@@ -309,6 +309,21 @@ running header, the slip at the foot of its last page. Its firm, customer
 and dealings are invented, it pays SIX's example account, and no native
 speaker has reviewed its French, Italian or English
 ([0066](./docs/decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)).
+
+![The sales report starter, an Umsatzbericht November 2026 under the firm's mark, Umsatz CHF 124'793.00 aus 42 Belegen: a bar chart of each product line's sales, its Heizung bar labelled 63'482.00, the total its group in the table closes with, Total Heizung CHF 63'482.00, beside a pie of each region's share, its legend saying each region's total and share, as Stadt Bern: 38'209.70 (30.6%), and under them the month's lines grouped by product line](docs/images/starter-sales-report.png)
+
+The sales report is the firm's month on two pages: its sales lines drawn
+as a bar chart by product line and a pie by region, and printed under them
+as one table grouped by product line, each group closed by its total
+([0067](./docs/decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md)).
+Each bar's label prints the digits its product line's total prints in the
+table, and each entry of the pie's legend the region's total and its share
+of the month, rounded once; the runtime decides every one of those totals
+once ([0055](./docs/decisions/0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md)),
+and the renderer lays the charts out with Apache ECharts
+([0058](./docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)).
+Both builders open it, draw each chart as a box and print it, and edit no
+chart's own properties yet.
 
 ## Render a report
 

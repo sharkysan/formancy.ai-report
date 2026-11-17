@@ -51,9 +51,11 @@ describe('the starters', () => {
   // EPC code, the e-invoice (0044) and its invoice terms as an XRechnung
   // beside it (0065), the report generated from a formancy form, the
   // order confirmation and the product data sheet that print what 0059 to
-  // 0063 added (0064), and the payment reminder (0066) are eleven
-  // different proofs; two with one id would be one proof counted twice.
-  test('are eleven, each with its own id', () => {
+  // 0063 added (0064), the payment reminder (0066), and the monthly sales
+  // report that draws a bar and a pie chart beside its table (0067) are
+  // twelve different proofs; two with one id would be one proof counted
+  // twice.
+  test('are twelve, each with its own id', () => {
     expect(STARTERS.map(({ id }) => id)).toEqual([
       'service-inspection',
       'quotation',
@@ -66,6 +68,7 @@ describe('the starters', () => {
       'order-confirmation',
       'product-data-sheet',
       'payment-reminder',
+      'sales-report',
     ])
   })
 })

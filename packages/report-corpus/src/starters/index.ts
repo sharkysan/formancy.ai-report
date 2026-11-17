@@ -8,6 +8,7 @@ import { ORDER_CONFIRMATION } from './order-confirmation.js'
 import { PAYMENT_REMINDER } from './payment-reminder.js'
 import { PRODUCT_DATA_SHEET } from './product-data-sheet.js'
 import { QUOTATION } from './quotation.js'
+import { SALES_REPORT } from './sales-report.js'
 import { INSPECTION_PHOTO, SERVICE_INSPECTION } from './service-inspection.js'
 import { SITE_VISIT_STARTER } from './site-visit.js'
 import type { Starter, StarterImage } from './starter.js'
@@ -49,6 +50,8 @@ export type { ReminderWords } from './payment-reminder-words.js'
 export { PRODUCT_DATA_SHEET, productDataSheetAlone, productDataSheetData, SHEET_EDITIONS } from './product-data-sheet.js'
 export type { SheetWords } from './product-data-sheet-words.js'
 export { lineAmount, QUOTATION, quotationData, quotationLines } from './quotation.js'
+export { SALES_REPORT, salesReportData, salesReportLines } from './sales-report.js'
+export type { SalesReportLine } from './sales-report.js'
 export { INSPECTION_PHOTO, inspectionData, inspectionNotes, SERVICE_INSPECTION } from './service-inspection.js'
 export { SITE_VISIT_STARTER, SITE_VISIT_STARTER_OPTIONS } from './site-visit.js'
 export type { Starter, StarterImage } from './starter.js'
@@ -60,8 +63,10 @@ export { XRECHNUNG_SAMPLE, XRECHNUNG_SAMPLES, xrechnungData } from './xrechnung.
  * (0044) and the XRechnung sample, its template in the other kind, billing
  * a buyer of its own, beside it (0065), the report generated from a formancy form (0045),
  * the order confirmation and the product data sheet, which print what 0059
- * to 0063 added (0064), and the payment reminder, which pays the balance of
- * its overdue invoices by a QR-bill in the language a render names (0066).
+ * to 0063 added (0064), the payment reminder, which pays the balance of its
+ * overdue invoices by a QR-bill in the language a render names (0066), and
+ * the monthly sales report, which draws a bar and a pie chart beside its
+ * table (0067).
  */
 export const STARTERS: readonly Starter[] = [
   SERVICE_INSPECTION,
@@ -75,6 +80,7 @@ export const STARTERS: readonly Starter[] = [
   ORDER_CONFIRMATION,
   PRODUCT_DATA_SHEET,
   PAYMENT_REMINDER,
+  SALES_REPORT,
 ]
 
 /** Every approved asset a starter's or a sample's data or template names, with the bytes a host would hold for it: the inspection's photo, and the firm's mark. */

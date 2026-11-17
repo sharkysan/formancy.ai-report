@@ -42,7 +42,8 @@ function request(id: string, overrides: Partial<PreviewRequest> = {}): PreviewRe
  * for the part of the document it names. A QR-bill's slip and an EPC QR
  * code belong to the PDF; an e-invoice's final render is its PDF/A-3b or
  * the copy of its XML, and its preview is labelled in its page header as
- * no invoice.
+ * no invoice; and a chart is laid out for the PDF alone, so the sales
+ * report is refused for the first of its two, by its id.
  */
 const WORD: Readonly<Record<string, 'written' | { readonly preview: string; readonly final: string }>> = {
   'service-inspection': 'written',
@@ -57,6 +58,7 @@ const WORD: Readonly<Record<string, 'written' | { readonly preview: string; read
   'euro-invoice': { preview: 'payment-code', final: 'payment-code' },
   'e-invoice': { preview: 'pageHeader', final: 'eInvoice' },
   'e-invoice-xrechnung': { preview: 'pageHeader', final: 'eInvoice' },
+  'sales-report': { preview: 'by-category', final: 'by-category' },
 }
 
 // pdfmake's browser build warns, outside a browser, that it has no local
@@ -94,6 +96,7 @@ describe('the preview pipeline', () => {
       'order-confirmation': 'Auftragsbestätigung',
       'product-data-sheet': 'Produktdatenblatt',
       'payment-reminder': 'Mahnung',
+      'sales-report': 'Umsatzbericht',
     }
     if (id !== 'blank') expect(pdf.pages.flatMap((page) => page.items.map((item) => item.text)).join(' ')).toContain(titles[id] ?? `(no title for ${id})`)
     expect(outcome.manifest.mode).toBe('preview')

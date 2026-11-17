@@ -3099,6 +3099,30 @@
           "says": "The payment reminder prints no reminder level and charges no default interest, its firm, customer, invoices and payments are invented, it pays SIX’s example QR-IBAN, and its French, Italian and English have been reviewed by no native speaker."
         }
       ]
+    },
+    "0067": {
+      "reviewed": "sha256:3ba62134e0bfbab50e567a7bf8893948995192a2b6f78180cbb4010f49188663",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "The sales report starter’s charts print in the Preview alone: the design view draws each as a box, and neither builder changes what a chart totals, by what, its kind or its words.",
+          "heldBy": "packages/report-builder-core/src/palette.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The sales report’s value axis prints its ticks to the centime, as 80'000.00, since one format prints every value of a chart and its bars’ labels print the table’s totals to the centime.",
+          "heldBy": "packages/report-corpus/src/starters/sales-report.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The sales report’s page 1 ends inside a product line’s lines at the renderer’s row heights, margins and faces as they are, so its group headers’ keep with three lines is stated, and never put to work there, and a change to any of them moves the page end its picture records.",
+          "heldBy": "packages/report-render-pdf/src/pictures.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The sales report’s products, prices, documents and figures are invented, its regions named after places around the firm’s invented address, and its five shares happen to add up to 100.0 %, which another month’s need not."
+        }
+      ]
     }
   }
 }
