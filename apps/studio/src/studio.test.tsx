@@ -430,7 +430,8 @@ describe('the Studio', () => {
       'Grouped equipment',
       'Invoice',
       'Euro invoice',
-      'E-invoice',
+      'E-invoice (Factur-X)',
+      'E-invoice (XRechnung)',
       'Site visit',
       'Order confirmation',
       'Product data sheet',
@@ -478,7 +479,7 @@ describe('the Studio', () => {
   // stop, as the design view is: Tab from Final, before it, lands on it.
   test('makes what a render lacks one tab stop, so a keyboard scrolls it', async () => {
     const { user } = mount()
-    await user.selectOptions(picker(), 'E-invoice')
+    await user.selectOptions(picker(), 'E-invoice (Factur-X)')
     await screen.findByText('Preview: printed, with 1 warning.')
     const lacks = screen.getByRole('list', { name: 'What the preview lacks' })
     expect(within(lacks).queryAllByRole('button')).toEqual([])

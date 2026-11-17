@@ -32,7 +32,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **QR codes**, refused where they may not scan ([0020](./docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)).
 - **A Swiss QR-bill**, its receipt and payment part at the foot of the last page, held to SIX's rules, and edited field by field in either builder: added from SIX's example, and warned of while it holds SIX's examples ([0022](./docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0039](./docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).
 - **An EPC QR code** for a SEPA credit transfer, held to the EPC's rules, with Austria's frame as an option ([0025](./docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)).
-- **An EN 16931 e-invoice**, the German hybrid invoice: the Factur-X / ZUGFeRD XML is written from the values the page prints, and a final render is a PDF/A-3b that embeds it. It may name the parties' electronic addresses, the seller's contact and its business process, which a German business invoice does not need. Or it is an **XRechnung 3.0** for a German public buyer, in CII: its XML, which your application takes from the resolved document and sends, is the invoice, and its PDF a copy labelled so on every page. France is not claimed. In a gate of its own, Mustang and KoSIT judge the XML of the repository's samples, an XRechnung's in KoSIT's XRechnung scenario, and veraPDF and Mustang the hybrids' PDFs ([0027](./docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), [0031](./docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0037](./docs/decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md), [0038](./docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)). Either kind is edited field by field in either builder, its terms in groups and its VAT categories a list, and an IBAN typed into the e-invoice, its QR-bill or its EPC QR code is the account all of them pay, in one step, where every one of them writes it in the report. Only its totals and its lines are held to the page: a seller, a date or a bank the page prints in its own words is yours to change with it. An e-invoice is edited and never made from nothing: a starter gives one ([0044](./docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
+- **An EN 16931 e-invoice**, the German hybrid invoice: the Factur-X / ZUGFeRD XML is written from the values the page prints, and a final render is a PDF/A-3b that embeds it. It may name the parties' electronic addresses, the seller's contact and its business process, which a German business invoice does not need. Or it is an **XRechnung 3.0** for a German public buyer, in CII: its XML, which your application takes from the resolved document and sends, is the invoice, and its PDF a copy labelled so on every page. France is not claimed. In a gate of its own, Mustang and KoSIT judge the XML of the repository's samples, an XRechnung's in KoSIT's XRechnung scenario, and veraPDF and Mustang the hybrids' PDFs ([0027](./docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md), [0031](./docs/decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0037](./docs/decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md), [0038](./docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)). Either kind is edited field by field in either builder, its terms in groups and its VAT categories a list, and an IBAN typed into the e-invoice, its QR-bill or its EPC QR code is the account all of them pay, in one step, where every one of them writes it in the report. Only its totals and its lines are held to the page: a seller, a date or a bank the page prints in its own words is yours to change with it. An e-invoice is edited and never made from nothing: a starter gives one ([0044](./docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)), of either kind, and the Studio offers a final render's XML beside its PDF ([0065](./docs/decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
 - **A PDF/A-2b of any report that is no e-invoice**, where your application asks for one with `pdfa: '2b'`: a PDF/A of a part Switzerland's electronic patient record stores, its pages the plain render's, and every starter so drawn judged by veraPDF's PDF/A-2b profile in the e-invoice gate. What a PDF/A cannot hold -- a CMYK JPEG, an SVG past its numbers, a title holding `&`, `<` or `>` -- is refused at that render, and neither builder warns of it; an e-invoice and a labelled preview are refused as one ([0057](./docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
 - **Fonts**: a report maps its `sans`, `serif` and `mono` tokens to TrueType fonts your application approves, pinned by digest; the renderer reads each with report-spec's reader, embeds it from its bytes with the layout tables fontkit would run removed, and refuses a character the face lacks and a weight or slant it does not map. It prints Latin, Greek and Cyrillic, with their punctuation and symbols, and refuses every other script, right-to-left, shaping and CJK among them, in any face. A token left unmapped prints in Roboto (`sans`) or is refused; a QR-bill's slip keeps Liberation Sans ([0040](./docs/decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), [0043](./docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
 - **A run below or above the line**: a formula's digits, a unit's power or a footnote's mark, set in a text as `subscript` or `superscript`, in any character the text's face draws, a value read from the data among them, from two buttons on each run in either builder. It prints at pdfmake's own 58 % of the text's size, raised or lowered, inside a word with text on the line, and a run that could stand alone on a line is refused rather than printed over the line above. Not in a table's cells, and not in what a code encodes ([0061](./docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
@@ -104,7 +104,8 @@ pnpm demo
 
 `pnpm demo` builds the packages and the Studio, then serves the built
 Studio at http://localhost:4394. Pick a starter or a blank report, edit it
-in either builder, and the Preview prints the PDF, Download PDF included.
+in either builder, and the Preview prints the PDF, Download PDF included,
+and with Final on an e-invoice's XML beside it, Download XML.
 The starters' data is synthetic and built in. The page asks no other site
 for anything, and the browser gate fails if it does
 ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
@@ -129,6 +130,14 @@ switch between the report's languages; the builder then shows that
 language's words and marks those it lacks, and the Preview prints in it,
 refused until its last word is written
 ([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+The picker offers the e-invoice's template in both kinds, "E-invoice
+(Factur-X)" and "E-invoice (XRechnung)", each billing a buyer of its own;
+with Final on, Download XML gives
+the XML the runtime wrote in that render, beside the PDF it was printed
+with: the Factur-X's the file its PDF/A-3b embeds, the XRechnung's the
+invoice itself, beside a PDF that is its labelled copy. A preview writes no
+XML, and offers none
+([0065](./docs/decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
 
 <!-- generated by scripts/pictures/readme.mjs from scripts/pictures/scenes.json: studio; do not edit -->
 
@@ -228,8 +237,23 @@ each total the XML holds, computed once for both
 ([0027](./docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)),
 and either builder edits it field by field
 ([0044](./docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
-Its three other samples and the XRechnung's are the e-invoice gate's, not
-the Studio's.
+Its three other samples are the e-invoice gate's alone.
+
+![The XRechnung starter, the e-invoice's template in the other kind, an XRechnung 3.0 billing a German public buyer of its own, whose PDF is its copy: the page headed Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice, the Leitweg-ID: 991-33333TEST-33 at the foot of its head, its line items in euro, then Nettobetrag 535,00 €, Umsatzsteuer 19 % auf 535,00 € and Rechnungsbetrag 636,65 €, the totals its XML holds, and under them the Bankverbindung beside the EPC QR code that pays it](docs/images/starter-e-invoice-xrechnung.png)
+
+The XRechnung starter is the e-invoice's template made an XRechnung 3.0,
+"Rechnung (XRechnung)", the same firm billing an invented federal office
+by a Leitweg-ID from KoSIT's test suite: its XML is the invoice, and its
+PDF a copy that says so on every page
+([0038](./docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+The Studio offers it beside the e-invoice, and a final render of either
+offers its XML beside its PDF. As each starter opens, that XML is byte for
+byte the file the e-invoice gate records and has Mustang and KoSIT's
+validator judge, the Factur-X's in KoSIT's EN 16931 scenario and the
+XRechnung's in its XRechnung scenario; the Studio's preview pipeline test
+fails where the two part. Once you edit it, nothing has judged the XML you
+download
+([0065](./docs/decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
 
 ![The site visit starter, generated from version 2 of a formancy form: a line for each answer, from Objekt: Bahnhofplatz 1, 3011 Bern, the inspector, the ticked boxes and the matrix under their headings, Elektrik: [x] among them, the findings one table under Befunde, and the page counted, 1 / 1](docs/images/starter-site-visit.png)
 

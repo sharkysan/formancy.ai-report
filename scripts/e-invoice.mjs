@@ -371,7 +371,7 @@ async function main(argv) {
   const corpusWrong = [
     ...corpusProblems(entries),
     ...strayAccepted(accepted.accepted, entries),
-    ...variantProblems(corpusPackage.STARTERS.map((starter) => starter.id)),
+    ...variantProblems(corpusPackage.STARTERS.map((starter) => ({ id: starter.id, kind: starter.report.eInvoice?.kind }))),
     ...(await embeddingProblems(pdfs, {
       readObjects: corpusPackage.readPdfObjects,
       fileName: spec.FACTUR_X.fileName,

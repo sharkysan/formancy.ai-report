@@ -1400,7 +1400,7 @@
       ]
     },
     "0038": {
-      "reviewed": "sha256:4ca7d26925b6ac72abe339de81c315f79488c342804564d3a02a5d80968f2122",
+      "reviewed": "sha256:4e826faa7f108d02469af671b616ce8e6a50eac39ee08ca5c28ae9dadc6b7996",
       "limitations": [
         {
           "area": "format",
@@ -3020,6 +3020,41 @@
           "area": "release",
           "says": "The product data sheet's board, values and class are invented and claim no test of any board, and its French, Italian and English have been reviewed by no native speaker.",
           "heldBy": "packages/report-render-pdf/src/product-data-sheet.test.ts"
+        }
+      ]
+    },
+    "0065": {
+      "reviewed": "sha256:7ef9c8f3ae1fd7f469b394238b27567074fb6a6615bbb40ace433f7201493345",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "The Studio offers an e-invoice’s XML only with Final on, since a preview writes none, and the preview’s warning that a final render alone writes the XML is all that points a person to Download XML.",
+          "heldBy": "apps/studio/src/preview/pipeline.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "As each e-invoice starter opens, its XML is the file the e-invoice gate judged with Mustang and KoSIT’s validator; once a person edits it in the Studio, nothing has judged the XML Download XML gives.",
+          "heldBy": "apps/studio/src/preview/pipeline.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The Studio’s two e-invoice starters are one template’s terms in both kinds, billing two invented buyers for two jobs, so their XML differs in more than its kind.",
+          "heldBy": "packages/report-corpus/src/starters/xrechnung.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The Studio’s picker calls the Factur-X starter “E-invoice (Factur-X)” where it said “E-invoice”, and its XML downloads under the starter’s id, e-invoice.xml, not as factur-x.xml, the name its PDF embeds it under.",
+          "heldBy": "apps/studio/src/starters/starters.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "While the Studio renders an edit, its Download PDF and Download XML still give the render on the paper, the one from before the edit, and for an XRechnung that XML is the invoice itself.",
+          "heldBy": "apps/studio/src/preview/pdf-view.test.tsx"
+        },
+        {
+          "area": "testing",
+          "says": "The e-invoice gate draws no PDF/A-3b variant of the XRechnung starter, whose PDF is a copy and no PDF/A, so no PDF/A validator reads the line its head prints the Leitweg-ID on.",
+          "heldBy": "scripts/e-invoice/pdf-corpus.test.mjs"
         }
       ]
     }

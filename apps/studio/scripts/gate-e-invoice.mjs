@@ -28,13 +28,19 @@
 // QR-bill's account, which the starter has none of: the bill's half of
 // the shared account is held by the builder scenarios, in both builders.
 //
-// Found by role and accessible name, but for the Download PDF's bytes,
-// which the gate downloads as the page offers them, and whether the
-// toolbar's Undo is unavailable, `aria-disabled`.
+// And, at every e-invoice starter's final render in the journey, in each
+// builder: the XML Download XML offers beside the PDF (0065), the
+// Factur-X's the very bytes its Download PDF embeds and the XRechnung's
+// beside a copy that embeds nothing, read by namespace, its guideline its
+// kind's and its total the page's (`downloadXmlChecks`).
+//
+// Found by role and accessible name, but for the Download PDF's and the
+// Download XML's bytes, which the gate downloads as the page offers them,
+// and whether the toolbar's Undo is unavailable, `aria-disabled`.
 
 import { elementsAt, readCii, readCodes, readPdf, readPdfObjects, textAt } from '@formancy/report-corpus'
 import { describeFocus } from './gate-measure.mjs'
-import { offeredPdf } from './gate-download.mjs'
+import { offeredPdf, offeredXml } from './gate-download.mjs'
 import { editorOf, open, previewInView, previewOf, said, settled, showing, WITHIN } from './gate-steps.mjs'
 
 const STT = 'rsm:SupplyChainTradeTransaction'
@@ -156,6 +162,69 @@ async function typed(editor, name, value, saying) {
       () => null,
       () => `the live region never said "${saying}"`,
     )
+}
+
+/**
+ * What each kind's XML is, as Download XML offers it beside its PDF: the
+ * files that PDF embeds -- a Factur-X invoice's XML as factur-x.xml, an
+ * XRechnung's copy nothing (0038) -- and the guideline the XML opens with
+ * (BT-24), report-spec's FACTUR_X_PROFILES' and XRECHNUNG's, written out.
+ */
+const XML_OF = {
+  facturX: { embedded: ['factur-x.xml'], guideline: 'urn:cen.eu:en16931:2017' },
+  xrechnung: { embedded: [], guideline: 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0' },
+}
+
+/**
+ * The final render of the e-invoice starter `id`, of `kind`, with Final
+ * on, its paper settled: Download XML beside Download PDF (0065), the
+ * keyboard's next stop after it, downloaded as a person downloads it and
+ * saved as the starter's .xml; the Factur-X's the very bytes its Download
+ * PDF embeds as factur-x.xml, found by pdf-lib, the XRechnung's beside a
+ * copy that embeds nothing; read by namespace with saxes (`readCii`), its
+ * guideline its kind's and its total with VAT (BT-112) the Rechnungsbetrag
+ * the page prints, read by PDF.js. Under `state`, as the journey names it.
+ */
+export async function downloadXmlChecks(gate, page, state, { id, kind }) {
+  const { check } = gate
+  const preview = previewOf(page)
+  const xml = await offeredXml(page, preview)
+  check(
+    `${state}: Download XML is offered beside Download PDF, saved as ${id}.xml`,
+    xml === null ? 'the Preview offers no Download XML' : xml.fileName === `${id}.xml` ? null : `it is saved as ${xml.fileName}`,
+  )
+  await preview.getByRole('link', { name: 'Download PDF', exact: true }).focus()
+  await page.keyboard.press('Tab')
+  check(`${state}: and Tab from Download PDF reaches it`, await onIt(page, preview.getByRole('link', { name: 'Download XML', exact: true })))
+  const pdf = await offeredPdf(page, preview)
+  if (xml === null || pdf === null) {
+    check(`${state}: the XML is its PDF's, read by namespace`, `the Preview offers ${pdf === null ? 'no Download PDF' : 'no Download XML'}`)
+    return
+  }
+  const expected = XML_OF[kind]
+  const files = (await readPdfObjects(pdf.bytes)).associatedFiles
+  const names = files.map((file) => file.f)
+  const unlike = files.filter((file) => Buffer.compare(Buffer.from(file.embedded?.bytes ?? []), Buffer.from(xml.bytes)) !== 0).map((file) => file.f)
+  check(
+    `${state}: its Download PDF embeds ${expected.embedded.length === 0 ? 'nothing' : `the very bytes of the XML as ${expected.embedded.join(', ')}`}`,
+    JSON.stringify(names) !== JSON.stringify(expected.embedded)
+      ? `it embeds ${JSON.stringify(names)}`
+      : unlike.length > 0
+        ? `its ${unlike.join(', ')} is not the Download XML's bytes`
+        : null,
+  )
+  const root = readCii(new TextDecoder().decode(xml.bytes))
+  const guideline = textAt(root, 'rsm:ExchangedDocumentContext/ram:GuidelineSpecifiedDocumentContextParameter/ram:ID')
+  const total = textAt(root, `${SUMMATION}/ram:GrandTotalAmount`)
+  const text = spaced((await readPdf(pdf.bytes)).pages.flatMap((sheet) => sheet.items.map((item) => item.text)).join(' '))
+  check(
+    `${state}: the XML, read by namespace, names its kind's guideline, and its total with VAT is the one the page prints`,
+    guideline !== expected.guideline
+      ? `its guideline (BT-24) is ${String(guideline)}`
+      : total === undefined || !text.includes(`Rechnungsbetrag ${printedAmount(total)}`)
+        ? `the page does not print the XML's total with VAT, ${String(total)}, as its Rechnungsbetrag`
+        : null,
+  )
 }
 
 /** The checks, in the builder shown, which `framework` names. */

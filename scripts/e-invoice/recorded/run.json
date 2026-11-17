@@ -1,6 +1,6 @@
 {
   "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the XML corpus it wrote (corpus/), Mustang's report and log on each file, XML and PDF (mustang/), KoSIT's report on each XML file and its console (kosit/), veraPDF's report on every PDF and what it wrote on stderr (verapdf/), how each run ended, and each PDF's digest of its objects with every stream inflated (`pdfs`, report-corpus's `inflatedDigest`): the PDFs themselves are not recorded, since their bytes are the zlib's that deflated them, which `machine` names. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus, a control or what the renderer draws changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options, with its seven XRechnung notices.",
-  "recordedAt": "2026-11-17T00:38:59.959Z",
+  "recordedAt": "2026-11-17T07:14:28.411Z",
   "machine": {
     "platform": "win32",
     "arch": "x64",

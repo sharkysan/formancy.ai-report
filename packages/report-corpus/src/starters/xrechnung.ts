@@ -112,5 +112,5 @@ export const XRECHNUNG_SAMPLE: Starter = {
   parameters: {},
 }
 
-/** The XRechnung sample: one, a sample and no starter, judged by the gate as XML alone. */
+/** The XRechnung sample: one, judged by the gate as XML alone, and a starter too, offered beside the e-invoice (0065). */
 export const XRECHNUNG_SAMPLES: readonly Starter[] = [XRECHNUNG_SAMPLE]

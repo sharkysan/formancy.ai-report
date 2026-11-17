@@ -1,7 +1,10 @@
 // @vitest-environment node
 
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { INVOICE_EDITIONS, INVOICE_LANGUAGES, invoiceLanguagesData, STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
-import { drawingsOn, epcCodes, readCodes, readPdf } from '@formancy/report-corpus'
+import { drawingsOn, epcCodes, readCii, readCodes, readPdf, readPdfObjects, textAt } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import { afterAll, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import { studioImages } from '../images/image-store.js'
@@ -58,12 +61,57 @@ describe('the preview pipeline', () => {
       invoice: 'Rechnung',
       'euro-invoice': 'Rechnung',
       'e-invoice': 'Rechnung',
+      'e-invoice-xrechnung': 'Rechnung',
       'site-visit': 'Site visit',
       'order-confirmation': 'Auftragsbestätigung',
       'product-data-sheet': 'Produktdatenblatt',
     }
     if (id !== 'blank') expect(pdf.pages.flatMap((page) => page.items.map((item) => item.text)).join(' ')).toContain(titles[id] ?? `(no title for ${id})`)
     expect(outcome.manifest.mode).toBe('preview')
+    // A preview writes no e-invoice (0027): an XML handed on here would be a
+    // Download XML of an invoice the runtime never wrote.
+    expect(outcome.xml).toBeUndefined()
+  })
+
+  // Each e-invoice starter's final render hands on the XML the runtime
+  // wrote (0065), the one writer's (cii.ts), read back by namespace: the
+  // Factur-X's the very bytes its PDF/A-3b embeds as factur-x.xml, the
+  // XRechnung's beside a copy that embeds nothing (0038), each naming its
+  // own guideline (BT-24) and a total with VAT (BT-112) its page prints.
+  // A second writer, or the XML of another render, would hand a person an
+  // invoice the PDF beside it does not hold.
+  test.each([
+    ['e-invoice', 'urn:cen.eu:en16931:2017', ['factur-x.xml']],
+    ['e-invoice-xrechnung', 'urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0', []],
+  ] as const)('writes the XML of %s’s final render, the one its PDF embeds or none', async (id, guideline, embedded) => {
+    const outcome = await preview(request(id, { mode: 'final' }), new AbortController().signal)
+    if (outcome.kind !== 'printed' || outcome.xml === undefined) throw new Error(`${id} printed no XML: ${outcome.kind}`)
+    const files = (await readPdfObjects(outcome.pdf)).associatedFiles
+    expect(files.map((file) => file.f)).toEqual(embedded)
+    for (const file of files) expect(file.embedded?.bytes).toEqual(new TextEncoder().encode(outcome.xml))
+    const xml = readCii(outcome.xml)
+    expect(textAt(xml, 'rsm:ExchangedDocumentContext/ram:GuidelineSpecifiedDocumentContextParameter/ram:ID')).toBe(guideline)
+    const total = textAt(
+      xml,
+      'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:GrandTotalAmount',
+    )
+    const printed = (await readPdf(outcome.pdf)).pages.flatMap((page) => page.items.map((item) => item.text)).join(' ')
+    expect(printed.replaceAll(/[\u00a0\u202f]/g, ' ')).toContain(
+      `Rechnungsbetrag ${new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2 }).format(Number(total))} €`,
+    )
+  })
+
+  // As each e-invoice starter opens, its XML is byte for byte the file the
+  // e-invoice gate recorded and had Mustang and KoSIT's validator judge
+  // (scripts/e-invoice/recorded/corpus/), whose run fails where what it
+  // judged is not that recording: what the README says of the Download
+  // XML rests on this. The render's clock is not the gate's, and the XML
+  // reads none. A starter whose XML drifted from the gate's would offer a
+  // file no validator has seen.
+  test.each(['e-invoice', 'e-invoice-xrechnung'])('writes %s’s XML, as it opens, as the e-invoice gate recorded and judged it', async (id) => {
+    const outcome = await preview(request(id, { mode: 'final', creationDate: new Date().toISOString() }), new AbortController().signal)
+    const recorded = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', 'scripts', 'e-invoice', 'recorded', 'corpus', `${id}.xml`)
+    expect(outcome.kind === 'printed' ? outcome.xml : outcome.kind).toBe(readFileSync(recorded, 'utf8'))
   })
 
   // The invoice's slip is drawn by the browser entry the page uses, which

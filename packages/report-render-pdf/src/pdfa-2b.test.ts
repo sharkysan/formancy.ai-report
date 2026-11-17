@@ -14,6 +14,7 @@ import {
   starterImages,
   STARTERS,
   XMP_NAMESPACES,
+  XRECHNUNG_SAMPLE,
   type Starter,
 } from '@formancy/report-corpus'
 import { resolveReport, type RenderManifest, type ResolvedDocument } from '@formancy/report-runtime'
@@ -107,9 +108,10 @@ async function finalDefinition(starter: Starter, pdfa?: '2b'): Promise<{ readonl
 
 describe('the starters drawn as PDF/A-2b', () => {
   // The list is derived, and one that came out empty would pass every
-  // case below by running none: it is every starter but the e-invoice.
-  test('are every starter but the e-invoice, which a PDF/A-2b refuses', () => {
-    expect(STARTERS.filter((starter) => !DRAWN.includes(starter)).map(({ id }) => id)).toEqual([E_INVOICE.id])
+  // case below by running none: it is every starter but the two
+  // e-invoices, the Factur-X and the XRechnung beside it (0065).
+  test('are every starter but the e-invoices, which a PDF/A-2b refuses', () => {
+    expect(STARTERS.filter((starter) => !DRAWN.includes(starter)).map(({ id }) => id)).toEqual([E_INVOICE.id, XRECHNUNG_SAMPLE.id])
   })
 
   // A PDF/A identifies itself in its XMP, which PDFKit writes only at a
