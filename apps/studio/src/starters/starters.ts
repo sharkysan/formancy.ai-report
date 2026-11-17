@@ -3,9 +3,9 @@
  * (R19), the invoice with its QR-bill, the invoice with its EPC QR code,
  * the e-invoice (0044) and its template as an XRechnung beside it, billing
  * a buyer of its own (0065), the site visit generated from a formancy form (0045), the
- * order confirmation and the product data sheet (0064), and the monthly
- * sales report with its charts (0067), each with its synthetic data, and a
- * blank report to build from nothing.
+ * order confirmation and the product data sheet (0064), the payment
+ * reminder (0066), and the monthly sales report with its charts (0067),
+ * each with its synthetic data, and a blank report to build from nothing.
  */
 import { editorText } from '@formancy/report-builder-core'
 import type { MessageId } from '@formancy/report-builder-core'

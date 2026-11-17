@@ -41,6 +41,34 @@ person reads. Every existing starter is unchanged.
   variant and as a PDF/A-2b, recorded again. Its value axis prints its
   ticks to the centime, since one format prints every value of a chart.
 
+**A payment reminder is a starter: the balance of a customer's overdue
+invoices, paid by a QR-bill in the customer's language**
+([0066](docs/decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)).
+The starters showed a QR-bill, several tables over one list, a first
+page's own header and a report in four languages, each in a document of
+its own, and none a letter a Swiss firm sends that needs them together; no
+starter printed a slip under page 1's own header, or one whose headings
+follow the language a render names. Every existing starter is unchanged.
+- **The payment reminder**, `PAYMENT_REMINDER`, "Mahnung", in Swiss German
+  with its words in French, Italian and English: the customer's open
+  items as one list, printed as two tables picked by their kind with
+  `rowsWhen`, the overdue invoices with their days overdue and the
+  payments and credit notes against them, each with its own total; then
+  the fee and what is due, the balance of every item, one aggregate the
+  QR-bill at the foot of the page asks for, by the reminder's own QR
+  reference. A render in fr-CH, it-CH or en-CH prints the page in that
+  language and the slip's headings in SIX's words for it. The firm's
+  letterhead is page 1's own header; a reminder of more invoices runs on
+  to page 2 under a running header, which the renderer's test prints.
+- **Its data is the host's ledger**: what was received below zero, the fee
+  an item of the list, and each invoice's days overdue counted by the
+  host, since the expression language has no arithmetic over dates.
+- **Left out**: a reminder level chosen by a parameter, whose ordinals each
+  language writes otherwise and whose fee the data already decides, and
+  default interest, whose start and rate are a firm's terms.
+- **The Studio offers it**, "Payment reminder", and the README pictures
+  it; the e-invoice gate draws it as a PDF/A-3b variant and as a PDF/A-2b.
+
 **The Studio offers the e-invoice's template in both kinds, and a final
 render's XML beside its PDF**
 ([0065](docs/decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).

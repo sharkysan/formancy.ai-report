@@ -360,6 +360,22 @@ What it does not see: an XML a person edited, which no validator judges
 until a host's own run does, and whether a person finds Download XML,
 which appears only with Final on.
 
+**The payment reminder.** A QR-bill under page 1's own header, paying the
+balance of two tables over one list, in four languages
+([0066](../decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)):
+
+| Where | What holds it |
+|---|---|
+| The two tables' conditions; the items' four kinds, one fee, their signs and their order, and each invoice's days overdue against its dates; the bill asking for `totals.balance` by the reminder's reference and message, its payload line by line; the letterhead in page 1's own header and the running header; the German reminder with three translations, every word written anew, whole, and written in each language the reminder written in it alone, its slip in that language | `report-corpus/src/starters/payment-reminder.test.ts`, `starters.test.ts`, `logo.test.ts`, and its size in `report-size.test.ts` |
+| On the PDF, in each of four languages: both tables line by line, every total and what is due recomputed in BigInt and formatted with Intl; the slip's headings in that language alone; the code decoded by `readCodes`, asking for what is due by the reminder's reference and message; no German word that differs; the corpus's `verify` above the slip, each row known by its first two cells; the PDF equal by `inflatedDigest` to the reminder written in that language alone; and, with forty invoices more, the running header from page 2 and the slip on the last page alone | `report-render-pdf/src/payment-reminder.test.ts` |
+| Its picture; drawn as a PDF/A-2b; the same bytes with its own locale named as with none | `report-render-pdf/src/pictures.test.ts`, `pdfa-2b.test.ts`, `languages.test.ts` |
+| Both builders over it in three languages, Romansh added and its QR-bill selected; the journey; the preview pipeline; the picker | `apps/studio/src/parity.test.tsx`, `journey.test.tsx`, `src/preview/pipeline.test.ts`, `src/starters/starters.test.ts`, `src/studio.test.tsx`; in Chromium, the browser gate |
+| veraPDF and Mustang on it as a PDF/A-3b variant, veraPDF as a PDF/A-2b | The e-invoice gate, `scripts/e-invoice/pdf-corpus.mjs` and its recorded run |
+
+What it does not see: a host's days overdue and the signs of what a host
+hands over, which only the host holds, and whether its French, Italian
+and English say what its German says, which review alone holds.
+
 **A starter's charts and its table, agreeing on the page.** The monthly
 sales report, a bar chart and a pie of its lines beside one table of them
 grouped by the bar chart's category, held on the PDF it produced and walked

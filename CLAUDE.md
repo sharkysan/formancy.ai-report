@@ -447,6 +447,10 @@ the order confirmation and the product data sheet, the starters that print
 what 0059 to 0063 added (`starters/order-confirmation.ts`,
 `starters/product-data-sheet.ts`,
 [0064](docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)),
+the payment reminder, which pays the balance of a customer's overdue
+invoices by a QR-bill in the customer's language
+(`starters/payment-reminder.ts`,
+[0066](docs/decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)),
 the monthly sales report, whose bar chart and pie print the totals its
 one table of the same lines prints (`starters/sales-report.ts`,
 [0067](docs/decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md)),

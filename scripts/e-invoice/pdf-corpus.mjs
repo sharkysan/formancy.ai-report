@@ -218,6 +218,11 @@ export const PDF_VARIANTS = [
     draws: { starter: 'product-data-sheet' },
   },
   {
+    file: 'variant-payment-reminder.pdf',
+    why: 'the payment reminder starter, in its own Swiss German: two tables over one list of open items, each picking its kinds, the balance of every item paid by a Swiss QR-bill drawn in Liberation Sans, under page 1’s own header with the mark (0066)',
+    draws: { starter: 'payment-reminder' },
+  },
+  {
     file: 'variant-sales-report.pdf',
     why: 'the monthly sales report starter: a bar chart and a pie of the detail rows, laid out by ECharts, beside a table of the same rows grouped by the bar chart’s category, page 1’s own header with the mark in place of the running header that page 2 prints, over two pages (0067)',
     draws: { starter: 'sales-report' },

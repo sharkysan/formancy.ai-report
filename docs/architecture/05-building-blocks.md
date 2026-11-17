@@ -497,7 +497,16 @@ letterhead in page 1's own header; and the product data sheet
 marks set off the line, written in Swiss German with its words in
 French, Italian and English, each language's words a table of
 `starters/product-data-sheet-words.ts`.
-A third letter of the firm draws charts: the monthly sales report
+Another letter pays the balance of a customer's overdue invoices by a
+QR-bill in the customer's language
+([0066](../decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)):
+the payment reminder (`starters/payment-reminder.ts`), the customer's
+open items printed as two tables picked by their kind, one aggregate over
+every item printed as what is due and asked for by the slip, its
+letterhead in page 1's own header, written in Swiss German with its words
+in French, Italian and English, each language's words a table of
+`starters/payment-reminder-words.ts`.
+A further letter of the firm draws charts: the monthly sales report
 (`starters/sales-report.ts`), a month's sales lines drawn as a bar chart
 by product line and a pie by region beside one table of the same lines
 grouped by the bar chart's category, every total to the centime, and its
@@ -508,8 +517,8 @@ letterhead in page 1's own header
 `LETTERHEAD`, the mark 15 mm square and the gap under it, which the
 quotation, both invoices, their samples, the e-invoice samples and the
 product data sheet begin their report header with, and the order
-confirmation and the sales report page 1's own header: the first template
-asset a starter draws.
+confirmation, the payment reminder and the sales report page 1's own
+header: the first template asset a starter draws.
 `STARTER_IMAGES` holds it beside the inspection's photo, and
 `starterImages` is the lookup over them that the corpus's, the renderer's
 and the e-invoice gate's resolutions hand the runtime

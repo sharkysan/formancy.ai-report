@@ -34,6 +34,7 @@ const STARTERS = [
   'site-visit',
   'order-confirmation',
   'product-data-sheet',
+  'payment-reminder',
   'sales-report',
 ].map((id) => ({
   id,

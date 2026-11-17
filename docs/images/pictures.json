@@ -1951,6 +1951,337 @@
     ]
   },
   {
+    "file": "starter-payment-reminder.png",
+    "starter": "payment-reminder",
+    "page": 1,
+    "scale": 1.25,
+    "sha256": "0fed5dfb505b5a053cea4be5d1b6969347079240ec0f6cbce372949dddbc9665",
+    "caption": "The payment reminder starter, a Mahnung under the firm's letterhead: the overdue invoices, each with its due date and its days overdue, down to Total überfällige Rechnungen CHF 4'773.65, the payments and the credit note received against them down to Total Zahlungen und Gutschriften CHF-1'586.35, each table totalling its own items, then Mahngebühr CHF 20.00 and Zu bezahlen CHF 3'207.30, and across the foot of the page its QR-bill, the Empfangsschein and the Zahlteil with its Swiss QR Code, each for CHF 3 207.30",
+    "lines": [
+      "Formancy Haustechnik AG · Industriestrasse 7 · 3052 Zollikofen · CHE-123.456.789 MWST",
+      "Schreinerei Keller GmbH",
+      "Mahnung",
+      "Bahnhofstrasse 24",
+      "Nummer: M-2026-0094",
+      "3123 Belp",
+      "Datum: 17.11.2026",
+      "Trotz unserer Zahlungserinnerung vom 20. Oktober 2026 sind die folgenden Rechnungen noch nicht bezahlt.",
+      "Überfällige Rechnungen",
+      "Rechnung Datum Fällig am Tage Betrag",
+      "R-2026-0582 04.08.2026 03.09.2026 75 CHF 1'842.60",
+      "R-2026-0614 21.08.2026 20.09.2026 58 CHF 486.35",
+      "R-2026-0659 08.09.2026 08.10.2026 40 CHF 2'315.00",
+      "R-2026-0673 15.09.2026 15.10.2026 33 CHF 129.70",
+      "Total überfällige Rechnungen CHF 4'773.65",
+      "Zahlungen und Gutschriften",
+      "Art Datum Rechnung Betrag",
+      "Zahlung 25.09.2026 R-2026-0582 CHF-1'000.00",
+      "Gutschrift 02.10.2026 R-2026-0614 CHF-86.35",
+      "Zahlung 30.10.2026 R-2026-0659 CHF-500.00",
+      "Total Zahlungen und Gutschriften CHF-1'586.35",
+      "Mahngebühr CHF 20.00",
+      "Zu bezahlen CHF 3'207.30",
+      "Bitte bezahlen Sie den offenen Betrag bis 27. November 2026 mit dem QR-Zahlteil unten. Hat sich Ihre",
+      "Zahlung mit diesem Schreiben gekreuzt, betrachten Sie es als gegenstandslos.",
+      "Vor der Einzahlung abzutrennen",
+      "Konto / Zahlbar an",
+      "Empfangsschein Zahlteil",
+      "CH44 3199 9123 0008 8901 2",
+      "Konto / Zahlbar an",
+      "Formancy Haustechnik AG",
+      "CH44 3199 9123 0008 8901 2",
+      "Industriestrasse 7",
+      "Formancy Haustechnik AG",
+      "Industriestrasse 7 3052 Zollikofen",
+      "3052 Zollikofen",
+      "Referenz",
+      "Referenz",
+      "00 00000 00000 00000 02026 00949",
+      "00 00000 00000 00000 02026 00949",
+      "Zahlbar durch Zusätzliche Informationen",
+      "Schreinerei Keller GmbH Mahnung M-2026-0094",
+      "Bahnhofstrasse 24",
+      "3123 Belp",
+      "Zahlbar durch",
+      "Schreinerei Keller GmbH",
+      "Bahnhofstrasse 24",
+      "3123 Belp",
+      "Währung Betrag",
+      "Währung Betrag",
+      "CHF 3 207.30",
+      "CHF 3 207.30",
+      "Annahmestelle"
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        127.86
+      ],
+      [
+        348.59,
+        128.63
+      ],
+      [
+        56.69,
+        139.58
+      ],
+      [
+        348.59,
+        146.61
+      ],
+      [
+        56.69,
+        151.3
+      ],
+      [
+        348.59,
+        158.33
+      ],
+      [
+        56.69,
+        188.05
+      ],
+      [
+        56.69,
+        211.9
+      ],
+      [
+        60.69,
+        227.03
+      ],
+      [
+        60.69,
+        242.08
+      ],
+      [
+        60.69,
+        257.13
+      ],
+      [
+        60.69,
+        272.17
+      ],
+      [
+        60.69,
+        287.22
+      ],
+      [
+        60.69,
+        302.27
+      ],
+      [
+        56.69,
+        327.57
+      ],
+      [
+        60.69,
+        342.7
+      ],
+      [
+        60.69,
+        357.75
+      ],
+      [
+        60.69,
+        372.8
+      ],
+      [
+        60.69,
+        387.84
+      ],
+      [
+        60.69,
+        402.89
+      ],
+      [
+        433.2,
+        428.07
+      ],
+      [
+        415.67,
+        439.85
+      ],
+      [
+        56.69,
+        464.09
+      ],
+      [
+        56.69,
+        475.81
+      ],
+      [
+        240.49,
+        534.85
+      ],
+      [
+        334.49,
+        559.27
+      ],
+      [
+        14.17,
+        559.58
+      ],
+      [
+        334.49,
+        568.67
+      ],
+      [
+        14.17,
+        578.9
+      ],
+      [
+        334.49,
+        579.67
+      ],
+      [
+        14.17,
+        586.3
+      ],
+      [
+        334.49,
+        590.67
+      ],
+      [
+        14.17,
+        595.3
+      ],
+      [
+        14.17,
+        601.67
+      ],
+      [
+        14.17,
+        613.3
+      ],
+      [
+        334.49,
+        625.27
+      ],
+      [
+        14.17,
+        632.9
+      ],
+      [
+        334.49,
+        634.67
+      ],
+      [
+        14.17,
+        640.3
+      ],
+      [
+        14.17,
+        658.27
+      ],
+      [
+        14.17,
+        667.3
+      ],
+      [
+        14.17,
+        676.3
+      ],
+      [
+        14.17,
+        685.3
+      ],
+      [
+        334.49,
+        691.27
+      ],
+      [
+        334.49,
+        700.67
+      ],
+      [
+        334.49,
+        711.67
+      ],
+      [
+        334.49,
+        722.67
+      ],
+      [
+        14.17,
+        737.64
+      ],
+      [
+        189.92,
+        737.85
+      ],
+      [
+        14.17,
+        747.04
+      ],
+      [
+        189.92,
+        749.25
+      ],
+      [
+        118.9,
+        777.32
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          172.2,
+          558.42,
+          7.09,
+          8.5
+        ],
+        "paints": [
+          "#000000"
+        ],
+        "paths": [
+          "fill #000000 [172.2, 558.42, 7.09, 3.4]",
+          "fill #000000 [174.35, 560.97, 2.68, 5.95]",
+          "fill #000000 [174.47, 560.97, 2.68, 5.95]"
+        ]
+      },
+      {
+        "box": [
+          189.92,
+          592.44,
+          130.39,
+          130.39
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [189.92, 592.44, 130.39, 130.39]",
+          "fill #000000 [189.92, 592.44, 130.39, 130.39]",
+          "fill #ffffff [245.2, 647.71, 19.84, 19.84]",
+          "fill #000000 [246.61, 649.13, 17.01, 17.01]",
+          "fill #ffffff [249.61, 652.12, 11.02, 11.02]"
+        ]
+      }
+    ]
+  },
+  {
     "file": "starter-sales-report.png",
     "starter": "sales-report",
     "page": 1,

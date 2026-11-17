@@ -125,12 +125,17 @@ export {
   ORDER_CONFIRMATION,
   orderConfirmationData,
   orderConfirmationLines,
+  PAYMENT_REMINDER,
+  paymentReminderAlone,
+  paymentReminderData,
+  paymentReminderItems,
   PRODUCT_DATA_SHEET,
   productDataSheetAlone,
   productDataSheetData,
   QUOTATION,
   quotationData,
   quotationLines,
+  REMINDER_EDITIONS,
   reverseChargeData,
   SALES_REPORT,
   salesReportData,
@@ -146,5 +151,14 @@ export {
   XRECHNUNG_SAMPLES,
   xrechnungData,
 } from './starters/index.js'
-export type { Edition, OrderConfirmationLine, SalesReportLine, SheetWords, Starter, StarterImage } from './starters/index.js'
+export type {
+  Edition,
+  OrderConfirmationLine,
+  PaymentReminderItem,
+  ReminderWords,
+  SalesReportLine,
+  SheetWords,
+  Starter,
+  StarterImage,
+} from './starters/index.js'
 export type { PdfAttachment, PdfBox, PdfCurve, PdfFont, PdfPage, PdfPaint, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'

@@ -3058,6 +3058,48 @@
         }
       ]
     },
+    "0066": {
+      "reviewed": "sha256:c37e20077790d2705528662eadb65805eea590f16f0da88d4af697636f4e17a7",
+      "limitations": [
+        {
+          "area": "data",
+          "says": "The payment reminder reads each invoice’s days overdue from the data, since an expression reads a date as its ISO string and has no arithmetic over dates, so nothing but the host holds a count to its dates.",
+          "heldBy": "packages/report-corpus/src/starters/payment-reminder.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "The payment reminder takes what was received below zero, as a ledger books it, and its fee as an item of the list: a host that hands a payment above zero prints a balance that adds it, one that hands the fee apart prints CHF 0.00 for it, and an item of a kind its tables and aggregates do not name counts in what is due and prints in no table.",
+          "heldBy": "packages/report-corpus/src/starters/payment-reminder.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A payment reminder whose items leave nothing due -- what was received as much as what is owed or more, or no items at all -- is refused in a final render for its bill, whose amount runs from 0.01 as SIX’s rules say: a host sends no reminder of a balance below one cent.",
+          "heldBy": "packages/report-corpus/src/starters/payment-reminder.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The payment reminder’s heading of what was received is kept with its table, so a customer with more payments and credit notes than the rest of the page holds has the heading printed with the whole table on the next page, as any heading kept with a table that runs past its page is."
+        },
+        {
+          "area": "builders",
+          "says": "The payment reminder names a payment and a credit note by an expression written in each of its languages, so a person changes those words in an expression’s field, not in a word’s."
+        },
+        {
+          "area": "testing",
+          "says": "The payment reminder’s own data fits page 1 with its slip, so its picture, the Studio and the browser gate never show its running header, which only the renderer’s test prints, with forty invoices more.",
+          "heldBy": "packages/report-render-pdf/src/payment-reminder.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The renderer’s test reads the payment reminder’s rows by their first two cells, as an invoice’s number stands in both its tables, and its layout above the slip alone, which is drawn past the margins.",
+          "heldBy": "packages/report-render-pdf/src/payment-reminder.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The payment reminder prints no reminder level and charges no default interest, its firm, customer, invoices and payments are invented, it pays SIX’s example QR-IBAN, and its French, Italian and English have been reviewed by no native speaker."
+        }
+      ]
+    },
     "0067": {
       "reviewed": "sha256:e540996dcd577dfdd749e2294f079333316b015d22694c7b9ecc7a922c3cf693",
       "limitations": [

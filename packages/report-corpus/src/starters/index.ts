@@ -5,6 +5,7 @@ import { GROUPED_EQUIPMENT } from './grouped-equipment.js'
 import { INVOICE } from './invoice.js'
 import { LOGO } from './logo.js'
 import { ORDER_CONFIRMATION } from './order-confirmation.js'
+import { PAYMENT_REMINDER } from './payment-reminder.js'
 import { PRODUCT_DATA_SHEET } from './product-data-sheet.js'
 import { QUOTATION } from './quotation.js'
 import { SALES_REPORT } from './sales-report.js'
@@ -43,6 +44,9 @@ export type { Edition } from './invoice-words.js'
 export { LETTERHEAD, LOGO, LOGO_ASSET } from './logo.js'
 export { ORDER_CONFIRMATION, orderConfirmationData, orderConfirmationLines } from './order-confirmation.js'
 export type { OrderConfirmationLine } from './order-confirmation.js'
+export { PAYMENT_REMINDER, paymentReminderAlone, paymentReminderData, paymentReminderItems, REMINDER_EDITIONS } from './payment-reminder.js'
+export type { PaymentReminderItem } from './payment-reminder.js'
+export type { ReminderWords } from './payment-reminder-words.js'
 export { PRODUCT_DATA_SHEET, productDataSheetAlone, productDataSheetData, SHEET_EDITIONS } from './product-data-sheet.js'
 export type { SheetWords } from './product-data-sheet-words.js'
 export { lineAmount, QUOTATION, quotationData, quotationLines } from './quotation.js'
@@ -59,8 +63,10 @@ export { XRECHNUNG_SAMPLE, XRECHNUNG_SAMPLES, xrechnungData } from './xrechnung.
  * (0044) and the XRechnung sample, its template in the other kind, billing
  * a buyer of its own, beside it (0065), the report generated from a formancy form (0045),
  * the order confirmation and the product data sheet, which print what 0059
- * to 0063 added (0064), and the monthly sales report, which draws a bar and
- * a pie chart beside its table (0067).
+ * to 0063 added (0064), the payment reminder, which pays the balance of its
+ * overdue invoices by a QR-bill in the language a render names (0066), and
+ * the monthly sales report, which draws a bar and a pie chart beside its
+ * table (0067).
  */
 export const STARTERS: readonly Starter[] = [
   SERVICE_INSPECTION,
@@ -73,6 +79,7 @@ export const STARTERS: readonly Starter[] = [
   SITE_VISIT_STARTER,
   ORDER_CONFIRMATION,
   PRODUCT_DATA_SHEET,
+  PAYMENT_REMINDER,
   SALES_REPORT,
 ]
 
