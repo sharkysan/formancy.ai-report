@@ -447,6 +447,9 @@ the order confirmation and the product data sheet, the starters that print
 what 0059 to 0063 added (`starters/order-confirmation.ts`,
 `starters/product-data-sheet.ts`,
 [0064](docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)),
+the monthly sales report, whose bar chart and pie print the totals its
+one table of the same lines prints (`starters/sales-report.ts`,
+[0067](docs/decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md)),
 `offLine`, the rule a run set off the line is read into its line by,
 which the renderer's tests' line reader takes,
 Liberation Serif and Mono 2.1.5 as a host's fonts (`fixtures/host-fonts/`)

@@ -497,13 +497,19 @@ letterhead in page 1's own header; and the product data sheet
 marks set off the line, written in Swiss German with its words in
 French, Italian and English, each language's words a table of
 `starters/product-data-sheet-words.ts`.
+A third letter of the firm draws charts: the monthly sales report
+(`starters/sales-report.ts`), a month's sales lines drawn as a bar chart
+by product line and a pie by region beside one table of the same lines
+grouped by the bar chart's category, every total to the centime, and its
+letterhead in page 1's own header
+([0067](../decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md)).
 `starters/logo.ts` holds the firm's mark, `LOGO`: the corpus's
 `SVG_MARK`, named by the digest of its bytes as an approved asset is, and
 `LETTERHEAD`, the mark 15 mm square and the gap under it, which the
 quotation, both invoices, their samples, the e-invoice samples and the
 product data sheet begin their report header with, and the order
-confirmation page 1's own header: the first template asset a starter
-draws.
+confirmation and the sales report page 1's own header: the first template
+asset a starter draws.
 `STARTER_IMAGES` holds it beside the inspection's photo, and
 `starterImages` is the lookup over them that the corpus's, the renderer's
 and the e-invoice gate's resolutions hand the runtime

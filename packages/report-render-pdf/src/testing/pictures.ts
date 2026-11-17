@@ -18,6 +18,7 @@ import {
   QUOTATION,
   rasterPage,
   readPdf,
+  SALES_REPORT,
   SERVICE_INSPECTION,
   SITE_VISIT_STARTER,
   starterImages,
@@ -151,6 +152,14 @@ export const PICTURES: readonly PictureSpec[] = [
     caption:
       "The product data sheet starter, a Produktdatenblatt under the firm's mark: its Technische Daten and its Ökobilanz, each value beside its label, the units' powers, CO₂'s index and the footnotes' marks set as runs above and below the line, as in 30 kg/m³, 1.11 W/(m²·K) and 2.9 kg CO₂-Äq. pro m²",
     shows: ['Produktdatenblatt', 'Technische Daten', 'Ökobilanz'],
+  },
+  {
+    file: 'starter-sales-report.png',
+    starter: SALES_REPORT,
+    page: 1,
+    caption:
+      "The sales report starter, an Umsatzbericht November 2026 under the firm's mark, Umsatz CHF 124'793.00 aus 42 Belegen: a bar chart of each product line's sales, its Heizung bar labelled 63'482.00, the total its group in the table closes with, Total Heizung CHF 63'482.00, beside a pie of each region's share, its legend saying each region's total and share, as Stadt Bern: 38'209.70 (30.6%), and under them the month's lines grouped by product line",
+    shows: ['Umsatzbericht November 2026', "Umsatz CHF 124'793.00 aus 42 Belegen", "63'482.00", "Total Heizung CHF 63'482.00", "Stadt Bern: 38'209.70 (30.6%)"],
   },
 ]
 

@@ -360,6 +360,25 @@ What it does not see: an XML a person edited, which no validator judges
 until a host's own run does, and whether a person finds Download XML,
 which appears only with Final on.
 
+**A starter's charts and its table, agreeing on the page.** The monthly
+sales report, a bar chart and a pie of its lines beside one table of them
+grouped by the bar chart's category, held on the PDF it produced and walked
+wherever a starter is
+([0067](../decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md)):
+
+| Where | What holds it |
+|---|---|
+| Both charts and the table over one field of every line, sorted alike, every value to the centime; its lines out of order, in product lines of unlike sizes, with credit notes, every line in its month and inside a chart's bounds; each bar and slice as the runtime resolves it, and each legend entry, to its total recomputed in BigInt and its share rounded once; its letterhead in page 1's own header | `report-corpus/src/starters/sales-report.test.ts`, `logo.test.ts`, `starters.test.ts`, and its size in `report-size.test.ts` |
+| On the PDF: the table's lines across the page break, totals recomputed in BigInt; the corpus's `verify` over both pages, the charts' checks among it; each bar measured against the gridlines, as tall as its total, under its category and labelled with the digits its group's total prints in the table, the labels adding up to the month's; each slice measured by its turn to its region's share, its legend entry the region's total and its share rounded once; the mark on page 1 alone and the running header from page 2 | `report-render-pdf/src/sales-report.test.ts` |
+| Its page 1 pictured; drawn as PDF/A-2b, its definition the plain render's with zrender's numbered names of its classes and clips read by the order they first stand in; printed with its own locale named as with none | `report-render-pdf/src/pictures.test.ts`, `pdfa-2b.test.ts`, `languages.test.ts` |
+| Both builders over it, a chart's row selected among a row of each kind, in three languages and a language the report does not declare; the journey; the preview pipeline; the picker | `apps/studio/src/parity.test.tsx`, `journey.test.tsx`, `src/preview/pipeline.test.ts`, `src/starters/starters.test.ts`, `studio.test.tsx`; in Chromium, the browser gate |
+| veraPDF and Mustang on it as a PDF/A-3b variant, veraPDF as a PDF/A-2b | The e-invoice gate, `scripts/e-invoice/pdf-corpus.mjs` and its recorded run |
+
+What it does not see: a bar a cent off its total, which stands far less
+than the quarter of a point the bar is measured to; its label prints the
+digits, and holds the cent. And whether the builders could edit what a
+chart totals, which they cannot yet (0052).
+
 **What it does not see.** A rule or a border through a row, a shape over a
 line, a clipped glyph, white text on white: none is text or an image to
 PDF.js, and the paths it reads are an SVG drawing's and a chart's alone. A

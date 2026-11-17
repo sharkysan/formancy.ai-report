@@ -198,14 +198,25 @@ describe('the starters drawn as PDF/A-2b', () => {
   // that one. The definition pdfmake is handed is the plain one's but for
   // the version and the subset, and every page PDF.js reads holds the same
   // runs at the same places in the same faces, subset tags included, the
-  // same images, paths and clips, and the same fonts, each embedded.
+  // same images, paths and clips, and the same fonts, each embedded. A
+  // chart's drawing, the sales report's (0067), names its classes and its
+  // clip paths by the zrender instance that laid it out and a count of
+  // each, numbers zrender advances with every chart laid out in the
+  // process, so the second render of one chart names them otherwise:
+  // nothing is drawn by a class, the reader having removed the one style
+  // that read them (`chart-svg.ts`), and each name is read as the order it
+  // first stands in, as the browser entry's test reads them.
   test.each(samples)(
     '%s is the plain render’s pages',
     async (_, starter) => {
       const [archival, plain] = [await finalDefinition(starter, '2b'), await finalDefinition(starter)]
       expect([archival.version, archival.subset]).toEqual(['1.7', 'PDF/A-2b'])
       expect([plain.version, plain.subset]).toEqual([undefined, undefined])
-      expect(archival.rest).toBe(plain.rest)
+      const unnumbered = (definition: string): string => {
+        const order = new Map<string, number>()
+        return definition.replace(/\bzr\d+-[a-z]+(?:-\d+|\d+)\b/g, (name) => `zr-${String(order.get(name) ?? order.set(name, order.size).size - 1)}`)
+      }
+      expect(unnumbered(archival.rest)).toBe(unnumbered(plain.rest))
       const [twoB, picture] = [await readPdf(await drawn(starter, '2b')), await readPdf(await drawn(starter))]
       expect(twoB.pages.length).toBeGreaterThan(0)
       expect(twoB.pages).toEqual(picture.pages)

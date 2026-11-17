@@ -34,6 +34,7 @@ const STARTERS = [
   'site-visit',
   'order-confirmation',
   'product-data-sheet',
+  'sales-report',
 ].map((id) => ({
   id,
   eInvoice: id.startsWith('e-invoice'),

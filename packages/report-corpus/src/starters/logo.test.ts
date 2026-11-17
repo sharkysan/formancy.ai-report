@@ -12,14 +12,14 @@ import type { Starter } from './index.js'
  * The firm's mark (0032): one invented, wordless drawing that the QR-bill
  * invoice, the euro invoice and the quotation, their samples, the
  * e-invoice samples, the XRechnung, a starter since 0065, the order
- * confirmation and the product data sheet (0064) print at the top left of
- * their first page. Which reports carry
- * it is stated here, never read from the starters, and the drawing is
- * read back by saxes, a parser that is not the cleaner. That it prints
+ * confirmation and the product data sheet (0064) and the monthly sales
+ * report (0067) print at the top left of their first page. Which reports
+ * carry it is stated here, never read from the starters, and the drawing
+ * is read back by saxes, a parser that is not the cleaner. That it prints
  * where it is declared is held on the PDF by report-render-pdf's
  * `starters.test.ts`, `samples.test.ts`, `euro-samples.test.ts`,
- * `e-invoice-samples.test.ts`, `order-confirmation.test.ts` and
- * `product-data-sheet.test.ts`.
+ * `e-invoice-samples.test.ts`, `order-confirmation.test.ts`,
+ * `product-data-sheet.test.ts` and `sales-report.test.ts`.
  */
 
 /** Every report of the corpus a person sees printed, once: the starters, then the samples that are not starters. */
@@ -48,11 +48,12 @@ const MARKED = [
 ]
 
 /**
- * The firm's order confirmation, by id: the report that prints its mark at
- * the head of page 1's own header (0060), where page 2 on prints a running
- * header instead (0064), stated rather than read.
+ * The firm's order confirmation and its monthly sales report, by id: the
+ * reports that print its mark at the head of page 1's own header (0060),
+ * where page 2 on prints a running header instead (0064, 0067), stated
+ * rather than read.
  */
-const MARKED_ON_PAGE_ONE = ['order-confirmation']
+const MARKED_ON_PAGE_ONE = ['order-confirmation', 'sales-report']
 
 /** The reports that are no firm's letter, and print no mark: a technician's visit, a register, and the draft generated from the site visit form. */
 const UNMARKED = ['service-inspection', 'grouped-equipment', 'site-visit']
@@ -151,12 +152,12 @@ describe("the firm's mark", () => {
 
 describe('the letterhead', () => {
   // The firm's letters -- its invoices, its quotation, its order
-  // confirmation and its product data sheet -- print its mark, and its
-  // other reports none: a sample left without it would show the firm's
-  // invoices differing in more than their words, and a mark on the
-  // inspection or the register would print a letterhead on what is no
-  // letter. Which is which is stated above, and the lists must name every
-  // report.
+  // confirmation, its product data sheet and its monthly sales report --
+  // print its mark, and its other reports none: a sample left without it
+  // would show the firm's invoices differing in more than their words, and
+  // a mark on the inspection or the register would print a letterhead on
+  // what is no letter. Which is which is stated above, and the lists must
+  // name every report.
   test('is declared by the firm’s letters, and by no other report', () => {
     const declaring = (report: ReportDefinition): boolean => report.assets.length > 0
     expect(
@@ -189,13 +190,13 @@ describe('the letterhead', () => {
     expect(report.regions.pageHeader.filter((component) => component.kind === 'image')).toEqual([])
   })
 
-  // The order confirmation prints its letterhead in page 1's own header
-  // (0060), so that page 1 opens with it and no running header above it,
-  // and page 2 on with the running header alone (0064): the same mark, the
-  // same gap and the same line of whom it is from as every other letter of
-  // the firm, at the head of that region, and no image in the report header
-  // or the page header, which would print the mark a second time on page 1
-  // or once on every later page.
+  // The order confirmation and the sales report print their letterhead in
+  // page 1's own header (0060), so that page 1 opens with it and no running
+  // header above it, and page 2 on with the running header alone (0064,
+  // 0067): the same mark, the same gap and the same line of whom it is from
+  // as every other letter of the firm, at the head of that region, and no
+  // image in the report header or the page header, which would print the
+  // mark a second time on page 1 or once on every later page.
   test.each(MARKED_ON_PAGE_ONE)('%s declares the mark alone and begins page 1’s own header with it', (id) => {
     const { report } = EVERY.find((starter) => starter.id === id) as Starter
     expect(report.assets).toEqual([{ id: 'logo', mediaType: 'image/svg+xml', digest: LOGO.digest }])

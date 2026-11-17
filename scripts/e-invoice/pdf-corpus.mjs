@@ -217,6 +217,11 @@ export const PDF_VARIANTS = [
     why: 'the product data sheet starter, in its own Swiss German: runs set below and above the line, a unit’s power, an index and a footnote’s mark, under the mark (0064)',
     draws: { starter: 'product-data-sheet' },
   },
+  {
+    file: 'variant-sales-report.pdf',
+    why: 'the monthly sales report starter: a bar chart and a pie of the detail rows, laid out by ECharts, beside a table of the same rows grouped by the bar chart’s category, page 1’s own header with the mark in place of the running header that page 2 prints, over two pages (0067)',
+    draws: { starter: 'sales-report' },
+  },
 ]
 
 /** The image of `IMAGE_KINDS` that `blocksDocument` puts in the page header: the one with an alpha channel, as a logo comes. */

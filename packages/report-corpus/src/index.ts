@@ -132,6 +132,9 @@ export {
   quotationData,
   quotationLines,
   reverseChargeData,
+  SALES_REPORT,
+  salesReportData,
+  salesReportLines,
   SERVICE_INSPECTION,
   SHEET_EDITIONS,
   SITE_VISIT_STARTER,
@@ -143,5 +146,5 @@ export {
   XRECHNUNG_SAMPLES,
   xrechnungData,
 } from './starters/index.js'
-export type { Edition, OrderConfirmationLine, SheetWords, Starter, StarterImage } from './starters/index.js'
+export type { Edition, OrderConfirmationLine, SalesReportLine, SheetWords, Starter, StarterImage } from './starters/index.js'
 export type { PdfAttachment, PdfBox, PdfCurve, PdfFont, PdfPage, PdfPaint, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'
