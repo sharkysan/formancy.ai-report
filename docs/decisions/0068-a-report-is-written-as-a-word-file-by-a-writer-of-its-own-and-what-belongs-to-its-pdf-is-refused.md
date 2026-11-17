@@ -4,12 +4,14 @@
 - **Date:** 2026-11-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
-  - **Written before the Studio's part.** The reader, the writer, the
-    comparison with the PDF and report-spec's two fields are built, and
-    each entry below names a test that exists and was seen failing. The
-    entries **From outside** and **The Studio** name the tests and the
-    gate this change still writes; the record is corrected to what was
-    built, and this entry removed, before the change is merged.
+  - **Written before its gates.** The reader, the writer, the comparison
+    with the PDF, report-spec's two fields, the Studio's part and the
+    install gate's are built, and each entry below names a test or a gate
+    that exists and was seen failing, but the end of **From outside**: the
+    package's row in the building blocks, its job in the test matrix and
+    its flag are not written yet, and the three guards that hold it to
+    them fail until they are. This entry is removed with them, before the
+    change is merged.
   - **The reader.** report-corpus's `src/docx/read.test.ts` proves
     `readDocx` on a file written by hand in `src/docx/testing/hand.ts`
     and zipped there by Node's zlib, never by the writer: the parts by
@@ -79,7 +81,8 @@
     is the same bytes; written in a second process fourteen hours ahead
     of UTC and in one eight behind, the same digest; every entry of the
     zip dated as `package.ts` dates it, in its own header and in the
-    directory. In Node: no test loads the file fflate serves a browser.
+    directory. Under Node: what the writer gives in a browser, over the
+    file fflate serves one, is the Studio's gate's, below.
   - **Against the PDF.** `src/against-pdf.test.ts`, with
     report-render-pdf a devDependency of the suite alone: for every
     starter and fixture both write, without its page regions, every word
@@ -97,29 +100,63 @@
     `legacyFamily` to name ID 1 beside a typographic family, and to
     being absent without one.
   - **From outside.** `scripts/install-fixture/docx.ts`, which the node
-    host's `consume.ts` runs: the packed package writes a document, and
-    Node alone finds its parts. The package's `tsconfig.json` has ES2023's
-    library and no `@types/node`, so a `node:` import or a DOM global in
-    `src` does not compile; its tests are a program of their own
+    host's `consume.ts` runs: the packed package, on the fflate a clean
+    npm install gives it, writes the quotation, and Node alone -- its
+    zlib over a walk of the zip's directory, no reader of this
+    repository's -- finds the parts a Word file is known by, the title
+    and the instant in its core properties, the report's title in its
+    text and the firm's mark as the very bytes the host approved; written
+    again it is the same bytes; and the quotation with a QR-bill is
+    refused for its payment part, by the class and the codes the package
+    hands on. No install host is a browser's for it: its packed
+    declarations are checked against Node's types, with `skipLibCheck`
+    off, and never against the DOM's alone. The package's
+    `tsconfig.json` has ES2023's library and no `@types/node`, so a
+    `node:` import or a DOM global in `src` does not compile; its tests
+    are a program of their own
     (`tsconfig.test.json`). `scripts/dependency-licences.mjs` judges
     fflate; `scripts/architecture.test.mjs`, `scripts/ci-test-jobs.test.mjs`
     and `scripts/codecov-config.test.mjs` hold the package to its row, its
     job and its flag.
-  - **The Studio.** `src/preview/pipeline.test.ts` holds every starter's
-    printed outcome to handing on the Word file of the very document its
-    PDF was drawn from, read whole by `readDocx`, or the writer's refusal;
+  - **The Studio.** `src/preview/pipeline.test.ts` names what the Word
+    file of every starter the page offers is, the blank report among
+    them, and holds each one's printed outcome, as a preview and as a
+    final render, to handing on the Word file of the very document its
+    PDF was drawn from -- read whole by `readDocx` and held by
+    `verifyDocx` to the document the suite resolves from the same request
+    -- or the writer's refusal, by the subject the table names and the
+    corpus's `wordRefusal` derives; and a preview of incomplete data to
+    printing, with the writer's refusal of its label beside it.
+    `src/preview/word-fault.test.ts`, the one suite that stands in for
+    the writer, holds a writer that throws what is no refusal to leaving
+    the PDF as it printed, the fault said of the Word file alone.
     `src/preview/pdf-view.test.tsx` holds Download Word to following
-    Download PDF under the starter's id with `.docx`, to the file of the
-    render on the paper until a newer one is drawn, and, where the writer
-    refused, to no link and the note that says why;
-    `src/journey.test.tsx` holds, at every preview and final render it
-    walks, the link to the starters that export and the note to the rest.
-    The browser gate's `apps/studio/scripts/gate-word.mjs`, at each
-    starter's preview in the journey, in each builder: the file
-    downloaded as a person downloads it, saved as the starter's `.docx`,
-    read whole by `readDocx` in Node and holding the edit the journey
-    typed, as the Download PDF does; and the state measured with the
-    link, or the note, on screen.
+    Download PDF as the keyboard's next stop, under the starter's id with
+    `.docx` and Word's media type, to the file of the render on the paper
+    until a newer one is drawn, and, where the writer refused, to no link
+    and a note named by its sentence, Download XML still the next stop
+    after Download PDF. `src/journey.test.tsx` holds, at every preview
+    and final render it walks, the link and the pipeline's very bytes to
+    the starters that export and the note to the rest, the blank report
+    among the rest once it is given a QR-bill.
+    `scripts/gate-download.test.mjs` holds the gate's download of the
+    link by its own name. The browser gate's
+    `apps/studio/scripts/gate-word.mjs`, at each starter's preview in the
+    journey and at an e-invoice's final render, in each builder: where
+    the writer writes the report, the file downloaded as a person
+    downloads it, saved as the starter's `.docx`, the keyboard's next
+    stop after Download PDF, read whole by `readDocx` in Node, held by
+    `verifyDocx` to the document the gate resolves under Node from the
+    corpus's starter at the instant the file says it was made, and byte
+    for byte the file the writer writes of that document under Node;
+    where it refuses, no link and the note named by the sentence the
+    writer refuses that document with under Node; a pass that read no
+    file, or no refusal, fails; the state is measured with the link, or
+    the note, on screen; and in the framework switch
+    (`gate-switch.mjs`) the Word file offered once the paper has settled
+    after an edit holds the edit, as the Download PDF does. The blank
+    report, the Studio's own, is held there to its link, its name and the
+    reader alone.
   - **Seen failing, on 17 November 2026**, each with the thing it guards
     taken out and put back. Of the reader: an entry's date, a name twice,
     a CRC-32, a path, the order of an element's children, an attribute
@@ -138,7 +175,17 @@
     page 1's footer, the page's turn. Of the comparison with the PDF:
     `TABLE_SIZE`, `DEFAULT_SIZE`, a total's weight, the empty text's
     slant, and the writer's refusal of a page break in a region, of a
-    table in columns and of a table's kept rows. report-spec's two
+    table in columns and of a table's kept rows. Of the Studio: every
+    case of the pipeline's hand-on, and the fault's, before the pipeline
+    handed anything on, then the file of another document handed on and a
+    starter left out of its table; the viewer's link, its place and its
+    note before the viewer drew them; the journey with the viewer's link
+    taken out; the gate's download by another link's name; and of the
+    gate in Chromium, a final render's note read before its pages were
+    drawn, which is why it waits for the paper, and a file held to the
+    document of another instant. Of the install gate's consumer: the
+    firm's mark held to other bytes than the host approved.
+    report-spec's two
     fields failed before they were read. The corpus's reader and its
     checks were written before their tests ran, and the writer before
     its own: each was seen failing in this way and not before its code.
@@ -240,9 +287,11 @@ host another; the writer calls its synchronous half alone, which is the
 same code in both. `renderDocx` is synchronous, takes no option and no
 signal: there is no page limit to pass, since the writer counts no page.
 The two engines share the document and the refusal, and no interface.
-That one entry serves a browser is held from outside by the Studio's
-gate alone, through the workspace; the install gate's host of it is
-Node's.
+That one entry serves a browser is held by the Studio's gate, through
+the workspace: the file a person downloads there, written in Chromium
+over the file fflate serves a browser, is byte for byte the one the
+writer writes of the same document under Node. The install gate's host
+of the packed package is Node's.
 
 **The file.** `[Content_Types].xml`; the package's relationships;
 `docProps/core.xml`, the title and the creation date; `word/document.xml`
@@ -480,13 +529,19 @@ states none are held to the PDF itself. Not on the strings the writer
 built, and not through a mocked writer.
 
 **The Studio.** The Preview writes the Word file of the document it drew
-the PDF from, and offers it after Download PDF as **Download Word**, the
-starter's id with `.docx`, the file of the render on the paper. Where
-the writer refused, there is no link, and a note in its place says so in
-the writer's own sentence: "No Word file: " and the refusal. The link is
-the room's `tool`, with no rule of its own; the README's pictures of the
-Studio are taken again by their script, their Preview holding one link
-more.
+the PDF from, once the PDF is drawn and of no document the renderer
+refused, so the page limit that bounds a preview bounds what the writer
+is handed on the page's own thread; the writer is a chunk of the build's
+own, asked for with the first PDF that printed. It offers the file after
+Download PDF as **Download Word**, the starter's id with `.docx`, the
+file of the render on the paper. Where the writer refused, there is no
+link, and a note in its place says so in the writer's own sentence: "No
+Word file: " and the refusal. Whatever else the writer throws is a fault
+of the Word file's alone: the PDF is shown as it printed, and the note
+says the writer failed, and how. The link is the room's `tool`, with no
+rule of its own, and the note's one rule states no colour; the README's
+pictures of the Studio are taken again by their script, their Preview
+holding one link more.
 
 **The roadmap.** Word leaves it, before Excel; HTML stays, after Excel.
 What this record refuses and a later one may lift is named there: the
@@ -518,10 +573,13 @@ written twice.
   tables, their header rows marked to repeat, its header and footer as
   Word's, and its page numbers as fields Word works out.
 - **The same file for the same document**, in any Node process and any
-  time zone, which a host can store by its digest.
+  time zone, and in the Chromium the Studio's gate downloads it from,
+  which a host can store by its digest.
 - **A small writer.** One dependency with none of its own, no fonts and
-  no rasteriser in the package; the Studio loads it with its first
-  render.
+  no rasteriser in the package; in the Studio's build it is a chunk of
+  48.5 kB, 18.5 kB gzipped, measured on 17 November 2026 as
+  `apps/studio/vite.config.ts` says, loaded with the first PDF that
+  printed.
 - **Refusals a person can read**, each naming what it is about, and never
   a file that lost something.
 

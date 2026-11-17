@@ -743,7 +743,12 @@ What holds this section:
   prints, the IBAN to the EPC QR code decoded from its pixels too, and
   undone (`gate-e-invoice.mjs`, 0044), each e-invoice starter's final
   Download XML, the Factur-X's the very bytes its Download PDF embeds and
-  the XRechnung's beside a copy that embeds nothing (0065), a pane and the
+  the XRechnung's beside a copy that embeds nothing (0065), each starter's
+  Word file as its Download Word gives it, read whole by the corpus's
+  `readDocx`, held to the document resolved under Node and byte for byte
+  the file the writer writes of it there, or the note of why the writer
+  refused it, and the Word file of an edit holding the edit
+  (`gate-word.mjs`, 0068), a pane and the
   Preview hidden and shown again,
   the Preview beside the builder where the window has room for it and
   swapped with the design view where it has not, a pane hidden as an edit
@@ -1064,7 +1069,9 @@ Locally, run the same commands for what you changed.
 - runs it: `consume.ts` under Node, which also draws an e-invoice, in
   `e-invoice.ts`, and reads the PDF/A-3b's bytes with `embedding.ts` and
   Node alone (0031), a PDF/A-2b, in `pdfa.ts` (0057), and the guide's
-  quotation with its chart, in `chart.ts` (0058);
+  quotation with its chart, in `chart.ts` (0058), and writes the
+  quotation as a Word file, in `docx.ts`, its parts read with Node alone
+  and the quotation with a QR-bill refused (0068);
   `server.ts`, the server made in its host's process and asked over a
   socket, a draft saved through the packed client, read back and a stale
   save refused `draft-changed`;

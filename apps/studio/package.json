@@ -28,6 +28,7 @@
     "@formancy/report-builder-react": "workspace:*",
     "@formancy/report-core": "workspace:*",
     "@formancy/report-corpus": "workspace:*",
+    "@formancy/report-render-docx": "workspace:*",
     "@formancy/report-render-pdf": "workspace:*",
     "@formancy/report-runtime": "workspace:*",
     "@formancy/report-spec": "workspace:*",

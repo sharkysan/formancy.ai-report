@@ -93,6 +93,16 @@ export default defineConfig({
   // chunk uses and the renderer's chunk carries all the same. Installed,
   // `du -sk` on 2026-11-15: echarts 6.1.0 is 62,176 KiB and zrender 6.1.0
   // 5,168 KiB, with every renderer.
+  // Measured again with `vite build` (Vite 8.3.5) on 2026-11-17 on a
+  // Windows 11 workstation (i9-10900K) under Node 24.21.0, once a printed
+  // preview wrote its Word file (0068), the same checkout built before and
+  // after: the writer and fflate are a chunk of their own, 48.5 kB and
+  // 18.5 kB gzipped, asked for with the first PDF that printed; the
+  // runtime, which that chunk and the renderer's both read, left the
+  // renderer's for a chunk between them, 78.7 kB and 26.5 kB gzipped; so
+  // the renderer's chunk went from 1,996.6 kB and 873.6 kB gzipped to
+  // 1,918.1 kB and 848.0 kB, and has 81.9 kB of room under the limit where
+  // it had 3.4 kB; the page's own chunk is 1,000.3 kB, 0.8 kB more.
   // What holds the chunks is this warning and a test that counts the chart
   // chunk's loads and one zrender and one echarts in it; what does not is
   // a budget for each chunk that fails, which a test reading each chunk's

@@ -4,16 +4,19 @@
 // quotation's payment line, which prints, so the PDF is held to the session
 // too: the first moment the paper says it is no longer busy after the edit,
 // its text layer and the Download PDF -- read back with PDF.js in Node --
-// both hold the edit. The Studio's jsdom suite runs the same switch
-// (studio.test.tsx); what it cannot see is the PDF the browser drew.
+// both hold the edit, and so does the Word file Download Word offers then,
+// read back by the corpus's reader (gate-word.mjs, 0068). The Studio's
+// jsdom suite runs the same switch (studio.test.tsx); what it cannot see
+// is the PDF the browser drew.
 //
 // Found by role and accessible name, but for the paper's busy state, its
-// text layer and the Download PDF's address, which the gate reads as the
-// page draws them.
+// text layer and the Download PDF's and the Download Word's addresses,
+// which the gate reads as the page draws them.
 
 import { readPdf } from '@formancy/report-corpus'
-import { offeredPdf } from './gate-download.mjs'
+import { offeredPdf, offeredWord } from './gate-download.mjs'
 import { builder, editorOf, open, present, previewOf, selectRow, setField, settled, showing, untilLine, WITHIN } from './gate-steps.mjs'
+import { wordHolds } from './gate-word.mjs'
 
 /** The quotation's payment line, and what the switch check makes of it. */
 const PAYMENT = 'Zahlbar innert 30 Tagen netto.'
@@ -22,9 +25,10 @@ const EDITED = 'Zahlbar innert 10 Tagen netto.'
 /**
  * After an edit: the paper busy while the render is on its way, then the
  * first frame it is not -- what its text layer holds then, and where
- * Download PDF points then -- and the bytes at that address, read in Node.
- * A paper that settled on the earlier PDF, or a link to bytes the paper
- * does not show, is found here. Where the Preview printed again before
+ * Download PDF and Download Word point then -- and the bytes at the PDF's
+ * address, read in Node, with the Word file as it was downloaded from its
+ * own. A paper that settled on the earlier PDF, or a link to bytes the
+ * paper does not show, is found here. Where the Preview printed again before
  * the download and took that address away, the PDF the link offers then
  * is read (offeredPdf), and counted among the pass's rereads: nothing is
  * edited after the edit, so it is a PDF of the same edit. What that loses:
@@ -40,17 +44,18 @@ async function firstSettled(page) {
       const paper = document.querySelector('.paper')
       if (paper === null || paper.getAttribute('aria-busy') !== 'false') return null
       const text = [...paper.querySelectorAll('.paper-text span')].map((span) => span.textContent ?? '').join(' ')
-      const link = [...document.querySelectorAll('a[download]')].find((anchor) => anchor.textContent.trim() === 'Download PDF')
-      return { text: text.replace(/\s+/g, ' '), href: link?.href ?? null }
+      const offered = (name) => [...document.querySelectorAll('a[download]')].find((anchor) => anchor.textContent.trim() === name)?.href ?? null
+      return { text: text.replace(/\s+/g, ' '), href: offered('Download PDF'), wordHref: offered('Download Word') }
     },
     undefined,
     { timeout: WITHIN },
   )
-  const { text, href } = await handle.jsonValue()
+  const { text, href, wordHref } = await handle.jsonValue()
   const bytes = (await offeredPdf(page, previewOf(page), { href }))?.bytes ?? new Uint8Array()
   const read = bytes.length === 0 ? { pages: [] } : await readPdf(bytes)
   return {
     text,
+    word: await offeredWord(page, previewOf(page), { href: wordHref }),
     downloaded: read.pages
       .flatMap((each) => each.items.map((item) => item.text))
       .join(' ')
@@ -79,6 +84,7 @@ export async function frameworkSwitch(gate, page) {
     'and Download PDF gives that PDF, read back with PDF.js',
     first.downloaded.includes(EDITED) ? null : `the download ${first.downloaded === '' ? 'was empty' : 'does not hold the edit'}`,
   )
+  check("and Download Word gives that render's Word file, which holds the edit, read back by the corpus's reader", wordHolds(first.word, EDITED))
   await untilLine(page, EDITED)
   await builder(page, 'Angular')
   const angular = await editor.evaluate((element) => element.closest('report-builder') !== null)

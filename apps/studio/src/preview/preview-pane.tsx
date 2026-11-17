@@ -6,6 +6,8 @@
  *
  * Preview runs the runtime's preview mode, which prints what the data lacks
  * as nothing and says so; Final runs a final render, which refuses it.
+ * Beside the PDF of either, the viewer offers the Word file the same
+ * render wrote, or says why the writer wrote none (0068).
  *
  * It stands beside the builder, a region and a panel of its own, or in the
  * builder's middle, in the design view's place (0029): there the builder's
@@ -120,7 +122,7 @@ export function PreviewPane({
           editor's diagnostics: these are what printing found, named for
           the render that found them. */}
       {problems.length === 0 ? null : <Problems problems={problems} label={listName(shown?.mode ?? mode, outcome?.kind === 'printed')} select={select} />}
-      {outcome?.kind === 'printed' ? <PdfView pdf={outcome.pdf} xml={outcome.xml} name={opened.starter.id} stale={rendering} /> : null}
+      {outcome?.kind === 'printed' ? <PdfView pdf={outcome.pdf} xml={outcome.xml} word={outcome.word} name={opened.starter.id} stale={rendering} /> : null}
     </Pane>
   )
 }

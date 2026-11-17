@@ -3,8 +3,9 @@
 // -- the journey's pictured pages (browser-test.mjs), the framework switch
 // (gate-switch.mjs), an image added (gate-images.mjs), a QR-bill
 // (gate-payment-part.mjs) and an e-invoice (gate-e-invoice.mjs) edited;
-// and the XML a final render of an e-invoice offers beside it, downloaded
-// the same way (gate-e-invoice.mjs, 0065).
+// the XML a final render of an e-invoice offers beside it, downloaded
+// the same way (gate-e-invoice.mjs, 0065); and the Word file a printed
+// render offers after them (gate-word.mjs, 0068).
 // It imports no package, so its test needs nothing built.
 //
 // Read from the DOM: the link's address, which the accessibility tree
@@ -37,6 +38,7 @@ export const rereadsOn = (page) => rereadsMade.get(page) ?? 0
 /** The Preview's links to its downloads, by their accessible names. */
 const PDF_LINK = 'Download PDF'
 const XML_LINK = 'Download XML'
+const WORD_LINK = 'Download Word'
 
 /**
  * Where the link of `preview`, the Preview's region, named `name` -- its
@@ -113,3 +115,6 @@ export const offeredPdf = (page, preview, options) => offered(page, preview, PDF
 
 /** The XML a final render of an e-invoice offers beside its PDF (0065), as `offered` downloads it: `{ href, bytes, fileName }`, or null. */
 export const offeredXml = (page, preview, options) => offered(page, preview, XML_LINK, options)
+
+/** The Word file a printed render offers after its PDF (0068), as `offered` downloads it: `{ href, bytes, fileName }`, or null where the Preview offers none. */
+export const offeredWord = (page, preview, options) => offered(page, preview, WORD_LINK, options)

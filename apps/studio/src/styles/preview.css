@@ -136,6 +136,15 @@
   margin-inline-start: auto;
 }
 
+/* Why a render has no Download Word (0068): the writer's sentence, on a
+   row of its own under the tools, wrapped to the pane however narrow. */
+.word-note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
 /* The drafting table the pages lie on: the admin's canvas, a faint dot grid. */
 .paper {
   display: grid;

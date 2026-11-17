@@ -332,6 +332,9 @@ importers:
       '@formancy/report-corpus':
         specifier: workspace:*
         version: link:../../packages/report-corpus
+      '@formancy/report-render-docx':
+        specifier: workspace:*
+        version: link:../../packages/report-render-docx
       '@formancy/report-render-pdf':
         specifier: workspace:*
         version: link:../../packages/report-render-pdf

@@ -3,7 +3,8 @@
  * canvas with PDF.js's text layer over it, so the text can be selected,
  * copied and found with the browser's search; page navigation, zoom, and the
  * very bytes the pages were drawn from, to download, with the e-invoice's
- * XML the same render wrote, where it wrote one (0065). The paper says it is
+ * XML the same render wrote, where it wrote one (0065), and its Word file,
+ * or a note of why the writer wrote none (0068). The paper says it is
  * busy (`aria-busy`) until the newest PDF is drawn, which the browser gate
  * and the README pictures wait for.
  *
@@ -11,10 +12,11 @@
  * the PDF, and no rule of the Studio's reaches inside it (the stylesheets
  * exclude `.paper *`), so what is shown is what prints.
  */
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactElement } from 'react'
 import { formatZoom, PX_PER_PT, zoomedIn, zoomedOut } from '@formancy/report-builder-core'
 import type { LoadedPdf, PdfLoading } from './pdf-document.js'
+import type { WordFile } from './pipeline.js'
 import { fitZoom, pageOf } from './view.js'
 
 interface Size {
@@ -29,6 +31,8 @@ interface Loaded {
   readonly from: Uint8Array
   /** The e-invoice's XML the render of `from` wrote, if it wrote one: what Download XML gives. */
   readonly xml: string | undefined
+  /** The Word file the render of `from` wrote, or why it wrote none: what Download Word gives, or the note in its place says. */
+  readonly word: WordFile
 }
 
 /** Which pages of `of` have been drawn at `zoom`: the paper is busy until every one has. */
@@ -40,6 +44,15 @@ interface Drawn {
 
 /** The name of the paper: the region the pages lie in, which scrolls, so the keyboard can stop on it. */
 export const PAPER_NAME = 'PDF pages'
+
+/** The media type Word registered for a .docx, which a browser saves the file as. */
+const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+/** Why a render has no Word file, in the writer's own sentence where it refused the report; nothing where it wrote one. */
+function noWordFile(word: WordFile): string | undefined {
+  if (word.kind === 'written') return undefined
+  return word.kind === 'refused' ? word.refusal.message : `the writer failed: ${word.message}`
+}
 
 /** A button that keeps focus when it has nothing to do, and says so, as the builder's tools do. */
 function Tool({ label, onPress, unavailable, pressed }: { label: string; onPress: () => void; unavailable?: boolean; pressed?: boolean }): ReactElement {
@@ -110,9 +123,23 @@ function useObjectUrl(content: BlobPart | undefined, type: string): string | und
 
 /**
  * `pdf` is drawn, and offered as `name`.pdf; `xml`, an e-invoice's XML
- * written by the same render, is offered beside it as `name`.xml.
+ * written by the same render, is offered beside it as `name`.xml; and
+ * `word`, the Word file of the document `pdf` was drawn from, after them
+ * as `name`.docx, or, where the writer wrote none, a note that says why.
  */
-export function PdfView({ pdf, xml, name, stale }: { pdf: Uint8Array; xml?: string | undefined; name: string; stale: boolean }): ReactElement {
+export function PdfView({
+  pdf,
+  xml,
+  word,
+  name,
+  stale,
+}: {
+  pdf: Uint8Array
+  xml?: string | undefined
+  word: WordFile
+  name: string
+  stale: boolean
+}): ReactElement {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [zoom, setZoom] = useState<number | 'fit'>('fit')
@@ -120,6 +147,7 @@ export function PdfView({ pdf, xml, name, stale }: { pdf: Uint8Array; xml?: stri
   const [current, setCurrent] = useState(1)
   const [drawn, setDrawn] = useState<Drawn>({ of: null, zoom: 0, pages: new Set() })
   const paper = useRef<HTMLDivElement>(null)
+  const note = useId()
   /**
    * The PDF.js document on the paper, let go of only once a newer one is
    * there in its place, or the paper goes. Until then the paper redraws it
@@ -150,7 +178,7 @@ export function PdfView({ pdf, xml, name, stale }: { pdf: Uint8Array; xml?: stri
         if (!live) return
         const replaced = onPaper.current
         onPaper.current = loading ?? null
-        setLoaded({ pdf: document, sizes, from: pdf, xml })
+        setLoaded({ pdf: document, sizes, from: pdf, xml, word })
         setFailed(null)
         setCurrent((page) => Math.min(page, sizes.length))
         // A draw of it still on its way rejects, and is not said to be drawn.
@@ -164,7 +192,7 @@ export function PdfView({ pdf, xml, name, stale }: { pdf: Uint8Array; xml?: stri
       // One still loading is let go of; the one on the paper stays there until another replaces it.
       if (loading !== onPaper.current) loading?.destroy()
     }
-  }, [pdf, xml])
+  }, [pdf, xml, word])
 
   // The paper's width, for Fit width: measured once laid out, and again
   // whenever the pane changes size.
@@ -183,13 +211,20 @@ export function PdfView({ pdf, xml, name, stale }: { pdf: Uint8Array; xml?: stri
   // renderer delivered: between the two, Download PDF gave a PDF the
   // preview did not show yet. The XML is the one that render wrote, for the
   // same reason, as UTF-8, the encoding its declaration names and a
-  // Factur-X PDF embeds it in.
+  // Factur-X PDF embeds it in; and the Word file the one written of the
+  // document those pages were drawn from, or that render's reason for none.
   const from = loaded?.from
   const url = useObjectUrl(
     useMemo(() => from?.slice().buffer, [from]),
     'application/pdf',
   )
   const xmlUrl = useObjectUrl(loaded?.xml, 'application/xml')
+  const docx = loaded?.word.kind === 'written' ? loaded.word.docx : undefined
+  const wordUrl = useObjectUrl(
+    useMemo(() => docx?.slice().buffer, [docx]),
+    DOCX,
+  )
+  const noWord = loaded === null ? undefined : noWordFile(loaded.word)
 
   const pages = loaded?.sizes.length ?? 0
   const widest = Math.max(0, ...(loaded?.sizes.map((size) => size.width) ?? []))
@@ -246,6 +281,18 @@ export function PdfView({ pdf, xml, name, stale }: { pdf: Uint8Array; xml?: stri
           <a className="tool" href={xmlUrl} download={`${name}.xml`}>
             Download XML
           </a>
+        )}
+        {url === undefined || wordUrl === undefined ? null : (
+          <a className="tool" href={wordUrl} download={`${name}.docx`}>
+            Download Word
+          </a>
+        )}
+        {/* Named by its own words: a note takes no name from what it holds,
+            and a test, the gate and a screen reader's list find it by one. */}
+        {noWord === undefined ? null : (
+          <p role="note" id={note} aria-labelledby={note} className="word-note">
+            No Word file: {noWord}
+          </p>
         )}
       </div>
       {failed === null ? null : (
