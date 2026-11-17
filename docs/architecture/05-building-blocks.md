@@ -484,11 +484,23 @@ standard-setters' own examples ([0037](../decisions/0037-an-e-invoice-may-name-e
 an XRechnung sample, the first one's template made an XRechnung, to an
 invented federal buyer by a Leitweg-ID of KoSIT's test suite
 (`starters/xrechnung.ts`, [0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+Two starters print what 0059 to 0063 added, letters of the same firm
+([0064](../decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)):
+the order confirmation (`starters/order-confirmation.ts`), one list of
+order lines printed as three tables picked by their kind, its deliveries'
+headers kept with three lines, the third meeting page 1's foot, and its
+letterhead in page 1's own header; and the product data sheet
+(`starters/product-data-sheet.ts`), its powers, index and footnotes'
+marks set off the line, written in Swiss German with its words in
+French, Italian and English, each language's words a table of
+`starters/product-data-sheet-words.ts`.
 `starters/logo.ts` holds the firm's mark, `LOGO`: the corpus's
 `SVG_MARK`, named by the digest of its bytes as an approved asset is, and
 `LETTERHEAD`, the mark 15 mm square and the gap under it, which the
-quotation, both invoices, their samples and the e-invoice samples begin
-their report header with: the first template asset a starter draws.
+quotation, both invoices, their samples, the e-invoice samples and the
+product data sheet begin their report header with, and the order
+confirmation page 1's own header: the first template asset a starter
+draws.
 `STARTER_IMAGES` holds it beside the inspection's photo, and
 `starterImages` is the lookup over them that the corpus's, the renderer's
 and the e-invoice gate's resolutions hand the runtime
@@ -499,7 +511,9 @@ which read it out of the PDF they print.
 `lines.ts` reads a run drawn at `SHIFTED_SIZE` of a run beside it, its
 baseline moved by `SHIFTED_RISE`, into that run's line, and a run beside
 one so read, a charge after its count, against the run on the line that
-one was, and records each there; `check-text.ts`'s `shiftedRuns` holds each run a document sets
+one was, and records each there, and `offLine` gives each such run with
+the run it is read against, which the renderer's tests' line reader, the
+README's pictures' among them, reads with (0064); `check-text.ts`'s `shiftedRuns` holds each run a document sets
 below or above the line to its size and its move, and fails one read so
 that the document does not set; `fixtures/shifted.ts` holds
 `SHIFTED_FIXTURES`, formulas, units and marks that print, a lowered run

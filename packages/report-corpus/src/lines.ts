@@ -69,8 +69,10 @@ export const SHIFT_TOLERANCE = 0.01
  * holds text on the line (`shifted.ts`), so none stands farther from the
  * nearest run of its word: the run on the line, or another run set off it
  * that is read against that one, as a charge's after its count, SO₄²⁻.
+ * The Studio's browser gate reads the Preview's text layer by it too
+ * (0064).
  */
-const JOIN_GAP = 0.3
+export const JOIN_GAP = 0.3
 
 /**
  * The page's lines, top to bottom, and after them each run that does not
@@ -95,6 +97,17 @@ export function pageLines(page: PdfPage): Line[] {
   }
   for (const [item, { beside }] of joined) lineOf.get(beside)!.push(item)
   return [...lines, ...page.items.filter((item) => item.angle !== 0).map((item) => [item])].map((items) => line(items, joined))
+}
+
+/**
+ * The runs of `page` that `pageLines` reads into another run's line as set
+ * below or above it, each with the run on the line it is read against: for
+ * a reader of lines of its own -- the renderer's tests' copy, which the
+ * README's pictures are read with (0064) -- to read them so by this rule,
+ * stated once here.
+ */
+export function offLine(page: PdfPage): ReadonlyMap<PdfTextItem, PdfTextItem> {
+  return new Map([...joins(page.items.filter((item) => item.angle === 0))].map(([item, { beside }]) => [item, beside]))
 }
 
 /** A run read as set below or above the line: the run beside it on the line, and which way it was set. */

@@ -259,6 +259,29 @@ describe('report-builder.css', () => {
     for (const kind of ['section', 'columns', 'keepTogether', 'table']) expect(containers[0]?.body).toContain(`[data-kind='${kind}']`)
   })
 
+  // A table's own label sits at its top end on its first line, and its
+  // columns stand side by side under it, each with its label at its top
+  // start: the last column's label, as wide as the column -- "Betrag
+  // (goods/amount)", where two tables end in "Betrag" -- printed over the
+  // table's on that line, and the browser gate's axe could not tell the
+  // colour behind it (0064). A column's label stands on the line under the
+  // table's, one label's height down, and a column too short to hold it
+  // there draws none, as a box shorter than its label draws none.
+  test('draws a table column’s label on the line under its table’s, and none in a column shorter than two labels', () => {
+    const LABEL = "[data-report-part='box'][data-kind='tableColumn'] > [data-report-part='box-label']"
+    const rules = [...RULES.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map((match) => ({ selector: (match[1] ?? '').trim(), body: match[2] ?? '' }))
+    const placed = rules.filter((rule) => rule.selector === LABEL)
+    expect(placed.map((rule) => rule.body.match(/inset-block-start:\s*([\d.]+rem)/)?.[1])).toContain('0.875rem')
+    const label = rules.find((rule) => rule.selector === "[data-report-part='box-label']")
+    expect(label?.body).toMatch(/font:\s*0\.625rem\/1\.4 /)
+    const queries = [...RULES.matchAll(/@container\s*\(height < ([\d.]+)rem\)\s*\{([^@]*?)\}\s*\}/g)].map((match) => ({
+      height: Number(match[1]),
+      body: match[2] ?? '',
+    }))
+    const short = queries.filter((query) => query.body.includes(LABEL))
+    expect(short.map((query) => [query.height, /display:\s*none/.test(query.body)])).toEqual([[1.75, true]])
+  })
+
   // A group's button with nowhere to go -- the first VAT category's Move
   // up (0044) -- is aria-disabled and still sent, as a tool is: drawn
   // otherwise than a tool, it would look like one that does something, and

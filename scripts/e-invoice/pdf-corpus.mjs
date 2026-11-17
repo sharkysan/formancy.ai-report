@@ -204,6 +204,16 @@ export const PDF_VARIANTS = [
     why: 'the site visit starter, generated from a formancy form: lines of label and value, sections, boxes drawn as text, and a table of its findings (0045)',
     draws: { starter: 'site-visit' },
   },
+  {
+    file: 'variant-order-confirmation.pdf',
+    why: 'the order confirmation starter: three tables over one list of lines, a delivery’s header kept with its first three, page 1’s own header with the mark in place of the running header that page 2 prints, over two pages (0064)',
+    draws: { starter: 'order-confirmation' },
+  },
+  {
+    file: 'variant-product-data-sheet.pdf',
+    why: 'the product data sheet starter, in its own Swiss German: runs set below and above the line, a unit’s power, an index and a footnote’s mark, under the mark (0064)',
+    draws: { starter: 'product-data-sheet' },
+  },
 ]
 
 /** The image of `IMAGE_KINDS` that `blocksDocument` puts in the page header: the one with an alpha channel, as a logo comes. */

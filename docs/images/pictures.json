@@ -1473,5 +1473,289 @@
       ]
     ],
     "drawings": []
+  },
+  {
+    "file": "starter-order-confirmation.png",
+    "starter": "order-confirmation",
+    "page": 2,
+    "scale": 1.25,
+    "sha256": "5d083397da699ce2a61f6127ccca74ed66da28cce6a114fb60279d3a2515d8e6",
+    "caption": "The order confirmation starter, page 2: under its running header, Auftragsbestätigung AB-2026-1107, the third delivery's header, Lieferung vom 11. Januar 2027, kept with its lines, then the services down to Total Leistungen CHF 7'342.00 and the returns down to Total Rücknahmen CHF-606.40, each table totalling its own lines, and under them the order's Total CHF 51'704.28 over every line",
+    "lines": [
+      "Auftragsbestätigung AB-2026-1107 · Bäckerei Müller AG",
+      "Artikel Beschreibung Menge Einheit Preis Betrag",
+      "Lieferung vom 11. Januar 2027",
+      "W-3030 Dämmplatte ThermoPlan FB 30 84.00 Stk CHF 12.80 CHF 1'075.20",
+      "W-3031 Heizrohr PE-RT 16 × 2 420.00 m CHF 1.95 CHF 819.00",
+      "W-3032 Randdämmstreifen 96.00 m CHF 1.20 CHF 115.20",
+      "W-3033 Heizkreisverteiler 6-fach 1.00 Stk CHF 624.00 CHF 624.00",
+      "W-3034 Stellantrieb 230 V 12.00 Stk CHF 42.50 CHF 510.00",
+      "W-3035 Raumthermostat Funk 6.00 Stk CHF 148.00 CHF 888.00",
+      "Zwischensumme Lieferung CHF 4'031.40",
+      "Total Waren CHF 41'094.45",
+      "Leistungen",
+      "Leistung Menge Einheit Ansatz Betrag",
+      "Montage Lüftungsgerät 16.00 h CHF 118.00 CHF 1'888.00",
+      "Montage Wärmepumpe 12.00 h CHF 118.00 CHF 1'416.00",
+      "Elektroanschluss 6.50 h CHF 124.00 CHF 806.00",
+      "Verlegung Fussbodenheizung 18.00 h CHF 112.00 CHF 2'016.00",
+      "Inbetriebnahme und Einregulierung 1.00 Pausch. CHF 980.00 CHF 980.00",
+      "Einweisung Betriebspersonal 2.00 h CHF 118.00 CHF 236.00",
+      "Total Leistungen CHF 7'342.00",
+      "Rücknahmen",
+      "Artikel Beschreibung Menge Einheit Gutschrift",
+      "R-5001 Taschenfilter F5, Fehllieferung 6.00 Stk CHF-194.40",
+      "R-5002 Umwälzpumpe DN 25, ungeöffnet 1.00 Stk CHF-412.00",
+      "Total Rücknahmen CHF-606.40",
+      "Nettobetrag CHF 47'830.05",
+      "MWST 8.1 % CHF 3'874.23",
+      "Total CHF 51'704.28",
+      "Wir danken für Ihren Auftrag. Geliefert wird frei Baustelle, zahlbar innert 30 Tagen netto.",
+      "Seite 2 von 2"
+    ],
+    "places": [
+      [
+        56.69,
+        57.71
+      ],
+      [
+        60.69,
+        75.71
+      ],
+      [
+        60.69,
+        90.76
+      ],
+      [
+        60.69,
+        105.81
+      ],
+      [
+        60.69,
+        120.86
+      ],
+      [
+        60.69,
+        135.9
+      ],
+      [
+        60.69,
+        150.95
+      ],
+      [
+        60.69,
+        166
+      ],
+      [
+        60.69,
+        181.04
+      ],
+      [
+        122.69,
+        196.09
+      ],
+      [
+        122.69,
+        211.14
+      ],
+      [
+        56.69,
+        236.44
+      ],
+      [
+        60.69,
+        251.57
+      ],
+      [
+        60.69,
+        266.62
+      ],
+      [
+        60.69,
+        281.67
+      ],
+      [
+        60.69,
+        296.71
+      ],
+      [
+        60.69,
+        311.76
+      ],
+      [
+        60.69,
+        326.81
+      ],
+      [
+        60.69,
+        341.86
+      ],
+      [
+        60.69,
+        356.9
+      ],
+      [
+        56.69,
+        382.2
+      ],
+      [
+        60.69,
+        397.34
+      ],
+      [
+        60.69,
+        412.39
+      ],
+      [
+        60.69,
+        427.43
+      ],
+      [
+        122.69,
+        442.48
+      ],
+      [
+        417.71,
+        467.65
+      ],
+      [
+        420.88,
+        479.37
+      ],
+      [
+        443.36,
+        491.16
+      ],
+      [
+        56.69,
+        515.4
+      ],
+      [
+        274.87,
+        776.85
+      ]
+    ],
+    "drawings": []
+  },
+  {
+    "file": "starter-product-data-sheet.png",
+    "starter": "product-data-sheet",
+    "page": 1,
+    "scale": 1.25,
+    "sha256": "93835c61417cefdc2f75a88b2392f0aa5b3f5db169cd5c8a3546f2ea55fb6789",
+    "caption": "The product data sheet starter, a Produktdatenblatt under the firm's mark: its Technische Daten and its Ökobilanz, each value beside its label, the units' powers, CO₂'s index and the footnotes' marks set as runs above and below the line, as in 30 kg/m³, 1.11 W/(m²·K) and 2.9 kg CO₂-Äq. pro m²",
+    "lines": [
+      "Formancy Haustechnik AG · Industriestrasse 7 · 3052 Zollikofen · CHE-123.456.789 MWST",
+      "Produktdatenblatt",
+      "ThermoPlan FB 30",
+      "Art.-Nr. TP-FB30-1200",
+      "Dämmplatte aus expandiertem Polystyrol (EPS) für Fussbodenheizungen im Wohnbau.",
+      "Technische Daten",
+      "Dicke 30 mm",
+      "Rohdichte 30 kg/m3",
+      "Wärmeleitfähigkeit λ 0.033 W/(m·K)",
+      "Wärmedurchlasswiderstand R 0.90 m2·K/W",
+      "U-Wert der Platte1 1.11 W/(m2·K)",
+      "Druckspannung bei 10 % Stauchung 150 kPa",
+      "Brandverhalten nach EN 13501-1 E",
+      "Ökobilanz",
+      "Treibhauspotenzial GWP2 2.9 kg CO2-Äq. pro m2",
+      "1 U = 1/R, ohne Wärmeübergangswiderstände.",
+      "2 Herstellung, Module A1–A3 nach EN 15804.",
+      "Stand: 2. November 2026 · Technische Änderungen vorbehalten."
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        140.63
+      ],
+      [
+        56.69,
+        159
+      ],
+      [
+        56.69,
+        173.85
+      ],
+      [
+        56.69,
+        193.57
+      ],
+      [
+        56.69,
+        223.41
+      ],
+      [
+        56.69,
+        236.17
+      ],
+      [
+        56.69,
+        246.9
+      ],
+      [
+        56.69,
+        259.61
+      ],
+      [
+        56.69,
+        270.34
+      ],
+      [
+        56.69,
+        282.06
+      ],
+      [
+        56.69,
+        294.77
+      ],
+      [
+        56.69,
+        306.49
+      ],
+      [
+        56.69,
+        330.33
+      ],
+      [
+        56.69,
+        342.11
+      ],
+      [
+        56.69,
+        372.23
+      ],
+      [
+        56.69,
+        381.6
+      ],
+      [
+        183.92,
+        776.85
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      }
+    ]
   }
 ]

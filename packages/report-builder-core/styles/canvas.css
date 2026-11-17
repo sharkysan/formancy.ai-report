@@ -231,6 +231,23 @@
   }
 }
 
+/* A table's columns stand side by side under its own label, which sits at
+   the table's top end on its first line: a column's label, at its top
+   start on that line, printed over the table's wherever it was as wide as
+   the last column -- "Betrag (goods/amount)" where two tables end in
+   "Betrag" -- and axe could not tell the colour behind it (0064). It
+   stands on the line under the table's instead, one label's height down,
+   and a column too short to hold it there draws none. */
+[data-report-part='box'][data-kind='tableColumn'] > [data-report-part='box-label'] {
+  inset-block-start: 0.875rem;
+}
+
+@container (height < 1.75rem) {
+  [data-report-part='box'][data-kind='tableColumn'] > [data-report-part='box-label'] {
+    display: none;
+  }
+}
+
 :is([data-report-part='box'], [data-report-part='payment-part']) > [data-report-part='badge'] {
   position: absolute;
   inset-block-start: -0.5rem;

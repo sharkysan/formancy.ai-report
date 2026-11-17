@@ -323,6 +323,24 @@ What it does not see: a translated e-invoice's XML and PDF/A-3b, which
 no external judge of the e-invoice gate reads; and whether a translation
 says what the report's own words say, which review alone holds.
 
+**The starters that print what 0059 to 0063 added.** An order
+confirmation and a product data sheet, each held on the PDF it produced
+and walked wherever a starter is
+([0064](../decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)):
+
+| Where | What holds it |
+|---|---|
+| The order confirmation's three tables, each picking one kind of its lines, each kind arriving out of its table's order, its deliveries of unlike sizes kept with three lines, its letterhead in page 1's own header and its pages counted; the data sheet whole in four languages, each the sheet written in it alone, its nine runs off the line the same in each and no Unicode super- or subscript in it; both under the firm's mark, the order confirmation's in page 1's own header | `report-corpus/src/starters/order-confirmation.test.ts`, `product-data-sheet.test.ts`, `logo.test.ts`, `starters.test.ts`, and their size in `report-size.test.ts` |
+| On the PDF: each table's lines across the page break, totals recomputed in BigInt; the corpus's `verify` over both pages; the mark on page 1 alone and the running header from page 2; the third delivery's header on page 2 with its first three lines, and on page 1 with two of them when the count is taken out | `report-render-pdf/src/order-confirmation.test.ts` |
+| On the PDF, in each of four languages: each run off the line by `shiftedRuns`, every line of the page, its values as Intl writes them and the U-value recomputed in BigInt, no German word that differs, and the PDF equal by `inflatedDigest` to the sheet written in that language alone | `report-render-pdf/src/product-data-sheet.test.ts` |
+| A run set off the line read into its line by the corpus's rule, by the README's pictures' reader and in Chromium by the browser gate's | `report-corpus/src/lines.test.ts` (`offLine`); the pictures' lines in `report-render-pdf/src/pictures.test.ts`; `apps/studio/scripts/gate-page.mjs`'s `drawnPages`, its pictured pages held to `docs/images/pictures.json` |
+| Both builders over both, a language the report does not declare added; the journey; the preview pipeline; the picker; a table column's label in the design view on the line under its table's, and axe's contrast of every label decided | `apps/studio/src/parity.test.tsx`, `journey.test.tsx`, `src/preview/pipeline.test.ts`, `src/starters/starters.test.ts`, `report-builder-core/src/css.test.ts`; in Chromium, the browser gate |
+| veraPDF and Mustang on both as PDF/A-3b variants, veraPDF on both as PDF/A-2b | The e-invoice gate, `scripts/e-invoice/pdf-corpus.mjs` and its recorded run |
+
+What it does not see: whether the board's values are a board's, and
+whether its French, Italian and English say what its German says, which
+review alone holds.
+
 **What it does not see.** A rule or a border through a row, a shape over a
 line, a clipped glyph, white text on white: none is text or an image to
 PDF.js, and the paths it reads are an SVG drawing's and a chart's alone. A

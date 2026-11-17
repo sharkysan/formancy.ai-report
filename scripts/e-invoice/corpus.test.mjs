@@ -23,7 +23,17 @@ const SAMPLES = ['e-invoice', 'e-invoice-reverse-charge', 'e-invoice-exempt-paid
 const KINDS_OF = { kindOf: (sample) => run.kinds[sample.id].kind, guidelineOf: (sample) => run.kinds[sample.id].guideline }
 const entries = corpus({ samples: SAMPLES, xmlOf: (sample) => recorded(`${sample.id}.xml`), ...KINDS_OF })
 /** report-corpus's starters, by id, and whether each is an e-invoice, as the gate hands them to the PDF/A-2b plan. */
-const STARTERS = ['service-inspection', 'quotation', 'grouped-equipment', 'invoice', 'euro-invoice', 'e-invoice', 'site-visit'].map((id) => ({
+const STARTERS = [
+  'service-inspection',
+  'quotation',
+  'grouped-equipment',
+  'invoice',
+  'euro-invoice',
+  'e-invoice',
+  'site-visit',
+  'order-confirmation',
+  'product-data-sheet',
+].map((id) => ({
   id,
   eInvoice: id === 'e-invoice',
 }))

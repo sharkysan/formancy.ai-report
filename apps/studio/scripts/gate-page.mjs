@@ -15,7 +15,8 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { drawingsOn, readPdf } from '@formancy/report-corpus'
+import { drawingsOn, JOIN_GAP, readPdf } from '@formancy/report-corpus'
+import { SHIFTED_SIZE } from '@formancy/report-runtime'
 
 export const app = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -290,53 +291,92 @@ export function cutControls(page) {
  * a reader sees, rebuilt as report-render-pdf's `pageLines` rebuilds them
  * from PDF.js's runs -- runs on one baseline make one line, read left to
  * right, and lines are read top to bottom -- here from each run's box on
- * screen.
+ * screen. A run set below or above the line (0061) is read into the line of
+ * the run beside it, as `pageLines` reads it by report-corpus's `offLine`
+ * (0064): a run `SHIFTED_SIZE` of that run's size, within `JOIN_GAP` of
+ * it, its box over that run's, the nearest such run if there are two; and
+ * a run beside one read so, a charge after its count, against the run on
+ * the line that one was. The text layer sets every run's line at its size
+ * (`line-height: 1`), so a box's height is its run's size, and the two
+ * readers read one rule; the run's move off the line is not read here, as
+ * a box's bottom is its face's descent below its baseline, which the page
+ * does not say. Where they disagree, a pictured page's lines fail below.
  */
 export async function drawnPages(page, { within }) {
   const read = () =>
-    page.evaluate(() =>
-      [...document.querySelectorAll('.paper-page')].map((sheet) => {
-        const canvas = sheet.querySelector('canvas')
-        let white = 0
-        let ink = 0
-        let sampled = 0
-        if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
-          const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height)
-          for (let index = 0; index < data.length; index += 32) {
-            sampled += 1
-            const sum = data[index] + data[index + 1] + data[index + 2]
-            if (data[index + 3] === 255 && sum >= 750) white += 1
-            else if (data[index + 3] > 0 && sum < 600) ink += 1
+    page.evaluate(
+      ({ shiftedSize, joinGap }) =>
+        [...document.querySelectorAll('.paper-page')].map((sheet) => {
+          const canvas = sheet.querySelector('canvas')
+          let white = 0
+          let ink = 0
+          let sampled = 0
+          if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
+            const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height)
+            for (let index = 0; index < data.length; index += 32) {
+              sampled += 1
+              const sum = data[index] + data[index + 1] + data[index + 2]
+              if (data[index + 3] === 255 && sum >= 750) white += 1
+              else if (data[index + 3] > 0 && sum < 600) ink += 1
+            }
           }
-        }
-        const runs = [...sheet.querySelectorAll('.paper-text span')]
-          .filter((span) => span.children.length === 0 && (span.textContent ?? '').trim() !== '')
-          .map((span) => {
-            const box = span.getBoundingClientRect()
-            return { text: span.textContent ?? '', x: box.left, right: box.right, bottom: box.bottom, height: box.height }
-          })
-          .sort((a, b) => a.bottom - b.bottom || a.x - b.x)
-        const lines = []
-        for (const run of runs) {
-          const current = lines.at(-1)
-          if (current !== undefined && Math.abs(run.bottom - current[0].bottom) < 0.3 * Math.min(run.height, current[0].height)) current.push(run)
-          else lines.push([run])
-        }
-        return {
-          number: Number(sheet.dataset.page),
-          white: sampled === 0 ? 0 : white / sampled,
-          ink: sampled === 0 ? 0 : ink / sampled,
-          lines: lines.map((line) => {
-            line.sort((a, b) => a.x - b.x)
-            let joined = ''
-            line.forEach((run, index) => {
-              const before = line[index - 1]
-              joined += (before !== undefined && run.x - before.right > 0.15 * Math.min(run.height, before.height) ? ' ' : '') + run.text
+          const runs = [...sheet.querySelectorAll('.paper-text span')]
+            .filter((span) => span.children.length === 0 && (span.textContent ?? '').trim() !== '')
+            .map((span) => {
+              const box = span.getBoundingClientRect()
+              return { text: span.textContent ?? '', x: box.left, right: box.right, top: box.top, bottom: box.bottom, height: box.height }
             })
-            return joined.replace(/\s+/g, ' ').trim()
-          }),
-        }
-      }),
+            .sort((a, b) => a.bottom - b.bottom || a.x - b.x)
+          // `run` as set below or above the line of `beside`, standing within joinGap of `neighbour` -- `beside`, or a run already read against it -- or undefined.
+          const gapOf = (run, neighbour, beside) => {
+            if (Math.abs(run.height - shiftedSize * beside.height) > 0.005 * beside.height || run.top >= beside.bottom || beside.top >= run.bottom)
+              return undefined
+            const gap = Math.abs(Math.max(run.x - neighbour.right, neighbour.x - run.right))
+            return gap > joinGap * beside.height ? undefined : gap
+          }
+          const found = new Map()
+          for (const run of runs) {
+            for (const beside of runs) {
+              const gap = beside === run ? undefined : gapOf(run, beside, beside)
+              if (gap !== undefined && (!found.has(run) || gap < found.get(run).gap)) found.set(run, { beside, gap })
+            }
+          }
+          const offLine = new Map([...found].filter(([, { beside }]) => !found.has(beside)).map(([run, { beside }]) => [run, beside]))
+          for (let added = true; added;) {
+            added = false
+            for (const run of runs) {
+              if (offLine.has(run)) continue
+              const into = [...offLine].find(([neighbour, beside]) => gapOf(run, neighbour, beside) !== undefined)
+              if (into === undefined) continue
+              offLine.set(run, into[1])
+              added = true
+            }
+          }
+          const lines = []
+          const lineOf = new Map()
+          for (const run of runs.filter((each) => !offLine.has(each))) {
+            const current = lines.at(-1)
+            if (current !== undefined && Math.abs(run.bottom - current[0].bottom) < 0.3 * Math.min(run.height, current[0].height)) current.push(run)
+            else lines.push([run])
+            lineOf.set(run, lines.at(-1))
+          }
+          for (const [run, beside] of offLine) lineOf.get(beside).push(run)
+          return {
+            number: Number(sheet.dataset.page),
+            white: sampled === 0 ? 0 : white / sampled,
+            ink: sampled === 0 ? 0 : ink / sampled,
+            lines: lines.map((line) => {
+              line.sort((a, b) => a.x - b.x)
+              let joined = ''
+              line.forEach((run, index) => {
+                const before = line[index - 1]
+                joined += (before !== undefined && run.x - before.right > 0.15 * Math.min(run.height, before.height) ? ' ' : '') + run.text
+              })
+              return joined.replace(/\s+/g, ' ').trim()
+            }),
+          }
+        }),
+      { shiftedSize: SHIFTED_SIZE, joinGap: JOIN_GAP },
     )
   // PDF.js streams a page's text into its layer in pieces, and draws its
   // canvas in steps: two reads alike, 200 ms apart, with text and ink on

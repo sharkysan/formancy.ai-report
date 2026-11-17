@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { lineHas, pageLines } from './lines.js'
+import { lineHas, offLine, pageLines } from './lines.js'
 import type { PdfPage, PdfTextItem } from './read-pdf.js'
 
 /** A run as the reader reports it: a box one font size tall, its bottom a fifth of that below the baseline. */
@@ -128,6 +128,26 @@ describe('pageLines, of a run set below or above the line (0061)', () => {
     const lines = pageLines(page(run('Measured value', 50, 100, 10, 70), run('as read on site', 50, 110, 5.8, 40)))
     expect(lines.map((line) => line.text)).toEqual(['Measured value', 'as read on site'])
     expect(lines.flatMap((line) => line.shifted)).toEqual([])
+  })
+})
+
+describe('offLine', () => {
+  // A reader of lines of its own -- the renderer's tests' copy, which the
+  // README's pictures are read with -- reads a run set off the line into
+  // the line this reader does by asking for these runs, so that the rule
+  // is stated once. Each is given with the run on the line it is read
+  // against, a charge's raised run against the letter its lowered count
+  // was; a run read as a line of its own is not among them.
+  test('gives each run pageLines reads into another run’s line, with that run', () => {
+    const letter = run('The ion is SO', 50, 100, 9, 60)
+    const count = run('4', 110, 100 + 1.827, 5.22, 2.94)
+    const charge = run('2−', 112.94, 100 - 3.915, 5.22, 6.03)
+    const apart = run('2', 300, 102.03, 5.8, 3.26)
+    const found = offLine(page(letter, count, charge, run('Next line', 50, 111.7, 9, 40), apart))
+    expect([...found].map(([item, beside]) => [item.text, beside.text])).toEqual([
+      ['4', 'The ion is SO'],
+      ['2−', 'The ion is SO'],
+    ])
   })
 })
 

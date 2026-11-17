@@ -10,6 +10,61 @@ later.
 
 ## Unreleased
 
+**Two starters print what the report format gained since 0.2.0: an order
+confirmation and a product data sheet**
+([0064](docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)).
+A group header kept with its first rows, a first page's own header, a run
+set off the line, several tables over the detail rows and a report's words
+in several languages were each held by fixtures and by the renderer's
+tests, and none by a report a person opens: the Studio's starters printed
+none of them, and veraPDF and Mustang had judged no PDF whose page 1
+prints its own header. Both are letters of the corpus's one invented
+firm, under its mark; every existing starter is unchanged, and the
+e-invoice gate, recorded again, holds every PDF it drew before at the
+digest it had.
+- **The order confirmation**, `ORDER_CONFIRMATION`, in Swiss German: one
+  list of order lines printed as three tables, the goods, the services
+  and the returns, each picking its lines by their `kind` with `rowsWhen`
+  and totalling its own, and the order's net, VAT and total over every
+  line under them; the goods grouped by delivery, each delivery's header
+  kept with its first three lines, the third meeting page 1's foot and
+  starting page 2 with them; and the firm's letterhead in page 1's own
+  header, with a running header that names the order from page 2 on.
+- **The product data sheet**, `PRODUCT_DATA_SHEET`, for an invented
+  insulation board: the cube of kg/m³, the squares of m², CO₂'s index and
+  two footnotes' marks set as runs below and above the line, never as
+  Unicode's small digits; written in Swiss German with its words in
+  French, Italian and English, so the Studio's language switch shows on a
+  starter and each language prints whole, its values as each locale
+  writes them. Its board, values and class are invented, and no native
+  speaker has reviewed its translations.
+- **The Studio offers both**, "Order confirmation" and "Product data
+  sheet"; the README pictures a page of each; both builders are compared
+  over both in every walk, which now adds a language a report is not
+  written in rather than French to each; and the e-invoice gate draws
+  both as PDF/A-3b variants and as PDF/A-2b.
+- **A run set off the line is read into its line everywhere a page is
+  read.** report-corpus exports `offLine`, the rule its line reader joins
+  such a run to the run beside it by; the renderer's tests' line reader,
+  which the README's pictures are taken with, reads with it, and the
+  Studio's browser gate reads the Preview's text layer so, by the same
+  sizes. Read as they were, the geometry says the two would read the data
+  sheet's lowered digit two ways, a hair inside and outside a line.
+- **report-builder-core: a table column's label stands on the line under
+  its table's in the design view**, and a column shorter than two labels
+  shows none. The order confirmation found the two printing over each
+  other: a table's own label sits at its top end on its first line, and
+  the last column's label, as wide as the column where two tables end in
+  one header and the builders label each by its id, "Betrag
+  (goods/amount)", covered it there, and the browser gate's axe could not
+  tell the colour behind it. Every table a person duplicates could meet
+  it. The stylesheet alone changes, through no new variable.
+- **Found, not fixed: a heading kept with a table that runs past its
+  page moves, with the whole table, to the next page**, leaving its own
+  page without either; the order confirmation's goods heading is not kept
+  with its table for that reason, and the renderer is left as it is for a
+  change of its own.
+
 **A report may hold several tables over its detail rows, each printing,
 ordering, grouping and totalling the rows its own condition selects**
 ([0062](docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
