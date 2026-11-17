@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // No Node and no browser: a host writes a Word file on a server or in a
+    // page. No @types/node and no DOM, so a `node:` import, a `TextEncoder`
+    // or a `CompressionStream` in src is a compile error rather than a
+    // review finding.
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  // The suite reads the file back with the corpus, in Node, and is checked by tsconfig.test.json.
+  "exclude": ["src/**/*.test.ts", "src/testing/**"]
+}

@@ -1,0 +1,152 @@
+import type { Part, Relationship } from './package.js'
+
+/**
+ * A Word file as `readDocx` reads it back (0068): what the file states,
+ * in the corpus's own terms and in points, so that a check compares it
+ * with a resolved document without knowing how its writer rounds. Nothing
+ * here is laid out: where a line and a page break is Word's, and no
+ * reader in the repository says.
+ */
+
+/** What a run, or a paragraph's mark, is set in, as its own properties state it: nothing is inherited from a style, since the file has none. */
+export interface DocxRunProps {
+  /** The one family its four font slots name; absent where it names none. */
+  readonly family?: string
+  readonly bold: boolean
+  readonly italic: boolean
+  /** Lower-case `#rrggbb`. */
+  readonly color?: string
+  /** Points. */
+  readonly size?: number
+  readonly shift?: 'subscript' | 'superscript'
+}
+
+/** An inline picture: its extent on the page, the part it embeds and, for an SVG, the drawing beside its fallback. */
+export interface DocxPicture {
+  readonly id: number
+  readonly name: string
+  /** Points. */
+  readonly width: number
+  readonly height: number
+  /** The part the picture embeds: the asset's bytes, or, beside `svg`, the fallback a reader that draws no SVG shows. */
+  readonly part: Part
+  /** The SVG part of an `asvg:svgBlip`. */
+  readonly svg?: Part
+  /** What is cut from each side, as a fraction of the picture's width or height; absent where nothing is. */
+  readonly crop?: { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number }
+}
+
+export type DocxRun =
+  /** Text, a line break in it a line feed. */
+  | { readonly kind: 'text'; readonly text: string; readonly props: DocxRunProps }
+  /** A field Word works out, written without a result. */
+  | { readonly kind: 'field'; readonly field: 'PAGE' | 'NUMPAGES'; readonly props: DocxRunProps }
+  | { readonly kind: 'picture'; readonly picture: DocxPicture; readonly props: DocxRunProps }
+
+/** A single line of a border: its weight in points and its colour, lower-case `#rrggbb`. */
+export interface DocxBorder {
+  readonly weight: number
+  readonly color: string
+}
+
+export interface DocxParagraph {
+  readonly kind: 'paragraph'
+  readonly runs: readonly DocxRun[]
+  readonly align?: 'left' | 'center' | 'right'
+  readonly keepNext: boolean
+  readonly keepLines: boolean
+  readonly pageBreakBefore: boolean
+  /** Points of space before and after it; nothing where it states none. */
+  readonly before: number
+  readonly after: number
+  /** Its line's height where it states one: exactly so many points, or, by Word's own rule, so many lines. */
+  readonly line?: { readonly height: number; readonly rule: 'exact' | 'auto' }
+  /** Points from the left. */
+  readonly indent: number
+  /** The border under it, and the one between it and a paragraph of the same borders. */
+  readonly bottom?: DocxBorder
+  readonly between?: DocxBorder
+  /** The paragraph mark's own properties, which size an empty paragraph's line. */
+  readonly mark: DocxRunProps
+}
+
+export interface Sides<T> {
+  readonly top?: T
+  readonly left?: T
+  readonly bottom?: T
+  readonly right?: T
+}
+
+export interface DocxCell {
+  /** Points. */
+  readonly width: number
+  /** How many grid columns it spans. */
+  readonly span: number
+  readonly borders: Sides<DocxBorder>
+  /** Its fill, lower-case `#rrggbb`. */
+  readonly shade?: string
+  readonly blocks: readonly DocxBlock[]
+}
+
+export interface DocxRow {
+  /** Marked as the row to repeat at the top of every page the table reaches. */
+  readonly header: boolean
+  readonly cantSplit: boolean
+  /** Points, and whether exactly so. */
+  readonly height?: { readonly value: number; readonly rule: 'exact' | 'atLeast' }
+  readonly cells: readonly DocxCell[]
+}
+
+export interface DocxTable {
+  readonly kind: 'table'
+  /** Points. */
+  readonly width: number
+  readonly grid: readonly number[]
+  readonly borders: Sides<DocxBorder> & { readonly insideH?: DocxBorder; readonly insideV?: DocxBorder }
+  /** Every cell's margins in points; absent where the table states none, and Word's own apply. */
+  readonly margins?: Sides<number>
+  readonly rows: readonly DocxRow[]
+}
+
+export type DocxBlock = DocxParagraph | DocxTable
+
+/** A header's or a footer's part and what it holds. */
+export interface DocxRegion {
+  readonly part: string
+  readonly blocks: readonly DocxBlock[]
+}
+
+export interface DocxPage {
+  /** Points. */
+  readonly width: number
+  readonly height: number
+  readonly orientation: 'portrait' | 'landscape'
+  readonly margins: { readonly top: number; readonly right: number; readonly bottom: number; readonly left: number }
+  /** From the paper's edge to the header's top and the footer's foot. */
+  readonly header: number
+  readonly footer: number
+  /** Whether page 1 has a header and a footer of its own. */
+  readonly titlePage: boolean
+}
+
+export interface Docx {
+  readonly page: DocxPage
+  readonly body: readonly DocxBlock[]
+  /** The header and footer every page prints, and page 1's own where the section references them. */
+  readonly header?: DocxRegion
+  readonly firstHeader?: DocxRegion
+  readonly footer?: DocxRegion
+  readonly firstFooter?: DocxRegion
+  /** The font table: each family, the kind a reader without it chooses another by, and its pitch. */
+  readonly fonts: readonly { readonly name: string; readonly family: string; readonly pitch: string }[]
+  /** What the styles part makes the default of every run and paragraph. */
+  readonly defaults: { readonly run: DocxRunProps; readonly before: number; readonly after: number; readonly line?: DocxParagraph['line'] }
+  /** The compatibility mode the settings state. */
+  readonly compatibilityMode?: string
+  readonly title?: string
+  /** The creation date as the core properties write it. */
+  readonly created?: string
+  /** Every part of the package by its name, and each part's relationships. */
+  readonly parts: ReadonlyMap<string, Part>
+  readonly relationships: (source: string) => readonly Relationship[]
+}

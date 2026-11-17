@@ -454,6 +454,26 @@ describe('imageHeader reads', () => {
     expect(imageHeader(jpegOf({ width: 16, height: 8, exif: exifSegment(orientation) }))).toMatchObject({ ok: true, ...size })
   })
 
+  // A writer that embeds a JPEG's bytes as they are, a Word file's, has to
+  // know that a reader may turn or mirror it (0068): 2 to 8 are said, each
+  // as PDFKit reads it, and an upright picture says nothing, so that no
+  // header read before this changed. Left out, a turned photograph would be
+  // written as one that is not.
+  test.each([2, 3, 4, 5, 6, 7, 8] as const)('a JPEG of Exif orientation %i as turned so', (orientation) => {
+    expect(imageHeader(jpegOf({ width: 16, height: 8, exif: exifSegment(orientation) }))).toMatchObject({ ok: true, orientation })
+  })
+
+  // Upright, out of range or without a block, a JPEG states no orientation: the key is absent, never 1 and never undefined.
+  test.each([
+    ['of orientation 1', exifSegment(1)],
+    ['of an orientation out of range', exifSegment(9)],
+    ['without an Exif block', undefined],
+  ])('a JPEG %s as upright, with no orientation', (_name, exif) => {
+    const read = imageHeader(jpegOf({ width: 16, height: 8, ...(exif === undefined ? {} : { exif }) }))
+    expect(read).toMatchObject({ ok: true, width: 16, height: 8 })
+    expect(Object.hasOwn(read, 'orientation')).toBe(false)
+  })
+
   test('a JPEG by its first Exif block alone', () => {
     expect(imageHeader(jpegOf({ width: 16, height: 8, exif: [...exifSegment(1), ...exifSegment(6)] }))).toMatchObject({ ok: true, width: 16, height: 8 })
   })

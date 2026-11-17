@@ -1,4 +1,24 @@
 export { verify, verifyRefusal } from './checks.js'
+export { verifyDocx, wordRefusal } from './check-docx.js'
+export { readDocx } from './docx/read.js'
+export type {
+  Docx,
+  DocxBlock,
+  DocxBorder,
+  DocxCell,
+  DocxPage,
+  DocxParagraph,
+  DocxPicture,
+  DocxRegion,
+  DocxRow,
+  DocxRun,
+  DocxRunProps,
+  DocxTable,
+} from './docx/model.js'
+export { readPackage } from './docx/package.js'
+export type { OpcPackage, Part, Relationship } from './docx/package.js'
+export { readZip, ZIP_EPOCH } from './docx/zip.js'
+export type { ZipEntry } from './docx/zip.js'
 export { AXIS_PAINT, GRID_PAINT } from './check-chart-marks.js'
 export { SHARE_UNIT } from './check-chart-pie.js'
 export { LABEL_DISTANCE } from './check-chart-labels.js'
@@ -58,7 +78,11 @@ export {
 export type { StoredSubmission } from './forms/site-visit.js'
 export { ALL_FIXTURES } from './fixtures/all.js'
 export { KEEP_WITH_FIXTURES } from './fixtures/group-keep-with.js'
-export { IMAGE_KINDS } from './image-kinds.js'
+export { MALFORMED } from './fixtures/malformed.js'
+export type { Malformed } from './fixtures/malformed.js'
+export { IMAGE_KINDS, UNSEEN_JPEGS } from './image-kinds.js'
+/** A PNG made in code, and one made of given chunks: what a test of another engine builds its own pictures with. */
+export { encodePng, pngOf } from './fixtures/png.js'
 export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from './fixtures/svg.js'
 export { CHART_FIXTURES } from './fixtures/charts.js'
 export { FIRST_PAGE_FIXTURES } from './fixtures/first-page-header.js'
