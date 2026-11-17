@@ -3024,7 +3024,7 @@
       ]
     },
     "0065": {
-      "reviewed": "sha256:6ac56653fe2a23851b68c5018b62340a7eff9dcb10b507a119b74d2ad64660d2",
+      "reviewed": "sha256:7ef9c8f3ae1fd7f469b394238b27567074fb6a6615bbb40ace433f7201493345",
       "limitations": [
         {
           "area": "builders",
@@ -3047,8 +3047,14 @@
           "heldBy": "apps/studio/src/starters/starters.test.ts"
         },
         {
+          "area": "builders",
+          "says": "While the Studio renders an edit, its Download PDF and Download XML still give the render on the paper, the one from before the edit, and for an XRechnung that XML is the invoice itself.",
+          "heldBy": "apps/studio/src/preview/pdf-view.test.tsx"
+        },
+        {
           "area": "testing",
-          "says": "The e-invoice gate draws the XRechnung starter’s page as a PDF/A-3b that prints an XRechnung’s copy label and embeds another sample’s Factur-X invoice: it judges the page, never an invoice a host would send."
+          "says": "The e-invoice gate draws no PDF/A-3b variant of the XRechnung starter, whose PDF is a copy and no PDF/A, so no PDF/A validator reads the line its head prints the Leitweg-ID on.",
+          "heldBy": "scripts/e-invoice/pdf-corpus.test.mjs"
         }
       ]
     }

@@ -33,36 +33,46 @@
     the starter's id with `.xml`, as `application/xml` in UTF-8, to the XML
     of the render on the paper until PDF.js has drawn a newer one, and to
     none where the render wrote none. `src/journey.test.tsx` holds, at
-    every state of every starter in both builders, Download XML to the XML
-    of the render shown, offered on a final render of an e-invoice and on
-    no other. `src/parity.test.tsx` walks the XRechnung's e-invoice in both
-    builders in three languages, as it walks every starter's.
+    every preview and final render it walks, Download XML to the XML of
+    the render shown, offered on a final render of an e-invoice and on no
+    other; it walks each starter's final render in one builder, the two
+    taking turns from starter to starter. `src/parity.test.tsx` walks the
+    XRechnung's e-invoice in both builders in three languages, as it
+    walks every starter's.
   - **The browser gate.** `apps/studio/scripts/gate-e-invoice.mjs`'s
     `downloadXmlChecks`, at each e-invoice starter's final render in the
-    journey, in each builder at every pass: Download XML downloaded as a
-    person downloads it and saved as the starter's `.xml`, Tab from
-    Download PDF onto it, the Factur-X's the very bytes its Download PDF
-    embeds, found by pdf-lib, the XRechnung's beside a copy that embeds
-    nothing, read by namespace, its guideline its kind's and its total the
-    page's, read by PDF.js. `gate-download.mjs` reads a link by its own
-    name and says what the browser saved it as, which
-    `gate-download.test.mjs` holds. The journey holds the XRechnung's
-    final render to its picture, as every pictured starter's. On 17
-    November 2026, on Windows 11 in Chromium as `scripts/browsers.mjs`
-    launches it, the gate ran six of its twelve passes whole and part of
-    the seventh, the laptop's, before the system stopped it for want of
-    memory: 4,424 checks, none failed, among them 26 final renders of the
-    two e-invoices read as above and the parity walk of the XRechnung in
-    both builders. No whole run of it has passed on this change yet.
-  - **The e-invoice gate.** `scripts/e-invoice/pdf-corpus.mjs` draws
-    `variant-e-invoice-xrechnung.pdf`, the XRechnung starter's page with
-    the first sample's e-invoice, which `variantProblems` asks of every
-    starter; the judges' tests, `scripts/e-invoice/mustang.test.mjs` and
-    `verapdf.test.mjs`, read it accepted in the recorded run. Recorded with
-    `--record` on 17 November 2026 on Zulu 25.0.4.1, every PDF it drew
-    before at the digest it had: 178.7 s in all, Mustang 151.8 s, as its
-    `test-results/e-invoice.json` gave them, on one Windows 11
-    workstation with nothing else running.
+    journey, in each builder, at every pass that walks the journey, eight
+    of its twelve: Download XML downloaded as a person downloads it and
+    saved as the starter's `.xml`, Tab from Download PDF onto it, the
+    Factur-X's the very bytes its Download PDF embeds, found by pdf-lib,
+    the XRechnung's beside a copy that embeds nothing, read by namespace,
+    its guideline its kind's and its total the page's, read by PDF.js.
+    `gate-download.mjs` reads a link by its own name and says what the
+    browser saved it as, which `gate-download.test.mjs` holds. The journey
+    holds the XRechnung's final render to its picture, as every pictured
+    starter's, and `browser-test.mjs` measures that state, Download XML on
+    screen, as it measures every other: no sideways scroll, nothing past
+    either edge, no control of the Preview cut off, and axe's rules,
+    contrast and target size among them. On 17 November 2026, on Windows
+    11 in Chromium as `scripts/browsers.mjs` launches it, the gate ran
+    twice, and the system stopped it both times for want of memory:
+    before the final render was measured, six of its twelve passes whole
+    and part of the seventh, 4,424 checks; then, with it, five passes whole
+    and part of the sixth, 3,922 checks, among them 21 final renders of the
+    two e-invoices measured with Download XML on screen and the
+    XRechnung's parity walk in both builders. No check failed in either
+    run; no whole run of the gate has passed on this change yet.
+  - **The e-invoice gate.** `scripts/e-invoice/pdf-corpus.mjs`'s
+    `variantProblems` asks a PDF/A-3b variant of every starter whose kind
+    of e-invoice the gate draws as one, read from `KINDS` in
+    `scripts/e-invoice/corpus.mjs` -- none, or a Factur-X invoice -- and
+    refuses one of a starter of a kind drawn as none, the XRechnung, and a
+    kind it does not know, which `scripts/e-invoice/pdf-corpus.test.mjs`
+    holds; `scripts/e-invoice.mjs` hands it each starter's kind. Recorded
+    with `--record` on 17 November 2026 on Zulu 25.0.4.1, every PDF it
+    drew before at the digest it had, as `main`'s recording holds them:
+    206.7 s in all, Mustang 174.8 s, as its `test-results/e-invoice.json`
+    gave them, on one Windows 11 workstation with nothing else running.
   - **Seen failing, on 17 November 2026**, each before the code it holds:
     - the corpus's `starters.test.ts` with nine ids and `xrechnung.test.ts`
       with the sample no starter, before `STARTERS` held it; then
@@ -77,7 +87,17 @@
       Download XML renamed in the viewer, at the e-invoice's final render:
       "expected undefined to be 'e-invoice.xml'";
     - the e-invoice gate's judges' tests, 21 cases, before the
-      recording.
+      recording;
+    - `pdf-corpus.test.mjs`'s two cases of the variants, before
+      `variantProblems` read the starters' kinds: the starters as `{ id,
+      kind }` read as ids, every one without a variant;
+    - the browser gate's measurement of the final render, with Download
+      XML's text the colour of its ground, in a run stopped once it had
+      measured the first: "the contrast of every text in view decided"
+      failed at the Factur-X's final render in React at 320 pixels, the
+      link undecided (`equalRatio`). The link forced 1,200 pixels wide
+      passed there, in a Preview pane that scrolls to its tools, which
+      the gate counts as within reach.
 
 ## Context
 
@@ -94,7 +114,7 @@ render is a PDF/A-3b, but not the invoice it carries: the XML is a file
 embedded in the PDF, which the Studio did not offer, and which a person
 reads only with a PDF tool that lists attachments. The XRechnung, the kind
 whose XML is the invoice and whose PDF is a copy, was not in the Studio at
-all. What makes an e-invoice worth having -- one invoice's terms, written
+all. What makes an e-invoice worth having -- an invoice's terms, written
 once, giving the XML a buyer's system reads and the page a person reads,
 the XML judged by the tools a receiver runs -- was nowhere a person could
 look at it.
@@ -152,11 +172,14 @@ final render's XML beside its PDF, Download XML.**
   the recording, and the gate's run against what it judged -- and that
   once edited, nothing has judged it.
 - **The walks.** Every walk over the starters walks the XRechnung: the
-  corpus's, the README's pictures, the Studio's suites, the browser gate
-  at every pass in both builders, whose journey reads every e-invoice's
-  Download XML, and the e-invoice gate, which draws its page as
-  `variant-e-invoice-xrechnung.pdf` with the first sample's e-invoice, as
-  `variantProblems` asks of every starter.
+  corpus's, the README's pictures, the Studio's suites, and the browser
+  gate in both builders at every pass that walks the journey, which reads
+  every e-invoice's Download XML and measures its final render. The
+  e-invoice gate draws no PDF/A-3b variant of it: which starters a
+  variant draws is read from each one's kind of e-invoice, as the gate
+  reads what it draws of a sample (`KINDS`), and an XRechnung's PDF is a
+  copy that is no PDF/A (0038). Its XML is judged as the sample's, as
+  before.
 
 ## Consequences
 
@@ -168,16 +191,17 @@ final render's XML beside its PDF, Download XML.**
 - **The XML a person can open**, without a tool that lists a PDF's
   attachments, held in Node and in Chromium to being the bytes the PDF
   embeds, and, as each starter opens, the file the gate judged.
-- **The copy judged as a page.** veraPDF and Mustang judge the
-  XRechnung's page, its Leitweg-ID line and copy label among it, as a
-  PDF/A-3b variant.
 
 **What it costs.**
 - **A tenth starter in every walk.** The parity walk in three languages,
-  the journey, the preview pipeline, the browser gate's passes in both
-  builders and the e-invoice gate each walk one starter more; the gate
-  draws one variant more, judged by veraPDF and Mustang. Not measured
+  the journey, the preview pipeline and the browser gate's passes in both
+  builders each walk one starter more, and the browser gate measures two
+  final renders more at every pass that walks the journey. Not measured
   apart from the rest of the run.
+- **The XRechnung's page is judged by no PDF/A validator.** Its PDF is a
+  copy, no PDF/A, and the gate draws no variant of it: the Leitweg-ID line
+  in its head is a line no veraPDF run reads, where every other starter's
+  page is, as a variant.
 - **"E-invoice" is now "E-invoice (Factur-X)".** A person or a page that
   called the starter by its old name -- the README's Studio pictures,
   whose bar holds the picker's options, among them -- reads another; the
@@ -188,6 +212,11 @@ final render's XML beside its PDF, Download XML.**
 - **An edited XML judged by nobody.** Once a person edits a starter, its
   XML is the runtime's of that edit, which no validator has seen; the
   README says so, and the Studio says nothing either way.
+- **A download behind an edit.** While a render is pending after an edit,
+  both downloads still give the render on the paper, the one from before
+  the edit, as Download PDF always has; for an XRechnung that older XML is
+  the invoice itself, and the paper's busy state is all that says a newer
+  one is on its way.
 - **One template, two invoices.** The pair bills two buyers for two jobs,
   so the XMLs differ in more than their kind: a person comparing them
   sees the buyer, the lines and the totals differ too, and the XRechnung's
@@ -198,29 +227,23 @@ final render's XML beside its PDF, Download XML.**
 - **The download's name is the starter's.** The Factur-X's XML downloads
   as `e-invoice.xml`, not as `factur-x.xml`, the name its PDF embeds it
   under, so that the two files of one render are named alike.
-- **A variant no host draws.** The gate's variant is the XRechnung's page,
-  copy label and all, drawn as a PDF/A-3b that embeds another sample's
-  Factur-X invoice: a PDF that says it is a copy of an XRechnung and
-  carries a Factur-X invoice. It judges the page, as every variant does,
-  and no invoice.
 - **The bar's English names the kinds.** "Factur-X" and "XRechnung" are
   the builder's English words, as the bar is English whatever language
   the builder speaks.
 
 **What it forecloses.** Nothing that cannot be undone: the XRechnung can
-leave `STARTERS`, its picture and its variant with it, and Download XML
-is one link.
+leave `STARTERS`, its picture with it, and Download XML is one link.
 
 ## Alternatives considered
 
 **An XRechnung of the e-invoice's own data**, the restaurant's invoice in
-both kinds. An XRechnung needs a buyer's reference and the buyer's
-electronic address (BR-DE-15, PEPPOL-EN16931-R010), which the restaurant's
-data does not hold: it would be a new sample of new data, whose XML no
-tool has judged, a second XRechnung beside the one KoSIT's scenario
-judges, and a twelfth report in the corpus to keep within `limits.ts`'
-bounds. The sample is the e-invoice's template made an XRechnung, apart
-in nothing else, which `xrechnung.test.ts` holds; that is the pair.
+both kinds. The owner chose two buyers: one template shown in both kinds,
+each billing its own buyer, which the sample already is, the e-invoice's
+template made an XRechnung and apart in nothing else, as
+`xrechnung.test.ts` holds. One invoice in both kinds would be a second
+XRechnung sample beside it, one file more for the gate to keep judged in
+KoSIT's XRechnung scenario and with Mustang, and one report more for the
+corpus to keep within `limits.ts`' bounds.
 
 **The XML read out of the PDF in the page**, with PDF.js's attachments. A
 second reader in the browser, of a file the page already holds as text,
@@ -246,7 +269,11 @@ starter and its variant.
 a starter as it opens and false after its first edit, and the Studio
 cannot tell a person which they hold.
 
-**No variant for the XRechnung.** Its own render is never a PDF/A, so
-`variantProblems` could leave it out; a rule with an exception is a rule
-nobody can read off the list, and a variant judges the page, which the
-XRechnung's is, for one run of each tool more.
+**A variant of the XRechnung's page**, as every other starter's: its page
+drawn as a PDF/A-3b with the first sample's Factur-X invoice. It would be
+a PDF that says on every page it is the copy of an XRechnung and is a
+Factur-X invoice, which no host draws: a page judged by a file that
+contradicts itself. Reading which
+starters a variant draws from `KINDS`, which already says an XRechnung is
+drawn as no PDF/A-3b, keeps the rule one the gate states once, and no
+exception by id.
