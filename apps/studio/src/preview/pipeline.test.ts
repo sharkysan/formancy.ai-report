@@ -66,6 +66,7 @@ describe('the preview pipeline', () => {
       'order-confirmation': 'Auftragsbestätigung',
       'product-data-sheet': 'Produktdatenblatt',
       'payment-reminder': 'Mahnung',
+      'sales-report': 'Umsatzbericht',
     }
     if (id !== 'blank') expect(pdf.pages.flatMap((page) => page.items.map((item) => item.text)).join(' ')).toContain(titles[id] ?? `(no title for ${id})`)
     expect(outcome.manifest.mode).toBe('preview')

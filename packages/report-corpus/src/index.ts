@@ -137,6 +137,9 @@ export {
   quotationLines,
   REMINDER_EDITIONS,
   reverseChargeData,
+  SALES_REPORT,
+  salesReportData,
+  salesReportLines,
   SERVICE_INSPECTION,
   SHEET_EDITIONS,
   SITE_VISIT_STARTER,
@@ -148,5 +151,14 @@ export {
   XRECHNUNG_SAMPLES,
   xrechnungData,
 } from './starters/index.js'
-export type { Edition, OrderConfirmationLine, PaymentReminderItem, ReminderWords, SheetWords, Starter, StarterImage } from './starters/index.js'
+export type {
+  Edition,
+  OrderConfirmationLine,
+  PaymentReminderItem,
+  ReminderWords,
+  SalesReportLine,
+  SheetWords,
+  Starter,
+  StarterImage,
+} from './starters/index.js'
 export type { PdfAttachment, PdfBox, PdfCurve, PdfFont, PdfPage, PdfPaint, PdfPath, PdfTextItem, ReadPdf } from './read-pdf.js'

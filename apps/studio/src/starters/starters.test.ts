@@ -27,6 +27,7 @@ describe("the Studio's starters", () => {
       'Order confirmation',
       'Product data sheet',
       'Payment reminder',
+      'Sales report',
       'Blank',
     ])
   })

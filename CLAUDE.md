@@ -451,6 +451,9 @@ the payment reminder, which pays the balance of a customer's overdue
 invoices by a QR-bill in the customer's language
 (`starters/payment-reminder.ts`,
 [0066](docs/decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)),
+the monthly sales report, whose bar chart and pie print the totals its
+one table of the same lines prints (`starters/sales-report.ts`,
+[0067](docs/decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md)),
 `offLine`, the rule a run set off the line is read into its line by,
 which the renderer's tests' line reader takes,
 Liberation Serif and Mono 2.1.5 as a host's fonts (`fixtures/host-fonts/`)
