@@ -26,10 +26,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881540488,
-  "finish" : 1794881541521,
-  "duration" : "00:00:01.033",
-  "difference" : 1033
+  "start" : 1794899665072,
+  "finish" : 1794899666189,
+  "duration" : "00:00:01.117",
+  "difference" : 1117
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-quotation.pdf",
   "size" : 30608
@@ -46,10 +46,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881541553,
-  "finish" : 1794881541661,
-  "duration" : "00:00:00.108",
-  "difference" : 108
+  "start" : 1794899666228,
+  "finish" : 1794899666346,
+  "duration" : "00:00:00.118",
+  "difference" : 118
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-grouped-equipment.pdf",
   "size" : 35931
@@ -66,10 +66,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881541665,
-  "finish" : 1794881541788,
-  "duration" : "00:00:00.123",
-  "difference" : 123
+  "start" : 1794899666355,
+  "finish" : 1794899666495,
+  "duration" : "00:00:00.140",
+  "difference" : 140
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-invoice.pdf",
   "size" : 58332
@@ -86,10 +86,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881541795,
-  "finish" : 1794881541901,
-  "duration" : "00:00:00.106",
-  "difference" : 106
+  "start" : 1794899666500,
+  "finish" : 1794899666624,
+  "duration" : "00:00:00.124",
+  "difference" : 124
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-euro-invoice.pdf",
   "size" : 36170
@@ -106,10 +106,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881541903,
-  "finish" : 1794881541973,
-  "duration" : "00:00:00.070",
-  "difference" : 70
+  "start" : 1794899666629,
+  "finish" : 1794899666702,
+  "duration" : "00:00:00.073",
+  "difference" : 73
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-site-visit.pdf",
   "size" : 25037
@@ -126,10 +126,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881541976,
-  "finish" : 1794881542007,
-  "duration" : "00:00:00.031",
-  "difference" : 31
+  "start" : 1794899666706,
+  "finish" : 1794899666748,
+  "duration" : "00:00:00.042",
+  "difference" : 42
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-order-confirmation.pdf",
   "size" : 39741
@@ -146,10 +146,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881542009,
-  "finish" : 1794881542096,
-  "duration" : "00:00:00.087",
-  "difference" : 87
+  "start" : 1794899666753,
+  "finish" : 1794899666848,
+  "duration" : "00:00:00.095",
+  "difference" : 95
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-product-data-sheet.pdf",
   "size" : 27379
@@ -166,10 +166,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881542098,
-  "finish" : 1794881542128,
-  "duration" : "00:00:00.030",
-  "difference" : 30
+  "start" : 1794899666851,
+  "finish" : 1794899666890,
+  "duration" : "00:00:00.039",
+  "difference" : 39
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-blocks.pdf",
   "size" : 40844
@@ -186,10 +186,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881542131,
-  "finish" : 1794881542186,
-  "duration" : "00:00:00.055",
-  "difference" : 55
+  "start" : 1794899666894,
+  "finish" : 1794899666955,
+  "duration" : "00:00:00.061",
+  "difference" : 61
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-svg.pdf",
   "size" : 36081
@@ -206,10 +206,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881542188,
-  "finish" : 1794881542258,
-  "duration" : "00:00:00.070",
-  "difference" : 70
+  "start" : 1794899666958,
+  "finish" : 1794899667027,
+  "duration" : "00:00:00.069",
+  "difference" : 69
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-svg-bound.pdf",
   "size" : 34952
@@ -226,10 +226,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881542260,
-  "finish" : 1794881542323,
-  "duration" : "00:00:00.063",
-  "difference" : 63
+  "start" : 1794899667032,
+  "finish" : 1794899667091,
+  "duration" : "00:00:00.059",
+  "difference" : 59
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-charts.pdf",
   "size" : 52351
@@ -246,10 +246,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881542326,
-  "finish" : 1794881542413,
-  "duration" : "00:00:00.087",
-  "difference" : 87
+  "start" : 1794899667095,
+  "finish" : 1794899667173,
+  "duration" : "00:00:00.078",
+  "difference" : 78
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-fonts.pdf",
   "size" : 27999
@@ -266,8 +266,8 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881542415,
-  "finish" : 1794881542444,
+  "start" : 1794899667177,
+  "finish" : 1794899667206,
   "duration" : "00:00:00.029",
   "difference" : 29
 }},{"itemDetails":{
@@ -286,10 +286,10 @@
   "statement" : "PDF file is compliant with Validation Profile requirements.",
   "compliant" : true
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881542446,
-  "finish" : 1794881542491,
-  "duration" : "00:00:00.045",
-  "difference" : 45
+  "start" : 1794899667209,
+  "finish" : 1794899667256,
+  "duration" : "00:00:00.047",
+  "difference" : 47
 }},{"itemDetails":{
   "name" : "{repository}\\test-results\\e-invoice\\corpus\\pdfa-2b-control-plain.pdf",
   "size" : 26365
@@ -833,8 +833,8 @@
   "statement" : "PDF file is not compliant with Validation Profile requirements.",
   "compliant" : false
 } ],"featuresReport":{ },"processingTime":{
-  "start" : 1794881542492,
-  "finish" : 1794881542537,
+  "start" : 1794899667260,
+  "finish" : 1794899667305,
   "duration" : "00:00:00.045",
   "difference" : 45
 }},{"itemDetails":{
@@ -898,38 +898,38 @@
     "size" : "12668"
   }
 },"processingTime":{
-  "start" : 1794881542581,
-  "finish" : 1794881542675,
-  "duration" : "00:00:00.094",
-  "difference" : 94
+  "start" : 1794899667351,
+  "finish" : 1794899667465,
+  "duration" : "00:00:00.114",
+  "difference" : 114
 }}],"batchSummary":{
   "duration" : {
-    "start" : 1794881540411,
-    "finish" : 1794881542679,
-    "duration" : "00:00:02.268",
-    "difference" : 2268
+    "start" : 1794899664983,
+    "finish" : 1794899667469,
+    "duration" : "00:00:02.486",
+    "difference" : 2486
   },
   "totalJobs" : 16,
   "outOfMemory" : 0,
   "veraExceptions" : 0,
-  "multiJob" : true,
-  "featuresSummary" : {
-    "totalJobCount" : 16,
+  "validationSummary" : {
+    "nonCompliantPdfaCount" : 2,
     "failedJobCount" : 0,
+    "totalJobCount" : 16,
+    "compliantPdfaCount" : 14,
+    "successfulJobCount" : 16
+  },
+  "failedEncryptedJobs" : 0,
+  "failedParsingJobs" : 0,
+  "featuresSummary" : {
+    "failedJobCount" : 0,
+    "totalJobCount" : 16,
     "successfulJobCount" : 16
   },
   "repairSummary" : {
-    "totalJobCount" : 0,
     "failedJobCount" : 0,
+    "totalJobCount" : 0,
     "successfulJobCount" : 0
   },
-  "validationSummary" : {
-    "totalJobCount" : 16,
-    "compliantPdfaCount" : 14,
-    "failedJobCount" : 0,
-    "nonCompliantPdfaCount" : 2,
-    "successfulJobCount" : 16
-  },
-  "failedParsingJobs" : 0,
-  "failedEncryptedJobs" : 0
+  "multiJob" : true
 }}}
