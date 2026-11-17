@@ -10,6 +10,7 @@ import { QUOTATION } from './quotation.js'
 import { INSPECTION_PHOTO, SERVICE_INSPECTION } from './service-inspection.js'
 import { SITE_VISIT_STARTER } from './site-visit.js'
 import type { Starter, StarterImage } from './starter.js'
+import { XRECHNUNG_SAMPLE } from './xrechnung.js'
 
 export {
   addressedData,
@@ -52,9 +53,10 @@ export { XRECHNUNG_SAMPLE, XRECHNUNG_SAMPLES, xrechnungData } from './xrechnung.
 /**
  * The three starters of plan 7, in the order the plan lists them, then the
  * invoice with its QR-bill, the invoice with its EPC code, the e-invoice
- * (0044), the report generated from a formancy form (0045), and the order
- * confirmation and the product data sheet, which print what 0059 to 0063
- * added (0064).
+ * (0044) and the XRechnung sample, its invoice terms as the other kind,
+ * beside it (0065), the report generated from a formancy form (0045), and
+ * the order confirmation and the product data sheet, which print what 0059
+ * to 0063 added (0064).
  */
 export const STARTERS: readonly Starter[] = [
   SERVICE_INSPECTION,
@@ -63,6 +65,7 @@ export const STARTERS: readonly Starter[] = [
   INVOICE,
   EURO_INVOICE,
   E_INVOICE,
+  XRECHNUNG_SAMPLE,
   SITE_VISIT_STARTER,
   ORDER_CONFIRMATION,
   PRODUCT_DATA_SHEET,

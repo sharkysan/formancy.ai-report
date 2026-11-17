@@ -41,12 +41,13 @@ const STARTERS = [
   'invoice',
   'euro-invoice',
   'e-invoice',
+  'e-invoice-xrechnung',
   'site-visit',
   'order-confirmation',
   'product-data-sheet',
 ].map((id) => ({
   id,
-  eInvoice: id === 'e-invoice',
+  eInvoice: id.startsWith('e-invoice'),
 }))
 /** The name veraPDF 1.30.3 gives the profile `--flavour 2b` validates against, as a run on 11 November 2026 reported it. */
 const PROFILE_2B = 'PDF/A-2b validation profile'
@@ -197,6 +198,7 @@ describe('veraPDF’s verdict', () => {
       ['variant-invoice.pdf', 'as expected', []],
       ['variant-euro-invoice.pdf', 'as expected', []],
       ['variant-e-invoice.pdf', 'as expected', []],
+      ['variant-e-invoice-xrechnung.pdf', 'as expected', []],
       ['variant-site-visit.pdf', 'as expected', []],
       ['variant-order-confirmation.pdf', 'as expected', []],
       ['variant-product-data-sheet.pdf', 'as expected', []],

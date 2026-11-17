@@ -30,12 +30,13 @@ const STARTERS = [
   'invoice',
   'euro-invoice',
   'e-invoice',
+  'e-invoice-xrechnung',
   'site-visit',
   'order-confirmation',
   'product-data-sheet',
 ].map((id) => ({
   id,
-  eInvoice: id === 'e-invoice',
+  eInvoice: id.startsWith('e-invoice'),
 }))
 /** The whole corpus the gate judges: the XML, then the PDFs and the PDF/A-2b as planned, which the judges' tests build without drawing them. */
 const pdfa2b = pdfa2bPlan(STARTERS, { base3bXml: recorded('e-invoice.xml') })

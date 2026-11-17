@@ -2,15 +2,17 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import { offeredPdf, REREADS, rereadsOn } from './gate-download.mjs'
+import { offeredPdf, offeredXml, REREADS, rereadsOn } from './gate-download.mjs'
 
 /**
  * The page the browser gate drives, standing in for Playwright's, with
- * the Preview's one Download PDF link in jsdom's document. `evaluate` runs
+ * the Preview's one Download PDF link in jsdom's document, and with
+ * `xml`, a Download XML link beside it (0065). `evaluate` runs
  * the gate's own page function there, as Chromium would; a click on a
  * link downloads, to a file, what its address holds at that moment, and
  * `waitForEvent('download')` hands the download over as Playwright does,
- * its `path()` throwing for an address that holds nothing. The Preview's
+ * its `path()` throwing for an address that holds nothing, and its
+ * `suggestedFilename()` the link's `download`. The Preview's
  * region finds its links by name in one read, as a locator's
  * `evaluateAll` does, and counts the reads.
  *
@@ -31,10 +33,10 @@ function previewPage(directory) {
   let printed = 0
   let downloads = 0
   let link = null
-  const anchor = (address) => {
+  const anchor = (address, name = 'Download PDF', file = 'quotation.pdf') => {
     const element = document.createElement('a')
-    element.download = 'quotation.pdf'
-    element.textContent = 'Download PDF'
+    element.download = file
+    element.textContent = name
     element.setAttribute('href', address)
     element.addEventListener('click', (event) => {
       event.preventDefault()
@@ -42,6 +44,7 @@ function previewPage(directory) {
       downloads += 1
       const file = join(directory, `${String(printed)}-${String(downloads)}.pdf`)
       const download = {
+        suggestedFilename: () => element.download,
         path: async () => {
           if (bytes === undefined) throw new Error('download.path: Download failed')
           await writeFile(file, bytes)
@@ -74,6 +77,13 @@ function previewPage(directory) {
       }
       link = anchor(address)
       document.body.append(link)
+      return address
+    },
+    /** A Download XML link beside the PDF's, at an address of its own, offering `text` as `file`. */
+    xml(text, file) {
+      const address = `blob:http://localhost:4392/report/xml-${String(printed)}`
+      held.set(address, new TextEncoder().encode(text))
+      document.body.append(anchor(address, 'Download XML', file))
       return address
     },
     /** The address revoked and left on the link: a page that offers a PDF it no longer holds. */
@@ -211,4 +221,17 @@ test('is null, downloading nothing, where the link offers the address read befor
   expect(page.downloads).toBe(0)
   const newer = page.print('the PDF printed after it')
   expect((await offeredPdf(page, page.preview, { besides: only }))?.href).toBe(newer)
+})
+
+// A final render of an e-invoice offers its XML beside its PDF (0065): the gate downloads each link
+// by its own name, and says the name the browser saves it under. Read by the PDF's name, the XML
+// would be the PDF; with no name, nothing would show it is the starter's .xml.
+test('downloads Download XML by its own name, beside Download PDF, with the name the browser saves it under', async () => {
+  const page = previewPage(directory)
+  page.print('the PDF offered')
+  const address = page.xml('<?xml version="1.0" encoding="UTF-8"?>', 'e-invoice.xml')
+  const xml = await offeredXml(page, page.preview)
+  expect([xml?.href, xml?.fileName, text(xml)]).toEqual([address, 'e-invoice.xml', '<?xml version="1.0" encoding="UTF-8"?>'])
+  const pdf = await offeredPdf(page, page.preview)
+  expect([pdf?.fileName, text(pdf)]).toEqual(['quotation.pdf', 'the PDF offered'])
 })

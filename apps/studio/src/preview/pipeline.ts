@@ -6,6 +6,11 @@
  * Every way it can end is an outcome, never an exception: printed, refused
  * by the runtime with its errors, or not drawn, with the renderer's refusal.
  * An exception from here is a fault, and the scheduler reports it as one.
+ *
+ * A printed final render of an e-invoice hands on its XML as well, the one
+ * the runtime wrote (0027, 0038), which a host takes from the same resolved
+ * document: the Factur-X's, which the PDF embeds as it is, or the
+ * XRechnung's, beside its copy (0065).
  */
 import { renderPdf } from '@formancy/report-render-pdf/browser'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
@@ -40,7 +45,14 @@ export interface NotDrawn {
 }
 
 export type PreviewOutcome =
-  | { readonly kind: 'printed'; readonly pdf: Uint8Array; readonly manifest: RenderManifest; readonly warnings: readonly RuntimeError[] }
+  | {
+      readonly kind: 'printed'
+      readonly pdf: Uint8Array
+      /** The e-invoice's XML the runtime wrote, as the resolved document holds it: a final render of an e-invoice's alone. */
+      readonly xml: string | undefined
+      readonly manifest: RenderManifest
+      readonly warnings: readonly RuntimeError[]
+    }
   | { readonly kind: 'refused'; readonly errors: readonly RuntimeError[] }
   | { readonly kind: 'not-drawn'; readonly refusal: NotDrawn }
 
@@ -60,7 +72,7 @@ export async function preview(
   if (!resolved.ok) return { kind: 'refused', errors: resolved.errors }
   try {
     const pdf = await renderPdf(resolved.document, { maxPages, signal })
-    return { kind: 'printed', pdf, manifest: resolved.manifest, warnings: resolved.warnings }
+    return { kind: 'printed', pdf, xml: resolved.document.eInvoice?.xml, manifest: resolved.manifest, warnings: resolved.warnings }
   } catch (error) {
     if (!(error instanceof RenderRefusal)) throw error
     return { kind: 'not-drawn', refusal: { code: error.code, message: error.message, subject: error.subject } }

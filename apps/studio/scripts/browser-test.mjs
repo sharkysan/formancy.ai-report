@@ -28,7 +28,10 @@
 //     page prints, and the Download PDF link a PDF whose page draws the
 //     drawings pictures.json records there, path by path -- the firm's
 //     mark, a code -- and no other; an e-invoice's with Final on, since its
-//     preview says on every page that it is no e-invoice (0044); every
+//     preview says on every page that it is no e-invoice (0044), and
+//     there its Download XML, the Factur-X's the very bytes its Download
+//     PDF embeds and the XRechnung's beside a copy that embeds nothing,
+//     the keyboard's next stop after Download PDF (0065); every
 //     Download PDF downloaded as a person downloads it, and read again
 //     where the Preview printed anew between the read of the link and the
 //     download, each pass measuring how often it did (gate-download.mjs);
@@ -117,6 +120,7 @@ import { headersFor } from '../../../scripts/demo-headers.mjs'
 import { demoBase, readDemoConfig } from '../../../scripts/demo.mjs'
 import { FONT_FILE } from '../../../scripts/web-fonts.mjs'
 import { offeredPdf, rereadsOn } from './gate-download.mjs'
+import { downloadXmlChecks } from './gate-e-invoice.mjs'
 import { interactions } from './gate-interactions.mjs'
 import { audit, connectionHints, describeFocus, fontProblem, fromTheTop, listenForRefusals, measureWidth, paletteProblem, refusalsOf } from './gate-measure.mjs'
 import { app, cutControls, downloaded, drawnPages, passes, rulesOnThePaper } from './gate-page.mjs'
@@ -137,11 +141,12 @@ const repo = join(app, '..', '..')
 const PICTURED = JSON.parse(readFileSync(join(repo, 'docs', 'images', 'pictures.json'), 'utf8'))
 
 /**
- * The starters that are e-invoices: a preview of one is no e-invoice and
- * says so on every page (0027), so its paper is held to its picture, drawn
- * from its final render, with Final on (0044).
+ * The starters that are e-invoices, by id, with their kind: a preview of
+ * one is no e-invoice and says so on every page (0027), so its paper is
+ * held to its picture, drawn from its final render, with Final on (0044),
+ * where its Download XML is read too (0065).
  */
-const INVOICED = new Set(STARTERS.filter((starter) => starter.report.eInvoice !== undefined).map((starter) => starter.id))
+const INVOICED = new Map(STARTERS.flatMap((starter) => (starter.report.eInvoice === undefined ? [] : [[starter.id, starter.report.eInvoice.kind]])))
 
 /** What the Preview says once a final render printed. */
 const FINAL = /^Final render: printed(, with \d+ warnings?)?\.$/
@@ -382,6 +387,7 @@ async function journey(gate, page, picker, { refuseFonts }) {
         await settled(page, FINAL)
       }
       if (picture !== undefined) await paperChecks(gate, page, final === null ? state : `${state}, its final render`, picture)
+      if (final !== null) await downloadXmlChecks(gate, page, `${state}, its final render`, { id, kind: INVOICED.get(id) })
       if (final !== null) {
         await final.uncheck()
         await settled(page)

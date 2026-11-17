@@ -10,6 +10,29 @@ later.
 
 ## Unreleased
 
+**The Studio offers the e-invoice's template in both kinds, and a final
+render's XML beside its PDF**
+([0065](docs/decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
+A person trying the Studio met the Factur-X invoice alone, and its XML
+only inside the PDF/A-3b, where a PDF tool had to dig it out; the
+XRechnung, which the e-invoice gate judges and both builders edit since
+0044, was no starter. Neither starter's report or data changed.
+- **The XRechnung sample is a starter**, `STARTERS`' seventh, after the
+  e-invoice: the e-invoice's template made an XRechnung 3.0, billing an
+  invented federal office by KoSIT's test Leitweg-ID. Every walk over the
+  starters walks it, the README pictures its page, the copy, and the
+  e-invoice gate draws its page as a PDF/A-3b variant with the first
+  sample's e-invoice.
+- **The picker names an e-invoice by its kind**, "E-invoice (Factur-X)"
+  and "E-invoice (XRechnung)", in the builder's words; the e-invoice
+  starter was "E-invoice".
+- **Download XML**, beside Download PDF where a final render of an
+  e-invoice wrote one: the runtime's XML of the render the paper shows,
+  saved as the starter's id with `.xml`, the Factur-X's byte for byte the
+  `factur-x.xml` its PDF embeds. A preview writes none and offers none.
+  As each starter opens, the XML is the file the e-invoice gate records
+  and has Mustang and KoSIT judge; once edited, nothing has judged it.
+
 **Two starters print what the report format gained since 0.2.0: an order
 confirmation and a product data sheet**
 ([0064](docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)).

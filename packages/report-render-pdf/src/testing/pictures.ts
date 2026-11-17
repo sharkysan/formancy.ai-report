@@ -21,6 +21,7 @@ import {
   SERVICE_INSPECTION,
   SITE_VISIT_STARTER,
   starterImages,
+  XRECHNUNG_SAMPLE,
   type Drawing,
   type Starter,
 } from '@formancy/report-corpus'
@@ -103,6 +104,21 @@ export const PICTURES: readonly PictureSpec[] = [
       'Umsatzsteuer 19 % auf 635,80 €',
       'Umsatzsteuer 7 % auf 107,50 €',
       'Rechnungsbetrag 871,63 €',
+      'Bankverbindung',
+    ],
+  },
+  {
+    file: 'starter-e-invoice-xrechnung.png',
+    starter: XRECHNUNG_SAMPLE,
+    page: 1,
+    caption:
+      "The XRechnung starter, the e-invoice's invoice terms made an XRechnung 3.0 for a German public buyer, whose PDF is its copy: the page headed Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice, the Leitweg-ID: 991-33333TEST-33 at the foot of its head, its line items in euro, then Nettobetrag 535,00 €, Umsatzsteuer 19 % auf 535,00 € and Rechnungsbetrag 636,65 €, the totals its XML holds, and under them the Bankverbindung beside the EPC QR code that pays it",
+    shows: [
+      'Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice',
+      'Leitweg-ID: 991-33333TEST-33',
+      'Nettobetrag 535,00 €',
+      'Umsatzsteuer 19 % auf 535,00 €',
+      'Rechnungsbetrag 636,65 €',
       'Bankverbindung',
     ],
   },

@@ -2,7 +2,8 @@
  * The PDF the renderer wrote, shown by PDF.js on white paper: each page a
  * canvas with PDF.js's text layer over it, so the text can be selected,
  * copied and found with the browser's search; page navigation, zoom, and the
- * very bytes the pages were drawn from, to download. The paper says it is
+ * very bytes the pages were drawn from, to download, with the e-invoice's
+ * XML the same render wrote, where it wrote one (0065). The paper says it is
  * busy (`aria-busy`) until the newest PDF is drawn, which the browser gate
  * and the README pictures wait for.
  *
@@ -26,6 +27,8 @@ interface Loaded {
   readonly sizes: readonly Size[]
   /** The bytes PDF.js loaded: what the pages show, and so what Download PDF gives. */
   readonly from: Uint8Array
+  /** The e-invoice's XML the render of `from` wrote, if it wrote one: what Download XML gives. */
+  readonly xml: string | undefined
 }
 
 /** Which pages of `of` have been drawn at `zoom`: the paper is busy until every one has. */
@@ -98,7 +101,18 @@ function Page({
   )
 }
 
-export function PdfView({ pdf, fileName, stale }: { pdf: Uint8Array; fileName: string; stale: boolean }): ReactElement {
+/** A download the viewer offers: the object URL of `content` while there is some, made once and let go of when it changes or the viewer goes. */
+function useObjectUrl(content: BlobPart | undefined, type: string): string | undefined {
+  const url = useMemo(() => (content === undefined ? undefined : URL.createObjectURL(new Blob([content], { type }))), [content, type])
+  useEffect(() => () => (url === undefined ? undefined : URL.revokeObjectURL(url)), [url])
+  return url
+}
+
+/**
+ * `pdf` is drawn, and offered as `name`.pdf; `xml`, an e-invoice's XML
+ * written by the same render, is offered beside it as `name`.xml.
+ */
+export function PdfView({ pdf, xml, name, stale }: { pdf: Uint8Array; xml?: string | undefined; name: string; stale: boolean }): ReactElement {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [zoom, setZoom] = useState<number | 'fit'>('fit')
@@ -136,7 +150,7 @@ export function PdfView({ pdf, fileName, stale }: { pdf: Uint8Array; fileName: s
         if (!live) return
         const replaced = onPaper.current
         onPaper.current = loading ?? null
-        setLoaded({ pdf: document, sizes, from: pdf })
+        setLoaded({ pdf: document, sizes, from: pdf, xml })
         setFailed(null)
         setCurrent((page) => Math.min(page, sizes.length))
         // A draw of it still on its way rejects, and is not said to be drawn.
@@ -150,7 +164,7 @@ export function PdfView({ pdf, fileName, stale }: { pdf: Uint8Array; fileName: s
       // One still loading is let go of; the one on the paper stays there until another replaces it.
       if (loading !== onPaper.current) loading?.destroy()
     }
-  }, [pdf])
+  }, [pdf, xml])
 
   // The paper's width, for Fit width: measured once laid out, and again
   // whenever the pane changes size.
@@ -167,10 +181,15 @@ export function PdfView({ pdf, fileName, stale }: { pdf: Uint8Array; fileName: s
 
   // The bytes the pages on the paper were drawn from, not the newest the
   // renderer delivered: between the two, Download PDF gave a PDF the
-  // preview did not show yet.
+  // preview did not show yet. The XML is the one that render wrote, for the
+  // same reason, as UTF-8, the encoding its declaration names and a
+  // Factur-X PDF embeds it in.
   const from = loaded?.from
-  const url = useMemo(() => (from === undefined ? undefined : URL.createObjectURL(new Blob([from.slice().buffer], { type: 'application/pdf' }))), [from])
-  useEffect(() => () => (url === undefined ? undefined : URL.revokeObjectURL(url)), [url])
+  const url = useObjectUrl(
+    useMemo(() => from?.slice().buffer, [from]),
+    'application/pdf',
+  )
+  const xmlUrl = useObjectUrl(loaded?.xml, 'application/xml')
 
   const pages = loaded?.sizes.length ?? 0
   const widest = Math.max(0, ...(loaded?.sizes.map((size) => size.width) ?? []))
@@ -219,8 +238,13 @@ export function PdfView({ pdf, fileName, stale }: { pdf: Uint8Array; fileName: s
           <Tool label="Fit width" pressed={zoom === 'fit'} onPress={() => setZoom('fit')} />
         </div>
         {url === undefined ? null : (
-          <a className="tool download" href={url} download={fileName}>
+          <a className="tool download" href={url} download={`${name}.pdf`}>
             Download PDF
+          </a>
+        )}
+        {url === undefined || xmlUrl === undefined ? null : (
+          <a className="tool" href={xmlUrl} download={`${name}.xml`}>
+            Download XML
           </a>
         )}
       </div>

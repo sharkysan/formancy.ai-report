@@ -200,6 +200,11 @@ export const PDF_VARIANTS = [
     draws: { starter: 'e-invoice' },
   },
   {
+    file: 'variant-e-invoice-xrechnung.pdf',
+    why: 'the XRechnung starter’s page, from its own data, the Leitweg-ID at the foot of its head and the copy label the runtime heads its final render with, drawn with the base sample’s Factur-X invoice: the page a person opens beside the e-invoice in the Studio (0065), whose own render is a plain copy no tool judges (0038)',
+    draws: { starter: 'e-invoice-xrechnung' },
+  },
+  {
     file: 'variant-site-visit.pdf',
     why: 'the site visit starter, generated from a formancy form: lines of label and value, sections, boxes drawn as text, and a table of its findings (0045)',
     draws: { starter: 'site-visit' },

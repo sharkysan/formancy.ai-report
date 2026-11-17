@@ -146,7 +146,11 @@ one reads it from the data, which `setPaymentAccount` refuses as
 to such a report pays its account; only its totals and its lines are held
 to the page, and an e-invoice is edited and never added from nothing, the
 corpus's e-invoice sample a starter
-([0044](docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
+([0044](docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)),
+and its XRechnung sample one beside it, the Studio's picker naming each by
+its kind and its Preview offering a final render's XML, the runtime's,
+beside its PDF
+([0065](docs/decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
 An SVG asset runs through three of them and passes the core by: its rules
 are report-spec's `svg.ts` and the `svg-*.ts` beside it, `cleanSvg`, which
 cleans the file once where a host approves it into the one form the
@@ -733,8 +737,10 @@ What holds this section:
   buyer's electronic address, a VAT rate and its IBAN typed, each read back
   from the XML its final Download PDF embeds and held to the page it
   prints, the IBAN to the EPC QR code decoded from its pixels too, and
-  undone (`gate-e-invoice.mjs`, 0044), a pane and the Preview hidden and
-  shown again,
+  undone (`gate-e-invoice.mjs`, 0044), each e-invoice starter's final
+  Download XML, the Factur-X's the very bytes its Download PDF embeds and
+  the XRechnung's beside a copy that embeds nothing (0065), a pane and the
+  Preview hidden and shown again,
   the Preview beside the builder where the window has room for it and
   swapped with the design view where it has not, a pane hidden as an edit
   prints, the design view holding a page at 100 % wherever the Preview

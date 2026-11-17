@@ -11,8 +11,9 @@ import type { Starter } from './index.js'
 /**
  * The firm's mark (0032): one invented, wordless drawing that the QR-bill
  * invoice, the euro invoice and the quotation, their samples, the
- * e-invoice samples, the order confirmation and the product data sheet
- * (0064) print at the top left of their first page. Which reports carry
+ * e-invoice samples, the XRechnung, a starter since 0065, the order
+ * confirmation and the product data sheet (0064) print at the top left of
+ * their first page. Which reports carry
  * it is stated here, never read from the starters, and the drawing is
  * read back by saxes, a parser that is not the cleaner. That it prints
  * where it is declared is held on the PDF by report-render-pdf's
@@ -43,6 +44,7 @@ const MARKED = [
   'e-invoice-reverse-charge',
   'e-invoice-exempt-paid',
   'e-invoice-addressed',
+  'e-invoice-xrechnung',
 ]
 
 /**

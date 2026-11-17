@@ -483,7 +483,10 @@ the fourth naming every term past 0027's, its identifiers the
 standard-setters' own examples ([0037](../decisions/0037-an-e-invoice-may-name-electronic-addresses-the-sellers-contact-and-its-business-process-none-needed-for-german-b2b.md)); and
 an XRechnung sample, the first one's template made an XRechnung, to an
 invented federal buyer by a Leitweg-ID of KoSIT's test suite
-(`starters/xrechnung.ts`, [0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+(`starters/xrechnung.ts`, [0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)),
+a starter too, the one after the e-invoice, so that the Studio offers the
+one template's terms in both kinds side by side
+([0065](../decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
 Two starters print what 0059 to 0063 added, letters of the same firm
 ([0064](../decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)):
 the order confirmation (`starters/order-confirmation.ts`), one list of
@@ -530,7 +533,11 @@ record of the trial
 **`apps/studio`** is the playground: one report session and one editor per
 starter (`workspace.ts`), either builder over it (`builder/`), and the
 Preview, which resolves the session's document and prints it with the
-renderer's browser entry, drawn by PDF.js on white paper (`preview/`).
+renderer's browser entry, drawn by PDF.js on white paper (`preview/`),
+and offers the PDF and, where a final render of an e-invoice wrote one,
+its XML, the runtime's of that very render, to download; the picker names
+an e-invoice starter by its kind, in the builder's words
+(`starters/starters.ts`, [0065](../decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
 `images/image-store.ts` keeps the starters' images and every image a person
 adds in the page, by digest, for the tab's life: the store every editor is
 made with and the lookup every Preview hands the runtime ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).

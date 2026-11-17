@@ -288,6 +288,7 @@ describe('Mustang’s verdict on a PDF', () => {
       ['variant-invoice.pdf', 'as expected', 0],
       ['variant-euro-invoice.pdf', 'as expected', 0],
       ['variant-e-invoice.pdf', 'as expected', 0],
+      ['variant-e-invoice-xrechnung.pdf', 'as expected', 0],
       ['variant-site-visit.pdf', 'as expected', 0],
       ['variant-order-confirmation.pdf', 'as expected', 0],
       ['variant-product-data-sheet.pdf', 'as expected', 0],

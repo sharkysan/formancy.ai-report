@@ -74,11 +74,21 @@ async function downloaded(): Promise<number[]> {
   return [...new Uint8Array(await (blobs.get(href) as Blob).arrayBuffer())]
 }
 
+/** An e-invoice's XML as the runtime writes one, with its declaration, and one of a later render. */
+const XML = '<?xml version="1.0" encoding="UTF-8"?>\n<rsm:CrossIndustryInvoice>Köln</rsm:CrossIndustryInvoice>\n'
+const NEWER_XML = XML.replace('Köln', 'Bonn')
+
+/** What Download XML gives: its type, and its bytes read as UTF-8. */
+async function downloadedXml(): Promise<{ readonly type: string; readonly text: string }> {
+  const blob = blobs.get(screen.getByRole('link', { name: 'Download XML' }).getAttribute('href') ?? '') as Blob
+  return { type: blob.type, text: new TextDecoder().decode(await blob.arrayBuffer()) }
+}
+
 describe('the PDF viewer', () => {
   // Each page is a group named by its number, so a screen reader can move
   // page by page; every page is drawn, at the zoom shown.
   test('shows every page, named by its number, each drawn', async () => {
-    render(<PdfView pdf={PDF} fileName="quotation.pdf" stale={false} />)
+    render(<PdfView pdf={PDF} name="quotation" stale={false} />)
     for (const name of ['Page 1 of 3', 'Page 2 of 3', 'Page 3 of 3']) await screen.findByRole('group', { name })
     await waitFor(() => expect(pdfjs.drawn.map((each) => each.page).sort()).toEqual([1, 2, 3]))
   })
@@ -88,7 +98,7 @@ describe('the PDF viewer', () => {
   // stays where it is rather than being dropped on the page.
   test('moves page by page, and keeps focus at either end', async () => {
     const user = userEvent.setup()
-    render(<PdfView pdf={PDF} fileName="quotation.pdf" stale={false} />)
+    render(<PdfView pdf={PDF} name="quotation" stale={false} />)
     const pages = await screen.findByRole('group', { name: 'Pages' })
     await within(pages).findByText('Page 1 of 3')
     const previous = within(pages).getByRole('button', { name: 'Previous page' })
@@ -108,7 +118,7 @@ describe('the PDF viewer', () => {
   // out, so the room it measures is none and the fit is 100 %.
   test('zooms by the design view’s steps, from fit width', async () => {
     const user = userEvent.setup()
-    render(<PdfView pdf={PDF} fileName="quotation.pdf" stale={false} />)
+    render(<PdfView pdf={PDF} name="quotation" stale={false} />)
     const zoom = screen.getByRole('group', { name: 'Zoom' })
     expect(within(zoom).getByRole('button', { name: 'Fit width' }).getAttribute('aria-pressed')).toBe('true')
     expect(within(zoom).getByText('100%')).toBeTruthy()
@@ -122,10 +132,49 @@ describe('the PDF viewer', () => {
 
   // The download is the very PDF shown, under the starter's name.
   test('offers the PDF to download', async () => {
-    render(<PdfView pdf={PDF} fileName="quotation.pdf" stale={false} />)
+    render(<PdfView pdf={PDF} name="quotation" stale={false} />)
     const link = await screen.findByRole('link', { name: 'Download PDF' })
     expect(link.getAttribute('download')).toBe('quotation.pdf')
     expect(await downloaded()).toEqual([...PDF])
+  })
+
+  // A final render of an e-invoice wrote its XML (0065): Download XML,
+  // after Download PDF and the next stop of the keyboard, gives it under
+  // the starter's name, as UTF-8, the encoding its declaration names and
+  // the one a Factur-X PDF embeds it in. A render that wrote none -- a
+  // preview, a report that is no e-invoice -- offers none, rather than a
+  // file of nothing or of another render.
+  test('offers the XML an e-invoice’s render wrote beside its PDF, and none where it wrote none', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<PdfView pdf={PDF} xml={XML} name="e-invoice" stale={false} />)
+    const xml = await screen.findByRole('link', { name: 'Download XML' })
+    expect(xml.getAttribute('download')).toBe('e-invoice.xml')
+    expect(await downloadedXml()).toEqual({ type: 'application/xml', text: XML })
+    screen.getByRole('link', { name: 'Download PDF' }).focus()
+    await user.tab()
+    expect(document.activeElement).toBe(xml)
+    rerender(<PdfView pdf={NEWER} name="e-invoice" stale={false} />)
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Download XML' })).toBeNull())
+    expect(await downloaded()).toEqual([...NEWER])
+  })
+
+  // The XML goes with the PDF it was written beside, as the download does
+  // with the pages (below): until PDF.js has drawn a newer render's PDF,
+  // Download XML gives the XML of the render on the paper, whose total is
+  // the one the person reads there, and the newer one only once it is.
+  test('offers the XML of the render it shows, until PDF.js has drawn the newer one', async () => {
+    const { rerender } = render(<PdfView pdf={PDF} xml={XML} name="e-invoice" stale={false} />)
+    await waitFor(() => expect(screen.getByRole('region', { name: PAPER_NAME }).getAttribute('aria-busy')).toBe('false'))
+    let release = (): void => undefined
+    pdfjs.held = new Promise((resolve) => {
+      release = resolve
+    })
+    rerender(<PdfView pdf={NEWER} xml={NEWER_XML} name="e-invoice" stale={false} />)
+    expect((await downloadedXml()).text).toBe(XML)
+    await act(async () => release())
+    await waitFor(() => expect(screen.getByRole('region', { name: PAPER_NAME }).getAttribute('aria-busy')).toBe('false'))
+    expect((await downloadedXml()).text).toBe(NEWER_XML)
+    expect(await downloaded()).toEqual([...NEWER])
   })
 
   // A newer PDF arrives before PDF.js has loaded it. Until then the pages
@@ -135,7 +184,7 @@ describe('the PDF viewer', () => {
   // which wait for the paper to settle, would read the older PDF as the
   // newer one.
   test('is busy, and offers the PDF it shows, until PDF.js has drawn the newer one', async () => {
-    const { rerender } = render(<PdfView pdf={PDF} fileName="quotation.pdf" stale={false} />)
+    const { rerender } = render(<PdfView pdf={PDF} name="quotation" stale={false} />)
     const paper = screen.getByRole('region', { name: PAPER_NAME })
     await waitFor(() => expect(paper.getAttribute('aria-busy')).toBe('false'))
     expect(await downloaded()).toEqual([...PDF])
@@ -144,7 +193,7 @@ describe('the PDF viewer', () => {
     pdfjs.held = new Promise((resolve) => {
       release = resolve
     })
-    rerender(<PdfView pdf={NEWER} fileName="quotation.pdf" stale={false} />)
+    rerender(<PdfView pdf={NEWER} name="quotation" stale={false} />)
     expect(paper.getAttribute('aria-busy')).toBe('true')
     expect(await downloaded()).toEqual([...PDF])
 
@@ -162,7 +211,7 @@ describe('the PDF viewer', () => {
   // goes.
   test('keeps the PDF it shows until the newer one is on the paper, redrawing it meanwhile', async () => {
     const user = userEvent.setup()
-    const { rerender, unmount } = render(<PdfView pdf={PDF} fileName="quotation.pdf" stale={false} />)
+    const { rerender, unmount } = render(<PdfView pdf={PDF} name="quotation" stale={false} />)
     const paper = screen.getByRole('region', { name: PAPER_NAME })
     await waitFor(() => expect(paper.getAttribute('aria-busy')).toBe('false'))
 
@@ -170,7 +219,7 @@ describe('the PDF viewer', () => {
     pdfjs.held = new Promise((resolve) => {
       release = resolve
     })
-    rerender(<PdfView pdf={NEWER} fileName="quotation.pdf" stale={false} />)
+    rerender(<PdfView pdf={NEWER} name="quotation" stale={false} />)
     await user.click(within(screen.getByRole('group', { name: 'Zoom' })).getByRole('button', { name: 'Zoom in' }))
     await waitFor(() =>
       expect(
@@ -199,10 +248,10 @@ describe('the PDF viewer', () => {
   // loading is let go of at once, and never reaches the paper.
   test('lets go of a PDF still loading when a newer one arrives', async () => {
     pdfjs.held = new Promise(() => undefined)
-    const { rerender } = render(<PdfView pdf={PDF} fileName="quotation.pdf" stale={false} />)
+    const { rerender } = render(<PdfView pdf={PDF} name="quotation" stale={false} />)
     await waitFor(() => expect(pdfjs.loads).toBe(1))
     pdfjs.held = null
-    rerender(<PdfView pdf={NEWER} fileName="quotation.pdf" stale={false} />)
+    rerender(<PdfView pdf={NEWER} name="quotation" stale={false} />)
     await waitFor(() => expect(screen.getByRole('region', { name: PAPER_NAME }).getAttribute('aria-busy')).toBe('false'))
     expect(pdfjs.destroyed).toEqual([1])
     expect(new Set(pdfjs.drawn.map((each) => each.document))).toEqual(new Set([2]))
@@ -212,7 +261,7 @@ describe('the PDF viewer', () => {
   // it to scroll them (axe's scrollable-region-focusable, WCAG 2.1.1): a
   // region, named, in the tab order.
   test('is a named region the keyboard stops on', async () => {
-    render(<PdfView pdf={PDF} fileName="quotation.pdf" stale={false} />)
+    render(<PdfView pdf={PDF} name="quotation" stale={false} />)
     const paper = screen.getByRole('region', { name: PAPER_NAME })
     expect(paper.tabIndex).toBe(0)
     await screen.findByRole('group', { name: 'Page 1 of 3' })

@@ -158,14 +158,18 @@ async function show(user: User, framework: Framework): Promise<void> {
  * The status says `status`, and the paper and Download PDF hold one PDF
  * the pipeline printed for starter `id` in `mode`: the same bytes in both,
  * and a PDF by its header. A preview of the starter before, or a download
- * of other bytes than those shown, fails here.
+ * of other bytes than those shown, fails here. And Download XML, beside
+ * it, gives the XML that very render wrote, where it wrote one -- a final
+ * render of an e-invoice -- and is not offered where it wrote none (0065).
  */
 async function printed(id: string, mode: 'preview' | 'final', status: string): Promise<void> {
   await screen.findByText(status)
-  const pdfs = seen.outcomes.flatMap((each) => (each.id === id && each.mode === mode && each.outcome.kind === 'printed' ? [each.outcome.pdf] : []))
-  await waitFor(() => expect(pdfs).toContain(seen.shown.at(-1)))
+  const renders = seen.outcomes.flatMap((each) => (each.id === id && each.mode === mode && each.outcome.kind === 'printed' ? [each.outcome] : []))
+  await waitFor(() => expect(renders.map((render) => render.pdf)).toContain(seen.shown.at(-1)))
   const shown = seen.shown.at(-1) ?? new Uint8Array()
   expect(new TextDecoder().decode(shown.subarray(0, 5))).toBe('%PDF-')
+  const xml = renders.find((render) => render.pdf === shown)?.xml
+  expect(xml === undefined).toBe(mode === 'preview' || starters.find((starter) => starter.id === id)?.report.eInvoice === undefined)
   // PDF.js is handed the bytes before it has read their pages, and the link
   // follows the pages: until then there is none, or the last PDF's. Waited
   // for, a link that never gives these bytes still fails.
@@ -174,6 +178,10 @@ async function printed(id: string, mode: 'preview' | 'final', status: string): P
     expect(link.getAttribute('download')).toBe(`${id}.pdf`)
     const download = seen.downloads.get(link.getAttribute('href') ?? '')
     expect(new Uint8Array((await download?.arrayBuffer()) ?? new ArrayBuffer(0))).toEqual(shown)
+    const offered = screen.queryByRole('link', { name: 'Download XML' })
+    expect(offered?.getAttribute('download')).toBe(xml === undefined ? undefined : `${id}.xml`)
+    const file = seen.downloads.get(offered?.getAttribute('href') ?? '')
+    expect(file === undefined ? undefined : new TextDecoder().decode(await file.arrayBuffer())).toBe(xml)
   })
 }
 

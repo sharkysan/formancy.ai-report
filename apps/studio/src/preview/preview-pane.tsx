@@ -120,7 +120,7 @@ export function PreviewPane({
           editor's diagnostics: these are what printing found, named for
           the render that found them. */}
       {problems.length === 0 ? null : <Problems problems={problems} label={listName(shown?.mode ?? mode, outcome?.kind === 'printed')} select={select} />}
-      {outcome?.kind === 'printed' ? <PdfView pdf={outcome.pdf} fileName={`${opened.starter.id}.pdf`} stale={rendering} /> : null}
+      {outcome?.kind === 'printed' ? <PdfView pdf={outcome.pdf} xml={outcome.xml} name={opened.starter.id} stale={rendering} /> : null}
     </Pane>
   )
 }

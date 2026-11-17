@@ -265,7 +265,8 @@ preview(): resolveReport, in the mode the Preview is in and the language the
    ├─ refused by the renderer ──▶ its code and what it names
    ▼
 PDF.js draws each page on white paper with its text layer; Download PDF gives
-the bytes those pages were drawn from
+the bytes those pages were drawn from, and Download XML, where that final
+render of an e-invoice wrote one, the XML the runtime wrote beside them
 ```
 
 The Preview makes the same two calls a host makes, with nothing decided in
@@ -275,7 +276,13 @@ It prints in the language the builder shows, the editor's
 words are not all written is refused there as the runtime refuses it,
 `word-missing` by word, until the last one is (0063).
 A render the renderer cannot stop mid-pass finishes into nothing rather
-than replacing a newer one.
+than replacing a newer one. A final render of an e-invoice hands on the
+XML the runtime wrote, `document.eInvoice.xml`, the one writer's
+(`cii.ts`), which the viewer keeps with the PDF it was written beside, so
+that Download XML gives the XML of the render on the paper, as UTF-8: the
+Factur-X's the very bytes its PDF/A-3b embeds, the XRechnung's beside a
+copy that embeds nothing. A preview writes none, and none is offered
+([0065](../decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
 
 Where the Preview stands is the editor's to hold and the window's to say
 ([0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)):
