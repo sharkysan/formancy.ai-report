@@ -3057,6 +3057,30 @@
           "heldBy": "scripts/e-invoice/pdf-corpus.test.mjs"
         }
       ]
+    },
+    "0067": {
+      "reviewed": "sha256:e540996dcd577dfdd749e2294f079333316b015d22694c7b9ecc7a922c3cf693",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "The sales report starter’s charts print in the Preview alone: the design view draws each as a box, and neither builder changes what a chart totals, by what, its kind or its words.",
+          "heldBy": "packages/report-builder-core/src/palette.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The sales report’s value axis prints its ticks to the centime, as 80'000.00, since one format prints every value of a chart and its bars’ labels print the table’s totals to the centime.",
+          "heldBy": "packages/report-corpus/src/starters/sales-report.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The sales report’s page 1 ends inside a product line’s lines at the renderer’s row heights, margins and faces as they are, so its group headers’ keep with three lines is stated and not met there, and a change to any of them moves the page end its picture records.",
+          "heldBy": "packages/report-render-pdf/src/pictures.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The sales report’s products, prices, documents and figures are invented, its regions named after places around the firm’s invented address, and its five shares happen to add up to 100.0 %, which another month’s need not."
+        }
+      ]
     }
   }
 }
