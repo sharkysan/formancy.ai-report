@@ -3057,6 +3057,40 @@
           "heldBy": "scripts/e-invoice/pdf-corpus.test.mjs"
         }
       ]
+    },
+    "0066": {
+      "reviewed": "sha256:28d4f4686fa88e7d32dfd432f6f8c372a5c06630e9d48a956415303d3c49210e",
+      "limitations": [
+        {
+          "area": "data",
+          "says": "The payment reminder reads each invoice’s days overdue from the data, since an expression reads a date as its ISO string and has no arithmetic over dates, so nothing but the host holds a count to its dates.",
+          "heldBy": "packages/report-corpus/src/starters/payment-reminder.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "The payment reminder takes what was received below zero, as a ledger books it, and its fee as an item of the list: a host that hands a payment above zero prints a balance that adds it, one that hands the fee apart prints CHF 0.00 for it, and an item of a kind its tables and aggregates do not name counts in what is due and prints in no table.",
+          "heldBy": "packages/report-corpus/src/starters/payment-reminder.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The payment reminder names a payment and a credit note by an expression written in each of its languages, so a person changes those words in an expression’s field, not in a word’s."
+        },
+        {
+          "area": "testing",
+          "says": "The payment reminder’s own data fits page 1 with its slip, so its picture, the Studio and the browser gate never show its running header, which only the renderer’s test prints, with forty invoices more.",
+          "heldBy": "packages/report-render-pdf/src/payment-reminder.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The renderer’s test reads the payment reminder’s rows by their first two cells, as an invoice’s number stands in both its tables, and its layout above the slip alone, which is drawn past the margins.",
+          "heldBy": "packages/report-render-pdf/src/payment-reminder.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The payment reminder prints no reminder level and charges no default interest, its firm, customer, invoices and payments are invented, it pays SIX’s example QR-IBAN, and its French, Italian and English have been reviewed by no native speaker.",
+          "heldBy": "packages/report-render-pdf/src/payment-reminder.test.ts"
+        }
+      ]
     }
   }
 }
