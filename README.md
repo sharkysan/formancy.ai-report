@@ -239,7 +239,7 @@ and either builder edits it field by field
 ([0044](./docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
 Its three other samples are the e-invoice gate's alone.
 
-![The XRechnung starter, the e-invoice's invoice terms made an XRechnung 3.0 for a German public buyer, whose PDF is its copy: the page headed Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice, the Leitweg-ID: 991-33333TEST-33 at the foot of its head, its line items in euro, then Nettobetrag 535,00 €, Umsatzsteuer 19 % auf 535,00 € and Rechnungsbetrag 636,65 €, the totals its XML holds, and under them the Bankverbindung beside the EPC QR code that pays it](docs/images/starter-e-invoice-xrechnung.png)
+![The XRechnung starter, the e-invoice's template in the other kind, an XRechnung 3.0 billing a German public buyer of its own, whose PDF is its copy: the page headed Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice, the Leitweg-ID: 991-33333TEST-33 at the foot of its head, its line items in euro, then Nettobetrag 535,00 €, Umsatzsteuer 19 % auf 535,00 € and Rechnungsbetrag 636,65 €, the totals its XML holds, and under them the Bankverbindung beside the EPC QR code that pays it](docs/images/starter-e-invoice-xrechnung.png)
 
 The XRechnung starter is the e-invoice's template made an XRechnung 3.0,
 "Rechnung (XRechnung)", the same firm billing an invented federal office

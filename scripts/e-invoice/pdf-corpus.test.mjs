@@ -112,12 +112,37 @@ describe('the variants', () => {
   // variant of a starter gone would stop the gate with a reason nobody
   // reads in the corpus.
   test('draw every starter of the corpus, and no other', () => {
-    const starters = PDF_VARIANTS.flatMap((variant) => (variant.draws.starter === undefined ? [] : [variant.draws.starter]))
+    const starters = PDF_VARIANTS.flatMap((variant) => (variant.draws.starter === undefined ? [] : [{ id: variant.draws.starter }]))
     expect(variantProblems(starters)).toEqual([])
-    expect(variantProblems([...starters, 'delivery-note'])).toEqual([
+    expect(variantProblems([...starters, { id: 'delivery-note' }])).toEqual([
       'report-corpus’s starter delivery-note has no PDF variant, so no validator judges it as an e-invoice',
     ])
-    expect(variantProblems(starters.filter((id) => id !== 'invoice'))).toEqual(['a PDF variant draws the starter invoice, which report-corpus does not have'])
+    expect(variantProblems(starters.filter(({ id }) => id !== 'invoice'))).toEqual([
+      'a PDF variant draws the starter invoice, which report-corpus does not have',
+    ])
+  })
+
+  // Which starters a variant draws is read from each one's kind of
+  // e-invoice, as the gate reads what it draws of a sample (KINDS): an
+  // XRechnung's PDF is a copy that embeds nothing and is no PDF/A (0038),
+  // so a PDF/A-3b of its page, carrying another sample's Factur-X invoice,
+  // would be a file that says it is an XRechnung's copy and is a Factur-X
+  // invoice, which no host draws (0065). A variant of one is refused, and
+  // none asked of it; a Factur-X starter's is asked as any other's, and a
+  // kind the gate does not know is refused rather than guessed.
+  test('draw no starter whose kind of e-invoice is drawn as no PDF/A-3b, and refuse a kind the gate does not know', () => {
+    const starters = PDF_VARIANTS.flatMap((variant) =>
+      variant.draws.starter === undefined ? [] : [{ id: variant.draws.starter, kind: variant.draws.starter === 'e-invoice' ? 'facturX' : undefined }],
+    )
+    const xrechnung = { id: 'e-invoice-xrechnung', kind: 'xrechnung' }
+    expect(variantProblems([...starters, xrechnung])).toEqual([])
+    expect(PDF_VARIANTS.some((variant) => variant.draws.starter === xrechnung.id)).toBe(false)
+    expect(variantProblems(starters.map((starter) => (starter.id === 'quotation' ? { ...starter, kind: 'xrechnung' } : starter)))).toEqual([
+      'a PDF variant draws the starter quotation, an e-invoice of the kind xrechnung, which the gate draws as no PDF/A-3b',
+    ])
+    expect(variantProblems([...starters, { id: 'fattura', kind: 'fatturaPA' }])).toEqual([
+      'report-corpus’s starter fattura is an e-invoice of the kind fatturaPA, which the gate does not know',
+    ])
   })
 
   // The blocks a sample's page does not draw, after it on a page of their

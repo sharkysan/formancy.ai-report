@@ -53,8 +53,8 @@ export { XRECHNUNG_SAMPLE, XRECHNUNG_SAMPLES, xrechnungData } from './xrechnung.
 /**
  * The three starters of plan 7, in the order the plan lists them, then the
  * invoice with its QR-bill, the invoice with its EPC code, the e-invoice
- * (0044) and the XRechnung sample, its invoice terms as the other kind,
- * beside it (0065), the report generated from a formancy form (0045), and
+ * (0044) and the XRechnung sample, its template in the other kind, billing
+ * a buyer of its own, beside it (0065), the report generated from a formancy form (0045), and
  * the order confirmation and the product data sheet, which print what 0059
  * to 0063 added (0064).
  */

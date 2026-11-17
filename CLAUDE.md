@@ -949,7 +949,8 @@ exactly what CI does:
   judge the XML the runtime writes of each e-invoice sample, an
   XRechnung's in KoSIT's XRechnung scenario (0038), veraPDF and Mustang
   the PDF/A-3b the renderer draws of each Factur-X and of variants that carry
-  the first sample's e-invoice on other pages -- every starter's, a page
+  the first sample's e-invoice on other pages -- every starter's but an
+  XRechnung's, whose copy is no PDF/A (0065), a page
   of every image kind PDFKit embeds, a page of SVGs in every way
   svg-to-pdfkit paints one, one of an SVG at every bound an e-invoice
   holds one to, and a page each of four of the corpus's charts, laid out by

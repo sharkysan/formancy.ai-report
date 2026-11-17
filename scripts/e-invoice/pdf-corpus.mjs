@@ -11,8 +11,9 @@
 //   samples' one page -- an image of every kind PDFKit embeds, an SVG in
 //   every way the converter paints one and an SVG at every bound the
 //   renderer holds one to in an e-invoice, a QR code, a rectangle, a page
-//   region, a second page, every starter, text outside ASCII in both
-//   faces -- each drawn by the renderer with the first
+//   region, a second page, every starter whose kind of e-invoice is
+//   drawn as one (KINDS), text outside ASCII in both faces -- each drawn
+//   by the renderer with the first
 //   sample's e-invoice, and each must be accepted as a sample is. Without
 //   them every PDF a validator judged would be one template's one page.
 // - **The controls** are made by the gate and never through an option of a
@@ -144,7 +145,9 @@ export const PDF_CONTROLS = [
  * report-corpus's `ALL_FIXTURES`; or `starter`, a starter of its `STARTERS`
  * resolved as a host resolves it, with `STARTER_IMAGES` -- each carrying the
  * base sample's e-invoice. `variantProblems` holds the list to every
- * starter, so that a starter added is one the gate judges.
+ * starter whose kind of e-invoice is drawn as a PDF/A-3b, so that a starter
+ * added is one the gate judges, and none of an XRechnung, whose copy is no
+ * PDF/A (0038, 0065).
  */
 export const PDF_VARIANTS = [
   {
@@ -198,11 +201,6 @@ export const PDF_VARIANTS = [
     file: 'variant-e-invoice.pdf',
     why: 'the e-invoice starter, the base sample opened as the Studio opens it, from its own data, where a person edits it in either builder (0044)',
     draws: { starter: 'e-invoice' },
-  },
-  {
-    file: 'variant-e-invoice-xrechnung.pdf',
-    why: 'the XRechnung starter’s page, from its own data, the Leitweg-ID at the foot of its head and the copy label the runtime heads its final render with, drawn with the base sample’s Factur-X invoice: the page a person opens beside the e-invoice in the Studio (0065), whose own render is a plain copy no tool judges (0038)',
-    draws: { starter: 'e-invoice-xrechnung' },
   },
   {
     file: 'variant-site-visit.pdf',
@@ -313,12 +311,30 @@ export function boundDocument(base, asset, side) {
   return { ...base, body: [...base.body, { kind: 'pageBreak' }, { kind: 'image', asset, width: side, height: side, fit: 'contain' }] }
 }
 
-/** What is wrong with the variants against the corpus's starters, by id, as sentences: a starter no variant draws, or a variant of a starter the corpus does not have. */
+/**
+ * What is wrong with the variants against the corpus's starters, each `{
+ * id, kind }`, `kind` its e-invoice's or none, as sentences: a starter no
+ * variant draws whose page may be drawn as a PDF/A-3b -- no e-invoice, or
+ * one of a kind `KINDS` draws -- a variant of a starter of a kind drawn as
+ * none, an XRechnung, whose PDF is a copy (0038), or of one the corpus does
+ * not have, and a kind the gate does not know.
+ */
 export function variantProblems(starters) {
   const drawn = PDF_VARIANTS.flatMap((variant) => (variant.draws.starter === undefined ? [] : [variant.draws.starter]))
+  const unknown = starters.filter(({ kind }) => kind !== undefined && !Object.hasOwn(KINDS, kind))
+  const known = starters.filter((starter) => !unknown.includes(starter))
+  const asDrawn = ({ kind }) => kind === undefined || KINDS[kind].drawn
   return [
-    ...starters.filter((id) => !drawn.includes(id)).map((id) => `report-corpus’s starter ${id} has no PDF variant, so no validator judges it as an e-invoice`),
-    ...drawn.filter((id) => !starters.includes(id)).map((id) => `a PDF variant draws the starter ${id}, which report-corpus does not have`),
+    ...unknown.map(({ id, kind }) => `report-corpus’s starter ${id} is an e-invoice of the kind ${String(kind)}, which the gate does not know`),
+    ...known
+      .filter((starter) => asDrawn(starter) && !drawn.includes(starter.id))
+      .map(({ id }) => `report-corpus’s starter ${id} has no PDF variant, so no validator judges it as an e-invoice`),
+    ...known
+      .filter((starter) => !asDrawn(starter) && drawn.includes(starter.id))
+      .map(({ id, kind }) => `a PDF variant draws the starter ${id}, an e-invoice of the kind ${String(kind)}, which the gate draws as no PDF/A-3b`),
+    ...drawn
+      .filter((id) => !starters.some((starter) => starter.id === id))
+      .map((id) => `a PDF variant draws the starter ${id}, which report-corpus does not have`),
   ]
 }
 

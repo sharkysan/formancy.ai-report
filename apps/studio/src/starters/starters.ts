@@ -1,8 +1,8 @@
 /**
  * The reports the Studio opens: the corpus's starters, plan 7's three
  * (R19), the invoice with its QR-bill, the invoice with its EPC QR code,
- * the e-invoice (0044) and the same invoice terms as an XRechnung beside
- * it (0065), the site visit generated from a formancy form (0045), and the
+ * the e-invoice (0044) and its template as an XRechnung beside it, billing
+ * a buyer of its own (0065), the site visit generated from a formancy form (0045), and the
  * order confirmation and the product data sheet (0064), each with its
  * synthetic data, and a blank report to build from nothing.
  */
@@ -36,7 +36,7 @@ const KIND: Readonly<Record<NonNullable<ReportDefinition['eInvoice']>['kind'], M
 /**
  * What the picker calls a starter. An e-invoice, by its kind, in the
  * builder's words: "E-invoice (Factur-X)" and "E-invoice (XRechnung)",
- * one template's terms in either kind, side by side (0065). Any other, from
+ * one template in both kinds, each billing its own buyer (0065). Any other, from
  * its id: 'grouped-equipment' is "Grouped equipment".
  */
 export function starterLabel(starter: Pick<StudioStarter, 'id' | 'report'>): string {

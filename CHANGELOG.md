@@ -19,10 +19,12 @@ XRechnung, which the e-invoice gate judges and both builders edit since
 0044, was no starter. Neither starter's report or data changed.
 - **The XRechnung sample is a starter**, `STARTERS`' seventh, after the
   e-invoice: the e-invoice's template made an XRechnung 3.0, billing an
-  invented federal office by KoSIT's test Leitweg-ID. Every walk over the
-  starters walks it, the README pictures its page, the copy, and the
-  e-invoice gate draws its page as a PDF/A-3b variant with the first
-  sample's e-invoice.
+  invented federal office by KoSIT's test Leitweg-ID: one template in
+  both kinds, each billing its own buyer. Every walk over the starters
+  walks it and the README pictures its page, the copy. The e-invoice gate
+  draws no PDF/A-3b variant of it: which starters a variant draws is now
+  read from each one's kind of e-invoice, and an XRechnung's PDF is a copy
+  that is no PDF/A.
 - **The picker names an e-invoice by its kind**, "E-invoice (Factur-X)"
   and "E-invoice (XRechnung)", in the builder's words; the e-invoice
   starter was "E-invoice".

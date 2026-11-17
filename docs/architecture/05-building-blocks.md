@@ -484,8 +484,8 @@ standard-setters' own examples ([0037](../decisions/0037-an-e-invoice-may-name-e
 an XRechnung sample, the first one's template made an XRechnung, to an
 invented federal buyer by a Leitweg-ID of KoSIT's test suite
 (`starters/xrechnung.ts`, [0038](../decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)),
-a starter too, the one after the e-invoice, so that the Studio offers the
-one template's terms in both kinds side by side
+a starter too, the one after the e-invoice, so that the Studio offers one
+template in both kinds side by side, each billing its own buyer
 ([0065](../decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
 Two starters print what 0059 to 0063 added, letters of the same firm
 ([0064](../decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)):

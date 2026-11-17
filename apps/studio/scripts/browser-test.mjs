@@ -17,8 +17,9 @@
 //     selected, in the React builder and in the Angular one;
 //   - axe's default rules and its target-size rule find nothing, and
 //     contrast and target size were measured, in each state: every starter
-//     in React and in Angular with its preview printed, a refusal by the
-//     runtime and one by the renderer;
+//     in React and in Angular with its preview printed, an e-invoice's
+//     final render with its Download XML, a refusal by the runtime and one
+//     by the renderer;
 //   - the preview really prints in the page: the renderer's browser entry
 //     and PDF.js, and nothing fetched, nor a connection hinted, outside the
 //     built Studio: its faces are its own files (0023), so the page tells
@@ -31,7 +32,8 @@
 //     preview says on every page that it is no e-invoice (0044), and
 //     there its Download XML, the Factur-X's the very bytes its Download
 //     PDF embeds and the XRechnung's beside a copy that embeds nothing,
-//     the keyboard's next stop after Download PDF (0065); every
+//     the keyboard's next stop after Download PDF, and that state
+//     measured as every other is (0065); every
 //     Download PDF downloaded as a person downloads it, and read again
 //     where the Preview printed anew between the read of the link and the
 //     download, each pass measuring how often it did (gate-download.mjs);
@@ -387,7 +389,11 @@ async function journey(gate, page, picker, { refuseFonts }) {
         await settled(page, FINAL)
       }
       if (picture !== undefined) await paperChecks(gate, page, final === null ? state : `${state}, its final render`, picture)
-      if (final !== null) await downloadXmlChecks(gate, page, `${state}, its final render`, { id, kind: INVOICED.get(id) })
+      if (final !== null) {
+        await downloadXmlChecks(gate, page, `${state}, its final render`, { id, kind: INVOICED.get(id) })
+        // Measured with Download XML on screen, which a preview never shows: its layout, its contrast and its target size (0065).
+        await measured(gate, page, `${state}, its final render`)
+      }
       if (final !== null) {
         await final.uncheck()
         await settled(page)

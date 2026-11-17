@@ -198,7 +198,6 @@ describe('veraPDF’s verdict', () => {
       ['variant-invoice.pdf', 'as expected', []],
       ['variant-euro-invoice.pdf', 'as expected', []],
       ['variant-e-invoice.pdf', 'as expected', []],
-      ['variant-e-invoice-xrechnung.pdf', 'as expected', []],
       ['variant-site-visit.pdf', 'as expected', []],
       ['variant-order-confirmation.pdf', 'as expected', []],
       ['variant-product-data-sheet.pdf', 'as expected', []],

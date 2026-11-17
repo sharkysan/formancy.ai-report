@@ -30,10 +30,10 @@ describe("the Studio's starters", () => {
     ])
   })
 
-  // The two e-invoices are one template's terms in two kinds (0065): each is
-  // called what the builder calls the part, and the kind its heading names
-  // ("Factur-X: E-invoice"), so the picker says which kind each is and that
-  // they are a pair. Named from their ids they read "E-invoice" and
+  // The two e-invoices are one template in both kinds, each billing its own
+  // buyer (0065): each is called what the builder calls the part, and the
+  // kind its heading names ("Factur-X: E-invoice"), so the picker says
+  // which kind each is and that the two are one template's. Named from their ids they read "E-invoice" and
   // "E-invoice xrechnung", the one saying no kind and the other misspelling
   // its own; and two starters of one name could not be told apart.
   test('call an e-invoice by its kind, the builder’s word for it, and no two alike', () => {

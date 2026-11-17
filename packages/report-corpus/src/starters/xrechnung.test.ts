@@ -43,10 +43,10 @@ describe('the XRechnung sample', () => {
   // One sample, "Rechnung (XRechnung)", in German, apart from the Factur-X
   // samples, which a PDF/A-3b embeds: its PDF is a copy, and the gate
   // judges its XML in KoSIT's XRechnung scenario. A starter too, the one
-  // after the e-invoice, so that the Studio's picker offers the one
-  // invoice's terms in both kinds side by side (0065): one elsewhere in
-  // the list, or none, and a person trying the Studio meets one kind and
-  // never sees that the same terms make the other.
+  // after the e-invoice, so that the Studio's picker offers one template
+  // in both kinds side by side, each billing its own buyer (0065): one
+  // elsewhere in the list, or none, and a person trying the Studio meets
+  // one kind and never sees that the template makes the other.
   test('is one, in German, the starter after the e-invoice, and no Factur-X sample', () => {
     expect(XRECHNUNG_SAMPLES).toEqual([XRECHNUNG_SAMPLE])
     expect([XRECHNUNG_SAMPLE.id, XRECHNUNG_SAMPLE.title, XRECHNUNG_SAMPLE.report.locale, XRECHNUNG_SAMPLE.report.eInvoice?.kind]).toEqual([
