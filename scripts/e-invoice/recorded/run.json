@@ -1,6 +1,6 @@
 {
   "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the XML corpus it wrote (corpus/), Mustang's report and log on each file, XML and PDF (mustang/), KoSIT's report on each XML file and its console (kosit/), veraPDF's report on every PDF and what it wrote on stderr (verapdf/), how each run ended, and each PDF's digest of its objects with every stream inflated (`pdfs`, report-corpus's `inflatedDigest`): the PDFs themselves are not recorded, since their bytes are the zlib's that deflated them, which `machine` names. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus, a control or what the renderer draws changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options, with its seven XRechnung notices.",
-  "recordedAt": "2026-11-17T00:38:59.959Z",
+  "recordedAt": "2026-11-17T02:12:23.552Z",
   "machine": {
     "platform": "win32",
     "arch": "x64",
@@ -76,6 +76,7 @@
     "variant-invoice.pdf": 0,
     "variant-euro-invoice.pdf": 0,
     "variant-e-invoice.pdf": 0,
+    "variant-e-invoice-xrechnung.pdf": 0,
     "variant-site-visit.pdf": 0,
     "variant-order-confirmation.pdf": 0,
     "variant-product-data-sheet.pdf": 0,
@@ -113,6 +114,7 @@
     "variant-invoice.pdf": "6f103e740f0a3efbdd998e918c25ccb40280ab8a9b6a5b7d2e4cedc7c4dbf9bf",
     "variant-euro-invoice.pdf": "55929afe0eccbc717aa25728ad8c81964a768f6e80a0547287a0930f50ee4d0a",
     "variant-e-invoice.pdf": "63f3c67aa9503bace02eb1ffbe7748cc2d7f4a3d07eae7738f36cf4fae8c5a90",
+    "variant-e-invoice-xrechnung.pdf": "e68ce9a7f2d6f176b949f5e0ddf00af8444c80d75073c8104f635a65d2f295ca",
     "variant-site-visit.pdf": "7b559af5f74ad7cc29742cb8513aeeef18f52b81fa99637c2ee69ef908d9bef1",
     "variant-order-confirmation.pdf": "4ff236592f8b8c529b86b1dcb73235d4bf5c47af0ac0bd347a0eaf69c7190e18",
     "variant-product-data-sheet.pdf": "a109a308ecab690478bda32e847f1d8c6b11c4ebc557a0c704ab3b6206455c94",

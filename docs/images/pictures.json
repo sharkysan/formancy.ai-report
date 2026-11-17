@@ -1347,6 +1347,198 @@
     ]
   },
   {
+    "file": "starter-e-invoice-xrechnung.png",
+    "starter": "e-invoice-xrechnung",
+    "page": 1,
+    "scale": 1.25,
+    "sha256": "f752499cb32209458f3e5c05d0a3228f37341c22ba9659ef37f803a88c93b2ef",
+    "caption": "The XRechnung starter, the e-invoice's invoice terms made an XRechnung 3.0 for a German public buyer, whose PDF is its copy: the page headed Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice, the Leitweg-ID: 991-33333TEST-33 at the foot of its head, its line items in euro, then Nettobetrag 535,00 €, Umsatzsteuer 19 % auf 535,00 € and Rechnungsbetrag 636,65 €, the totals its XML holds, and under them the Bankverbindung beside the EPC QR code that pays it",
+    "lines": [
+      "Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice",
+      "Formancy Haustechnik GmbH · Industriestraße 7 · 50735 Köln · USt-IdNr. DE123456789",
+      "Bundesamt für Beispielwesen",
+      "Rechnung",
+      "Beispielweg 12",
+      "Rechnungsnummer: RE-2026-0824",
+      "53113 Bonn",
+      "Rechnungsdatum: 20.10.2026",
+      "Leistungsdatum: 14.10.2026",
+      "Zahlbar bis: 19.11.2026",
+      "Leitweg-ID: 991-33333TEST-33",
+      "Artikel Beschreibung Menge Einheit Einzelpreis Betrag",
+      "H-3501 Wartung Gas- 1,00 Pausch. 245,00 € 245,00 €",
+      "Brennwertkessel",
+      "H-3502 Arbeitszeit Techniker 2,50 h 76,00 € 190,00 €",
+      "H-3503 Abgasmessung 1,00 Pausch. 48,00 € 48,00 €",
+      "H-3504 Anfahrt Bonn 1,00 Pausch. 52,00 € 52,00 €",
+      "Nettobetrag 535,00 €",
+      "Umsatzsteuer 19 % auf 535,00 € 101,65 €",
+      "Umsatzsteuer gesamt 101,65 €",
+      "Rechnungsbetrag 636,65 €",
+      "Zahlbar ohne Abzug bis zum 19. November 2026 auf das unten genannte Konto, unter Angabe der Referenz.",
+      "Bankverbindung",
+      "Empfänger: Formancy Haustechnik GmbH",
+      "IBAN: DE83 0123 4567 0012 3456 78",
+      "BIC: FMNCDEF0XXX",
+      "Betrag: 636,65 €",
+      "Referenz: RF23 2026 0824",
+      "Oder scannen Sie den Code links mit Ihrer Banking-App."
+    ],
+    "places": [
+      [
+        56.69,
+        57.71
+      ],
+      [
+        56.69,
+        127.61
+      ],
+      [
+        56.69,
+        149.24
+      ],
+      [
+        348.59,
+        150
+      ],
+      [
+        56.69,
+        160.96
+      ],
+      [
+        348.59,
+        167.99
+      ],
+      [
+        56.69,
+        172.67
+      ],
+      [
+        348.59,
+        179.71
+      ],
+      [
+        348.59,
+        191.42
+      ],
+      [
+        348.59,
+        203.14
+      ],
+      [
+        348.59,
+        214.86
+      ],
+      [
+        60.69,
+        246.95
+      ],
+      [
+        60.69,
+        262
+      ],
+      [
+        156.69,
+        272.55
+      ],
+      [
+        60.69,
+        287.59
+      ],
+      [
+        60.69,
+        302.64
+      ],
+      [
+        60.69,
+        317.69
+      ],
+      [
+        56.69,
+        336.86
+      ],
+      [
+        56.69,
+        348.58
+      ],
+      [
+        56.69,
+        360.3
+      ],
+      [
+        56.69,
+        372.08
+      ],
+      [
+        56.69,
+        396.32
+      ],
+      [
+        56.69,
+        426.04
+      ],
+      [
+        159.4,
+        437.76
+      ],
+      [
+        159.4,
+        449.48
+      ],
+      [
+        159.4,
+        461.2
+      ],
+      [
+        159.4,
+        472.92
+      ],
+      [
+        159.4,
+        484.64
+      ],
+      [
+        159.4,
+        502.1
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          72.06,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 73.48, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 83.4, 22.68, 10.63]",
+          "fill #ffffff [72.99, 91.2, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          56.69,
+          436.48,
+          90.71,
+          90.71
+        ],
+        "paints": [
+          "#000000",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #ffffff [56.69, 436.48, 90.71, 90.71]",
+          "fill #000000 [63.54, 443.33, 77.02, 77.02]"
+        ]
+      }
+    ]
+  },
+  {
     "file": "starter-site-visit.png",
     "starter": "site-visit",
     "page": 1,
