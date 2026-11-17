@@ -6,8 +6,9 @@ import type { StarterImage } from './starter.js'
 /**
  * The firm's mark (0032): what the QR-bill invoice, the euro invoice and
  * the quotation, their samples, the e-invoice samples, the order
- * confirmation and the product data sheet (0064) print at the top left of
- * their first page, above the line that says whom they are from.
+ * confirmation and the product data sheet (0064) and the payment reminder
+ * (0066) print at the top left of their first page, above the line that
+ * says whom they are from.
  * Every one of their firms is an invented "Formancy" of a trade, so one
  * mark serves them all, and the firm's invoices differ in nothing but
  * their words (0024, 0028).

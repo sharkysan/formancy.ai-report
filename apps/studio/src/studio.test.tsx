@@ -435,6 +435,7 @@ describe('the Studio', () => {
       'Site visit',
       'Order confirmation',
       'Product data sheet',
+      'Payment reminder',
       'Blank',
     ])
   })

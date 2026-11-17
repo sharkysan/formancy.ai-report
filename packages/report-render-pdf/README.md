@@ -900,6 +900,13 @@ languages, its powers, index and marks off the line by the corpus's
 `shiftedRuns`, every line of the page in that language and its values as
 that locale writes them
 ([0064](../../docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)).
+`payment-reminder.test.ts` proves the payment reminder in each of its
+four languages: both tables line by line, every total and what is due
+recomputed in BigInt, the slip's headings in that language alone, and its
+code, decoded from the page, asking for what is due by the reminder's
+reference; and, with forty invoices more, its running header from page 2
+and its slip on the last page alone
+([0066](../../docs/decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)).
 `samples.test.ts` does the same for the corpus's invoice samples,
 the invoice in German, French, Italian and English: one page each, its
 totals in its locale's format, its slip's headings in its language and in
