@@ -1479,7 +1479,7 @@
     "starter": "order-confirmation",
     "page": 2,
     "scale": 1.25,
-    "sha256": "8868afa116f61bfacd7e11e5312c38c44b22a3f0ebe2a268bc9b193a2d66dd5e",
+    "sha256": "5d083397da699ce2a61f6127ccca74ed66da28cce6a114fb60279d3a2515d8e6",
     "caption": "The order confirmation starter, page 2: under its running header, Auftragsbestätigung AB-2026-1107, the third delivery's header, Lieferung vom 11. Januar 2027, kept with its lines, then the services down to Total Leistungen CHF 7'342.00 and the returns down to Total Rücknahmen CHF-606.40, each table totalling its own lines, and under them the order's Total CHF 51'704.28 over every line",
     "lines": [
       "Auftragsbestätigung AB-2026-1107 · Bäckerei Müller AG",
@@ -1494,7 +1494,7 @@
       "Zwischensumme Lieferung CHF 4'031.40",
       "Total Waren CHF 41'094.45",
       "Leistungen",
-      "Leistung Menge Einheit Ansatz Total",
+      "Leistung Menge Einheit Ansatz Betrag",
       "Montage Lüftungsgerät 16.00 h CHF 118.00 CHF 1'888.00",
       "Montage Wärmepumpe 12.00 h CHF 118.00 CHF 1'416.00",
       "Elektroanschluss 6.50 h CHF 124.00 CHF 806.00",
