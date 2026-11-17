@@ -497,7 +497,7 @@ letterhead in page 1's own header; and the product data sheet
 marks set off the line, written in Swiss German with its words in
 French, Italian and English, each language's words a table of
 `starters/product-data-sheet-words.ts`.
-A third letter pays the balance of a customer's overdue invoices by a
+Another letter pays the balance of a customer's overdue invoices by a
 QR-bill in the customer's language
 ([0066](../decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)):
 the payment reminder (`starters/payment-reminder.ts`), the customer's

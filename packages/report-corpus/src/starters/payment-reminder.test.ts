@@ -116,6 +116,39 @@ describe('the payment reminder', () => {
     expect(outcome.document.paymentPart?.reference).toBe('00 00000 00000 00000 02026 00949')
   })
 
+  // A reminder whose items leave nothing due has no bill to print: SIX's
+  // amount runs from 0.01, and the runtime refuses the render rather than
+  // print a slip for nothing or for a credit, which the record and the
+  // register name as a cost a host meets. One cent due still prints, so
+  // the line is the bill's own rule and not a margin of the starter's.
+  test.each([
+    ['one cent due', '-3207.29', true],
+    ['nothing due', '-3207.30', false],
+    ['more received than owed', '-3300.00', false],
+  ] as const)('with %s, is %s printed', (_case, payment, prints) => {
+    const items = [...ITEMS, { kind: 'payment', invoice: 'R-2026-0673', date: '2026-11-16', dueOn: null, daysOverdue: null, amount: payment } as const]
+    const outcome = resolveReport(PAYMENT_REMINDER.report, paymentReminderData(items), {
+      mode: 'final',
+      parameters: {},
+      images: starterImages,
+      creationDate: '2026-11-17T08:00:00Z',
+    })
+    expect(outcome.ok ? 'printed' : outcome.errors.map(({ code, path }) => `${code} ${path}`)).toEqual(
+      prints ? 'printed' : ['invalid-qr-bill /paymentPart/amount'],
+    )
+  })
+
+  // No items at all leave nothing due either, and are refused alike.
+  test('with no items, is refused for its bill', () => {
+    const outcome = resolveReport(PAYMENT_REMINDER.report, paymentReminderData([]), {
+      mode: 'final',
+      parameters: {},
+      images: starterImages,
+      creationDate: '2026-11-17T08:00:00Z',
+    })
+    expect(outcome.ok ? 'printed' : outcome.errors.map(({ code, path }) => `${code} ${path}`)).toEqual(['invalid-qr-bill /paymentPart/amount'])
+  })
+
   // Page 1 prints the firm's letterhead in its own header, and page 2 on
   // a slim running header that names the reminder and the customer
   // (0060): a running header on page 1 would print above the letterhead,
@@ -144,6 +177,15 @@ describe('the payment reminder', () => {
       ['row.kind == "credit" ? "Gutschrift" : "Zahlung"'],
       ['row.kind == "credit" ? "Gutschrift" : "Zahlung"'],
       ['row.kind == "credit" ? "Gutschrift" : "Zahlung"'],
+    ])
+    // Each language's expression is stated, as the German one is: the
+    // renderer's test reads the page against the same words, so a language
+    // whose credit note and payment were swapped would pass it, printing a
+    // payment as a credit note.
+    expect(translations?.map(({ expressions }) => expressions.map(({ expression }) => expression.cel))).toEqual([
+      ['row.kind == "credit" ? "Note de crédit" : "Paiement"'],
+      ['row.kind == "credit" ? "Nota di credito" : "Pagamento"'],
+      ['row.kind == "credit" ? "Credit note" : "Payment"'],
     ])
     expect(REMINDER_EDITIONS.map(({ locale }) => locale)).toEqual(['de-CH', 'fr-CH', 'it-CH', 'en-CH'])
   })

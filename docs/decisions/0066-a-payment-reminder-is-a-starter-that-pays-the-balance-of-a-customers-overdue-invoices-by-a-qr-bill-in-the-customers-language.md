@@ -19,7 +19,9 @@
     each, valid and whole in every language and opening with no
     diagnostic but its bill's example account; written in each language,
     to the reminder written in it alone, its slip in that language; and
-    its data to holding no word. `src/starters/starters.test.ts` holds the
+    its data to holding no word; and a reminder that leaves nothing due,
+    or holds no items, to being refused for its bill, and one that leaves
+    one cent due to printing. `src/starters/starters.test.ts` holds the
     eleven starters by id, in order, each validating, opening with no
     warning but a bill's example and resolving its own data in a final
     render with no warning; `src/starters/logo.test.ts` holds it beside
@@ -211,7 +213,9 @@ in `starters/payment-reminder-words.ts`).
   forty invoices more. The overdue invoices' heading is not kept with its
   table, which a reminder of more invoices runs past its page: kept, the
   renderer would move both to the next page (0064's defect); it stands at
-  the top of page 1's body, where no page ends under it.
+  the top of page 1's body, where no page ends under it. The heading of
+  what was received is kept with its table, which the starter's own items
+  and the renderer's forty invoices more leave on the page it begins.
 - **Four languages, one report** (0063). The German is the reminder's
   own; the French, Italian and English are translations keyed by the
   German, each word written anew. What a payment and a credit note are
@@ -274,6 +278,16 @@ in `starters/payment-reminder-words.ts`).
 - **A fee only as an item.** A host whose fee is not an item of its
   ledger hands one over as an item, or the reminder prints CHF 0.00 for
   it; a fee written in the template would be a second place for it.
+- **Nothing due, no reminder.** A QR-bill's amount runs from 0.01, so a
+  reminder whose items leave nothing due -- what was received as much as
+  what is owed or more, or no items at all -- is refused in a final
+  render for its bill, and a host sends none; one cent due prints. The
+  corpus's test holds both sides.
+- **The second heading exposed.** The heading of what was received is
+  kept with its table, so a customer with more payments and credit notes
+  than the rest of the page holds meets 0064's defect: the heading prints
+  with the whole table on the next page. Nothing is lost, and the fix is
+  the renderer's change of its own (11 Risks and debt).
 - **One page in every picture.** The starter's own data fits page 1, so
   the README, the Studio and the browser gate show the running header
   never; the renderer's test alone prints a page 2, with forty invoices

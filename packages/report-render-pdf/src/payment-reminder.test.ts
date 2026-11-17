@@ -342,7 +342,8 @@ describe('a payment reminder of more invoices than page 1 holds', () => {
   // running header, which names the reminder and the customer, then the
   // overdue invoices' column header again, and draws no mark; the slip is
   // the last page's foot, so page 1 has no code and page 2 one, asking for
-  // the balance of every item, recomputed here. A letterhead on every page,
+  // the balance of every item, recomputed here, which both its parts print
+  // as their amount. A letterhead on every page,
   // a page 2 with no word of whose reminder it is, or a slip on page 1
   // under a table that goes on would each be wrong on the paper.
   test(
@@ -360,6 +361,7 @@ describe('a payment reminder of more invoices than page 1 holds', () => {
       expect([(await readCodes(bytes, 1)).length, (await readCodes(bytes, 2)).map((code) => code.text)]).toEqual([0, [document.paymentPart?.payload]])
       const due = sum(items)
       expect(document.paymentPart?.payload.split('\n').slice(18, 20)).toEqual([decimal(due), 'CHF'])
+      expect([first, second].map((page) => page?.items.filter((item) => item.text === slipAmount(due)).length)).toEqual([0, 2])
       expect(pages[1]).toEqual(
         expect.arrayContaining([`Total überfällige Rechnungen ${francs('de-CH', sum(of(items, 'invoice')))}`, `Zu bezahlen ${francs('de-CH', due)}`]),
       )
