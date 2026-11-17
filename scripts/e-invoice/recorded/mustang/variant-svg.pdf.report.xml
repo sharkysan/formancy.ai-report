@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<validation filename="variant-svg.pdf" datetime="2026-11-17 08:12:26">
+<validation filename="variant-svg.pdf" datetime="2026-11-17 20:19:15">
   <pdf>ValidationResult [flavour=3b, totalAssertions=13000, assertions=[], isCompliant=true]
     <info>
       <signature>unknown</signature>
-      <duration unit="ms">2038</duration>
+      <duration unit="ms">1743</duration>
     </info>
     <summary status="valid"/>
   </pdf>  
@@ -17,7 +17,7 @@
         <fired>179</fired>
         <failed>0</failed>
       </rules>
-      <duration unit="ms">2485</duration>
+      <duration unit="ms">1816</duration>
     </info>
     <summary status="valid"/>
   </xml>

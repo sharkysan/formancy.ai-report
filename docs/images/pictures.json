@@ -1949,5 +1949,308 @@
         ]
       }
     ]
+  },
+  {
+    "file": "starter-sales-report.png",
+    "starter": "sales-report",
+    "page": 1,
+    "scale": 1.25,
+    "sha256": "10e6be26ca056b2f2070496a99a44708c0f071efc98aba0c19b0490fe5917670",
+    "caption": "The sales report starter, an Umsatzbericht November 2026 under the firm's mark, Umsatz CHF 124'793.00 aus 42 Belegen: a bar chart of each product line's sales, its Heizung bar labelled 63'482.00, the total its group in the table closes with, Total Heizung CHF 63'482.00, beside a pie of each region's share, its legend saying each region's total and share, as Stadt Bern: 38'209.70 (30.6%), and under them the month's lines grouped by product line",
+    "lines": [
+      "Formancy Haustechnik AG · Industriestrasse 7 · 3052 Zollikofen · CHE-123.456.789 MWST",
+      "Umsatzbericht November 2026",
+      "Zeitraum: 1. November 2026 bis 30. November 2026",
+      "Erstellt am: 01.12.2026",
+      "Umsatz CHF 124'793.00 aus 42 Belegen",
+      "Umsatz nach Sparte Umsatz nach Region",
+      "CHF",
+      "80'000.00",
+      "63'482.00",
+      "60'000.00",
+      "40'000.00",
+      "28'492.20 Emmental: 10'031.00 (8.0%)",
+      "25'583.80",
+      "Mittelland: 30'263.80 (24.3%)",
+      "20'000.00",
+      "Oberland: 17'313.00 (13.9%)",
+      "7'235.00",
+      "Seeland: 28'975.50 (23.2%)",
+      "0.00",
+      "Stadt Bern: 38'209.70 (30.6%)",
+      "Heizung Lüftung Sanitär Service",
+      "Belege nach Sparte",
+      "Beleg Datum Region Beschreibung Menge Einheit Betrag",
+      "Heizung (13 Belege)",
+      "R-26-1101 02.11.2026 Mittelland Wärmepumpe 8 kW 1.00 Stk CHF 12'480.00",
+      "R-26-1105 04.11.2026 Stadt Bern Wärmepumpe 12 kW 1.00 Stk CHF 14'650.00",
+      "R-26-1106 04.11.2026 Stadt Bern Pufferspeicher 500 l 1.00 Stk CHF 1'890.00",
+      "R-26-1112 10.11.2026 Oberland Heizkessel Gas 24 kW 1.00 Stk CHF 6'340.00",
+      "R-26-1113 11.11.2026 Emmental Radiator 600 × 1000 6.00 Stk CHF 2'475.00",
+      "R-26-1119 16.11.2026 Mittelland Heizrohr PE-RT 16 mm 420.00 m CHF 819.00",
+      "R-26-1120 16.11.2026 Mittelland Heizkreisverteiler 2.00 Stk CHF 1'248.00",
+      "R-26-1124 18.11.2026 Seeland Wärmepumpe 16 kW 1.00 Stk CHF 17'920.00",
+      "R-26-1125 19.11.2026 Seeland Umwälzpumpe DN 32 3.00 Stk CHF 2'226.00",
+      "R-26-1129 23.11.2026 Oberland Mischventil DN 32 2.00 Stk CHF 796.00",
+      "R-26-1134 25.11.2026 Stadt Bern Wärmemengenzähler 4.00 Stk CHF 2'048.00",
+      "G-26-0041 26.11.2026 Seeland Gutschrift Umwälzpumpe 1.00 Stk CHF-742.00",
+      "R-26-1137 27.11.2026 Emmental Raumthermostat Funk 9.00 Stk CHF 1'332.00",
+      "Total Heizung CHF 63'482.00",
+      "Lüftung (9 Belege)",
+      "R-26-1103 03.11.2026 Stadt Bern Lüftungsgerät KWL 350 1.00 Stk CHF 7'450.00",
+      "R-26-1107 05.11.2026 Stadt Bern Lüftungskanal DN 160 48.50 m CHF 2'240.70",
+      "R-26-1115 12.11.2026 Mittelland Lüftungsgerät KWL 550 1.00 Stk CHF 9'280.00",
+      "R-26-1116 12.11.2026 Mittelland Schalldämpfer DN 160 4.00 Stk CHF 1'248.00",
+      "Seite 1 von 2"
+    ],
+    "places": [
+      [
+        56.69,
+        112.23
+      ],
+      [
+        56.69,
+        128.63
+      ],
+      [
+        56.69,
+        146.61
+      ],
+      [
+        56.69,
+        158.33
+      ],
+      [
+        56.69,
+        170.05
+      ],
+      [
+        165.54,
+        200.51
+      ],
+      [
+        95,
+        229.64
+      ],
+      [
+        59.69,
+        249.33
+      ],
+      [
+        115.68,
+        269.37
+      ],
+      [
+        59.69,
+        285.33
+      ],
+      [
+        59.69,
+        321.33
+      ],
+      [
+        176.69,
+        331.64
+      ],
+      [
+        237.69,
+        337.59
+      ],
+      [
+        402.69,
+        349.01
+      ],
+      [
+        59.69,
+        357.33
+      ],
+      [
+        402.69,
+        366.39
+      ],
+      [
+        300.95,
+        370.62
+      ],
+      [
+        402.69,
+        383.76
+      ],
+      [
+        79.07,
+        393.33
+      ],
+      [
+        402.69,
+        401.14
+      ],
+      [
+        118.58,
+        406.01
+      ],
+      [
+        56.69,
+        431.9
+      ],
+      [
+        60.69,
+        447.03
+      ],
+      [
+        60.69,
+        462.08
+      ],
+      [
+        60.69,
+        477.13
+      ],
+      [
+        60.69,
+        492.17
+      ],
+      [
+        60.69,
+        507.22
+      ],
+      [
+        60.69,
+        522.27
+      ],
+      [
+        60.69,
+        537.31
+      ],
+      [
+        60.69,
+        552.36
+      ],
+      [
+        60.69,
+        567.41
+      ],
+      [
+        60.69,
+        582.45
+      ],
+      [
+        60.69,
+        597.5
+      ],
+      [
+        60.69,
+        612.55
+      ],
+      [
+        60.69,
+        627.59
+      ],
+      [
+        60.69,
+        642.64
+      ],
+      [
+        60.69,
+        657.69
+      ],
+      [
+        230.69,
+        672.73
+      ],
+      [
+        60.69,
+        687.78
+      ],
+      [
+        60.69,
+        702.83
+      ],
+      [
+        60.69,
+        717.88
+      ],
+      [
+        60.69,
+        732.92
+      ],
+      [
+        60.69,
+        747.97
+      ],
+      [
+        274.87,
+        776.85
+      ]
+    ],
+    "drawings": [
+      {
+        "box": [
+          56.69,
+          56.69,
+          42.52,
+          42.52
+        ],
+        "paints": [
+          "#1f4e79",
+          "#ffffff"
+        ],
+        "paths": [
+          "fill #1f4e79 [58.11, 58.11, 39.69, 39.69]",
+          "stroke #ffffff [66.61, 68.03, 22.68, 10.63]",
+          "fill #ffffff [72.99, 75.82, 9.92, 14.88]"
+        ]
+      },
+      {
+        "box": [
+          56.69,
+          194.49,
+          290,
+          220
+        ],
+        "paints": [
+          "#000000",
+          "#1f77b4",
+          "#d9d9d9"
+        ],
+        "paths": [
+          "stroke #d9d9d9 [102.69, 396.99, 244, 0]",
+          "stroke #d9d9d9 [102.69, 360.99, 244, 0]",
+          "stroke #d9d9d9 [102.69, 324.99, 244, 0]",
+          "stroke #d9d9d9 [102.69, 288.99, 244, 0]",
+          "stroke #d9d9d9 [102.69, 252.99, 244, 0]",
+          "stroke #000000 [102.69, 396.99, 244, 0]",
+          "fill #1f77b4 [108.79, 282.69, 48.8, 114.3]",
+          "fill #1f77b4 [169.79, 345.69, 48.8, 51.3]",
+          "fill #1f77b4 [230.79, 350.89, 48.8, 46.1]",
+          "fill #1f77b4 [291.79, 383.99, 48.8, 13]"
+        ]
+      },
+      {
+        "box": [
+          358.59,
+          194.49,
+          180,
+          220
+        ],
+        "paints": [
+          "#1b9e77",
+          "#1f77b4",
+          "#7570b3",
+          "#d95f02",
+          "#e7298a"
+        ],
+        "paths": [
+          "fill #1f77b4 [448.59, 213.59, 27.2, 56.2]",
+          "fill #d95f02 [448.59, 220.59, 56.19, 74]",
+          "fill #1b9e77 [448.59, 269.79, 50.4, 54.5]",
+          "fill #7570b3 [395.89, 269.79, 66.1, 56.13]",
+          "fill #e7298a [392.41, 213.59, 56.18, 75.6]",
+          "fill #1f77b4 stroke #1f77b4 [389.69, 331.3, 8, 8]",
+          "fill #d95f02 stroke #d95f02 [389.69, 348.68, 8, 8]",
+          "fill #1b9e77 stroke #1b9e77 [389.69, 366.05, 8, 8]",
+          "fill #7570b3 stroke #7570b3 [389.69, 383.43, 8, 8]",
+          "fill #e7298a stroke #e7298a [389.69, 400.8, 8, 8]"
+        ]
+      }
+    ]
   }
 ]

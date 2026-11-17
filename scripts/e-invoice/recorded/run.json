@@ -1,6 +1,6 @@
 {
   "$comment": "A run of the e-invoice gate, recorded by `node scripts/e-invoice.mjs --record` once it passed: the XML corpus it wrote (corpus/), Mustang's report and log on each file, XML and PDF (mustang/), KoSIT's report on each XML file and its console (kosit/), veraPDF's report on every PDF and what it wrote on stderr (verapdf/), how each run ended, and each PDF's digest of its objects with every stream inflated (`pdfs`, report-corpus's `inflatedDigest`): the PDFs themselves are not recorded, since their bytes are the zlib's that deflated them, which `machine` names. Every output is recorded with the line ends the repository keeps and without the machine's path to the repository, and the console without its results table, whose cells wrap each path across lines (scripts/e-invoice/record.mjs). The judges' tests and the corpus's read it, so that every rule is held on what the pinned tools wrote and not on what somebody thought they would; it is recorded again when a tool, the corpus, a control or what the renderer draws changes. `research` is one output recorded by hand on 17 October 2026, kept for what no run of the gate produces: Mustang 2.26.0's report on a FeRD sample, EN16931_Einfach.pdf, run without --no-notices and without the gate's encoding options, with its seven XRechnung notices.",
-  "recordedAt": "2026-11-17T07:14:28.411Z",
+  "recordedAt": "2026-11-17T19:20:53.258Z",
   "machine": {
     "platform": "win32",
     "arch": "x64",
@@ -79,6 +79,7 @@
     "variant-site-visit.pdf": 0,
     "variant-order-confirmation.pdf": 0,
     "variant-product-data-sheet.pdf": 0,
+    "variant-sales-report.pdf": 0,
     "control-plain.pdf": 4294967295,
     "control-pdfa.pdf": 0,
     "control-xmp.pdf": 0,
@@ -116,6 +117,7 @@
     "variant-site-visit.pdf": "7b559af5f74ad7cc29742cb8513aeeef18f52b81fa99637c2ee69ef908d9bef1",
     "variant-order-confirmation.pdf": "4ff236592f8b8c529b86b1dcb73235d4bf5c47af0ac0bd347a0eaf69c7190e18",
     "variant-product-data-sheet.pdf": "a109a308ecab690478bda32e847f1d8c6b11c4ebc557a0c704ab3b6206455c94",
+    "variant-sales-report.pdf": "d52eef502460912876d8b7d69bf2af8ce861f3fb1a8f6e671b4afa4d43d4a872",
     "control-plain.pdf": "74e770ac045135614a7e51d3e59c7b26b85b1c2daee7fdceecc3978c9f1aa08d",
     "control-pdfa.pdf": "537b0c0e9e123e86ec7753c308026fcb236564d019d01760a6f5d30664596b84",
     "control-xmp.pdf": "a39f93923ea8aedc283182e0c7c0858ea9886d19c994779af0ffc8075320a808",
@@ -131,6 +133,7 @@
     "pdfa-2b-site-visit.pdf": "0df79dd3726be3e876b348988f2cd8e8af0f735996e2271e1f394ec3221efcb7",
     "pdfa-2b-order-confirmation.pdf": "54e684e6134face3a87f28a2f9bdbf8f087b1d2ffef21b69a3921faad0561a44",
     "pdfa-2b-product-data-sheet.pdf": "1d79d5ca30d48ed386fc3fab909f82c99a13ba9ff450b1c47b3ab09ef329d03d",
+    "pdfa-2b-sales-report.pdf": "515f6630a34f3a1917fbf13a5ea4b1494fdcf1aaf0e245089e466a2290d058de",
     "pdfa-2b-blocks.pdf": "376248b75a0a4766c6079a17de188e893f2994f31be47ff37fd8f03ab224f049",
     "pdfa-2b-svg.pdf": "266654c976c89fea66c2fee0e6e2cc36d4674fff90893ebfff83e4299723ca91",
     "pdfa-2b-svg-bound.pdf": "51b65a9f6a26921ea80690f55bd635a197d4e333d5d38a0a1db781a9c84cebd9",
