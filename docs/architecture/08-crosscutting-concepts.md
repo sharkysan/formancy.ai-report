@@ -33,7 +33,7 @@ half done behind it. Each layer has its own kind:
 | Diagnostics | An error or a warning on a valid report, at the component and the column it is about, and the language it is about where it is one of a translation's | An error is what the runtime would refuse, one that names a language a render in that language alone; a warning renders as written ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), 0063) |
 | Runtime | Every reason, each with the stage that found it, a stable code and a JSON Pointer | No document ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | Renderer | A `RenderRefusal`: `too-many-pages`, `content-too-large`, `invalid-asset`, `cancelled` or `unsupported`, naming the block, table or asset | No PDF ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)) |
-| Word writer | The same `RenderRefusal`, the runtime's, as `unsupported`, `content-too-large` or `invalid-asset`: what no engine prints by the code and the subject the renderer refuses it by, what belongs to the PDF by a sentence that says to print the report as one, each naming the block, table, asset or part of the document | No file, decided before a byte is written ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)) |
+| Word writer | The same `RenderRefusal`, the runtime's, as `unsupported`, `content-too-large` or `invalid-asset`: what no engine prints by the code and the subject the renderer refuses it by, what belongs to the PDF by a sentence that says to print the report as one, each naming the block, table, asset or part of the document; and a QR code or an EPC QR code by the very refusal the renderer throws, since both ask the runtime's one rule ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)) | No file, decided before a byte is written ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)) |
 | Provider | Every reason, each with a JSON Pointer | No data ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)) |
 | Form bridge | Every reason, each with a stable code and a JSON Pointer into what was handed over or into the report, a field the version cannot fill naming the field and the version's hash | No data ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)) |
 | Report generator | Every reason, each with a stable code and a JSON Pointer into the form or the options: what the format or the page cannot hold, or a label no font draws, by its place, never cut to fit | No report, and no notes ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)) |
@@ -346,6 +346,10 @@ Studio's browser gate holds the file Chromium downloads to the bytes the
 writer gives under Node. The bytes are a release's: a later one may
 write the file otherwise
 ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+A code's picture is the one part the writer makes itself, and it is the
+same bytes for the same symbol at the same size: a PNG of the header,
+the image data and the end alone, deflated by fflate at a stated level
+([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
 
 What it does not cover: the characters Intl prints are the engine's ICU's,
 so the same report can print differently under another Node
@@ -526,7 +530,8 @@ Several sets of words, and they are kept apart:
   message is a word, and its account, parties, reference and billing
   information print as written in every language (0063).
 - **An EPC QR code's caption** is Austria's words, "Zahlen mit Code", as the
-  PSA prints them, whatever the report's language. The builders call the
+  PSA prints them, whatever the report's language, in the PDF and in a
+  Word file (0074). The builders call the
   code "EPC payment code", "EPC-Zahlcode" or "Code de paiement EPC"; the
   name some banks give it is not used, because nothing here found who owns
   it or what rules come with it

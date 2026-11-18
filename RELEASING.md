@@ -62,10 +62,13 @@ pnpm test:e2e:install
 #    starter that offers it, Download Word; open each file in Word, and see
 #    that it opens with nothing repaired, that a table's header row repeats
 #    on its second page, and that the firm's mark, page 1's own header, the
-#    footer's page number and count and the report's words are there. Say
+#    footer's page number and count and the report's words are there; and,
+#    at the euro invoice, that its code's picture is as large as its PDF's,
+#    and that a phone reads the page Word prints of it (0074). Say
 #    what was seen, in which Word and on which day, in record 0068's "Seen,
-#    once, by hand", then
+#    once, by hand", and of a code in record 0074's, then
 #    node scripts/release-report/limitations.mjs --stamp 0068
+#    node scripts/release-report/limitations.mjs --stamp 0074
 
 # 4. Get the release commit onto main, through a pull request like any other.
 #    From the merge on, the pages at formancy.ai/report/ name the release,

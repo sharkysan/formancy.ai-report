@@ -24,6 +24,16 @@ that lands it.
   a page is drawn. First the one reader of PDFs that the runtime, the
   renderer and the server share, then the component, the builders, the
   server and a formancy form's uploads.
+- **The rest of a report in its Word file**, before any other item on
+  this page, each a record and a pull request of its own, as
+  [0074](decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)
+  names them: a QR-bill's slip, on a page of its own at the end of the file (0075); a
+  chart as Word's own, a DrawingML chart written from the runtime's block
+  (0076); and an e-invoice as a copy a person may edit, labelled on every
+  page as not the invoice (0077). Until each is written the writer
+  refuses it, as
+  [0068](decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)
+  has it.
 
 ## What a report can hold
 
@@ -93,15 +103,15 @@ that lands it.
    [0068](decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)
    rather than argue them again.
 3. **More of a report in its Word file**, each of which 0068 refuses
-   until a record lifts it: a QR code and an EPC QR code, once the rules
-   a code is refused by stand below both engines and not in the PDF
-   renderer alone; a JPEG its Exif block turns, a CMYK JPEG, an SVG that
-   covers a box of other proportions than its own, and a table or a page
-   break in a framed section, once somebody has seen what Word does with
-   each; the report's own faces embedded in the file, where their licence
-   allows one that is edited; and a raster of an SVG for a reader that
-   draws none, which needs a rasteriser. A QR-bill's slip, an e-invoice
-   and a chart stay the PDF's.
+   until a record lifts it, after the slip, the chart and the e-invoice
+   that are in progress above: a JPEG its Exif block turns, a CMYK JPEG,
+   an SVG that covers a box of other proportions than its own, and a
+   table or a page break in a framed section, once somebody has seen what
+   Word does with each; the report's own faces embedded in the file,
+   where their licence allows one that is edited; a raster of an SVG for
+   a reader that draws none, which needs a rasteriser; and Austria's
+   frame around an EPC QR code with the corners the PSA's figure rounds,
+   which a table's borders do not turn (0074).
 4. **A Word file judged by ECMA-376's schemas** in a gate of its own, the
    schemas admitted by digest as the e-invoice gate's tools are: until
    then a file is read back by the corpus's own reader, and by no

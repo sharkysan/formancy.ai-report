@@ -326,8 +326,8 @@ as zlib does, alone. `check.ts` refuses before a byte is written, once
 date and the title, what belongs to the PDF of the document itself, the
 page, then each region's blocks in document order, and the pictures'
 bytes last. It refuses what belongs to the PDF (`pdf-only.ts`:
-a payment part, an e-invoice, a preview the runtime labelled, a chart, a
-QR code and an EPC QR code); what nobody has seen Word print as the PDF
+a payment part, an e-invoice, a preview the runtime labelled and a
+chart); what nobody has seen Word print as the PDF
 does (a JPEG its Exif block turns, by report-spec's
 `JpegHeader.orientation`, or of four components, in `assets.ts`, which
 reads every picture's bytes as the renderer does, a PNG's image data
@@ -339,7 +339,9 @@ subject; what Word's units do not state; and what is past `limits.ts`'s
 (`ONE_CELL_TABLE`), `MAX_DOCX_CHARACTERS`, `MAX_DOCX_RUNS`, a line ending
 one of them, `MAX_DOCX_PICTURES`, `MAX_DOCX_MEDIA_BYTES` and
 `MAX_DOCX_IMAGE_DATA`, the renderer's `MAX_IMAGE_DATA` stated again and
-counted from a picture's header before a PNG is inflated.
+counted from a picture's header before a PNG is inflated, and
+`MAX_DOCX_CODES` and `MAX_DOCX_CODE_MODULES`, a file's codes and the
+modules of their symbols.
 `xml.ts` is the one place a string becomes markup, a type of its own, and
 `check-text.ts` holds every string to what a report prints and XML
 holds; `fonts.ts` names a mapped token by its normal face's name ID 1,
@@ -357,6 +359,30 @@ bytes. Lines, pages and their count are
 Word's. The Studio's Preview offers the file as Download Word, or says
 why the writer refused it
 ([0068](docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+A QR code and an EPC QR code are in the file as pictures. What decides a
+code's symbol, and what refuses one, is report-runtime's, below both
+engines: `qrSymbol` and a QR-bill's `swissSymbol` in `qr-symbol.ts`,
+`epcSymbol` in `epc-symbol.ts`, on `uqr` at exactly 0.1.3, the runtime's
+dependency and no engine's, each given the width a code stands at and
+throwing the `RenderRefusal` an engine refuses with; the renderer's
+`qr.ts` and `epc.ts` are the drawing alone. The writer's `codes.ts` asks
+the rule once, where `check.ts` meets a code, holds a file's codes to
+their bounds, and maps one to a picture's paragraph exactly its size, or,
+in Austria's frame, to an empty line kept with a table of one row -- the
+picture, and "Zahlen mit Code" in Arial in a cell turned `btLr`,
+bordered around by half a module -- and an empty line under it;
+`code-png.ts` makes the picture, a PNG of one bit a pixel, whole pixels a
+module (`modulePixels`: `CODE_RESOLUTION` to the inch, `MAX_CODE_SIDE` a
+side at the most), a repeated scanline nothing but PNG's filter, deflated
+by fflate, the same bytes for the same symbol. The corpus proves a code
+on that picture: `docx/png.ts` reads the PNG back by its own walk and
+Node's zlib, `code-picture.ts` holds its pixels to a symbol in whole
+pixels a module (`codeGrid`) and has ZXing read them (`readPictureCode`),
+`check-docx-codes.ts` holds each code to its document, which is why
+`verifyDocx` is waited for, `readDocxCodes` reads a file's codes for a
+test, `CODE_FIXTURES` are the documents both engines draw, and each way
+a code is refused is a document of `MALFORMED`
+([0074](docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
 `@formancy/report-documents` is the one reader of PDFs, beside report-spec,
 which holds no PDF engine, and nothing calls it yet: `readDocument`, in
 `read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model

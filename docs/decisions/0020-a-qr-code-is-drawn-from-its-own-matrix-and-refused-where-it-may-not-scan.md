@@ -1,6 +1,6 @@
 # 0020 — A QR code is drawn from its own matrix, exactly its size, and refused where it may not scan
 
-- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's Swiss QR Code at SIX's size, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code as a QR code, or at the PSA's widths in Austria's frame, and by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), whose SVG assets the same converter draws, in the one form report-spec's `cleanSvg` writes
+- **Status:** accepted; extended by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which draws a QR-bill's Swiss QR Code at SIX's size, by [0025](0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md), which draws an EPC QR code as a QR code, or at the PSA's widths in Austria's frame, and by [0030](0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), whose SVG assets the same converter draws, in the one form report-spec's `cleanSvg` writes, and by [0074](0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md), under which the symbol and every refusal of it are report-runtime's `qrSymbol`, which the Word writer asks too, uqr the runtime's dependency and the renderer's no longer
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -388,6 +388,22 @@ code's matrix, and it holds nothing a host or a customer wrote. And the
 corpus finds an SVG image by a clip of its size with paint inside, so a
 code's square, which the converter clips too, is a clip nothing expects,
 and is not reported.
+
+**Added 2026-11-18: the rules stand in report-runtime.** [0074](0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)
+moves what this record has the renderer decide -- the encoder and its
+options, the level never raised, the 7089 characters, the 0.4 mm floor,
+each refusal and its words -- to report-runtime's `qr-symbol.ts`, line
+for line, with the two refusals of a code's square, a size that is no
+number and one wider than where it stands. The renderer asks
+`qrSymbol`, once, when it checks the document, and draws the symbol it
+is handed as this record draws it; `qr.ts` is the drawing alone. uqr is
+the runtime's dependency, at the same release, and the renderer's
+devDependency, for the cases above that wrap the encoder to count its
+calls: `qr.test.ts` is unchanged, and holds what it held. Where this
+record says "the renderer encodes it with uqr", "an exact dependency of
+report-render-pdf" and "the renderer depends on uqr", read the runtime.
+No PDF changed. The Word writer asks the same rule and writes the symbol
+as a picture.
 
 ## Alternatives considered
 
