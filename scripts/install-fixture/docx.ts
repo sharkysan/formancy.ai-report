@@ -8,19 +8,27 @@
  * firm's mark as the very bytes the host approved; written twice, the
  * same bytes; and the quotation as a bill, which consume.ts resolved,
  * refused whole as `unsupported`, naming its payment part, through the
- * class and the codes the package hands on. consume.ts runs it and prints
- * what it returns.
+ * class and the codes the package hands on. And the euro invoice with
+ * its EPC QR code in Austria's frame (0074), which consume.ts resolved
+ * too: written, its code a picture of one bit a pixel whose side is whole
+ * pixels a module of the symbol the packed runtime's `epcSymbol` gives,
+ * on the uqr a clean npm install gives the runtime, and its caption among
+ * the document's text. consume.ts runs it and prints what it returns.
  *
  * What only this gate sees is the fflate and the pako a clean npm
- * install gives the writer, and the writer's own declarations with
- * skipLibCheck off. What it cannot see is the file in a browser, or in
- * Word.
+ * install gives the writer, the uqr it gives the runtime, and the
+ * writer's own declarations with skipLibCheck off. What it cannot see is
+ * the file in a browser, or in Word, or what a scanner reads in the
+ * picture: no decoder is in this host.
  */
 import { resolveReport } from '@formancy/report-runtime'
-import type { ImageResolver, ResolvedDocument } from '@formancy/report-runtime'
+import { epcSymbol, QR_QUIET_ZONE } from '@formancy/report-runtime'
+import type { EpcQrCode, ImageResolver, QrSymbol, ResolvedDocument } from '@formancy/report-runtime'
 import { renderDocx, RenderRefusal } from '@formancy/report-render-docx'
 import {
   MAX_DOCX_CHARACTERS,
+  MAX_DOCX_CODE_MODULES,
+  MAX_DOCX_CODES,
   MAX_DOCX_FAMILY_LENGTH,
   MAX_DOCX_IMAGE_DATA,
   MAX_DOCX_MEDIA_BYTES,
@@ -60,12 +68,47 @@ function entriesOf(zip: Uint8Array): Map<string, Buffer> {
   return found
 }
 
-export function wordWritten(billed: ResolvedDocument): string {
+/**
+ * The euro invoice with its EPC QR code in Austria's frame, written: the
+ * side, in pixels, of the one picture of its file that is the code's --
+ * a PNG of one bit of grey a pixel, square, as many whole pixels a module
+ * as its side over the symbol's modules and their quiet zone.
+ */
+function codeWritten(paid: ResolvedDocument): number {
+  const code = paid.body.find((block): block is EpcQrCode => block.kind === 'epcQrCode')
+  if (code === undefined) throw new Error('the euro invoice holds no EPC QR code')
+  const symbol: QrSymbol = epcSymbol(code, 1000)
+  const across = symbol.modules.length + 2 * QR_QUIET_ZONE
+  const parts = entriesOf(renderDocx(paid))
+  // A PNG's header: its width and its height at bytes 16 and 20, its bit depth at 24 and its colour type at 25.
+  const sides = [...parts]
+    .filter(([name, part]) => /^word\/media\/image\d+\.png$/.test(name) && part.readUInt8(24) === 1 && part.readUInt8(25) === 0)
+    .map(([, part]) => [part.readUInt32BE(16), part.readUInt32BE(20)] as const)
+    .filter(([width, height]) => width === height && width % across === 0)
+  const [side] = sides
+  if (sides.length !== 1 || side === undefined)
+    throw new Error(
+      `the euro invoice's Word file holds ${sides.length} pictures of its code's ${across} modules: its parts are ${[...parts.keys()].join(', ')}`,
+    )
+  if (parts.get('word/document.xml')?.toString('utf8').includes('>Zahlen mit Code</w:t>') !== true)
+    throw new Error("the euro invoice's Word file does not hold its code's caption as text")
+  return side[0]
+}
+
+export function wordWritten(billed: ResolvedDocument, paid: ResolvedDocument): string {
   if (!REFUSAL_CODES.includes(UNSUPPORTED)) throw new Error('the refusal codes the writer hands on do not hold unsupported')
   if (
-    ![MAX_DOCX_PARAGRAPHS, MAX_DOCX_CHARACTERS, MAX_DOCX_RUNS, MAX_DOCX_PICTURES, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_IMAGE_DATA, MAX_DOCX_FAMILY_LENGTH].every(
-      (bound) => Number.isSafeInteger(bound) && bound > 0,
-    )
+    ![
+      MAX_DOCX_PARAGRAPHS,
+      MAX_DOCX_CHARACTERS,
+      MAX_DOCX_RUNS,
+      MAX_DOCX_PICTURES,
+      MAX_DOCX_MEDIA_BYTES,
+      MAX_DOCX_IMAGE_DATA,
+      MAX_DOCX_FAMILY_LENGTH,
+      MAX_DOCX_CODES,
+      MAX_DOCX_CODE_MODULES,
+    ].every((bound) => Number.isSafeInteger(bound) && bound > 0)
   )
     throw new Error("the writer's bounds are not counts")
   const resolution = resolveReport(quotation, quotationData, { mode: 'final', images, creationDate: CREATED })
@@ -97,5 +140,6 @@ export function wordWritten(billed: ResolvedDocument): string {
   }
   if (!(refusal instanceof RenderRefusal) || refusal.code !== UNSUPPORTED || refusal.subject !== 'paymentPart')
     throw new Error(`the quotation with a QR-bill was not refused as a Word file for its payment part: ${String(refusal)}`)
-  return `the quotation written as a ${file.length}-byte Word file of ${parts.size} parts that Node's zlib reads, its title and its instant in its core properties and the firm's mark the approved bytes, the same bytes twice, and with a QR-bill refused whole for its payment part`
+  const side = codeWritten(paid)
+  return `the quotation written as a ${file.length}-byte Word file of ${parts.size} parts that Node's zlib reads, its title and its instant in its core properties and the firm's mark the approved bytes, the same bytes twice, and with a QR-bill refused whole for its payment part; and the euro invoice written with its EPC QR code in Austria's frame, a picture ${side} pixels a side of whole pixels a module of the symbol the runtime gives`
 }

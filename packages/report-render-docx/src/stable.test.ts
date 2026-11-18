@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ALL_FIXTURES, QUOTATION, readZip, SERVICE_INSPECTION, ZIP_EPOCH } from '@formancy/report-corpus'
+import { ALL_FIXTURES, EURO_INVOICE_AT, QUOTATION, readZip, SERVICE_INSPECTION, ZIP_EPOCH } from '@formancy/report-corpus'
 import type { ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { zipEpoch } from './package.js'
@@ -21,11 +21,17 @@ import { fromWire, toWire } from './testing/wire.js'
  * file than Node, and no test here loads it.
  */
 
-/** A starter with a photograph and an SVG, one with tables and totals, and the corpus's host fonts: every kind of part a file holds. */
+/**
+ * A starter with a photograph and an SVG, one with tables and totals, the
+ * corpus's host fonts, and the euro invoice from Austria, whose EPC QR
+ * code's picture is the one part the writer makes itself, and deflates
+ * (0074): every kind of part a file holds.
+ */
 const DOCUMENTS: readonly (readonly [string, ResolvedDocument])[] = [
   ['the service inspection', resolved(SERVICE_INSPECTION)],
   ['the quotation', resolved(QUOTATION)],
   ['the host fonts', ALL_FIXTURES.find((fixture) => fixture.id === 'host-fonts')!.document],
+  ['the euro invoice from Austria', resolved(EURO_INVOICE_AT)],
 ]
 
 const digest = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex')

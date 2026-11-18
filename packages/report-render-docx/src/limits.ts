@@ -348,3 +348,59 @@ export const MAX_DOCX_IMAGE_DATA = 2 * MAX_ASSET_SIDE * (1 + MAX_ASSET_SIDE * 8)
  * a PDF, and is refused as a Word file.
  */
 export const MAX_DOCX_PICTURES = 1024
+
+/**
+ * The QR codes and EPC QR codes a file may hold, and the modules their
+ * symbols may have between them (0074). Each code is encoded as the
+ * document is checked and drawn as a picture of its own as the file is
+ * written, on the thread that calls, and is a part of the file besides.
+ *
+ * Two bounds, since a count bounds the work only where each thing
+ * counted costs what the count takes it for: the largest symbol, version
+ * 40, 177 modules a side, takes uqr 0.1.3 some 28 ms to encode, and one
+ * of version 1 half a millisecond. So the codes are counted, where the
+ * walk meets one and before anything of it is worked out; and the
+ * modules of their symbols, the square of each one's side, are counted
+ * as each is encoded, so that no code is encoded after the one that
+ * crossed. `MAX_DOCX_CODE_MODULES` is what sixteen of the largest symbol
+ * hold: a file may hold sixteen such codes, or as many as
+ * `MAX_DOCX_CODES` of a symbol of version 17, 85 modules a side, or
+ * less, and 49 of one of version 21.
+ *
+ * Measured on 18 November 2026 on the machine above, which a build
+ * shared that day, under Node 24.21.0 with uqr 0.1.3 and fflate 0.8.3, a
+ * process a measurement, four each, a document of codes alone on an A4
+ * page: the seconds `renderDocx` held the thread, and the process's
+ * resident memory at its most, which a document of one paragraph took
+ * 0.01 seconds and 150 to 151 MB of.
+ *
+ *     the file                                            seconds        MB
+ *     one code of version 3, 30 mm a side                 0.02-0.03      151-152
+ *     one of version 40, 300 points a side                0.09-0.10      153-154
+ *     `MAX_DOCX_CODES` of version 3, 30 mm a side         0.18-0.22      185-187
+ *     as many of version 17, 644 bytes at level L         0.62-0.68      200-202
+ *     as many of version 1, 595 points a side, the
+ *       largest a page holds                              0.79-0.85      180-195
+ *     as many EPC QR codes of 331 bytes in Austria's
+ *       frame, 118.6 points a side                        0.53-0.56      195-214
+ *     sixteen of version 40, 1273 bytes at level H        0.70-0.72      171-176
+ *     sixteen of version 40, 7089 digits at level L       0.81-0.84      177-183
+ *     sixteen of version 40, 595 points a side            0.70-0.76      170-176
+ *     fifteen of version 40 of 7089 digits and 49 of
+ *       version 1: both bounds at once                    0.88-1.61      183-195
+ *
+ * The 1.61 seconds are one process of the four, on a machine that was
+ * busy; the other three took 0.88 to 0.93. Those are the shapes that were
+ * looked for. A code's picture is 741 bytes for the version 3 above and
+ * 8,215 for the version 40.
+ *
+ * With the count alone, before the modules were bounded, 64 of version
+ * 40 at 300 points held the thread 2.63 to 2.76 seconds at 1273 bytes
+ * and 3.03 to 3.19 at 7089 digits, three processes each, on top of
+ * whatever else a file at its bounds costs: which is why they are. And
+ * before a picture was held to `MAX_CODE_SIDE` pixels a side
+ * (`code-png.ts`), 64 of version 40 at 595 points, each 4,995 pixels a
+ * side, held it 6.09 to 7.47 seconds.
+ */
+export const MAX_DOCX_CODES = 64
+export const MAX_DOCX_CODE_MODULES = 16 * 177 * 177

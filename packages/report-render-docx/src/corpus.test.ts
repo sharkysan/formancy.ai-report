@@ -1,6 +1,7 @@
 import {
   ALL_FIXTURES,
   CHART_FIXTURES,
+  CODE_FIXTURES,
   FIRST_PAGE_FIXTURES,
   KEEP_WITH_FIXTURES,
   SHIFTED_FIXTURES,
@@ -17,11 +18,21 @@ import { refusalOf, written } from './testing/support.js'
  * renderer answers to, written and proved on the file the writer
  * produced, read back by the corpus's reader and held by the corpus's
  * check -- or refused as the corpus derives from the document. Never on
- * the nodes the writer built.
+ * the nodes the writer built. A code is held on its picture's own pixels
+ * and on what ZXing reads in them (0074), which is why the check is
+ * waited for.
  */
 
-/** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's, the chart ones and those of runs set below or above the line. */
-const CORPUS: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES, ...SHIFTED_FIXTURES]
+/** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's, the chart ones, those of runs set below or above the line and the code ones (0074). */
+const CORPUS: readonly Fixture[] = [
+  ...ALL_FIXTURES,
+  ...SVG_FIXTURES,
+  ...KEEP_WITH_FIXTURES,
+  ...FIRST_PAGE_FIXTURES,
+  ...CHART_FIXTURES,
+  ...SHIFTED_FIXTURES,
+  ...CODE_FIXTURES,
+]
 
 /**
  * The fixtures the PDF renderer refuses for what it measured, which the
@@ -59,7 +70,7 @@ describe.each(CORPUS.map((fixture) => [fixture.id, fixture] as const))('%s', (_i
   const refusal = owed ?? asset
 
   if (refusal !== undefined) {
-    // A file written of it would be the report with its chart, its code or its picture left out, and nothing saying so.
+    // A file written of it would be the report with its chart or its picture left out, and nothing saying so.
     test(`is refused as ${refusal.code}, naming ${String(refusal.subject)}`, () => {
       expect(refusalOf(document)).toMatchObject(refusal)
     })
@@ -74,11 +85,17 @@ describe.each(CORPUS.map((fixture) => [fixture.id, fixture] as const))('%s', (_i
   // Every word, cell, mark, picture and length the document states, on the file itself.
   test(
     'is written as the file its document says',
-    () => {
-      expect(verifyDocx(fixture, written(document))).toEqual([])
+    async () => {
+      expect(await verifyDocx(fixture, written(document))).toEqual([])
     },
     WRITTEN_WITHIN,
   )
+})
+
+// A suite that wrote no code would hold none: every code fixture is written, each with a code in its file.
+test('writes every code fixture of the corpus, and none is refused', () => {
+  expect(CODE_FIXTURES.length).toBeGreaterThan(5)
+  for (const fixture of CODE_FIXTURES) expect(wordRefusal(fixture.document), fixture.id).toBeUndefined()
 })
 
 // The list above names fixtures: one that left the corpus would stay listed, and say the writer writes something it never saw.

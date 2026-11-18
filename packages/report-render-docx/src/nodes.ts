@@ -110,6 +110,8 @@ export interface CellNode {
   readonly borders?: { readonly top?: Line; readonly left?: Line; readonly bottom?: Line; readonly right?: Line }
   /** Lower-case `#rrggbb`. */
   readonly shade?: string
+  /** Which way its text reads where it is turned: from bottom to top, as an EPC QR code's caption reads (0074). */
+  readonly direction?: 'btLr'
   readonly content: BlockNode[]
 }
 

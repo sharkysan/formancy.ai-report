@@ -172,6 +172,7 @@ export function writer(): Writer {
                 ['w:fill', hexColor(node.shade)],
               ]),
             ]),
+        ...(node.direction === undefined ? [] : [valued('w:textDirection', own(node.direction))]),
       ],
     )
     return element('w:tc', [], [set, blocks(node.content)])

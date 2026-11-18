@@ -30,7 +30,8 @@ const table = (id: string, more: Partial<Table> = {}): Table => ({
 const label = (text: string): Block => ({ kind: 'paragraph', runs: [{ text }], style: { size: 8, bold: true, color: '#b00020' } })
 const SLIP = {} as NonNullable<ResolvedDocument['paymentPart']>
 const invoice = (kind: string): NonNullable<ResolvedDocument['eInvoice']> => ({ kind }) as NonNullable<ResolvedDocument['eInvoice']>
-const QR: Block = { kind: 'qrCode', id: 'code', text: 'x', size: 60, errorCorrection: 'M' }
+/** A QR code the rules below both engines refuse (0074): its square is too small for its text at 0.4 mm a module. */
+const FINE: Block = { kind: 'qrCode', id: 'code', text: 'https://formancy.ai/report/', size: 40, errorCorrection: 'M' }
 
 type Case = readonly [name: string, document: ResolvedDocument, code: string, subject: string, sentence: RegExp]
 
@@ -54,14 +55,6 @@ describe('what belongs to the PDF is refused, naming it', () => {
       /labelled on every page/,
     ],
     ['a chart', documentOf([CHART]), 'unsupported', CHART_ID, /laid out by the PDF renderer alone/],
-    ['a QR code', documentOf([QR]), 'unsupported', 'code', /the QR code code is drawn/],
-    [
-      'an EPC QR code in a column',
-      documentOf([{ kind: 'columns', columns: [{ width: 'fill', blocks: [{ kind: 'epcQrCode', id: 'pay', payload: 'x', size: 60 }] }] }]),
-      'unsupported',
-      'pay',
-      /the EPC QR code pay/,
-    ],
     ['a chart in the page header', documentOf([], { pageHeader: [CHART] }), 'unsupported', CHART_ID, /the chart/],
   ]
   test.each(cases)('%s', (...each) => {
@@ -69,13 +62,26 @@ describe('what belongs to the PDF is refused, naming it', () => {
   })
 
   // The order is the record's: the document's own parts before any block, so that the same report is refused for the same thing whatever else it holds.
-  test('the payment part before an e-invoice, an e-invoice before a label, a label before a code', () => {
-    const labelled = documentOf([QR], { pageHeader: [label(PREVIEW_LABEL)] })
+  test('the payment part before an e-invoice, an e-invoice before a label, a label before a chart', () => {
+    const labelled = documentOf([CHART], { pageHeader: [label(PREVIEW_LABEL)] })
     const invoiced = { ...labelled, eInvoice: invoice('facturX') }
     expect(refusalOf({ ...invoiced, paymentPart: SLIP }).subject).toBe('paymentPart')
     expect(refusalOf(invoiced).subject).toBe('eInvoice')
     expect(refusalOf(labelled).subject).toBe('pageHeader')
-    expect(refusalOf({ ...labelled, pageHeader: [] }).subject).toBe('code')
+    expect(refusalOf({ ...labelled, pageHeader: [] }).subject).toBe(CHART_ID)
+  })
+
+  // A code is the writer's to draw since 0074, and what refuses one is the rule both engines ask: refused by that rule's code and subject,
+  // in the PDF's words, where the walk meets it -- after a block no engine prints that stands before it, and before one that stands after.
+  test('a code the rules below both engines refuse is refused as they refuse it, where the walk meets it', () => {
+    const red = paragraph('red', { color: 'red' })
+    const refusal = refusalOf(documentOf([FINE, red]))
+    expect(refusal).toMatchObject({ code: 'content-too-large', subject: 'code' })
+    expect(refusal.message).toMatch(/^the QR code code is 40 pt a side, which makes the 37 modules across its symbol and quiet zone 1\.08 pt each/)
+    expect(refusalOf(documentOf([red, FINE])).subject).toBe('body[0]')
+    // Before a chart after it, and a chart before it first: neither kind is refused ahead of the other but by where it stands.
+    expect(refusalOf(documentOf([FINE, CHART])).subject).toBe('code')
+    expect(refusalOf(documentOf([CHART, FINE])).subject).toBe(CHART_ID)
   })
 
   // The whole order, a place at a time: a document wrong in every place the writer looks is refused for a face that is no font, which is
@@ -84,7 +90,7 @@ describe('what belongs to the PDF is refused, naming it', () => {
   test("a face that is no font, the creation date, the title, what belongs to the PDF, the page, then the page header, page 1's own, the page footer and the body", () => {
     const red = paragraph('red', { color: 'red' })
     const faced: ResolvedDocument = {
-      ...documentOf([red, QR], { pageHeader: [red], firstPageHeader: [red], pageFooter: [red] }),
+      ...documentOf([red, CHART], { pageHeader: [red], firstPageHeader: [red], pageFooter: [red] }),
       info: { title: 7 as unknown as string, creationDate: 'yesterday' },
       page: { size: 'A3' as 'A4', orientation: 'portrait', margins: { top: 50, right: 50, bottom: 50, left: 50 } },
       paymentPart: SLIP,
@@ -98,7 +104,7 @@ describe('what belongs to the PDF is refused, naming it', () => {
     const headed = { ...paged, pageHeader: [] }
     const first = { ...headed, firstPageHeader: [] }
     const footed = { ...first, pageFooter: [] }
-    const steps = [faced, everywhere, dated, titled, unpaid, paged, headed, first, footed, { ...footed, body: [QR, red] }]
+    const steps = [faced, everywhere, dated, titled, unpaid, paged, headed, first, footed, { ...footed, body: [CHART, red] }]
     expect(steps.map((each) => refusalOf(each).subject)).toEqual([
       'face',
       'info.creationDate',
@@ -108,9 +114,9 @@ describe('what belongs to the PDF is refused, naming it', () => {
       'pageHeader[0]',
       'firstPageHeader[0]',
       'pageFooter[0]',
-      // In the body, whichever stands first: a block no engine prints before a code, and a code before one.
+      // In the body, whichever stands first: a block no engine prints before a chart, and a chart before one.
       'body[0]',
-      'code',
+      CHART_ID,
     ])
   })
 

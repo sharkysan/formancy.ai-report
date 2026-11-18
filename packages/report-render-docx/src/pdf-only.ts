@@ -15,10 +15,10 @@ import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, RenderRefusal, type Block, type
  * it refuses a preview as a PDF/A (0057).
  *
  * Of its blocks: a chart, which ECharts lays out and no package but the
- * PDF renderer may depend on (0058); and a QR code and an EPC QR code,
- * whose refusals -- the version that holds the text, the module too
- * small to scan, Austria's frame -- are decided in the PDF renderer
- * (0020, 0025), and would be decided a second time here.
+ * PDF renderer may depend on (0058). A QR code and an EPC QR code were
+ * refused here too, while what refuses one was decided in the PDF
+ * renderer alone; since 0074 it is decided below both engines, and the
+ * writer draws them (`codes.ts`).
  */
 
 const PRINT = 'print the report as a PDF'
@@ -57,13 +57,11 @@ function labelledPreview(pageHeader: readonly Block[]): boolean {
   return 'text' in run && (run.text === PREVIEW_LABEL || run.text === E_INVOICE_PREVIEW_LABEL)
 }
 
-/** Refuses a block only the PDF renderer draws, naming it by its id. */
-export function refusePdfOnlyBlock(block: Extract<Block, { kind: 'chart' | 'qrCode' | 'epcQrCode' }>): never {
-  const what =
-    block.kind === 'chart'
-      ? `the chart ${block.id} is laid out by the PDF renderer alone, and a Word file without it would be the report with something left out`
-      : block.kind === 'qrCode'
-        ? `the QR code ${block.id} is drawn, and refused where it would not scan, by the PDF renderer alone, and a Word file holds none`
-        : `the EPC QR code ${block.id} is drawn, and refused where a bank's app would not read it, by the PDF renderer alone, and a Word file holds none`
-  throw new RenderRefusal('unsupported', `${what}: ${PRINT}`, block.id)
+/** Refuses a chart, the block only the PDF renderer draws, naming it by its id. */
+export function refusePdfOnlyBlock(block: Extract<Block, { kind: 'chart' }>): never {
+  throw new RenderRefusal(
+    'unsupported',
+    `the chart ${block.id} is laid out by the PDF renderer alone, and a Word file without it would be the report with something left out: ${PRINT}`,
+    block.id,
+  )
 }
