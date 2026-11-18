@@ -115,6 +115,12 @@ and no picture of a page changed.
 - **The start page's absence is read again.** "No print format but PDF"
   is "No Excel, CSV or HTML", in its four languages, true of 0.2.0 and of
   `main` alike; its guard now fails on a third renderer published.
+- **`SECURITY.md` names Word files in its scope.** Word acts on what a
+  file holds when it opens one, so a string of a report or its data
+  written as markup, a field other than a page's number and count, a
+  relationship to an address, and a Word file written without what
+  belongs to the PDF are each a report we want; where Word breaks a line
+  or a page otherwise than the PDF does is not one.
 - **The roadmap** loses Word, which lands here and before Excel, keeps
   HTML after Excel, and names what a Word file refuses and a later record
   may lift, and a gate that judges the file by ECMA-376's schemas.

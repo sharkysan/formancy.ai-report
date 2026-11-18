@@ -13,8 +13,14 @@ the vulnerability class and the affected component is enough to begin triage.
 
 ## Scope
 
-Formancy Report turns templates and a customer's data into PDF documents, and
-serves those documents to people. Templates, expressions, datasets, fonts and
+Formancy Report turns templates and a customer's data into PDF documents and
+Word files, and serves those documents to people. A Word file is written by
+`@formancy/report-render-docx` from the same resolved document as the PDF,
+and a person opens it in Word, which acts on what the file holds: a field it
+updates, a relationship to an address it fetches, markup it reads as the
+document's own
+([0068](docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+Templates, expressions, datasets, fonts and
 images are untrusted input even when an administrator wrote them, and so are a
 formancy form's versions and their submissions, which a host hands the form
 bridge from its own store. The report server takes a person's identity and
@@ -31,8 +37,8 @@ and in its backups, and never in a log line, an audit event or a refusal
 The areas we consider highest risk, and are most interested in reports
 about, follow from that:
 
-- **Cross-tenant exposure**: a dataset, a rendered PDF, a cached artefact or a
-  preview reaching a person the host's authorisation did not admit, including
+- **Cross-tenant exposure**: a dataset, a rendered PDF or Word file, a cached
+  artefact or a preview reaching a person the host's authorisation did not admit, including
   through a cache key that leaves out the tenant, the principal or the policy
   version. On the server: a draft or an image of one tenant read, listed or
   saved over under another's token, or a template id, a digest or a tenant
@@ -57,21 +63,36 @@ about, follow from that:
   total, a group label, a sort order, a row count, a validation message or the
   metadata given to an AI model.
 - **Remote-resource fetch**: anything that makes the renderer, the server or a
-  worker request a URL a template, a dataset or an outsider named. Assets are
+  worker request a URL a template, a dataset or an outsider named, or a Word
+  file the writer wrote make Word request one when it is opened. Assets are
   referenced by approved identifier, never by address.
+- **What a Word file makes Word do**: a string from a template or its data
+  written into a Word file as markup rather than as its text, or a file the
+  writer wrote that holds a field other than a page's number and count, a
+  relationship to an address, a macro, an embedded object or anything else
+  Word runs or fetches when it opens the file. The writer escapes every
+  string through one module whose markup is a type of its own, and the tests
+  read the files it writes back with a reader that refuses an element it
+  does not know, a relationship to an address and a field other than `PAGE`
+  and `NUMPAGES`; a way past either is in scope.
 - **Expression and template abuse**: an expression that escapes its typed,
   bounded evaluation, runs code, reads the clock or randomness where a report
   must be reproducible, or exhausts its budget unnoticed.
 - **Resource exhaustion**: rows, pages, image pixels, fonts, nesting, time or
-  output size that a limit should have refused, and a cancelled job that keeps
-  consuming a worker.
+  output size -- a PDF's or a Word file's, whose paragraphs, runs, characters
+  and pictures the writer bounds -- that a limit should have refused, and a
+  cancelled job that keeps consuming a worker.
 - **Parser input**: font, image and SVG files that reach a parser without
   their type, size and dimensions checked.
 - **Sensitive data in diagnostics**: a row, a parameter holding personal data,
   a connection detail or a credential in a log line, an error message, a debug
   artefact or an API response.
-- **Silent wrong output**: a production PDF that drops rows, truncates content
-  or rounds a total without saying so -- an integrity failure, and in scope.
+- **Silent wrong output**: a production PDF or Word file that drops rows,
+  truncates content or rounds a total without saying so, and a Word file
+  written without a QR-bill's slip, an e-invoice, a chart or a QR code its
+  report holds, which the writer refuses -- an integrity failure, and in
+  scope. Where Word breaks a line or a page otherwise than the PDF does is
+  Word's layout, which 0068 states, and not a finding.
 
 Nothing in the packages is meant to fetch a URL but the two clients, each
 through what the host gives it: the Data provider, through the Data client
