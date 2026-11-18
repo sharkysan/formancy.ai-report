@@ -2,9 +2,11 @@
  * The resolved document: a report after the runtime has read its data,
  * evaluated its expressions and conditions, grouped, sorted, totalled and
  * formatted it, with nothing left to decide but where each line falls on a
- * page. The runtime lowers a report definition to it, and
+ * page. The runtime lowers a report definition to it;
  * `@formancy/report-render-pdf` draws it
- * ([0005](../../../docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).
+ * ([0005](../../../docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)),
+ * and `@formancy/report-render-docx` writes it as a Word file
+ * ([0068](../../../docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
  *
  * It names no engine and holds no engine's options. It is plain data, every
  * part of it serialisable but an image's bytes, which are a `Uint8Array`.
@@ -507,8 +509,9 @@ export const REFUSAL_CODES = ['too-many-pages', 'content-too-large', 'invalid-as
 export type RefusalCode = (typeof REFUSAL_CODES)[number]
 
 /**
- * Why an engine produced no PDF. An engine refuses rather than truncates: a
- * report that cannot be printed whole is not printed, and the caller is told
+ * Why an engine produced no file: the PDF renderer no PDF, the Word writer
+ * no Word file (0068). An engine refuses rather than truncates: a report
+ * that cannot be printed, or written, whole is not, and the caller is told
  * what stopped it. `subject` names the asset, table or block concerned, when
  * the refusal is about one.
  */

@@ -37,11 +37,22 @@
 //     Download PDF downloaded as a person downloads it, and read again
 //     where the Preview printed anew between the read of the link and the
 //     download, each pass measuring how often it did (gate-download.mjs);
+//   - at every starter's preview, in each builder, the Word file of the
+//     render on the paper (0068): where the writer writes the report,
+//     Download Word, the keyboard's next stop after Download PDF,
+//     downloaded as a person downloads it, saved as the starter's .docx,
+//     read whole by the corpus's reader in Node, held to the document
+//     resolved there and byte for byte the file the writer writes of it
+//     under Node; where it refuses the report, no link and a note named
+//     by the writer's sentence, at an e-invoice's final render too; each
+//     state measured with the link, or the note, on screen
+//     (gate-word.mjs);
 //   - the framework switch keeps the document and its history: an edit made
 //     in React is in the Angular builder with its Undo, undone there the PDF
 //     follows, and back in React the Redo is offered; and the first moment
 //     the paper says it is no longer busy after the edit, its text layer and
-//     the Download PDF -- read back with PDF.js in Node -- both hold the edit
+//     the Download PDF -- read back with PDF.js in Node -- both hold the edit,
+//     and so does the Download Word, read back by the corpus's reader
 //     (gate-switch.mjs);
 //   - in each builder: a pointer drags a palette entry onto an outline row
 //     and the component is inserted there, selected and focused; Enter on a
@@ -131,6 +142,7 @@ import { placeChecks } from './gate-place.mjs'
 import { gateRecorder } from './gate-results.mjs'
 import { builder, editorOf, open, previewInView, previewOf, selectRow, setField, settled, WITHIN } from './gate-steps.mjs'
 import { frameworkSwitch } from './gate-switch.mjs'
+import { wordChecks } from './gate-word.mjs'
 
 const dist = join(app, 'dist')
 const repo = join(app, '..', '..')
@@ -376,6 +388,8 @@ async function journey(gate, page, picker, { refuseFonts }) {
     unlisted.length === 0 ? null : `no ${unlisted.map((picture) => picture.starter).join(', ')}`,
   )
   let ruled = false
+  // What became of each render's Word file: written and read, or refused and said (gate-word.mjs).
+  const words = new Set()
   for (const framework of ['React', 'Angular']) {
     await builder(page, framework)
     for (const { id, label: name } of starters) {
@@ -393,6 +407,7 @@ async function journey(gate, page, picker, { refuseFonts }) {
         await downloadXmlChecks(gate, page, `${state}, its final render`, { id, kind: INVOICED.get(id) })
         // Measured with Download XML on screen, which a preview never shows: its layout, its contrast and its target size (0065).
         await measured(gate, page, `${state}, its final render`)
+        words.add(await wordChecks(gate, page, `${state}, its final render`, { id, mode: 'final' }))
       }
       if (final !== null) {
         await final.uncheck()
@@ -402,7 +417,9 @@ async function journey(gate, page, picker, { refuseFonts }) {
         await paperRules(gate, page)
         ruled = true
       }
+      // Measured with Download Word, or the note of why there is none, on screen (0068); then the file itself.
       await measured(gate, page, state)
+      words.add(await wordChecks(gate, page, state, { id }))
     }
     await interactions(gate, page, framework)
     if (framework === 'React') await frameworkSwitch(gate, page)
@@ -431,6 +448,11 @@ async function journey(gate, page, picker, { refuseFonts }) {
     button: 'Select Table',
     target: 'Table',
   })
+  // Every check of a Word file is of what the writer does under Node: a pass in which it wrote none, or refused none, held half of them to nothing.
+  gate.check(
+    'a Word file was downloaded and read at a starter the writer writes, and its refusal read at one it does not',
+    words.has('written') && words.has('refused') ? null : `the journey saw ${[...words].map(String).join(', ') || 'neither'}`,
+  )
   gate.check(
     refuseFonts ? 'with the web fonts refused, none loaded' : 'every web font the page asks for loaded',
     await fontProblem(page, { dist, refused: refuseFonts }),

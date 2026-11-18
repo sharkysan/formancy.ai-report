@@ -108,6 +108,20 @@ function packed(samples: readonly number[], depth: 1 | 8 | 16): number[] {
   )
 }
 
+/**
+ * Two JPEGs the PDF renderer draws and a Word file's writer refuses, since
+ * nobody has seen Word print either as the PDF does (0068): one whose Exif
+ * block turns it a quarter turn, which PDFKit turns, and one of four
+ * components, which PDFKit draws in DeviceCMYK. Apart from `IMAGE_KINDS`,
+ * which the e-invoice gate draws into a PDF/A that holds no CMYK.
+ */
+export const UNSEEN_JPEGS: readonly ImageAsset[] = [jpeg('jpeg-turned', 3, 6), jpeg('jpeg-cmyk', 4)]
+
+/** An APP1 segment whose Exif block states `orientation`: a big-endian TIFF header and one directory of the one tag, 0x0112, a short. */
+function exif(orientation: number): number[] {
+  return segment(0xe1, [0x45, 0x78, 0x69, 0x66, 0, 0, 0x4d, 0x4d, 0, 42, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, orientation, 0, 0, 0, 0, 0, 0])
+}
+
 /** A JPEG segment: its marker, its length, which counts itself, and its body. */
 function segment(marker: number, body: readonly number[]): number[] {
   return [0xff, marker, (body.length + 2) >> 8, (body.length + 2) & 0xff, ...body]
@@ -120,13 +134,14 @@ function segment(marker: number, body: readonly number[]): number[] {
  * one code each, of one bit, for "difference 0" and "end of block"; and a
  * scan of those two bits for each component, padded with ones.
  */
-function jpeg(id: string, components: 1 | 3): ImageAsset {
+function jpeg(id: string, components: 1 | 3 | 4, orientation?: number): ImageAsset {
   const oneCodeTable = (classAndId: number): number[] => [classAndId, 1, ...Array<number>(15).fill(0), 0]
   const ids = Array.from({ length: components }, (_, index) => index + 1)
   const bits = 2 * components
   const bytes = new Uint8Array([
     0xff,
     0xd8, // start of image
+    ...(orientation === undefined ? [] : exif(orientation)),
     ...segment(0xdb, [0, ...Array<number>(64).fill(1)]), // quantisation table 0
     ...segment(0xc0, [8, 0, 8, 0, 8, components, ...ids.flatMap((each) => [each, 0x11, 0])]), // baseline frame, 8 × 8
     ...segment(0xc4, oneCodeTable(0x00)), // DC table 0

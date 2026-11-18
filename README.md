@@ -21,6 +21,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 
 - **Design a report** in a native React or Angular builder, with undo, and see what is wrong before anything renders ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
 - **Print it as a paginated PDF**, in Node or in a browser, from your application's JSON. Totals are exact, values are formatted for the report's locale, and a report that cannot be drawn whole is refused, never truncated ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+- **Write it as a Word file**, a `.docx` a person can go on writing in, from the same resolved document, in Node or in a browser: its tables Word's tables with their header rows marked to repeat, its header and footer Word's, its page numbers fields, the same bytes for the same document. Lines, pages and their count are Word's, and fonts are named, not embedded. What belongs to the PDF -- a QR-bill's slip, an e-invoice, a chart, a QR code, a labelled preview -- is refused whole, never left out. What the writer writes is read back in the tests by readers that are not the writer, and its files were opened in Word once, by hand, and by no test ([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **Groups that start with their rows**: a table's group header is kept on its page with its group's first row, or with as many of its first rows as the report states, as many as fit where they do not, and both builders edit that number ([0059](./docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
 - **Several tables over the detail rows**, each printing the rows its own condition selects -- an order's goods apart from its services, open items apart from settled ones -- with its own columns, order, group and totals: a table's total is of the rows it prints, and `totals` stays every row's. A report holds up to `MAX_TABLES`, and one that is an e-invoice one, of every row. Both builders add a further table and give it its condition; its order, group and totals are written in the report's JSON for now ([0062](./docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
 - **One template in several languages**: a report's own words -- its title, its texts, its tables' headers, cells and empty texts, a chart's words and a QR-bill's message -- written in each language it declares, and a render that names one prints in it: its words, its numbers and dates, the order of its rows, a formancy form's labels and the QR-bill slip's headings. A word missing in that language refuses the render, never printed in another, and no language falls back to another. The builders edit one language at a time and show what each still lacks, and the Studio's Preview prints the one the builder shows. A report without translations prints as it did ([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
@@ -53,7 +54,7 @@ barcodes, nested groups, more datasets, running totals, crosstabs,
 accessible PDFs, Excel, copy and paste in the editor, among the rest --
 and what is not planned at all.
 
-> **Status, 15 November 2026: 0.2.0, a developer preview, is released.**
+> **Status, 18 November 2026: 0.2.0, a developer preview, is released.**
 > Its eight packages are on npm, with provenance, and
 > [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.2.0)
 > carries the signed SBOM and release report of the run that published
@@ -75,7 +76,12 @@ and what is not planned at all.
 > and both builders know; and a report may be written in several
 > languages, its own words in each, which the format, the editing core,
 > the runtime, the form bridge, both builders and the Studio know, and a
-> render names the one it prints in. The report format is still version
+> render names the one it prints in; and a report is written as a Word
+> file by `@formancy/report-render-docx`, which the Studio offers beside
+> the PDF, which refuses a report that is paid by a code, is an
+> e-invoice or draws a chart, and whose files were opened in Word once,
+> by hand, and by no test. The
+> report format is still version
 > "0", the draft: a report written now is not promised to be read by a
 > later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
@@ -105,7 +111,9 @@ pnpm demo
 `pnpm demo` builds the packages and the Studio, then serves the built
 Studio at http://localhost:4394. Pick a starter or a blank report, edit it
 in either builder, and the Preview prints the PDF, Download PDF included,
-and with Final on an e-invoice's XML beside it, Download XML.
+and with Final on an e-invoice's XML beside it, Download XML. Download
+Word gives the report as a Word file where the writer writes it, and a
+note says why where it does not.
 The starters' data is synthetic and built in. The page asks no other site
 for anything, and the browser gate fails if it does
 ([0023](./docs/decisions/0023-the-studio-and-the-pages-serve-their-own-faces-and-ask-no-other-site-for-anything.md)).
@@ -138,6 +146,15 @@ with: the Factur-X's the file its PDF/A-3b embeds, the XRechnung's the
 invoice itself, beside a PDF that is its labelled copy. A preview writes no
 XML, and offers none
 ([0065](./docs/decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
+Download Word, after Download PDF, gives the Word file of the render on
+the paper, written from the document the PDF was drawn from. A report the
+writer refuses has no link, and a note in its place says why, in the
+writer's own sentence: the invoices, which are paid by a QR-bill or an EPC
+QR code or are e-invoices, the payment reminder and the sales report,
+which draws charts, and any preview the runtime labels. Lines and pages
+in the file are Word's; the starters' files were opened in Word once, by
+hand, and no test opens one
+([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 <!-- generated by scripts/pictures/readme.mjs from scripts/pictures/scenes.json: studio; do not edit -->
 
@@ -354,6 +371,11 @@ these lines from the packed packages (`scripts/install-fixture/consume.ts`).
 With `{ maxPages: 50, pdfa: '2b' }` the same final render is a PDF/A-2b,
 and a report that is an e-invoice, or a labelled preview, is refused as one
 ([0057](./docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
+`renderDocx(resolution.document)`, from `@formancy/report-render-docx`,
+writes the same document as a Word file, synchronously, or throws the same
+`RenderRefusal`; [its README](./packages/report-render-docx/README.md)
+says what the file holds, what is Word's and what is refused
+([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 ## Packages
 
@@ -364,6 +386,7 @@ and a report that is an e-invoice, or a labelled preview, is refused as one
 | [`@formancy/report-core`](./packages/report-core/README.md) | Commands over a report, as functions and as data, several as one batch, a session that commits only what validates, with exact undo and redo, and one compilation of every expression for the diagnostics and the runtime ([0008](./docs/decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0048](./docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)). |
 | [`@formancy/report-runtime`](./packages/report-runtime/README.md) | Resolves a report against its data into a renderer-neutral document, exact numbers as strings and totals rounded once, and writes an e-invoice's XML, or refuses with every reason; its manifest says what a render was resolved from, the data's source among it ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0041](./docs/decisions/0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md)). |
 | [`@formancy/report-render-pdf`](./packages/report-render-pdf/README.md) | Draws that document with pdfmake, in Node and through a browser entry, and refuses what it cannot draw whole rather than return a partial PDF ([0005](./docs/decisions/0005-pdfmake-renders-reports-behind-one-adapter.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)). |
+| [`@formancy/report-render-docx`](./packages/report-render-docx/README.md) | Writes that document as a Word file a person can go on writing in, the same bytes for the same document, with no Node or DOM global, and refuses what belongs to the report's PDF rather than leave it out ([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)). |
 | [`@formancy/report-data-provider`](./packages/report-data-provider/README.md) | Reads a report's data from a Formancy Data 0.1.0 server, labelled best-effort ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). |
 | [`@formancy/report-forms`](./packages/report-forms/README.md) | Reads a report's data from a formancy form's submissions, against the exact version that collected each, as your application hands them over, host-captured ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)); and starts a report from a form version, a first draft whose notes list what it left out ([0045](./docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)); and reviews a form's new version for a report, a version that moved, removed or retyped a field it reads blocking until a resolution -- a declared rename first, report-core's commands as data -- is applied ([0048](./docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)). |
 | [`@formancy/report-server-core`](./packages/report-server-core/README.md) | Who may do what to a tenant's reports, as one actions table over the host's verified identity, the wire a client compiles against, the audit port, and the use cases that decide a tenant's drafts and images over a store's port; no framework and no Node ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). |
@@ -378,7 +401,8 @@ product's pages, static HTML in four languages
 ([0021](./docs/decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)),
 and `@formancy/report-corpus` the private test support that proves a
 rendered PDF
-([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md));
+([0003](./docs/decisions/0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md))
+and reads a written Word file back (0068);
 none is published.
 
 ## Licence, in one table
@@ -490,6 +514,8 @@ gate proves and what it does not.
 | `tslib`, by `@formancy/report-builder-angular` | 2.8.1 | `^2.8.0` |
 | `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
 | `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |
+| `fflate`, by `@formancy/report-render-docx` | 0.8.3 | `0.8.3` |
+| `pako`, by `@formancy/report-render-docx` | 3.0.2 | `3.0.2` |
 | `echarts`, by `@formancy/report-render-pdf` | 6.1.0 | `6.1.0` |
 | `pdfkit`, by `@formancy/report-render-pdf` | 0.19.1 | `0.19.1` |
 | `pdfmake`, by `@formancy/report-render-pdf` | 0.3.11 | `0.3.11` |

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The suite's own: it reads the written file back with the corpus's
+    // reader, draws the same document with the PDF renderer and writes it
+    // in a second process, so it needs Node's types, which the package's
+    // own code is checked without (tsconfig.json).
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": []
+}

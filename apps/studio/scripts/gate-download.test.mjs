@@ -2,12 +2,13 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import { offeredPdf, offeredXml, REREADS, rereadsOn } from './gate-download.mjs'
+import { offeredPdf, offeredWord, offeredXml, REREADS, rereadsOn } from './gate-download.mjs'
 
 /**
  * The page the browser gate drives, standing in for Playwright's, with
  * the Preview's one Download PDF link in jsdom's document, and with
- * `xml`, a Download XML link beside it (0065). `evaluate` runs
+ * `xml`, a Download XML link beside it (0065), or with `word`, a Download
+ * Word link (0068). `evaluate` runs
  * the gate's own page function there, as Chromium would; a click on a
  * link downloads, to a file, what its address holds at that moment, and
  * `waitForEvent('download')` hands the download over as Playwright does,
@@ -84,6 +85,13 @@ function previewPage(directory) {
       const address = `blob:http://localhost:4392/report/xml-${String(printed)}`
       held.set(address, new TextEncoder().encode(text))
       document.body.append(anchor(address, 'Download XML', file))
+      return address
+    },
+    /** A Download Word link after the PDF's, at an address of its own, offering `bytes` as `file`. */
+    word(bytes, file) {
+      const address = `blob:http://localhost:4392/report/word-${String(printed)}`
+      held.set(address, bytes)
+      document.body.append(anchor(address, 'Download Word', file))
       return address
     },
     /** The address revoked and left on the link: a page that offers a PDF it no longer holds. */
@@ -232,6 +240,23 @@ test('downloads Download XML by its own name, beside Download PDF, with the name
   const address = page.xml('<?xml version="1.0" encoding="UTF-8"?>', 'e-invoice.xml')
   const xml = await offeredXml(page, page.preview)
   expect([xml?.href, xml?.fileName, text(xml)]).toEqual([address, 'e-invoice.xml', '<?xml version="1.0" encoding="UTF-8"?>'])
+  const pdf = await offeredPdf(page, page.preview)
+  expect([pdf?.fileName, text(pdf)]).toEqual(['quotation.pdf', 'the PDF offered'])
+})
+
+// A printed render offers its Word file after its PDF (0068): the gate downloads the link named
+// Download Word, bytes that are no text, and says the name the browser saves them under. Read by
+// the PDF's name, the file readDocx is handed would be the PDF, and every Word check would fail
+// on a file the page never offered as one; and where the writer refused there is no link, which
+// is null, as a Preview that offers no PDF is.
+test('downloads Download Word by its own name, after Download PDF, and is null where the Preview offers none', async () => {
+  const page = previewPage(directory)
+  page.print('the PDF offered')
+  expect(await offeredWord(page, page.preview)).toBeNull()
+  const zip = Uint8Array.from([0x50, 0x4b, 0x03, 0x04, 0xff, 0x00])
+  const address = page.word(zip, 'quotation.docx')
+  const word = await offeredWord(page, page.preview)
+  expect([word?.href, word?.fileName, [...(word?.bytes ?? [])]]).toEqual([address, 'quotation.docx', [...zip]])
   const pdf = await offeredPdf(page, page.preview)
   expect([pdf?.fileName, text(pdf)]).toEqual(['quotation.pdf', 'the PDF offered'])
 })

@@ -210,7 +210,10 @@ What that costs is written there: the demo is `main`'s, ahead of any
 release; a push deploys without waiting for that commit's CI; the build
 settings live in Cloudflare's dashboard, recorded by hand in
 `.github/REPO-METADATA.md`; and nothing in this repository checks that a
-deploy happened or what the address serves.
+deploy happened or what the address serves. So what the Studio offers
+reaches the public at a merge and not at a release: its Download Word
+gives files of a writer no release holds
+([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 Every file the Worker serves carries the headers `scripts/demo-headers.mjs`
 states for the demo's address, written by the deploy as one `_headers` rule:
@@ -301,6 +304,27 @@ serve the Studio under the same function of their own address
 - **A worker it can terminate**, if a render must stop at once: an abort is
   read only between pdfmake's passes
   ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+- **For a Word file:** `@formancy/report-render-docx` and nothing beside
+  it: it depends on fflate at exactly 0.8.3 and pako at exactly 3.0.2,
+  ships no font and reads no file. `renderDocx(document)` on the
+  document `resolveReport` returned, in Node or in a browser,
+  synchronously and with no signal, so a host that must stop one runs it
+  in a worker, and one that must bound its memory in a process of its
+  own: a file at the writer's bounds was written in up to 3.3 seconds
+  and up to 1,019 MB, and in up to 1,272 MB in a process that held a
+  string beside each row of the document, as a host holds its data's
+  rows, where 0068 measures it and says why V8 takes one amount or
+  another for one file. A report of more than
+  70,000 paragraphs, a table's cell being one, is refused for its size.
+  A report that is paid by a code, is an invoice in law or draws a
+  chart has no Word file, and neither has a labelled preview: each is
+  refused, to be printed as a PDF. The writer measures nothing, so a host
+  offers the file beside a PDF that was drawn, as the Studio does, or
+  hands on what the renderer would have refused. The file names the
+  report's fonts and embeds none, so a reader without the family sees the
+  face Word chooses. The starters' files were opened in Word once, by
+  hand, and no test opens one
+  ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **What it has authorised, and what it fixes:** the data, the parameters
   and an image lookup by id and digest; a time zone for instants; and the
   creation date the PDF carries, which `resolveReport` requires, so the

@@ -10,6 +10,123 @@ later.
 
 ## Unreleased
 
+**A report is written as a Word file, beside its PDF, by a writer of its
+own**
+([0068](docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+A person who is handed a report and has to go on writing in it -- a remark
+under a table, a paragraph before it is sent -- had a PDF, which is not
+written in. The roadmap had Word after Excel; it was asked for first.
+Every report prints the PDF it printed: no PDF's bytes, no recorded digest
+and no picture of a page changed.
+- **`@formancy/report-render-docx`**, a new package beside the PDF
+  renderer: `renderDocx(document)` takes the document `resolveReport`
+  returns and gives a `.docx`'s bytes, or throws the runtime's
+  `RenderRefusal` and gives nothing. Synchronous, in Node and in a
+  browser, with no option: it counts no page, so it takes no page limit.
+  It writes WordprocessingML itself and zips it with `fflate`, pinned at
+  exactly 0.8.3, MIT, and inflates a PNG's image data, to check it, with
+  `pako`, pinned at exactly 3.0.2, MIT and Zlib, which report-documents
+  inflates with already: two new production dependencies of this package
+  alone. pako beside fflate, and not fflate's own inflater, since the PDF
+  renderer inflates a PNG with the platform's decompressor, zlib under
+  Node, pako is zlib's inflate, and fflate inflates data zlib refuses.
+  The `docx` package lost: it stamps the file with the clock, with no
+  option to pass a date.
+- **The same document is the same bytes.** Every entry of the zip is
+  dated 1 January 1980 and the creation date is the document's, so a host
+  can store a file by its digest. Held in a Node process and in four
+  more, two under other time zones and two that set their zone once the
+  writer has loaded, and in Chromium against Node by the Studio's gate.
+- **What the file says.** Every word and every table's cells; a table as
+  a Word table, its header row marked as the one to repeat and the rows
+  the PDF keeps on a page marked as kept; the page header and footer as
+  Word's, page 1's own header as Word's different first page; a page's
+  number and count as `PAGE` and `NUMPAGES` fields; a run set off the
+  line as Word's subscript or superscript; a picture as the asset's very
+  bytes, an SVG through `svgBlip` over one grey pixel for a reader that
+  draws none. Every string goes through one escaping module whose markup
+  is a type of its own, so nothing a report or its data carries becomes
+  an element, a field or a relationship.
+- **What is Word's.** Where a line and a page break, how many pages there
+  are, whether Word repeats and keeps what is marked, and the face where
+  the reader lacks the family: fonts are named, by a mapped face's own
+  family, and never embedded, and the renderer's Roboto is on few
+  machines. The file is not the PDF in another container.
+- **What it refuses, whole**, each with a code and a sentence that says
+  what to do: a QR-bill's slip, an e-invoice of either kind, a chart, a
+  QR code and an EPC QR code, which belong to the PDF, and a preview the
+  runtime labelled, whose label a Word file would hold as a paragraph a
+  person deletes; a JPEG its Exif block turns, a CMYK JPEG, an SVG that
+  covers a box of other proportions than its own, and a table or a page
+  break in a section with a border, a fill or padding, until somebody has
+  seen what Word does with each; a rectangle, a column, a framed section
+  or a picture so small that it rounds to none of the unit Word states it
+  in; a creation date that states no zone, which is another moment on
+  another machine, and would be another file there, or a day no calendar
+  has, which the platform reads as the date after it; a font whose
+  family is more than 31 characters, which is what Word reads of a
+  font's name; and a file past 70,000 paragraphs, a table's cell being
+  one and a rectangle and a section's frame counting two, 4,000,000
+  characters, 140,000 runs, a line ending in a text counting one, 1,024
+  pictures, two assets' worth of their bytes, counted before any is
+  read, or the image data the PDF renderer holds a render to, two of
+  the largest PNG an asset may be, counted before any is inflated:
+  measured where the bounds are written. The paragraphs' bound is under
+  the 100,000 detail rows the runtime reads, so a report of 70,000 rows
+  in one column, or of 10,000 in seven, prints as a PDF alone: with one
+  character past U+00FF in its text, a euro sign, V8 holds a file's text
+  two bytes a character while it is built, and a table of 100,000 cells
+  took up to 1,514 MB of memory where the bounds are set to stay under
+  1,319; at 70,000 the most that was found is 1,272. So the invoices,
+  the payment reminder and the sales report have no Word file, and a host
+  whose reports carry a code or a chart cannot export them. It never
+  writes a file without what the report prints.
+- **What both engines refuse, they refuse alike.** A document no engine
+  prints is refused by the writer with the PDF renderer's code and
+  subject, and one wrong in several places for the place the renderer
+  refuses it for. A PNG's image data is held, as the renderer holds it,
+  to being one whole zlib stream, read as zlib reads one: a block zlib
+  refuses, a checksum that does not sum and a byte after its end are each
+  refused, so a PNG damaged where only one of those shows it is not
+  embedded as it is. Held on a PNG for each way that was looked for, in
+  the corpus's list of documents no engine prints; that the two
+  decompressors agree on every other stream is pako's claim, as a port
+  of zlib. And a text that ends in a line ending prints no line for it,
+  as the PDF prints none: the lines are counted on the PDF, and the file
+  states as many.
+- **Word has opened the files once, by hand.** The files of the six
+  starters that export and of the corpus's fixtures were opened in Word
+  before this merged and found fine; nothing more of what Word did with
+  them was written down. In the tests they are read back by a reader of
+  the corpus's own, which is not the writer and not Word, and 39 of them
+  were validated against ISO/IEC 29500-4:2016's schema once, by hand; no
+  gate repeats either, and none opens Word. `RELEASING.md` asks a person
+  to open them in Word for every release.
+- **The Studio offers it.** The Preview's **Download Word**, after
+  Download PDF, gives the Word file of the render on the paper, under the
+  starter's id. Where the writer refuses the report there is no link, and
+  a note says why: "No Word file: " and the writer's sentence. The demo is
+  `main`'s, so the files reach the public at the merge, not at a release.
+  The README's pictures are taken again, their Preview holding the link.
+- **report-spec says two things more**, which the runtime hands on:
+  `imageHeader` says how a JPEG's first Exif block turns or mirrors it,
+  `JpegHeader.orientation`, 2 to 8, and a font's names hold the family of
+  name ID 1 beside a typographic one, `FontNames.legacyFamily`, the name
+  Word lists a face under. Each is absent wherever it would say nothing,
+  so what a reader of either got before, it gets now.
+- **The start page's absence is read again.** "No print format but PDF"
+  is "No Excel, CSV or HTML", in its four languages, true of 0.2.0 and of
+  `main` alike; its guard now fails on a third renderer published.
+- **`SECURITY.md` names Word files in its scope.** Word acts on what a
+  file holds when it opens one, so a string of a report or its data
+  written as markup, a field other than a page's number and count, a
+  relationship to an address, and a Word file written without what
+  belongs to the PDF are each a report we want; where Word breaks a line
+  or a page otherwise than the PDF does is not one.
+- **The roadmap** loses Word, which lands here and before Excel, keeps
+  HTML after Excel, and names what a Word file refuses and a later record
+  may lift, and a gate that judges the file by ECMA-376's schemas.
+
 **A starter draws charts: a monthly sales report whose bar chart and pie
 print the totals its table prints**
 ([0067](docs/decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md)).

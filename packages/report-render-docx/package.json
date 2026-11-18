@@ -1,0 +1,54 @@
+{
+  "name": "@formancy/report-render-docx",
+  "version": "0.2.0",
+  "description": "Formancy Report Word writer: writes a resolved report as a Word file a person can go on writing in, the same bytes for the same document, and refuses what belongs to the report's PDF rather than leave it out. No framework, no Node, no DOM, no network.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test:coverage": "vitest run --coverage",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "check:pkg": "publint && attw --pack . --profile esm-only"
+  },
+  "dependencies": {
+    "@formancy/report-runtime": "workspace:*",
+    "fflate": "0.8.3",
+    "pako": "3.0.2"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@formancy/report-corpus": "workspace:*",
+    "@formancy/report-render-pdf": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "fast-check": "catalog:",
+    "publint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "unrun": "^0.3.1",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
+    "directory": "packages/report-render-docx"
+  },
+  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
+}

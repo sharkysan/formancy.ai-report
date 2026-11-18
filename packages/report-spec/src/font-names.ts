@@ -3,7 +3,8 @@
  * a builder shows, and the PostScript name the PDF names the font by.
  *
  * - **Returned, never judged.** The family and subfamily -- the
- *   typographic names, IDs 16 and 17, before IDs 1 and 2 -- the full name,
+ *   typographic names, IDs 16 and 17, before IDs 1 and 2, with the family
+ *   of ID 1 beside a typographic one (`legacyFamily`) -- the full name,
  *   the version, the copyright and the licence description and its
  *   address are handed back for a person to read. A customer's font licence
  *   is the customer's; nothing here decides what one says.
@@ -54,6 +55,15 @@ import { refuse } from './font-refusal.js'
 export interface FontNames {
   /** The typographic family (name ID 16), or the family (1). */
   readonly family: string
+  /**
+   * The family of name ID 1, where the font states a typographic family
+   * (16) before it and `family` is that one; absent where `family` is name
+   * ID 1 itself. It is the name an application that lists four faces to a
+   * family knows the face by -- Word among them, to which "Probe Sans
+   * Light" is a family and "Probe Sans" another -- so a writer that names
+   * a face for such a reader names `legacyFamily ?? family` (0068).
+   */
+  readonly legacyFamily?: string
   /** The typographic subfamily (17), or the subfamily (2). */
   readonly subfamily: string
   /** The PostScript name (6), which the PDF names the font by: PDFKit writes it after a subset tag, each space as an underscore. */
@@ -226,11 +236,14 @@ function best(file: FontFile, all: readonly NameRecord[], id: number): string | 
 export function readNames(file: FontFile): FontNames {
   const all = records(file, file.table('name'))
   const postScript = postScriptNames(file, all)
-  const family = best(file, all, 16) ?? best(file, all, 1)
+  const [typographic, legacy] = [best(file, all, 16), best(file, all, 1)]
+  const family = typographic ?? legacy
   const subfamily = best(file, all, 17) ?? best(file, all, 2)
   if (family === undefined || subfamily === undefined) refuse('malformed', 'has no family and subfamily name (name IDs 1 and 2)')
   const optional = { fullName: 4, version: 5, copyright: 0, licence: 13, licenceUrl: 14 } as const
   const names: { -readonly [K in keyof FontNames]: FontNames[K] } = { family, subfamily, postScriptName: postScript.best, postScriptNames: postScript.all }
+  // Said only beside a typographic family: where there is none, `family` is name ID 1 already.
+  if (typographic !== undefined && legacy !== undefined) names.legacyFamily = legacy
   for (const [key, id] of Object.entries(optional) as [keyof typeof optional, number][]) {
     const text = best(file, all, id)
     if (text !== undefined) names[key] = text

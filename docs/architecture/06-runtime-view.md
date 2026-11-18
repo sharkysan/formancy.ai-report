@@ -192,6 +192,8 @@ A render that names a locale is that report printed in it: a report
 without translations, rendered with no locale or its own named, takes
 the path it took before the option, and one whose French lacks a word
 prints in its own language and in every other that is whole (0063).
+The resolved document is an engine's whole input, and a second engine
+reads it: `renderDocx` writes it as a Word file, or refuses it (6.22).
 
 ## 6.3 A read from Formancy Data
 
@@ -264,9 +266,14 @@ preview(): resolveReport, in the mode the Preview is in and the language the
    │                             the component it is about
    ├─ refused by the renderer ──▶ its code and what it names
    ▼
+renderDocx, from a chunk of its own, of the document the PDF was drawn from (6.22)
+   ├─ refused by the writer ──▶ no link, and a note: "No Word file: " and its sentence
+   ├─ anything else it throws ──▶ the PDF as it printed; the note says the writer failed
+   ▼
 PDF.js draws each page on white paper with its text layer; Download PDF gives
-the bytes those pages were drawn from, and Download XML, where that final
-render of an e-invoice wrote one, the XML the runtime wrote beside them
+the bytes those pages were drawn from, Download XML, where that final
+render of an e-invoice wrote one, the XML the runtime wrote beside them, and
+Download Word the file the writer wrote of that document
 ```
 
 The Preview makes the same two calls a host makes, with nothing decided in
@@ -283,6 +290,27 @@ that Download XML gives the XML of the render on the paper, as UTF-8: the
 Factur-X's the very bytes its PDF/A-3b embeds, the XRechnung's beside a
 copy that embeds nothing. A preview writes none, and none is offered
 ([0065](../decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
+The Word file is written of the document the PDF was drawn from, once the
+PDF is drawn and of no document the renderer refused, so the page limit
+that bounds a preview bounds what the writer is handed on the page's own
+thread. The viewer keeps it with the PDF it was written beside, as the
+XML, so that Download Word gives the file of the render on the paper,
+under the starter's id. Where the writer refused, the link is not drawn
+and a note says why in the writer's own sentence, which is how a person
+learns that an invoice, a report paid by a code, one with a chart and a
+labelled preview have no Word file. A fault of the writer's, or a chunk
+that did not load, is the Word file's alone and leaves the PDF as it
+printed, which `word-fault.test.ts` and `word-chunk.test.ts` hold, a
+suite each; and the writer, with the two libraries it zips and inflates
+with, is a chunk the pipeline asks for where a PDF has printed and
+nothing loads before, which `chunks.test.ts` holds on a build of the
+pipeline. The printed render is handed on with its Word file, so the
+paper shows each PDF once the writer's chunk has loaded and the file is
+written, and the signal that stops a superseded render is read by the
+renderer and by nothing after it: a render whose PDF was drawn writes
+its file though a newer one waits. Neither is changed by 0068, which
+names both as costs
+([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 Where the Preview stands is the editor's to hold and the window's to say
 ([0029](../decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)):
@@ -1224,3 +1252,98 @@ e-invoice's lines' table has no condition, which the validator holds, so
 `e-invoice-lines.ts` orders every row as before. The document gains nothing: a table is the rows it prints,
 and the renderer draws any number of them as it drew one
 ([0062](../decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
+
+## 6.22 A Word file, from the resolved document to its parts
+
+```
+renderDocx(document)                                       report-render-docx's render.ts
+   │
+   ▼
+planFonts: each mapped face read once by readFont; the family each token is named by
+   ├─ bytes that are no font, a family with no name Word can state or
+   │  one longer than MAX_DOCX_FAMILY_LENGTH, which Word does not read ─▶ invalid-asset
+   ├─ a token with no regular face, or faces of two families ──────────▶ unsupported
+   ▼
+checkDocument: before a byte is written, in this order                          check.ts
+   ├─ a creation date that is no date, states no instant, a day no
+   │  calendar has or a year no core property has; a title XML cannot
+   │  hold ────────────────────────────────────────────────────────────▶ unsupported
+   ├─ a payment part, an e-invoice, a preview's label ─────────────────▶ unsupported
+   ├─ a page of no known size or turn; margins that leave nothing ─────▶ unsupported,
+   │                                                                     content-too-large
+   │  then one walk: the page header, page 1's own, the page footer and
+   │  the body, each block in document order:
+   ├─ a chart, a QR code, an EPC QR code ──────────────────────────────▶ unsupported
+   ├─ a table or a page break in a framed section ─────────────────────▶ unsupported
+   ├─ what no engine prints, by the PDF renderer's code and subject ───▶ unsupported,
+   │                                                                     content-too-large
+   ├─ a character a report does not print, XML does not hold or the
+   │  mapped face does not draw; a face the report maps no font to ────▶ unsupported
+   ├─ a line outside the weights of Word's borders; a rectangle, a
+   │  column or a framed section under a fortieth of a point ──────────▶ unsupported
+   ├─ past MAX_DOCX_PARAGRAPHS, MAX_DOCX_CHARACTERS or MAX_DOCX_RUNS,
+   │  counted as it walks: a rectangle and a frame two paragraphs, a
+   │  line ending a run, what a family is written past its bound with
+   │  the characters ──────────────────────────────────────────────────▶ content-too-large
+   │  then the pictures, each asset read once, in the order the walk
+   │  met them:
+   ├─ past MAX_DOCX_PICTURES, counted before an asset is read ─────────▶ content-too-large
+   ├─ an asset of no bytes, or of more than an asset may be ───────────▶ invalid-asset
+   ├─ past MAX_DOCX_MEDIA_BYTES, counted from an asset's length before
+   │  a byte of it is read ────────────────────────────────────────────▶ content-too-large
+   ├─ bytes that are not the picture they are declared as, by their
+   │  first bytes and their structure ─────────────────────────────────▶ invalid-asset
+   ├─ past MAX_DOCX_IMAGE_DATA, counted from a picture's header before
+   │  a PNG's data is inflated ────────────────────────────────────────▶ content-too-large
+   ├─ a PNG whose image data is no whole zlib stream of its scanlines,
+   │  inflated by pako as zlib inflates it ────────────────────────────▶ invalid-asset
+   ├─ a JPEG its Exif block turns or of four components ───────────────▶ unsupported
+   ├─ an SVG that covers a box of other proportions, a picture drawn
+   │  at under an English Metric Unit ─────────────────────────────────▶ unsupported
+   ▼
+each region's blocks as paragraphs and tables, in points          nodes.ts, blocks.ts, table.ts
+   │  a text without the line ending that ends it; the keep rules mark
+   │  them, each in one pass: a heading through to what it heads, a kept
+   │  block but what ends it, the header row, a group header's kept
+   │  rows, the row before a closing row
+   ▼
+WordprocessingML, every element's children in ECMA-376's order; every
+string through text or attribute, markup a type of its own               wml.ts, xml.ts
+   ▼
+the parts, their content types and relationships, named by the writer alone;
+zipped by fflate, every entry dated 1 January 1980                          package.ts
+   ▼
+Uint8Array ── the same bytes for the same document
+```
+
+The writer reads the document the PDF renderer reads and nothing else: no
+option, no signal, no clock. Everything it refuses it refuses before
+anything is built, so a file is written whole or not at all, and by where
+a thing stands, not by its kind: a face that is no font, as the fonts
+are read, the creation date and the title, what
+belongs to the PDF of the document itself, the page, then each region's
+blocks in document order -- a chart or a code where the walk meets it,
+after a block no engine prints that stands before it -- and the pictures'
+bytes last. The writer's `refusals.test.ts` holds that order on a
+document wrong in every one of those places, put right a place at a time,
+and the corpus's `wordRefusal` derives from a document on its own what
+the writer must refuse of what belongs to the PDF. What belongs to the
+PDF is refused by a sentence that says to print the report as one; what
+no engine prints is refused by the code and the subject the PDF renderer
+refuses it by, which the corpus's `MALFORMED` documents hold of both
+engines for a document wrong once, and `against-pdf.test.ts` for one
+wrong in every place both look, where the two refuse it for the same
+place at each step. A document wrong in a way only one engine refuses,
+and in another, is refused by each for what it meets first.
+
+What is written says what the document says and lays nothing out: a table
+is a Word table with its header row marked as the one to repeat, a kept
+row marked as kept, a page's number a field Word works out. Where a line
+and a page break, how many pages there are, and whether Word does what a
+mark asks, are Word's, and no test here says. The writer measures
+nothing, so a refusal the PDF renderer makes of what it measured -- a
+block taller than a page's body, more pages than a host allows -- the
+writer does not make: a host that offers the file only beside a PDF that
+was drawn, as the Studio does (6.5), hands a person nothing the renderer
+refused
+([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).

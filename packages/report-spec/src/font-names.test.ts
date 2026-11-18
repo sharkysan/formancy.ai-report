@@ -30,6 +30,26 @@ describe('the names returned', () => {
     expect(named([...LEAST, windows(16, 'Probe Sans'), windows(17, 'Light')])).toMatchObject({ ok: true, names: { family: 'Probe Sans', subfamily: 'Light' } })
   })
 
+  // Word, like every application that lists four faces to a family, knows
+  // a face by its name ID 1: "Probe Sans Light" is a family of its own
+  // there, and a Word file that named the typographic family would be drawn
+  // in its regular face with nothing saying so (0068). The reader hands on
+  // name ID 1 where a typographic family stands before it.
+  test('hand on the family of name ID 1 beside a typographic family', () => {
+    expect(
+      named([windows(1, 'Probe Sans Light'), windows(2, 'Regular'), windows(6, 'ProbeSans-Light'), windows(16, 'Probe Sans'), windows(17, 'Light')]),
+    ).toMatchObject({
+      ok: true,
+      names: { family: 'Probe Sans', legacyFamily: 'Probe Sans Light' },
+    })
+  })
+
+  // A font with no typographic family is known everywhere by its one family: no second name a caller would have to compare.
+  test('hand on no second family where the font states no typographic one', () => {
+    const read = named(LEAST)
+    expect(read.ok && Object.hasOwn(read.names, 'legacyFamily')).toBe(false)
+  })
+
   // A font holds a name in several languages and platforms; the one shown
   // is the Windows English record, then any Windows Unicode one, then the
   // Unicode platform's, then the Macintosh's.

@@ -3,7 +3,12 @@
 - **Status:** accepted; numbered while 0053, 0054 and 0055 were other branches'; extends [0021](0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
   whose site it changes, [0024](0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
   whose status the start page now carries too, and [0028](0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md),
-  whose `CARD_EVIDENCE` became every card's `evidence`
+  whose `CARD_EVIDENCE` became every card's `evidence`; its absence "no
+  print format but PDF", and the predicate `pdf` that held it to one
+  renderer published, are read again by [0068](0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md),
+  under which the sentence is "No Excel, CSV or HTML" and its predicate,
+  now `formats`, holds it to the PDF renderer and the Word writer, the
+  two published
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
 - **Verified by:** the pages' suite, which CI's `test` job runs,

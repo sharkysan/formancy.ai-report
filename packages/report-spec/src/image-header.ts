@@ -45,6 +45,15 @@ export interface JpegHeader {
   readonly height: number
   /** Grey, RGB or CMYK, as PDFKit draws a JPEG of one, three or four components (pdfkit.js 3808-3812). */
   readonly components: 1 | 3 | 4
+  /**
+   * How its first Exif block turns or mirrors it, 2 to 8, as PDFKit reads
+   * the tag and draws it; absent where the picture is upright -- the block
+   * says 1, says nothing, or is not there. `width` and `height` are
+   * already the turned picture's. A writer that embeds the bytes as they
+   * are and cannot say what its reader does with the tag refuses one that
+   * has it (0068).
+   */
+  readonly orientation?: 2 | 3 | 4 | 5 | 6 | 7 | 8
 }
 
 export type RasterHeader = PngHeader | JpegHeader
@@ -283,8 +292,11 @@ function readJpeg(bytes: Uint8Array): JpegHeader | ImageRefusal {
     if (marker === 0xda) {
       if (frame === undefined) return malformed('has image data before its frame header')
       if (bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9) return malformed('is cut off: it does not end with an end-of-image marker')
+      // Upright, or no orientation read: the frame as it is, and nothing said of a turn.
+      if (orientation === undefined || orientation < 2) return frame
+      const turned = orientation as NonNullable<JpegHeader['orientation']>
       // Orientations 5 to 8 turn the image a quarter turn, as PDFKit draws it.
-      return (orientation ?? 0) > 4 ? { ...frame, width: frame.height, height: frame.width } : frame
+      return turned > 4 ? { ...frame, width: frame.height, height: frame.width, orientation: turned } : { ...frame, orientation: turned }
     }
     offset += 2 + length
   }

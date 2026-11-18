@@ -141,6 +141,12 @@ The engine itself was chosen that way: pdfmake and pdfme ran the same
 corpus, judged by the same checks, and pdfme lost on a group header left
 alone at a page's foot
 ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).
+A Word file is proved by the same rule on the file its writer produced,
+read back by a reader of the corpus's own that shares no code with the
+writer, and held to the document and to the PDF of the same document.
+That is what the file says: what Word then does with it is no part of
+the proof, and the documents say so wherever they claim anything of one
+([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 ## 6. Depend, never copy, and let the licence choose the dependencies
 

@@ -161,8 +161,14 @@ async function show(user: User, framework: Framework): Promise<void> {
  * of other bytes than those shown, fails here. And Download XML, beside
  * it, gives the XML that very render wrote, where it wrote one -- a final
  * render of an e-invoice -- and is not offered where it wrote none (0065).
+ * And Download Word, after them, gives the Word file that very render
+ * wrote, a zip by its header, where `word` says the report is written as
+ * one; where it says refused there is no link, and a note in its place
+ * named by the writer's own sentence (0068). A link at a report the
+ * writer refuses, a note at one it writes, or the file of another render
+ * fails here.
  */
-async function printed(id: string, mode: 'preview' | 'final', status: string): Promise<void> {
+async function printed(id: string, mode: 'preview' | 'final', status: string, word: 'written' | 'refused' = wordOf(id)): Promise<void> {
   await screen.findByText(status)
   const renders = seen.outcomes.flatMap((each) => (each.id === id && each.mode === mode && each.outcome.kind === 'printed' ? [each.outcome] : []))
   await waitFor(() => expect(renders.map((render) => render.pdf)).toContain(seen.shown.at(-1)))
@@ -170,6 +176,10 @@ async function printed(id: string, mode: 'preview' | 'final', status: string): P
   expect(new TextDecoder().decode(shown.subarray(0, 5))).toBe('%PDF-')
   const xml = renders.find((render) => render.pdf === shown)?.xml
   expect(xml === undefined).toBe(mode === 'preview' || starters.find((starter) => starter.id === id)?.report.eInvoice === undefined)
+  const file = renders.find((render) => render.pdf === shown)?.word
+  expect(file?.kind).toBe(word)
+  const docx = file?.kind === 'written' ? file.docx : undefined
+  if (docx !== undefined) expect(new TextDecoder().decode(docx.subarray(0, 2))).toBe('PK')
   // PDF.js is handed the bytes before it has read their pages, and the link
   // follows the pages: until then there is none, or the last PDF's. Waited
   // for, a link that never gives these bytes still fails.
@@ -180,10 +190,34 @@ async function printed(id: string, mode: 'preview' | 'final', status: string): P
     expect(new Uint8Array((await download?.arrayBuffer()) ?? new ArrayBuffer(0))).toEqual(shown)
     const offered = screen.queryByRole('link', { name: 'Download XML' })
     expect(offered?.getAttribute('download')).toBe(xml === undefined ? undefined : `${id}.xml`)
-    const file = seen.downloads.get(offered?.getAttribute('href') ?? '')
-    expect(file === undefined ? undefined : new TextDecoder().decode(await file.arrayBuffer())).toBe(xml)
+    const written = seen.downloads.get(offered?.getAttribute('href') ?? '')
+    expect(written === undefined ? undefined : new TextDecoder().decode(await written.arrayBuffer())).toBe(xml)
+    const wordLink = screen.queryByRole('link', { name: 'Download Word' })
+    expect(wordLink?.getAttribute('download')).toBe(docx === undefined ? undefined : `${id}.docx`)
+    const saved = seen.downloads.get(wordLink?.getAttribute('href') ?? '')
+    expect(saved === undefined ? undefined : new Uint8Array(await saved.arrayBuffer())).toEqual(docx)
+    const notes = screen.queryAllByRole('note')
+    expect(notes).toEqual(file?.kind === 'refused' ? [screen.getByRole('note', { name: `No Word file: ${file.refusal.message}` })] : [])
   })
 }
+
+/**
+ * The starters whose report a Word file holds whole (0068), with the
+ * blank report as it opens. The others carry what belongs to their PDF --
+ * a QR-bill's slip, an EPC QR code, an e-invoice or its preview's label,
+ * a chart -- and the Preview says so where the link would be.
+ */
+const WRITTEN_AS_WORD: ReadonlySet<string> = new Set([
+  'service-inspection',
+  'quotation',
+  'grouped-equipment',
+  'site-visit',
+  'order-confirmation',
+  'product-data-sheet',
+  'blank',
+])
+
+const wordOf = (id: string): 'written' | 'refused' => (WRITTEN_AS_WORD.has(id) ? 'written' : 'refused')
 
 /**
  * What the Preview says once a starter's preview has printed: printed, and
@@ -428,7 +462,8 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await waitFor(() => expect(document.activeElement).toBe(within(editor()).getByRole('textbox', { name: words('field.iban') })))
   expect(within(editor()).getByRole('treeitem', { name: words('canvas.paymentPart'), selected: true })).toBeTruthy()
   await within(editor()).findByRole('button', { name: words('problem.item', { severity: words('severity.warning'), where: words('canvas.paymentPart') }) })
-  await printed('blank', 'preview', 'Preview: printed.')
+  // Paid by a slip from here on: the blank report's Word file, written until now, is refused for it (0068).
+  await printed('blank', 'preview', 'Preview: printed.', 'refused')
   await record(`Blank, a QR-bill added, in ${framework}`)
 
   // A language added at the report's level and chosen in the bar: the
@@ -442,7 +477,7 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await screen.findByText(/^Preview: refused by the runtime, \d+ problems?\.$/)
   await record(`Blank, a language added and shown, in ${framework}`)
   await user.selectOptions(language, 'en-GB')
-  await printed('blank', 'preview', 'Preview: printed.')
+  await printed('blank', 'preview', 'Preview: printed.', 'refused')
 }
 
 /**
@@ -480,8 +515,10 @@ describe('the journey', () => {
   // state that broke the floor -- an unnamed control, two landmarks with one
   // name, content outside every landmark -- fails here with the state it is
   // in. Each preview on the way is a PDF the real pipeline printed for the
-  // starter shown, and the download is those very bytes; and a refusal the
-  // person caused is listed, and its button takes them to what it names.
+  // starter shown, and the download is those very bytes, with the Word
+  // file of the same render beside it or the writer's reason for none
+  // (0068); and a refusal the person caused is listed, and its button
+  // takes them to what it names.
   test('every state passes axe and names every control, and every preview is a PDF', async () => {
     const findings: Record<string, string[]> = {}
     const { workspace: opened, user, images: kept } = mount()

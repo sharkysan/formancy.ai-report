@@ -160,3 +160,24 @@ describe('the client\'s README, "Save and reopen a draft"', () => {
     expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
   })
 })
+
+describe('the Word writer\'s README, "Write a report as a Word file"', () => {
+  // A reader copies it into a host that hands a person a report to go on
+  // writing in (0068). The getting-started guide writes no Word file, so
+  // this example is the one a reader meets: every line of it is a line
+  // the install gate runs, from the packed writer on the fflate and the
+  // pako a clean install gives it (scripts/install-fixture/docx.ts). An example that
+  // drifted from what the package exports would otherwise compile nowhere.
+  test('is code the install gate runs, line for line', () => {
+    const readme = readFileSync(join(root, 'packages/report-render-docx/README.md'), 'utf8').replaceAll('\r\n', '\n')
+    const lines = exampleLines(readme, 'Write a report as a Word file')
+    const consumer = new Set(
+      readFileSync(join(root, 'scripts/install-fixture/docx.ts'), 'utf8')
+        .replaceAll('\r\n', '\n')
+        .split('\n')
+        .map((line) => line.trim()),
+    )
+    expect(lines?.length).toBeGreaterThan(5)
+    expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
+  })
+})

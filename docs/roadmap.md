@@ -88,9 +88,26 @@ that lands it.
    held to PDF/UA by a gate.
 2. **Excel and CSV**: a report's tables as a workbook and as text, every
    value exact -- a decimal written as a decimal, never through a binary
-   number.
-3. **Word and HTML**, after Excel.
-4. **A signed PDF**: a final render signed (PAdES) with a key the host
+   number. Its record decides what a workbook does with what a Word file
+   refuses, and takes the reasons from
+   [0068](decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)
+   rather than argue them again.
+3. **More of a report in its Word file**, each of which 0068 refuses
+   until a record lifts it: a QR code and an EPC QR code, once the rules
+   a code is refused by stand below both engines and not in the PDF
+   renderer alone; a JPEG its Exif block turns, a CMYK JPEG, an SVG that
+   covers a box of other proportions than its own, and a table or a page
+   break in a framed section, once somebody has seen what Word does with
+   each; the report's own faces embedded in the file, where their licence
+   allows one that is edited; and a raster of an SVG for a reader that
+   draws none, which needs a rasteriser. A QR-bill's slip, an e-invoice
+   and a chart stay the PDF's.
+4. **A Word file judged by ECMA-376's schemas** in a gate of its own, the
+   schemas admitted by digest as the e-invoice gate's tools are: until
+   then a file is read back by the corpus's own reader, and by no
+   validator in CI.
+5. **HTML**, after Excel.
+6. **A signed PDF**: a final render signed (PAdES) with a key the host
    holds and hands to the renderer for that render. Report keeps no key.
 
 ## The editor
