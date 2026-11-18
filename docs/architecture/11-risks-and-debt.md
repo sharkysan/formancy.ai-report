@@ -214,6 +214,36 @@ accent. A host face whose line is shorter than 1.099 ems is not proved.
 Room above would have to be pdfmake's to make, or the line drawn outside
 pdfmake's text ([0061](../decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
 
+### A Word file nobody has opened in Word
+
+The Word writer writes WordprocessingML itself, and what it writes is
+read back by a reader that is not Word: the corpus's, which holds a file
+to its document, to ECMA-376's order as the corpus transcribed it, and to
+the PDF for its sizes, weights and slant. That Word opens the file,
+repeats the header row, keeps the rows marked as kept, draws an SVG from
+its `svgBlip`, draws two equal rules as two lines, puts page 1's own
+header and both footers where the file says and works the page's number
+and count out, rests on the standard's text and on nothing anybody saw.
+The files of the starters were validated against ISO/IEC 29500-4:2016's
+transitional schema once, by hand, with a schema that is not in the
+repository; no gate repeats it. The Studio's demo is served from `main`
+([0018](../decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)),
+so Download Word reaches the public when the change merges and not at a
+release: the record asks that a person open the starters' files in Word
+before then and say in it what was seen, and `RELEASING.md` asks it
+again of every release. Until somebody has, a reader may meet a file
+Word repairs, lays out otherwise than the marks ask, or does not open.
+
+What is refused is refused for the same reason and costs a host its
+export: a report paid by a QR-bill or an EPC QR code, an invoice in law
+and a report with a chart have no Word file at all, and a turned or CMYK
+JPEG, an SVG that covers a box of other proportions and a table or a
+page break in a framed section are refused until somebody has seen what
+Word does with each. And the writer measures nothing, so it writes what
+the PDF renderer refuses for what it measured: a host that calls it
+alone, and not beside a PDF that was drawn, hands that on
+([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+
 ### An SVG logo costs every reader, and some files are refused
 
 Every recipient's viewer, and the Studio's Preview on every edit, pays to
@@ -719,6 +749,10 @@ findings in its suite among it, meets the rules in that merge ([0050](../decisio
 | **A heading kept with a table that runs past its page moves both** | A paragraph kept with the next block is broken before when that block does not start on its page, and a table's start is read from its first cell, the column header's (`report-render-pdf/src/content.ts`'s `sequence`, `keptWith` and `anchorOf`); a table that runs past its page repeats that header, and the rule then finds the table starting on the next page. The order confirmation found it, and a fix changes what the renderer prints, so it waits for a change of its own ([0064](../decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)) | A heading kept with a table too long for the rest of its page prints on the next page with the whole table, leaving its own page without either: a paragraph, a heading and an 80-row table printed page 1 with the paragraph alone, measured on 16 November 2026 in the renderer's own documents. The order confirmation's goods heading and the payment reminder's overdue invoices' heading are not kept with their tables for that reason; the reminder's heading of what was received is, and a customer with more payments and credit notes than the rest of the page holds meets the defect there ([0066](../decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)); reading the table's start from its first row under the header printed the heading and the table's first rows on page 1, in an experiment not kept |
 | **A reminder counts no days** | The expression language reads a date as its ISO string and has no arithmetic over dates (`report-core/src/expressions/members.ts`), so the payment reminder's days overdue are the host's, and default interest, which would need them, is left out ([0066](../decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)) | A host's count is held to its dates by the host alone; the corpus's test holds the starter's |
 | **A starter whose charts no builder edits** | The builders draw a chart as a box and edit only the fields every component has, until they edit a chart's own properties (0052); the sales report is the first starter that holds charts, so that a person meets them in the Studio, and the walks over the starters open a report with charts in both builders ([0067](../decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md)) | A person who opens the sales report sees its bars and its pie in the Preview alone, two boxes in the design view, and cannot change what either totals, by what, its kind or its words in either builder; and its value axis prints its ticks to the centime, "80'000.00", since one format prints every value of a chart and its bars' labels are the table's totals |
+| **The contract's refusals and the engine's look, stated twice** | What any engine must refuse of a document, and what the document leaves to an engine -- a table's styled rows, a column's share of a width, whether a section is framed, what a heading is kept with, the sizes and the bold no style states -- are report-render-pdf's and now report-render-docx's too. Stating them once in report-runtime, where they belong once two engines read them, is a change to modules whose every move is proved by the corpus's PDFs, the README's pictures and the e-invoice gate's recording, and was not made with the writer ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)) | The corpus's `MALFORMED` list holds the refusals to each other and `against-pdf.test.ts` the sizes, the weights and the slant, as words and not as runs; a table's rules and padding, a rule's space, a rectangle's outline, the gap under a header and every colour are held by review, so one engine changed alone prints otherwise than the other with nothing failing |
+| **ECMA-376's order, and the record's table, each transcribed twice** | The writer writes an element's children in the schema's order (`wml.ts`) and the corpus's reader holds them to it (`docx/vocabulary.ts`), both from a table copied out of ISO/IEC 29500-4's schemas for the elements in use; and the corpus's check walks a document and a file by its own reading of the record's table, never the writer's code (0068) | A mistake made in both passes; a schema in a gate would find the first, and is on the roadmap, not built |
+| **What belongs to the PDF, decided in the Word writer** | `pdf-only.ts` is report-render-docx's, the one export there is (0068) | A second export that refuses the same things would import the Word writer or state the list again; the predicate moves to report-runtime, beside the document, with the record of that export |
+| **The getting-started guide writes no Word file** | Its quotation draws a chart, which the writer refuses, and a second quotation for the guide was not written (0068) | A host learns the writer from the package's README, whose example `scripts/readme-example.test.mjs` holds to the lines the install gate runs; the guide's programs do not show it |
 | **Every host carries the e-invoice** | `validateReport` reads an e-invoice in every report, and the runtime imports its writer statically (0027) | Bundled minified from each package's source, report-spec, report-core and report-runtime grew from 145,932 to 194,092 bytes, measured with esbuild 0.28.2 on 17 October 2026, whether a host's reports have an e-invoice or not |
 | **The XML has no bound of its own** | It is written before a page is counted, so only `MAX_DETAIL_ROWS` bounds it; a bound of its own is the rightsholder's to choose (0027) | At 100,000 lines the XML held 117,280,919 bytes, and resolving took a median of 5.4 s against 2.0 s without it, over five runs from the built package on Node 24.21.0 and an Intel i9-10900K on 17 October 2026 |
 | **A header logo counted on every page the limit allows** | `MAX_SVG_DRAWING` is checked before the render, when only `maxPages` is known, not the pages the report will print ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)) | At a limit of 200 pages a header logo may cost 5,000 units however short the report; refusing inside pdfmake's header callback, which knows the count, would admit more |
@@ -761,6 +795,13 @@ the editor is held on the Studio's starter alone -- report-forms now
 depends on report-core, for the review, and nothing yet holds every
 draft to `diagnose` -- and review found it false once, for a blank
 title ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)).
+
+Of a Word file, the roadmap names what 0068 refuses and a later record
+may lift: the codes, once their rules stand below both engines; the
+pictures and the framed section's table and page break, once somebody
+has seen them in Word; faces embedded; a raster for an SVG; and a gate
+that judges the file by ECMA-376's schemas
+([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 What comes after all of these, in order, and what is not planned at all,
 is [the roadmap](../roadmap.md); a risk an item there would bring is

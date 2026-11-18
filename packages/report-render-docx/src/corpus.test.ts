@@ -40,6 +40,17 @@ const WRITTEN_THOUGH_THE_PDF_REFUSES: ReadonlyMap<string, string> = new Map([
   ['shifted-too-wide', 'a word wider than its column, by the widths the PDF measured'],
 ])
 
+/**
+ * How long one fixture may take to be written, read back and verified.
+ * The oversized job, 6,000 rows, took 2.7 seconds alone and 5.2 to 6.2
+ * under coverage, which is how CI's test job runs this suite and is past
+ * vitest's own 5 seconds: measured on 18 November 2026 on an Intel Core
+ * i9-10900K shared with other work, under Node 24.21.0. No CI runner was
+ * timed; this is ten times what was measured here, so that a slower one
+ * does not fail a file that is right.
+ */
+const WRITTEN_WITHIN = 60_000
+
 describe.each(CORPUS.map((fixture) => [fixture.id, fixture] as const))('%s', (_id, fixture) => {
   const { document, expect: expected } = fixture
   const owed = wordRefusal(document)
@@ -61,9 +72,13 @@ describe.each(CORPUS.map((fixture) => [fixture.id, fixture] as const))('%s', (_i
   })
 
   // Every word, cell, mark, picture and length the document states, on the file itself.
-  test('is written as the file its document says', () => {
-    expect(verifyDocx(fixture, written(document))).toEqual([])
-  })
+  test(
+    'is written as the file its document says',
+    () => {
+      expect(verifyDocx(fixture, written(document))).toEqual([])
+    },
+    WRITTEN_WITHIN,
+  )
 })
 
 // The list above names fixtures: one that left the corpus would stay listed, and say the writer writes something it never saw.

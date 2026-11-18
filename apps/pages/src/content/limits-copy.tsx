@@ -6,8 +6,8 @@
  * link to the roadmap, which says what comes next and is not restated
  * here. A file of its own because the absences change as what they name
  * is built, a reason to change of their own.
- * limits.test.ts holds `data`, `pdf`, `codes`, `scripts`, `viewer`, `jobs`
- * and `ai` to the code they rest on -- the packages published and what
+ * limits.test.ts holds `data`, `formats`, `codes`, `scripts`, `viewer`,
+ * `jobs` and `ai` to the code they rest on -- the packages published and what
  * their manifests install, report-spec's component kinds and the blocks it
  * prints -- so that a change there fails until the sentence is read again;
  * `detail` (report-spec's one list of detail rows, grouped by one field at
@@ -39,7 +39,8 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
       detail:
         'Eine Liste von Detailzeilen, gruppiert nach höchstens einem Feld: Ein Bericht liest eine Liste von Detailzeilen, und seine Tabellen drucken nur Zeilen dieser Liste, jede nach einem Feld oder gar nicht gruppiert.',
       data: 'Kein konsistentes Lesen aus Formancy Data: Die Daten eines Berichts werden nach bestem Bemühen (best-effort) gelesen, der Kopf, die Zeilen Anfrage für Anfrage und jede Bezeichnung zu verschiedenen Zeitpunkten; eine Zeile, die zwischen zwei Anfragen hinzukommt oder wegfällt, kann doppelt oder gar nicht gedruckt werden, und eine Summe kann verschiedene Datenstände mischen.',
-      pdf: 'Kein Druckformat ausser PDF: Der Renderer druckt einen Bericht als PDF und in keinem anderen Format.',
+      formats:
+        'Kein Excel, CSV oder HTML: Ein Bericht wird als PDF gedruckt; nichts schreibt seine Tabellen als Arbeitsmappe oder als Text, und nichts den Bericht als Webseite.',
       codes:
         'Keine Codes ausser QR-Codes: Ein Bericht druckt QR-Codes, EPC-QR-Codes und den Swiss QR Code einer QR-Rechnung, aber keine andere Art von Barcode.',
       scripts:
@@ -58,7 +59,8 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
       detail:
         "Une liste de lignes de détail, regroupée selon un champ au plus : un rapport lit une liste de lignes de détail, et ses tableaux n'impriment que des lignes de cette liste, chacun regroupé selon un champ ou pas du tout.",
       data: "Pas de lecture cohérente depuis Formancy Data : les données d'un rapport y sont lues en mode best-effort, l'en-tête, les lignes requête après requête et chaque libellé à des moments différents ; une ligne ajoutée ou supprimée entre deux requêtes peut être imprimée deux fois ou pas du tout, et un total peut mêler des états différents.",
-      pdf: "Aucun format d'impression autre que le PDF : le moteur de rendu n'imprime un rapport qu'en PDF.",
+      formats:
+        "Ni Excel, ni CSV, ni HTML : un rapport est imprimé en PDF ; rien n'écrit ses tableaux sous forme de classeur ou de texte, ni le rapport sous forme de page web.",
       codes:
         "Pas d'autres codes que les QR codes : un rapport imprime des QR codes, des QR codes SEPA et le Swiss QR Code d'une facture QR, mais aucun autre type de code-barres.",
       scripts:
@@ -77,7 +79,8 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
       detail:
         "Un elenco di righe di dettaglio, raggruppato al massimo per un campo: un report legge un elenco di righe di dettaglio, e le sue tabelle stampano solo righe di quell'elenco, ciascuna raggruppata per un campo o per nessuno.",
       data: "Nessuna lettura coerente da Formancy Data: i dati di un report vengono letti in modalità best-effort, l'intestazione, le righe una richiesta dopo l'altra e ogni etichetta in momenti diversi; una riga aggiunta o rimossa tra due richieste può essere stampata due volte o per niente, e un totale può mescolare stati diversi.",
-      pdf: 'Nessun formato di stampa se non il PDF: il renderer non stampa un report in nessun altro formato.',
+      formats:
+        'Né Excel, né CSV, né HTML: un report viene stampato in PDF; niente scrive le sue tabelle come cartella di lavoro o come testo, né il report come pagina web.',
       codes:
         'Nessun codice se non i QR code: un report stampa QR code, QR code SEPA e lo Swiss QR Code di una fattura QR, ma nessun altro tipo di codice a barre.',
       scripts:
@@ -96,7 +99,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
       detail:
         'One list of detail rows, grouped by one field at most: a report reads one list of detail rows, and its tables print rows of that list alone, each grouped by one field or by none.',
       data: "No consistent read from Formancy Data: a report's data is read from it best-effort, its header, its rows a request at a time and each label at different moments, so a row added or removed between two requests can print twice or not at all, and a total can mix states.",
-      pdf: 'No print format but PDF: the renderer prints a report as a PDF and in no other format.',
+      formats: 'No Excel, CSV or HTML: a report is printed as a PDF, and nothing writes its tables as a workbook or as text, or the report as a web page.',
       codes: "No codes but QR codes: a report prints QR codes, EPC QR codes and a QR-bill's Swiss QR Code, but no other kind of barcode.",
       scripts:
         'Latin, Greek and Cyrillic only, with their punctuation and symbols: every other script is refused, Arabic, Hebrew, Devanagari, Thai, Chinese and Japanese among them.',

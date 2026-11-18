@@ -17,7 +17,8 @@
  */
 import { resolveReport } from '@formancy/report-runtime'
 import type { ImageResolver, ResolvedDocument } from '@formancy/report-runtime'
-import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, REFUSAL_CODES, renderDocx, RenderRefusal } from '@formancy/report-render-docx'
+import { renderDocx, RenderRefusal } from '@formancy/report-render-docx'
+import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, REFUSAL_CODES } from '@formancy/report-render-docx'
 import type { RefusalCode } from '@formancy/report-render-docx'
 import { inflateRawSync } from 'node:zlib'
 import { logo, quotation, quotationData } from './quotation.js'

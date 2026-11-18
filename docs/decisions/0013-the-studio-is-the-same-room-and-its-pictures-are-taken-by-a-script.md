@@ -10,7 +10,10 @@
   under which the Studio keeps the images a person adds in the page, and
   its browser gate adds one through the platform's file chooser;
   extended by [0045](0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md), under which its picker opens a starter
-  generated from a formancy form
+  generated from a formancy form;
+  extended by [0068](0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md),
+  under which its Preview offers the Word file of the render on the paper
+  beside the PDF, or says why the writer refused it
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**

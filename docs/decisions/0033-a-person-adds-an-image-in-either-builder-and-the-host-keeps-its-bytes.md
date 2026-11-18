@@ -7,7 +7,11 @@
   plain copy that holds one; extended by
   [0049](0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md),
   under which a host may wire its `ImageStore` to the report server, which
-  keeps an image for the tenant by its digest once report-spec has read it
+  keeps an image for the tenant by its digest once report-spec has read it;
+  and by
+  [0068](0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md),
+  under which `imageHeader` says how a JPEG's first Exif block turns or
+  mirrors it, `orientation`, absent on an upright one
 - **Date:** 2026-10-19
 - **Deciders:** Daniel Bacher
 - **Verified by:**

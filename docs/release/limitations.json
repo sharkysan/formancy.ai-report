@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:135a7c25bb9e387d993c7b1c4ced1b0dd1d1abaaa6fd1519d0c1e3af275c33f5",
+      "reviewed": "sha256:b058f4ed63f8752f5c26d36a581d12d23b852ccf9e628c7cb501c6ed4a7edae7",
       "limitations": [
         {
           "area": "testing",
@@ -321,7 +321,7 @@
       ]
     },
     "0013": {
-      "reviewed": "sha256:99a156a9cf5d4bfab5842dca5741f2e5d77fd97e9ee2efa8a57eeddf269c5437",
+      "reviewed": "sha256:b315c15c468dc4df8df395df7ab0dff8cabbaccc78f950f0326c918be48360a6",
       "limitations": [
         {
           "area": "rendering",
@@ -1242,7 +1242,7 @@
       ]
     },
     "0033": {
-      "reviewed": "sha256:0a69dbafb0325221627327c8ba386903270af889e8f3887601b5c7cd6ed0e1b1",
+      "reviewed": "sha256:4177794ad102250884efe20ad1a9af8a112aeddfbca08a55b17b2214838eae0e",
       "limitations": [
         {
           "area": "builders",
@@ -1527,7 +1527,7 @@
       ]
     },
     "0040": {
-      "reviewed": "sha256:58d664ee8924a21b1d360d9601cf983d5f9a951e15c1cf28581b352544ddcc7c",
+      "reviewed": "sha256:6a52aad8bde9ef564b706fc3ce99c0f87f6f0cdf457426642d597aeb07ed0df6",
       "limitations": [
         {
           "area": "format",
@@ -3121,6 +3121,87 @@
         {
           "area": "release",
           "says": "The sales report’s products, prices, documents and figures are invented, its regions named after places around the firm’s invented address, and its five shares happen to add up to 100.0 %, which another month’s need not."
+        }
+      ]
+    },
+    "0068": {
+      "reviewed": "sha256:fa8e756df57223319c1ff389e7da187c9b1b546926b5d3d06e1615bd3af614e9",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A report that is paid by a QR-bill or an EPC QR code, is an e-invoice of either kind, draws a chart or holds a QR code is refused as a Word file, in a final render and in a preview, and so is any preview the runtime labels, so a host whose reports carry a code or a chart cannot export them and prints them as PDFs.",
+          "heldBy": "packages/report-render-docx/src/starters.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "Nobody has opened a file the Word writer wrote in Word: that Word opens it, repeats the header row, keeps the marked rows, draws the SVG and two equal rules as two lines, puts page 1’s own header and both footers where the file says and works the page fields out is held by no test, the files were validated against ISO/IEC 29500-4:2016’s schema once, by hand, on 17 November 2026, and the Studio’s demo offers them from main."
+        },
+        {
+          "area": "rendering",
+          "says": "Lines, pages and their count in a Word file are Word’s: the file marks the header row as the one to repeat and the rows the PDF keeps as kept, and says nothing of where a line or a page breaks, so it is not the PDF in another container and no test says it prints as the PDF does.",
+          "heldBy": "packages/report-render-docx/src/blocks.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A Word file names its fonts and embeds none, so a reader without the family, and Roboto, the renderer’s own, is on few machines, sees a face Word chooses, with lines breaking elsewhere and nothing in the file saying so; and bold is Word’s bold of the family, where the PDF draws the face the report mapped.",
+          "heldBy": "packages/report-render-docx/src/fonts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The Word writer measures nothing, so it writes what the PDF renderer refuses for what it measured, a kept block taller than a page, a line no page holds or more pages than a host allows among it, and refuses what the PDF prints, a report of more than 100,000 paragraphs or 4,000,000 characters and a spacer taller than the printable area among it; a host that calls `renderDocx` without drawing the PDF gets no such check.",
+          "heldBy": "packages/report-render-docx/src/corpus.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A JPEG its Exif block turns, a CMYK JPEG, an SVG that covers a box of other proportions than its own, and a table or a page break in a section with a border, a fill or padding are refused as a Word file, each until somebody has seen what Word does with it, and neither builder says so when such an image is added or such a section is framed.",
+          "heldBy": "packages/report-render-docx/src/refusals.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "An SVG in a Word file is a grey box in a reader that does not draw `svgBlip`, which Microsoft’s Open XML SDK lists as Office 2019’s and later, and a page’s number and count print nothing in a reader that works no field out, since the file stores no result; which readers do either was not tried.",
+          "heldBy": "packages/report-render-docx/src/pictures.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A length in a Word file is rounded to Word’s unit, a size to the half point so that 9.25 points is written 9.5, and the file is a point taller than the document between two tables, after a table that ends a cell, a footer or the body, and at the head of a page a break starts.",
+          "heldBy": "packages/report-render-docx/src/blocks.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "`renderDocx` is synchronous and takes no signal: a file at its bounds was written in one step of about two seconds, in some 650 MB, on an Intel i9-10900K under Node 24.21.0 on 17 November 2026, and a host that must stop one runs it in a worker."
+        },
+        {
+          "area": "rendering",
+          "says": "A Word file states no language, since the resolved document carries no locale, so Word proofs its text in the reader’s own; and every run states its own properties with no style, so a person who wants every cell another size changes them cell by cell."
+        },
+        {
+          "area": "rendering",
+          "says": "A character Roboto has no glyph for is written into a Word file where the PDF refuses it, since the face’s bytes are not in the writer’s package; a mapped face’s characters are held as the PDF holds them.",
+          "heldBy": "packages/report-render-docx/src/fonts.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "What any engine must refuse of a document, and what the document leaves to an engine, are stated in the PDF renderer and again in the Word writer, held together for the refusals and for the sizes, the weights and the slant, as words and not as runs; a table’s rules and padding, a rule’s space, a rectangle’s outline, the gap under a header and every colour are held by review.",
+          "heldBy": "packages/report-render-docx/src/against-pdf.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The order of an element’s children is transcribed from ECMA-376’s schema twice, in the Word writer and in the corpus’s reader, and the mapping of blocks is read twice, so a mistake made in both passes; no schema judges a Word file in CI.",
+          "heldBy": "packages/report-corpus/src/docx/read.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "The Studio offers Download Word only beside a PDF that was drawn, the file of the render on the paper while a newer one prints, and where the writer refuses a report it shows a note in the link’s place; the writer runs on the page’s own thread after each PDF.",
+          "heldBy": "apps/studio/src/preview/pdf-view.test.tsx"
+        },
+        {
+          "area": "release",
+          "says": "The install gate checks the Word writer’s packed declarations against Node’s types and never against the DOM’s alone, so that the packed package runs in a browser rests on the Studio’s browser gate, through the workspace."
+        },
+        {
+          "area": "release",
+          "says": "The getting-started guide writes no Word file, since its quotation draws a chart, which the writer refuses; the package’s README carries the example, held to the lines the install gate runs.",
+          "heldBy": "scripts/readme-example.test.mjs"
         }
       ]
     }

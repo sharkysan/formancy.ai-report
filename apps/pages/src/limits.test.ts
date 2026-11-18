@@ -69,12 +69,17 @@ function installs(name: string): ReadonlySet<string> {
 }
 
 describe('what the start page says Formancy Report does not do yet', () => {
-  // "No print format but PDF" is true while the one renderer published is
-  // PDF's: another report-render-* published from packages/ fails here
-  // until the sentence is read again. A renderer named otherwise is
-  // review's.
-  test('says no print format but PDF while report-render-pdf is the only renderer published', () => {
-    expect(inputs.packages.filter((name) => name.startsWith('@formancy/report-render-'))).toEqual(['@formancy/report-render-pdf'])
+  // "No Excel, CSV or HTML" is true while the renderers published from
+  // packages/ are the PDF's and the Word writer (0068), which no release
+  // holds yet and the sentence does not name, so that it is true of the
+  // newest release and of main alike: a third report-render-* -- a
+  // workbook's, a web page's -- fails here until the sentence is read
+  // again. A writer named otherwise is review's.
+  test("says no Excel, CSV or HTML while the renderers published are the PDF's and the Word writer", () => {
+    expect(inputs.packages.filter((name) => name.startsWith('@formancy/report-render-'))).toEqual([
+      '@formancy/report-render-docx',
+      '@formancy/report-render-pdf',
+    ])
   })
 
   // "No codes but QR codes" was read against these kinds, the chart among
@@ -234,7 +239,7 @@ describe('what the start page says Formancy Report does not do yet', () => {
   // A predicate whose sentence the page no longer says would pass while
   // holding nothing.
   test('says each sentence a predicate here holds', () => {
-    expect(LIMIT_ORDER).toEqual(expect.arrayContaining(['data', 'pdf', 'codes', 'scripts', 'viewer', 'jobs', 'ai']))
+    expect(LIMIT_ORDER).toEqual(expect.arrayContaining(['data', 'formats', 'codes', 'scripts', 'viewer', 'jobs', 'ai']))
   })
 
   // A limit the copy words and LIMIT_ORDER leaves out would never print,

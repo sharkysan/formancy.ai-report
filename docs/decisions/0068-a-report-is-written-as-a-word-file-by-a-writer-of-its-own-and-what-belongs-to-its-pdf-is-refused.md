@@ -4,14 +4,6 @@
 - **Date:** 2026-11-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
-  - **Written before its gates.** The reader, the writer, the comparison
-    with the PDF, report-spec's two fields, the Studio's part and the
-    install gate's are built, and each entry below names a test or a gate
-    that exists and was seen failing, but the end of **From outside**: the
-    package's row in the building blocks, its job in the test matrix and
-    its flag are not written yet, and the three guards that hold it to
-    them fail until they are. This entry is removed with them, before the
-    change is merged.
   - **The reader.** report-corpus's `src/docx/read.test.ts` proves
     `readDocx` on a file written by hand in `src/docx/testing/hand.ts`
     and zipped there by Node's zlib, never by the writer: the parts by
@@ -114,9 +106,11 @@
     `tsconfig.json` has ES2023's library and no `@types/node`, so a
     `node:` import or a DOM global in `src` does not compile; its tests
     are a program of their own
-    (`tsconfig.test.json`). `scripts/dependency-licences.mjs` judges
-    fflate; `scripts/architecture.test.mjs`, `scripts/ci-test-jobs.test.mjs`
-    and `scripts/codecov-config.test.mjs` hold the package to its row, its
+    (`tsconfig.test.json`). `scripts/readme-example.test.mjs` holds the
+    example in the package's README to lines that consumer runs.
+    `scripts/dependency-licences.mjs` judges fflate;
+    `scripts/architecture.test.mjs`, `scripts/ci-test-jobs.test.mjs` and
+    `scripts/codecov-config.test.mjs` hold the package to its row, its
     job and its flag.
   - **The Studio.** `src/preview/pipeline.test.ts` names what the Word
     file of every starter the page offers is, the blank report among
@@ -157,6 +151,12 @@
     after an edit holds the edit, as the Download PDF does. The blank
     report, the Studio's own, is held there to its link, its name and the
     reader alone.
+  - **The pages.** `apps/pages/src/limits.test.ts` holds what the start
+    page says Formancy Report does not do yet to the renderers published
+    from `packages/`, the PDF's and this writer: its sentence, "No print
+    format but PDF" until this record, is "No Excel, CSV or HTML", true of
+    the newest release and of `main` alike, and a third renderer
+    published fails there until it is read again.
   - **Seen failing, on 17 November 2026**, each with the thing it guards
     taken out and put back. Of the reader: an entry's date, a name twice,
     a CRC-32, a path, the order of an element's children, an attribute
@@ -189,6 +189,20 @@
     fields failed before they were read. The corpus's reader and its
     checks were written before their tests ran, and the writer before
     its own: each was seen failing in this way and not before its code.
+    On 18 November 2026: `starters.test.ts` and the Studio's
+    `pipeline.test.ts`, on the sales report `main` brought and neither
+    named; the pages' `limits.test.ts`, on the second renderer
+    published, before its sentence was read again; the README example's
+    guard, before the package had a README
+    and with a line of it changed; and the guards of the package's row,
+    its job, its flag and this record's place in a section and in the
+    register, each from the day the package arrived until its document
+    was written. And the writer's own suite under coverage, which is how
+    CI's test job runs it and how nobody had run it: the oversized job in
+    `corpus.test.ts` and the property in `text.test.ts` each took past
+    vitest's five seconds there, 5.2 to 6.6, and failed for it, with
+    nothing wrong in a file; each now states a bound of its own with
+    what was measured.
   - **Seen, once, by hand, on 17 November 2026**, and by no gate: a file
     written by hand of every construct this record chooses -- runs of
     every style, runs set off the line, a table with its header marked, a
@@ -483,7 +497,9 @@ on a line, more pages than the host allows -- is not the writer's: it
 measures nothing.
 
 **The starters.** `starters.test.ts` is the list, and fails on a starter
-it does not name. As they stand on the day of this record:
+it does not name. As they stand on 18 November 2026, the sales report
+([0067](0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md))
+arrived since this record was numbered:
 
 | Starter | Its Word file |
 |---|---|
@@ -491,6 +507,7 @@ it does not name. As they stand on the day of this record:
 | Invoice, Payment reminder | refused: the payment part |
 | Euro invoice | refused: its EPC QR code |
 | E-invoice (Factur-X), E-invoice (XRechnung) | a final render refused for its e-invoice, a preview for its label |
+| Sales report | refused: its chart, the first of its two |
 
 **What is the same as the PDF, and what is Word's.** The same, stated in
 the file and held on it: every word in its order, in the region it
@@ -584,10 +601,10 @@ written twice.
   a file that lost something.
 
 **What it costs.**
-- **Every starter that is paid by a code or is an invoice in law is
-  refused**, in a final render and in a preview, and so will a starter
-  that draws a chart be. A host whose reports carry a QR code of any
-  kind cannot export them.
+- **Every starter that is paid by a code, is an invoice in law or
+  draws a chart is refused**, in a final render and in a preview. A host
+  whose reports carry a QR code of any kind, or a chart, cannot export
+  them.
 - **Nobody has opened a file in Word.** That Word opens what this writer
   writes, repeats the header row, keeps the rows, draws the SVG, draws
   two equal rules as two lines, puts the first page's header and both
@@ -598,7 +615,9 @@ written twice.
   ([0018](0018-the-studio-demo-is-served-at-formancy-ai-report.md)), so
   the files reach the public when this change merges, not at a release:
   a person opens the starters' files in Word before it merges, and says
-  here what was seen, or the Studio's link waits.
+  here what was seen, or the Studio's link waits. No gate holds that
+  sentence; `RELEASING.md` asks it again of every release, in the step
+  that verifies one by hand.
 - **The order of an element's children is transcribed, twice.** The
   writer writes them in ECMA-376's order and the corpus's reader holds
   them to it, from a table copied out of the schema for the elements in
@@ -663,6 +682,15 @@ written twice.
   and a host that must stop one runs it in a worker.
 - **The README's pictures are taken again**, and every walk of the
   Studio writes a file more at each render.
+- **The start page says one thing less.** "No print format but PDF" was
+  true of 0.2.0 and is not of `main`; what is true of both is that
+  nothing writes a workbook, text or a web page, and the page says that,
+  in its four languages, and nothing of the Word writer, which no release
+  holds yet.
+- **The getting-started guide writes no Word file.** Its quotation draws
+  a chart, which the writer refuses, and a second quotation for the
+  guide is not written here. The package's README carries the example,
+  held to the lines the install gate's consumer runs.
 - **report-spec's `JpegHeader` and `FontNames` grow a field each**,
   absent on every JPEG read as upright and every font without a
   typographic family, so that no expectation of either changes.

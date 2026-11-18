@@ -772,7 +772,7 @@ import { assetDigest, imageHeader, isDigest, sniffImage } from '@formancy/report
 
 sniffImage(bytes) // 'image/png', 'image/jpeg' or 'image/svg+xml', by the first bytes alone; undefined for anything else
 imageHeader(png) // { ok: true, mediaType: 'image/png', width: 120, height: 40, bitsPerPixel: 32, interlaced: false, data: every IDAT chunk's bytes, joined }
-imageHeader(jpeg) // { ok: true, mediaType: 'image/jpeg', width: 40, height: 120, components: 3 }: as it is shown, after its Exif turn
+imageHeader(jpeg) // { ok: true, mediaType: 'image/jpeg', width: 40, height: 120, components: 3, orientation: 6 }: as it is shown, after its Exif turn
 imageHeader(wide) // { ok: false, code: 'too-large', message: 'is 5000 × 300 pixels; the limit is 4096 pixels a side', width: 5000, height: 300 }
 assetDigest(bytes) // 'sha256:' and 64 lower-case hex digits, what an asset's digest is
 isDigest(value) // true where value is such a digest, by the rule a declaration is validated by
@@ -786,7 +786,12 @@ isDigest(value) // true where value is such a digest, by the rule a declaration 
 - **`imageHeader`** reads a PNG's chunks, each with its length and CRC,
   the header, the palette it needs and the end chunk with nothing after
   it; and a JPEG's segments up to its scan, the frame header where PDFKit
-  reads it, the first Exif block's orientation and the end marker. Its
+  reads it, the first Exif block's orientation and the end marker. A
+  JPEG that block turns or mirrors says how, `orientation`, 2 to 8, with
+  its sides already the turned picture's, and an upright one says none:
+  the PDF draws it turned, and a writer that embeds the bytes as they are
+  and cannot say what its reader does with the tag, the Word writer,
+  refuses one that has it (0068). Its
   refusals, `IMAGE_REFUSAL_CODES`, are in the words the renderer says them
   in after an asset's name, and one of a picture's size carries the size.
   A picture is held to `MAX_ASSET_SIDE` pixels a side, and every reader of
@@ -870,7 +875,10 @@ characterMap(ttf) // { ok: true, characters: Set(2327) { ... } }: the character 
   is held to `readFont`'s characters.
 - **The names are handed back as the font states them, never judged**,
   each the best record's, Windows English first, and the typographic family
-  before the family. The licence description and its address are the
+  before the family; where a font states both, the family of name ID 1 is
+  handed back beside it, `legacyFamily`, the name an application that
+  lists four faces to a family knows the face by, Word among them (0068).
+  The licence description and its address are the
   customer's to read. The PostScript name, which PDFKit writes into the PDF
   as it stands, is held in every record to printable ASCII with none of
   `[ ] ( ) { } < > / % #`, a space admitted, since PDFKit writes it as an

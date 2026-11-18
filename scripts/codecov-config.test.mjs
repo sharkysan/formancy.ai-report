@@ -31,6 +31,7 @@ describe('codecov.yml', () => {
       'report-data-provider',
       'report-documents',
       'report-forms',
+      'report-render-docx',
       'report-render-pdf',
       'report-runtime',
       'report-server',

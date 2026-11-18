@@ -165,6 +165,9 @@ describe('a string a document carries', () => {
   // The one property everything else here is a case of: wherever a document holds text, whatever the text, the file reads back as that
   // text and holds no element, field or relationship more than the same document without it. A string field a later version adds to the
   // document is walked with the rest, once the document above holds one.
+  // Its 400 files, each written and read back, took 3.1 seconds alone and 5.7 to 6.6 under coverage, which is how CI's test job runs this
+  // suite and is past vitest's own 5 seconds: measured on 18 November 2026 on an Intel Core i9-10900K shared with other work, under Node
+  // 24.21.0. No CI runner was timed; the bound is ten times what was measured here.
   test('is read back as that very text, in a file that holds nothing more for it', () => {
     const plain = new Map(PATHS.map((path) => [path, JSON.stringify(shapeOf(written(replaced(RICH, path, 'plain'))))]))
     fc.assert(
@@ -177,7 +180,7 @@ describe('a string a document carries', () => {
       }),
       { numRuns: 400 },
     )
-  })
+  }, 60_000)
 
   // The cases a person would try first, named, so that a failure says which.
   test.each([

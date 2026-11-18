@@ -35,6 +35,10 @@ The pieces, each a package:
   browser, and refuses what it cannot draw whole
   ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
   [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md));
+- a **Word writer** that writes the same document as a Word file a person
+  can go on writing in, its lines and pages Word's, and refuses what
+  belongs to the report's PDF
+  ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md));
 - a **provider** that reads a report's data from Formancy Data 0.1.0,
   best-effort
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md));

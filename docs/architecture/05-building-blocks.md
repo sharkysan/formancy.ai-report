@@ -12,6 +12,9 @@ apps   studio                  the playground: both builders, the PDF, PDF.js   
 L3     report-render-pdf       pdfmake · pdfkit · uqr · echarts · zrender · a Node entry and a browser entry
                                an e-invoice drawn as a PDF/A-3b that embeds its XML;
                                a chart laid out by ECharts, drawn by pdfmake
+       report-render-docx      fflate · the same document written as a Word file, the same
+                               bytes each time; what belongs to its PDF refused whole
+                               no framework, no DOM, no Node, no network
        report-data-provider    @formancy/data-client: the one door to Data's records
        report-forms            @formancy/spec's validator: a form's submissions, handed over;
                                a report generated from a form version; a new version
@@ -40,7 +43,8 @@ beside report-corpus           private test support: the fixtures, the PDF reade
                                clip, marks and words, a reader of a PDF's objects and its
                                XMP, the starters and samples, a formancy form in two
                                versions, its submissions and a report generated from it, a
-                               reader of the e-invoice's XML; over the runtime
+                               reader of the e-invoice's XML, a reader of a Word file and
+                               its checks; over the runtime
 ```
 
 Each row's three middle columns are its manifest's: what it depends on
@@ -58,6 +62,7 @@ the upstream packages' and the peers' ranges.
 | `@formancy/report-runtime` | `report-core`, `report-spec` | `@formancy/expressions` | — | No framework, no PDF engine, no Node, by the same rule; report-core for the one compilation it shares with the editor ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md), [0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) |
 | `@formancy/report-builder-core` | `report-core`, `report-spec` | — | — | Those two, nothing else; no framework, no DOM, no Node ([0012](../decisions/0012-the-builders-are-native-and-share-one-session.md)) |
 | `@formancy/report-render-pdf` | `report-runtime` | `pdfmake`, `pdfkit`, `uqr`, `echarts`, `zrender` | — | `echarts` and `zrender`, each at exactly 6.1.0, which `scripts/dependency-licences.mjs` admits for it alone, by the digest of the licence files a review read: no published package but the renderer depends on either itself, and a package that depends on the renderer reaches them through it, which the renderer loads only for a chart with something to draw; what a bundle holds is a build's to show, and the Studio's `notices.test.ts` builds the renderer's browser entry and finds one ECharts and one zrender, in the chunk it imports dynamically alone, while no test yet holds a builder's bundle to holding neither [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md); of this repository's packages, the runtime alone, which re-exports what the renderer needs of the format: report-spec's own rules for the slip and for how an EPC QR code prints ([0022](../decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), [0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)), the names an e-invoice's file is embedded by ([0027](../decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)), and `checkSvg`, the check an SVG asset is drawn by ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)), and report-spec's font reader, which its faces' glyphs are read by ([0040](../decisions/0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md)), and `readFont`, `characterMap` and `refusedCharacter`, which a host's fonts are read, embedded and held to ([0043](../decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)). A resolved document and approved bytes in, never a database or an address ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)); an e-invoice's PDF/A also embeds the ICC profile PDFKit, pdfmake's own dependency, reads from its package, which `scripts/dependency-licences.mjs` holds to a review by its digest ([0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md)) |
+| `@formancy/report-render-docx` | `report-runtime` | `fflate` | — | No framework, no DOM, no Node, no network: ES2023's library and no `@types/node`, so a `node:` import or a DOM global does not compile, and fflate's declarations need neither. The Word writer ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)): a resolved document in, a Word file's bytes out, or the runtime's `RenderRefusal`. Of this repository's packages, the runtime alone, which hands on what the writer needs of the format: `sniffImage`, `imageHeader` and `checkSvg`, which a picture's bytes are read by, `readFont`, by which a mapped face's family and characters are known, and `refusedCharacter`. Never the PDF renderer, which would bring pdfmake and ECharts with it: what the two engines must agree on is stated in both and held together by `against-pdf.test.ts`, the renderer a devDependency of that suite alone. `fflate` at exactly 0.8.3, MIT, with no dependency of its own, which `scripts/dependency-licences.mjs` judges as any package; the writer calls its synchronous half alone, the same code in the file fflate serves Node and the one it serves every other host |
 | `@formancy/report-data-provider` | `report-runtime`, `report-spec` | `@formancy/data-client` | — | The only package that may depend on Formancy Data; `scripts/dependency-licences.mjs` refuses Data reached from any other ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)). The DOM's globals and no `@types/node`, so a `node:` import does not compile |
 | `@formancy/report-forms` | `report-core`, `report-runtime`, `report-spec` | `@formancy/spec`, for its validator, the version hash, labels, rich text and the diff, at the release the repository pins | — | The DOM's globals and no `@types/node`, as the Data provider, so a `node:` import does not compile; nothing reaches the network: a host hands each form version and submission over ([0042](../decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)), each form version a report is generated from ([0045](../decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md)), and each a review compares a new one with; report-core because a review's resolutions are its commands, judged by its session and its compiler ([0048](../decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)). It never depends on Formancy Data, which `scripts/dependency-licences.mjs` refuses from any package but the provider |
 | `@formancy/report-server-core` | `report-spec` | — | — | No framework, no DOM, no Node: ES2023's library and no `@types/node`, so a `node:` import or a `fetch` does not compile. The actions table, the identity it is asked about, the wire a client compiles against and the audit port ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)), and the use cases that decide a tenant's drafts and images over `TemplateStore`, a port with no store behind it here ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)). Of this repository's packages, report-spec alone: the types the wire and the port name, and the functions the use cases judge a draft and an image by -- `validateReport`, `isIdentifier`, `isDigest`, `isFontMediaType`, `sniffImage`, `imageHeader`, `checkSvg`, `assetDigest` and the limits -- so that what a server stores is what the format accepts, decided by the format |
@@ -178,7 +183,9 @@ Each stage is a module, and each decides its question once:
 `RenderRefusal` before any PDF is written
 ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md),
 [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
-It is a package boundary, not an engine interface: there is one engine.
+It is a package boundary, not an engine interface: there is one PDF
+engine, and the Word writer beside it is a second function over the same
+document, never a second implementation of an interface (0068).
 
 | Module | Responsibility |
 |---|---|
@@ -203,6 +210,30 @@ It is a package boundary, not an engine interface: there is one engine.
 | `svg-pdfa.ts` | An SVG in a PDF/A, an e-invoice's or a PDF/A-2b: every number the converter will write for an image of one bounded from above, from report-spec's extent, the box and the page, and the image refused as `unsupported`, naming it and the PDF/A, past the integers a PDF/A-2 or -3 holds less a margin for rounding, or past its 28 graphics states; a report drawn as no PDF/A draws it as before ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), 0057) |
 | `svg-content.ts` | An SVG asset as pdfmake's node: the approved text unchanged, held to the renderer's own list of the elements that form holds, with the converter's `xMidYMid meet` for `contain` and `xMidYMid slice` for `cover`, and an image and a warning callback that refuse the asset ([0030](../decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)) |
 | `epc.ts` | An EPC QR code encoded once by uqr at level M and drawn as a QR code is; with Austria's caption, in the PSA's frame at the least version that prints, the caption in the same Liberation Sans, laid out by report-spec's `epc-print.ts` ([0025](../decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) |
+
+### `@formancy/report-render-docx` (L3)
+
+`renderDocx` writes a resolved document as a Word file, synchronously, or
+throws the runtime's `RenderRefusal` before a byte is written
+([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+It stands beside the PDF renderer and shares the document and the refusal
+with it, and no interface: two functions over one input. It says what the
+document says, and leaves lines, pages and their count to Word.
+
+| Module | Responsibility |
+|---|---|
+| `render.ts`, `index.ts` | `renderDocx(document)`: the fonts planned, the document checked, the package written. The entry hands on the runtime's refusal, its codes and their types, and the writer's three bounds |
+| `check.ts`, `check-text.ts` | Everything refused, in one walk, before anything is built, in a stated order: the creation date and the title; what belongs to the PDF of the document itself; the page; then the page header, page 1's own, the page footer and the body, each block in document order. What no engine prints is refused by the PDF renderer's code and subject -- a table in a columns block, a page break in a region, a page field in the body, a block, a style or a row the document's types do not hold -- and what nobody has seen Word print as the PDF does as `unsupported`: an SVG that covers a box of other proportions, and a table or a page break in a section with a border, a fill or padding. The walk counts the paragraphs, the characters and the pictures' bytes it would write. `check-text.ts` holds every string a page prints to report-spec's `refusedCharacter`, to what an XML document holds and to the characters its mapped face draws, and a style to the document's kinds |
+| `pdf-only.ts` | What belongs to a report's PDF, each refused as `unsupported` in a sentence that says to print it as one: a payment part, an e-invoice of either kind, a preview whose page header opens with the runtime's label, read as `pdfa-check.ts` reads it in the renderer; and a chart, a QR code and an EPC QR code, each by its id |
+| `assets.ts` | A picture's asset before its bytes go into the file: the size limit, the bytes against the type they are declared as, a PNG's or a JPEG's structure by `imageHeader`, a PNG's image data inflated by fflate's streaming decompressor and held to the scanlines its header promises, an SVG by `checkSvg`, each `invalid-asset` as the renderer refuses it; then a JPEG its Exif block turns, by `JpegHeader.orientation`, and one of four components, `unsupported`. And the one grey pixel a reader that draws no SVG shows in a drawing's place |
+| `fonts.ts` | The family each font token is named by, and the font table: a mapped token by its normal face's name ID 1, `readFont`'s `legacyFamily` where a typographic family stands before it; `sans` unmapped Roboto; a token with no regular face, faces of different typographic families, a weight or a slant a mapped token has no face for and `serif` or `mono` unmapped refused. Nothing is embedded |
+| `look.ts`, `rows.ts`, `widths.ts` | What the document leaves to an engine, the PDF renderer's own, stated again: the sizes text prints at where no style says, a table's bold rows, its rules and padding, the space around a rule, the gap between a region and the body; the one walk of a table's cells in the style each prints in, which the checks and the table are both built from, with the rows a group header keeps; and a fill column's share of a width. `against-pdf.test.ts` holds the sizes, the weights and the slant to the PDF, and the rest is review's |
+| `limits.ts` | `MAX_DOCX_PARAGRAPHS`, `MAX_DOCX_CHARACTERS` and `MAX_DOCX_MEDIA_BYTES`, each with how it was measured, on what and when |
+| `units.ts` | Points as Word's units, rounded once and here: twentieths of a point for a length, half-points for a size, eighths for a rule's weight, EMUs for a picture |
+| `nodes.ts`, `blocks.ts`, `table.ts` | The file's paragraphs and tables in points, before any XML: each block mapped as the record's table says, and the keep rules marked on them -- a heading through the spacers and rules between it and what it heads, the header row, a group header's kept rows, the row before a closing row -- which only a list of nodes can say |
+| `wml.ts` | Those nodes as WordprocessingML, every element's children in the order ECMA-376 gives them, every run stating its own family, size, weight, slant and colour, since the file has no style to inherit one from, and every text element keeping its spaces |
+| `package.ts` | The parts, their content types and relationships, the core properties, the styles, the settings and the font table, each named by the writer alone and never by anything a document carries; zipped by fflate with every entry dated 1 January 1980, a PNG and a JPEG stored and the rest deflated |
+| `xml.ts` | The one place a string becomes XML: `text` and `attribute` escape, markup is a type only this module makes, and a string from a document does not compile where markup stands |
 
 ### `@formancy/report-data-provider` (L3)
 
@@ -539,6 +570,32 @@ over a raised one on the next line among them, and the paragraphs the
 renderer refuses, apart from `ALL_FIXTURES` as the SVG
 fixtures are
 ([0061](../decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
+A Word file is read back by `docx/`, and by nothing of its writer's
+([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)): `docx/zip.ts` walks the
+zip's directory itself and inflates with Node's zlib, never fflate, and
+refuses a name twice, a name that climbs out of the archive, data that
+does not sum to its CRC-32 and an entry dated otherwise than the writer
+dates every one (`ZIP_EPOCH`); `docx/package.ts` reads the parts by their
+content types and every relationship to a part, as ECMA-376's Part 2 has
+them, of any package of that part, and refuses a relationship to an
+address and a part nothing reaches; `docx/xml.ts` reads a part with
+saxes, each element by its namespace and never its prefix, against
+`docx/vocabulary.ts`, the closed list of the elements and attributes a
+written file holds and the order of each element's children, transcribed
+from ISO/IEC 29500-4's transitional schemas; and `docx/read.ts`'s
+`readDocx` returns what the file states, in points (`docx/model.ts`), or
+throws naming the part. `check-docx.ts` and `check-docx-blocks.ts` judge
+it: `verifyDocx` holds a file to the expectation the corpus derives from
+the document for its PDF, for what a Word file can show of it, and block
+by block to what the document states outright, by the corpus's own
+reading of the record's table and never the writer's code; and
+`wordRefusal` derives from a document what the writer must refuse of it.
+`docx/testing/hand.ts` is a Word file typed out by hand and zipped by
+Node's zlib, on which the reader and the checks are proved.
+`fixtures/malformed.ts` holds `MALFORMED`, one document for each way a
+document breaks its contract with an engine before anything is measured,
+which both engines refuse by the same code and subject, and
+`image-kinds.ts` `UNSEEN_JPEGS`, the JPEGs the writer refuses.
 `trial/` keeps the renderer trial's adapters for pdfmake and pdfme as the
 record of the trial
 ([0005](../decisions/0005-pdfmake-renders-reports-behind-one-adapter.md)).
@@ -553,6 +610,12 @@ and offers the PDF and, where a final render of an e-invoice wrote one,
 its XML, the runtime's of that very render, to download; the picker names
 an e-invoice starter by its kind, in the builder's words
 (`starters/starters.ts`, [0065](../decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
+Beside them it offers, as Download Word, the Word file `renderDocx` writes
+of the document the PDF was drawn from, or a note that says why the writer
+refused it: the writer is asked only once the PDF is drawn, from a chunk
+of the build's own, and what it throws that is no refusal leaves the PDF
+as it printed (`preview/pipeline.ts`,
+[0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 `images/image-store.ts` keeps the starters' images and every image a person
 adds in the page, by digest, for the tab's life: the store every editor is
 made with and the lookup every Preview hands the runtime ([0033](../decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).

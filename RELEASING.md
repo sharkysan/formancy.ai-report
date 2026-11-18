@@ -58,6 +58,14 @@ node scripts/e-invoice.mjs --java <path>   # on a Java the register names
 pnpm test:e2e:install
 #    and, to read the report of what ran on this machine, "The release report"
 #    below
+#    and, by hand, since no gate opens Word (0068): `pnpm demo`, and at each
+#    starter that offers it, Download Word; open each file in Word, and see
+#    that it opens with nothing repaired, that a table's header row repeats
+#    on its second page, and that the firm's mark, page 1's own header, the
+#    footer's page number and count and the report's words are there. Say
+#    what was seen, in which Word and on which day, in record 0068's "Seen,
+#    once, by hand", then
+#    node scripts/release-report/limitations.mjs --stamp 0068
 
 # 4. Get the release commit onto main, through a pull request like any other.
 #    From the merge on, the pages at formancy.ai/report/ name the release,
