@@ -12,9 +12,9 @@
 // the corpus's starter, at the instant the file says it was made; and
 // byte for byte the file report-render-docx writes of that document under
 // Node. Where the writer refuses the report -- a QR-bill, an EPC QR code,
-// an e-invoice, a preview's label -- no link, and a note in its place
-// named "No Word file: " and the sentence the writer refuses that document
-// with under Node. Which starters are which is the writer's to say, here
+// an e-invoice, a preview's label, a chart -- no link, and a note in its
+// place named "No Word file: " and the sentence the writer refuses that
+// document with under Node. Which starters are which is the writer's to say, here
 // under Node: the Studio's suite names them (pipeline.test.ts), and the
 // journey fails a pass that read no file, or no refusal.
 //

@@ -96,8 +96,10 @@ Each as a `RenderRefusal`, whole, naming what it is about:
 | A JPEG its Exif block turns or one of four components, an SVG that covers a box of other proportions than its own, and a table or a page break in a section with a border, a fill or padding: nobody has seen Word print them as the PDF does | `unsupported` |
 | What no engine prints, by the PDF renderer's code and subject: a table in a columns block, a page break in a page region, a page field outside the page header and footer, a block or a style the document's types do not hold | `unsupported` |
 | A `serif` or `mono` token the report maps no font to, a weight or a slant a mapped token has no face for, faces of different families under one token, and a character the mapped face does not draw or a report does not print | `unsupported` |
-| A picture, a rectangle or fixed columns wider than where they stand; a picture, a rectangle or a spacer taller than the printable area; more than `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one, `MAX_DOCX_CHARACTERS` characters of text, or `MAX_DOCX_MEDIA_BYTES` of pictures | `content-too-large` |
-| Bytes that are not the picture or the font they are declared as, and an SVG that is not the drawing report-spec's `cleanSvg` writes | `invalid-asset` |
+| What Word's units do not state: a rule or a border lighter than a quarter of a point or heavier than twelve; a rectangle, a column or a framed section under a fortieth of a point, and a picture drawn at under an English Metric Unit, which would be written with no width or no height | `unsupported` |
+| A creation date that states no zone, or is no ISO 8601 date: it is another moment on another machine, and the same document would be another file there. `resolveReport` writes an instant with its zone | `unsupported` |
+| A picture, a rectangle or fixed columns wider than where they stand; a picture, a rectangle or a spacer taller than the printable area; more than `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one, `MAX_DOCX_CHARACTERS` characters of text, `MAX_DOCX_PICTURES` pictures, each asset counted once, or `MAX_DOCX_MEDIA_BYTES` of them | `content-too-large` |
+| Bytes that are not the picture or the font they are declared as: a PNG whose image data is not one whole stream of the scanlines its header promises, by its checksum and its end, among them; and an SVG that is not the drawing report-spec's `cleanSvg` writes | `invalid-asset` |
 
 So a report that is paid by a code, is an invoice in law or draws a chart
 has no Word file, and neither has a preview of incomplete data: print
@@ -107,9 +109,10 @@ pages than a host allows -- the writer writes. A host that offers the
 Word file only beside a PDF that was drawn, as the Studio does, hands a
 person nothing the renderer refused.
 
-The bounds are measured, in `src/limits.ts`: a file at them was written
-in about two seconds, in some 650 MB, on the machine and the day that
-file names.
+The bounds are measured, in `src/limits.ts`, but the pictures' count,
+which is chosen far under what a zip's directory counts: a file at them
+was written in about two seconds, in some 650 MB, on the machine and the
+day that file names.
 
 It depends on `@formancy/report-runtime` and on `fflate` at exactly 0.8.3,
 which zips the parts and inflates a PNG's image data to hold it to its

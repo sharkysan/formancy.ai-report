@@ -1,4 +1,15 @@
-import type { BlockNode, CellNode, Line, ParagraphNode, PictureNode, RowNode, RunNode, RunStyle, TableNode } from './nodes.js'
+import {
+  LINE_ENDING,
+  type BlockNode,
+  type CellNode,
+  type Line,
+  type ParagraphNode,
+  type PictureNode,
+  type RowNode,
+  type RunNode,
+  type RunStyle,
+  type TableNode,
+} from './nodes.js'
 import { cropUnits, eighths, emu, halfPoints, twips } from './units.js'
 import { attribute, element, hexColor, joined, own, text, type AttributeValue, type Name, type Xml } from './xml.js'
 
@@ -101,9 +112,10 @@ export function writer(): Writer {
       const char = (type: 'begin' | 'end'): Xml => element('w:r', [], [set, element('w:fldChar', [['w:fldCharType', own(type)]])])
       return joined([char('begin'), element('w:r', [], [set, element('w:instrText', [PRESERVE], [own(` ${node.field} `)])]), char('end')])
     }
-    // A line feed, a carriage return, or the two together end a line, as in the PDF.
+    // A line feed, a carriage return, or the two together end a line, as in the PDF: each is a break. The one that ends a paragraph's text is
+    // none, and is not in a run's text by now (`nodes.ts`).
     const pieces = node.text
-      .split(/\r\n|\r|\n/)
+      .split(LINE_ENDING)
       .flatMap((line, index): Xml[] => [...(index === 0 ? [] : [element('w:br')]), ...(line === '' ? [] : [element('w:t', [PRESERVE], [text(line)])])])
     return element('w:r', [], [set, ...pieces])
   }

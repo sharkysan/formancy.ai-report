@@ -269,6 +269,71 @@ describe('verifyDocx fails on a file that', () => {
   })
 })
 
+/** The hand-written file's fixture with its document's body changed by `change`, a block at a time. */
+const changed = (change: (block: Block, index: number) => Block): Fixture => {
+  const document = { ...HAND_DOCUMENT, body: HAND_DOCUMENT.body.map(change) }
+  return { ...HAND, document, expect: expectation(document, { maxPagesExpected: 2 }) }
+}
+
+describe('the line ending that ends a text', () => {
+  const LAST = HAND_DOCUMENT.body.length - 1
+  /** The document with a line feed at the end of its last paragraph and of the cell ROW-1. */
+  const ended = changed((block, index) =>
+    index === LAST
+      ? { kind: 'paragraph', runs: [{ text: 'After the break\n' }] }
+      : block.kind === 'table'
+        ? { ...block, rows: block.rows.map((row) => (row.cells[0] === 'ROW-1' ? { ...row, cells: ['ROW-1\r\n', '1.00'] } : row)) }
+        : block,
+  )
+
+  // pdfmake ends its last line at such an ending and opens none after it: a check that asked for a break there would ask for a line the PDF does not print.
+  test('is no break of the file, in a paragraph and in a cell', () => {
+    expect(problems(handParts(), ended)).toEqual([])
+  })
+
+  // The other way round: a writer that wrote the break would print a line more than the PDF, with every word in place.
+  test.each([
+    ['a paragraph', 'After the break</w:t>', /the run 'After the break' is 'After the break\n'/],
+    ['a cell', 'ROW-1</w:t>', /row 1, column 1, prints 'ROW-1\n' where the table states/],
+  ])('written as a break in %s is said', (_name, from, problem) => {
+    expect(problems(rewritten(DOCUMENT, from, `${from}<w:br/>`), ended).join('\n')).toMatch(problem)
+  })
+
+  // Only the one that ends the text: a line ending inside it is a line the PDF prints, and the file's break.
+  test('inside a text is still a break', () => {
+    const inside = changed((block, index) => (index === LAST ? { kind: 'paragraph', runs: [{ text: 'After\nthe break' }] } : block))
+    expect(problems(handParts(), inside).join('\n')).toMatch(/the run 'After\nthe break' is 'After the break'/)
+    expect(problems(rewritten(DOCUMENT, '>After the break<', '>After</w:t><w:br/><w:t xml:space="preserve">the break<'), inside)).toEqual([])
+  })
+})
+
+describe('a keep-together block that ends in a table', () => {
+  /** The document with its columns block kept together. */
+  const kept = changed((block) => (block.kind === 'columns' ? { kind: 'keepTogether', blocks: [block] } : block))
+  const cell = (width: number): string => `<w:tcW w:w="${width}" w:type="dxa"/></w:tcPr><w:p><w:pPr>`
+  /** Where the columns block's table starts, after the paragraph that keeps it apart from the table before it: the one table of that width with no padding. */
+  const START = '<w:tbl><w:tblPr><w:tblW w:w="9906" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="0"'
+  /**
+   * The file with that block marked: the paragraph before its table, which the block holds, kept with the table and its lines kept; its one row
+   * whole; the lines of its two paragraphs kept; and its left paragraph marked as `left` says.
+   */
+  const file = (left: string): Map<string, string | Uint8Array> => {
+    const between = rewritten(DOCUMENT, `${HAND_SEPARATOR}${START}`, `${HAND_SEPARATOR.replace('<w:pPr>', '<w:pPr><w:keepNext/><w:keepLines/>')}${START}`)
+    const whole = rewritten(DOCUMENT, '<w:tr><w:tc><w:tcPr><w:tcW w:w="4000"', '<w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:w="4000"', between)
+    return rewritten(DOCUMENT, cell(5906), `${cell(5906)}<w:keepLines/>`, rewritten(DOCUMENT, cell(4000), `${cell(4000)}${left}`, whole))
+  }
+
+  // A row is kept with the next by every paragraph of it: the row that ends the block is kept with nothing after the block, in every cell.
+  test('marks no paragraph of its last row as kept with the next', () => {
+    expect(problems(file('<w:keepLines/>'), kept)).toEqual([])
+  })
+
+  // "Every paragraph but the last" would mark the row's first cell and not its second: a row half kept with what follows the block.
+  test('with its last row kept in one cell and not the other is said', () => {
+    expect(problems(file('<w:keepNext/><w:keepLines/>'), kept).join('\n')).toMatch(/'Left' is kept with what follows it/)
+  })
+})
+
 describe('wordRefusal derives', () => {
   const body = (...blocks: readonly Block[]): ResolvedDocument => ({ ...HAND_DOCUMENT, body: blocks })
   const image = (asset: Image['asset'], fit: Image['fit'] = 'contain', width = 40, height = 40): Image => ({ kind: 'image', asset, width, height, fit })
@@ -324,6 +389,13 @@ describe('wordRefusal derives', () => {
     ['a JPEG its Exif block turns', body(image(kind('jpeg-turned'))), { code: 'unsupported', subject: 'jpeg-turned' }],
     ['a JPEG of four components', body(image(kind('jpeg-cmyk'))), { code: 'unsupported', subject: 'jpeg-cmyk' }],
     ['an SVG that covers a box of other proportions', body(image(svg, 'cover', 80, 40)), { code: 'unsupported', subject: 'mark' }],
+    // A picture's bytes are read once every block has been walked, as the PDF renderer reads them: the chart is met first, wherever the picture stands.
+    ['a chart after a JPEG its Exif block turns', body(image(kind('jpeg-turned')), chart), { code: 'unsupported', subject: (chart as { id: string }).id }],
+    [
+      'a turned JPEG in a column before one of four components',
+      body({ kind: 'columns', columns: [{ width: 'fill', blocks: [image(kind('jpeg-turned'))] }] }, image(kind('jpeg-cmyk'))),
+      { code: 'unsupported', subject: 'jpeg-turned' },
+    ],
   ])('%s', (_name, document, refusal) => {
     expect(wordRefusal(document)).toEqual(refusal)
   })

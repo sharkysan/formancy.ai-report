@@ -75,15 +75,17 @@ const closes = (kind: RowKind | undefined): boolean => kind === 'groupFooter' ||
 export function keptRows(rows: readonly StyledRow[], table: Table): Set<number> {
   const kept = new Set<number>()
   if (rows.length > 1) kept.add(0)
+  // The last row above that closes nothing: what the closing rows under it add up. Carried down the table, never looked for from each
+  // closing row, which cost a table of totals alone the square of its rows.
+  let above: RowKind | undefined
   rows.forEach((row, at) => {
-    if (row.kind === 'groupHeader' && at + 1 < rows.length) {
+    const { kind } = row
+    if (kind === 'groupHeader' && at + 1 < rows.length) {
       const keeps = table.rows[row.index!]!.keepWithRows ?? 1
       for (let each = 0; each < keeps; each++) kept.add(at + each)
     }
-    if (!closes(row.kind)) return
-    let anchor = at - 1
-    while (closes(rows[anchor]?.kind)) anchor--
-    if (rows[anchor]?.kind === 'detail' || rows[anchor]?.kind === 'empty') kept.add(at - 1)
+    if (!closes(kind)) above = kind
+    else if (above === 'detail' || above === 'empty') kept.add(at - 1)
   })
   return kept
 }

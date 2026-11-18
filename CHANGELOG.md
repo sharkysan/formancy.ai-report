@@ -54,12 +54,24 @@ and no picture of a page changed.
   person deletes; a JPEG its Exif block turns, a CMYK JPEG, an SVG that
   covers a box of other proportions than its own, and a table or a page
   break in a section with a border, a fill or padding, until somebody has
-  seen what Word does with each; and a file past 100,000 paragraphs,
-  4,000,000 characters or two assets' worth of pictures, measured where
-  the bounds are written. So the invoices, the payment reminder and the
-  sales report have no Word file, and a host whose reports carry a code
-  or a chart cannot export them. It never writes a file without what the
-  report prints.
+  seen what Word does with each; a rectangle, a column, a framed section
+  or a picture so small that it rounds to none of the unit Word states it
+  in; a creation date that states no zone, which is another moment on
+  another machine, and would be another file there; and a file past
+  100,000 paragraphs, 4,000,000 characters, 1,024 pictures or two assets'
+  worth of them, measured where the bounds are written. So the invoices,
+  the payment reminder and the sales report have no Word file, and a host
+  whose reports carry a code or a chart cannot export them. It never
+  writes a file without what the report prints.
+- **What both engines refuse, they refuse alike.** A document no engine
+  prints is refused by the writer with the PDF renderer's code and
+  subject, and one wrong in several places for the place the renderer
+  refuses it for. A PNG's image data is held, as the renderer holds it,
+  to being one whole stream: its checksum summed, and no byte after its
+  end, so a PNG damaged where only its checksum shows it is not embedded
+  as it is. And a text that ends in a line ending prints no line for it,
+  as the PDF prints none: the lines are counted on the PDF, and the file
+  states as many.
 - **Nobody has opened a written file in Word.** The files are read back
   in the tests by a reader of the corpus's own, which is not the writer
   and not Word, and 39 of them were validated against ISO/IEC

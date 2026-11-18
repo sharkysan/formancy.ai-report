@@ -61,6 +61,7 @@ describe('a rule', () => {
 })
 
 describe('a spacer, a page break and a rectangle', () => {
+  // Space is all a spacer is: at the line Word gives an empty paragraph by itself it would be a line of text tall, whatever the report asked for.
   test('a spacer is an empty paragraph whose line is exactly its height', () => {
     expect(body({ kind: 'spacer', height: 18 })[0]).toMatchObject({ kind: 'paragraph', runs: [], line: { height: 18, rule: 'exact' } })
   })
@@ -70,6 +71,7 @@ describe('a spacer, a page break and a rectangle', () => {
     expect(body(paragraph('above'), { kind: 'spacer', height }, paragraph('below')).map(words)).toEqual(['above', 'below'])
   })
 
+  // The break is a mark on a paragraph of its own: on the block after it, that block would start a page wherever a person moved it to.
   test('a page break is an empty paragraph, a point tall, that starts a page', () => {
     const [, breaks, after] = body(paragraph('before'), { kind: 'pageBreak' }, paragraph('after')) as DocxParagraph[]
     expect(breaks).toMatchObject({ runs: [], pageBreakBefore: true, line: { height: 1, rule: 'exact' } })
@@ -128,6 +130,7 @@ describe('columns and sections', () => {
     expect(boxed!.blocks.map((block) => block.kind)).toEqual(['table', 'paragraph'])
   })
 
+  // A Word file has no box but a table's cell: a frame lost on the way is a section that prints as its blocks alone, every word still there.
   test('a section with a frame is a cell with its border, its fill and its padding around its blocks', () => {
     const border = { weight: 1, color: '#1f4e79' }
     const [section] = body({
@@ -153,6 +156,9 @@ describe('columns and sections', () => {
 describe('what is kept together', () => {
   const marks = (blocks: readonly DocxBlock[]): [string, boolean, boolean][] =>
     (blocks as DocxParagraph[]).filter((block) => block.kind === 'paragraph').map((block) => [words(block), block.keepNext, block.keepLines])
+  /** Every paragraph of `blocks`, through every table's cells, in order. */
+  const paragraphsIn = (blocks: readonly DocxBlock[]): DocxParagraph[] =>
+    blocks.flatMap((block) => (block.kind === 'paragraph' ? [block] : block.rows.flatMap((row) => row.cells.flatMap((cell) => paragraphsIn(cell.blocks)))))
 
   // A summary that must stay on one page: every paragraph of it kept with the next, and its lines together, but the last, which is kept with nothing after the block.
   test('a keep-together block marks every paragraph but its last as kept with the next, and every one to keep its lines', () => {
@@ -164,9 +170,46 @@ describe('what is kept together', () => {
     ])
   })
 
+  // A row that may split is a block that may: the marks on its paragraphs keep them with each other, and say nothing of the row they stand in.
   test("a columns block in a keep-together block may not split, nor a table's rows", () => {
     const [columns] = body({ kind: 'keepTogether', blocks: [{ kind: 'columns', columns: [{ width: 'fill', blocks: [paragraph('kept')] }] }] }) as DocxTable[]
     expect(columns!.rows[0]!.cantSplit).toBe(true)
+  })
+
+  // A row is kept with the next by every paragraph of it. "Every paragraph but the last" marked the last row's first cell and left its second:
+  // a row half kept with what follows the block, which the block is not kept with at all.
+  test('a keep-together block that ends in a table keeps every row but its last, and no cell of that one', () => {
+    const read = body({ kind: 'keepTogether', blocks: [paragraph('Summary'), table()] }, paragraph('after'))
+    expect(marks(read)).toEqual([
+      ['Summary', true, true],
+      ['after', false, false],
+    ])
+    const rows = (read[1] as DocxTable).rows
+    expect(rows.map((row) => row.cells.map((cell) => (cell.blocks[0] as DocxParagraph).keepNext))).toEqual([
+      [true, true],
+      [true, true],
+      [false, false],
+    ])
+    expect(rows.every((row) => row.cantSplit && row.cells.every((cell) => (cell.blocks[0] as DocxParagraph).keepLines))).toBe(true)
+  })
+
+  // The same of a columns block that ends one: its one row is whole by its own mark, and none of its paragraphs is kept with what follows the block.
+  test('a keep-together block that ends in a columns block keeps no paragraph of it with the next', () => {
+    const columns: Block = {
+      kind: 'columns',
+      columns: [
+        { width: 'fill', blocks: [paragraph('left'), paragraph('below')] },
+        { width: 'fill', blocks: [paragraph('right')] },
+      ],
+    }
+    const read = body({ kind: 'keepTogether', blocks: [paragraph('Summary'), columns] }, paragraph('after'))
+    const inside = (read[1] as DocxTable).rows[0]!.cells.flatMap((cell) => cell.blocks as DocxParagraph[])
+    expect(inside.map((each) => [words(each), each.keepNext, each.keepLines])).toEqual([
+      ['left', false, true],
+      ['below', false, true],
+      ['right', false, true],
+    ])
+    expect((read[0] as DocxParagraph).keepNext).toBe(true)
   })
 
   // Word keeps a paragraph with the paragraph after it and no further: a heading over a spacer and a rule would be kept with the spacer,
@@ -183,6 +226,7 @@ describe('what is kept together', () => {
     ])
   })
 
+  // A chapter's heading over a section's: marked one by one to the next paragraph alone, the first would be kept with the second and not with the text.
   test('a run of headings moves as one, to the block that prints after the last', () => {
     const kept = (text: string): Block => ({ ...paragraph(text), keepWithNext: true })
     expect(marks(body(kept('Chapter'), kept('Section'), paragraph('Text')))).toEqual([
@@ -198,6 +242,60 @@ describe('what is kept together', () => {
     expect(read.map((block) => block.kind)).toEqual(['paragraph', 'table', 'paragraph', 'table', 'paragraph'])
     const inBox = (read[1] as DocxTable).rows[0]!.cells[0]!.blocks[0] as DocxParagraph
     expect([(read[0] as DocxParagraph).keepNext, inBox.keepNext, (read[2] as DocxParagraph).keepNext]).toEqual([true, true, true])
+  })
+
+  // A block that holds nothing ends with nothing: it writes no paragraph and marks none, and what stands around it is as it was.
+  test('a keep-together block that holds nothing writes nothing and marks nothing', () => {
+    expect(marks(body(paragraph('above'), { kind: 'keepTogether', blocks: [] }, paragraph('below')))).toEqual([
+      ['above', false, false],
+      ['below', false, false],
+    ])
+  })
+
+  // What a heading is kept with is found inside a container as the PDF finds it: a kept block's first paragraph that prints, however deep.
+  test('a heading over a keep-together block is kept with it', () => {
+    const read = body(
+      { ...paragraph('Heading'), keepWithNext: true },
+      { kind: 'keepTogether', blocks: [paragraph('one'), paragraph('two')] },
+      paragraph('after'),
+    )
+    expect(marks(read)).toEqual([
+      ['Heading', true, false],
+      ['one', true, true],
+      ['two', false, true],
+      ['after', false, false],
+    ])
+  })
+
+  // A kept block and a framed section that print nothing are passed like a spacer, and every paragraph of them is between the heading and what it heads.
+  test('a heading over a keep-together block and a section that print nothing is kept through both', () => {
+    const read = body(
+      { ...paragraph('Heading'), keepWithNext: true },
+      { kind: 'keepTogether', blocks: [{ kind: 'spacer', height: 4 }] },
+      { kind: 'section', padding: 2, blocks: [{ kind: 'rule', thickness: 1 }] },
+      paragraph('Text'),
+    )
+    expect(paragraphsIn(read).map((each) => [words(each), each.keepNext])).toEqual([
+      ['Heading', true],
+      ['', true],
+      ['', true],
+      ['Text', false],
+    ])
+  })
+
+  // A table prints its empty text only in place of detail rows. One of blank cells that has them prints nothing, and the PDF keeps a heading over it
+  // with the block after it: counted as printing for an empty text it never prints, the table would end the heading's keep at its own first row.
+  test('a heading over a table that prints nothing is kept through it, to the block that prints after it', () => {
+    const blank = table({ header: ['', ''], rows: [{ kind: 'detail', cells: ['', ' '] }], emptyText: 'No records' })
+    const read = body({ ...paragraph('Heading'), keepWithNext: true }, blank, paragraph('Text'))
+    expect(keptRows(read[1] as DocxTable)).toEqual([true, true])
+    expect(marks(read)).toEqual([
+      ['Heading', true, false],
+      ['Text', false, false],
+    ])
+    // The same table with no detail row prints its empty text, and is what the heading is kept with: its last row is kept with nothing.
+    const empty = body({ ...paragraph('Heading'), keepWithNext: true }, table({ header: ['', ''], rows: [], emptyText: 'No records' }), paragraph('Text'))
+    expect(keptRows(empty[1] as DocxTable)).toEqual([true, false])
   })
 
   // A heading over nothing is kept with nothing, as in the PDF: one before a page break would otherwise drag the break's paragraph with it.
@@ -217,6 +315,7 @@ describe('what is kept together', () => {
 })
 
 describe('a table', () => {
+  // Left to fit its words, Word would size the columns itself: the grid is the document's widths, and the look the engine's own (`look.ts`).
   test("is of fixed layout at its columns' widths, with the rules and the padding the PDF draws", () => {
     const [read] = body(table()) as DocxTable[]
     const rule = { weight: RULE, color: ROW_RULE }
@@ -269,6 +368,7 @@ describe('a table', () => {
     expect(keptRows(body(table({ rows }))[0] as DocxTable)).toEqual([true, true, true, true, false, false, true, false, false])
   })
 
+  // A group's name across the table, and "No records" under a header with nothing beneath it: each one cell wide, it would stand in the first column.
   test('prints a row across it as one cell that spans every column, and its empty text across it in place of detail rows', () => {
     const [read] = body(table({ rows: [{ kind: 'total', cells: ['Total', '0.00'] }] })) as DocxTable[]
     expect(read!.rows.map((row) => row.cells.map((cell) => [cell.span, words(cell.blocks[0])]))).toEqual([
@@ -292,6 +392,7 @@ describe('a table', () => {
     expect(read!.rows[1]!.cells[0]!.blocks).toMatchObject([{ runs: [], mark: { size: 7 } }])
   })
 
+  // Two tables with nothing between them are one table to Word, and a body that ends in a table is one WordprocessingML's readers do not expect.
   test('after a table that ends the body stands a paragraph a point tall, and between two tables one', () => {
     expect(body(table(), table({ id: 'more', rows: [] })).map((block) => (block.kind === 'table' ? 'table' : block.line?.height))).toEqual([
       'table',
@@ -349,6 +450,7 @@ describe('the page and its regions', () => {
     expect(docx.footer!.blocks.map((block) => (block.kind === 'table' ? 'table' : (block.line?.height ?? words(block))))).toEqual([REGION_GAP, 'Footer'])
   })
 
+  // An empty header part is still a header: Word would reserve its line on every page of a report that has none.
   test('a region that holds nothing is no part of the file', () => {
     const docx = file(documentOf([paragraph('x')]))
     expect([docx.header, docx.firstHeader, docx.footer, docx.firstFooter]).toEqual([undefined, undefined, undefined, undefined])

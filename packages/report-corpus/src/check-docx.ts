@@ -157,9 +157,14 @@ function expectedProblems(expect: Fixture['expect'], docx: Docx): string[] {
   for (const text of expect.exactText) if (!everywhere.some((line) => wholeWords(line, text))) problems.push(`'${text}' is on no line`)
   const squeezed = everywhere.map((line) => line.replace(/\s+/g, ''))
   for (const text of expect.wrappedText) if (!squeezed.includes(text.replace(/\s+/g, ''))) problems.push(`'${text}' is no paragraph of its own`)
+  // A line that stands in the body itself is kept with the next unless it is the group's last; one in a table's cell may stand in the row that ends
+  // its block, which is kept with nothing after it, and what it is kept with is the block walk's to say (`check-docx-blocks.ts`).
+  const standsAlone = new Set<DocxBlock>(docx.body)
   for (const group of expect.keptTogether) {
     const kept = group.map((line) => body.find((paragraph) => lineOf(paragraph) === line))
-    if (kept.some((paragraph, index) => paragraph === undefined || !paragraph.keepLines || (index < kept.length - 1 && !paragraph.keepNext)))
+    const loose = (paragraph: DocxParagraph, index: number): boolean =>
+      !paragraph.keepLines || (index < kept.length - 1 && standsAlone.has(paragraph) && !paragraph.keepNext)
+    if (kept.some((paragraph, index) => paragraph === undefined || loose(paragraph, index)))
       problems.push(`the kept lines from '${group[0] ?? ''}' are not all marked to stay on one page`)
   }
   const pictures = (blocks: readonly DocxBlock[]): DocxParagraph[] =>
@@ -250,12 +255,14 @@ function shiftedProblems(where: string, expected: readonly ExpectedShiftedRun[],
 /**
  * The refusal a Word file's writer owes `document`, or undefined where it
  * owes none of these: derived from the document alone, by the corpus's
- * own reading of record 0068, in the order the writer walks -- the payment
- * part, the e-invoice, a labelled preview, then the page header, page 1's
- * own, the page footer and the body, each block in document order. It
- * knows what belongs to the PDF and what nobody has seen Word print as the
- * PDF does; what any engine refuses of a malformed document, and what the
- * PDF renderer refuses of what it measured, are a fixture's own to state.
+ * own reading of record 0068, in the order the writer refuses -- the
+ * payment part, the e-invoice, a labelled preview, then the page header,
+ * page 1's own, the page footer and the body, each block in document
+ * order, and last the pictures, in that order too, since an engine reads a
+ * picture's bytes once every block has been walked. It knows what belongs
+ * to the PDF and what nobody has seen Word print as the PDF does; what any
+ * engine refuses of a malformed document, and what the PDF renderer
+ * refuses of what it measured, are a fixture's own to state.
  */
 export function wordRefusal(document: ResolvedDocument): ExpectedRefusal | undefined {
   if (document.paymentPart !== undefined) return { code: 'unsupported', subject: 'paymentPart' }
@@ -274,7 +281,21 @@ export function wordRefusal(document: ResolvedDocument): ExpectedRefusal | undef
     const refusal = refusalAmong(blocks, path, false)
     if (refusal !== undefined) return refusal
   }
-  return undefined
+  const picture = regions.flatMap(([, blocks]) => imagesOf(blocks)).find(unseen)
+  return picture === undefined ? undefined : { code: 'unsupported', subject: picture.asset.id }
+}
+
+/** Every image among `blocks`, however deep, in document order. */
+function imagesOf(blocks: readonly Block[]): Image[] {
+  return blocks.flatMap((block) =>
+    block.kind === 'image'
+      ? [block]
+      : block.kind === 'columns'
+        ? block.columns.flatMap((slot) => imagesOf(slot.blocks))
+        : block.kind === 'section' || block.kind === 'keepTogether'
+          ? imagesOf(block.blocks)
+          : [],
+  )
 }
 
 const framed = (section: Section): boolean => section.border !== undefined || section.fill !== undefined || (section.padding ?? 0) > 0
@@ -286,7 +307,6 @@ function refusalAmong(blocks: readonly Block[], path: string, inFrame: boolean):
     if (block.kind === 'chart' || block.kind === 'qrCode' || block.kind === 'epcQrCode') return unsupported(block.id)
     if (block.kind === 'table' && inFrame) return unsupported(block.id)
     if (block.kind === 'pageBreak' && inFrame) return unsupported(at)
-    if (block.kind === 'image' && unseen(block)) return unsupported(block.asset.id)
     const inner =
       block.kind === 'columns'
         ? block.columns.map((slot, column) => refusalAmong(slot.blocks, `${at}.columns[${column}].blocks`, inFrame)).find((each) => each !== undefined)

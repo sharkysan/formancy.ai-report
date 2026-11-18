@@ -235,8 +235,21 @@ describe('the white space of a run', () => {
   })
 })
 
-describe('a line ending in a run', () => {
-  const lines = (value: string): string[] => runsOf(written(documentOf([paragraph(value)])).body)
+describe('a line ending', () => {
+  /** The runs a paragraph of `runs` is read back as, a break a line feed. */
+  const lines = (...runs: readonly string[]): string[] => runsOf(written(documentOf([{ kind: 'paragraph', runs: runs.map((text) => ({ text })) }])).body)
+  /** The runs a table's one detail cell is read back as, after its header's. */
+  const cell = (value: string): string[] => {
+    const table: Block = {
+      kind: 'table',
+      id: 'lines',
+      columns: [{ width: 'fill', align: 'left' }],
+      header: ['Key'],
+      rows: [{ kind: 'detail', cells: [value] }],
+      emptyText: '',
+    }
+    return runsOf(written(documentOf([table])).body).slice(1)
+  }
 
   // The PDF's engine ends a line at a line feed, at a carriage return, and once at the two together: each is one break in Word, not two and not a space.
   test.each([
@@ -244,11 +257,48 @@ describe('a line ending in a run', () => {
     ['a carriage return', 'one\rtwo', 'one\ntwo'],
     ['the two together', 'one\r\ntwo', 'one\ntwo'],
     ['two line feeds', 'one\n\ntwo', 'one\n\ntwo'],
-    ['a line feed at its end', 'one\n', 'one\n'],
     ['a line feed at its start', '\none', '\none'],
-    ['a line feed in a cell', 'one\ntwo', 'one\ntwo'],
-  ])('%s is a break of the line', (_name, value, read) => {
+  ])('%s inside a run is a break of the line', (_name, value, read) => {
     expect(lines(value)).toEqual([read])
+  })
+
+  // A cell's text is written by another path than a paragraph's run: the same endings, in a cell of a table, read back from that cell.
+  test.each([
+    ['a line feed', 'one\ntwo', 'one\ntwo'],
+    ['a carriage return and a line feed', 'one\r\ntwo', 'one\ntwo'],
+    ['two line feeds', 'one\n\ntwo', 'one\n\ntwo'],
+  ])('%s inside a cell is a break of the line', (_name, value, read) => {
+    expect(cell(value)).toEqual([read])
+  })
+
+  // The PDF's engine ends its last line at the ending that ends a text and opens no line after it (`against-pdf.test.ts` counts the lines):
+  // a break written for it would be a line more in Word than the PDF prints, under every note and address that ends in a line feed.
+  test.each([
+    ['a line feed', 'one\n', 'one'],
+    ['a carriage return', 'one\r', 'one'],
+    ['the two together', 'one\r\n', 'one'],
+    ['two line feeds, the first of which is a line the PDF prints', 'one\n\n', 'one\n'],
+  ])('%s that ends a paragraph or a cell is no break', (_name, value, read) => {
+    expect(lines(value)).toEqual([read])
+    expect(cell(value)).toEqual([read])
+  })
+
+  // The ending that ends a paragraph is its last run's, as the document holds its runs: any run after a line ending is a line the PDF opens,
+  // a run of nothing among them -- which this writer took for no run at all, and so for no line, until the lines were counted on the PDF.
+  test.each<[string, string[], string[]]>([
+    ['its last run ends', ['one', 'two\n'], ['one', 'two']],
+    ['its last run is, alone', ['one', '\n'], ['one']],
+    ['an earlier run ends, which is a line', ['one\n', 'two'], ['one\n', 'two']],
+    ['a run of nothing follows the ending, which is a line', ['one\n', ''], ['one\n']],
+    ['two runs end, the first of which is a line', ['one\n', '\n'], ['one\n']],
+  ])('where %s, the paragraph ends as the PDF ends it', (_name, runs, read) => {
+    expect(lines(...runs)).toEqual(read)
+  })
+
+  // A paragraph or a cell of a line ending alone prints one empty line in the PDF, as one of nothing does: no run, and no break.
+  test('alone is a paragraph and a cell of no run', () => {
+    expect(lines('\n')).toEqual([])
+    expect(cell('\r\n')).toEqual([])
   })
 })
 
@@ -313,9 +363,24 @@ describe('the title and the creation date', () => {
   test.each([
     ['2026-10-15T10:00:00+02:00', '2026-10-15T08:00:00Z'],
     ['2026-10-15T08:00:00.999Z', '2026-10-15T08:00:00Z'],
+    ['2026-10-15T08:00Z', '2026-10-15T08:00:00Z'],
     ['2026-10-15', '2026-10-15T00:00:00Z'],
   ])('the creation date %s is written as the instant it is, in UTC', (creationDate, created) => {
     expect(written(documentOf([], { info: { title: 'T', creationDate } })).created).toBe(created)
+  })
+
+  // A date and time that states no zone is read in the machine's: the one document was three files in three zones, by their digests, before
+  // this was refused (Pacific/Kiritimati, America/Los_Angeles and UTC, a process each). So is a date no ISO form states, which the
+  // platform reads in a way of its own. The runtime writes an instant with its zone; only a document made otherwise states none.
+  test.each([
+    ['a date and time with no zone', '2026-11-17T12:00:00'],
+    ['a date and time to the minute with no zone', '2026-11-17T12:00'],
+    ['a date written out', '17 November 2026 12:00'],
+    ['a date and time with a space between them', '2026-11-17 12:00:00Z'],
+  ])('%s is refused as a creation date, naming it', (_name, creationDate) => {
+    const refusal = refusalOf(documentOf([], { info: { title: 'T', creationDate } }))
+    expect(refusal).toMatchObject({ code: 'unsupported', subject: 'info.creationDate' })
+    expect(refusal.message).toMatch(/states no instant: a Word file is dated by an ISO 8601 date and time with its zone/)
   })
 })
 
@@ -325,6 +390,7 @@ describe('the escapers', () => {
     expect(text('a & b < c > d ]]> "e" \r\n')).toBe('a &amp; b &lt; c &gt; d ]]&gt; "e" &#13;\n')
   })
 
+  // An attribute's value is normalised by a parser: a tab or a line ending left as it is would be read back as a space.
   test('write an attribute with its quote and its white space escaped', () => {
     expect(attribute('a "b" & <c>\t\n\r')).toBe('a &quot;b&quot; &amp; &lt;c&gt;&#9;&#10;&#13;')
   })
@@ -335,6 +401,7 @@ describe('the escapers', () => {
     expect(() => attribute(value)).toThrow(/no XML document holds/)
   })
 
+  // The one list both escapers and the checks read: a character it took for XML's would be written into a file no parser opens.
   test("know XML 1.0's characters", () => {
     expect([0x9, 0xa, 0xd, 0x20, 0x85, 0xd7ff, 0xe000, 0xfffd, 0x10000, 0x10ffff].every(xmlCharacter)).toBe(true)
     expect([0x0, 0x8, 0xb, 0x1f, 0xd800, 0xdfff, 0xfffe, 0xffff].some(xmlCharacter)).toBe(false)

@@ -103,6 +103,10 @@ export default defineConfig({
   // the renderer's chunk went from 1,996.6 kB and 873.6 kB gzipped to
   // 1,918.1 kB and 848.0 kB, and has 81.9 kB of room under the limit where
   // it had 3.4 kB; the page's own chunk is 1,000.3 kB, 0.8 kB more.
+  // On 2026-11-18, the same way, once the writer held a PNG's image data
+  // to its checksum and its end and a file to the bounds a review added,
+  // its chunk was 50.3 kB and 19.1 kB gzipped; the renderer's and the
+  // runtime's were what they had been.
   // What holds the chunks is this warning and a test that counts the chart
   // chunk's loads and one zrender and one echarts in it; what does not is
   // a budget for each chunk that fails, which a test reading each chunk's

@@ -78,8 +78,9 @@ and what is not planned at all.
 > the runtime, the form bridge, both builders and the Studio know, and a
 > render names the one it prints in; and a report is written as a Word
 > file by `@formancy/report-render-docx`, which the Studio offers beside
-> the PDF, which refuses a report that is paid by a code, is an invoice
-> or draws a chart, and whose files nobody has opened in Word yet. The
+> the PDF, which refuses a report that is paid by a code, is an
+> e-invoice or draws a chart, and whose files nobody has opened in Word
+> yet. The
 > report format is still version
 > "0", the draft: a report written now is not promised to be read by a
 > later release

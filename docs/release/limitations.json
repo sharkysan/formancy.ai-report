@@ -2440,7 +2440,7 @@
       ]
     },
     "0056": {
-      "reviewed": "sha256:75982876d3032b721818ddb05fabbda9e7184b5f07d4bc9f5ca7ebe965486c8b",
+      "reviewed": "sha256:c8d5f685cb769fffbd03ddb5bd844cc16a9a3ed407f3dcdc22a04afb96e4c3ef",
       "limitations": [
         {
           "area": "release",
@@ -3125,7 +3125,7 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:fa8e756df57223319c1ff389e7da187c9b1b546926b5d3d06e1615bd3af614e9",
+      "reviewed": "sha256:ff46d70d59cb0a6f64b6f24a398c95b2058fdff9d1bd7b5db54809776be12816",
       "limitations": [
         {
           "area": "rendering",
@@ -3148,8 +3148,13 @@
         },
         {
           "area": "rendering",
-          "says": "The Word writer measures nothing, so it writes what the PDF renderer refuses for what it measured, a kept block taller than a page, a line no page holds or more pages than a host allows among it, and refuses what the PDF prints, a report of more than 100,000 paragraphs or 4,000,000 characters and a spacer taller than the printable area among it; a host that calls `renderDocx` without drawing the PDF gets no such check.",
+          "says": "The Word writer measures nothing, so it writes what the PDF renderer refuses for what it measured, a kept block taller than a page, a line no page holds or more pages than a host allows among it, and refuses what the PDF prints, a report of more than 100,000 paragraphs, 4,000,000 characters or 1,024 pictures, a spacer taller than the printable area, a rectangle, a column, a framed section or a picture that rounds to none of Word’s units, and a creation date that states no zone among it; a host that calls `renderDocx` without drawing the PDF gets no such check.",
           "heldBy": "packages/report-render-docx/src/corpus.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The Word writer holds a PNG’s image data to its checksum and to ending where the checksum begins, as the PDF renderer does, by reading the state fflate 0.8.3 keeps of a stream, which nothing fflate declares says; a host that overrides fflate’s version gets a writer whose reading may no longer hold, which its tests show and an install does not.",
+          "heldBy": "packages/report-render-docx/src/pictures.test.ts"
         },
         {
           "area": "rendering",
@@ -3181,7 +3186,7 @@
         },
         {
           "area": "testing",
-          "says": "What any engine must refuse of a document, and what the document leaves to an engine, are stated in the PDF renderer and again in the Word writer, held together for the refusals and for the sizes, the weights and the slant, as words and not as runs; a table’s rules and padding, a rule’s space, a rectangle’s outline, the gap under a header and every colour are held by review.",
+          "says": "What any engine must refuse of a document, and what the document leaves to an engine, are stated in the PDF renderer and again in the Word writer, held together for the refusals, for the place a document wrong in several is refused for, for the lines a text with line endings prints, and for the sizes, the weights and the slant, as words and not as runs; a document wrong in a way only one engine refuses is refused by each for what it meets first; a table’s rules and padding, a rule’s space, a rectangle’s outline, the gap under a header and every colour are held by review.",
           "heldBy": "packages/report-render-docx/src/against-pdf.test.ts"
         },
         {

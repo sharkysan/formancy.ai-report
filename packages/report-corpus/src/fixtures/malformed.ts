@@ -1,14 +1,17 @@
+import { deflateSync } from 'node:zlib'
 import type { Block, Image, ResolvedDocument, Table } from '../document.js'
 import { IMAGE_KINDS } from '../image-kinds.js'
 import { documentOf, paragraph } from './build.js'
+import { pngOf } from './png.js'
 import { SVG_AS_SAVED } from './svg.js'
 
 /**
  * Documents no engine prints (0068): each a document on the corpus page
  * that breaks its contract with an engine in one way -- a block where
  * none may stand, a width, a size, a colour, a field or a row the
- * document's types do not hold, bytes that are no picture -- and that an
- * engine can refuse from the document alone, before it measures anything.
+ * document's types do not hold, bytes that are no picture, a PNG whose
+ * image data is no whole stream of its scanlines -- and that an engine
+ * can refuse from the document alone, before it measures anything.
  *
  * What an engine must refuse of a document is stated in each engine,
  * report-render-pdf's `check.ts` and report-render-docx's, since no
@@ -54,6 +57,31 @@ const page = (more: object): Partial<ResolvedDocument> => ({
   page: untyped({ size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 }, ...more }),
 })
 
+/** The header of a PNG of 4 by 4 pixels, eight bits of grey each: 20 bytes of scanlines, a filter byte and four pixels a line. */
+const GREY: Uint8Array = (() => {
+  const header = new Uint8Array(13)
+  const view = new DataView(header.buffer)
+  view.setUint32(0, 4)
+  view.setUint32(4, 4)
+  header.set([8, 0, 0, 0, 0], 8)
+  return header
+})()
+/** Those scanlines, all black, as the zlib stream a PNG holds them in: its header, its deflate data and the four bytes of its checksum. */
+const SCANLINES = new Uint8Array(deflateSync(new Uint8Array(20)))
+/** An image of that PNG with `data` as its image data: every chunk framed and summed as PNG frames one, so that only the data is wrong. */
+const png = (id: string, data: readonly number[]): Image =>
+  image({
+    asset: {
+      id,
+      mediaType: 'image/png',
+      bytes: pngOf([
+        ['IHDR', GREY],
+        ['IDAT', Uint8Array.from(data)],
+        ['IEND', new Uint8Array(0)],
+      ]),
+    },
+  })
+
 export const MALFORMED: readonly Malformed[] = [
   body('table-in-columns', 'A table inside a columns block', { kind: 'columns', columns: [{ width: 'fill', blocks: [table()] }] }),
   whole('page-break-in-region', 'A page break in the page header', { pageHeader: [{ kind: 'pageBreak' }] }),
@@ -97,6 +125,19 @@ export const MALFORMED: readonly Malformed[] = [
     image({ asset: { id: 'broken', mediaType: 'image/png', bytes: new TextEncoder().encode('not a PNG') } }),
   ),
   body('image-declared-otherwise', 'A PNG declared a JPEG', image({ asset: { ...PNG, mediaType: 'image/jpeg' } })),
+  body('image-png-checksum', 'A PNG whose image data is not what its checksum sums', png('summed', [...SCANLINES.slice(0, -1), SCANLINES.at(-1)! ^ 0xff])),
+  body('image-png-bytes-after', 'A PNG with bytes after the end of its image data', png('trailed', [...SCANLINES, 1, 2, 3, 4, 5, 6, 7, 8])),
+  body(
+    'image-png-bytes-after-summed',
+    'A PNG with bytes after the end of its image data that end in its checksum',
+    png('resummed', [...SCANLINES, 1, 2, 3, 4, ...SCANLINES.slice(-4)]),
+  ),
+  // A stored block that is not the last, holding every scanline, and the checksum of twenty zeros: the block that ends the stream is missing.
+  body(
+    'image-png-cut-short',
+    'A PNG whose image data ends before its last block',
+    png('cut', [0x78, 0x01, 0x00, 0x14, 0x00, 0xeb, 0xff, ...new Uint8Array(20), 0x00, 0x14, 0x00, 0x01]),
+  ),
   body(
     'image-svg-as-saved',
     'An SVG as a drawing program saved it, never cleaned',

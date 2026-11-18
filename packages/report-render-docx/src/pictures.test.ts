@@ -13,7 +13,8 @@ import {
 } from '@formancy/report-corpus'
 import { imageHeader, MAX_ASSET_BYTES } from '@formancy/report-runtime'
 import type { Image, ImageAsset } from '@formancy/report-runtime'
-import { describe, expect, test } from 'vitest'
+import { Unzlib } from 'fflate'
+import { describe, expect, test, vi } from 'vitest'
 import { SVG_FALLBACK } from './assets.js'
 import { renderDocx } from './render.js'
 import { documentOf, fixtureOf, refusalOf, written } from './testing/support.js'
@@ -76,6 +77,7 @@ describe('a PNG or a JPEG', () => {
     expect([paragraph.indent, paragraph.before, paragraph.after]).toEqual([0, 0, 0])
   })
 
+  // A crop of nothing written all the same would be an element for a reader to trip on, and a rounding away from it a sliver cut from the picture.
   test('covering a box of its own proportions is cropped by nothing', () => {
     expect(one(image(WIDE, 100, 50, 'cover')).picture.crop).toBeUndefined()
   })
@@ -192,15 +194,46 @@ describe('bytes that are not the picture they are declared as', () => {
     expect(picturesOf(written(documentOf([image(png(new Uint8Array(20)), 20, 20)])).body)).toHaveLength(1)
   })
 
+  /** The zlib stream of the whole picture's image data: its header, its deflate data, and the four bytes of its checksum. */
+  const STREAM = new Uint8Array(deflateSync(new Uint8Array(20)))
+  const SUM = STREAM.slice(-4)
+
   // The PDF renderer inflates a PNG's data and refuses one that is not its scanlines; a Word file embeds the bytes unread by Word until
-  // someone opens it, so the same four are refused here, by the decompressor the package zips with.
+  // someone opens it, so the same are refused here, by the decompressor the package zips with. The last four are streams that inflate to
+  // the very scanlines the header promises and are damaged all the same, which only the checksum and the place the stream ends can say:
+  // the corpus's list of malformed documents holds both engines to each (`against-pdf.test.ts`).
   test.each([
     ['image data that does not inflate', png(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]), false), /has image data that does not inflate/],
     ['fewer scanlines than its header promises', png(new Uint8Array(15)), /has image data of 15 bytes where its header promises 20/],
     ['more image data than its header promises', png(new Uint8Array(4096)), /has more image data than the 20 bytes its header promises/],
     ['a scanline with a filter PNG does not define', png(Uint8Array.from({ length: 20 }, (_, index) => (index === 5 ? 9 : 0))), /unknown filter type \(9\)/],
+    ['image data its checksum does not sum', png(Uint8Array.from([...STREAM.slice(0, -1), STREAM.at(-1)! ^ 0xff]), false), /does not inflate/],
+    ['bytes after the end of its image data', png(Uint8Array.from([...STREAM, 1, 2, 3, 4, 5, 6, 7, 8]), false), /does not inflate/],
+    ['bytes after its image data that end in its checksum', png(Uint8Array.from([...STREAM, 1, 2, 3, 4, ...SUM]), false), /does not inflate/],
+    ['one byte after its image data, and its checksum again', png(Uint8Array.from([...STREAM.slice(0, -3), ...SUM]), false), /does not inflate/],
+    [
+      'image data that ends before its last block',
+      png(Uint8Array.from([0x78, 0x01, 0, 20, 0, 0xeb, 0xff, ...new Uint8Array(20), 0, 20, 0, 1]), false),
+      /does not inflate/,
+    ],
+    ['a zlib header and a checksum with no data between them', png(Uint8Array.from([0x78, 0x9c, 0, 0, 0, 1]), false), /does not inflate/],
   ])('a PNG with %s is refused', (_name, asset, sentence) => {
     expect(refused(asset)).toMatch(sentence)
+  })
+
+  // fflate keeps what it has not read and joins every later slice to it, so reading on past a stream's end costs the square of what
+  // follows it: sixteen megabytes after a stream of thirty bytes held the thread 4.2 seconds before this was held. The writer stops
+  // where the stream ends, by the decompressor's own word for it (`assets.ts`), which this is the proof of: not a clock, the slices read.
+  test('a PNG with a mebibyte after the end of its image data is refused at that end, the rest unread', () => {
+    const data = new Uint8Array(STREAM.length + (1 << 20)).fill(0x55)
+    data.set(STREAM)
+    const push = vi.spyOn(Unzlib.prototype, 'push')
+    try {
+      expect(refused(png(data, false))).toMatch(/does not inflate/)
+      expect(push).toHaveBeenCalledTimes(1)
+    } finally {
+      push.mockRestore()
+    }
   })
 
   // What a host declared and what the bytes are disagree: embedded under the declared type, Word would be handed a JPEG named .png.

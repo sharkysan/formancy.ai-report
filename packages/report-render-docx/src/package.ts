@@ -48,14 +48,18 @@ interface Relationships {
 }
 
 function relationships(): Relationships {
-  const targets: { readonly kind: RelationshipKind; readonly target: string }[] = []
+  // By target, in the order each was first named, which a Map keeps: found by its key, never by a walk of those named before it, since
+  // a part asks once for every picture it draws.
+  const targets = new Map<string, { readonly kind: RelationshipKind; readonly id: RelationshipId }>()
   return {
     to: (kind, target) => {
-      const known = targets.findIndex((each) => each.target === target)
-      if (known < 0) targets.push({ kind, target })
-      return `rId${known < 0 ? targets.length : known + 1}`
+      const known = targets.get(target)
+      if (known !== undefined) return known.id
+      const id: RelationshipId = `rId${targets.size + 1}`
+      targets.set(target, { kind, id })
+      return id
     },
-    part: () => (targets.length === 0 ? undefined : relationshipsPart(targets.map(({ kind, target }) => [own(`${RELATIONSHIPS}/${kind}`), target]))),
+    part: () => (targets.size === 0 ? undefined : relationshipsPart([...targets].map(([target, { kind }]) => [own(`${RELATIONSHIPS}/${kind}`), target]))),
   }
 }
 

@@ -38,6 +38,23 @@ export interface PictureNode {
   readonly crop?: { readonly across: number; readonly down: number }
 }
 
+/** Where a line ends in a run's text: at a line feed, at a carriage return, and once at the two together. Each is a break of the file (`wml.ts`). */
+export const LINE_ENDING = /\r\n|\r|\n/
+
+/**
+ * `text` as the last run of a paragraph, or a cell, holds it: without the
+ * line ending that ends it, where one does. The PDF's engine ends its last
+ * line there and opens none after it -- `one\n` prints one line, and the
+ * paragraph after it stands where it stands after `one` -- so a break
+ * written for it would be a line the PDF does not print. Only that one: of
+ * two that end a text the first is a line the PDF prints, and so is one
+ * that any later run follows, a run of nothing among them
+ * (`against-pdf.test.ts` counts the lines of each).
+ */
+export function withoutLastEnding(text: string): string {
+  return text.replace(/(?:\r\n|\r|\n)$/, '')
+}
+
 export type RunNode =
   | { readonly kind: 'text'; readonly text: string; readonly style: RunStyle }
   | { readonly kind: 'field'; readonly field: 'PAGE' | 'NUMPAGES'; readonly style: RunStyle }
@@ -112,6 +129,19 @@ export function paragraphsOf(nodes: readonly BlockNode[]): ParagraphNode[] {
   }
   walk(nodes)
   return found
+}
+
+/**
+ * The paragraphs that end `nodes`: the last of them where it is a
+ * paragraph, and every paragraph of its last row where it is a table. A
+ * row is kept with what follows it by every paragraph of it, so what ends
+ * a list ends it in every cell of that row.
+ */
+export function endOf(nodes: readonly BlockNode[]): ParagraphNode[] {
+  const last = nodes.at(-1)
+  if (last === undefined) return []
+  // A table has a row: its header, a rectangle's one, a columns block's one.
+  return last.kind === 'paragraph' ? [last] : paragraphsOf(last.rows.at(-1)!.cells.flatMap((cell) => cell.content))
 }
 
 /** A paragraph that holds nothing and is exactly `height` points tall: a spacer, the gap between a region and the body, and what stands between two tables. */

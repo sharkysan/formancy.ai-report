@@ -1,11 +1,12 @@
 import { deflateSync } from 'node:zlib'
-import { pngOf, readZip } from '@formancy/report-corpus'
+import { encodePng, pngOf, readZip } from '@formancy/report-corpus'
 import { MAX_ASSET_BYTES } from '@formancy/report-runtime'
 import type { Block, Image, ImageAsset, Table } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
-import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS } from './limits.js'
+import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES } from './limits.js'
 import { renderDocx } from './render.js'
-import { documentOf, paragraph, refusalOf } from './testing/support.js'
+import { keptRows, type StyledRow } from './rows.js'
+import { documentOf, paragraph, refusalOf, written } from './testing/support.js'
 
 /**
  * The writer's bounds (0068), at each and one past it. The writer builds
@@ -49,6 +50,7 @@ describe('the paragraphs and the characters of a file', () => {
     expect(count(document, '&amp;')).toBe(MAX_DOCX_CHARACTERS)
   }, 120_000)
 
+  // A bound that named nothing would leave a person to find which of a report's tables is the one too long.
   test('one paragraph past the bound is refused, naming the table that crossed it', () => {
     const refusal = refusalOf(documentOf([table(MAX_DOCX_PARAGRAPHS, 'a')]))
     expect(refusal).toMatchObject({ code: 'content-too-large', subject: 'lines' })
@@ -63,25 +65,94 @@ describe('the paragraphs and the characters of a file', () => {
     expect(refusalOf({ ...one, pageHeader: [paragraph('one more')] })).toMatchObject({ code: 'content-too-large', subject: `body[${MAX_DOCX_PARAGRAPHS - 1}]` })
   }, 120_000)
 
+  // The second bound, since a cell may be sixteen thousand characters: the paragraphs alone would let a document ask for a billion and a half.
   test('a character past the bound is refused, naming the paragraph that crossed it', () => {
     const refusal = refusalOf(documentOf([paragraph('first'), paragraph('a'.repeat(MAX_DOCX_CHARACTERS - 4))]))
     expect(refusal).toMatchObject({ code: 'content-too-large', subject: 'body[1]' })
     expect(refusal.message).toMatch(/more than 4000000 characters long/)
   })
 
+  // At the bound and not one short of it: applied with >= where it means >, the limit would refuse the text it promised to write.
   test('the characters at the bound in one paragraph are written', () => {
     const bytes = renderDocx(documentOf([paragraph('first'), paragraph('a'.repeat(MAX_DOCX_CHARACTERS - 5))]))
     expect(readZip(bytes).find((entry) => entry.name === 'word/document.xml')!.bytes.length).toBeGreaterThan(MAX_DOCX_CHARACTERS)
   }, 60_000)
 
-  // A refusal for size comes before anything is built: the walk that counts is the walk that checks, and it stops where the count crosses.
-  test('is refused without building anything of the document', () => {
-    const rows = 4 * MAX_DOCX_PARAGRAPHS
-    const started = performance.now()
-    expect(refusalOf(documentOf([table(rows, 'a')])).code).toBe('content-too-large')
-    // Building a file of the bound's paragraphs takes seconds; counting four times as many takes a fraction of one.
-    expect(performance.now() - started).toBeLessThan(1500)
+  // A refusal for size comes before anything is built: the walk that counts is the walk that checks, and it stops at the row that crosses.
+  // Held by what is never read, not by a clock: a cell past that row which would be refused for its character is not reached, and the
+  // block after the table, which says when it is asked what it is, is asked by nothing, neither the walk nor a builder.
+  test('is refused where the count crosses, with nothing after it read and nothing built', () => {
+    const long = table(2 * MAX_DOCX_PARAGRAPHS, 'a')
+    const rows = long.rows.map((row, index) => (index === long.rows.length - 1 ? { ...row, cells: ['\u0001'] } : row))
+    let asked = false
+    const after = Object.defineProperty({ runs: [{ text: 'after' }] }, 'kind', {
+      enumerable: true,
+      get: () => {
+        asked = true
+        return 'paragraph'
+      },
+    }) as unknown as Block
+    expect(refusalOf(documentOf([{ ...long, rows }, after]))).toMatchObject({ code: 'content-too-large', subject: 'lines' })
+    expect(asked).toBe(false)
   })
+
+  // A report of headings alone, each kept with the next. Marked one heading at a time, each walked to what it heads, the file cost the square
+  // of its paragraphs: 40,000 held the thread half a minute, and 80,000 were not written after 80 seconds. Marked in one pass, they cost their count.
+  test('every one kept with the next, at the bound, is written, and every one but the last marked', () => {
+    const headings: Block[] = Array.from({ length: MAX_DOCX_PARAGRAPHS - 1 }, () => ({ ...paragraph('h'), keepWithNext: true }))
+    const bytes = renderDocx(documentOf([...headings, paragraph('text')]))
+    const document = readZip(bytes).find((entry) => entry.name === 'word/document.xml')!.bytes
+    expect(count(document, '<w:p>')).toBe(MAX_DOCX_PARAGRAPHS)
+    expect(count(document, '<w:keepNext/>')).toBe(MAX_DOCX_PARAGRAPHS - 1)
+  }, 120_000)
+
+  // A table that closes with total after total. Each closing row looked back over every closing row above it for the row they add up, so
+  // such a table cost the square of its rows too: 20,000 took a second and 40,000 four. Held by what is read, not by a clock: every row's
+  // kind is asked for a few times, however many totals stand above it.
+  test('a table of totals alone is marked by reading each row, not each row for every total above it', () => {
+    let asked = 0
+    const row = (kind: StyledRow['kind']): StyledRow =>
+      Object.defineProperty({ index: 0, cells: ['t'], styles: [{}], across: false }, 'kind', {
+        get: () => {
+          asked += 1
+          return kind
+        },
+      }) as unknown as StyledRow
+    const rows = [row('header'), row('detail'), ...Array.from({ length: 10_000 }, () => row('total'))]
+    // The header with the detail row, the detail row with the first total, and every total with the next: all but the last.
+    expect(keptRows(rows, table(1, 't')).size).toBe(rows.length - 1)
+    expect(asked).toBeLessThan(4 * rows.length)
+  })
+})
+
+describe('the pictures of a file', () => {
+  const image = (asset: ImageAsset): Image => ({ kind: 'image', asset, width: 10, height: 10, fit: 'contain' })
+  const PIXEL = encodePng(1, 1, () => [0, 0, 0])
+  /** So many assets, each one of its own: the same bytes under another name are another asset, and another part of the file. */
+  const assets = (length: number): ImageAsset[] => Array.from({ length }, (_, index) => ({ id: `picture-${index + 1}`, mediaType: 'image/png', bytes: PIXEL }))
+
+  // Each asset is an entry of the zip, and a zip's directory counts its entries in sixteen bits: fflate writes a count past them modulo
+  // 65,536 with nothing said, and 65,600 pictures were a file whose directory stated 72 entries, which no reader opens. The bound stands
+  // far under that count, and a file at it is read back whole, every picture a part and a relationship.
+  test('at the bound are written, each a part of the file, which is read back whole', () => {
+    const docx = written(documentOf(assets(MAX_DOCX_PICTURES).map(image)))
+    expect([...docx.parts.keys()].filter((name) => name.startsWith('word/media/'))).toHaveLength(MAX_DOCX_PICTURES)
+    expect(docx.relationships('word/document.xml').filter(({ target }) => target.startsWith('word/media/'))).toHaveLength(MAX_DOCX_PICTURES)
+  }, 120_000)
+
+  // Refused, never written with the pictures past the bound left out, and by the asset that crossed it.
+  test('one past the bound is refused, naming the asset that crossed it', () => {
+    const refusal = refusalOf(documentOf(assets(MAX_DOCX_PICTURES + 1).map(image)))
+    expect(refusal).toMatchObject({ code: 'content-too-large', subject: `picture-${MAX_DOCX_PICTURES + 1}` })
+    expect(refusal.message).toMatch(/holds more than 1024 pictures/)
+  })
+
+  // The count is of assets, as the parts are: a logo drawn on every line of a long report is one picture.
+  test('are counted by their assets, one drawn past the bound in number being one', () => {
+    const [logo] = assets(1)
+    const drawn = Array.from({ length: MAX_DOCX_PICTURES + 1 }, () => image(logo!))
+    expect(() => renderDocx(documentOf(drawn))).not.toThrow()
+  }, 120_000)
 })
 
 describe("the bytes of a file's pictures", () => {
@@ -118,6 +189,7 @@ describe("the bytes of a file's pictures", () => {
     expect(Buffer.from(media[1]!.bytes).equals(Buffer.from(second.bytes))).toBe(true)
   }, 120_000)
 
+  // A picture's bytes are stored as they are, so the file is as large as they are together: refused past the bound by the picture that crossed it.
   test('a byte past the bound are refused, naming the picture that crossed it', () => {
     const refusal = refusalOf(documentOf([image(first), image(second), image(padded('third', 100, 3))]))
     expect(refusal).toMatchObject({ code: 'content-too-large', subject: 'third' })

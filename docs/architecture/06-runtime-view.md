@@ -300,7 +300,8 @@ and a note says why in the writer's own sentence, which is how a person
 learns that an invoice, a report paid by a code, one with a chart and a
 labelled preview have no Word file. A fault of the writer's, or a chunk
 that did not load, is the Word file's alone and leaves the PDF as it
-printed
+printed, which `word-fault.test.ts` and `word-chunk.test.ts` hold, a
+suite each
 ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 Where the Preview stands is the editor's to hold and the window's to say
@@ -1254,28 +1255,39 @@ planFonts: each mapped face read once by readFont; the family each token is name
    ├─ bytes that are no font, a family with no name Word can state ────▶ invalid-asset
    ├─ a token with no regular face, or faces of two families ──────────▶ unsupported
    ▼
-checkDocument: one walk, before a byte is written                               check.ts
-   ├─ a creation date that is no date, a title XML cannot hold ────────▶ unsupported
+checkDocument: before a byte is written, in this order                          check.ts
+   ├─ a creation date that is no date or states no instant, a title
+   │  XML cannot hold ─────────────────────────────────────────────────▶ unsupported
    ├─ a payment part, an e-invoice, a preview's label ─────────────────▶ unsupported
    ├─ a page of no known size or turn; margins that leave nothing ─────▶ unsupported,
    │                                                                     content-too-large
-   │  then the page header, page 1's own, the page footer and the body,
-   │  each block in document order:
+   │  then one walk: the page header, page 1's own, the page footer and
+   │  the body, each block in document order:
    ├─ a chart, a QR code, an EPC QR code ──────────────────────────────▶ unsupported
-   ├─ a JPEG its Exif block turns or of four components, an SVG that
-   │  covers a box of other proportions, a table or a page break in a
-   │  framed section ──────────────────────────────────────────────────▶ unsupported
+   ├─ a table or a page break in a framed section ─────────────────────▶ unsupported
    ├─ what no engine prints, by the PDF renderer's code and subject ───▶ unsupported,
    │                                                                     content-too-large
-   ├─ bytes that are not the picture they are declared as ─────────────▶ invalid-asset
    ├─ a character a report does not print, XML does not hold or the
    │  mapped face does not draw; a face the report maps no font to ────▶ unsupported
-   ├─ past MAX_DOCX_PARAGRAPHS, MAX_DOCX_CHARACTERS or
-   │  MAX_DOCX_MEDIA_BYTES, counted as it walks ───────────────────────▶ content-too-large
+   ├─ a line outside the weights of Word's borders; a rectangle, a
+   │  column or a framed section under a fortieth of a point ──────────▶ unsupported
+   ├─ past MAX_DOCX_PARAGRAPHS or MAX_DOCX_CHARACTERS, counted as it
+   │  walks ───────────────────────────────────────────────────────────▶ content-too-large
+   │  then the pictures, each asset read once, in the order the walk
+   │  met them:
+   ├─ past MAX_DOCX_PICTURES, counted before an asset is read ─────────▶ content-too-large
+   ├─ bytes that are not the picture they are declared as: a PNG whose
+   │  image data is no whole zlib stream of its scanlines among them ──▶ invalid-asset
+   ├─ a JPEG its Exif block turns or of four components ───────────────▶ unsupported
+   ├─ past MAX_DOCX_MEDIA_BYTES ───────────────────────────────────────▶ content-too-large
+   ├─ an SVG that covers a box of other proportions, a picture drawn
+   │  at under an English Metric Unit ─────────────────────────────────▶ unsupported
    ▼
 each region's blocks as paragraphs and tables, in points          nodes.ts, blocks.ts, table.ts
-   │  the keep rules mark them: a heading through to what it heads, the
-   │  header row, a group header's kept rows, the row before a closing row
+   │  a text without the line ending that ends it; the keep rules mark
+   │  them, each in one pass: a heading through to what it heads, a kept
+   │  block but what ends it, the header row, a group header's kept
+   │  rows, the row before a closing row
    ▼
 WordprocessingML, every element's children in ECMA-376's order; every
 string through text or attribute, markup a type of its own               wml.ts, xml.ts
@@ -1287,14 +1299,23 @@ Uint8Array ── the same bytes for the same document
 ```
 
 The writer reads the document the PDF renderer reads and nothing else: no
-option, no signal, no clock. Everything it refuses it refuses in the one
-walk, so a file is written whole or not at all, and the walk's order is
-the order a refusal is met in, which the corpus's `wordRefusal` derives
-from the document on its own and the writer's tests hold the two to. What
-belongs to the PDF is refused first and by a sentence that says to print
-the report as one; what no engine prints is refused by the code and the
-subject the PDF renderer refuses it by, which the corpus's `MALFORMED`
-documents hold of both engines.
+option, no signal, no clock. Everything it refuses it refuses before
+anything is built, so a file is written whole or not at all, and by where
+a thing stands, not by its kind: the creation date and the title, what
+belongs to the PDF of the document itself, the page, then each region's
+blocks in document order -- a chart or a code where the walk meets it,
+after a block no engine prints that stands before it -- and the pictures'
+bytes last. The writer's `refusals.test.ts` holds that order on a
+document wrong in every one of those places, put right a place at a time,
+and the corpus's `wordRefusal` derives from a document on its own what
+the writer must refuse of what belongs to the PDF. What belongs to the
+PDF is refused by a sentence that says to print the report as one; what
+no engine prints is refused by the code and the subject the PDF renderer
+refuses it by, which the corpus's `MALFORMED` documents hold of both
+engines for a document wrong once, and `against-pdf.test.ts` for one
+wrong in every place both look, where the two refuse it for the same
+place at each step. A document wrong in a way only one engine refuses,
+and in another, is refused by each for what it meets first.
 
 What is written says what the document says and lays nothing out: a table
 is a Word table with its header row marked as the one to repeat, a kept

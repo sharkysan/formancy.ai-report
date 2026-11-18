@@ -12,14 +12,14 @@ import {
   type Section,
   type Table,
 } from '@formancy/report-runtime'
-import { readPicture, type Picture } from './assets.js'
+import { drawnSize, readPicture, type Picture } from './assets.js'
 import { checkColor, checkStyle, checkText, checkWritten } from './check-text.js'
 import type { DocxFonts } from './fonts.js'
-import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS } from './limits.js'
+import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES } from './limits.js'
 import { PADDING_X } from './look.js'
 import { refusePdfOnly, refusePdfOnlyBlock } from './pdf-only.js'
 import { cellFace, styledRows } from './rows.js'
-import { eighths, MAX_BORDER, MIN_BORDER, twips } from './units.js'
+import { eighths, emu, MAX_BORDER, MIN_BORDER, twips } from './units.js'
 import { fillWidth, fixedWidth } from './widths.js'
 
 /**
@@ -30,19 +30,26 @@ import { fillWidth, fixedWidth } from './widths.js'
  * is wrong twice: the creation date and the title; what belongs to the
  * PDF of the document itself (`pdf-only.ts`); the page; then the page
  * header, page 1's own, the page footer and the body, each block in
- * document order.
+ * document order; and last the pictures' bytes, in the order the walk met
+ * them. It is the PDF renderer's order for what both refuse -- its walk,
+ * then its `check-images.ts` -- which `against-pdf.test.ts` holds on a
+ * document wrong in every one of those places.
  *
- * Three kinds of refusal come from the walk. **What no engine prints** of
- * a document, which is the PDF renderer's contract with it stated again:
- * a block that stands where none may, a width, a size, a colour, a field
- * the document's types do not hold -- by the PDF renderer's codes and
- * subjects, which `against-pdf.test.ts` holds one list of malformed
- * documents to in both engines. **What belongs to the PDF, and what
- * nobody has seen Word print as the PDF does**, each `unsupported`. And
- * **the writer's own bounds**, each `content-too-large`: a picture, a
- * rectangle or a spacer taller than the printable area, which no page of
- * a Word file holds; a line Word's borders do not hold; and the file's
- * paragraphs, characters and pictures' bytes (`limits.ts`).
+ * Four kinds of refusal come of it. **What no engine prints** of a
+ * document, which is the PDF renderer's contract with it stated again: a
+ * block that stands where none may, a width, a size, a colour, a field
+ * the document's types do not hold, bytes that are no picture -- by the
+ * PDF renderer's codes and subjects, which `against-pdf.test.ts` holds
+ * one list of malformed documents to in both engines. **What belongs to
+ * the PDF, and what nobody has seen Word print as the PDF does**, each
+ * `unsupported`. **What Word's units do not state**, each `unsupported`:
+ * a line lighter or heavier than its borders hold, and a rectangle, a
+ * column, a framed section or a picture so small that its width or its
+ * height rounds to none of the unit it is written in. And **the writer's
+ * own bounds**, each `content-too-large`: a picture, a rectangle or a
+ * spacer taller than the printable area, which no page of a Word file
+ * holds; and the file's paragraphs, characters, pictures and pictures'
+ * bytes (`limits.ts`).
  *
  * What the PDF renderer refuses of what it measured -- a block taller
  * than the body between its regions, a line it cannot place, more pages
@@ -92,30 +99,58 @@ interface Place {
 interface Walk {
   readonly fonts: DocxFonts
   readonly page: Page
-  readonly pictures: Map<ImageAsset, Picture>
+  /** Every image, in the order the walk met it: its asset is read once every block has been walked (`readPictures`). */
+  readonly images: Image[]
   paragraphs: number
   characters: number
-  media: number
 }
 
 export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Checked {
-  const instant = new Date(document.info.creationDate)
-  if (Number.isNaN(instant.getTime()))
-    throw new RenderRefusal('unsupported', `the creation date '${document.info.creationDate}' is not a date`, 'info.creationDate')
-  const created = `${instant.toISOString().slice(0, 19)}Z`
-  // A core property's date is of four digits a year: one before the year 1 or past 9999 is no W3CDTF date.
-  if (!/^\d{4}-/.test(created)) throw new RenderRefusal('unsupported', 'the creation date is of a year a Word file cannot state', 'info.creationDate')
+  const created = createdOf(document.info.creationDate)
   // The title goes into the file's properties, never onto a page: held to being text XML holds, and to no font.
   checkWritten(document.info.title, 'the title', 'info.title')
   refusePdfOnly(document)
   const page = pageOf(document.page)
-  const walk: Walk = { fonts, page, pictures: new Map(), paragraphs: 0, characters: 0, media: 0 }
+  const walk: Walk = { fonts, page, images: [], paragraphs: 0, characters: 0 }
   const top = { kept: false, column: false, framed: false, width: page.width, depth: 0 }
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true, everyPage: true }, walk)
   if (document.firstPageHeader !== undefined) checkBlocks(document.firstPageHeader, 'firstPageHeader', { ...top, region: true, everyPage: false }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true, everyPage: true }, walk)
   checkBlocks(document.body, 'body', { ...top, region: false, everyPage: false }, walk)
-  return { page, created, pictures: walk.pictures }
+  return { page, created, pictures: readPictures(walk.images) }
+}
+
+/**
+ * The forms of a date ECMAScript reads the same on every machine: a date
+ * and time that states its zone, `Z` or an offset, and a date alone,
+ * which is its first moment in UTC. A date and time without a zone is
+ * read in the machine's own, and anything else in a way the platform
+ * chooses.
+ */
+const INSTANT = /^(?:\d{4}|[+-]\d{6})-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2}))?$/
+
+/**
+ * The creation date as the core properties state it: the document's
+ * instant in UTC, to the second, written out here and never copied. The
+ * runtime writes an instant with its zone (`canonicalInstant`); a
+ * document made otherwise may state a date that is another moment in
+ * another time zone, and the same document would then be another file
+ * there, so one that states no instant is refused. The PDF renderer reads
+ * the date as the platform does, and draws such a document.
+ */
+function createdOf(stated: string): string {
+  const instant = new Date(stated)
+  if (Number.isNaN(instant.getTime())) throw new RenderRefusal('unsupported', `the creation date '${stated}' is not a date`, 'info.creationDate')
+  if (!INSTANT.test(stated))
+    throw new RenderRefusal(
+      'unsupported',
+      `the creation date '${stated}' states no instant: a Word file is dated by an ISO 8601 date and time with its zone, Z or an offset, and a date without one is another moment on another machine`,
+      'info.creationDate',
+    )
+  const created = `${instant.toISOString().slice(0, 19)}Z`
+  // A core property's date is of four digits a year: one before the year 1 or past 9999 is no W3CDTF date.
+  if (!/^\d{4}-/.test(created)) throw new RenderRefusal('unsupported', 'the creation date is of a year a Word file cannot state', 'info.creationDate')
+  return created
 }
 
 function pageOf(setup: ResolvedDocument['page']): Page {
@@ -258,6 +293,19 @@ function tall(height: number, what: string, subject: string, walk: Walk): void {
     throw new RenderRefusal('content-too-large', `${what} is ${height} pt tall; the printable area is ${walk.page.height.toFixed(2)} pt`, subject)
 }
 
+/** A length as a sentence states one: to four digits, so that a share of a width is not its every binary place. */
+const shown = (points: number): string => String(Number(points.toPrecision(4)))
+
+/**
+ * Whether a length rounds to none of Word's twentieths of a point: one
+ * under a fortieth. A table that wide, or a row of exactly that height,
+ * would be written as one of no width or no height, which the PDF draws,
+ * thin as it is, and nobody has seen Word draw. A spacer that small is no
+ * space and writes nothing (`blocks.ts`); a box that small is refused.
+ */
+const tooSmall = (points: number): boolean => twips(points) < 1
+const NO_LENGTH = 'a Word file states no length under a fortieth of a point'
+
 function checkImage(image: Image, place: Place, walk: Walk): void {
   const { id } = image.asset
   if (image.fit !== 'contain' && image.fit !== 'cover')
@@ -267,26 +315,64 @@ function checkImage(image: Image, place: Place, walk: Walk): void {
   if (image.width > place.width)
     throw new RenderRefusal('content-too-large', `the image ${id} is ${image.width} pt wide; it stands ${place.width.toFixed(2)} pt wide`, id)
   tall(image.height, `the image ${id}`, id, walk)
-  let picture = walk.pictures.get(image.asset)
-  if (picture === undefined) {
-    picture = readPicture(image.asset)
-    walk.pictures.set(image.asset, picture)
-    walk.media += image.asset.bytes.length
-    if (walk.media > MAX_DOCX_MEDIA_BYTES)
-      throw new RenderRefusal('content-too-large', `the pictures up to ${id} hold ${walk.media} bytes; a Word file may hold ${MAX_DOCX_MEDIA_BYTES}`, id)
-  }
-  // An SVG is drawn whole in its picture's box: one that covers a box of other proportions would have to be cropped.
-  if (
-    picture.kind === 'svg' &&
-    image.fit === 'cover' &&
-    Math.abs(picture.width * image.height - picture.height * image.width) > 1e-6 * picture.width * image.height
-  )
-    throw new RenderRefusal(
-      'unsupported',
-      `the image ${id} is an SVG that covers a box of other proportions than its own, which needs the drawing cropped; whether Word crops one as the PDF does is not known here: a Word file holds an SVG at its own proportions alone`,
-      id,
-    )
+  walk.images.push(image)
   count(walk, 1, 0, id)
+}
+
+/**
+ * Every image's asset as it is embedded, read once however many images
+ * draw it, in the order the walk met them and once it has walked every
+ * block: where the PDF renderer reads them (`check-images.ts` there), so
+ * that a document wrong in a block and in a picture's bytes is refused
+ * for the block by both.
+ *
+ * Each new asset is counted before it is read, and refused past
+ * `MAX_DOCX_PICTURES`; read, and refused where its bytes are no picture
+ * or one nobody has seen Word print as the PDF does (`assets.ts`); and
+ * its bytes counted, and refused past `MAX_DOCX_MEDIA_BYTES`. Then each
+ * image is held to its picture: an SVG to a box of its own proportions
+ * where it covers one, and any picture to an extent Word's unit states.
+ */
+function readPictures(images: readonly Image[]): Map<ImageAsset, Picture> {
+  const pictures = new Map<ImageAsset, Picture>()
+  let media = 0
+  for (const image of images) {
+    const { id } = image.asset
+    let picture = pictures.get(image.asset)
+    if (picture === undefined) {
+      if (pictures.size === MAX_DOCX_PICTURES)
+        throw new RenderRefusal(
+          'content-too-large',
+          `the report holds more than ${MAX_DOCX_PICTURES} pictures, ${id} the first past them; a Word file holds no more`,
+          id,
+        )
+      picture = readPicture(image.asset)
+      pictures.set(image.asset, picture)
+      media += image.asset.bytes.length
+      if (media > MAX_DOCX_MEDIA_BYTES)
+        throw new RenderRefusal('content-too-large', `the pictures up to ${id} hold ${media} bytes; a Word file may hold ${MAX_DOCX_MEDIA_BYTES}`, id)
+    }
+    // An SVG is drawn whole in its picture's box: one that covers a box of other proportions would have to be cropped.
+    if (
+      picture.kind === 'svg' &&
+      image.fit === 'cover' &&
+      Math.abs(picture.width * image.height - picture.height * image.width) > 1e-6 * picture.width * image.height
+    )
+      throw new RenderRefusal(
+        'unsupported',
+        `the image ${id} is an SVG that covers a box of other proportions than its own, which needs the drawing cropped; whether Word crops one as the PDF does is not known here: a Word file holds an SVG at its own proportions alone`,
+        id,
+      )
+    // A picture's extent is stated in English Metric Units: one that rounds to none would be a picture of no extent.
+    const { width, height } = drawnSize(image, picture)
+    if (emu(width) < 1 || emu(height) < 1)
+      throw new RenderRefusal(
+        'unsupported',
+        `the image ${id} is drawn ${shown(width)} × ${shown(height)} pt, under the unit a Word file states a picture's extent in, 12,700 to the point: the PDF draws it, and what Word draws of a picture of no extent is not known here`,
+        id,
+      )
+  }
+  return pictures
 }
 
 function checkRectangle(rectangle: Rectangle, at: string, place: Place, walk: Walk): void {
@@ -297,6 +383,8 @@ function checkRectangle(rectangle: Rectangle, at: string, place: Place, walk: Wa
   if (rectangle.width > place.width)
     throw new RenderRefusal('content-too-large', `${at} is a rectangle ${rectangle.width} pt wide; it stands ${place.width.toFixed(2)} pt wide`, at)
   tall(rectangle.height, `the rectangle ${at}`, at, walk)
+  if (tooSmall(rectangle.width) || tooSmall(rectangle.height))
+    throw new RenderRefusal('unsupported', `${at} is a rectangle of ${rectangle.width} × ${rectangle.height} pt; ${NO_LENGTH}`, at)
   count(walk, 1, 0, at)
 }
 
@@ -309,6 +397,9 @@ function checkColumns(columns: Columns, at: string, place: Place, walk: Walk): v
   const fill = fillWidth(widths, place.width)
   if (fixed > place.width || fill <= 0)
     throw new RenderRefusal('content-too-large', `${at}'s fixed columns are ${fixed} pt wide; it stands ${place.width.toFixed(2)} pt wide`, at)
+  // Each column is a cell of the block's table, a fill column at its share.
+  const narrow = widths.map((width) => (width === 'fill' ? fill : width)).find(tooSmall)
+  if (narrow !== undefined) throw new RenderRefusal('unsupported', `${at} has a column ${shown(narrow)} pt wide; ${NO_LENGTH}`, at)
   columns.columns.forEach((slot, index) => {
     // A cell ends with a paragraph, which an empty column or one that ends with a table is given.
     count(walk, 1, 0, at)
@@ -339,7 +430,16 @@ function checkSection(section: Section, at: string, place: Place, walk: Walk): v
   const frame = (section.border?.thickness ?? 0) + (section.padding ?? 0)
   const width = place.width - 2 * frame
   if (width <= 0) throw new RenderRefusal('content-too-large', `${at}'s border and padding leave its blocks no width`, at)
-  if (framed(section)) count(walk, 1, 0, at)
+  if (framed(section)) {
+    // A frame is a table of one cell, as wide as where the section stands.
+    if (tooSmall(place.width))
+      throw new RenderRefusal(
+        'unsupported',
+        `${at} is a section with a border, a fill or padding where it stands ${shown(place.width)} pt wide; ${NO_LENGTH}`,
+        at,
+      )
+    count(walk, 1, 0, at)
+  }
   checkBlocks(section.blocks, `${at}.blocks`, { ...place, width, framed: place.framed || framed(section), depth: place.depth + 1 }, walk)
 }
 
@@ -372,9 +472,6 @@ function checkTable(table: Table, width: number, walk: Walk): void {
   const fixed = fixedWidth(widths)
   if (fixed > width || fillWidth(widths, width) <= 2 * PADDING_X)
     throw new RenderRefusal('content-too-large', `table ${id}'s fixed columns are ${fixed} pt wide; it stands ${width.toFixed(2)} pt wide`, id)
-  // A grid column of no twentieth of a point is no column of a Word table.
-  if (twips(Math.min(...widths.map((each) => (each === 'fill' ? fillWidth(widths, width) : each)))) < 1)
-    throw new RenderRefusal('content-too-large', `table ${id} has a column too narrow for a Word file to state`, id)
   for (const row of styledRows(table)) {
     let characters = 0
     row.cells.forEach((text, column) => {

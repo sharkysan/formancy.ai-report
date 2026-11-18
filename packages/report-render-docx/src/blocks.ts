@@ -1,10 +1,11 @@
 import type { Block, Columns, Image, ImageAsset, Paragraph, Rectangle, Section } from '@formancy/report-runtime'
-import type { Picture } from './assets.js'
+import { drawnSize, type Picture } from './assets.js'
 import { framed } from './check.js'
 import type { DocxFonts } from './fonts.js'
 import { BLACK, DEFAULT_SIZE, OUTLINE, RULE_GAP } from './look.js'
 import {
   emptyLine,
+  endOf,
   paragraphsOf,
   SEPARATOR,
   type BlockNode,
@@ -15,7 +16,9 @@ import {
   type RunNode,
   type RunStyle,
   type TableNode,
+  withoutLastEnding,
 } from './nodes.js'
+import { printsEmptyText } from './rows.js'
 import { tableNode } from './table.js'
 import { twips } from './units.js'
 import { columnWidths } from './widths.js'
@@ -76,13 +79,20 @@ function unframed(blocks: readonly Block[]): Block[] {
   return blocks.flatMap((block) => (block.kind === 'section' && !framed(block) ? unframed(block.blocks) : [block]))
 }
 
-/** Whether a block prints text or a picture: what a paragraph kept with the next is kept with, as the PDF renderer finds it. */
+const inked = (text: string): boolean => text.trim() !== ''
+
+/**
+ * Whether a block prints text or a picture: what a paragraph kept with
+ * the next is kept with, as the PDF renderer finds it, which reads the
+ * cells a table lays out -- so a table's empty text counts only where the
+ * table prints it, in place of detail rows.
+ */
 function prints(block: Block): boolean {
   switch (block.kind) {
     case 'paragraph':
       return block.runs.length > 0
     case 'table':
-      return [...block.header, ...block.rows.flatMap((row) => row.cells), block.emptyText].some((text) => text.trim() !== '')
+      return block.header.some(inked) || block.rows.some((row) => row.cells.some(inked)) || (printsEmptyText(block) && inked(block.emptyText))
     case 'image':
       return true
     case 'keepTogether':
@@ -103,26 +113,26 @@ function prints(block: Block): boolean {
  * between two tables among them, since Word keeps a paragraph with the
  * paragraph after it and no further. Over a page break or nothing, a
  * heading is kept with nothing.
+ *
+ * In one pass: a run of such paragraphs is marked once, from the first of
+ * them to what the last heads, never each from itself -- which cost the
+ * square of the run, and a report of headings alone its thread.
  */
 function sequence(given: readonly Block[], out: Out, build: Build, width: number): void {
-  const blocks = unframed(given)
-  const starts = blocks.map((block) => {
-    const from = out.nodes.length
+  // Where the nodes of the first paragraph still to be kept with something begin; undefined while none waits.
+  let waiting: number | undefined
+  for (const block of unframed(given)) {
+    const start = out.nodes.length
     blockNodes(block, out, build, width)
-    return from
-  })
-  blocks.forEach((block, index) => {
-    if (block.kind !== 'paragraph' || block.keepWithNext !== true) return
-    for (let next = index + 1; next < blocks.length; next++) {
-      const each = blocks[next]!
-      if (each.kind === 'pageBreak') return
-      if ((each.kind === 'paragraph' && each.keepWithNext === true) || !prints(each)) continue
-      let end = starts[next]!
-      if (out.separators.has(out.nodes[end]!)) end += 1
-      for (const paragraph of paragraphsOf(out.nodes.slice(starts[index], end))) paragraph.keepNext = true
-      return
+    if (block.kind === 'pageBreak') waiting = undefined
+    else if (block.kind === 'paragraph' && block.keepWithNext === true) waiting ??= start
+    else if (waiting !== undefined && prints(block)) {
+      // As far as the block itself: the paragraph that keeps it apart from a table before it stands between the two, and is kept too.
+      const end = out.separators.has(out.nodes[start]!) ? start + 1 : start
+      for (const paragraph of paragraphsOf(out.nodes.slice(waiting, end))) paragraph.keepNext = true
+      waiting = undefined
     }
-  })
+  }
 }
 
 function blockNodes(block: Block, out: Out, build: Build, width: number): void {
@@ -148,11 +158,13 @@ function blockNodes(block: Block, out: Out, build: Build, width: number): void {
       const from = out.nodes.length
       sequence(block.blocks, out, build, width)
       const kept = out.nodes.slice(from)
-      const paragraphs = paragraphsOf(kept)
-      paragraphs.forEach((paragraph, index) => {
+      // What ends the block is kept with nothing after it. By node, not by paragraph: a row is kept by every paragraph of it, so
+      // "every paragraph but the last" would keep the row that ends a block in all its cells but one.
+      const ending = new Set(endOf(kept))
+      for (const paragraph of paragraphsOf(kept)) {
         paragraph.keepLines = true
-        if (index < paragraphs.length - 1) paragraph.keepNext = true
-      })
+        if (!ending.has(paragraph)) paragraph.keepNext = true
+      }
       wholeRows(kept)
       return
     }
@@ -181,12 +193,14 @@ function wholeRows(nodes: readonly BlockNode[]): void {
 function paragraphNode(paragraph: Paragraph, fonts: DocxFonts): ParagraphNode {
   const style = paragraph.style ?? {}
   const base = { family: fonts.family(style.font), size: style.size ?? DEFAULT_SIZE, italic: style.italic ?? false, color: style.color ?? BLACK }
-  const runs = paragraph.runs.flatMap((run): RunNode[] => {
+  const runs = paragraph.runs.flatMap((run, index): RunNode[] => {
     if (!('text' in run)) return [{ kind: 'field', field: run.field === 'pageNumber' ? 'PAGE' : 'NUMPAGES', style: { ...base, bold: style.bold ?? false } }]
+    // The paragraph's last run ends its text, and the line ending that ends that is no break.
+    const text = index === paragraph.runs.length - 1 ? withoutLastEnding(run.text) : run.text
     // A run that prints nothing is no run of the file.
-    if (run.text === '') return []
+    if (text === '') return []
     const set: RunStyle = { ...base, bold: run.bold ?? style.bold ?? false, ...(run.baseline === undefined ? {} : { shift: run.baseline }) }
-    return [{ kind: 'text', text: run.text, style: set }]
+    return [{ kind: 'text', text, style: set }]
   })
   return {
     kind: 'paragraph',
@@ -210,8 +224,7 @@ function imageNode(image: Image, build: Build): ParagraphNode {
   // check.ts reads every image's asset before anything is built.
   const picture = build.pictures.get(image.asset)!
   const cover = image.fit === 'cover'
-  const scale = (cover ? Math.max : Math.min)(image.width / picture.width, image.height / picture.height)
-  const [width, height] = cover ? [image.width, image.height] : [picture.width * scale, picture.height * scale]
+  const { width, height, scale } = drawnSize(image, picture)
   const [x, y] = [(image.width - width) / 2, (image.height - height) / 2]
   const [across, down] = cover ? [(1 - image.width / (picture.width * scale)) / 2, (1 - image.height / (picture.height * scale)) / 2] : [0, 0]
   const vector = picture.kind === 'svg'

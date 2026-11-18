@@ -13,7 +13,7 @@ import {
 } from '@formancy/report-corpus'
 import { renderPdf } from '@formancy/report-render-pdf'
 import { RenderRefusal, SHIFTED_SIZE } from '@formancy/report-runtime'
-import type { ResolvedDocument } from '@formancy/report-runtime'
+import type { Block, ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { DEFAULT_SIZE, KIND_BOLD, TABLE_SIZE } from './look.js'
 import { documentOf, paragraph, refusalOf, resolved, written } from './testing/support.js'
@@ -37,7 +37,14 @@ import { documentOf, paragraph, refusalOf, resolved, written } from './testing/s
  * nothing this reads, and are held by review.
  *
  * **What no engine prints of a document**: the corpus's list of malformed
- * documents, each refused by both, by the same code and the same subject.
+ * documents, each refused by both, by the same code and the same subject;
+ * and one document wrong in every place an engine looks, put right a place
+ * at a time, refused by both for the same place at each step.
+ *
+ * And one thing the two must agree on that neither states: **the lines a
+ * text with line endings prints**. The PDF's are counted on the page, by
+ * where the paragraph after the text stands; the file's are the breaks it
+ * states.
  */
 
 const TIMEOUT = 240_000
@@ -111,6 +118,8 @@ describe('what a document leaves to an engine', () => {
     expect(BOTH.filter(([name]) => name.endsWith('starter'))).toHaveLength(6)
   })
 
+  // The sizes and the bold no style states are the renderer's constants, typed again in look.ts: one changed alone would print a report's
+  // table a point larger, or its totals light, in one engine and not the other, with every word in its place.
   test.each(BOTH)(
     'prints %s with the sizes, weights and slants the PDF prints it with',
     async (_name, document) => {
@@ -159,6 +168,103 @@ describe('what a document leaves to an engine', () => {
   )
 })
 
+describe('the lines a text with line endings prints', () => {
+  /** Where the top of the word `after` stands on the first page of `document`'s PDF, in points from the top of the page. */
+  async function topOfAfter(document: ResolvedDocument): Promise<number> {
+    const pdf = await readPdf(await renderPdf(document, { maxPages: 2 }))
+    const found = pdf.pages[0]!.items.filter((item) => item.text.trim() === 'after')
+    if (found.length !== 1) throw new Error(`'after' is printed ${found.length} times`)
+    return found[0]!.top
+  }
+  const runs = (...texts: readonly string[]): Block => ({ kind: 'paragraph', runs: texts.map((text) => ({ text })) })
+  /** Measured once, on the PDF: where a paragraph stands with nothing above it, and how much lower each line of a paragraph above puts it. */
+  let ruler: Promise<{ readonly none: number; readonly line: number }> | undefined
+  const ruled = (): Promise<{ readonly none: number; readonly line: number }> =>
+    (ruler ??= Promise.all(
+      [[], [paragraph('x')], [paragraph('x'), paragraph('x')]].map((above) => topOfAfter(documentOf([...above, paragraph('after')]))),
+    ).then(([none, one, two]) => ({ none: none!, line: two! - one! })))
+  /** The lines `block` prints in the PDF: how far it pushes the paragraph after it down, in lines of a paragraph's own. */
+  async function linesOfParagraph(block: Block): Promise<number> {
+    const { none, line } = await ruled()
+    return ((await topOfAfter(documentOf([block, paragraph('after')]))) - none) / line
+  }
+  const table = (cell: string, id = 'lines'): Block => ({
+    kind: 'table',
+    id,
+    columns: [{ width: 'fill', align: 'left' }],
+    header: ['Key'],
+    rows: [
+      { kind: 'detail', cells: [cell] },
+      { kind: 'detail', cells: ['after'] },
+    ],
+    emptyText: '',
+  })
+  /** Measured once: where the row under a cell of one line stands, and how much lower a second line in the cell puts it. */
+  let cellRuler: Promise<{ readonly one: number; readonly line: number }> | undefined
+  const cellRuled = (): Promise<{ readonly one: number; readonly line: number }> =>
+    (cellRuler ??= Promise.all(['x', 'x\nx'].map((cell) => topOfAfter(documentOf([table(cell)])))).then(([one, two]) => ({ one: one!, line: two! - one! })))
+  /** The lines a cell of `text` prints in the PDF: how much lower the row under it stands than under a cell of one line, in lines of a cell's own. */
+  async function linesOfCell(text: string): Promise<number> {
+    const { one, line } = await cellRuled()
+    return 1 + ((await topOfAfter(documentOf([table(text)]))) - one) / line
+  }
+  /** The lines the file states for its body's first paragraph, or for the cell under its header: one, and one more for each break. */
+  const linesOfFile = (document: ResolvedDocument): number => {
+    const [first] = written(document).body
+    const stated = first?.kind === 'table' ? first.rows[1]?.cells[0]?.blocks[0] : first
+    if (stated?.kind !== 'paragraph') throw new Error('the file opens with neither the paragraph nor the cell the document opens with')
+    return 1 + stated.runs.reduce((breaks, run) => breaks + (run.kind === 'text' ? run.text.split('\n').length - 1 : 0), 0)
+  }
+
+  // pdfmake ends a line at each line ending and opens none after the one that ends a text: 'one\n' is one line, and the paragraph after it
+  // stands where it stands after 'one'. A file that stated a break for that ending would print a line the PDF does not, with every word in
+  // its place, so nothing that compares words sees it: the lines are counted, on the PDF.
+  test.each([
+    ['one line', ['one'], 1],
+    ['a line feed inside it', ['one\ntwo'], 2],
+    ['a carriage return inside it', ['one\rtwo'], 2],
+    ['the two together inside it', ['one\r\ntwo'], 2],
+    ['a line feed at its start', ['\none'], 2],
+    ['two line feeds inside it', ['one\n\ntwo'], 3],
+    ['a line feed at its end', ['one\n'], 1],
+    ['a carriage return at its end', ['one\r'], 1],
+    ['the two together at its end', ['one\r\n'], 1],
+    ['two line feeds at its end', ['one\n\n'], 2],
+    ['a line feed alone', ['\n'], 1],
+    ['a run that ends in a line feed before another', ['one\n', 'two'], 2],
+    ['a last run that ends in a line feed', ['one', 'two\n'], 1],
+    ['a last run that is a line feed', ['one', '\n'], 1],
+    ['a run of nothing after a line feed, which opens a line', ['one\n', ''], 2],
+    ['a run of nothing before one that ends in a line feed', ['', 'one\n'], 1],
+    ['two runs that each end in a line feed', ['one\n', '\n'], 2],
+  ] as const)(
+    'a paragraph of %s prints as many lines in the PDF as the file states',
+    async (_name, texts, lines) => {
+      const block = runs(...texts)
+      expect(await linesOfParagraph(block)).toBeCloseTo(lines, 2)
+      expect(linesOfFile(documentOf([block, paragraph('after')]))).toBe(lines)
+    },
+    TIMEOUT,
+  )
+
+  // A cell's text is another path through both engines: the same count, by where the row under the cell stands.
+  test.each([
+    ['one line', 'one', 1],
+    ['a line feed inside it', 'one\ntwo', 2],
+    ['a line feed at its end', 'one\n', 1],
+    ['the two together at its end', 'one\r\n', 1],
+    ['two line feeds at its end', 'one\n\n', 2],
+    ['a line feed alone', '\n', 1],
+  ] as const)(
+    'a cell of %s prints as many lines in the PDF as the file states',
+    async (_name, text, lines) => {
+      expect(await linesOfCell(text)).toBeCloseTo(lines, 2)
+      expect(linesOfFile(documentOf([table(text)]))).toBe(lines)
+    },
+    TIMEOUT,
+  )
+})
+
 describe('what no engine prints of a document', () => {
   /** What the PDF renderer refuses `document` as; fails the test where it draws it. */
   async function pdfRefusal(document: ResolvedDocument): Promise<{ readonly code: string; readonly subject: string | undefined }> {
@@ -170,6 +276,51 @@ describe('what no engine prints of a document', () => {
     }
     throw new Error('the PDF renderer drew the document')
   }
+
+  /** A paragraph no engine prints, wherever it stands: refused by its place. */
+  const red = paragraph('red', { color: 'red' })
+  /** A picture whose bytes are none, which an engine finds once it has walked every block. */
+  const broken: Block = {
+    kind: 'image',
+    asset: { id: 'broken', mediaType: 'image/png', bytes: new TextEncoder().encode('not a PNG') },
+    width: 32,
+    height: 32,
+    fit: 'contain',
+  }
+  const A4 = documentOf([]).page
+  /** A document wrong in every place an engine looks, and the same with one place after another put right, each named by what is refused then. */
+  const WRONG: ResolvedDocument = documentOf([broken, red], {
+    info: { title: 7 as unknown as string, creationDate: 'yesterday' },
+    page: { ...A4, size: 'A3' as 'A4' },
+    pageHeader: [red],
+    firstPageHeader: [red],
+    pageFooter: [red],
+  })
+  const STEPS: readonly (readonly [string, ResolvedDocument])[] = (
+    [
+      ['info.creationDate', {}],
+      ['info.title', { info: { title: 7 as unknown as string, creationDate: '2026-01-01T00:00:00Z' } }],
+      ['page.size', { info: { title: 'Wrong', creationDate: '2026-01-01T00:00:00Z' } }],
+      ['pageHeader[0]', { page: A4 }],
+      ['firstPageHeader[0]', { pageHeader: [] }],
+      ['pageFooter[0]', { firstPageHeader: [] }],
+      ['body[1]', { pageFooter: [] }],
+      ['broken', { body: [broken] }],
+    ] as const
+  ).reduce<[string, ResolvedDocument][]>((steps, [subject, right]) => [...steps, [subject, { ...(steps.at(-1)?.[1] ?? WRONG), ...right }]], [])
+
+  // Every document of the list below is wrong once. A document wrong twice is refused for one thing, and for the same thing by both: the
+  // creation date, the title, the page, the page header, page 1's own, the page footer, the body's blocks in their order, and a picture's
+  // bytes last, wherever the picture stands -- an engine that read them where it met the picture would refuse this body for another block.
+  test.each(STEPS)(
+    'a document wrong in several places is refused by both engines for %s first',
+    async (subject, document) => {
+      const word = refusalOf(document)
+      expect(word.subject).toBe(subject)
+      expect({ code: word.code, subject: word.subject }).toEqual(await pdfRefusal(document))
+    },
+    TIMEOUT,
+  )
 
   // The list holds both engines' statements of the contract together: an empty one, or one of a handful, would hold nothing.
   test('is a list of every way a document breaks its contract with an engine', () => {

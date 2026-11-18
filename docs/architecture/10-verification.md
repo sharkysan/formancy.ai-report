@@ -420,7 +420,8 @@ vocabulary in the order ECMA-376 gives each element's children
    │   line; and, block by block, what the document states outright
    │
    └─▶ against the PDF of the same document, read with PDF.js: every word at the
-       size, in the weight and the slant the other engine prints it in
+       size, in the weight and the slant the other engine prints it in, and a
+       text with line endings on as many lines as the file states
 ```
 
 The reader shares no code with the writer: it is proved on a file typed
@@ -436,15 +437,21 @@ subject and its sentence, `text.test.ts` every string a document carries,
 found by a walk that knows no field by name, to being read back as that
 very text, `pictures.test.ts` a picture's part to the asset's bytes,
 `fonts.test.ts` a token to the family its face states, `bounds.test.ts`
-a file at each bound and one past it, and `stable.test.ts` the same
+a file at each bound and one past it, with the shapes inside the bounds
+that had cost the square of their count, and `stable.test.ts` the same
 bytes. `against-pdf.test.ts` is what holds the two engines together,
 since what the document leaves to an engine and what an engine must
 refuse of a document are stated in each: the sizes, the weights and the
-slant on the pages both write, and every document of the corpus's
-`MALFORMED` list refused by both by the same code and subject. The
-Studio's pipeline, its viewer and its journey hold the file a person is
-offered to the document its PDF was drawn from
-(`apps/studio/src/preview/pipeline.test.ts`), and the browser gate holds
+slant on the pages both write; the lines a paragraph and a cell with line
+endings print, counted on the PDF by where the block after them stands
+and held to the breaks the file states; every document of the corpus's
+`MALFORMED` list refused by both by the same code and subject; and one
+document wrong in every place both engines look, refused by both for the
+same place as each is put right. The Studio's pipeline, its viewer and
+its journey hold the file a person is offered to the document its PDF was
+drawn from (`apps/studio/src/preview/pipeline.test.ts`), a writer that
+throws or does not load to leaving the PDF as it printed
+(`word-fault.test.ts`, `word-chunk.test.ts`), and the browser gate holds
 the file Chromium downloads to the document resolved under Node and to
 the bytes Node writes (`apps/studio/scripts/gate-word.mjs`).
 

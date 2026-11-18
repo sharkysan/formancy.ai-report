@@ -334,8 +334,10 @@ A Word file is the same bytes for the same document. A zip writer stamps
 each entry with the clock unless it is told otherwise, so the writer
 dates every entry 1 January 1980 by its local fields, where neither the
 clock nor a machine's time zone reaches; the creation date in the core
-properties is the document's; and fflate deflates with its own code
-wherever it runs. `report-render-docx/src/stable.test.ts` holds one
+properties is the document's, which must state an instant -- a date and
+time without a zone is read in the machine's own, and the one document
+was three files in three time zones, so it is refused; and fflate
+deflates with its own code wherever it runs. `report-render-docx/src/stable.test.ts` holds one
 document to the same bytes twice in a process and to the same digest in
 two more, one fourteen hours ahead of UTC and one eight behind, and the
 Studio's browser gate holds the file Chromium downloads to the bytes the

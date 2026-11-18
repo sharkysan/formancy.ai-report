@@ -320,16 +320,20 @@ another's; and both builders edit one language at a time (builder-core's
 file, beside the renderer and never through it: `renderDocx`, in
 `render.ts`, synchronous, gives the bytes or throws the runtime's
 `RenderRefusal`, on the runtime and `fflate` at exactly 0.8.3 alone.
-`check.ts` refuses in one walk, before a byte is written and in a stated
-order: what belongs to the PDF (`pdf-only.ts`: a payment part, an
-e-invoice, a preview the runtime labelled, a chart, a QR code and an EPC
-QR code); what nobody has seen Word print as the PDF does (a JPEG its
-Exif block turns, by report-spec's `JpegHeader.orientation`, or of four
-components, in `assets.ts`, which reads every picture's bytes as the
-renderer does; an SVG that covers a box of other proportions, and a
-table or a page break in a framed section); what no engine prints, by
-the PDF renderer's code and subject; and what is past `limits.ts`'s
-`MAX_DOCX_PARAGRAPHS`, `MAX_DOCX_CHARACTERS` and `MAX_DOCX_MEDIA_BYTES`.
+`check.ts` refuses before a byte is written, by where a thing stands:
+the creation date and the title, what belongs to the PDF of the document
+itself, the page, then each region's blocks in document order, and the
+pictures' bytes last. It refuses what belongs to the PDF (`pdf-only.ts`:
+a payment part, an e-invoice, a preview the runtime labelled, a chart, a
+QR code and an EPC QR code); what nobody has seen Word print as the PDF
+does (a JPEG its Exif block turns, by report-spec's
+`JpegHeader.orientation`, or of four components, in `assets.ts`, which
+reads every picture's bytes as the renderer does, a PNG's image data to
+its checksum and its end; an SVG that covers a box of other proportions,
+and a table or a page break in a framed section); what no engine prints,
+by the PDF renderer's code and subject; what Word's units do not state;
+and what is past `limits.ts`'s `MAX_DOCX_PARAGRAPHS`,
+`MAX_DOCX_CHARACTERS`, `MAX_DOCX_PICTURES` and `MAX_DOCX_MEDIA_BYTES`.
 `xml.ts` is the one place a string becomes markup, a type of its own, and
 `check-text.ts` holds every string to what a report prints and XML
 holds; `fonts.ts` names a mapped token by its normal face's name ID 1,

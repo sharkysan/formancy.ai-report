@@ -78,6 +78,37 @@ describe('what belongs to the PDF is refused, naming it', () => {
     expect(refusalOf({ ...labelled, pageHeader: [] }).subject).toBe('code')
   })
 
+  // The whole order, a place at a time: a document wrong in every place the writer looks is refused for its creation date, and with each
+  // place put right for the next. A host that shows a person one refusal shows the same one whatever else the report holds.
+  test("the creation date, the title, what belongs to the PDF, the page, then the page header, page 1's own, the page footer and the body", () => {
+    const red = paragraph('red', { color: 'red' })
+    const everywhere: ResolvedDocument = {
+      ...documentOf([red, QR], { pageHeader: [red], firstPageHeader: [red], pageFooter: [red] }),
+      info: { title: 7 as unknown as string, creationDate: 'yesterday' },
+      page: { size: 'A3' as 'A4', orientation: 'portrait', margins: { top: 50, right: 50, bottom: 50, left: 50 } },
+      paymentPart: SLIP,
+    }
+    const dated = { ...everywhere, info: { ...everywhere.info, creationDate: '2026-01-01T00:00:00Z' } }
+    const titled = { ...dated, info: { ...dated.info, title: 'T' } }
+    const { paymentPart: _slip, ...unpaid } = titled
+    const paged = { ...unpaid, page: documentOf([]).page }
+    const headed = { ...paged, pageHeader: [] }
+    const first = { ...headed, firstPageHeader: [] }
+    const footed = { ...first, pageFooter: [] }
+    expect([everywhere, dated, titled, unpaid, paged, headed, first, footed, { ...footed, body: [QR, red] }].map((each) => refusalOf(each).subject)).toEqual([
+      'info.creationDate',
+      'info.title',
+      'paymentPart',
+      'page.size',
+      'pageHeader[0]',
+      'firstPageHeader[0]',
+      'pageFooter[0]',
+      // In the body, whichever stands first: a block no engine prints before a code, and a code before one.
+      'body[0]',
+      'code',
+    ])
+  })
+
   // The label is the runtime's own paragraph at the head of the header: the same words lower down, or in the body, are a report's own.
   test('a report that only quotes the label is written', () => {
     const quoted = documentOf([paragraph(PREVIEW_LABEL)], { pageHeader: [paragraph('Letterhead'), label(PREVIEW_LABEL)] })
@@ -199,6 +230,89 @@ describe("the writer's own bounds are refused, naming the block", () => {
     ['a rule twelve points thick', { kind: 'rule', thickness: 12 }],
   ])('%s is written', (_name, block) => {
     expect(written(documentOf([block])).body).toHaveLength(1)
+  })
+})
+
+describe("a length that rounds to none of Word's units is refused, naming the block", () => {
+  // A Word file states a length in twentieths of a point and a picture's extent in English Metric Units, 12,700 to the point. A width or a
+  // height that rounds to none was written as a table of no width, a row of exactly no height, a picture of no extent -- which the PDF draws,
+  // thin as it is, and which nobody has seen Word draw. A spacer that small is no space, and writes nothing; a box that small is refused.
+  const fine: Block = { kind: 'section', padding: 247.63, blocks: [{ kind: 'section', fill: '#eeeeee', blocks: [paragraph('x')] }] }
+  const cases: readonly Case[] = [
+    [
+      'a rectangle a hundredth of a point wide',
+      documentOf([{ kind: 'rectangle', width: 0.01, height: 10 }]),
+      'unsupported',
+      'body[0]',
+      /a rectangle of 0\.01 × 10 pt; a Word file states no length under a fortieth of a point/,
+    ],
+    [
+      'a rectangle a hundredth of a point tall',
+      documentOf([{ kind: 'rectangle', width: 10, height: 0.01 }]),
+      'unsupported',
+      'body[0]',
+      /a rectangle of 10 × 0\.01 pt/,
+    ],
+    [
+      'a column a hundredth of a point wide',
+      documentOf([
+        {
+          kind: 'columns',
+          columns: [
+            { width: 0.01, blocks: [] },
+            { width: 'fill', blocks: [] },
+          ],
+        },
+      ]),
+      'unsupported',
+      'body[0]',
+      /has a column 0\.01 pt wide; a Word file states no length under a fortieth of a point/,
+    ],
+    [
+      'a fill column left a hundredth of a point',
+      documentOf([
+        {
+          kind: 'columns',
+          columns: [
+            { width: 495.27, blocks: [] },
+            { width: 'fill', blocks: [] },
+          ],
+        },
+      ]),
+      'unsupported',
+      'body[0]',
+      /has a column 0\.0\d+ pt wide/,
+    ],
+    // The outer section's padding leaves its blocks two hundredths of a point: the framed one inside it would be a table that wide.
+    ['a framed section where it stands two hundredths of a point wide', documentOf([fine]), 'unsupported', 'body[0].blocks[0]', /stands 0\.02 pt wide/],
+    [
+      'a picture drawn at under an English Metric Unit',
+      documentOf([image(SVG, { width: 0.00003, height: 40 })]),
+      'unsupported',
+      'mark',
+      /is drawn 0\.00003 × 0\.00003 pt, under the unit a Word file states a picture's extent in/,
+    ],
+  ]
+  test.each(cases)('%s', (...each) => {
+    holds(each)
+  })
+
+  // At the least each unit states, each is written: the refusals above must not reach a hairline a report means.
+  test.each<[string, Block]>([
+    ['a rectangle of three hundredths of a point a side', { kind: 'rectangle', width: 0.03, height: 0.03 }],
+    [
+      'a column three hundredths of a point wide',
+      {
+        kind: 'columns',
+        columns: [
+          { width: 0.03, blocks: [] },
+          { width: 'fill', blocks: [] },
+        ],
+      },
+    ],
+    ['a picture drawn at an English Metric Unit', image(SVG, { width: 0.0001, height: 40 })],
+  ])('%s is written', (_name, block) => {
+    expect(written(documentOf([block])).body.length).toBeGreaterThan(0)
   })
 })
 

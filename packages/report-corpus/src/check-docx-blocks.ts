@@ -47,13 +47,19 @@ function unframed(blocks: readonly Block[]): Block[] {
 
 const framed = (section: Section): boolean => section.border !== undefined || section.fill !== undefined || (section.padding ?? 0) > 0
 
-/** Whether a block prints text or a picture: what a paragraph kept with the next is kept with. */
+const inked = (text: string): boolean => text.trim() !== ''
+
+/** Whether a block prints text or a picture: what a paragraph kept with the next is kept with. A table prints its empty text only in place of detail rows. */
 function prints(block: Block): boolean {
   switch (block.kind) {
     case 'paragraph':
       return block.runs.length > 0
     case 'table':
-      return [...block.header, ...block.rows.flatMap((row) => row.cells), block.emptyText].some((text) => text.trim() !== '')
+      return (
+        block.header.some(inked) ||
+        block.rows.some((row) => row.cells.some(inked)) ||
+        (!block.rows.some((row) => row.kind === 'detail') && inked(block.emptyText))
+      )
     case 'image':
     case 'qrCode':
     case 'epcQrCode':
@@ -224,9 +230,14 @@ function matchBlock(block: Block, cursor: Cursor, at: string, width: number, wal
       const from = cursor.at
       matchSequence(block.blocks, cursor, `${at}.blocks`, width, walk)
       const nodes = cursor.nodes.slice(from, cursor.at)
-      const paragraphs = paragraphsOf(nodes)
       keep(walk, nodes, { lines: true })
-      for (const paragraph of paragraphs.slice(0, -1)) keep(walk, [paragraph], { next: true })
+      // Kept with the next, every paragraph but those that end the block, which are kept with nothing after it.
+      const ending = new Set(endOf(nodes))
+      keep(
+        walk,
+        paragraphsOf(nodes).filter((paragraph) => !ending.has(paragraph)),
+        { next: true },
+      )
       if (nodes.some((node) => node.kind === 'table' && node.rows.some((row) => !row.cantSplit)))
         say('a table of a keep-together block has a row that may split')
       return
@@ -246,11 +257,33 @@ function matchBlock(block: Block, cursor: Cursor, at: string, width: number, wal
   }
 }
 
+/** The paragraphs that end `nodes`: the last paragraph, or every paragraph of the last row where a table ends them -- a row is kept with the next by every paragraph of it, so one marked in some of its cells would be half kept. */
+function endOf(nodes: readonly DocxBlock[]): DocxParagraph[] {
+  const last = nodes.at(-1)
+  if (last === undefined) return []
+  return last.kind === 'paragraph' ? [last] : paragraphsOf(last.rows.at(-1)?.cells.flatMap((cell) => cell.blocks) ?? [])
+}
+
 const sameBorder = (read: DocxBorder | undefined, stated: DocxBorder): boolean =>
   read !== undefined && near(read.weight, stated.weight, 1 / 16 + 0.001) && read.color === stated.color
 
 /** A string as a Word file holds it: every line ending a line feed, the one break the reader reads. */
 const lineFeeds = (text: string): string => text.replace(/\r\n?/g, '\n')
+
+/** `text` without the line ending that ends it, if one does: the PDF's engine ends its last line there and opens none after it, so a Word file states no break for it. */
+const withoutLastEnding = (text: string): string => text.replace(/(?:\r\n|\r|\n)$/, '')
+
+/**
+ * The runs of `paragraph` a Word file holds: its last run without the line
+ * ending that ends the paragraph, and then no run that prints nothing. In
+ * that order: a run of nothing after a line ending is a run the PDF's
+ * engine opens a line for, so the ending before it is a break.
+ */
+function writtenRuns(paragraph: Paragraph): Inline[] {
+  const last = paragraph.runs.at(-1)
+  const runs = last !== undefined && 'text' in last ? [...paragraph.runs.slice(0, -1), { ...last, text: withoutLastEnding(last.text) }] : paragraph.runs
+  return runs.filter((run) => !('text' in run) || run.text !== '')
+}
 
 /** The family a style's token prints in where the document maps it, read from its normal face as Word lists the face; undefined where the engine's own face prints it. */
 function familyOf(style: TextStyle | undefined, fonts: ResolvedFonts | undefined): string | undefined {
@@ -277,7 +310,7 @@ const aligned = (read: DocxParagraph['align'], stated: TextStyle['align']): bool
 
 function checkParagraph(paragraph: Paragraph, node: DocxParagraph, fonts: ResolvedFonts | undefined, say: (problem: string) => void): void {
   const { style } = paragraph
-  const runs = paragraph.runs.filter((run) => !('text' in run) || run.text !== '')
+  const runs = writtenRuns(paragraph)
   if (runs.length !== node.runs.length) return say(`holds ${node.runs.length} runs where the paragraph has ${runs.length} that print`)
   runs.forEach((run: Inline, index) => {
     const read = node.runs[index]!
@@ -359,7 +392,7 @@ function checkTable(table: Table, node: DocxTable, width: number, walk: Walk, sa
       const [paragraph, more] = cell.blocks
       if (paragraph?.kind !== 'paragraph' || more !== undefined) return say(`${where} is not one paragraph`)
       const printed = paragraph.runs.map((run) => (run.kind === 'text' ? run.text : `<${run.kind}>`)).join('')
-      if (printed !== lineFeeds(text)) say(`${where} prints '${printed}' where the table states '${text}'`)
+      if (printed !== lineFeeds(withoutLastEnding(text))) say(`${where} prints '${printed}' where the table states '${text}'`)
       const style = row.style(column)
       for (const run of paragraph.runs) for (const problem of styleProblems(style, run.props, walk.fonts)) say(`${where} ${problem}`)
       if (!aligned(paragraph.align, style?.align ?? table.columns[row.across ? 0 : column]?.align)) say(`${where} is aligned ${paragraph.align ?? 'left'}`)

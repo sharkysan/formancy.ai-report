@@ -1,6 +1,6 @@
 # 0068 — A report is written as a Word file by a writer of its own, which says what the resolved document says in Word's own pages, and refuses what belongs to its PDF
 
-- **Status:** accepted; numbered while 0067 was another branch's; extends [0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md), whose proof on the PDF an engine produced is a proof on the file a writer produced: a Word file is read back, by readers that are not its writer, and held to the expectation its PDF is held to; [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), whose Preview offers the file beside the PDF; [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md), whose `imageHeader` now says how a JPEG's Exif block turns it; and [0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), whose reader now hands on the family of name ID 1 beside a typographic one
+- **Status:** accepted; numbered while 0067 was another branch's; extends [0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md), whose proof on the PDF an engine produced is a proof on the file a writer produced: a Word file is read back, by readers that are not its writer, and held to the expectation its PDF is held to; [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), whose Preview offers the file beside the PDF; [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md), whose `imageHeader` now says how a JPEG's Exif block turns it; and [0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), whose reader now hands on the family of name ID 1 beside a typographic one; and reads again the absence [0056](0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md) put on the start page as "no print format but PDF", with the predicate that held it
 - **Date:** 2026-11-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -50,25 +50,35 @@
     render and as a preview, and fails on a starter it does not name.
     `src/blocks.test.ts` holds each row of the table below to the file.
     `src/refusals.test.ts` holds each refusal below to its code, its
-    subject and its sentence, and to returning nothing.
+    subject and its sentence, the order they are met in to a document
+    wrong in every place the writer looks, put right a place at a time,
+    and each to returning nothing.
     `src/text.test.ts` holds every string a document carries, found by a
     walk of the document that knows no field by name, to being read back
     as that very text in a file with no element, field or relationship
     the same document without it lacks, for strings a property test
     makes of markup, fields, entities and quotes; a run's spaces, a line
-    ending and each character below to what the record says of it; and
-    that a string does not compile where markup stands
-    (`@ts-expect-error`). `src/pictures.test.ts` holds a picture's part
-    to the asset's very bytes, its extent, a contained picture's place in
-    its box and a covering one's crop to its pixels, an SVG's `svgBlip`
-    and its fallback, an SVG that is more than a drawing and a PNG whose
-    data is not its scanlines to their refusal, and every kind of the
-    corpus's `IMAGE_KINDS` to being written and of its `UNSEEN_JPEGS` to
-    being refused. `src/fonts.test.ts` holds a mapped token to the family
-    its face's name table states, to name ID 1 where a typographic family
-    stands beside it, `sans` unmapped to Roboto, and what the PDF refuses
-    of a font to its refusal. `src/bounds.test.ts` writes a file at each
-    bound and refuses one past it.
+    ending inside a run and inside a cell, the one that ends a paragraph
+    or a cell, and each character below to what the record says of it; a
+    creation date that states no zone to its refusal; and that a string
+    does not compile where markup stands (`@ts-expect-error`).
+    `src/pictures.test.ts` holds a picture's part to the asset's very
+    bytes, its extent, a contained picture's place in its box and a
+    covering one's crop to its pixels, an SVG's `svgBlip` and its
+    fallback, an SVG that is more than a drawing to its refusal, a PNG
+    whose data is not its scanlines, is not what its checksum sums, has a
+    byte after its end or ends before its last block to theirs, a PNG
+    with a mebibyte after its data to being refused at that end, by the
+    slices read, and every kind of the corpus's `IMAGE_KINDS` to being
+    written and of its `UNSEEN_JPEGS` to being refused.
+    `src/fonts.test.ts` holds a mapped token to the family its face's
+    name table states, to name ID 1 where a typographic family stands
+    beside it, `sans` unmapped to Roboto, and what the PDF refuses of a
+    font to its refusal. `src/bounds.test.ts` writes a file at each bound
+    and refuses one past it; holds a refusal for size to nothing after
+    the block that crossed it being read; writes as many paragraphs as
+    the bound, each kept with the next; and counts what marking a table
+    of totals reads.
   - **The same bytes.** `src/stable.test.ts`: one document written twice
     is the same bytes; written in a second process fourteen hours ahead
     of UTC and in one eight behind, the same digest; every entry of the
@@ -82,10 +92,16 @@
     states is a word the PDF, read back with PDF.js, draws at that size
     in a face of that weight and slant, and every word of the PDF is one
     of the file's -- what the document leaves to an engine, stated twice,
-    held together; and every document of the corpus's `MALFORMED` list,
-    one for each way a document breaks its contract with an engine before
+    held together; a paragraph and a cell with line endings inside them,
+    at their start and at their end print as many lines in the PDF,
+    counted by where the block after them stands, as the file states
+    breaks and one; every document of the corpus's `MALFORMED` list, one
+    for each way a document breaks its contract with an engine before
     anything is measured, is refused by both by the same code and
-    subject.
+    subject; and one document wrong in every place both engines look --
+    its creation date, its title, its page, each region, a block of its
+    body and a picture's bytes -- is refused by both for the same place
+    as each is put right.
   - **report-spec.** `src/image-header.test.ts` holds a JPEG's
     `orientation` to each of 2 to 8 as PDFKit reads it, and to being
     absent where the image is upright; `src/font-names.test.ts` holds
@@ -111,7 +127,7 @@
     `scripts/dependency-licences.mjs` judges fflate;
     `scripts/architecture.test.mjs`, `scripts/ci-test-jobs.test.mjs` and
     `scripts/codecov-config.test.mjs` hold the package to its row, its
-    job and its flag.
+    job and its component.
   - **The Studio.** `src/preview/pipeline.test.ts` names what the Word
     file of every starter the page offers is, the blank report among
     them, and holds each one's printed outcome, as a preview and as a
@@ -123,7 +139,9 @@
     printing, with the writer's refusal of its label beside it.
     `src/preview/word-fault.test.ts`, the one suite that stands in for
     the writer, holds a writer that throws what is no refusal to leaving
-    the PDF as it printed, the fault said of the Word file alone.
+    the PDF as it printed, the fault said of the Word file alone, and
+    `src/preview/word-chunk.test.ts` a writer whose module does not load
+    to the same.
     `src/preview/pdf-view.test.tsx` holds Download Word to following
     Download PDF as the keyboard's next stop, under the starter's id with
     `.docx` and Word's media type, to the file of the render on the paper
@@ -195,14 +213,39 @@
     published, before its sentence was read again; the README example's
     guard, before the package had a README
     and with a line of it changed; and the guards of the package's row,
-    its job, its flag and this record's place in a section and in the
-    register, each from the day the package arrived until its document
-    was written. And the writer's own suite under coverage, which is how
-    CI's test job runs it and how nobody had run it: the oversized job in
-    `corpus.test.ts` and the property in `text.test.ts` each took past
-    vitest's five seconds there, 5.2 to 6.6, and failed for it, with
-    nothing wrong in a file; each now states a bound of its own with
-    what was measured.
+    its job, its component and this record's place in a section and in
+    the register, each from the day the package arrived until its
+    document was written. And the writer's own suite under coverage,
+    which is how CI's test job runs it and how nobody had run it: the
+    oversized job in `corpus.test.ts` and the property in `text.test.ts`
+    each took past vitest's five seconds there, 5.2 to 6.6, and failed
+    for it, with nothing wrong in a file; each now states a bound of its
+    own with what was measured. And, the same day, what a review of the
+    writer found, each case written first and seen failing on the writer
+    as it stood: a PNG of a wrong checksum, with bytes after its data,
+    with bytes after it that end in that checksum, and with a mebibyte
+    after it, the last by the slices read; the run of 100,000 paragraphs
+    each kept with the next, which was not written in 120 seconds; the
+    table of totals, by fifty million readings of a row's kind for ten
+    thousand rows; a kept block's last row, kept in one cell and not the
+    other; a heading over a table of blank cells, kept with the table; a
+    line ending that ends a paragraph and a cell, written as a break; a
+    creation date with no zone, written, and three digests of one such
+    document in three time zones; a rectangle, a column, a framed section
+    and a picture that round to nothing, written with no width; and of
+    the corpus's check, on the hand-written file, the same line ending,
+    the same last row and a chart met before a turned JPEG. A case that
+    the lines were counted for failed against the writer once more, after
+    it: a run of nothing after a line ending opens a line in the PDF,
+    which the writer had taken for no run and so for no line. With the
+    thing each guards taken out again: the count of a table's cells taken
+    after its rows, the order of the checks changed in four ways, a
+    picture's bytes read where the walk meets it, the bound on pictures,
+    the reading of fflate's state, the checksum's comparison, the end
+    asked for only once all is read, the empty text counted whatever the
+    rows, a cell's last ending written, and a date read as the machine
+    reads it; and of the Studio, the writer's import outside the guard
+    that catches what it throws.
   - **Seen, once, by hand, on 17 November 2026**, and by no gate: a file
     written by hand of every construct this record chooses -- runs of
     every style, runs set off the line, a table with its header marked, a
@@ -295,10 +338,10 @@ which hands on what report-spec decides, and on `fflate` at exactly
 0.8.3, MIT, with no dependency of its own. Its own source has no Node, no
 DOM and no network, and compiles with ES2023's library and no types
 besides: fflate's declarations need neither Node's nor the DOM's. fflate
-itself serves Node one file, which imports `module` and asks for
-`worker_threads` where its asynchronous half is used, and every other
-host another; the writer calls its synchronous half alone, which is the
-same code in both. `renderDocx` is synchronous, takes no option and no
+itself serves Node one file, which imports `module` and requires
+`worker_threads` as it loads, in a `try`, and every other host another;
+the writer calls its synchronous half alone, which is the same code in
+both. `renderDocx` is synchronous, takes no option and no
 signal: there is no page limit to pass, since the writer counts no page.
 The two engines share the document and the refusal, and no interface.
 That one entry serves a browser is held by the Studio's gate, through
@@ -327,11 +370,11 @@ a PNG and a JPEG, which are compressed already, are stored as they are.
 
 | The document | The Word file |
 |---|---|
-| `paragraph` | A `w:p`; each run a `w:r` that states its own family, size, weight, slant and colour, black where its style names none, and the paragraph its alignment and its mark's family and size. A run that prints nothing is no run. A line feed, a carriage return, or the two together are a `w:br`: the PDF's engine ends a line at each. |
-| `keepWithNext` | `w:keepNext` on the paragraph and on every paragraph between it and the next block that prints text or a picture, past spacers, rules, rectangles and other such paragraphs, as the PDF keeps it: Word keeps a paragraph with the paragraph after it and no further. Over a page break or nothing, it is kept with nothing. |
+| `paragraph` | A `w:p`; each run a `w:r` that states its own family, size, weight, slant and colour, black where its style names none, and the paragraph its alignment and its mark's family and size. A run that prints nothing is no run. A line feed, a carriage return, or the two together are a `w:br`: the PDF's engine ends a line at each. But the one that ends the paragraph's last run is none: the PDF's engine ends its last line there and opens no line after it, so `one\n` is one line, and of two that end a text the first is a break. A run of nothing after a line ending is a run to that engine, which opens a line for it, so the ending before it is a break. |
+| `keepWithNext` | `w:keepNext` on the paragraph and on every paragraph between it and the next block that prints text or a picture, past spacers, rules, rectangles and other such paragraphs, as the PDF keeps it: Word keeps a paragraph with the paragraph after it and no further. A table prints where a cell of its header or its rows does, and its empty text only in place of detail rows. Over a page break or nothing, it is kept with nothing. |
 | a run's `baseline` | `w:vertAlign`, subscript or superscript ([0061](0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)): the run is one set off the line in Word too, at Word's size and rise, not `SHIFTED_SIZE` and `SHIFTED_RISE`, which are the PDF's. |
 | `pageNumber`, `pageCount` | Word's `PAGE` and `NUMPAGES` fields, each its beginning, its instruction and its end, written without a stored result: the writer knows no page, and writes no number it does not know. In the page header and footer alone. |
-| `table` | A `w:tbl` of fixed layout, its grid the columns' widths, a fill column its share, with the PDF's rules and padding. The header row is `w:tblHeader`; every row is `w:cantSplit`; a row `across` is one cell of `w:gridSpan`; the empty text is a row across the table, in italic, where the PDF prints it. `w:keepNext` on every paragraph of the header row, of a group header's row and of as many rows after it as it keeps less one ([0059](0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)), and of each row before a group's footer or a total that follows a detail row or the empty text: the rows the PDF keeps on a page, as marks. A cell is one paragraph of the document's string, never a number; an empty cell an empty paragraph of its size. |
+| `table` | A `w:tbl` of fixed layout, its grid the columns' widths, a fill column its share, with the PDF's rules and padding. The header row is `w:tblHeader`; every row is `w:cantSplit`; a row `across` is one cell of `w:gridSpan`; the empty text is a row across the table, in italic, where the PDF prints it. `w:keepNext` on every paragraph of the header row, of a group header's row and of as many rows after it as it keeps less one ([0059](0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)), and of each row before a group's footer or a total that follows a detail row or the empty text: the rows the PDF keeps on a page, as marks. A cell is one paragraph of the document's string, never a number, a line ending in it a break and the one that ends it none, as in a paragraph; an empty cell an empty paragraph of its size. |
 | `columns` | A table of one row with no border and no padding, a cell a column, which Word may continue on the next page. |
 | `section` | With a border, a fill or padding, any one of them: a table of one cell with that border, shading and cell margin, around its blocks. Without: its blocks. |
 | `image`, PNG or JPEG | An inline picture in a paragraph of its own, whose part is the asset's very bytes, written once however often it is drawn. `contain`: the picture at its own proportions, centred in its box by its paragraph's indent and the space before and after it. `cover`: the box, the picture cropped by `a:srcRect`. |
@@ -340,7 +383,7 @@ a PNG and a JPEG, which are compressed already, are stored as they are.
 | `rectangle` | A table of one cell and one row of exactly its height, shaded and bordered as it is filled and outlined, all outline where it is too small to hold one, as the PDF draws it. |
 | `spacer` | An empty paragraph whose line is exactly its height; one of less than a fortieth of a point writes nothing. |
 | `pageBreak` | An empty paragraph, a point tall, with `w:pageBreakBefore`. |
-| `keepTogether` | Every paragraph of it but the last `w:keepNext` and every one `w:keepLines`; every row of a table in it `w:cantSplit`. |
+| `keepTogether` | Every paragraph of it `w:keepLines`, and `w:keepNext` but what ends it, which is kept with nothing after the block: its last paragraph, or, where a table or a columns block ends it, every paragraph of that table's last row -- a row is kept with the next by every paragraph of it, so a row marked in some of its cells would be half kept. Every row of a table in it is `w:cantSplit`, the last among them, which is what holds that row whole. |
 | the page | `w:pgSz`, turned where the document's is, and `w:pgMar`; the header's and the footer's distance from the paper's edge are the margins, so that both stand inside the printable area with the body between them, as the document says. |
 | `pageHeader`, `pageFooter` | Word's header and footer; a header ends, and a footer begins, with an empty line as tall as the PDF's gap between a region and the body. One that holds nothing is no part. |
 | `firstPageHeader` | `w:titlePg` and a header of the first page's own, or no part where the list is empty, which ECMA-376 has Word print as a blank one (Part 1, 17.10.5) ([0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)); the footer is referenced for the first page and for the rest. |
@@ -373,6 +416,13 @@ no face, so it is held to XML's characters alone, in any script, as the
 PDF holds it to being text. The creation date is parsed, refused where
 it is no date as the PDF refuses it, and written by the writer as the
 instant it is, in UTC, to the second: never the document's own string.
+It must state an instant: an ISO 8601 date and time with its zone, `Z`
+or an offset, which is what the runtime writes, or a date alone, which
+is its first moment in UTC. A date and time without a zone is read in
+the machine's own, so the same document was another file in another
+time zone; it is refused as `unsupported`, and so is a date in any other
+form, which the platform reads in a way of its own. The PDF renderer
+reads the date as the platform does, and draws such a document.
 Nothing a document carries is a part's name, a relationship's target or
 a field's instruction: those are the writer's own, and the file holds no
 relationship to an address.
@@ -403,7 +453,14 @@ eighths of a point for a rule's and a border's weight, EMUs for a
 picture. So a length is the document's to within a fortieth of a point,
 a size to within a quarter, a weight to within a sixteenth. A weight
 Word's border does not hold, under a quarter of a point or over twelve,
-is refused. No value is rounded: a cell is the string the runtime
+is refused; and so is a length that rounds to none of its unit where
+the file would state it as nothing: a rectangle's side, a column's
+width and the width a framed section stands at under a fortieth of a
+point, which would be a table of no width or a row of exactly no
+height, and a picture drawn at under an English Metric Unit. The PDF
+draws each, thin as it is; what Word draws of a table or a picture of
+no extent nobody has seen. A spacer that small is no space, and writes
+nothing. No value is rounded: a cell is the string the runtime
 formatted.
 
 **What the document leaves to an engine** -- a paragraph's and a
@@ -419,7 +476,15 @@ reads, and are held by review.
 `RenderRefusal`, with the PDF renderer's codes, in this order: the
 creation date and the title; the payment part, the e-invoice and a
 preview's label; the page; then the page header, page 1's own, the page
-footer and the body, each block in document order.
+footer and the body, each block in document order; and last the
+pictures' bytes, in the order the walk met them. By where a thing
+stands, then, and not by its kind: a chart or a code is refused where
+the walk meets it, after a block no engine prints that stands before it.
+It is the PDF renderer's order for what both refuse, which reads its
+pictures once it has walked every block, so a document wrong in several
+of those places is refused by both for the same one; a document wrong in
+a way only one engine refuses, and in another, is refused by each for
+what it meets first.
 
 - **What belongs to the PDF**, each `unsupported`, naming it:
   - a **payment part**. SIX fixes the slip to the millimetre at the foot
@@ -469,27 +534,66 @@ footer and the body, each block in document order.
   `content-too-large`. Bytes that are not the picture or the font they
   are declared as are `invalid-asset`: a PNG's image data is inflated,
   by fflate's streaming decompressor, and held to the scanlines its
-  header promises, as the PDF renderer holds it. The corpus's
-  `MALFORMED` list is one document for each, and both engines refuse
-  every one alike.
+  header promises and to being one whole zlib stream, as the PDF
+  renderer holds it with the platform's decompressor, which refuses a
+  stream whose checksum is not its data's and one with bytes after its
+  end. fflate compares no checksum and says nothing of where a stream
+  ended, so the writer sums the Adler-32 of what inflates and compares
+  it with the stream's last four bytes, and holds the end by pushing
+  every byte but the last of the deflate data and reading, from the
+  state fflate 0.8.3 keeps of a stream, that it has not ended yet --
+  where it has, reading stops, since fflate joins every later slice to
+  what it has not read, at the cost of the square of what follows. The
+  corpus's `MALFORMED` list is one document for each, a PNG for each way
+  its data is no such stream among them, and both engines refuse every
+  one alike.
+- **What Word's units do not state**, each `unsupported`, naming the
+  block or the asset: a rule's or a border's weight outside what Word's
+  borders hold, and a rectangle, a column, a framed section or a picture
+  that rounds to none of its unit, as *Lengths* says.
 - **The writer's own bounds.** As `content-too-large`: a picture, a
   rectangle or a spacer taller than the printable area, which no page of
   a Word file holds -- the PDF judges the first two against the body
   between its regions, and refuses no spacer; more than
   `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one, 100,000;
-  text of more than `MAX_DOCX_CHARACTERS` characters, 4,000,000; and
+  text of more than `MAX_DOCX_CHARACTERS` characters, 4,000,000; more
+  than `MAX_DOCX_PICTURES` pictures, 1,024, each asset counted once; and
   pictures of more than `MAX_DOCX_MEDIA_BYTES` together, each counted
   once, twice `MAX_ASSET_BYTES`, as the PDF renderer's bound counts two
-  images of the largest kind. All three are counted in the walk that
-  checks the document, before anything is built. Measured on 17
-  November 2026, on an Intel Core i9-10900K shared with other work,
-  under Node 24.21.0 with fflate 0.8.3, a process a measurement: a table
-  of 100,000 cells holding 4,000,000 ampersands between them, each
-  written five characters long, was written in 1.9 seconds with 657 MB
-  resident at the most; the same cells holding a character each in 1.4
-  seconds and 555 MB; at 250,000 cells and 8,000,000 characters, 4.6
-  seconds and 1,319 MB, which is why the bounds are not there. As
-  `unsupported`: a creation date of a year a core property cannot state.
+  images of the largest kind. The first two are counted in the walk
+  that checks the document and the pictures as each asset is first
+  read, before anything is built. Measured on 17 November 2026, on an
+  Intel Core i9-10900K shared with other work, under Node 24.21.0 with
+  fflate 0.8.3, a process a measurement: a table of 100,000 cells
+  holding 4,000,000 ampersands between them, each written five
+  characters long, was written in 1.9 seconds with 657 MB resident at
+  the most; the same cells holding a character each in 1.4 seconds and
+  555 MB; at 250,000 cells and 8,000,000 characters, 4.6 seconds and
+  1,319 MB, which is why the bounds are not there. The pictures' count
+  is chosen, not measured. Each picture is an entry of the zip, whose
+  directory counts its entries in sixteen bits, and fflate writes a
+  count past them modulo 65,536 and says nothing: 65,600 pictures,
+  inside every other bound, were a file whose directory stated 72
+  entries, which no reader opens. The bound stands far under that, and
+  over the 128 a document the runtime resolved can hold: 64 assets a
+  report declares, and 64 its header's fields name. As `unsupported`: a
+  creation date of a year a core property cannot state.
+
+  A count bounds the work only where the work is the count's. Three
+  shapes inside the bounds cost its square, and each is now written in
+  one pass: paragraphs each kept with the next, a table that closes
+  with total after total, and a part's relationships, looked up once
+  for every picture drawn. Measured on 18 November 2026, the same way
+  on the same machine, busier that day, the table of cells above taking
+  2.1 to 2.5 seconds and 720 MB at the most: 100,000 paragraphs each
+  kept with the next, 1.1 seconds and 497 MB, where they had taken 163
+  seconds; a table of a detail row and 99,998 totals, 1.4 seconds and
+  605 MB, where 40,000 had taken 3.8 seconds; 100,000 pictures of one
+  asset, 1.9 seconds and 671 MB; 1,024 pictures of an asset each, 0.2
+  to 0.3 seconds; the largest PNG an asset may be, 134 MB of scanlines,
+  inflated and summed in 0.8 seconds; and a PNG with 20 MB after the
+  end of its image data refused in 0.1, where 16 MB had taken 4.2.
+  These are the shapes that were looked for, and no more is claimed.
 
 A refusal the PDF renderer makes of what it measured -- a block taller
 than a page's body, a line it cannot place, a run set off the line alone
@@ -595,7 +699,8 @@ written twice.
 - **A small writer.** One dependency with none of its own, no fonts and
   no rasteriser in the package; in the Studio's build it is a chunk of
   48.5 kB, 18.5 kB gzipped, measured on 17 November 2026 as
-  `apps/studio/vite.config.ts` says, loaded with the first PDF that
+  `apps/studio/vite.config.ts` says, and of 50.3 kB and 19.1 kB the day
+  after, with what a review added, loaded with the first PDF that
   printed.
 - **Refusals a person can read**, each naming what it is about, and never
   a file that lost something.
@@ -639,10 +744,27 @@ written twice.
   no glyph for, a picture taller than the body between a tall header and
   footer, a report of more pages than a host allows: the PDF renderer
   refuses them and the writer cannot see them. A report of more than
-  100,000 paragraphs, a labelled preview, a spacer taller than the
-  printable area: the writer refuses them and the PDF prints them. The
-  Studio offers the file only beside a PDF that was drawn; a host that
-  calls `renderDocx` alone gets no such check.
+  100,000 paragraphs or 1,024 pictures, a labelled preview, a spacer
+  taller than the printable area, a rectangle, a column, a framed
+  section or a picture that rounds to none of Word's units, a creation
+  date that states no zone: the writer refuses them and the PDF prints
+  them. The Studio offers the file only beside a PDF that was drawn; a
+  host that calls `renderDocx` alone gets no such check.
+- **A stream's end is read from fflate's own state.** Nothing fflate
+  declares says where a zlib stream it inflates ended, and the writer
+  needs that to refuse a PNG as the PDF renderer refuses it and to stop
+  reading where the stream stops. It reads two fields of the
+  decompressor, as fflate's own gzip reader does. fflate is pinned
+  exactly, and `pictures.test.ts` fails where a release keeps its state
+  otherwise -- every PNG refused, or one with bytes after its stream
+  written -- so a bump of fflate is the day its `Inflate` is read
+  again.
+- **The order two engines refuse in is held for what both refuse.** One
+  document wrong in every place both look is refused by both for the
+  same place as each is put right, and that is what is held. A table
+  wrong in two ways, a document wrong in a way only the renderer
+  measures, and one wrong in a way only the writer refuses, are refused
+  by each engine for what it meets first.
 - **A page field prints nothing in a reader that works no field out.** A
   previewer or a converter that shows a field's stored result shows
   "Page  of ", since the file stores none. Which readers do was not
@@ -678,8 +800,11 @@ written twice.
   every cell another size changes them cell by cell, not by a style.
 - **The writer holds the thread, and memory.** `renderDocx` is
   synchronous and takes no signal: a file at its bounds is written in
-  one step of about two seconds that nothing interrupts, in some 650 MB,
-  and a host that must stop one runs it in a worker.
+  one step of about two seconds that nothing interrupts, in some 650 MB
+  on the first day it was measured and 720 MB on the second, and a host
+  that must stop one runs it in a worker. Before that step it reads the
+  pictures' bytes, and the largest PNG an asset may be takes 0.8 seconds
+  of it.
 - **The README's pictures are taken again**, and every walk of the
   Studio writes a file more at each render.
 - **The start page says one thing less.** "No print format but PDF" was
@@ -739,6 +864,31 @@ with nothing of a Word file in it, and one that would have had this
 change touch the PDF of every report. Until it is made, the two
 statements are held together by the comparison and the list above, and
 what they do not hold is a cost above.
+
+**A PNG's checksum alone, with no word of where its stream ended.** It
+is all fflate's declared API allows, and it refuses a stream with bytes
+after its end unless those bytes end in the very checksum: a PNG the PDF
+renderer refuses and the writer would embed. And it reads on to the end
+of whatever follows a stream, at the square of its length.
+
+**A stream's end by a second inflate**, of the data less its last byte,
+which must fail for want of it. It needs nothing fflate does not
+declare, and inflates every PNG twice; and what follows a stream is
+still read to its end, twice.
+
+**A second decompressor for a PNG's data**, pako's, a port of zlib that
+compares the checksum and says what it left unread, which
+report-documents already inflates with. Two compression libraries in one
+package that a browser bundles, for one check.
+
+**A bound on the pictures derived from the zip's own**, 65,535 less the
+writer's parts. It would be a number that moves whenever the writer
+gains a part, and a file of that many entries to prove at its bound.
+
+**A box that rounds to nothing written as nothing**, as a spacer is. A
+rectangle a hundredth of a point wide and a hundred tall is a hundred
+points of the page: left out, everything under it would stand
+elsewhere than in the PDF.
 
 **Embedding the faces**, as Word obfuscates them. A face whose fsType
 allows preview and print alone may not go into a document that is

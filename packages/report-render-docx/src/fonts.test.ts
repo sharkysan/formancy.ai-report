@@ -130,6 +130,7 @@ describe('what the PDF refuses of a font is refused', () => {
     throw new Error('Liberation Mono draws every character a report prints')
   })()
 
+  // A mapped face's characters are known, so the writer holds text to them as the PDF does: written, the character would be drawn by Word in another face.
   test('a character the mapped face has no glyph for, naming the block and the code point', () => {
     const text = `a${String.fromCodePoint(lacking)}b`
     const refusal = refusalOf(documentOf([paragraph(text, { font: 'mono' })], { fonts: HOST }))
@@ -154,9 +155,18 @@ describe('what the PDF refuses of a font is refused', () => {
     })
   })
 
+  // The family a file names is read from the face: bytes that are no font name none, and are refused before a word is walked, as the PDF refuses them.
   test('bytes that are no font, naming the asset', () => {
     const broken: FontAsset = { id: 'broken', digest: SERIF.normal.digest, bytes: new Uint8Array([1, 2, 3, 4]) }
     expect(refusalOf(documentOf([paragraph('x')], { fonts: { serif: { normal: broken } } }))).toMatchObject({ code: 'invalid-asset', subject: 'broken' })
+  })
+
+  // The regular face names the family for all four: a token mapped to a bold face alone has no name to set its text in, and the format maps none so.
+  test('a token that maps no regular face, naming the token', () => {
+    const fonts = { serif: { bold: SERIF.normal } } as unknown as ResolvedFonts
+    const refusal = refusalOf(documentOf([paragraph('x')], { fonts }))
+    expect(refusal).toMatchObject({ code: 'unsupported', subject: 'fonts.serif' })
+    expect(refusal.message).toMatch(/the serif font maps no regular face, which names the family a Word file sets its text in/)
   })
 })
 

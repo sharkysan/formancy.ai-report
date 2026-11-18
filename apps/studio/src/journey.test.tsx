@@ -204,8 +204,8 @@ async function printed(id: string, mode: 'preview' | 'final', status: string, wo
 /**
  * The starters whose report a Word file holds whole (0068), with the
  * blank report as it opens. The others carry what belongs to their PDF --
- * a QR-bill's slip, an EPC QR code, an e-invoice or its preview's label
- * -- and the Preview says so where the link would be.
+ * a QR-bill's slip, an EPC QR code, an e-invoice or its preview's label,
+ * a chart -- and the Preview says so where the link would be.
  */
 const WRITTEN_AS_WORD: ReadonlySet<string> = new Set([
   'service-inspection',
