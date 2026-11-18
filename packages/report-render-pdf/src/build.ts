@@ -1,11 +1,10 @@
 import type { Node, NodeQueries } from 'pdfmake/interfaces.js'
-import type { Block, Chart, EpcQrCode, FontFamily, ImageAsset, QrCode, Table, TableRow } from '@formancy/report-runtime'
+import type { Block, Chart, EpcQrCode, FontFamily, ImageAsset, QrCode, QrSymbol, Table, TableRow } from '@formancy/report-runtime'
 import type { CheckedImage } from './assets.js'
 import type { KeepBlock } from './breaks.js'
 import type { DrawnChart } from './chart-draw.js'
 import type { PlacedWord } from './chart-svg.js'
 import type { FaceWanted, RenderFonts } from './host-fonts.js'
-import type { QrSymbol } from './qr.js'
 import type { ShiftedRoom } from './shifted.js'
 import type { WordRoom } from './words.js'
 

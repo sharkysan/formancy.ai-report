@@ -33,6 +33,19 @@ export type {
 } from './document.js'
 export type { AxisChart, Chart, ChartLegendEntry, ChartSeriesValues, ChartValue, PieChart } from './chart-document.js'
 
+/**
+ * What decides a code's symbol, and what refuses one, for every engine
+ * (0074): `qrSymbol` and `epcSymbol`, a QR code's and an EPC QR code's
+ * symbol where it stands so wide, or the refusal an engine throws on; a
+ * QR-bill's `swissSymbol`; the quiet zone, the smallest module and the
+ * most characters those are held to; and `qrSymbolVersion`, the version a
+ * symbol is. An engine encodes nothing itself, and draws the symbol it is
+ * handed here.
+ */
+export { QR_MAX_CHARACTERS, QR_MIN_MODULE, QR_QUIET_ZONE, qrSymbol, qrSymbolVersion, SWISS_QR_MAX_CHARACTERS, swissSymbol } from './qr-symbol.js'
+export type { QrSymbol } from './qr-symbol.js'
+export { epcSymbol } from './epc-symbol.js'
+
 export { checkData, CONSISTENCY_MODES, DATA_MODES, MAX_DETAIL_ROWS } from './data.js'
 export type { CheckedData, CheckedRecord, Completeness, Consistency, DataCheck, DataCheckOptions, DataMode, ReportData } from './data.js'
 export { isSubmissionId, SOURCE_PROVIDERS, SUBMISSION_ID_SYNTAX } from './source.js'

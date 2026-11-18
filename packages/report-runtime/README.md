@@ -8,6 +8,8 @@ totals with exact decimals, and formats each value for the report's locale,
 once. No framework, no PDF engine, no Node. What it decides, and why, is
 decision
 [0010](../../docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md).
+It also holds the one rule every engine draws a code's symbol by
+([A code's symbol](#a-codes-symbol)).
 
 ## Resolve
 
@@ -266,6 +268,56 @@ or null for the payer to fill in, written as short as it can be --
 `EUR12.3`, `EUR45` -- from 0.01 to 999999999.99, and never rounded: one
 with a third decimal is refused. The whole payload is at most 331 bytes in
 UTF-8, counted in bytes, not in characters.
+
+## A code's symbol
+
+What a QR code, an EPC QR code and a QR-bill's Swiss QR Code are drawn
+from, and what each is refused by, is decided here once, for every
+engine
+([0074](../../docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
+The document carries a code's text; an engine asks for its symbol when it
+checks the document, once, and draws what it is handed:
+
+```ts
+import { epcSymbol, qrSymbol, swissSymbol } from '@formancy/report-runtime'
+
+qrSymbol(code, width) // a `qrCode` block's symbol where it stands `width` points wide
+epcSymbol(code, width) // an `epcQrCode` block's
+swissSymbol(payload) // a QR-bill's Swiss QR Code's
+```
+
+Each returns a `QrSymbol`, the rows of its modules without a quiet zone,
+or throws the `RenderRefusal` an engine refuses the document with, naming
+the code by its id and never quoting what it holds. The text is encoded by
+[uqr](https://github.com/unjs/uqr) 0.1.3, this package's one dependency
+that is not formancy's: as UTF-8 in byte mode, or in the denser modes for
+digits and capitals, in the smallest version that holds it at its level,
+which is never raised.
+
+- **A QR code** ([0020](../../docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md)) is refused as `unsupported` where its size is
+  no positive number, its level none of L, M, Q and H, or its text no
+  string or half of a surrogate pair; and as `content-too-large` where it
+  is wider than where it stands, holds more than `QR_MAX_CHARACTERS`
+  characters, 7089, refused before it is encoded, or more bytes than a
+  version holds at its level, or would have modules finer than
+  `QR_MIN_MODULE`, 0.4 mm, in its square with its `QR_QUIET_ZONE` of four
+  modules a side.
+- **An EPC QR code** ([0025](../../docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md)) is encoded at level M, in version 13 at
+  the most, and held to the same square and, without a caption, the same
+  floor; with Austria's caption, to the squares report-spec's
+  `epcCaptionBreak` prints one in, before it is encoded, and at the least
+  version whose modules are the PSA's (`epcLeastVersion`), to that
+  version's modules after.
+- **A Swiss QR Code** ([0022](../../docs/decisions/0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md)) is encoded at level M, in version 25 at
+  the most, and refused past `SWISS_QR_MAX_CHARACTERS`, 997, naming the
+  payment part. SIX prints it at 46 mm whatever its version, so it is
+  held to no floor.
+
+`qrSymbolVersion(symbol)` is the version a symbol is. Whether a page is
+tall enough for a code is an engine's to say: the PDF renderer measures
+its body, and the Word writer its printable area. Resolving a report
+calls none of these: a report whose code is too long for its square
+resolves, and is refused where it is drawn or written.
 
 ## An e-invoice
 

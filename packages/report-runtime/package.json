@@ -26,7 +26,8 @@
   "dependencies": {
     "@formancy/expressions": "0.12.0",
     "@formancy/report-core": "workspace:*",
-    "@formancy/report-spec": "workspace:*"
+    "@formancy/report-spec": "workspace:*",
+    "uqr": "0.1.3"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
