@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { ALL_FIXTURES, QUOTATION, readZip, SERVICE_INSPECTION, ZIP_EPOCH } from '@formancy/report-corpus'
 import type { ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
-import { ZIP_EPOCH as WRITTEN_EPOCH } from './package.js'
+import { zipEpoch } from './package.js'
 import { renderDocx } from './render.js'
 import { resolved } from './testing/support.js'
 import { fromWire, toWire } from './testing/wire.js'
@@ -33,13 +33,17 @@ const digest = (bytes: Uint8Array): string => createHash('sha256').update(bytes)
 const UNRUN = path.join(path.dirname(createRequire(import.meta.url).resolve('unrun/package.json')), 'dist', 'cli.mjs')
 const CHILD = fileURLToPath(new URL('testing/write-child.ts', import.meta.url))
 
-/** `document` written by a process of its own whose clock is in `zone`: the minutes its zone is from UTC, and the file. */
-function inChild(document: ResolvedDocument, zone: string): { readonly offset: number; readonly file: Buffer } {
+/**
+ * `document` written by a process of its own whose clock is in `zone`, or
+ * which starts in `zone` and sets its clock to `after` once it has loaded
+ * the writer: the minutes its zone is from UTC when it writes, and the file.
+ */
+function inChild(document: ResolvedDocument, zone: string, after?: string): { readonly offset: number; readonly file: Buffer } {
   const output = execFileSync(process.execPath, [UNRUN, CHILD], {
     input: toWire(document),
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
-    env: { ...process.env, TZ: zone },
+    env: { ...process.env, TZ: zone, ...(after === undefined ? {} : { TZ_AFTER_IMPORT: after }) },
   })
   const [offset, file] = output.split('\n')
   return { offset: Number(offset), file: Buffer.from(file!, 'base64') }
@@ -99,15 +103,21 @@ describe.each(DOCUMENTS)('%s', (_name, document) => {
   })
 })
 
-// The constant is a date of local fields, since fflate reads a date's local fields into an entry: as an instant it would be another day in another zone.
+// The date is one of local fields, since fflate reads a date's local fields into an entry: as an instant it would be another day in another zone.
 test('the date every entry is given is 1 January 1980 by its local fields', () => {
-  const fields = [
-    WRITTEN_EPOCH.getFullYear(),
-    WRITTEN_EPOCH.getMonth(),
-    WRITTEN_EPOCH.getDate(),
-    WRITTEN_EPOCH.getHours(),
-    WRITTEN_EPOCH.getMinutes(),
-    WRITTEN_EPOCH.getSeconds(),
-  ]
-  expect(fields).toEqual([1980, 0, 1, 0, 0, 0])
+  const date = zipEpoch()
+  expect([date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()]).toEqual([1980, 0, 1, 0, 0, 0])
 })
+
+// A date's local fields are those of the zone the process is in when they are read, not when the date was made. Made once, as the
+// module loaded, the date of a process that sets its zone after its imports -- a server that reads its configuration first -- was one
+// of another zone's fields: loaded in UTC and written in a zone whose clock stood behind UTC in 1980, a day in 1979, which fflate
+// throws at, an Error and no refusal; loaded there and written in UTC, a later hour of the day, and other bytes.
+test('a process that sets its time zone after it has loaded the writer writes the same bytes', () => {
+  const document = DOCUMENTS[1]![1]
+  const here = digest(renderDocx(document))
+  const [ahead, back] = [inChild(document, 'UTC', 'Pacific/Kiritimati'), inChild(document, 'Pacific/Kiritimati', 'UTC')]
+  // The zone each wrote in is the one it set, not the one it started in.
+  expect([ahead.offset, back.offset]).toEqual([-840, 0])
+  expect([digest(ahead.file), digest(back.file)]).toEqual([here, here])
+}, 120_000)

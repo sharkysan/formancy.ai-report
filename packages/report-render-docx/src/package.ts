@@ -22,7 +22,7 @@ import { attribute, element, own, part, text, type AttributeValue, type Name, ty
  * package.
  *
  * The same document gives the same bytes: the parts are written in one
- * order, every entry is dated `ZIP_EPOCH` and deflated by fflate's own
+ * order, every entry is dated `zipEpoch` and deflated by fflate's own
  * code, which is the same in every host -- or stored as it is, where it
  * is a PNG or a JPEG, which are compressed already.
  */
@@ -32,8 +32,16 @@ import { attribute, element, own, part, text, type AttributeValue, type Name, ty
  * first date a zip can hold. Made of local fields, since fflate reads a
  * date's local fields into the entry: the same fields, and so the same
  * bytes, whatever the machine's clock and time zone.
+ *
+ * Made for each file, never once as the module loads: a date is an
+ * instant, and its local fields are those of the zone the process is in
+ * when they are read. A process that sets its zone after its imports
+ * would read another day of a date made before, and one of 1979 is an
+ * Error of fflate's and no refusal.
  */
-export const ZIP_EPOCH = new Date(1980, 0, 1, 0, 0, 0)
+export function zipEpoch(): Date {
+  return new Date(1980, 0, 1, 0, 0, 0)
+}
 
 const RELATIONSHIPS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 const MAIN = 'application/vnd.openxmlformats-officedocument.wordprocessingml'
@@ -305,7 +313,7 @@ export function writePackage(document: ResolvedDocument, checked: Checked, fonts
   for (const [name, content] of files) add(name, content)
   // A PNG and a JPEG are compressed already, and are stored as they are; an SVG is text, and is deflated.
   for (const [name, { bytes, kind }] of pictures.parts) parts[`word/${name}`] = kind === 'svg' ? bytes : [bytes, { level: 0 }]
-  return zipSync(parts, { mtime: ZIP_EPOCH })
+  return zipSync(parts, { mtime: zipEpoch() })
 }
 
 /** A list of nodes that ends a part or a cell: after a table stands one empty paragraph a point tall. */
