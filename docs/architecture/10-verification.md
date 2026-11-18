@@ -605,10 +605,11 @@ later releases and say why, and the legal gate waits for a lawyer
   server under Node, across a restart on one store directory, and CI's
   container job is their first run in a container (0049).
 - **No Word, and no schema.** A Word file is read back by the corpus's
-  own reader and held to its document and to its PDF; nobody has opened
-  one in Word, nothing in CI judges one by ECMA-376's schemas, and no
-  other reader of the format -- LibreOffice, a previewer, a converter --
-  was tried. The files were validated against the schema once, by hand.
+  own reader and held to its document and to its PDF; nothing in CI
+  opens one in Word or judges one by ECMA-376's schemas, and no other
+  reader of the format -- LibreOffice, a previewer, a converter -- was
+  tried. The files were validated against the schema once, by hand, and
+  the starters' and the fixtures' files opened in Word once, by hand.
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **No phone, no bank, no paper.** ZXing decodes every code a test prints;

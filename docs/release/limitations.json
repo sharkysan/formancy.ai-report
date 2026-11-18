@@ -3125,7 +3125,7 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:6612487d171c05eec661f1a56f1e3a2222d7e944e509b3736508d63868b0a11c",
+      "reviewed": "sha256:91bb7de23da217f50ef929302cd2cdda07efa981ac91ab59110f8d16de1df236",
       "limitations": [
         {
           "area": "rendering",
@@ -3134,7 +3134,7 @@
         },
         {
           "area": "testing",
-          "says": "Nobody has opened a file the Word writer wrote in Word: that Word opens it, repeats the header row, keeps the marked rows, draws the SVG and two equal rules as two lines, puts page 1’s own header and both footers where the file says and works the page fields out is held by no test, the files were validated against ISO/IEC 29500-4:2016’s schema once, by hand, on 17 November 2026, and the Studio’s demo offers them from main."
+          "says": "No test opens a file the Word writer wrote in Word: the files of the starters and the corpus’s fixtures were opened in Word once, by hand, on 18 November 2026, and found fine, with nothing more written down; that Word repeats the header row, keeps the marked rows, draws the SVG and two equal rules as two lines, puts page 1’s own header and both footers where the file says and works the page fields out is held by no test; the files were validated against ISO/IEC 29500-4:2016’s schema once, by hand, on 17 November 2026; and the Studio’s demo offers from main what a later change writes with nobody opening it first."
         },
         {
           "area": "rendering",

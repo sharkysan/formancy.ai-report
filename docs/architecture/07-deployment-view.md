@@ -322,7 +322,8 @@ serve the Studio under the same function of their own address
   offers the file beside a PDF that was drawn, as the Studio does, or
   hands on what the renderer would have refused. The file names the
   report's fonts and embeds none, so a reader without the family sees the
-  face Word chooses. And nobody has opened a written file in Word yet
+  face Word chooses. The starters' files were opened in Word once, by
+  hand, and no test opens one
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **What it has authorised, and what it fixes:** the data, the parameters
   and an image lookup by id and digest; a time zone for instants; and the

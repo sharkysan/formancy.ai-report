@@ -339,8 +339,16 @@
     every language, of every fixture of the corpus it writes, of a page
     of every image kind contained and covering, and of one of every
     block, 39 files, validated the same way in each of their 231
-    WordprocessingML parts, none invalid. **Nobody has opened a file in
-    Word.**
+    WordprocessingML parts, none invalid.
+  - **Seen in Word, once, by hand, on 18 November 2026**, and by no
+    gate: the files the writer writes of the six starters that export,
+    with those of the 20 fixtures of the corpus it writes beside them --
+    the bytes this change merges with, written again from its build and
+    compared file by file -- opened in Word by the person who decides,
+    who found them fine. Nothing more was written down: which Word, which
+    of the fixtures' files, and whether Word repeated a header row, kept
+    the marked rows, drew an SVG, drew two equal rules as two lines or
+    worked the page fields out, of any file.
 
 ## Context
 
@@ -1031,19 +1039,22 @@ written twice.
   draws a chart is refused**, in a final render and in a preview. A host
   whose reports carry a QR code of any kind, or a chart, cannot export
   them.
-- **Nobody has opened a file in Word.** That Word opens what this writer
-  writes, repeats the header row, keeps the rows, draws the SVG, draws
-  two equal rules as two lines, puts the first page's header and both
-  footers where the file says, works both fields out, and how any of it
-  looks, is held by no test. The files were validated against the schema
-  once, by hand; the schema is not in the repository, and nothing in CI
-  repeats it. The Studio's demo is served from `main`
+- **Word has opened the files once, by hand, and no test does.** The
+  starters' and the fixtures' files were opened in Word before this
+  change merged and found fine, and nothing more was written down
+  (*Verified by*): that Word repeats the header row, keeps the rows,
+  draws the SVG, draws two equal rules as two lines, puts the first
+  page's header and both footers where the file says, works both fields
+  out, and how any of it looks, is held by no test. The files were
+  validated against the schema once, by hand; the schema is not in the
+  repository, and nothing in CI repeats either. The Studio's demo is
+  served from `main`
   ([0018](0018-the-studio-demo-is-served-at-formancy-ai-report.md)), so
-  the files reach the public when this change merges, not at a release:
-  a person opens the starters' files in Word before it merges, and says
-  here what was seen, or the Studio's link waits. No gate holds that
-  sentence; `RELEASING.md` asks it again of every release, in the step
-  that verifies one by hand.
+  the files reached the public when this change merged, not at a
+  release, and a later change to what the writer writes reaches it the
+  same way, with no gate asking that a person open its files first.
+  `RELEASING.md` asks it of every release, in the step that verifies one
+  by hand.
 - **The order of an element's children is transcribed, twice.** The
   writer writes them in ECMA-376's order and the corpus's reader holds
   them to it, from a table copied out of the schema for the elements in

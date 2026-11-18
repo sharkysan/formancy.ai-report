@@ -94,12 +94,14 @@ and no picture of a page changed.
   of zlib. And a text that ends in a line ending prints no line for it,
   as the PDF prints none: the lines are counted on the PDF, and the file
   states as many.
-- **Nobody has opened a written file in Word.** The files are read back
-  in the tests by a reader of the corpus's own, which is not the writer
-  and not Word, and 39 of them were validated against ISO/IEC
-  29500-4:2016's schema once, by hand; no gate repeats that, and none
-  opens Word. The record says what was seen once somebody has, and
-  `RELEASING.md` asks it of every release.
+- **Word has opened the files once, by hand.** The files of the six
+  starters that export and of the corpus's fixtures were opened in Word
+  before this merged and found fine; nothing more of what Word did with
+  them was written down. In the tests they are read back by a reader of
+  the corpus's own, which is not the writer and not Word, and 39 of them
+  were validated against ISO/IEC 29500-4:2016's schema once, by hand; no
+  gate repeats either, and none opens Word. `RELEASING.md` asks a person
+  to open them in Word for every release.
 - **The Studio offers it.** The Preview's **Download Word**, after
   Download PDF, gives the Word file of the render on the paper, under the
   starter's id. Where the writer refuses the report there is no link, and

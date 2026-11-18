@@ -12,11 +12,12 @@ decision
 No framework, no Node, no DOM and no network: ES2023's library and no
 `@types/node`.
 
-**Nobody has opened a file it wrote in Word yet.** What it writes is read
-back in the tests by readers that are not the writer, and was validated
-against ISO/IEC 29500-4:2016's transitional schema once, by hand; that
-Word opens it, and what Word then does with it, is held by no test. 0068
-says what was seen, and by whom, when somebody has.
+**Word has opened its files once, by hand, and no test does.** What it
+writes is read back in the tests by readers that are not the writer, and
+was validated against ISO/IEC 29500-4:2016's transitional schema once, by
+hand; the files of the starters and the corpus's fixtures were opened in
+Word once, before it merged, and found fine. What Word does with a file
+is held by no test, and 0068 says what was seen.
 
 ## Write a report as a Word file
 

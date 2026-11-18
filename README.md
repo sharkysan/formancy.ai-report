@@ -21,7 +21,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 
 - **Design a report** in a native React or Angular builder, with undo, and see what is wrong before anything renders ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
 - **Print it as a paginated PDF**, in Node or in a browser, from your application's JSON. Totals are exact, values are formatted for the report's locale, and a report that cannot be drawn whole is refused, never truncated ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
-- **Write it as a Word file**, a `.docx` a person can go on writing in, from the same resolved document, in Node or in a browser: its tables Word's tables with their header rows marked to repeat, its header and footer Word's, its page numbers fields, the same bytes for the same document. Lines, pages and their count are Word's, and fonts are named, not embedded. What belongs to the PDF -- a QR-bill's slip, an e-invoice, a chart, a QR code, a labelled preview -- is refused whole, never left out. What the writer writes is read back in the tests by readers that are not the writer; nobody has opened a file in Word yet ([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+- **Write it as a Word file**, a `.docx` a person can go on writing in, from the same resolved document, in Node or in a browser: its tables Word's tables with their header rows marked to repeat, its header and footer Word's, its page numbers fields, the same bytes for the same document. Lines, pages and their count are Word's, and fonts are named, not embedded. What belongs to the PDF -- a QR-bill's slip, an e-invoice, a chart, a QR code, a labelled preview -- is refused whole, never left out. What the writer writes is read back in the tests by readers that are not the writer, and its files were opened in Word once, by hand, and by no test ([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **Groups that start with their rows**: a table's group header is kept on its page with its group's first row, or with as many of its first rows as the report states, as many as fit where they do not, and both builders edit that number ([0059](./docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
 - **Several tables over the detail rows**, each printing the rows its own condition selects -- an order's goods apart from its services, open items apart from settled ones -- with its own columns, order, group and totals: a table's total is of the rows it prints, and `totals` stays every row's. A report holds up to `MAX_TABLES`, and one that is an e-invoice one, of every row. Both builders add a further table and give it its condition; its order, group and totals are written in the report's JSON for now ([0062](./docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
 - **One template in several languages**: a report's own words -- its title, its texts, its tables' headers, cells and empty texts, a chart's words and a QR-bill's message -- written in each language it declares, and a render that names one prints in it: its words, its numbers and dates, the order of its rows, a formancy form's labels and the QR-bill slip's headings. A word missing in that language refuses the render, never printed in another, and no language falls back to another. The builders edit one language at a time and show what each still lacks, and the Studio's Preview prints the one the builder shows. A report without translations prints as it did ([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
@@ -79,8 +79,8 @@ and what is not planned at all.
 > render names the one it prints in; and a report is written as a Word
 > file by `@formancy/report-render-docx`, which the Studio offers beside
 > the PDF, which refuses a report that is paid by a code, is an
-> e-invoice or draws a chart, and whose files nobody has opened in Word
-> yet. The
+> e-invoice or draws a chart, and whose files were opened in Word once,
+> by hand, and by no test. The
 > report format is still version
 > "0", the draft: a report written now is not promised to be read by a
 > later release
@@ -152,7 +152,8 @@ writer refuses has no link, and a note in its place says why, in the
 writer's own sentence: the invoices, which are paid by a QR-bill or an EPC
 QR code or are e-invoices, the payment reminder and the sales report,
 which draws charts, and any preview the runtime labels. Lines and pages
-in the file are Word's, and nobody has opened one in Word yet
+in the file are Word's; the starters' files were opened in Word once, by
+hand, and no test opens one
 ([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 <!-- generated by scripts/pictures/readme.mjs from scripts/pictures/scenes.json: studio; do not edit -->

@@ -214,7 +214,7 @@ accent. A host face whose line is shorter than 1.099 ems is not proved.
 Room above would have to be pdfmake's to make, or the line drawn outside
 pdfmake's text ([0061](../decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)).
 
-### A Word file nobody has opened in Word
+### A Word file no test opens in Word
 
 The Word writer writes WordprocessingML itself, and what it writes is
 read back by a reader that is not Word: the corpus's, which holds a file
@@ -223,16 +223,19 @@ the PDF for its sizes, weights and slant. That Word opens the file,
 repeats the header row, keeps the rows marked as kept, draws an SVG from
 its `svgBlip`, draws two equal rules as two lines, puts page 1's own
 header and both footers where the file says and works the page's number
-and count out, rests on the standard's text and on nothing anybody saw.
-The files of the starters were validated against ISO/IEC 29500-4:2016's
-transitional schema once, by hand, with a schema that is not in the
-repository; no gate repeats it. The Studio's demo is served from `main`
+and count out, rests on the standard's text and on one look: the files
+of the starters and the corpus's fixtures were opened in Word once, by
+hand, on 18 November 2026, before the change merged, and found fine, and
+nothing more of what Word did was written down. The files of the
+starters were validated against ISO/IEC 29500-4:2016's transitional
+schema once, by hand, with a schema that is not in the repository; no
+gate repeats either. The Studio's demo is served from `main`
 ([0018](../decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)),
-so Download Word reaches the public when the change merges and not at a
-release: the record asks that a person open the starters' files in Word
-before then and say in it what was seen, and `RELEASING.md` asks it
-again of every release. Until somebody has, a reader may meet a file
-Word repairs, lays out otherwise than the marks ask, or does not open.
+so what the writer writes reaches the public at a merge and not at a
+release, and `RELEASING.md` asks that a person open the files in Word
+at a release and at nothing between. A change between releases reaches
+the demo with nobody opening its files, and a reader may meet a file Word
+repairs, lays out otherwise than the marks ask, or does not open.
 
 What is refused is refused for the same reason and costs a host its
 export: a report paid by a QR-bill or an EPC QR code, an invoice in law
