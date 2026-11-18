@@ -13,12 +13,12 @@ import {
   type Fixture,
 } from '@formancy/report-corpus'
 import { renderPdf } from '@formancy/report-render-pdf'
-import { MAX_ASSET_SIDE, RenderRefusal, SHIFTED_SIZE } from '@formancy/report-runtime'
+import { MAX_ASSET_BYTES, MAX_ASSET_SIDE, RenderRefusal, SHIFTED_SIZE } from '@formancy/report-runtime'
 import type { Block, ImageAsset, ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { MAX_DOCX_IMAGE_DATA } from './limits.js'
 import { DEFAULT_SIZE, KIND_BOLD, TABLE_SIZE } from './look.js'
-import { blank, documentOf, paragraph, refusalOf, resolved, written } from './testing/support.js'
+import { blank, documentOf, padded, paragraph, refusalOf, resolved, written } from './testing/support.js'
 
 /**
  * The writer held to the PDF renderer (0068). Two things a resolved
@@ -47,6 +47,11 @@ import { blank, documentOf, paragraph, refusalOf, resolved, written } from './te
  * `MAX_IMAGE_DATA` and the writer's `MAX_DOCX_IMAGE_DATA`: the renderer
  * exports no number, so the two are held to each other by the picture
  * each engine refuses at, a byte past the bound and not at it.
+ *
+ * **What the two refuse otherwise**, since the record says they do: a
+ * picture past a bound of the writer's that is no picture either, which
+ * the writer refuses for its size, before it reads it, and the renderer
+ * as no picture.
  *
  * And one thing the two must agree on that neither states: **the lines a
  * text with line endings prints**. The PDF's are counted on the page, by
@@ -361,6 +366,40 @@ describe('what no engine prints of a document', () => {
         const word = refusalOf(document)
         expect(word).toMatchObject({ code: 'content-too-large', subject })
         expect({ code: word.code, subject: word.subject }).toEqual(await pdfRefusal(document))
+      },
+      TIMEOUT,
+    )
+  })
+
+  // The record says of two documents that the engines refuse them otherwise, and this holds it to both. The writer counts before it
+  // reads -- an asset's bytes from its length, a PNG's image data from its header -- so that nothing past a bound is read or inflated,
+  // and says the picture is too large. The renderer holds a render's pictures to no bound on their bytes, and inflates a PNG before it
+  // counts its image data, and says the picture is none. A renderer that came to count first, or to bound the bytes, would make the
+  // record's sentence untrue, and fail here.
+  describe('a picture past a bound of the writer that is no picture either', () => {
+    const image = (asset: ImageAsset): Block => ({ kind: 'image', asset, width: 32, height: 32, fit: 'contain' })
+    const SIDE = MAX_ASSET_SIDE
+    test.each<[string, ImageAsset[]]>([
+      // Two assets of the largest size are all a file may store; the third is declared a PNG and is none.
+      [
+        'its bytes',
+        [
+          padded('first', MAX_ASSET_BYTES, 1),
+          padded('second', MAX_ASSET_BYTES, 2),
+          { id: 'third', mediaType: 'image/png', bytes: new Uint8Array(100).fill(0x55) },
+        ],
+      ],
+      // Two of the largest PNG are all the image data a file may hold; the third's header promises as much, and its data is no stream.
+      [
+        'its image data',
+        [blank('first', SIDE, SIDE), blank('second', SIDE, SIDE), blank('third', SIDE, SIDE, 'deep', new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))],
+      ],
+    ])(
+      'past %s, is refused by the writer for its size and by the renderer as no picture',
+      async (_name, assets) => {
+        const document = documentOf(assets.map(image))
+        expect(refusalOf(document)).toMatchObject({ code: 'content-too-large', subject: 'third' })
+        expect(await pdfRefusal(document)).toEqual({ code: 'invalid-asset', subject: 'third' })
       },
       TIMEOUT,
     )

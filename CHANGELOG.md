@@ -65,12 +65,19 @@ and no picture of a page changed.
   another machine, and would be another file there, or a day no calendar
   has, which the platform reads as the date after it; a font whose
   family is more than 31 characters, which is what Word reads of a
-  font's name; and a file past 100,000 paragraphs, a rectangle and a
-  section's frame counting two, 4,000,000 characters, 200,000 runs, a
-  line ending in a text counting one, 1,024 pictures, two assets' worth
-  of their bytes, or the image data the PDF renderer holds a render to,
-  two of the largest PNG an asset may be, counted before any is
-  inflated: measured where the bounds are written. So the invoices,
+  font's name; and a file past 70,000 paragraphs, a table's cell being
+  one and a rectangle and a section's frame counting two, 4,000,000
+  characters, 140,000 runs, a line ending in a text counting one, 1,024
+  pictures, two assets' worth of their bytes, counted before any is
+  read, or the image data the PDF renderer holds a render to, two of
+  the largest PNG an asset may be, counted before any is inflated:
+  measured where the bounds are written. The paragraphs' bound is under
+  the 100,000 detail rows the runtime reads, so a report of 70,000 rows
+  in one column, or of 10,000 in seven, prints as a PDF alone: with one
+  character past U+00FF in its text, a euro sign, V8 holds a file's text
+  two bytes a character while it is built, and a table of 100,000 cells
+  took up to 1,514 MB of memory where the bounds are set to stay under
+  1,319; at 70,000 the most that was found is 1,272. So the invoices,
   the payment reminder and the sales report have no Word file, and a host
   whose reports carry a code or a chart cannot export them. It never
   writes a file without what the report prints.

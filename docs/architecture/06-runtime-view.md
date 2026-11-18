@@ -1288,6 +1288,9 @@ checkDocument: before a byte is written, in this order                          
    │  then the pictures, each asset read once, in the order the walk
    │  met them:
    ├─ past MAX_DOCX_PICTURES, counted before an asset is read ─────────▶ content-too-large
+   ├─ an asset of no bytes, or of more than an asset may be ───────────▶ invalid-asset
+   ├─ past MAX_DOCX_MEDIA_BYTES, counted from an asset's length before
+   │  a byte of it is read ────────────────────────────────────────────▶ content-too-large
    ├─ bytes that are not the picture they are declared as, by their
    │  first bytes and their structure ─────────────────────────────────▶ invalid-asset
    ├─ past MAX_DOCX_IMAGE_DATA, counted from a picture's header before
@@ -1295,7 +1298,6 @@ checkDocument: before a byte is written, in this order                          
    ├─ a PNG whose image data is no whole zlib stream of its scanlines,
    │  inflated by pako as zlib inflates it ────────────────────────────▶ invalid-asset
    ├─ a JPEG its Exif block turns or of four components ───────────────▶ unsupported
-   ├─ past MAX_DOCX_MEDIA_BYTES ───────────────────────────────────────▶ content-too-large
    ├─ an SVG that covers a box of other proportions, a picture drawn
    │  at under an English Metric Unit ─────────────────────────────────▶ unsupported
    ▼

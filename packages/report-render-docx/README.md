@@ -112,9 +112,20 @@ person nothing the renderer refused.
 The bounds are measured, in `src/limits.ts`, but the pictures' count,
 which is chosen far under what a zip's directory counts, their image
 data's, which is the PDF renderer's, and the family's, which is what
-Microsoft says Word reads: a file at them was written in 2.0 to 3.3
-seconds and 0.7 to 1.1 GB, for the shapes that were looked for, on the
-machine and the day that file names.
+Microsoft says Word reads. A file at them was written in up to 3.3
+seconds, in up to 767 MB of resident memory where its text is of
+characters up to U+00FF, and up to 1,019 MB where one character of it is
+past that, a euro sign: V8 then holds the text two bytes a character
+while the file is built. And V8 takes one of two amounts for one and the
+same file, by what the process did before the write: the most that was
+found is 1,272 MB, in a process that held a string beside each row of
+the document, as a host holds its data's rows. Those are the files that
+were looked for, on the machine and the day `src/limits.ts` names, which
+also says why `MAX_DOCX_PARAGRAPHS` is 70,000: a report of 70,000 detail
+rows in a table of one column, or of 10,000 in one of seven, is refused,
+though the runtime reads 100,000.
+A host that must stop a write runs it in a worker, and one that must
+bound its memory in a process of its own.
 
 It depends on `@formancy/report-runtime`, on `fflate` at exactly 0.8.3,
 which zips the parts, and on `pako` at exactly 3.0.2, which inflates a

@@ -10,71 +10,167 @@ import { MAX_ASSET_BYTES, MAX_ASSET_SIDE } from '@formancy/report-runtime'
  * never cut to fit; a font whose family is past `MAX_DOCX_FAMILY_LENGTH`
  * is refused as `invalid-asset`, as a font the writer cannot name.
  *
- * Measured on 17 November 2026, on an Intel Core i9-10900K shared with
- * other work, under Node 24.21.0 with fflate 0.8.3, a process a
- * measurement: a table of `MAX_DOCX_PARAGRAPHS` cells holding
- * `MAX_DOCX_CHARACTERS` characters between them, every one an ampersand,
- * which is written five characters long, was written in 1.9 seconds, the
- * process's resident memory 657 MB at its most, in one column, and in
- * 1.9 seconds and 609 MB in four; the same cells holding a character
- * each took 1.4 seconds and 555 MB. So it is the paragraphs that cost,
- * some 5 KB each while the file is built, and the text little. At two
- * and a half times the paragraphs and twice the characters it took 4.6
- * seconds and 1,319 MB, which is past what a page's thread should hold.
+ * Every figure here is of a process a measurement, one at a time, on an
+ * Intel Core i9-10900K shared with other work, under Node 24.21.0, whose
+ * V8 is 13.6, with fflate 0.8.3 and, from the second review on, pako
+ * 3.0.2: the seconds `renderDocx` held the thread, and the process's
+ * resident memory at its most (`process.resourceUsage().maxRSS`, which
+ * counts in units of 1,024 bytes, over 1,024, written MB), the document
+ * the writer was handed in it.
  *
- * A count bounds the work only where the work is the count's, and three
+ * **What the bounds stay under.** Measured on 17 November 2026: a table
+ * of 100,000 cells holding 4,000,000 characters between them, every one
+ * an ampersand, which is written five characters long, was written in
+ * 1.9 seconds and 657 MB in one column, and in 1.9 seconds and 609 MB in
+ * four; the same cells holding a character each took 1.4 seconds and 555
+ * MB. So it is the paragraphs that cost, some 5 KB each while the file is
+ * built, and the text little. At two and a half times the paragraphs and
+ * twice the characters it took 4.6 seconds and 1,319 MB, which is past
+ * what a page's thread should hold: the bounds are set so that no file
+ * that was looked for costs as much.
+ *
+ * **A count bounds the work only where the work is the count's.** Three
  * shapes inside the bounds cost its square until each was written in one
  * pass: paragraphs each kept with the next, a table that closes with
  * total after total, and a part's relationships, looked up once for
- * every picture drawn. Measured again on 18 November 2026, the same way
- * on the same machine, busier that day -- the table of cells above took
- * 2.1 to 2.5 seconds and 720 MB at the most: 100,000 paragraphs each kept
- * with the next, 1.1 seconds and 497 MB, where they had taken 163
- * seconds; a table of a detail row and 99,998 totals, 1.4 seconds and 605
- * MB, where 40,000 had taken 3.8; 100,000 pictures of one asset, 1.9
- * seconds and 671 MB; `MAX_DOCX_PICTURES` pictures of an asset each, 0.2
- * to 0.3 seconds. `bounds.test.ts` writes the first at its bound and
- * counts what the second reads; the relationships are held only by a
- * file of `MAX_DOCX_PICTURES` pictures being written.
+ * every picture drawn. Measured on 18 November 2026: 100,000 paragraphs
+ * each kept with the next, 1.1 seconds, where they had taken 163; a
+ * table of a detail row and 99,998 totals, 1.4 seconds, where 40,000 had
+ * taken 3.8. `bounds.test.ts` writes the first at its bound and counts
+ * what the second reads; the relationships are held only by a file of
+ * `MAX_DOCX_PICTURES` pictures being written.
  *
- * And a count bounds the work only where each thing counted costs what
- * the count takes it for. A second review, that day, found three that
- * did not, each inside every bound, and measuring them found a fourth: a
- * font's family, which every run and every paragraph mark states four
- * times, as long as its font made it (`MAX_DOCX_FAMILY_LENGTH`); a line
- * ending, a break and a `w:t` of its own for the one character it was
- * counted as (`MAX_DOCX_RUNS`); a PNG, inflated in full however many a
- * file held (`MAX_DOCX_IMAGE_DATA`); and a rectangle and a section's
- * frame, a whole table for the one paragraph each was counted as
- * (`ONE_CELL_TABLE`). Measured once each is counted for what it is, the
- * same way on the same machine, with fflate 0.8.3 and pako 3.0.2, every
- * text of ampersands, the memory with the document the writer was handed
- * in it, four to twelve processes a shape: the table of cells above, 2.0
- * to 2.5 seconds, and 724 MB in seven processes of ten and 993 MB in
- * three; in a mapped family of 31 letters, the longest, 2.5 to 2.9
- * seconds, and 838 MB in three of four and 1,095 MB in one.
- * `MAX_DOCX_PARAGRAPHS` paragraphs of two runs each holding
- * `MAX_DOCX_CHARACTERS` characters, the three bounds at once, 2.3 to 2.5
- * seconds and 734 MB, in that family 2.8 to 3.1 seconds and 877 MB, and
- * with every paragraph kept with the next in one kept block and centred
- * and every run set off the line besides, 3.2 to 3.3 seconds and 946 MB:
- * the longest that was found. One paragraph of one run at the
- * characters' bound with every line ending the runs' bound allows, 1.1
- * seconds and 489 MB; the table of cells with a line ending in each, 2.3
- * to 2.5 seconds, and 743 MB in four processes of five and 1,010 MB in
- * one, and in that family 2.6 to 2.9 seconds, and 857 MB in two of four
- * and 1,112 MB in two: the most memory that was found. A table of cells
- * took the less or the more from one process to the next, some 265 MB
- * apart for the same document, and why was not looked for. Half the
- * paragraphs' bound of filled and outlined rectangles, 1.4 to 1.5
- * seconds and 570 MB, of framed sections, 1.4 and 567, and of tables of
- * a header alone, 2.2 to 2.3 and 734; `MAX_DOCX_PARAGRAPHS` columns
- * blocks of one column, 1.8 to 1.9 seconds and 699 MB. And the pictures'
- * bytes, which are read before any of it: the largest PNG an asset may
- * be, 4,096 pixels a side of 16-bit RGBA, 134 MB of scanlines, was
- * inflated in 0.5 to 0.6 seconds, and two of them, which is all a file
- * may hold, in 1.0; a PNG with 20 MB after the end of its image data was
- * refused in 0.1 (`assets.ts`).
+ * **And only where each thing counted costs what the count takes it
+ * for.** A second review, that day, found three that did not, each
+ * inside every bound, and measuring them found a fourth: a font's
+ * family, which every run and every paragraph mark states four times, as
+ * long as its font made it (`MAX_DOCX_FAMILY_LENGTH`); a line ending, a
+ * break and a `w:t` of its own for the one character it was counted as
+ * (`MAX_DOCX_RUNS`); a PNG, inflated in full however many a file held
+ * (`MAX_DOCX_IMAGE_DATA`); and a rectangle and a section's frame, a whole
+ * table for the one paragraph each was counted as (`ONE_CELL_TABLE`).
+ * What each cost uncounted is said at its bound.
+ *
+ * **And a figure holds for what was measured.** A third review, that
+ * day, found that every figure of memory until then was of text V8 holds
+ * a byte a character -- the text was ampersands throughout -- and that
+ * the two amounts a table of cells had been seen to take from one
+ * process to the next, some 265 MB apart for one document, had no
+ * reason given. Measured again that day, each shape as it was and with
+ * one euro sign in its text, the paragraphs' bound still 100,000:
+ *
+ * - **The text.** One character past U+00FF in a part's text, and V8
+ *   holds the string the part is built in, and each copy made of it on
+ *   the way, two bytes a character. The table of 100,000 cells took 732
+ *   to 734 MB as it was and 983 to 985 MB with a euro sign in its
+ *   header's cell, the less of its two amounts each time.
+ * - **The two amounts.** They are V8's, not the text's. They stand some
+ *   285 MB apart with the euro sign and without it: that table took
+ *   1,016 to 1,019 MB in four processes of six, and 1,270 to 1,272 MB
+ *   with the euro sign in four of six. With V8's allocation-site
+ *   pretenuring turned off (`--no-allocation-site-pretenuring`), eight
+ *   processes of eight took the less, 734 to 735 MB. V8 decides while a
+ *   program runs,
+ *   from what survived its young collections, which sites allocate in
+ *   its old generation from the start, and what dies there waits for a
+ *   full collection. Its own traces (`--trace-pretenuring-statistics`,
+ *   `--trace-gc`) show a process that takes the more deciding so of six
+ *   sites more, and its heap growing by some 19 MB at each young
+ *   collection of the write where the other's grows by 5: 654 MB before
+ *   the full collection that follows, against 436.
+ * - **What decides it.** What the process did before the write. A table
+ *   made alone, as the measurement makes one, took the more in 33
+ *   processes of 107 at 88,000 cells and more, and in none of 241 under
+ *   that. Under it, it took the more once a string of some characters
+ *   was held beside each of its rows, which the writer never reads, as
+ *   a host holds its data's rows beside the document it resolved. And
+ *   how much more hangs on the file: some 285 MB for the table of
+ *   cells, and 468 MB for the one with a line ending in each cell, in
+ *   the one process that took the more of it made alone.
+ * - **So the most was not the 1,112 MB that had been found.** With a
+ *   euro sign, in a mapped family of 31 letters, the table of 100,000
+ *   cells took 1,454 to 1,478 MB in six processes of eight, and 1,509
+ *   to 1,514 MB in four of six with a string of 160 characters held
+ *   beside each row; the one with a line ending in each cell took 1,511
+ *   MB in one of eight. All are past the 1,319 MB the bounds are set to
+ *   stay under.
+ *
+ * The paragraphs drive it, and the characters do not: at half the
+ * characters those two tables still took 1,366 MB and 1,384 to 1,406
+ * MB. So `MAX_DOCX_PARAGRAPHS` is 70,000, where it was 100,000, and the
+ * runs' bound, twice it, moved with it. Not 80,000 and not 75,000: with
+ * a string of 160 characters beside each row, the table in that family
+ * took 1,310 to 1,314 MB at 80,000 cells in five processes of eight, and
+ * the one with line endings 1,290 to 1,321 MB at 75,000 in seven of
+ * sixteen, with one of 24 or of 160.
+ *
+ * **At the bounds as they are**, measured on 18 November 2026, every
+ * text of ampersands, as it is and with one euro sign in it, in place of
+ * its first ampersand or, where a shape has no text, of its last block:
+ *
+ *     the file                                  as it is            with a euro sign        processes
+ *     a table of `MAX_DOCX_PARAGRAPHS` cells
+ *       holding `MAX_DOCX_CHARACTERS`
+ *       ampersands                              1.8-2.2 s, 626-629  1.9-2.3 s, 827-829      8
+ *     that table in four columns                1.6 s, 594-595      1.7-1.8 s, 786-788      4
+ *     its cells holding a character each        1.0-1.1 s, 503-507  1.1 s, 628-632          4
+ *     that table in a mapped family of 31
+ *       letters, the longest Word reads         2.1-2.3 s, 708-710  2.3-2.4 s, 959-962      8
+ *     as many paragraphs of two runs, holding
+ *       as many ampersands: the paragraphs,
+ *       the characters and the runs at once     1.9-2.3 s, 620      2.0-2.6 s, 789-791      5
+ *     those paragraphs in that family           2.4-2.7 s, 722-724  2.4-2.9 s, 950-953      5
+ *     and each kept with the next in one kept
+ *       block, centred, its runs off the line   2.5-3.1 s, 765-767  2.6-3.0 s, 1,018-1,019  5
+ *     one paragraph of one run, as many
+ *       ampersands and every line ending the
+ *       runs' bound allows                      1.0 s, 423-448      1.1 s, 571              4
+ *     the table of cells, a line ending in
+ *       each                                    1.9-2.2 s, 641-642  2.1-2.2 s, 849-851      8
+ *     that table in that family                 2.2-2.5 s, 721-723  2.3-3.3 s, 981-985      8, 32
+ *     half the paragraphs' bound of filled
+ *       and outlined rectangles                 1.0 s, 473          1.1 s, 572-573          4
+ *     as many framed sections                   0.9-1.0 s, 470      1.0-1.1 s, 565          4
+ *     as many tables of a header alone          1.6-1.7 s, 591-592  1.7 s, 743-745          4
+ *     `MAX_DOCX_PARAGRAPHS` columns blocks
+ *       of one column                           1.3-1.5 s, 566-568  1.4 s, 689-690          4
+ *     as many paragraphs of a letter, each
+ *       kept with the next                      0.8 s, 436-437      0.8 s, 509-510          4
+ *     a table of a detail row and totals to
+ *       the paragraphs' bound                   1.1 s, 512-513      1.1-1.2 s, 642-643      4
+ *     one paragraph of `MAX_DOCX_RUNS` runs of
+ *       a letter                                0.8-0.9 s, 443-445  0.9 s, 522-523          4
+ *     a page header of a third as many page
+ *       fields                                  0.6 s, 346-351      0.7 s, 433-437          4
+ *     `MAX_DOCX_PARAGRAPHS` pictures of one
+ *       asset                                   1.4-1.5 s, 551-553  1.5-1.6 s, 701-704      4
+ *     `MAX_DOCX_PICTURES` pictures of an asset
+ *       each                                    0.1 s, 190-192      0.1 s, 193-194          4
+ *
+ * In seconds and MB, from the least to the most of that many processes
+ * each way; the 32 are eight and 24 more, taken to look for the more in
+ * the heaviest file. None of these processes took the more of V8's two
+ * amounts, so the five heaviest were measured again with a euro sign
+ * and with a string held beside each row or paragraph, eight processes
+ * each. Of 24 characters: none took the more. Of 160: the table of
+ * cells with a line ending in each took 1,113 to 1,115 MB in every
+ * process, and that table in the longest family 1,267 to 1,268 MB in
+ * every process, in 2.5 to 2.6 seconds; the table of cells without line
+ * endings took 845 to 848 MB, in that family 978 to 979, and the kept
+ * and centred paragraphs 1,043 to 1,044, none of them the more. Of 320,
+ * six processes: the table with line endings in that family took 1,271
+ * to 1,272 MB in five. That is the most that was found: 47 MB under what
+ * the bounds stay under, some 26 MB of it the strings held. With
+ * pretenuring turned off, the same file with 160 characters beside each
+ * row took 898 to 899 MB in seven processes of eight and 998 in one. The
+ * longest a file took is 3.3 seconds.
+ *
+ * And the pictures' bytes, which are read before any of it, four
+ * processes each: the largest PNG an asset may be, 4,096 pixels a side
+ * of 16-bit RGBA, 134 MB of scanlines, was inflated in 0.5 to 0.6
+ * seconds, and two of them, which is all a file may hold, in 0.9 to 1.0;
+ * a PNG with 20 MB after the end of its image data was refused in 0.1
+ * (`assets.ts`).
  *
  * These are the shapes that were looked for, and no more is claimed.
  */
@@ -83,12 +179,14 @@ import { MAX_ASSET_BYTES, MAX_ASSET_SIDE } from '@formancy/report-runtime'
  * The paragraphs a file may hold, a table's cell being one, with each
  * picture, rule, spacer, page break and column, and each rectangle and
  * frame as two (`ONE_CELL_TABLE`). Each states its own properties, some
- * 470 characters of XML a cell. A report of the runtime's most detail
- * rows, 100,000, is past it in a table of one column: such a report
- * prints as a PDF where its host allows the pages, and is refused as a
- * Word file.
+ * 470 characters of XML a cell. It is the bound that drives what a file
+ * costs, and was 100,000 until what the header says of 18 November 2026.
+ * The runtime reads up to 100,000 detail rows: a report of 70,000 of
+ * them in a table of one column, or of 10,000 in one of seven, is past
+ * it, prints as a PDF where its host allows the pages, and is refused as
+ * a Word file.
  */
-export const MAX_DOCX_PARAGRAPHS = 100_000
+export const MAX_DOCX_PARAGRAPHS = 70_000
 
 /**
  * What a rectangle and a section's frame are each counted as, with the
@@ -102,8 +200,10 @@ export const MAX_DOCX_PARAGRAPHS = 100_000
  * section 942 before its blocks, a cell of a table of one column 466, a
  * picture 744 to 788, a columns block of one column 608, a paragraph of
  * one run 359 and of two 560. Counted as one, 100,000 filled rectangles
- * were inside every bound and cost more than any text the bounds allow:
- * 3.3 to 3.6 seconds and 1,250 MB, four processes, on the machine above.
+ * were inside every bound as the bounds then were, and took 3.3 to 3.6
+ * seconds and 1,250 MB, four processes, on the machine above, where a
+ * table of as many cells of ampersands took 2.0 to 2.5 seconds and 724
+ * to 993 MB.
  */
 export const ONE_CELL_TABLE = 2
 
@@ -112,7 +212,7 @@ export const ONE_CELL_TABLE = 2
  * where the paragraphs are: the bound on what is written, where the
  * paragraphs bound how often. A cell may be 16,384 of them
  * (`MAX_STRING_LENGTH`), so the paragraphs alone would let a document ask
- * for more than a billion and a half.
+ * for more than a billion.
  *
  * Counted with them, for every run and every paragraph mark: what the
  * family it names is written longer than `MAX_DOCX_FAMILY_LENGTH`
@@ -136,11 +236,17 @@ export const MAX_DOCX_CHARACTERS = 4_000_000
  *
  * It bounds the work too. Every run and every paragraph mark states its
  * family four times, and report-spec's `readFont` holds a font's
- * PostScript name to 63 characters and its family to none: a font of 66
- * KB whose family was 32,767 quotation marks made 350 paragraphs of a
- * letter each a string of 663 MB, a RangeError and no refusal. A family
- * of this length is what the bounds are measured with; what escaping
- * writes one longer is counted with `MAX_DOCX_CHARACTERS`.
+ * PostScript name to 63 characters and its family to none. A font of 66
+ * KB may name its family in 32,767 quotation marks, as many as a name
+ * record holds, each six characters in an attribute: a paragraph of one
+ * run states it in eight slots, its run's four and its mark's, so 350
+ * paragraphs of a letter each would write 550,485,600 characters of that
+ * name alone, and a string of V8's holds 536,870,888. Measured on 18
+ * November 2026 on a copy of the built writer with this bound and the
+ * count below taken out, three processes: a RangeError, "Invalid string
+ * length", after 0.2 to 0.3 seconds and 712 to 714 MB, and no refusal.
+ * A family of this length is what the bounds are measured with; what
+ * escaping writes one longer is counted with `MAX_DOCX_CHARACTERS`.
  */
 export const MAX_DOCX_FAMILY_LENGTH = 31
 
@@ -153,12 +259,16 @@ export const MAX_DOCX_FAMILY_LENGTH = 31
  * paragraph of four million runs of a letter each through, which held
  * the thread nine seconds before the string the file is built in grew
  * past what V8 allows. Twice the paragraphs, so that a table at their
- * bound is within it. Measured on 18 November 2026, the same way on the
- * same machine: one paragraph of `MAX_DOCX_RUNS` runs of a letter each,
- * 1.2 seconds and 484 MB; a page header of a third as many page fields,
- * 0.8 seconds and 344 MB; and `MAX_DOCX_PARAGRAPHS` paragraphs of two
- * runs each, holding `MAX_DOCX_CHARACTERS` ampersands between them, all
- * three bounds at once, 2.4 seconds and 559 MB.
+ * bound is within it, and 200,000 until the paragraphs' bound moved.
+ * What a file at it costs is in the header's table: one paragraph of
+ * `MAX_DOCX_RUNS` runs of a letter each, a page header of a third as many
+ * page fields, and `MAX_DOCX_PARAGRAPHS` paragraphs of two runs each
+ * holding `MAX_DOCX_CHARACTERS` ampersands between them, all three bounds
+ * at once. The three were first said here to take 484, 344 and 559 MB
+ * at the bound of 200,000: that was the process's resident memory once
+ * the file was written, read after the write and by a million bytes,
+ * not at its most, which is why the last stood 175 MB under what the
+ * header then gave the same file.
  *
  * A line ending states no properties, and is no character of the page
  * either: it is written as a break, and what follows it as a `w:t` of
@@ -180,6 +290,12 @@ export const MAX_DOCX_RUNS = 2 * MAX_DOCX_PARAGRAPHS
  * are, so this is the bound on the file. It says nothing of what a PNG
  * inflates to, which `MAX_DOCX_IMAGE_DATA` bounds: the PDF renderer's
  * `MAX_IMAGE_DATA` is that bound's number, and none of this one's.
+ *
+ * Counted from an asset's length, before a byte of it is read
+ * (`assets.ts`): counted once the picture had been read, a third asset
+ * of the largest size was sniffed, walked chunk by chunk and, a PNG,
+ * inflated in full, to be refused for its size. The PDF renderer holds
+ * a render's pictures to no such bound.
  */
 export const MAX_DOCX_MEDIA_BYTES = 2 * MAX_ASSET_BYTES
 
@@ -196,10 +312,18 @@ export const MAX_DOCX_MEDIA_BYTES = 2 * MAX_ASSET_BYTES
  * say little of what they inflate to: the largest, every pixel alike, is
  * a file of 130,527 bytes, so 321 of them were within
  * `MAX_DOCX_MEDIA_BYTES` and `MAX_DOCX_PICTURES`, and each was inflated
- * in full -- eight in 6.1 seconds, on 18 November 2026, on the machine
- * above -- where the renderer refuses the third. So a picture's image
- * data is counted from its header, before a PNG's is inflated, and the
- * writer inflates no more than this bound.
+ * in full, where the renderer refuses the third: eight took 3.7 seconds,
+ * measured on 18 November 2026 on the machine above, four processes, on
+ * a copy of the built writer with this bound taken out, pako inflating
+ * as it does now. So a picture's image data is counted from its header,
+ * before a PNG's is inflated, and a PNG that takes a file past the bound
+ * is never inflated. One within it is inflated to what its header
+ * promises and, where its data holds more, no further than the chunk
+ * that passes that: 64 KiB at the most, the chunk the writer asks pako
+ * for (`CHUNK` in `assets.ts`, pako 3.0.2's own default, `chunkSize:
+ * 1024 * 64`), which pako fills before it hands it on. So what the
+ * writer inflates of a file's pictures is this bound and a chunk at the
+ * most, never this bound alone; `pictures.test.ts` holds the chunk.
  *
  * Stated here and in the renderer, which the writer does not depend on,
  * and chosen equal so that the two refuse the same documents: no package

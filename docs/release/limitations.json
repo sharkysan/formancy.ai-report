@@ -3125,7 +3125,7 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:ca264d4c0ad9955c8afae7371be1cb3b973efa7a65e27503ef4315b106fc6699",
+      "reviewed": "sha256:6612487d171c05eec661f1a56f1e3a2222d7e944e509b3736508d63868b0a11c",
       "limitations": [
         {
           "area": "rendering",
@@ -3148,12 +3148,12 @@
         },
         {
           "area": "rendering",
-          "says": "The Word writer measures nothing, so it writes what the PDF renderer refuses for what it measured, a kept block taller than a page, a line no page holds or more pages than a host allows among it, and what the renderer refuses for what its SVG images cost it to draw and a reader to paint, and refuses what the PDF prints, a report of more than 100,000 paragraphs, a rectangle and a section’s frame counting two, 4,000,000 characters, 200,000 runs, a line ending in a text counting one, or 1,024 pictures, a font whose family is more than 31 characters, which is what Word reads of one, a spacer taller than the printable area, a rectangle, a column, a framed section or a picture that rounds to none of Word’s units, and a creation date that states no zone or a day no calendar has among it; a host that calls `renderDocx` without drawing the PDF gets no such check.",
+          "says": "The Word writer measures nothing, so it writes what the PDF renderer refuses for what it measured, a kept block taller than a page, a line no page holds or more pages than a host allows among it, and what the renderer refuses for what its SVG images cost it to draw and a reader to paint, and refuses what the PDF prints, a report of more than 70,000 paragraphs, a table’s cell being one and a rectangle and a section’s frame counting two, so one of 70,000 detail rows in one column or of 10,000 in seven, though the runtime reads 100,000, 4,000,000 characters, 140,000 runs, a line ending in a text counting one, or 1,024 pictures, a font whose family is more than 31 characters, which is what Word reads of one, a spacer taller than the printable area, a rectangle, a column, a framed section or a picture that rounds to none of Word’s units, and a creation date that states no zone or a day no calendar has among it; a host that calls `renderDocx` without drawing the PDF gets no such check.",
           "heldBy": "packages/report-render-docx/src/corpus.test.ts"
         },
         {
           "area": "rendering",
-          "says": "The Word writer inflates a PNG’s image data with pako, a port of zlib’s inflate, where the PDF renderer inflates it with the platform’s decompressor, so that the two refuse the same PNGs rests on pako reading a stream as zlib does: both are held to refusing alike the six ways a PNG’s data is no stream that were looked for, and no test compares them on any other; and a PNG that takes a file past the image data its pictures may hold and is no stream either is refused by the writer for its size and by the renderer for its data.",
+          "says": "The Word writer inflates a PNG’s image data with pako, a port of zlib’s inflate, where the PDF renderer inflates it with the platform’s decompressor, so that the two refuse the same PNGs rests on pako reading a stream as zlib does: both are held to refusing alike the six ways a PNG’s data is no stream that were looked for, and no test compares them on any other; and a picture past a bound of the writer’s that is no picture either, a PNG that takes a file past the image data its pictures may hold whose data is no stream, or a picture that takes it past the bytes they may store, which the renderer does not bound, whose bytes are not what they are declared as, is refused by the writer for its size, before it inflates or reads it, and by the renderer as no picture.",
           "heldBy": "packages/report-render-docx/src/against-pdf.test.ts"
         },
         {
@@ -3173,7 +3173,7 @@
         },
         {
           "area": "rendering",
-          "says": "`renderDocx` is synchronous and takes no signal: a file at its bounds was written in one step of 2.0 to 3.3 seconds, in 0.7 to 1.1 GB, the same document some 265 MB more in one process than in the next, for the shapes that were looked for on an Intel i9-10900K under Node 24.21.0 on 18 November 2026, and a host that must stop one runs it in a worker."
+          "says": "`renderDocx` is synchronous and takes no signal: a file at its bounds was written in one step of up to 3.3 seconds, in up to 767 MB of resident memory where its text is of characters up to U+00FF and up to 1,019 MB where one character of it is past that, a euro sign, since V8 then holds the text two bytes a character while the file is built; and V8 takes one of two amounts for one and the same file, by what the process did before the write, the most that was found being 1,272 MB, in a process that held a string beside each row of the document, as a host holds its data’s rows, 47 MB under the 1,319 MB the bounds are set to stay under, for the files that were looked for on an Intel i9-10900K under Node 24.21.0 on 18 November 2026; a host that must stop a write runs it in a worker, and one that must bound its memory in a process of its own."
         },
         {
           "area": "rendering",

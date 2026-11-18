@@ -13,19 +13,11 @@ import {
   type Table,
   type TextStyle,
 } from '@formancy/report-runtime'
-import { drawnSize, readPicture, type Picture } from './assets.js'
+import { drawnSize, readPicture, type Held, type Picture } from './assets.js'
 import { checkColor, checkStyle, checkText, checkWritten } from './check-text.js'
 import { createdOf } from './created.js'
 import type { DocxFonts } from './fonts.js'
-import {
-  MAX_DOCX_CHARACTERS,
-  MAX_DOCX_FAMILY_LENGTH,
-  MAX_DOCX_MEDIA_BYTES,
-  MAX_DOCX_PARAGRAPHS,
-  MAX_DOCX_PICTURES,
-  MAX_DOCX_RUNS,
-  ONE_CELL_TABLE,
-} from './limits.js'
+import { MAX_DOCX_CHARACTERS, MAX_DOCX_FAMILY_LENGTH, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS, ONE_CELL_TABLE } from './limits.js'
 import { PADDING_X } from './look.js'
 import { lineEndings } from './nodes.js'
 import { refusePdfOnly, refusePdfOnlyBlock } from './pdf-only.js'
@@ -354,18 +346,19 @@ function checkImage(image: Image, place: Place, walk: Walk): void {
  * for the block by both.
  *
  * Each new asset is counted before it is read, and refused past
- * `MAX_DOCX_PICTURES`; read, and refused where its bytes are no picture,
- * where its image data and that of the pictures before it are past
- * `MAX_DOCX_IMAGE_DATA`, counted from its header before a PNG's is
- * inflated, or where it is a picture nobody has seen Word print as the
- * PDF does (`assets.ts`); and its bytes counted, and refused past
- * `MAX_DOCX_MEDIA_BYTES`. Then each
+ * `MAX_DOCX_PICTURES`; then read with what the pictures before it hold
+ * (`assets.ts`), and refused where its bytes and theirs are past
+ * `MAX_DOCX_MEDIA_BYTES`, counted from its length before a byte of it
+ * is read, where its bytes are no picture, where its image data and
+ * theirs are past `MAX_DOCX_IMAGE_DATA`, counted from its header before
+ * a PNG's is inflated, or where it is a picture nobody has seen Word
+ * print as the PDF does. Then each
  * image is held to its picture: an SVG to a box of its own proportions
  * where it covers one, and any picture to an extent Word's unit states.
  */
 function readPictures(images: readonly Image[]): Map<ImageAsset, Picture> {
   const pictures = new Map<ImageAsset, Picture>()
-  let [media, data] = [0, 0]
+  let held: Held = { bytes: 0, data: 0 }
   for (const image of images) {
     const { id } = image.asset
     let picture = pictures.get(image.asset)
@@ -376,12 +369,9 @@ function readPictures(images: readonly Image[]): Map<ImageAsset, Picture> {
           `the report holds more than ${MAX_DOCX_PICTURES} pictures, ${id} the first past them; a Word file holds no more`,
           id,
         )
-      picture = readPicture(image.asset, data)
+      picture = readPicture(image.asset, held)
       pictures.set(image.asset, picture)
-      data += picture.data
-      media += image.asset.bytes.length
-      if (media > MAX_DOCX_MEDIA_BYTES)
-        throw new RenderRefusal('content-too-large', `the pictures up to ${id} hold ${media} bytes; a Word file may hold ${MAX_DOCX_MEDIA_BYTES}`, id)
+      held = { bytes: held.bytes + image.asset.bytes.length, data: held.data + picture.data }
     }
     // An SVG is drawn whole in its picture's box: one that covers a box of other proportions would have to be cropped.
     if (

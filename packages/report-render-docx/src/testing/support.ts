@@ -78,6 +78,33 @@ export function blank(id: string, width: number, height: number, kind: keyof typ
   }
 }
 
+/**
+ * A PNG of one grey pixel, padded with a text chunk to exactly `length`
+ * bytes; `mark` tells one such picture from another. Its file is as
+ * large as it is asked to be and it inflates to two bytes: the pictures
+ * the bound on a file's stored bytes is tried with.
+ */
+export function padded(id: string, length: number, mark: number): ImageAsset {
+  const header = new Uint8Array(13)
+  new DataView(header.buffer).setUint32(0, 1)
+  new DataView(header.buffer).setUint32(4, 1)
+  header.set([8, 0, 0, 0, 0], 8)
+  const data = new Uint8Array(deflateSync(new Uint8Array([0, mark])))
+  // The signature, and twelve bytes of framing a chunk, around the header, the text, the image data and the end.
+  const text = new Uint8Array(length - 8 - 4 * 12 - header.length - data.length).fill(0x78)
+  text.set(new TextEncoder().encode('Comment\0'))
+  return {
+    id,
+    mediaType: 'image/png',
+    bytes: pngOf([
+      ['IHDR', header],
+      ['tEXt', text],
+      ['IDAT', data],
+      ['IEND', new Uint8Array(0)],
+    ]),
+  }
+}
+
 /** `document` as a fixture, its expectation derived as every fixture's is: what `verifyDocx` holds its file to. */
 export function fixtureOf(id: string, document: ResolvedDocument, stated: Partial<Fixture['expect']> = {}): Fixture {
   return { id, title: id, document, maxPages: 99, expect: expectation(document, { maxPagesExpected: 99, ...stated }) }

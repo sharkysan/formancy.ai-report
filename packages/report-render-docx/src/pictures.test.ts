@@ -260,6 +260,46 @@ describe('bytes that are not the picture they are declared as', () => {
     }
   })
 
+  // A PNG's data says little of what it inflates to: a megabyte of nothing deflates to a kilobyte. The inflater hands on what it
+  // inflates a chunk at a time -- 64 KiB, pako's own default, or what the header promises where that is less -- and the writer stops
+  // it at the chunk that passes the promise: a whole chunk past it where the promise ends with one, and less anywhere else. Held by
+  // what the inflater handed on, not by a clock: a writer that let it run would inflate the megabyte before it said the picture is
+  // too long, and one that said it inflates no more than is promised would be wrong by that chunk.
+  test.each([
+    ['a whole number of chunks', 255, 256, 64 * 1024],
+    ['some way into a chunk', 300, 300, 2 * 64 * 1024 - 300 * 301],
+    ['less than a chunk', 4, 4, 20],
+  ])('a PNG that inflates to far more than its header promises, %s, is inflated no further than a chunk past it', (_name, width, height, past) => {
+    const promised = height * (1 + width)
+    const asset: ImageAsset = {
+      id: 'scan',
+      mediaType: 'image/png',
+      bytes: pngOf([
+        ['IHDR', header(width, height)],
+        ['IDAT', new Uint8Array(deflateSync(new Uint8Array(1_000_000)))],
+        ['IEND', new Uint8Array(0)],
+      ]),
+    }
+    let inflated = 0
+    const whole = Inflate.prototype.push
+    const push = vi.spyOn(Inflate.prototype, 'push').mockImplementation(function (this: Inflate, ...pushed: Parameters<Inflate['push']>) {
+      // Every chunk the inflater hands on is counted on its way to the writer, which reads it as it would.
+      const handOn = this.onData
+      this.onData = (chunk) => {
+        inflated += chunk.length
+        handOn.call(this, chunk)
+      }
+      return whole.apply(this, pushed)
+    })
+    try {
+      expect(refused(asset)).toMatch(new RegExp(`has more image data than the ${promised} bytes its header promises`))
+    } finally {
+      push.mockRestore()
+    }
+    expect(inflated - promised).toBe(past)
+    expect(past).toBeLessThanOrEqual(64 * 1024)
+  })
+
   // What a host declared and what the bytes are disagree: embedded under the declared type, Word would be handed a JPEG named .png.
   test.each<[string, ImageAsset, RegExp]>([
     ['a PNG declared a JPEG', { ...WIDE, mediaType: 'image/jpeg' }, /is declared a JPEG and is not one: it is a PNG/],

@@ -309,8 +309,14 @@ serve the Studio under the same function of their own address
   ships no font and reads no file. `renderDocx(document)` on the
   document `resolveReport` returned, in Node or in a browser,
   synchronously and with no signal, so a host that must stop one runs it
-  in a worker: a file at the writer's bounds was written in 2.0 to 3.3
-  seconds and 0.7 to 1.1 GB, where 0068 measures it. A report that is paid by a code, is an invoice in law or draws a
+  in a worker, and one that must bound its memory in a process of its
+  own: a file at the writer's bounds was written in up to 3.3 seconds
+  and up to 1,019 MB, and in up to 1,272 MB in a process that held a
+  string beside each row of the document, as a host holds its data's
+  rows, where 0068 measures it and says why V8 takes one amount or
+  another for one file. A report of more than
+  70,000 paragraphs, a table's cell being one, is refused for its size.
+  A report that is paid by a code, is an invoice in law or draws a
   chart has no Word file, and neither has a labelled preview: each is
   refused, to be printed as a PDF. The writer measures nothing, so a host
   offers the file beside a PDF that was drawn, as the Studio does, or

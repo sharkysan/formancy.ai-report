@@ -71,8 +71,10 @@
     byte after its end, ends before its last block, states a stored
     block's length and not its complement, uses a length code deflate
     does not define, is a gzip member or is deflate data in no zlib
-    stream to theirs, and every kind of the corpus's `IMAGE_KINDS` to
-    being written and of its `UNSEEN_JPEGS` to being refused.
+    stream to theirs, a PNG that inflates to far more than its header
+    promises to being inflated no further than a chunk past it, by what
+    the inflater handed on, and every kind of the corpus's `IMAGE_KINDS`
+    to being written and of its `UNSEEN_JPEGS` to being refused.
     `src/fonts.test.ts` holds a mapped token to the family its face's
     name table states, to name ID 1 where a typographic family stands
     beside it, `sans` unmapped to Roboto, what the PDF refuses of a font
@@ -88,9 +90,12 @@
     a line ending to counting as a run, in a paragraph and in a cell, and
     the two characters together as one; what a family of quotation marks
     is written longer than it is named to being counted for every run, a
-    page field's three, every paragraph mark and every cell; and the
+    page field's three, every paragraph mark and every cell; the
     pictures' image data to its bound, to a JPEG's bytes, and to being
-    counted before a PNG is inflated.
+    counted before a PNG is inflated; their bytes to being counted
+    before a picture is read, and an asset past its own limit to being
+    refused as that all the same; and the paragraphs', the characters'
+    and the runs' bounds to the numbers this record states.
   - **The same bytes.** `src/stable.test.ts`: one document written twice
     is the same bytes; written in a second process fourteen hours ahead
     of UTC and in one eight behind, the same digest, and in one that sets
@@ -118,7 +123,12 @@
     whose pictures hold a byte more image data than a file may and
     exactly as much with a JPEG after, are refused by both for the
     picture that crossed the bound, which holds the writer's number to
-    the renderer's without either drawing a page. report-corpus's
+    the renderer's without either drawing a page; and the two documents
+    this record says the engines refuse otherwise, a picture past a
+    bound of the writer's that is no picture either -- past the bytes a
+    file's pictures may store, and past their image data -- are refused
+    by the writer for the size and by the renderer as no picture.
+    report-corpus's
     `src/fixtures/malformed.test.ts` holds each PNG of that list whose
     data is no stream to being wrong in the one way its title says, by
     zlib's own word for it.
@@ -296,7 +306,20 @@
     of the six counts of a block that is no text; the fonts read after
     the walk; and of the Studio, the writer imported statically. The
     reading of fflate's state and the checksum's comparison, taken out
-    above, went with fflate's inflater.
+    above, went with fflate's inflater. And, the same day, what a third
+    review found, each case written first and seen failing on the writer
+    as it stood: a third picture past the bytes a file's pictures may
+    store, which is no picture, refused as none; and the bounds as this
+    record states them, 70,000 paragraphs and 140,000 runs, in the case
+    that states them and in three that read a refusal's sentence, before
+    the bound was moved. A PNG inflated a chunk past what its header
+    promises, an asset past its own limit refused as that, and the two
+    documents the engines refuse otherwise, held on both, passed as they
+    were written. With the thing each guards taken out again: the
+    asset's limit read after the file's bytes are counted; the bytes
+    counted only once they are sniffed as a picture, in the writer's
+    case and in the comparison's; and the inflater's stop moved ten
+    chunks on.
   - **Seen, once, by hand, on 17 November 2026**, and by no gate: a file
     written by hand of every construct this record chooses -- runs of
     every style, runs set off the line, a table with its header marked, a
@@ -637,27 +660,37 @@ meets first.
   rectangle or a spacer taller than the printable area, which no page of
   a Word file holds -- the PDF judges the first two against the body
   between its regions, and refuses no spacer; more than
-  `MAX_DOCX_PARAGRAPHS` paragraphs, 100,000, a table's cell being one and
+  `MAX_DOCX_PARAGRAPHS` paragraphs, 70,000, a table's cell being one and
   a rectangle or a section's frame, each a table of its own around its
   paragraph, two; text of more than `MAX_DOCX_CHARACTERS` characters,
   4,000,000, with what a font's family is written past 31 characters in
   every run and paragraph mark that states it; text held in more than
-  `MAX_DOCX_RUNS` runs, 200,000, a page field being three, as Word
+  `MAX_DOCX_RUNS` runs, 140,000, twice the paragraphs, a page field
+  being three, as Word
   writes it, a table's cell one, and each line ending in a text one
   more, since it is written as a break and what follows it as a `w:t` of
   its own; more than `MAX_DOCX_PICTURES` pictures, 1,024, each asset
   counted once; pictures of more than `MAX_DOCX_MEDIA_BYTES` together as
-  they are stored, each counted once, twice `MAX_ASSET_BYTES`, which
-  bounds the file; and pictures of more than `MAX_DOCX_IMAGE_DATA` of
+  they are stored, each counted once, from its length and before a byte
+  of it is read, twice `MAX_ASSET_BYTES`, which bounds the file; and
+  pictures of more than `MAX_DOCX_IMAGE_DATA` of
   image data together, each counted once: a PNG's scanlines as its
   header promises them, a JPEG's bytes, an SVG none, which is how the
   PDF renderer counts its `MAX_IMAGE_DATA`, and its number, two of the
   largest PNG an asset may be. The writer inflates every PNG it embeds,
   and a PNG's bytes say little of what it inflates to, so the count is
-  taken from its header before it is inflated, and no more than the
-  bound ever is; the renderer inflates first, so of a PNG past the bound
-  whose data is no stream either, the renderer refuses the data and the
-  writer the size. The number is stated in both engines, since no
+  taken from its header before it is inflated, and a PNG that takes a
+  file past the bound never is. One within it is inflated to what its
+  header promises and, where its data holds more, no further than the
+  chunk that passes that, 64 KiB at the most: the chunk the writer asks
+  pako for, pako 3.0.2's own default, which pako fills before it hands
+  it on. So what is inflated of a file's pictures is the bound and a
+  chunk at the most, not the bound alone. The renderer inflates a PNG
+  before it counts it, and holds a render's pictures to no bound on
+  their bytes: so of a picture past either bound that is no picture
+  either -- a PNG whose data is no stream, bytes that are not what they
+  are declared as -- the renderer refuses the picture and the writer
+  the size. The number is stated in both engines, since no
   package below both holds what an engine's pictures may cost it and the
   writer does not depend on the renderer, and `against-pdf.test.ts`
   holds the two together. The paragraphs, the characters and the runs
@@ -670,7 +703,10 @@ meets first.
   characters long, was written in 1.9 seconds with 657 MB resident at
   the most; the same cells holding a character each in 1.4 seconds and
   555 MB; at 250,000 cells and 8,000,000 characters, 4.6 seconds and
-  1,319 MB, which is why the bounds are not there. The pictures' count
+  1,319 MB, which is why the bounds are not there. The paragraphs'
+  bound was 100,000 then, and the runs', once there was one, 200,000:
+  what follows was measured at those, on text of ampersands alone,
+  until the last paragraphs of this say otherwise. The pictures' count
   is chosen, not measured. Each picture is an entry of the zip, whose
   directory counts its entries in sixteen bits, and fflate writes a
   count past them modulo 65,536 and says nothing: 65,600 pictures,
@@ -705,30 +741,46 @@ meets first.
   paragraph of 200,000 runs took 1.2 seconds and 484 MB, 66,666 page
   fields 0.8 seconds and 344 MB, and 100,000 paragraphs of two runs
   holding 4,000,000 ampersands, all three bounds at once, 2.4 seconds
-  and 559 MB.
+  and 559 MB. Those three figures of memory are of another kind than
+  every other here: the process's resident memory once the file was
+  written, read after the write and by a million bytes, not at its
+  most, which is why the last stands 175 MB under the 734 MB the same
+  file is given below.
 
   And a count bounds the work only where each thing counted costs what
   the count takes it for. A second review, that day, found three that
   did not, each inside every bound, and measuring them found a fourth.
   A font's family, stated four times by every run and every paragraph
-  mark, and as long as its font made it: a font of 66 KB whose family
-  was 32,767 quotation marks, which report-spec's reader passes, made
-  350 paragraphs of a letter each a string of 663 MB, a RangeError and
-  no refusal. A line ending, counted as the character it is and written
+  mark, and as long as its font made it: a font of 66 KB may name its
+  family in 32,767 quotation marks, as many as a name record holds,
+  which report-spec's reader passes, and each is six characters in an
+  attribute. A paragraph of one run states its family in eight slots,
+  its run's four and its mark's, so 350 paragraphs of a letter each are
+  550,485,600 characters of that name alone, where a string of V8's
+  holds 536,870,888: a RangeError, "Invalid string length", after 0.2 to
+  0.3 seconds and 712 to 714 MB, and no refusal -- measured on 18
+  November 2026, three processes, on a copy of the built writer with
+  the family's bound and its count taken out. A line ending, counted as
+  the character it is and written
   as a break and a `w:t` of its own: one paragraph of one run of
   4,000,000 characters, every other a line feed, 4.6 seconds and 1,440
   MB, and 100,000 cells of forty such characters, 4.6 seconds and 979
   MB. A PNG, inflated in full however many a file held: the largest an
   asset may be is a file of 130,527 bytes where its pixels are all
   alike, 321 of them were inside the bounds on the pictures' bytes and
-  their count, and eight took 6.1 seconds. And a rectangle or a
+  their count, and eight took 3.7 seconds -- measured on 18 November
+  2026, four processes, on a copy of the built writer with the image
+  data's bound taken out, pako inflating as it does now. And a rectangle
+  or a
   section's frame, a table of its own for the one paragraph it was
   counted as, 993 and 942 characters of XML where a table's cell is 466:
   100,000 filled and outlined rectangles, 3.3 to 3.6 seconds and 1,250
-  MB, more than any text the bounds allow. Measured once each is counted
+  MB, more than any text had been measured to take. Measured once each
+  is counted
   for what it is, the same way on the same machine, with pako 3.0.2
-  beside fflate, every text of ampersands, the memory with the document
-  the writer was handed in it, four to twelve processes a shape: the
+  beside fflate, every text of ampersands, the paragraphs' bound still
+  100,000, the memory with the document the writer was handed in it,
+  four to twelve processes a shape: the
   table of cells above, 2.0 to 2.5 seconds, and 724 MB in seven
   processes of ten and 993 MB in three; in a mapped family of 31
   letters, 2.5 to 2.9 seconds, and 838 MB in three of four and 1,095 MB
@@ -749,8 +801,115 @@ meets first.
   and the two a file may hold in 1.0; and a PNG with 20 MB after the end
   of its image data refused in 0.1. A table of cells took the less or
   the more from one process to the next, some 265 MB apart for the same
-  document, and why was not looked for: the 720 MB of the measurements
-  before these were the less.
+  document: the 720 MB of the measurements before these were the less,
+  and what follows says why.
+
+  And a figure holds for what was measured. A third review, that day,
+  found that every figure of memory above was of text V8 holds a byte a
+  character -- the text was ampersands throughout -- and that the two
+  amounts a table of cells took had no reason given. Measured again on
+  18 November 2026, the same way on the same machine, under Node
+  24.21.0, whose V8 is 13.6, each shape as it was and with one euro sign
+  in its text, six to eight processes each, the paragraphs' bound still
+  100,000:
+
+  - **The text.** One character past U+00FF in a part's text, and V8
+    holds the string the part is built in, and each copy made of it on
+    the way, two bytes a character. The table of 100,000 cells took 732
+    to 734 MB as it was and 983 to 985 MB with a euro sign in its
+    header's cell, the less of its two amounts each time; 100,000
+    paragraphs of two runs, 735 to 737 MB and 952
+    to 953; and those paragraphs in the longest family, kept, centred
+    and set off the line, 942 to 943 MB and 1,276 to 1,277, in 3.1 to
+    3.3 and 3.5 seconds.
+  - **The two amounts.** They are V8's, not the text's. They stand some
+    285 MB apart with the euro sign and without it: that table took
+    1,016 to 1,019 MB in four processes of six, and 1,270 to 1,272 MB
+    with the euro sign in four of six. With V8's allocation-site
+    pretenuring turned off (`--no-allocation-site-pretenuring`), eight
+    processes of eight took the less, 734 to 735 MB. V8 decides while a
+    program runs,
+    from what survived its young collections, which sites allocate in
+    its old generation from the start, and what dies there waits for a
+    full collection. Its own traces (`--trace-pretenuring-statistics`,
+    `--trace-gc`) show a process that takes the more deciding so of six
+    sites more, and its heap growing by some 19 MB at each young
+    collection of the write where the other's grows by 5: 654 MB before
+    the full collection that follows, against 436.
+  - **What decides it.** What the process did before the write. A table
+    made alone, as the measurement makes one, took the more in 33
+    processes of 107 at 88,000 cells and more, and in none of 241 under
+    that. Under it, it took the more once a string of some characters
+    was held beside each of its rows, which the writer never reads, as
+    a host holds its data's rows beside the document it resolved. And
+    how much more hangs on the file: some 285 MB for the table of
+    cells, and 468 MB for the one with a line ending in each cell, in
+    the one process that took the more of it made alone.
+  - **So the most was not the 1,112 MB above.** With a euro sign, in a
+    mapped family of 31 letters, the table of 100,000 cells took 1,454
+    to 1,478 MB in six processes of eight, and 1,509 to 1,514 MB in four
+    of six with a string of 160 characters held beside each row; the one
+    with a line ending in each cell took 1,511 MB in one of eight. All
+    are past the 1,319 MB the bounds are set to stay under.
+
+  The paragraphs drive it, and the characters do not: at half the
+  characters, 2,000,000, those two tables still took 1,366 MB and 1,384
+  to 1,406 MB. So `MAX_DOCX_PARAGRAPHS` is 70,000, where it was 100,000,
+  and the runs' bound, twice it, 140,000. Not 80,000 and not 75,000:
+  with a string of 160 characters beside each row, the table in that
+  family took 1,310 to 1,314 MB at 80,000 cells in five processes of
+  eight, 5 MB under what the bounds stay under, and the one with line
+  endings 1,290 to 1,321 MB at 75,000 in seven of sixteen, with one of
+  24 or of 160, past it.
+
+  At the bounds as they are, measured on 18 November 2026, every text of
+  ampersands, as it is and with one euro sign in it, in place of its
+  first ampersand or, where a file has no text, of its last block; the
+  seconds and the resident memory at its most, from the least to the
+  most of that many processes each way:
+
+  | The file | As it is | With a euro sign in its text | Processes |
+  |---|---|---|---|
+  | A table of 70,000 cells holding 4,000,000 ampersands | 1.8 to 2.2 s, 626 to 629 MB | 1.9 to 2.3 s, 827 to 829 MB | 8 |
+  | That table in four columns | 1.6 s, 594 to 595 MB | 1.7 to 1.8 s, 786 to 788 MB | 4 |
+  | Its cells holding a character each | 1.0 to 1.1 s, 503 to 507 MB | 1.1 s, 628 to 632 MB | 4 |
+  | That table in a mapped family of 31 letters, the longest Word reads | 2.1 to 2.3 s, 708 to 710 MB | 2.3 to 2.4 s, 959 to 962 MB | 8 |
+  | 70,000 paragraphs of two runs holding 4,000,000 ampersands: the paragraphs, the characters and the runs at once | 1.9 to 2.3 s, 620 MB | 2.0 to 2.6 s, 789 to 791 MB | 5 |
+  | Those paragraphs in that family | 2.4 to 2.7 s, 722 to 724 MB | 2.4 to 2.9 s, 950 to 953 MB | 5 |
+  | And each kept with the next in one kept block, centred, its runs set off the line | 2.5 to 3.1 s, 765 to 767 MB | 2.6 to 3.0 s, 1,018 to 1,019 MB | 5 |
+  | One paragraph of one run of 4,000,000 characters with 139,999 line endings | 1.0 s, 423 to 448 MB | 1.1 s, 571 MB | 4 |
+  | The table of cells with a line ending in each | 1.9 to 2.2 s, 641 to 642 MB | 2.1 to 2.2 s, 849 to 851 MB | 8 |
+  | That table in that family | 2.2 to 2.5 s, 721 to 723 MB | 2.3 to 3.3 s, 981 to 985 MB | 8 and 32 |
+  | 35,000 filled and outlined rectangles | 1.0 s, 473 MB | 1.1 s, 572 to 573 MB | 4 |
+  | 35,000 framed sections | 0.9 to 1.0 s, 470 MB | 1.0 to 1.1 s, 565 MB | 4 |
+  | 35,000 tables of a header alone | 1.6 to 1.7 s, 591 to 592 MB | 1.7 s, 743 to 745 MB | 4 |
+  | 70,000 columns blocks of one column | 1.3 to 1.5 s, 566 to 568 MB | 1.4 s, 689 to 690 MB | 4 |
+  | 70,000 paragraphs of a letter, each kept with the next | 0.8 s, 436 to 437 MB | 0.8 s, 509 to 510 MB | 4 |
+  | A table of a detail row and 69,998 totals | 1.1 s, 512 to 513 MB | 1.1 to 1.2 s, 642 to 643 MB | 4 |
+  | One paragraph of 140,000 runs of a letter | 0.8 to 0.9 s, 443 to 445 MB | 0.9 s, 522 to 523 MB | 4 |
+  | A page header of 46,666 page fields | 0.6 s, 346 to 351 MB | 0.7 s, 433 to 437 MB | 4 |
+  | 70,000 pictures of one asset | 1.4 to 1.5 s, 551 to 553 MB | 1.5 to 1.6 s, 701 to 704 MB | 4 |
+  | 1,024 pictures of an asset each | 0.1 s, 190 to 192 MB | 0.1 s, 193 to 194 MB | 4 |
+
+  The 32 are eight and 24 more, taken to look for the more in the
+  heaviest file. None of these processes took the more of V8's two
+  amounts, so the five heaviest were measured again with a euro sign and
+  with a string held beside each row or paragraph, eight processes each.
+  Of 24 characters: none took the more. Of 160: the table of cells with
+  a line ending in each took 1,113 to 1,115 MB in every process, and
+  that table in the longest family 1,267 to 1,268 MB in every process,
+  in 2.5 to 2.6 seconds; the table of cells without line endings took
+  845 to 848 MB, in that family 978 to 979, and the kept and centred
+  paragraphs 1,043 to 1,044, none of them the more. Of 320, six
+  processes: the table with line endings in that family took 1,271 to
+  1,272 MB in five. That is the most that was found: 47 MB under what
+  the bounds stay under, some 26 MB of it the strings held. With
+  pretenuring turned off, the same file with 160 characters beside each
+  row took 898 to 899 MB in seven processes of eight and 998 in one. The
+  longest a file took is 3.3 seconds. And the pictures' bytes, which are
+  read before any of it, four processes each: the largest PNG inflated
+  in 0.5 to 0.6 seconds, the two a file may hold in 0.9 to 1.0, and a
+  PNG with 20 MB after the end of its image data refused in 0.1.
 
   These are the shapes that were looked for, and no more is claimed.
 
@@ -912,9 +1071,9 @@ written twice.
   transparency groups (report-spec's `MAX_SVG_SEGMENTS` and
   `MAX_SVG_GROUPS`): the writer draws no SVG and embeds each drawing's
   bytes once, so a report whose drawings the renderer refuses for what
-  they cost together is written. A report of more than 100,000
-  paragraphs, 200,000 runs or 1,024 pictures, of more than 50,000
-  rectangles or framed sections, or with more than 200,000 line endings
+  they cost together is written. A report of more than 70,000
+  paragraphs, 140,000 runs or 1,024 pictures, of more than 35,000
+  rectangles or framed sections, or with more than 140,000 line endings
   in its text, a labelled preview, a spacer taller than the printable
   area, a rectangle, a column, a framed section or a picture that rounds
   to none of Word's units, a creation date that states no zone or a day
@@ -934,10 +1093,14 @@ written twice.
   that were looked for, and no test compares the two on any other, or in
   a browser, whose decompressor is its own. Every run of the suite runs
   that list, so a bump of pako is read against it.
-- **One PNG is refused otherwise by the two.** One whose image data
-  takes a file past what its pictures may hold, and is no stream
-  either: the writer refuses its size, before it inflates anything, and
-  the renderer its data, which it inflates first.
+- **Two pictures are refused otherwise by the two.** A PNG whose image
+  data takes a file past what its pictures may hold, and is no stream
+  either: the writer refuses its size, before it inflates it, and the
+  renderer its data, which it inflates first. And a picture that takes
+  a file past the bytes its pictures may store, which the renderer does
+  not bound, and is no picture: the writer refuses its size, before it
+  reads a byte of it, and the renderer the picture.
+  `against-pdf.test.ts` holds both to that.
 - **The order two engines refuse in is held for what both refuse.** One
   document wrong in every place both look is refused by both for the
   same place as each is put right, and that is what is held. A table
@@ -977,22 +1140,39 @@ written twice.
 - **Every run states its properties.** No style carries them, so the
   XML is long, some 480 characters a table cell, and a person who wants
   every cell another size changes them cell by cell, not by a style.
-- **The writer holds the thread, and memory.** `renderDocx` is
-  synchronous and takes no signal: a file at its bounds is written in
-  one step of 2.0 to 3.3 seconds that nothing interrupts, in 0.7 to 1.1
-  GB -- 2.0 to 2.5 seconds for a table of cells at the paragraphs' and
-  the characters' bounds, in 724 MB in most processes and 993 MB in
-  some; 3.2 to 3.3 seconds for the longest shape that was found, 100,000
-  paragraphs of two runs each, kept, centred and set off the line,
-  holding 4,000,000 ampersands in a mapped family of 31 letters; and
-  1,112 MB for the most memory, that table with a line ending in each
-  cell in such a family, in two processes of four, as *The writer's own
-  bounds* says. That is nearer than the first measurements said to the
-  4.6 seconds and 1,319 MB the bounds were set to stay under, and the
-  longest family Word reads is 0.5 seconds and 140 MB of it. A host that
-  must stop a write runs it in a worker. Before that step it reads the
-  pictures' bytes, and the two largest PNGs a file may hold take 1.0
-  second of it.
+- **The writer holds the thread, and memory, and how much memory is
+  V8's to say.** `renderDocx` is synchronous and takes no signal: a file
+  at its bounds is written in one step of up to 3.3 seconds that nothing
+  interrupts. Of memory it took up to 767 MB where its text is of
+  characters up to U+00FF, and up to 1,019 MB where one character of it
+  is past that, a euro sign, since V8 then holds the text two bytes a
+  character while the file is built. And V8 takes one of two amounts for
+  one and the same document, by what the process did before the write:
+  the most that was found is 1,272 MB, a table of 70,000 cells with a
+  line ending in each, in the longest family Word reads, a euro sign in
+  it, in a process that held a string beside each of its rows as a host
+  holds its data's rows. That is 47 MB under the 1,319 MB the bounds are
+  set to stay under, where the first measurements said 657, and nothing
+  but the measurements of *The writer's own bounds* says that no process
+  takes more. A host that must stop a write runs it in a worker, and one
+  that must bound its memory runs it in a process of its own. Before
+  that step it reads the pictures' bytes, and the two largest PNGs a
+  file may hold take 1.0 second of it.
+- **A report of more than 70,000 paragraphs is not exported, where the
+  bound was 100,000.** A table's cell is a paragraph: 70,000 rows of one
+  column, 10,000 of seven, or 35,000 boxes, and the runs' bound, twice
+  the paragraphs', is 140,000 where it was 200,000. The runtime reads up
+  to 100,000 detail rows, so a report it resolves whole may be refused
+  as a Word file for its size alone, and prints as a PDF. The bound was
+  moved on 18 November 2026, before any release held it, because the
+  first was set on figures of text V8 holds a byte a character, in the
+  less of its two amounts: with a euro sign in the text, a table of
+  100,000 cells took up to 1,514 MB, past the 1,319 MB the bounds are
+  set to stay under. It is the paragraphs' bound that moved, since they
+  drive what a file costs and the characters do not; and to 70,000,
+  since at 80,000 the most that was found was 1,315 MB, 4 MB under that,
+  at 75,000 1,321, past it, and at 70,000 1,272. Two processes of one
+  amount were seen 24 MB apart, so 4 MB is no room.
 - **A font with a long family is not exported.** A report mapped to a
   font whose name ID 1 is more than 31 characters is refused as a Word
   file and prints as a PDF: by Microsoft's own account of what Word
@@ -1001,8 +1181,8 @@ written twice.
   -- takes characters from the file's text, four for each character past
   31, in every run and paragraph mark.
 - **A box counts two, and a line ending one.** A rectangle and a framed
-  section are each two of the file's 100,000 paragraphs, and each line
-  ending in a text one of its 200,000 runs: a report of more than 50,000
+  section are each two of the file's 70,000 paragraphs, and each line
+  ending in a text one of its 140,000 runs: a report of more than 35,000
   boxes, or of a text of more lines than that bound, is refused.
 - **A creation date the PDF draws may be refused**: one of a day or an
   hour no calendar has, which the platform reads as the date after it,
@@ -1108,11 +1288,11 @@ as well as what it counts to.
 
 **A font's family counted in full**, every character of it in every run
 and mark, against the file's characters. Roboto alone, 24 characters in
-a run's four slots, would then be 4,800,000 in a table of 100,000 cells
-with nothing in them, past the bound with no text at all, and a family
-of fifteen characters past it at 33,334 cells. The longest family Word
-reads is what the bounds are measured with, and only what escaping adds
-past it is counted.
+a run's four slots, would then be 3,360,000 in a table of 70,000 cells
+with nothing in them, more than four fifths of the bound with no text
+at all, and a family of fifteen characters past it at 33,334 cells. The
+longest family Word reads is what the bounds are measured with, and only
+what escaping adds past it is counted.
 
 **A family refused where it is written longer than 31 characters**, with
 no count. A family of 30 characters with an ampersand in it, which
@@ -1204,7 +1384,7 @@ before it can say what a run prints in. Later, if a file's size asks for
 it.
 
 **A count of paragraphs alone as the bound.** A cell may be 16,384
-characters, so 100,000 of them would be a billion and a half before the
+characters, so 70,000 of them would be more than a billion before the
 XML, its bytes and the deflate each copied them: a fault for want of
 memory, not a refusal.
 

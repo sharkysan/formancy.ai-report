@@ -449,9 +449,12 @@ endings print, counted on the PDF by where the block after them stands
 and held to the breaks the file states; every document of the corpus's
 `MALFORMED` list refused by both by the same code and subject; one
 document wrong in every place both engines look, refused by both for the
-same place as each is put right; and the image data a document's
+same place as each is put right; the image data a document's
 pictures may hold, a number in each engine, by the picture each refuses
-at. The Studio's pipeline, its viewer and
+at; and the two documents the record says they refuse otherwise, a
+picture past a bound of the writer's that is no picture either, by the
+writer refusing its size and the renderer the picture. The Studio's
+pipeline, its viewer and
 its journey hold the file a person is offered to the document its PDF was
 drawn from (`apps/studio/src/preview/pipeline.test.ts`), a writer that
 throws or does not load to leaving the PDF as it printed

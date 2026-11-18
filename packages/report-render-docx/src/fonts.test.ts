@@ -239,8 +239,9 @@ describe("a family's name, held to what Word reads of one", () => {
   })
 
   // Every run and every paragraph mark states its family four times. A family of 32,767 quotation marks, in a font of 66 KB that the
-  // reader passes, made 350 paragraphs of a letter each a string of 663 MB, which V8 refuses: a RangeError and no refusal. Word reads no
-  // name past 31 characters, so a longer one is a family no reader would find, and is refused by the asset that names it, never quoted.
+  // reader passes, is 550 million characters of its name alone in 350 paragraphs of a letter each, more than a string of V8's holds: a
+  // RangeError and no refusal, as `limits.ts` says where it was measured. Word reads no name past 31 characters, so a longer one is a
+  // family no reader would find, and is refused by the asset that names it, never quoted.
   test('of a character more is refused, naming the asset and never the name', () => {
     const refusal = refusalOf(documentOf([paragraph('AB')], { fonts: { sans: { normal: PAST_FAMILY } } }))
     expect(refusal).toMatchObject({ code: 'invalid-asset', subject: 'past' })

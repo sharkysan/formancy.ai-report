@@ -1,6 +1,6 @@
 import { checkSvg, imageHeader, MAX_ASSET_BYTES, RenderRefusal, sniffImage, type Image, type ImageAsset, type PngHeader } from '@formancy/report-runtime'
 import { Inflate, type ZStream } from 'pako'
-import { MAX_DOCX_IMAGE_DATA } from './limits.js'
+import { MAX_DOCX_IMAGE_DATA, MAX_DOCX_MEDIA_BYTES } from './limits.js'
 
 /**
  * A picture's asset, read before its bytes go into the file (0068). A
@@ -29,13 +29,23 @@ import { MAX_DOCX_IMAGE_DATA } from './limits.js'
  * platform's decompressor agree on every other is pako's claim, as a
  * port, and no test's here.
  *
- * Between a PNG's or a JPEG's header and anything more of it, the image
- * data it holds is counted with that of the pictures read before it, as
- * the PDF renderer counts it, and refused past `MAX_DOCX_IMAGE_DATA` as
- * `content-too-large`: before a PNG's data is inflated, so that no more
- * than the bound ever is. The renderer inflates a PNG and then counts
- * it, so of a PNG past the bound whose data is no stream either, the
- * renderer says the second and the writer the first.
+ * Two counts are taken on the way, each with what the pictures read
+ * before it hold, and each refused past its bound as
+ * `content-too-large`. The asset's bytes as they are stored, against
+ * `MAX_DOCX_MEDIA_BYTES`: from its length, once it is known to be
+ * within what an asset may be and before a byte of it is read. And the
+ * image data it holds, as the PDF renderer counts it, against
+ * `MAX_DOCX_IMAGE_DATA`: between a PNG's or a JPEG's header and anything
+ * more of it, before a PNG's data is inflated, so that a PNG whose
+ * header takes the file past the bound is never inflated. One within it
+ * is inflated a chunk at a time, and no further than the chunk that
+ * passes what its header promises (`CHUNK`).
+ *
+ * The renderer counts no bytes, and inflates a PNG before it counts its
+ * image data. So of a picture past either bound that is no picture
+ * either -- bytes that are not what they are declared as, a PNG whose
+ * data is no stream -- the renderer says that it is none and the writer
+ * that it is too large.
  *
  * Then what nobody has seen Word print as the PDF does, refused as
  * `unsupported`: a JPEG whose Exif block turns or mirrors it, which
@@ -51,12 +61,19 @@ export interface Picture {
   readonly data: number
 }
 
+/** What the pictures read before one hold together: their bytes as they are stored, and their image data. */
+export interface Held {
+  readonly bytes: number
+  readonly data: number
+}
+
 /**
  * The asset as it is embedded, once its bytes pass; refused, naming it
- * and why, when they do not, and when its image data and `held`, that of
- * the pictures read before it, are more than a file may hold.
+ * and why, when they do not, and when its bytes or its image data, with
+ * `held`, those of the pictures read before it, are more than a file
+ * may hold.
  */
-export function readPicture(asset: ImageAsset, held: number): Picture {
+export function readPicture(asset: ImageAsset, held: Held): Picture {
   const read = pictureOf(asset, held)
   if (typeof read === 'string') throw new RenderRefusal('invalid-asset', `the image asset ${asset.id} ${read}`, asset.id)
   return read
@@ -74,16 +91,23 @@ export function drawnSize(image: Image, picture: Picture): { readonly width: num
   return cover ? { width: image.width, height: image.height, scale } : { width: picture.width * scale, height: picture.height * scale, scale }
 }
 
-function pictureOf(asset: ImageAsset, held: number): Picture | string {
+function pictureOf(asset: ImageAsset, held: Held): Picture | string {
   const { bytes, id } = asset
   if (!(bytes instanceof Uint8Array)) return 'has no bytes'
   if (bytes.length > MAX_ASSET_BYTES) return `is ${bytes.length} bytes; the limit is ${MAX_ASSET_BYTES} (20 MB)`
+  // After the asset's own limit, which is the PDF renderer's and read from its length too, and before anything of the bytes is read.
+  if (held.bytes + bytes.length > MAX_DOCX_MEDIA_BYTES)
+    throw new RenderRefusal(
+      'content-too-large',
+      `the pictures up to ${id} hold ${held.bytes + bytes.length} bytes; a Word file may hold ${MAX_DOCX_MEDIA_BYTES}`,
+      id,
+    )
   const sniffed = sniffImage(bytes)
   const [isPng, isJpeg] = [sniffed === 'image/png', sniffed === 'image/jpeg']
   // Read as an SVG only to say what bytes declared otherwise are.
   const actually = (): string => (isPng ? ': it is a PNG' : isJpeg ? ': it is a JPEG' : checkSvg(bytes).ok ? ': it is an SVG' : '')
-  if (asset.mediaType === 'image/png') return isPng ? raster(bytes, id, held) : `is declared a PNG and is not one${actually()}`
-  if (asset.mediaType === 'image/jpeg') return isJpeg ? raster(bytes, id, held) : `is declared a JPEG and is not one${actually()}`
+  if (asset.mediaType === 'image/png') return isPng ? raster(bytes, id, held.data) : `is declared a PNG and is not one${actually()}`
+  if (asset.mediaType === 'image/jpeg') return isJpeg ? raster(bytes, id, held.data) : `is declared a JPEG and is not one${actually()}`
   if (asset.mediaType !== 'image/svg+xml') return `is of a media type a Word file does not hold (${String(asset.mediaType)})`
   if (isPng || isJpeg) return `is declared an SVG and is not one${actually()}`
   const checked = checkSvg(bytes)
@@ -158,7 +182,19 @@ function scanlines(header: PngHeader): Scanlines[] {
     .map(([width, height]) => ({ bytes: 1 + Math.ceil((width * header.bitsPerPixel) / 8), count: height }))
 }
 
-/** The most pako writes of what it inflates before it hands it on: its own default, 64 KiB. A picture that inflates to less is written into as much as its header promises. */
+/**
+ * The most pako writes of what it inflates before it hands it on: its
+ * own default, 64 KiB (`chunkSize: 1024 * 64` among its `Inflate`'s
+ * options, in 3.0.2), asked for here by name. A picture that inflates to
+ * less is written into as much as its header promises.
+ *
+ * pako fills a chunk before it hands it on, and what has inflated is
+ * counted as each is handed on. So data that inflates to more than its
+ * header promises is inflated to the end of the chunk that passes the
+ * promise -- a whole chunk past it where the promise ends with one, less
+ * anywhere else -- and no further: a megabyte of data under a header
+ * that promises 65,536 bytes is inflated to 131,072 (`pictures.test.ts`).
+ */
 const CHUNK = 64 * 1024
 
 /** Thrown out of the inflater once more has inflated than the header promises: pako lets it through its `push`. */
