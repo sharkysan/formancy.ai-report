@@ -15,34 +15,35 @@ the vulnerability class and the affected component is enough to begin triage.
 
 Formancy Report turns templates and a customer's data into PDF documents and
 Word files, and serves those documents to people. A Word file is written by
-`@formancy/report-render-docx` from the same resolved document as the PDF,
-and a person opens it in Word, which acts on what the file holds: a field it
+`@formancy/report-render-docx` from the same resolved document as the PDF, and
+a person opens it in Word, which acts on what the file holds: a field it
 updates, a relationship to an address it fetches, markup it reads as the
 document's own
 ([0068](docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
-Templates, expressions, datasets, fonts and
-images are untrusted input even when an administrator wrote them, and so are a
-formancy form's versions and their submissions, which a host hands the form
-bridge from its own store. The report server takes a person's identity and
-tenant from the host's token alone, verified offline with Formancy Data's
-verifier, and what a person may do is one table of actions, which every
-route that takes an action asks, and whoami lists what the table gives
+Templates, expressions, datasets, fonts and images are untrusted input even
+when an administrator wrote them, and so are a formancy form's versions and
+their submissions, which a host hands the form bridge from its own store. The
+report server takes a person's identity and tenant from the host's token
+alone, verified offline with Formancy Data's verifier, and what a person may
+do is one table of actions, which every route that takes an action asks, and
+whoami lists what the table gives
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
 [0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
 The server keeps a tenant's template drafts and the images they declare in
-files on one volume, and each revision of a draft keeps `savedBy`, the
-subject of the token that saved it: a claim's value, at rest in the store
-and in its backups, and never in a log line, an audit event or a refusal
+files on one volume, and each revision of a draft keeps `savedBy`, the subject
+of the token that saved it: a claim's value, at rest in the store and in its
+backups, and never in a log line, an audit event or a refusal
 ([0049](docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
-The areas we consider highest risk, and are most interested in reports
-about, follow from that:
+The areas we consider highest risk, and are most interested in reports about,
+follow from that:
 
 - **Cross-tenant exposure**: a dataset, a rendered PDF or Word file, a cached
-  artefact or a preview reaching a person the host's authorisation did not admit, including
-  through a cache key that leaves out the tenant, the principal or the policy
-  version. On the server: a draft or an image of one tenant read, listed or
-  saved over under another's token, or a template id, a digest or a tenant
-  claim that makes the store touch a path outside that tenant's directory.
+  artefact or a preview reaching a person the host's authorisation did not
+  admit, including through a cache key that leaves out the tenant, the
+  principal or the policy version. On the server: a draft or an image of one
+  tenant read, listed or saved over under another's token, or a template id, a
+  digest or a tenant claim that makes the store touch a path outside that
+  tenant's directory.
 - **Authorisation bypass** on preview, render or download: a decision taken
   from something the browser supplied -- a tenant, a role, a hidden field --
   rather than from the host's verified identity, or a published report used to
