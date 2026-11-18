@@ -556,11 +556,13 @@ what it meets first.
   a Word file holds -- the PDF judges the first two against the body
   between its regions, and refuses no spacer; more than
   `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one, 100,000;
-  text of more than `MAX_DOCX_CHARACTERS` characters, 4,000,000; more
+  text of more than `MAX_DOCX_CHARACTERS` characters, 4,000,000; text
+  held in more than `MAX_DOCX_RUNS` runs, a page field being three, as
+  Word writes it, and a table's cell one, 200,000; more
   than `MAX_DOCX_PICTURES` pictures, 1,024, each asset counted once; and
   pictures of more than `MAX_DOCX_MEDIA_BYTES` together, each counted
   once, twice `MAX_ASSET_BYTES`, as the PDF renderer's bound counts two
-  images of the largest kind. The first two are counted in the walk
+  images of the largest kind. The first three are counted in the walk
   that checks the document and the pictures as each asset is first
   read, before anything is built. Measured on 17 November 2026, on an
   Intel Core i9-10900K shared with other work, under Node 24.21.0 with
@@ -593,6 +595,16 @@ what it meets first.
   to 0.3 seconds; the largest PNG an asset may be, 134 MB of scanlines,
   inflated and summed in 0.8 seconds; and a PNG with 20 MB after the
   end of its image data refused in 0.1, where 16 MB had taken 4.2.
+  And one the paragraphs and the characters did not bound at all, the
+  runs, each stating its own properties: one paragraph of 3,999,000 runs
+  of a letter each, inside both, held the thread 9.5 seconds and 2.6 GB
+  before V8 refused the string the file is built in, a RangeError and no
+  refusal, and a page header of a million page fields, which count no
+  character, 3 seconds and 1.1 GB. Bounded by `MAX_DOCX_RUNS`, one
+  paragraph of 200,000 runs took 1.2 seconds and 484 MB, 66,666 page
+  fields 0.8 seconds and 344 MB, and 100,000 paragraphs of two runs
+  holding 4,000,000 ampersands, all three bounds at once, 2.4 seconds
+  and 559 MB.
   These are the shapes that were looked for, and no more is claimed.
 
 A refusal the PDF renderer makes of what it measured -- a block taller
@@ -744,7 +756,7 @@ written twice.
   no glyph for, a picture taller than the body between a tall header and
   footer, a report of more pages than a host allows: the PDF renderer
   refuses them and the writer cannot see them. A report of more than
-  100,000 paragraphs or 1,024 pictures, a labelled preview, a spacer
+  100,000 paragraphs, 200,000 runs or 1,024 pictures, a labelled preview, a spacer
   taller than the printable area, a rectangle, a column, a framed
   section or a picture that rounds to none of Word's units, a creation
   date that states no zone: the writer refuses them and the PDF prints

@@ -15,7 +15,7 @@ import {
 import { drawnSize, readPicture, type Picture } from './assets.js'
 import { checkColor, checkStyle, checkText, checkWritten } from './check-text.js'
 import type { DocxFonts } from './fonts.js'
-import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES } from './limits.js'
+import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS } from './limits.js'
 import { PADDING_X } from './look.js'
 import { refusePdfOnly, refusePdfOnlyBlock } from './pdf-only.js'
 import { cellFace, styledRows } from './rows.js'
@@ -103,6 +103,7 @@ interface Walk {
   readonly images: Image[]
   paragraphs: number
   characters: number
+  runs: number
 }
 
 export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Checked {
@@ -111,7 +112,7 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   checkWritten(document.info.title, 'the title', 'info.title')
   refusePdfOnly(document)
   const page = pageOf(document.page)
-  const walk: Walk = { fonts, page, images: [], paragraphs: 0, characters: 0 }
+  const walk: Walk = { fonts, page, images: [], paragraphs: 0, characters: 0, runs: 0 }
   const top = { kept: false, column: false, framed: false, width: page.width, depth: 0 }
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true, everyPage: true }, walk)
   if (document.firstPageHeader !== undefined) checkBlocks(document.firstPageHeader, 'firstPageHeader', { ...top, region: true, everyPage: false }, walk)
@@ -170,10 +171,15 @@ function pageOf(setup: ResolvedDocument['page']): Page {
   return { paperWidth, paperHeight, margins, width, height }
 }
 
-/** So many paragraphs and characters more, refused past either bound, naming where the count crossed it. */
-function count(walk: Walk, paragraphs: number, characters: number, subject: string): void {
+/**
+ * So many paragraphs, characters and runs of text more, refused past any
+ * bound, naming where the count crossed it. A block that writes no run
+ * of text, a spacer or a picture, counts none.
+ */
+function count(walk: Walk, paragraphs: number, characters: number, subject: string, runs = 0): void {
   walk.paragraphs += paragraphs
   walk.characters += characters
+  walk.runs += runs
   if (walk.paragraphs > MAX_DOCX_PARAGRAPHS)
     throw new RenderRefusal(
       'content-too-large',
@@ -182,6 +188,12 @@ function count(walk: Walk, paragraphs: number, characters: number, subject: stri
     )
   if (walk.characters > MAX_DOCX_CHARACTERS)
     throw new RenderRefusal('content-too-large', `the report's text is more than ${MAX_DOCX_CHARACTERS} characters long; a Word file holds no more`, subject)
+  if (walk.runs > MAX_DOCX_RUNS)
+    throw new RenderRefusal(
+      'content-too-large',
+      `the report's text is held in more than ${MAX_DOCX_RUNS} runs, a page field being three and a table's cell one; a Word file holds no more`,
+      subject,
+    )
 }
 
 function checkBlocks(blocks: readonly Block[], path: string, place: Place, walk: Walk): void {
@@ -271,14 +283,17 @@ function checkParagraph(paragraph: Paragraph, at: string, place: Place, walk: Wa
   })
   if (!known) throw new RenderRefusal('unsupported', `${at} sets a run below or above the line in a way a report does not know`, at)
   let characters = 0
+  // A page field is written as three runs, its start, its instruction and its end; an empty run of text, which writes nothing, is still read.
+  let runs = 0
   for (const run of paragraph.runs) {
+    runs += 'text' in run ? 1 : 3
     const face = { token: style?.font, bold: ('text' in run ? run.bold : undefined) ?? style?.bold ?? false, italic: style?.italic ?? false }
     if ('text' in run) {
       checkText(run.text, face, walk.fonts, at)
       characters += run.text.length
     } else checkText(PAGE_DIGITS, face, walk.fonts, `${at}'s page field`, at)
   }
-  count(walk, 1, characters, at)
+  count(walk, 1, characters, at, runs)
 }
 
 /** A line's weight held to what Word's borders hold: from a quarter of a point to twelve, in eighths. */
@@ -484,7 +499,7 @@ function checkTable(table: Table, width: number, walk: Walk): void {
       checkText(text, cellFace(row.styles[column]!, row.kind), walk.fonts, where, id)
       characters += text.length
     })
-    count(walk, row.cells.length, characters, id)
+    count(walk, row.cells.length, characters, id, row.cells.length)
   }
 }
 

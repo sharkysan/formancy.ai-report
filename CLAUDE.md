@@ -333,7 +333,8 @@ its checksum and its end; an SVG that covers a box of other proportions,
 and a table or a page break in a framed section); what no engine prints,
 by the PDF renderer's code and subject; what Word's units do not state;
 and what is past `limits.ts`'s `MAX_DOCX_PARAGRAPHS`,
-`MAX_DOCX_CHARACTERS`, `MAX_DOCX_PICTURES` and `MAX_DOCX_MEDIA_BYTES`.
+`MAX_DOCX_CHARACTERS`, `MAX_DOCX_RUNS`, `MAX_DOCX_PICTURES` and
+`MAX_DOCX_MEDIA_BYTES`.
 `xml.ts` is the one place a string becomes markup, a type of its own, and
 `check-text.ts` holds every string to what a report prints and XML
 holds; `fonts.ts` names a mapped token by its normal face's name ID 1,

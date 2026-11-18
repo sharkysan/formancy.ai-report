@@ -3125,7 +3125,7 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:ff46d70d59cb0a6f64b6f24a398c95b2058fdff9d1bd7b5db54809776be12816",
+      "reviewed": "sha256:ed10f0014cfc55cec9706a919b31709ded88687e6ae1e0c218857465f3df6ac8",
       "limitations": [
         {
           "area": "rendering",
@@ -3148,7 +3148,7 @@
         },
         {
           "area": "rendering",
-          "says": "The Word writer measures nothing, so it writes what the PDF renderer refuses for what it measured, a kept block taller than a page, a line no page holds or more pages than a host allows among it, and refuses what the PDF prints, a report of more than 100,000 paragraphs, 4,000,000 characters or 1,024 pictures, a spacer taller than the printable area, a rectangle, a column, a framed section or a picture that rounds to none of Word’s units, and a creation date that states no zone among it; a host that calls `renderDocx` without drawing the PDF gets no such check.",
+          "says": "The Word writer measures nothing, so it writes what the PDF renderer refuses for what it measured, a kept block taller than a page, a line no page holds or more pages than a host allows among it, and refuses what the PDF prints, a report of more than 100,000 paragraphs, 4,000,000 characters, 200,000 runs or 1,024 pictures, a spacer taller than the printable area, a rectangle, a column, a framed section or a picture that rounds to none of Word’s units, and a creation date that states no zone among it; a host that calls `renderDocx` without drawing the PDF gets no such check.",
           "heldBy": "packages/report-render-docx/src/corpus.test.ts"
         },
         {

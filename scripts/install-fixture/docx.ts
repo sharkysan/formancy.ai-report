@@ -18,7 +18,7 @@
 import { resolveReport } from '@formancy/report-runtime'
 import type { ImageResolver, ResolvedDocument } from '@formancy/report-runtime'
 import { renderDocx, RenderRefusal } from '@formancy/report-render-docx'
-import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, REFUSAL_CODES } from '@formancy/report-render-docx'
+import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS, REFUSAL_CODES } from '@formancy/report-render-docx'
 import type { RefusalCode } from '@formancy/report-render-docx'
 import { inflateRawSync } from 'node:zlib'
 import { logo, quotation, quotationData } from './quotation.js'
@@ -52,7 +52,11 @@ function entriesOf(zip: Uint8Array): Map<string, Buffer> {
 
 export function wordWritten(billed: ResolvedDocument): string {
   if (!REFUSAL_CODES.includes(UNSUPPORTED)) throw new Error('the refusal codes the writer hands on do not hold unsupported')
-  if (![MAX_DOCX_PARAGRAPHS, MAX_DOCX_CHARACTERS, MAX_DOCX_PICTURES, MAX_DOCX_MEDIA_BYTES].every((bound) => Number.isSafeInteger(bound) && bound > 0))
+  if (
+    ![MAX_DOCX_PARAGRAPHS, MAX_DOCX_CHARACTERS, MAX_DOCX_RUNS, MAX_DOCX_PICTURES, MAX_DOCX_MEDIA_BYTES].every(
+      (bound) => Number.isSafeInteger(bound) && bound > 0,
+    )
+  )
     throw new Error("the writer's bounds are not counts")
   const resolution = resolveReport(quotation, quotationData, { mode: 'final', images, creationDate: CREATED })
   if (!resolution.ok) throw new Error(resolution.errors.map((error) => `${error.code} at ${error.path}`).join('; '))

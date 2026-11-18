@@ -1,9 +1,9 @@
 import { deflateSync } from 'node:zlib'
 import { encodePng, pngOf, readZip } from '@formancy/report-corpus'
 import { MAX_ASSET_BYTES } from '@formancy/report-runtime'
-import type { Block, Image, ImageAsset, Table } from '@formancy/report-runtime'
+import type { Block, Image, ImageAsset, Paragraph, Table } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
-import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES } from './limits.js'
+import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS } from './limits.js'
 import { renderDocx } from './render.js'
 import { keptRows, type StyledRow } from './rows.js'
 import { documentOf, paragraph, refusalOf, written } from './testing/support.js'
@@ -123,6 +123,56 @@ describe('the paragraphs and the characters of a file', () => {
     expect(keptRows(rows, table(1, 't')).size).toBe(rows.length - 1)
     expect(asked).toBeLessThan(4 * rows.length)
   })
+})
+
+describe('the runs of a file', () => {
+  /** A paragraph of `runs`, each a run of its own. */
+  const ofRuns = (runs: Paragraph['runs']): Paragraph => ({ kind: 'paragraph', runs })
+  const letters = (length: number): Paragraph['runs'] => Array.from({ length }, () => ({ text: 'a' }))
+  const fields = (length: number): Paragraph['runs'] => Array.from({ length }, () => ({ field: 'pageNumber' as const }))
+
+  // A run states its own properties, some two hundred characters of XML for one of text. Bounded by its paragraph and its characters
+  // alone, one paragraph of four million letters, each a run, was within both and held the thread nine seconds before the string the
+  // file is built in grew past what V8 allows, a RangeError and no refusal.
+  test('one past the bound in one paragraph is refused, naming the paragraph that crossed it', () => {
+    const refusal = refusalOf(documentOf([paragraph('first'), ofRuns(letters(MAX_DOCX_RUNS))]))
+    expect(refusal).toMatchObject({ code: 'content-too-large', subject: 'body[1]' })
+    expect(refusal.message).toMatch(/more than 200000 runs/)
+  })
+
+  // At the bound and not one short of it: applied with >= where it means >, the limit would refuse the runs it promised to write.
+  test('at the bound are written, every one a run of the file', () => {
+    const bytes = renderDocx(documentOf([paragraph('first'), ofRuns(letters(MAX_DOCX_RUNS - 1))]))
+    const document = readZip(bytes).find((entry) => entry.name === 'word/document.xml')!.bytes
+    expect(count(document, '<w:t xml:space="preserve">a</w:t>')).toBe(MAX_DOCX_RUNS - 1)
+  }, 120_000)
+
+  // A page field counts no character, and Word writes it as three runs: a million of them in the page header, no character at all, were
+  // a RangeError after three seconds and a gigabyte. Counted as the three runs it is written as, the third of the bound is the most.
+  test('a page field is counted as the three runs Word writes it as', () => {
+    const most = Math.floor(MAX_DOCX_RUNS / 3)
+    expect(() => renderDocx(documentOf([], { pageHeader: [ofRuns(fields(most))] }))).not.toThrow()
+    expect(refusalOf(documentOf([], { pageHeader: [ofRuns(fields(most + 1))] }))).toMatchObject({ code: 'content-too-large', subject: 'pageHeader[0]' })
+  }, 120_000)
+
+  // An empty run writes nothing, and the walk still reads it: a bound that counted only what is written would let a paragraph of empty runs
+  // be as long as the host's memory.
+  test('an empty run is counted, though nothing of it is written', () => {
+    const empty = Array.from({ length: MAX_DOCX_RUNS + 1 }, () => ({ text: '' }))
+    expect(refusalOf(documentOf([ofRuns(empty)]))).toMatchObject({ code: 'content-too-large', subject: 'body[0]' })
+  })
+
+  // A cell is a run of its own, so a table at the paragraphs' bound is within the runs': the bound on runs is not a lower bound on cells.
+  test("is counted across a table's cells and the paragraphs beside it, a cell being one", () => {
+    // Its header and its rows, one paragraph short of the bound, which the paragraph beside it reaches.
+    const cells = MAX_DOCX_PARAGRAPHS - 1
+    const lines = table(cells - 1, 'c')
+    expect(() => renderDocx(documentOf([lines, ofRuns(letters(MAX_DOCX_RUNS - cells))]))).not.toThrow()
+    expect(refusalOf(documentOf([lines, ofRuns(letters(MAX_DOCX_RUNS - cells + 1))]))).toMatchObject({
+      code: 'content-too-large',
+      subject: 'body[1]',
+    })
+  }, 120_000)
 })
 
 describe('the pictures of a file', () => {

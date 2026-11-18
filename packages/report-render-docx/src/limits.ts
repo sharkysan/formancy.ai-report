@@ -64,6 +64,24 @@ export const MAX_DOCX_PARAGRAPHS = 100_000
 export const MAX_DOCX_CHARACTERS = 4_000_000
 
 /**
+ * The runs a file's text may hold, counted where the paragraphs are: a
+ * run of text one, empty or not, a page field three, as Word writes it,
+ * and a table's cell one. A run states its own properties, some two
+ * hundred characters of XML for one of text, so the paragraphs and the
+ * characters alone would let one paragraph of four million runs of a
+ * letter each through, which held the thread nine seconds before the
+ * string the file is built in grew past what V8 allows. Twice the
+ * paragraphs, so that a table at their bound is within it. Measured on
+ * 18 November 2026, the same way on the same machine: one paragraph of
+ * `MAX_DOCX_RUNS` runs of a letter each, 1.2 seconds and 484 MB; a page
+ * header of a third as many page fields, 0.8 seconds and 344 MB; and
+ * `MAX_DOCX_PARAGRAPHS` paragraphs of two runs each, holding
+ * `MAX_DOCX_CHARACTERS` ampersands between them, all three bounds at
+ * once, 2.4 seconds and 559 MB.
+ */
+export const MAX_DOCX_RUNS = 2 * MAX_DOCX_PARAGRAPHS
+
+/**
  * The bytes a file's pictures may hold together, each asset counted once
  * however often it is drawn: two of the largest an asset may be, as the
  * PDF renderer's `MAX_IMAGE_DATA` counts two images of the largest kind.

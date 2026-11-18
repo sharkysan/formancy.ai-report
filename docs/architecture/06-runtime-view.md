@@ -1271,8 +1271,8 @@ checkDocument: before a byte is written, in this order                          
    │  mapped face does not draw; a face the report maps no font to ────▶ unsupported
    ├─ a line outside the weights of Word's borders; a rectangle, a
    │  column or a framed section under a fortieth of a point ──────────▶ unsupported
-   ├─ past MAX_DOCX_PARAGRAPHS or MAX_DOCX_CHARACTERS, counted as it
-   │  walks ───────────────────────────────────────────────────────────▶ content-too-large
+   ├─ past MAX_DOCX_PARAGRAPHS, MAX_DOCX_CHARACTERS or MAX_DOCX_RUNS,
+   │  counted as it walks ─────────────────────────────────────────────▶ content-too-large
    │  then the pictures, each asset read once, in the order the walk
    │  met them:
    ├─ past MAX_DOCX_PICTURES, counted before an asset is read ─────────▶ content-too-large

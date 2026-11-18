@@ -58,7 +58,8 @@ and no picture of a page changed.
   or a picture so small that it rounds to none of the unit Word states it
   in; a creation date that states no zone, which is another moment on
   another machine, and would be another file there; and a file past
-  100,000 paragraphs, 4,000,000 characters, 1,024 pictures or two assets'
+  100,000 paragraphs, 4,000,000 characters, 200,000 runs, 1,024 pictures
+  or two assets'
   worth of them, measured where the bounds are written. So the invoices,
   the payment reminder and the sales report have no Word file, and a host
   whose reports carry a code or a chart cannot export them. It never
