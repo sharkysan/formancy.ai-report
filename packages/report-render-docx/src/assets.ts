@@ -1,5 +1,6 @@
-import { Unzlib } from 'fflate'
 import { checkSvg, imageHeader, MAX_ASSET_BYTES, RenderRefusal, sniffImage, type Image, type ImageAsset, type PngHeader } from '@formancy/report-runtime'
+import { Inflate, type ZStream } from 'pako'
+import { MAX_DOCX_IMAGE_DATA } from './limits.js'
 
 /**
  * A picture's asset, read before its bytes go into the file (0068). A
@@ -11,30 +12,52 @@ import { checkSvg, imageHeader, MAX_ASSET_BYTES, RenderRefusal, sniffImage, type
  * refuses it, `invalid-asset`, naming the asset: the size limit; the
  * bytes against the type they are declared as; a PNG's or a JPEG's
  * structure, by report-spec's `imageHeader`; that a PNG's image data is
- * one whole zlib stream -- its header, deflate data that ends where the
- * four bytes of its checksum begin, and the checksum of what it inflates
- * to -- and inflates to exactly the scanlines its header promises, each
- * with a filter PNG defines, read as it inflates and never kept; and an
- * SVG by report-spec's `checkSvg`, which accepts only the drawing
- * `cleanSvg` writes -- no script, no entity, no reference to an address
- * (0030). The corpus's malformed documents hold the two engines to each
- * other, one PNG for each way its data is no such stream.
+ * one whole zlib stream -- its header, deflate data as zlib reads it, the
+ * checksum of what it inflates to, and nothing after -- and inflates to
+ * exactly the scanlines its header promises, each with a filter PNG
+ * defines, read as it inflates and never kept; and an SVG by
+ * report-spec's `checkSvg`, which accepts only the drawing `cleanSvg`
+ * writes -- no script, no entity, no reference to an address (0030).
+ *
+ * The renderer inflates a PNG's data with the platform's
+ * `DecompressionStream`, which is zlib under Node and a browser's own in
+ * a browser, and asynchronous; the writer is synchronous, and inflates
+ * with pako, a port of zlib's own inflate, so that what is no stream to
+ * the one is none to the other. The corpus's malformed documents hold
+ * the two engines to each other, under Node, on one PNG for each way its
+ * data is no such stream that was looked for; that pako and the
+ * platform's decompressor agree on every other is pako's claim, as a
+ * port, and no test's here.
+ *
+ * Between a PNG's or a JPEG's header and anything more of it, the image
+ * data it holds is counted with that of the pictures read before it, as
+ * the PDF renderer counts it, and refused past `MAX_DOCX_IMAGE_DATA` as
+ * `content-too-large`: before a PNG's data is inflated, so that no more
+ * than the bound ever is. The renderer inflates a PNG and then counts
+ * it, so of a PNG past the bound whose data is no stream either, the
+ * renderer says the second and the writer the first.
  *
  * Then what nobody has seen Word print as the PDF does, refused as
  * `unsupported`: a JPEG whose Exif block turns or mirrors it, which
  * PDFKit turns, and one of four components, which PDFKit draws in CMYK.
  */
 
-/** A picture as the writer embeds it: its own size, in pixels as it is shown or in an SVG's units, and the part it becomes. */
+/** A picture as the writer embeds it: its own size, in pixels as it is shown or in an SVG's units, the part it becomes, and what it holds. */
 export interface Picture {
   readonly kind: 'png' | 'jpeg' | 'svg'
   readonly width: number
   readonly height: number
+  /** The image data it holds, as `MAX_DOCX_IMAGE_DATA` counts it: a PNG's scanlines as its header promises them, a JPEG's bytes, and none for an SVG. */
+  readonly data: number
 }
 
-/** The asset as it is embedded, once its bytes pass; refused, naming it and why, when they do not. */
-export function readPicture(asset: ImageAsset): Picture {
-  const read = pictureOf(asset)
+/**
+ * The asset as it is embedded, once its bytes pass; refused, naming it
+ * and why, when they do not, and when its image data and `held`, that of
+ * the pictures read before it, are more than a file may hold.
+ */
+export function readPicture(asset: ImageAsset, held: number): Picture {
+  const read = pictureOf(asset, held)
   if (typeof read === 'string') throw new RenderRefusal('invalid-asset', `the image asset ${asset.id} ${read}`, asset.id)
   return read
 }
@@ -51,7 +74,7 @@ export function drawnSize(image: Image, picture: Picture): { readonly width: num
   return cover ? { width: image.width, height: image.height, scale } : { width: picture.width * scale, height: picture.height * scale, scale }
 }
 
-function pictureOf(asset: ImageAsset): Picture | string {
+function pictureOf(asset: ImageAsset, held: number): Picture | string {
   const { bytes, id } = asset
   if (!(bytes instanceof Uint8Array)) return 'has no bytes'
   if (bytes.length > MAX_ASSET_BYTES) return `is ${bytes.length} bytes; the limit is ${MAX_ASSET_BYTES} (20 MB)`
@@ -59,18 +82,40 @@ function pictureOf(asset: ImageAsset): Picture | string {
   const [isPng, isJpeg] = [sniffed === 'image/png', sniffed === 'image/jpeg']
   // Read as an SVG only to say what bytes declared otherwise are.
   const actually = (): string => (isPng ? ': it is a PNG' : isJpeg ? ': it is a JPEG' : checkSvg(bytes).ok ? ': it is an SVG' : '')
-  if (asset.mediaType === 'image/png') return isPng ? raster(bytes, id) : `is declared a PNG and is not one${actually()}`
-  if (asset.mediaType === 'image/jpeg') return isJpeg ? raster(bytes, id) : `is declared a JPEG and is not one${actually()}`
+  if (asset.mediaType === 'image/png') return isPng ? raster(bytes, id, held) : `is declared a PNG and is not one${actually()}`
+  if (asset.mediaType === 'image/jpeg') return isJpeg ? raster(bytes, id, held) : `is declared a JPEG and is not one${actually()}`
   if (asset.mediaType !== 'image/svg+xml') return `is of a media type a Word file does not hold (${String(asset.mediaType)})`
   if (isPng || isJpeg) return `is declared an SVG and is not one${actually()}`
   const checked = checkSvg(bytes)
-  return checked.ok ? { kind: 'svg', width: checked.viewBox.width, height: checked.viewBox.height } : `is not an SVG a report draws: ${checked.message}`
+  return checked.ok
+    ? { kind: 'svg', width: checked.viewBox.width, height: checked.viewBox.height, data: 0 }
+    : `is not an SVG a report draws: ${checked.message}`
 }
 
-function raster(bytes: Uint8Array, id: string): Picture | string {
+/** `data`, the image data the picture `id` holds, where it and `held` are within what a file may hold; refused past that, before anything more of the picture is read. */
+function counted(data: number, held: number, id: string): number {
+  if (held + data > MAX_DOCX_IMAGE_DATA)
+    throw new RenderRefusal(
+      'content-too-large',
+      `the pictures up to ${id} hold ${held + data} bytes of image data, a PNG's the scanlines its header promises and a JPEG's its bytes; a Word file may hold ${MAX_DOCX_IMAGE_DATA}`,
+      id,
+    )
+  return data
+}
+
+function raster(bytes: Uint8Array, id: string, held: number): Picture | string {
   const header = imageHeader(bytes)
   if (!header.ok) return header.message
-  if (header.mediaType === 'image/png') return scanlineProblem(header) ?? { kind: 'png', width: header.width, height: header.height }
+  if (header.mediaType === 'image/png') {
+    const rows = scanlines(header)
+    const data = counted(
+      rows.reduce((total, row) => total + row.bytes * row.count, 0),
+      held,
+      id,
+    )
+    return scanlineProblem(header, rows, data) ?? { kind: 'png', width: header.width, height: header.height, data }
+  }
+  const data = counted(bytes.length, held, id)
   if (header.orientation !== undefined)
     throw new RenderRefusal(
       'unsupported',
@@ -83,7 +128,7 @@ function raster(bytes: Uint8Array, id: string): Picture | string {
       `the image ${id} is a JPEG of four components, which the PDF draws in CMYK; what Word draws of one is not known here: a Word file holds a grey or an RGB JPEG alone`,
       id,
     )
-  return { kind: 'jpeg', width: header.width, height: header.height }
+  return { kind: 'jpeg', width: header.width, height: header.height, data }
 }
 
 /** Adam7's seven passes: the first column and row of each, and the steps between them. */
@@ -97,8 +142,14 @@ const ADAM7 = [
   [0, 1, 1, 2],
 ] as const
 
-/** The scanlines of each pass of the image: the bytes of one, its filter byte included, and how many there are. */
-function scanlines(header: PngHeader): { readonly bytes: number; readonly count: number }[] {
+/** The scanlines of one pass of an image: the bytes of one, its filter byte included, and how many there are. */
+interface Scanlines {
+  readonly bytes: number
+  readonly count: number
+}
+
+/** The scanlines of each pass of the image. */
+function scanlines(header: PngHeader): Scanlines[] {
   const passes = header.interlaced
     ? ADAM7.map(([x, y, dx, dy]) => [Math.ceil((header.width - x) / dx), Math.ceil((header.height - y) / dy)] as const)
     : [[header.width, header.height] as const]
@@ -107,63 +158,65 @@ function scanlines(header: PngHeader): { readonly bytes: number; readonly count:
     .map(([width, height]) => ({ bytes: 1 + Math.ceil((width * header.bitsPerPixel) / 8), count: height }))
 }
 
-/** What is pushed to the decompressor at once: at deflate's most, 1032 to one, a slice inflates to under 17 MB before it is counted. */
-const SLICE = 16 * 1024
+/** The most pako writes of what it inflates before it hands it on: its own default, 64 KiB. A picture that inflates to less is written into as much as its header promises. */
+const CHUNK = 64 * 1024
 
-/** Thrown out of the decompressor's callback once more has inflated than the header promises. */
+/** Thrown out of the inflater once more has inflated than the header promises: pako lets it through its `push`. */
 class TooLong extends Error {}
 
 /** What the PDF renderer says of image data its decompressor refuses, for whichever reason: said here of the same data. */
 const NO_STREAM = 'has image data that does not inflate'
 
 /**
- * Whether fflate has read a zlib stream's last block to its end. It has no
- * word for that in what it declares, and without one a stream's end cannot
- * be told from a slice that inflated nothing -- so this reads the state it
- * keeps, as 0.8.3 keeps it and as its own gzip reader reads it to find
- * where a member ends: `f`, set once the last block has been met, and `l`,
- * the block still open. The dependency is pinned exactly, and
- * `pictures.test.ts` fails if a release keeps its state otherwise: every
- * PNG would be refused, or one with bytes after its stream written.
+ * pako's inflater over one PNG's image data: what it inflates is handed
+ * to `each` a chunk at a time and never kept, and what it left unread
+ * once the stream ended is `after`.
+ *
+ * A zlib stream and no other: left to itself pako reads the wrapper off
+ * the data and inflates a gzip member too, which the platform's
+ * decompressor, asked for `deflate`, refuses; stating the window, fifteen
+ * bits, the most a zlib stream may state, is what turns that off.
  */
-function ended(stream: Unzlib): boolean {
-  const { s } = stream as unknown as { readonly s: { readonly f?: number; readonly l?: object | null } }
-  return s.f === 1 && (s.l === undefined || s.l === null)
-}
+class Scanning extends Inflate {
+  private readonly each: (chunk: Uint8Array) => void
+  private stream: ZStream | undefined
 
-/** The largest prime under 2^16, which Adler-32's two sums are taken modulo, and the bytes summed between two reductions: the most that leave the second under 2^32 (RFC 1950, zlib's `NMAX`). */
-const ADLER = 65521
-const ADLER_RUN = 5552
+  constructor(chunkSize: number, each: (chunk: Uint8Array) => void) {
+    super({ windowBits: 15, chunkSize })
+    this.each = each
+  }
+
+  override onStart(strm: ZStream): void {
+    this.stream = strm
+  }
+
+  override onData(chunk: Uint8Array<ArrayBuffer>): void {
+    this.each(chunk)
+  }
+
+  /** The bytes left unread when the stream ended. pako hands its stream to `onStart` before it inflates a byte. */
+  get after(): number {
+    return (this.stream as ZStream).avail_in
+  }
+}
 
 /**
  * Whether the image data is one whole zlib stream that inflates to exactly
- * the scanlines the header promises, each starting with a filter type PNG
- * defines: the PDF renderer's check (`assets.ts` there), by fflate's
- * streaming decompressor where it has the platform's. Read as it inflates,
- * a slice at a time, and nothing of the image kept.
+ * the scanlines the header promises, `expected` bytes in `rows`, each
+ * starting with a filter type PNG defines: the PDF renderer's check
+ * (`assets.ts` there), by pako where it has the platform's decompressor.
+ * Read as it inflates, a chunk at a time, and nothing of the image kept.
  *
- * The platform's decompressor refuses a stream whose checksum is not its
- * data's and one with bytes after its end; fflate's compares no checksum
- * and reads past no end, so both are held here. The checksum, Adler-32, is
- * summed over what inflates and compared with the stream's last four
- * bytes. The end is held by pushing every byte but the last of the
- * deflate data and asking whether the stream has ended (`ended`): if it
- * has, bytes stand between its end and its checksum, and reading stops
- * there -- fflate keeps what it has not read and joins each later slice to
- * it, so reading on would cost the square of what follows (16 MB after a
- * stream of thirty bytes: 4.2 seconds, on 18 November 2026, on the machine
- * `limits.ts` names). Then the last byte is pushed with the checksum, and
- * the stream must have ended with it.
+ * pako is zlib's inflate: it refuses a block zlib refuses, compares the
+ * stream's checksum with what it inflated, and stops where the stream
+ * ends, saying how much it left unread -- so data that is cut short, that
+ * does not sum, or that zlib would not read is its error, and a byte after
+ * the stream is one it left. Reading stops with the stream, whatever
+ * follows it, and with the chunk that passes what the header promises.
  */
-function scanlineProblem(header: PngHeader): string | undefined {
-  const rows = scanlines(header)
-  const expected = rows.reduce((total, row) => total + row.bytes * row.count, 0)
-  const { data } = header
-  // The last byte of the deflate data stands before the checksum's four.
-  const last = data.length - 5
+function scanlineProblem(header: PngHeader, rows: readonly Scanlines[], expected: number): string | undefined {
   let [length, row, left, next, unknown] = [0, 0, rows[0]?.count ?? 0, 0, undefined as number | undefined]
-  let [low, high] = [1, 0]
-  const stream = new Unzlib((chunk) => {
+  const inflater = new Scanning(Math.min(CHUNK, expected), (chunk) => {
     // Where each scanline's filter byte is in what has inflated so far.
     while (unknown === undefined && row < rows.length && next < length + chunk.length) {
       const filter = chunk[next - length]!
@@ -173,30 +226,14 @@ function scanlineProblem(header: PngHeader): string | undefined {
     }
     length += chunk.length
     if (length > expected) throw new TooLong()
-    for (let at = 0; at < chunk.length;) {
-      const end = Math.min(at + ADLER_RUN, chunk.length)
-      for (; at < end; at++) {
-        low += chunk[at]!
-        high += low
-      }
-      low %= ADLER
-      high %= ADLER
-    }
   })
-  // A zlib stream is its two bytes of header, deflate data and the four of its checksum: with no byte of data there is none to read.
-  if (last < 2) return NO_STREAM
   try {
-    for (let at = 0; at < last; at += SLICE) {
-      stream.push(data.subarray(at, Math.min(at + SLICE, last)), false)
-      if (ended(stream)) return NO_STREAM
-    }
-    stream.push(data.subarray(last), true)
+    inflater.push(header.data, true)
   } catch (error) {
-    return error instanceof TooLong ? `has more image data than the ${expected} bytes its header promises` : NO_STREAM
+    if (error instanceof TooLong) return `has more image data than the ${expected} bytes its header promises`
+    throw error
   }
-  // Big-endian, as zlib writes it; unsigned, as the sums are.
-  const stated = ((data[last + 1]! << 24) | (data[last + 2]! << 16) | (data[last + 3]! << 8) | data[last + 4]!) >>> 0
-  if (!ended(stream) || stated !== ((high << 16) | low) >>> 0) return NO_STREAM
+  if (inflater.err !== 0 || inflater.after !== 0) return NO_STREAM
   if (length < expected) return `has image data of ${length} bytes where its header promises ${expected}`
   return unknown === undefined ? undefined : `has a scanline with an unknown filter type (${unknown})`
 }

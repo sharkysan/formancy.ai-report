@@ -60,30 +60,43 @@
     makes of markup, fields, entities and quotes; a run's spaces, a line
     ending inside a run and inside a cell, the one that ends a paragraph
     or a cell, and each character below to what the record says of it; a
-    creation date that states no zone to its refusal; and that a string
-    does not compile where markup stands (`@ts-expect-error`).
+    creation date that states no zone, a day or an hour no calendar has,
+    or the year 0000 to its refusal; and that a string does not compile
+    where markup stands (`@ts-expect-error`).
     `src/pictures.test.ts` holds a picture's part to the asset's very
     bytes, its extent, a contained picture's place in its box and a
     covering one's crop to its pixels, an SVG's `svgBlip` and its
     fallback, an SVG that is more than a drawing to its refusal, a PNG
     whose data is not its scanlines, is not what its checksum sums, has a
-    byte after its end or ends before its last block to theirs, a PNG
-    with a mebibyte after its data to being refused at that end, by the
-    slices read, and every kind of the corpus's `IMAGE_KINDS` to being
-    written and of its `UNSEEN_JPEGS` to being refused.
+    byte after its end, ends before its last block, states a stored
+    block's length and not its complement, uses a length code deflate
+    does not define, is a gzip member or is deflate data in no zlib
+    stream to theirs, and every kind of the corpus's `IMAGE_KINDS` to
+    being written and of its `UNSEEN_JPEGS` to being refused.
     `src/fonts.test.ts` holds a mapped token to the family its face's
     name table states, to name ID 1 where a typographic family stands
-    beside it, `sans` unmapped to Roboto, and what the PDF refuses of a
-    font to its refusal. `src/bounds.test.ts` writes a file at each bound
-    and refuses one past it; holds a refusal for size to nothing after
-    the block that crossed it being read; writes as many paragraphs as
-    the bound, each kept with the next; and counts what marking a table
-    of totals reads.
+    beside it, `sans` unmapped to Roboto, what the PDF refuses of a font
+    to its refusal, and a family of as many characters as Word reads to
+    being written and one of a character more to being refused, on fonts
+    report-spec's font test support made, held as their bytes in
+    `src/testing/fonts.ts`. `src/bounds.test.ts` writes a file at each
+    bound and refuses one past it; holds a refusal for size to nothing
+    after the block that crossed it being read; writes as many paragraphs
+    as the bound, each kept with the next; counts what marking a table of
+    totals reads; holds a picture, a rule, a page break and a column to
+    counting as a paragraph and a rectangle and a section's frame as two;
+    a line ending to counting as a run, in a paragraph and in a cell, and
+    the two characters together as one; what a family of quotation marks
+    is written longer than it is named to being counted for every run, a
+    page field's three, every paragraph mark and every cell; and the
+    pictures' image data to its bound, to a JPEG's bytes, and to being
+    counted before a PNG is inflated.
   - **The same bytes.** `src/stable.test.ts`: one document written twice
     is the same bytes; written in a second process fourteen hours ahead
-    of UTC and in one eight behind, the same digest; every entry of the
-    zip dated as `package.ts` dates it, in its own header and in the
-    directory. Under Node: what the writer gives in a browser, over the
+    of UTC and in one eight behind, the same digest, and in one that sets
+    its time zone once it has loaded the writer, either way; every entry
+    of the zip dated as `package.ts` dates it, in its own header and in
+    the directory. Under Node: what the writer gives in a browser, over the
     file fflate serves one, is the Studio's gate's, below.
   - **Against the PDF.** `src/against-pdf.test.ts`, with
     report-render-pdf a devDependency of the suite alone: for every
@@ -98,18 +111,25 @@
     breaks and one; every document of the corpus's `MALFORMED` list, one
     for each way a document breaks its contract with an engine before
     anything is measured, is refused by both by the same code and
-    subject; and one document wrong in every place both engines look --
-    its creation date, its title, its page, each region, a block of its
-    body and a picture's bytes -- is refused by both for the same place
-    as each is put right.
+    subject; one document wrong in every place both engines look -- a
+    face that is no font, its creation date, its title, its page, each
+    region, a block of its body and a picture's bytes -- is refused by
+    both for the same place as each is put right; and two documents,
+    whose pictures hold a byte more image data than a file may and
+    exactly as much with a JPEG after, are refused by both for the
+    picture that crossed the bound, which holds the writer's number to
+    the renderer's without either drawing a page. report-corpus's
+    `src/fixtures/malformed.test.ts` holds each PNG of that list whose
+    data is no stream to being wrong in the one way its title says, by
+    zlib's own word for it.
   - **report-spec.** `src/image-header.test.ts` holds a JPEG's
     `orientation` to each of 2 to 8 as PDFKit reads it, and to being
     absent where the image is upright; `src/font-names.test.ts` holds
     `legacyFamily` to name ID 1 beside a typographic family, and to
     being absent without one.
   - **From outside.** `scripts/install-fixture/docx.ts`, which the node
-    host's `consume.ts` runs: the packed package, on the fflate a clean
-    npm install gives it, writes the quotation, and Node alone -- its
+    host's `consume.ts` runs: the packed package, on the fflate and the
+    pako a clean npm install gives it, writes the quotation, and Node alone -- its
     zlib over a walk of the zip's directory, no reader of this
     repository's -- finds the parts a Word file is known by, the title
     and the instant in its core properties, the report's title in its
@@ -124,7 +144,7 @@
     are a program of their own
     (`tsconfig.test.json`). `scripts/readme-example.test.mjs` holds the
     example in the package's README to lines that consumer runs.
-    `scripts/dependency-licences.mjs` judges fflate;
+    `scripts/dependency-licences.mjs` judges fflate and pako;
     `scripts/architecture.test.mjs`, `scripts/ci-test-jobs.test.mjs` and
     `scripts/codecov-config.test.mjs` hold the package to its row, its
     job and its component.
@@ -141,7 +161,9 @@
     the writer, holds a writer that throws what is no refusal to leaving
     the PDF as it printed, the fault said of the Word file alone, and
     `src/preview/word-chunk.test.ts` a writer whose module does not load
-    to the same.
+    to the same. `src/preview/chunks.test.ts` holds the writer, with
+    fflate and pako, to one chunk of a build of the pipeline, which the
+    pipeline imports dynamically and nothing that loads with it imports.
     `src/preview/pdf-view.test.tsx` holds Download Word to following
     Download PDF as the keyboard's next stop, under the starter's id with
     `.docx` and Word's media type, to the file of the render on the paper
@@ -245,7 +267,36 @@
     asked for only once all is read, the empty text counted whatever the
     rows, a cell's last ending written, and a date read as the machine
     reads it; and of the Studio, the writer's import outside the guard
-    that catches what it throws.
+    that catches what it throws. And, the same day, what a second review
+    found, each case written first and seen failing on the writer as it
+    stood: a family of 32 characters, written; a family of quotation
+    marks, uncounted, in a paragraph's runs, its mark, a page field and
+    a table's cells; the pictures' image data two bytes past its bound,
+    a JPEG's bytes past it, and a PNG past it whose data is no stream,
+    refused for the data; a PNG whose stored block states no complement
+    and one of a length code deflate does not define, each written, here
+    and in the corpus's list; a line ending in a run and in a cell, and
+    the two characters together, each past the runs' bound and written;
+    a process that sets its time zone after it has loaded the writer, by
+    fflate's own Error; a creation date of the year 0000, of 30 February,
+    of a leap day its year has not, of a thirty-first its month has not
+    and of an hour 24, each written; and a rectangle and a framed section
+    counted as one paragraph. A picture, a rule, a page break and a
+    column were counted already, and their cases passed as they were
+    written, as did a face that is no font being refused first. With the
+    thing each guards taken out again: the family's bound, a character
+    either way; its count for a run, for a mark and for a cell, the
+    cell's own token, and the count of its name as written; the image
+    data's bound a byte either way, in the writer and in the renderer's
+    built file, a JPEG uncounted, the count taken after a PNG is
+    inflated, and the count not summed; pako left to read a gzip member,
+    its error unread, what it left unread unasked, and a chunk past what
+    the header promises let through; a line ending's count in a
+    paragraph and in a cell, and the two characters counted as two; each
+    of the six counts of a block that is no text; the fonts read after
+    the walk; and of the Studio, the writer imported statically. The
+    reading of fflate's state and the checksum's comparison, taken out
+    above, went with fflate's inflater.
   - **Seen, once, by hand, on 17 November 2026**, and by no gate: a file
     written by hand of every construct this record chooses -- runs of
     every style, runs set off the line, a table with its header marked, a
@@ -334,14 +385,19 @@ it refuses, whole, what belongs to the PDF and what nobody has seen Word
 print as the PDF does.**
 
 **The package.** Beside report-render-pdf, on `@formancy/report-runtime`,
-which hands on what report-spec decides, and on `fflate` at exactly
-0.8.3, MIT, with no dependency of its own. Its own source has no Node, no
-DOM and no network, and compiles with ES2023's library and no types
-besides: fflate's declarations need neither Node's nor the DOM's. fflate
+which hands on what report-spec decides, on `fflate` at exactly 0.8.3,
+MIT, which zips the file, and on `pako` at exactly 3.0.2, MIT and Zlib,
+which inflates a PNG's image data to check it, and which
+report-documents inflates with already
+([0054](0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md));
+neither has a dependency of its own. Its own source has no Node, no DOM
+and no network, and compiles with ES2023's library and no types
+besides: neither library's declarations need Node's or the DOM's. fflate
 itself serves Node one file, which imports `module` and requires
 `worker_threads` as it loads, in a `try`, and every other host another;
 the writer calls its synchronous half alone, which is the same code in
-both. `renderDocx` is synchronous, takes no option and no
+both. pako serves every host one file. `renderDocx` is synchronous,
+takes no option and no
 signal: there is no page limit to pass, since the writer counts no page.
 The two engines share the document and the refusal, and no interface.
 That one entry serves a browser is held by the Studio's gate, through
@@ -362,8 +418,10 @@ relationships where it draws a picture; and a part for each picture, in
 that order. Parts are named by what they are and their order,
 `word/media/image1.png`, relationships by their order in their part, and
 pictures numbered as they are written. Every entry of the zip is dated 1
-January 1980, by its local fields, so that neither the clock nor a
-machine's time zone reaches the bytes, and deflated by fflate's own code;
+January 1980, by the local fields of a date made as the file is written,
+so that neither the clock nor a machine's time zone, set before the
+writer loaded or after, reaches the bytes, and deflated by fflate's own
+code;
 a PNG and a JPEG, which are compressed already, are stored as they are.
 
 **What it writes**, block by block:
@@ -421,8 +479,14 @@ or an offset, which is what the runtime writes, or a date alone, which
 is its first moment in UTC. A date and time without a zone is read in
 the machine's own, so the same document was another file in another
 time zone; it is refused as `unsupported`, and so is a date in any other
-form, which the platform reads in a way of its own. The PDF renderer
-reads the date as the platform does, and draws such a document.
+form, which the platform reads in a way of its own. And it must state a
+day and a time a calendar has: the platform reads on past one -- 30
+February as 2 March, an hour 24 as the first of the next day -- and the
+instant written would be a date the document does not state, so a date
+whose stated fields are not those of the instant it is read as is
+refused too, and one whose year, in UTC, is not 0001 to 9999, the years
+a core property's date has. The PDF renderer reads the date as the
+platform does, and draws each of these.
 Nothing a document carries is a part's name, a relationship's target or
 a field's instruction: those are the writer's own, and the file holds no
 relationship to an address.
@@ -441,7 +505,18 @@ slant a mapped token has no face for, which Word would synthesise; a
 token whose faces are of different typographic families is refused,
 since the file names one family for it; and a family whose name is
 nothing, or holds a control character or one XML does not, is refused
-as `invalid-asset`. Weight and slant are `w:b` and `w:i`. A mapped
+as `invalid-asset`, and so is one of more than 31 characters,
+`MAX_DOCX_FAMILY_LENGTH`: Microsoft's notes on how Office implements
+the standard say that Word restricts a run's font attributes to less
+than 32 characters and a font table's name to between 1 and 31
+([MS-OI29500], Part 1 Sections 17.3.2.26 and 17.8.3.10, read on 18
+November 2026), which is the face name of Windows, so a longer name is
+a family no reader would find, and report-spec's reader holds a family
+to no length at all. A name within the bound may still be written
+longer: a quotation mark is six characters in an attribute, and every
+run and every paragraph mark states the family four times, so what a
+family is written past 31 characters is counted, each time, with the
+file's characters. Weight and slant are `w:b` and `w:i`. A mapped
 face's characters are known, so text is held to them as the PDF holds
 it; Roboto's bytes are not in the package. `fontTable.xml` states each
 family's kind by its token -- swiss, roman or modern, the last of fixed
@@ -473,18 +548,20 @@ PDF; the rules, the padding, the gaps and the colours print nothing it
 reads, and are held by review.
 
 **What is refused**, before a byte is written, as the runtime's
-`RenderRefusal`, with the PDF renderer's codes, in this order: the
-creation date and the title; the payment part, the e-invoice and a
-preview's label; the page; then the page header, page 1's own, the page
-footer and the body, each block in document order; and last the
-pictures' bytes, in the order the walk met them. By where a thing
-stands, then, and not by its kind: a chart or a code is refused where
-the walk meets it, after a block no engine prints that stands before it.
-It is the PDF renderer's order for what both refuse, which reads its
-pictures once it has walked every block, so a document wrong in several
-of those places is refused by both for the same one; a document wrong in
-a way only one engine refuses, and in another, is refused by each for
-what it meets first.
+`RenderRefusal`, with the PDF renderer's codes, in this order: a face
+that is no font, or whose family a Word file cannot name, as the fonts
+are read, before anything is walked; the creation date and the title;
+the payment part, the e-invoice and a preview's label; the page; then
+the page header, page 1's own, the page footer and the body, each block
+in document order; and last the pictures' bytes, in the order the walk
+met them. By where a thing stands, then, and not by its kind: a chart or
+a code is refused where the walk meets it, after a block no engine
+prints that stands before it. It is the PDF renderer's order for what
+both refuse, which reads its fonts before it walks and its pictures once
+it has walked every block, so a document wrong in several of those
+places is refused by both for the same one; a document wrong in a way
+only one engine refuses, and in another, is refused by each for what it
+meets first.
 
 - **What belongs to the PDF**, each `unsupported`, naming it:
   - a **payment part**. SIX fixes the slip to the millimetre at the foot
@@ -532,21 +609,26 @@ what it meets first.
   nested past sixteen, a page the margins leave nothing of, and a
   picture, a rectangle or fixed columns wider than where they stand, as
   `content-too-large`. Bytes that are not the picture or the font they
-  are declared as are `invalid-asset`: a PNG's image data is inflated,
-  by fflate's streaming decompressor, and held to the scanlines its
-  header promises and to being one whole zlib stream, as the PDF
-  renderer holds it with the platform's decompressor, which refuses a
-  stream whose checksum is not its data's and one with bytes after its
-  end. fflate compares no checksum and says nothing of where a stream
-  ended, so the writer sums the Adler-32 of what inflates and compares
-  it with the stream's last four bytes, and holds the end by pushing
-  every byte but the last of the deflate data and reading, from the
-  state fflate 0.8.3 keeps of a stream, that it has not ended yet --
-  where it has, reading stops, since fflate joins every later slice to
-  what it has not read, at the cost of the square of what follows. The
-  corpus's `MALFORMED` list is one document for each, a PNG for each way
-  its data is no such stream among them, and both engines refuse every
-  one alike.
+  are declared as are `invalid-asset`: a PNG's image data is inflated
+  and held to the scanlines its header promises and to being one whole
+  zlib stream, as the PDF renderer holds it. The renderer inflates with
+  the platform's `DecompressionStream`, which is zlib under Node and a
+  browser's own in a browser, and asynchronous; the writer is
+  synchronous, and inflates with pako, a port of zlib's own inflate, its
+  window stated so that it reads a zlib stream and no gzip member. So
+  what zlib refuses of a
+  block, a stream that is cut short and one whose checksum is not its
+  data's are pako's error, and a byte after the stream's end is one it
+  says it left unread; reading stops with the stream, and with the chunk
+  that passes what the header promises. The corpus's `MALFORMED` list is
+  one document for each way a document breaks the contract, a PNG for
+  each way that was looked for in which its data is no such stream among
+  them -- a checksum, bytes after the end, an end that never comes, a
+  stored block whose length states no complement, a length code deflate
+  does not define, a gzip member -- and both engines refuse every
+  document of the list alike, under Node. That pako and the platform's
+  decompressor agree on every other stream, and in a browser, is pako's
+  claim, as a port of zlib, and no test's here.
 - **What Word's units do not state**, each `unsupported`, naming the
   block or the asset: a rule's or a border's weight outside what Word's
   borders hold, and a rectangle, a column, a framed section or a picture
@@ -555,16 +637,33 @@ what it meets first.
   rectangle or a spacer taller than the printable area, which no page of
   a Word file holds -- the PDF judges the first two against the body
   between its regions, and refuses no spacer; more than
-  `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one, 100,000;
-  text of more than `MAX_DOCX_CHARACTERS` characters, 4,000,000; text
-  held in more than `MAX_DOCX_RUNS` runs, a page field being three, as
-  Word writes it, and a table's cell one, 200,000; more
-  than `MAX_DOCX_PICTURES` pictures, 1,024, each asset counted once; and
-  pictures of more than `MAX_DOCX_MEDIA_BYTES` together, each counted
-  once, twice `MAX_ASSET_BYTES`, as the PDF renderer's bound counts two
-  images of the largest kind. The first three are counted in the walk
-  that checks the document and the pictures as each asset is first
-  read, before anything is built. Measured on 17 November 2026, on an
+  `MAX_DOCX_PARAGRAPHS` paragraphs, 100,000, a table's cell being one and
+  a rectangle or a section's frame, each a table of its own around its
+  paragraph, two; text of more than `MAX_DOCX_CHARACTERS` characters,
+  4,000,000, with what a font's family is written past 31 characters in
+  every run and paragraph mark that states it; text held in more than
+  `MAX_DOCX_RUNS` runs, 200,000, a page field being three, as Word
+  writes it, a table's cell one, and each line ending in a text one
+  more, since it is written as a break and what follows it as a `w:t` of
+  its own; more than `MAX_DOCX_PICTURES` pictures, 1,024, each asset
+  counted once; pictures of more than `MAX_DOCX_MEDIA_BYTES` together as
+  they are stored, each counted once, twice `MAX_ASSET_BYTES`, which
+  bounds the file; and pictures of more than `MAX_DOCX_IMAGE_DATA` of
+  image data together, each counted once: a PNG's scanlines as its
+  header promises them, a JPEG's bytes, an SVG none, which is how the
+  PDF renderer counts its `MAX_IMAGE_DATA`, and its number, two of the
+  largest PNG an asset may be. The writer inflates every PNG it embeds,
+  and a PNG's bytes say little of what it inflates to, so the count is
+  taken from its header before it is inflated, and no more than the
+  bound ever is; the renderer inflates first, so of a PNG past the bound
+  whose data is no stream either, the renderer refuses the data and the
+  writer the size. The number is stated in both engines, since no
+  package below both holds what an engine's pictures may cost it and the
+  writer does not depend on the renderer, and `against-pdf.test.ts`
+  holds the two together. The paragraphs, the characters and the runs
+  are counted in the walk that checks the document, and the pictures as
+  each asset is first read, before anything is built. Measured on 17
+  November 2026, on an
   Intel Core i9-10900K shared with other work, under Node 24.21.0 with
   fflate 0.8.3, a process a measurement: a table of 100,000 cells
   holding 4,000,000 ampersands between them, each written five
@@ -579,7 +678,8 @@ what it meets first.
   entries, which no reader opens. The bound stands far under that, and
   over the 128 a document the runtime resolved can hold: 64 assets a
   report declares, and 64 its header's fields name. As `unsupported`: a
-  creation date of a year a core property cannot state.
+  creation date of a year a core property cannot state, the year 0000
+  among them, and one of a day or a time no calendar has.
 
   A count bounds the work only where the work is the count's. Three
   shapes inside the bounds cost its square, and each is now written in
@@ -593,8 +693,9 @@ what it meets first.
   605 MB, where 40,000 had taken 3.8 seconds; 100,000 pictures of one
   asset, 1.9 seconds and 671 MB; 1,024 pictures of an asset each, 0.2
   to 0.3 seconds; the largest PNG an asset may be, 134 MB of scanlines,
-  inflated and summed in 0.8 seconds; and a PNG with 20 MB after the
-  end of its image data refused in 0.1, where 16 MB had taken 4.2.
+  inflated and summed by fflate, which read it then, in 0.8 seconds; and
+  a PNG with 20 MB after the end of its image data refused in 0.1, where
+  16 MB had taken 4.2.
   And one the paragraphs and the characters did not bound at all, the
   runs, each stating its own properties: one paragraph of 3,999,000 runs
   of a letter each, inside both, held the thread 9.5 seconds and 2.6 GB
@@ -605,6 +706,52 @@ what it meets first.
   fields 0.8 seconds and 344 MB, and 100,000 paragraphs of two runs
   holding 4,000,000 ampersands, all three bounds at once, 2.4 seconds
   and 559 MB.
+
+  And a count bounds the work only where each thing counted costs what
+  the count takes it for. A second review, that day, found three that
+  did not, each inside every bound, and measuring them found a fourth.
+  A font's family, stated four times by every run and every paragraph
+  mark, and as long as its font made it: a font of 66 KB whose family
+  was 32,767 quotation marks, which report-spec's reader passes, made
+  350 paragraphs of a letter each a string of 663 MB, a RangeError and
+  no refusal. A line ending, counted as the character it is and written
+  as a break and a `w:t` of its own: one paragraph of one run of
+  4,000,000 characters, every other a line feed, 4.6 seconds and 1,440
+  MB, and 100,000 cells of forty such characters, 4.6 seconds and 979
+  MB. A PNG, inflated in full however many a file held: the largest an
+  asset may be is a file of 130,527 bytes where its pixels are all
+  alike, 321 of them were inside the bounds on the pictures' bytes and
+  their count, and eight took 6.1 seconds. And a rectangle or a
+  section's frame, a table of its own for the one paragraph it was
+  counted as, 993 and 942 characters of XML where a table's cell is 466:
+  100,000 filled and outlined rectangles, 3.3 to 3.6 seconds and 1,250
+  MB, more than any text the bounds allow. Measured once each is counted
+  for what it is, the same way on the same machine, with pako 3.0.2
+  beside fflate, every text of ampersands, the memory with the document
+  the writer was handed in it, four to twelve processes a shape: the
+  table of cells above, 2.0 to 2.5 seconds, and 724 MB in seven
+  processes of ten and 993 MB in three; in a mapped family of 31
+  letters, 2.5 to 2.9 seconds, and 838 MB in three of four and 1,095 MB
+  in one; 100,000 paragraphs of two runs holding 4,000,000 ampersands,
+  the three bounds at once, 2.3 to 2.5 seconds and 734 MB, in that
+  family 2.8 to 3.1 seconds and 877 MB, and with every paragraph kept
+  with the next in one kept block and centred, and every run set off the
+  line besides, 3.2 to 3.3 seconds and 946 MB, the longest that was
+  found; one paragraph of one run of 4,000,000 characters with 199,999
+  line endings, 1.1 seconds and 489 MB; the table of cells with a line
+  ending in each, 2.3 to 2.5 seconds, and 743 MB in four processes of
+  five and 1,010 MB in one, and in that family 2.6 to 2.9 seconds, and
+  857 MB in two of four and 1,112 MB in two, the most memory that was
+  found; 50,000 filled and outlined rectangles, 1.4 to 1.5 seconds and
+  570 MB, 50,000 framed sections, 1.4 and 567, 50,000 tables of a header
+  alone, 2.2 to 2.3 and 734, and 100,000 columns blocks of one column,
+  1.8 to 1.9 and 699; the largest PNG inflated in 0.5 to 0.6 seconds,
+  and the two a file may hold in 1.0; and a PNG with 20 MB after the end
+  of its image data refused in 0.1. A table of cells took the less or
+  the more from one process to the next, some 265 MB apart for the same
+  document, and why was not looked for: the 720 MB of the measurements
+  before these were the less.
+
   These are the shapes that were looked for, and no more is claimed.
 
 A refusal the PDF renderer makes of what it measured -- a block taller
@@ -664,8 +811,11 @@ built, and not through a mocked writer.
 **The Studio.** The Preview writes the Word file of the document it drew
 the PDF from, once the PDF is drawn and of no document the renderer
 refused, so the page limit that bounds a preview bounds what the writer
-is handed on the page's own thread; the writer is a chunk of the build's
-own, asked for with the first PDF that printed. It offers the file after
+is handed on the page's own thread; the writer, with fflate and pako, is
+a chunk of the build's own, asked for with the first PDF that printed,
+which `chunks.test.ts` holds on a build of the pipeline: an import that
+became static would load the writer with the page. It offers the file
+after
 Download PDF as **Download Word**, the starter's id with `.docx`, the
 file of the render on the paper. Where the writer refused, there is no
 link, and a note in its place says so in the writer's own sentence: "No
@@ -708,12 +858,12 @@ written twice.
 - **The same file for the same document**, in any Node process and any
   time zone, and in the Chromium the Studio's gate downloads it from,
   which a host can store by its digest.
-- **A small writer.** One dependency with none of its own, no fonts and
-  no rasteriser in the package; in the Studio's build it is a chunk of
-  48.5 kB, 18.5 kB gzipped, measured on 17 November 2026 as
-  `apps/studio/vite.config.ts` says, and of 50.3 kB and 19.1 kB the day
-  after, with what a review added, loaded with the first PDF that
-  printed.
+- **A small writer.** Two dependencies with none of their own, no fonts
+  and no rasteriser in the package; in the Studio's build it is a chunk
+  of 48.5 kB, 18.5 kB gzipped, measured on 17 November 2026 as
+  `apps/studio/vite.config.ts` says, of 50.3 kB and 19.1 kB the day
+  after, with what a review added, and of 79.4 kB and 28.1 kB once pako
+  inflated a PNG's data in it, loaded with the first PDF that printed.
 - **Refusals a person can read**, each naming what it is about, and never
   a file that lost something.
 
@@ -755,22 +905,39 @@ written twice.
   line that Word breaks onto a line of its own, a character Roboto has
   no glyph for, a picture taller than the body between a tall header and
   footer, a report of more pages than a host allows: the PDF renderer
-  refuses them and the writer cannot see them. A report of more than
-  100,000 paragraphs, 200,000 runs or 1,024 pictures, a labelled preview, a spacer
-  taller than the printable area, a rectangle, a column, a framed
-  section or a picture that rounds to none of Word's units, a creation
-  date that states no zone: the writer refuses them and the PDF prints
-  them. The Studio offers the file only beside a PDF that was drawn; a
-  host that calls `renderDocx` alone gets no such check.
-- **A stream's end is read from fflate's own state.** Nothing fflate
-  declares says where a zlib stream it inflates ended, and the writer
-  needs that to refuse a PNG as the PDF renderer refuses it and to stop
-  reading where the stream stops. It reads two fields of the
-  decompressor, as fflate's own gzip reader does. fflate is pinned
-  exactly, and `pictures.test.ts` fails where a release keeps its state
-  otherwise -- every PNG refused, or one with bytes after its stream
-  written -- so a bump of fflate is the day its `Inflate` is read
-  again.
+  refuses them and the writer cannot see them. Nor has the writer the
+  renderer's budgets for SVG images -- what drawing them costs it, one
+  in a page region counted on every page (`MAX_SVG_DRAWING`), and what
+  they cost a reader to paint on one page, in weighted segments and in
+  transparency groups (report-spec's `MAX_SVG_SEGMENTS` and
+  `MAX_SVG_GROUPS`): the writer draws no SVG and embeds each drawing's
+  bytes once, so a report whose drawings the renderer refuses for what
+  they cost together is written. A report of more than 100,000
+  paragraphs, 200,000 runs or 1,024 pictures, of more than 50,000
+  rectangles or framed sections, or with more than 200,000 line endings
+  in its text, a labelled preview, a spacer taller than the printable
+  area, a rectangle, a column, a framed section or a picture that rounds
+  to none of Word's units, a creation date that states no zone or a day
+  no calendar has, a font whose family is more than 31 characters: the
+  writer refuses them and the PDF prints them. The Studio offers the
+  file only beside a PDF that was drawn; a host that calls `renderDocx`
+  alone gets no such check.
+- **Two compression libraries in one package.** fflate zips the file
+  and pako inflates a PNG's data, for one check: 29.1 kB more in the
+  Studio's chunk of the writer, 9.0 kB gzipped. fflate's own inflater
+  would have been one library, and it inflates what zlib refuses, so a
+  PNG the PDF renderer refuses was embedded.
+- **That the two engines refuse the same PNGs rests on pako being
+  zlib's inflate.** The renderer inflates with the platform's
+  decompressor and the writer with pako; the corpus's list holds them
+  together, under Node, on six ways a PNG's data is no stream, the ways
+  that were looked for, and no test compares the two on any other, or in
+  a browser, whose decompressor is its own. Every run of the suite runs
+  that list, so a bump of pako is read against it.
+- **One PNG is refused otherwise by the two.** One whose image data
+  takes a file past what its pictures may hold, and is no stream
+  either: the writer refuses its size, before it inflates anything, and
+  the renderer its data, which it inflates first.
 - **The order two engines refuse in is held for what both refuse.** One
   document wrong in every place both look is refused by both for the
   same place as each is put right, and that is what is held. A table
@@ -812,11 +979,43 @@ written twice.
   every cell another size changes them cell by cell, not by a style.
 - **The writer holds the thread, and memory.** `renderDocx` is
   synchronous and takes no signal: a file at its bounds is written in
-  one step of about two seconds that nothing interrupts, in some 650 MB
-  on the first day it was measured and 720 MB on the second, and a host
-  that must stop one runs it in a worker. Before that step it reads the
-  pictures' bytes, and the largest PNG an asset may be takes 0.8 seconds
-  of it.
+  one step of 2.0 to 3.3 seconds that nothing interrupts, in 0.7 to 1.1
+  GB -- 2.0 to 2.5 seconds for a table of cells at the paragraphs' and
+  the characters' bounds, in 724 MB in most processes and 993 MB in
+  some; 3.2 to 3.3 seconds for the longest shape that was found, 100,000
+  paragraphs of two runs each, kept, centred and set off the line,
+  holding 4,000,000 ampersands in a mapped family of 31 letters; and
+  1,112 MB for the most memory, that table with a line ending in each
+  cell in such a family, in two processes of four, as *The writer's own
+  bounds* says. That is nearer than the first measurements said to the
+  4.6 seconds and 1,319 MB the bounds were set to stay under, and the
+  longest family Word reads is 0.5 seconds and 140 MB of it. A host that
+  must stop a write runs it in a worker. Before that step it reads the
+  pictures' bytes, and the two largest PNGs a file may hold take 1.0
+  second of it.
+- **A font with a long family is not exported.** A report mapped to a
+  font whose name ID 1 is more than 31 characters is refused as a Word
+  file and prints as a PDF: by Microsoft's own account of what Word
+  reads, it would not find the family. A family within the bound that
+  escaping writes longer -- one of quotation marks or ampersands enough
+  -- takes characters from the file's text, four for each character past
+  31, in every run and paragraph mark.
+- **A box counts two, and a line ending one.** A rectangle and a framed
+  section are each two of the file's 100,000 paragraphs, and each line
+  ending in a text one of its 200,000 runs: a report of more than 50,000
+  boxes, or of a text of more lines than that bound, is refused.
+- **A creation date the PDF draws may be refused**: one of a day or an
+  hour no calendar has, which the platform reads as the date after it,
+  and one of the year 0000.
+- **In the Studio, a preview's PDF waits for its Word file.** The
+  pipeline hands a printed render on once the writer's chunk has loaded
+  and the file is written (`pipeline.ts`), so the paper shows each PDF
+  that much later, the first by the chunk's load as well. And the signal
+  that stops a render the person has typed past is read by the renderer
+  and by nothing after it: a superseded render whose PDF was already
+  drawn still writes its file, on the page's thread, before the next
+  begins. Both are bounded by what the preview's page limit lets a
+  document hold, and neither is changed here.
 - **The README's pictures are taken again**, and every walk of the
   Studio writes a file more at each render.
 - **The start page says one thing less.** "No print format but PDF" was
@@ -877,21 +1076,57 @@ change touch the PDF of every report. Until it is made, the two
 statements are held together by the comparison and the list above, and
 what they do not hold is a cost above.
 
-**A PNG's checksum alone, with no word of where its stream ended.** It
-is all fflate's declared API allows, and it refuses a stream with bytes
-after its end unless those bytes end in the very checksum: a PNG the PDF
-renderer refuses and the writer would embed. And it reads on to the end
-of whatever follows a stream, at the square of its length.
+**A PNG's data inflated by fflate, which the package zips with.** It was
+how the writer first read one, for the sake of one compression library
+in a package a browser bundles: fflate's streaming decompressor, the
+Adler-32 of what it inflated summed by the writer, and the stream's end
+read from two fields of the state fflate 0.8.3 keeps, which nothing it
+declares names. The checksum alone, which is all fflate's declared API
+allows and passes bytes after a stream that end in that very checksum,
+and a second inflate of the data less its last byte, which reads every
+PNG twice, were weighed against that reading then. None of the three
+makes fflate read a block as zlib does: a second review found that it
+inflates a stored block whose length is not followed by its complement
+and a length code deflate does not define, with a checksum that sums,
+so the writer embedded PNGs the PDF renderer refuses while this record
+said the two refused alike.
 
-**A stream's end by a second inflate**, of the data less its last byte,
-which must fail for want of it. It needs nothing fflate does not
-declare, and inflates every PNG twice; and what follows a stream is
-still read to its end, twice.
+**The platform's `DecompressionStream` for a PNG's data**, which the
+renderer inflates with, so that the two could not differ. It is
+asynchronous, and `renderDocx` is not; and a package with neither Node's
+types nor the DOM's has no name for it.
 
-**A second decompressor for a PNG's data**, pako's, a port of zlib that
-compares the checksum and says what it left unread, which
-report-documents already inflates with. Two compression libraries in one
-package that a browser bundles, for one check.
+**The image data's bound in a package below both engines**,
+report-spec's limits or the runtime's, read by each. One number in one
+place, and where the bound goes once a third engine reads it. It is not
+done here: the number is what two of the largest pictures cost PDFKit
+to decode, measured in the renderer, and moving it is a change to
+report-spec, the runtime and the renderer with nothing of a Word file in
+it. The renderer exports no number for a test to read, so the two are
+held together by what each engine refuses, which holds how each counts
+as well as what it counts to.
+
+**A font's family counted in full**, every character of it in every run
+and mark, against the file's characters. Roboto alone, 24 characters in
+a run's four slots, would then be 4,800,000 in a table of 100,000 cells
+with nothing in them, past the bound with no text at all, and a family
+of fifteen characters past it at 33,334 cells. The longest family Word
+reads is what the bounds are measured with, and only what escaping adds
+past it is counted.
+
+**A family refused where it is written longer than 31 characters**, with
+no count. A family of 30 characters with an ampersand in it, which
+Windows holds, would be refused for the ampersand.
+
+**A line ending counted only where it is written**, less the one that
+ends a paragraph's or a cell's text. Which one that is, is decided where
+the file's nodes are built, and the walk that counts would decide it a
+second time; counted as read, a text is counted for at most one run more
+than it writes.
+
+**A rectangle counted as one paragraph, and the bound on paragraphs
+halved for everything.** A report of 60,000 rows of one column would be
+refused for the sake of one of 60,000 boxes.
 
 **A bound on the pictures derived from the zip's own**, 65,535 less the
 writer's parts. It would be a number that moves whenever the writer

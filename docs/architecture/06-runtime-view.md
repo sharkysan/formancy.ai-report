@@ -301,7 +301,15 @@ learns that an invoice, a report paid by a code, one with a chart and a
 labelled preview have no Word file. A fault of the writer's, or a chunk
 that did not load, is the Word file's alone and leaves the PDF as it
 printed, which `word-fault.test.ts` and `word-chunk.test.ts` hold, a
-suite each
+suite each; and the writer, with the two libraries it zips and inflates
+with, is a chunk the pipeline asks for where a PDF has printed and
+nothing loads before, which `chunks.test.ts` holds on a build of the
+pipeline. The printed render is handed on with its Word file, so the
+paper shows each PDF once the writer's chunk has loaded and the file is
+written, and the signal that stops a superseded render is read by the
+renderer and by nothing after it: a render whose PDF was drawn writes
+its file though a newer one waits. Neither is changed by 0068, which
+names both as costs
 ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 Where the Preview stands is the editor's to hold and the window's to say
@@ -1252,12 +1260,14 @@ renderDocx(document)                                       report-render-docx's 
    │
    ▼
 planFonts: each mapped face read once by readFont; the family each token is named by
-   ├─ bytes that are no font, a family with no name Word can state ────▶ invalid-asset
+   ├─ bytes that are no font, a family with no name Word can state or
+   │  one longer than MAX_DOCX_FAMILY_LENGTH, which Word does not read ─▶ invalid-asset
    ├─ a token with no regular face, or faces of two families ──────────▶ unsupported
    ▼
 checkDocument: before a byte is written, in this order                          check.ts
-   ├─ a creation date that is no date or states no instant, a title
-   │  XML cannot hold ─────────────────────────────────────────────────▶ unsupported
+   ├─ a creation date that is no date, states no instant, a day no
+   │  calendar has or a year no core property has; a title XML cannot
+   │  hold ────────────────────────────────────────────────────────────▶ unsupported
    ├─ a payment part, an e-invoice, a preview's label ─────────────────▶ unsupported
    ├─ a page of no known size or turn; margins that leave nothing ─────▶ unsupported,
    │                                                                     content-too-large
@@ -1272,12 +1282,18 @@ checkDocument: before a byte is written, in this order                          
    ├─ a line outside the weights of Word's borders; a rectangle, a
    │  column or a framed section under a fortieth of a point ──────────▶ unsupported
    ├─ past MAX_DOCX_PARAGRAPHS, MAX_DOCX_CHARACTERS or MAX_DOCX_RUNS,
-   │  counted as it walks ─────────────────────────────────────────────▶ content-too-large
+   │  counted as it walks: a rectangle and a frame two paragraphs, a
+   │  line ending a run, what a family is written past its bound with
+   │  the characters ──────────────────────────────────────────────────▶ content-too-large
    │  then the pictures, each asset read once, in the order the walk
    │  met them:
    ├─ past MAX_DOCX_PICTURES, counted before an asset is read ─────────▶ content-too-large
-   ├─ bytes that are not the picture they are declared as: a PNG whose
-   │  image data is no whole zlib stream of its scanlines among them ──▶ invalid-asset
+   ├─ bytes that are not the picture they are declared as, by their
+   │  first bytes and their structure ─────────────────────────────────▶ invalid-asset
+   ├─ past MAX_DOCX_IMAGE_DATA, counted from a picture's header before
+   │  a PNG's data is inflated ────────────────────────────────────────▶ content-too-large
+   ├─ a PNG whose image data is no whole zlib stream of its scanlines,
+   │  inflated by pako as zlib inflates it ────────────────────────────▶ invalid-asset
    ├─ a JPEG its Exif block turns or of four components ───────────────▶ unsupported
    ├─ past MAX_DOCX_MEDIA_BYTES ───────────────────────────────────────▶ content-too-large
    ├─ an SVG that covers a box of other proportions, a picture drawn
@@ -1301,7 +1317,8 @@ Uint8Array ── the same bytes for the same document
 The writer reads the document the PDF renderer reads and nothing else: no
 option, no signal, no clock. Everything it refuses it refuses before
 anything is built, so a file is written whole or not at all, and by where
-a thing stands, not by its kind: the creation date and the title, what
+a thing stands, not by its kind: a face that is no font, as the fonts
+are read, the creation date and the title, what
 belongs to the PDF of the document itself, the page, then each region's
 blocks in document order -- a chart or a code where the walk meets it,
 after a block no engine prints that stands before it -- and the pictures'

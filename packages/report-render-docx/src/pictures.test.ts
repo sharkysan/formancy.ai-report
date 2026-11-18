@@ -1,4 +1,4 @@
-import { deflateSync, inflateSync } from 'node:zlib'
+import { deflateRawSync, deflateSync, gzipSync, inflateSync } from 'node:zlib'
 import {
   encodePng,
   IMAGE_KINDS,
@@ -13,7 +13,7 @@ import {
 } from '@formancy/report-corpus'
 import { imageHeader, MAX_ASSET_BYTES } from '@formancy/report-runtime'
 import type { Image, ImageAsset } from '@formancy/report-runtime'
-import { Unzlib } from 'fflate'
+import { Inflate } from 'pako'
 import { describe, expect, test, vi } from 'vitest'
 import { SVG_FALLBACK } from './assets.js'
 import { renderDocx } from './render.js'
@@ -173,12 +173,12 @@ describe('bytes that are not the picture they are declared as', () => {
     bytes.set([8, 0, 0, 0, 0], 8)
     return bytes
   }
-  /** A grey PNG of 4 by 4 pixels whose image data is `data` deflated: 20 bytes, when it is whole. */
-  const png = (data: Uint8Array, deflated = true): ImageAsset => ({
+  /** A grey PNG of 4 by 4 pixels, or of `width` by one, whose image data is `data` deflated: 20 bytes, when it is whole. */
+  const png = (data: Uint8Array, deflated = true, width?: number): ImageAsset => ({
     id: 'scan',
     mediaType: 'image/png',
     bytes: pngOf([
-      ['IHDR', header(4, 4)],
+      ['IHDR', width === undefined ? header(4, 4) : header(width, 1)],
       ['IDAT', deflated ? new Uint8Array(deflateSync(data)) : data],
       ['IEND', new Uint8Array(0)],
     ]),
@@ -198,10 +198,16 @@ describe('bytes that are not the picture they are declared as', () => {
   const STREAM = new Uint8Array(deflateSync(new Uint8Array(20)))
   const SUM = STREAM.slice(-4)
 
-  // The PDF renderer inflates a PNG's data and refuses one that is not its scanlines; a Word file embeds the bytes unread by Word until
-  // someone opens it, so the same are refused here, by the decompressor the package zips with. The last four are streams that inflate to
-  // the very scanlines the header promises and are damaged all the same, which only the checksum and the place the stream ends can say:
-  // the corpus's list of malformed documents holds both engines to each (`against-pdf.test.ts`).
+  /** The checksum a zlib stream ends with, of so many bytes of nothing: Adler-32's two sums, the second their count. */
+  const sumOfZeros = (length: number): number[] => [length >> 8, length & 0xff, 0, 1]
+
+  // The PDF renderer inflates a PNG's data with the platform's decompressor, which is zlib, and refuses one that is not its scanlines; a
+  // Word file embeds the bytes unread by Word until someone opens it, so the same are refused here, by pako, zlib's inflate in
+  // JavaScript. Six of these are streams that inflate to the very scanlines the header promises, or that a decompressor more lenient
+  // than zlib inflates to them, and are damaged all the same, which only the checksum, the place the stream ends and zlib's own reading
+  // of a block can say: the corpus's list of malformed documents holds both engines to each (`against-pdf.test.ts`). The stored block
+  // and the length code are two that the decompressor the package zips with inflated, checksum and all, so the writer embedded what the
+  // renderer refuses. And pako left to itself reads a gzip member where a zlib stream belongs, which the platform's decompressor does not.
   test.each([
     ['image data that does not inflate', png(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]), false), /has image data that does not inflate/],
     ['fewer scanlines than its header promises', png(new Uint8Array(15)), /has image data of 15 bytes where its header promises 20/],
@@ -217,20 +223,38 @@ describe('bytes that are not the picture they are declared as', () => {
       /does not inflate/,
     ],
     ['a zlib header and a checksum with no data between them', png(Uint8Array.from([0x78, 0x9c, 0, 0, 0, 1]), false), /does not inflate/],
+    [
+      // A stored block of 20 bytes, the last, whose length is not followed by its complement, 0xffeb: read by its length alone, it is the scanlines.
+      'a stored block whose length and its complement disagree',
+      png(Uint8Array.from([0x78, 0x01, 0x01, 20, 0, 0, 0, ...new Uint8Array(20), ...sumOfZeros(20)]), false),
+      /does not inflate/,
+    ],
+    [
+      // A block of the fixed codes: a byte of nothing, then the length code 286, which deflate does not define, at a distance of one,
+      // and the end. Read as a length of 260, it is 261 bytes of nothing: the one scanline of a picture 260 pixels wide.
+      'a length code deflate does not define',
+      png(Uint8Array.from([0x78, 0x01, 0x63, 0x18, 0x03, 0x00, ...sumOfZeros(261)]), false, 260),
+      /does not inflate/,
+    ],
+    ['a gzip member where its zlib stream belongs', png(new Uint8Array(gzipSync(new Uint8Array(20))), false), /does not inflate/],
+    ['deflate data in no zlib stream', png(new Uint8Array(deflateRawSync(new Uint8Array(20))), false), /does not inflate/],
   ])('a PNG with %s is refused', (_name, asset, sentence) => {
     expect(refused(asset)).toMatch(sentence)
   })
 
-  // fflate keeps what it has not read and joins every later slice to it, so reading on past a stream's end costs the square of what
-  // follows it: sixteen megabytes after a stream of thirty bytes held the thread 4.2 seconds before this was held. The writer stops
-  // where the stream ends, by the decompressor's own word for it (`assets.ts`), which this is the proof of: not a clock, the slices read.
-  test('a PNG with a mebibyte after the end of its image data is refused at that end, the rest unread', () => {
-    const data = new Uint8Array(STREAM.length + (1 << 20)).fill(0x55)
-    data.set(STREAM)
-    const push = vi.spyOn(Unzlib.prototype, 'push')
+  // The picture the length code is tried on is of the shape it says: the same header over 261 bytes of nothing deflated as zlib deflates them is written.
+  test('are told from a PNG of one line whose image data is what its header promises', () => {
+    expect(picturesOf(written(documentOf([image(png(new Uint8Array(261), true, 260), 20, 20)])).body)).toHaveLength(1)
+  })
+
+  // The writer stops the inflater by throwing through it, once more has inflated than the header promises, and catches that. Anything
+  // else thrown there is a fault, of the inflater's or the writer's own: said of the picture, it would read as a host's damaged file.
+  test('a fault of the inflater is thrown on as a fault, and never said of the picture', () => {
+    const push = vi.spyOn(Inflate.prototype, 'push').mockImplementation(() => {
+      throw new TypeError('a fault of the inflater')
+    })
     try {
-      expect(refused(png(data, false))).toMatch(/does not inflate/)
-      expect(push).toHaveBeenCalledTimes(1)
+      expect(() => renderDocx(documentOf([image(png(new Uint8Array(20)), 20, 20)]))).toThrow(new TypeError('a fault of the inflater'))
     } finally {
       push.mockRestore()
     }

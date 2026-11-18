@@ -10,8 +10,8 @@ import { SVG_AS_SAVED } from './svg.js'
  * that breaks its contract with an engine in one way -- a block where
  * none may stand, a width, a size, a colour, a field or a row the
  * document's types do not hold, bytes that are no picture, a PNG whose
- * image data is no whole stream of its scanlines -- and that an engine
- * can refuse from the document alone, before it measures anything.
+ * image data is no whole zlib stream of its scanlines -- and that an
+ * engine can refuse from the document alone, before it measures anything.
  *
  * What an engine must refuse of a document is stated in each engine,
  * report-render-pdf's `check.ts` and report-render-docx's, since no
@@ -57,25 +57,27 @@ const page = (more: object): Partial<ResolvedDocument> => ({
   page: untyped({ size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 }, ...more }),
 })
 
-/** The header of a PNG of 4 by 4 pixels, eight bits of grey each: 20 bytes of scanlines, a filter byte and four pixels a line. */
-const GREY: Uint8Array = (() => {
+/** The header of a PNG of `width` by `height` pixels, eight bits of grey each: a filter byte and its pixels a line. */
+function grey(width: number, height: number): Uint8Array {
   const header = new Uint8Array(13)
   const view = new DataView(header.buffer)
-  view.setUint32(0, 4)
-  view.setUint32(4, 4)
+  view.setUint32(0, width)
+  view.setUint32(4, height)
   header.set([8, 0, 0, 0, 0], 8)
   return header
-})()
-/** Those scanlines, all black, as the zlib stream a PNG holds them in: its header, its deflate data and the four bytes of its checksum. */
+}
+/** A PNG of 4 by 4 pixels, 20 bytes of scanlines, and one of a single line of 260, 261 bytes. */
+const [GREY, LINE] = [grey(4, 4), grey(260, 1)]
+/** The 20 bytes of scanlines, all black, as the zlib stream a PNG holds them in: its header, its deflate data and the four bytes of its checksum. */
 const SCANLINES = new Uint8Array(deflateSync(new Uint8Array(20)))
-/** An image of that PNG with `data` as its image data: every chunk framed and summed as PNG frames one, so that only the data is wrong. */
-const png = (id: string, data: readonly number[]): Image =>
+/** An image of the PNG of 4 by 4 pixels, or of `header`, with `data` as its image data: every chunk framed and summed as PNG frames one, so that only the data is wrong. */
+const png = (id: string, data: readonly number[], header: Uint8Array = GREY): Image =>
   image({
     asset: {
       id,
       mediaType: 'image/png',
       bytes: pngOf([
-        ['IHDR', GREY],
+        ['IHDR', header],
         ['IDAT', Uint8Array.from(data)],
         ['IEND', new Uint8Array(0)],
       ]),
@@ -137,6 +139,27 @@ export const MALFORMED: readonly Malformed[] = [
     'image-png-cut-short',
     'A PNG whose image data ends before its last block',
     png('cut', [0x78, 0x01, 0x00, 0x14, 0x00, 0xeb, 0xff, ...new Uint8Array(20), 0x00, 0x14, 0x00, 0x01]),
+  ),
+  // What zlib refuses of a block and a decompressor that reads less of it inflates, checksum and all. A stored block, the last, of 20 bytes,
+  // whose length is not followed by its complement, 0xffeb, over the scanlines and their checksum: by its length alone it is the picture.
+  body(
+    'image-png-stored-lengths',
+    'A PNG whose stored block states a length and not its complement',
+    png('stored', [0x78, 0x01, 0x01, 0x14, 0x00, 0x00, 0x00, ...new Uint8Array(20), 0x00, 0x14, 0x00, 0x01]),
+  ),
+  // A block of the fixed codes, the last: a byte of nothing, the length code 286 at a distance of one, and the end. Deflate's lengths stop
+  // at 285; read as a length of 260, it is the 261 bytes of the one line the header promises, and the checksum is theirs.
+  body(
+    'image-png-length-code',
+    'A PNG whose image data uses a length code deflate does not define',
+    png('coded', [0x78, 0x01, 0x63, 0x18, 0x03, 0x00, 0x01, 0x05, 0x00, 0x01], LINE),
+  ),
+  // The scanlines as a gzip member: its ten bytes of header, the deflate data, their CRC-32 and their count. A decompressor that reads
+  // the wrapper off the data, as pako does left to itself, inflates it; zlib asked for a zlib stream does not.
+  body(
+    'image-png-gzip',
+    'A PNG whose image data is a gzip member, not a zlib stream',
+    png('gzipped', [0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x63, 0x60, 0xc0, 0x04, 0x00, 0x8d, 0x9b, 0xd5, 0x0f, 0x14, 0x00, 0x00, 0x00]),
   ),
   body(
     'image-svg-as-saved',

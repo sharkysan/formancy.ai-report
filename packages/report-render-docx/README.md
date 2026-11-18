@@ -97,9 +97,9 @@ Each as a `RenderRefusal`, whole, naming what it is about:
 | What no engine prints, by the PDF renderer's code and subject: a table in a columns block, a page break in a page region, a page field outside the page header and footer, a block or a style the document's types do not hold | `unsupported` |
 | A `serif` or `mono` token the report maps no font to, a weight or a slant a mapped token has no face for, faces of different families under one token, and a character the mapped face does not draw or a report does not print | `unsupported` |
 | What Word's units do not state: a rule or a border lighter than a quarter of a point or heavier than twelve; a rectangle, a column or a framed section under a fortieth of a point, and a picture drawn at under an English Metric Unit, which would be written with no width or no height | `unsupported` |
-| A creation date that states no zone, or is no ISO 8601 date: it is another moment on another machine, and the same document would be another file there. `resolveReport` writes an instant with its zone | `unsupported` |
-| A picture, a rectangle or fixed columns wider than where they stand; a picture, a rectangle or a spacer taller than the printable area; more than `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one, `MAX_DOCX_CHARACTERS` characters of text, `MAX_DOCX_RUNS` runs, a page field being three and a cell one, `MAX_DOCX_PICTURES` pictures, each asset counted once, or `MAX_DOCX_MEDIA_BYTES` of them | `content-too-large` |
-| Bytes that are not the picture or the font they are declared as: a PNG whose image data is not one whole stream of the scanlines its header promises, by its checksum and its end, among them; and an SVG that is not the drawing report-spec's `cleanSvg` writes | `invalid-asset` |
+| A creation date that states no zone, or is no ISO 8601 date: it is another moment on another machine, and the same document would be another file there. One of a day or an hour no calendar has, which the platform reads as the date after it, and one of a year before 0001 or past 9999. `resolveReport` writes an instant with its zone | `unsupported` |
+| A picture, a rectangle or fixed columns wider than where they stand; a picture, a rectangle or a spacer taller than the printable area; more than `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one and a rectangle or a section's frame two; `MAX_DOCX_CHARACTERS` characters of text, with what a font's family is written longer than `MAX_DOCX_FAMILY_LENGTH` characters in every run and paragraph; `MAX_DOCX_RUNS` runs, a page field being three, a cell one and each line ending in a text one more; `MAX_DOCX_PICTURES` pictures, each asset counted once, `MAX_DOCX_MEDIA_BYTES` of them as they are stored, or `MAX_DOCX_IMAGE_DATA` of image data, a PNG's scanlines as its header promises them and a JPEG's bytes, which is what the PDF renderer holds a render to | `content-too-large` |
+| Bytes that are not the picture or the font they are declared as: a PNG whose image data is not one whole zlib stream of the scanlines its header promises, as zlib reads one, among them; an SVG that is not the drawing report-spec's `cleanSvg` writes; and a font whose family is more than `MAX_DOCX_FAMILY_LENGTH` characters, 31, which is what Word reads of a font's name | `invalid-asset` |
 
 So a report that is paid by a code, is an invoice in law or draws a chart
 has no Word file, and neither has a preview of incomplete data: print
@@ -110,11 +110,13 @@ Word file only beside a PDF that was drawn, as the Studio does, hands a
 person nothing the renderer refused.
 
 The bounds are measured, in `src/limits.ts`, but the pictures' count,
-which is chosen far under what a zip's directory counts: a file at them
-was written in about two seconds, in some 650 MB, on the machine and the
-day that file names.
+which is chosen far under what a zip's directory counts, their image
+data's, which is the PDF renderer's, and the family's, which is what
+Microsoft says Word reads: a file at them was written in 2.0 to 3.3
+seconds and 0.7 to 1.1 GB, for the shapes that were looked for, on the
+machine and the day that file names.
 
-It depends on `@formancy/report-runtime` and on `fflate` at exactly 0.8.3,
-which zips the parts and inflates a PNG's image data to hold it to its
-header. The package declares the source-available licence, in
-`LICENSE.md`.
+It depends on `@formancy/report-runtime`, on `fflate` at exactly 0.8.3,
+which zips the parts, and on `pako` at exactly 3.0.2, which inflates a
+PNG's image data, as zlib does, to hold it to its header. The package
+declares the source-available licence, in `LICENSE.md`.

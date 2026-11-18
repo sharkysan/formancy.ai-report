@@ -1,6 +1,7 @@
 import { faceKey, readFont, RenderRefusal, type FontAsset, type FontFaceKey, type FontFamily, type ResolvedFonts } from '@formancy/report-runtime'
+import { MAX_DOCX_FAMILY_LENGTH } from './limits.js'
 import { ROBOTO } from './look.js'
-import { xmlCharacter } from './xml.js'
+import { attribute, xmlCharacter } from './xml.js'
 
 /**
  * How a document's font tokens become the families a Word file names
@@ -21,6 +22,15 @@ import { xmlCharacter } from './xml.js'
  * unmapped are refused, as the PDF renderer refuses them, and so is a
  * weight or a slant a mapped token has no face for: Word would
  * synthesise one, the substitution 0043 rules out.
+ *
+ * A family's name is a font's own string, and every run and every
+ * paragraph mark states it in four font slots. report-spec's reader
+ * holds a PostScript name to 63 characters and a family to none, so a
+ * name longer than Word reads, `MAX_DOCX_FAMILY_LENGTH`, is refused as
+ * a family no reader would find; and what a name within it is written
+ * longer than that, escaped -- a quotation mark is six characters in an
+ * attribute -- is counted with the file's characters, wherever a run or
+ * a mark states it (`longer`).
  *
  * A mapped face's characters are known, so text is held to them as the
  * PDF holds it; Roboto's bytes are not in this package, and what it has
@@ -45,6 +55,13 @@ export interface DocxFonts {
   usable(token: FontFamily): boolean
   /** The family text of `token` is named in; text with no token prints in the sans token's. */
   family(token: FontFamily | undefined): string
+  /**
+   * The characters a run, or a paragraph's mark, of `token` is written
+   * longer than the bounds are measured with (`limits.ts`): its four font
+   * slots, each by what the family, escaped, is past
+   * `MAX_DOCX_FAMILY_LENGTH`. None for a family written as it is named.
+   */
+  longer(token: FontFamily | undefined): number
   /** The characters the face `wanted` asks for draws, or undefined for Roboto, whose bytes the writer has not; refused, naming `subject`, where the token maps no such face. */
   glyphs(wanted: FaceWanted, subject: string): { readonly characters: ReadonlySet<number> | undefined; readonly name: string }
   /** Every family the file may name, the sans token's first. */
@@ -63,6 +80,9 @@ interface ReadFace {
   readonly listed: string
 }
 
+/** The font slots a run's and a paragraph mark's `w:rFonts` names its family in (`wml.ts`). */
+const FONT_SLOTS = 4
+
 /** A family name as a Word file can name it: something, of characters XML holds, none of them a control. */
 function writable(family: string): boolean {
   return family.trim() !== '' && [...family].every((character) => xmlCharacter(character.codePointAt(0)!) && !/\p{Cc}/u.test(character))
@@ -77,6 +97,13 @@ export function planFonts(fonts: ResolvedFonts | undefined): DocxFonts {
     const font = readFont(asset.bytes)
     if (!font.ok) throw new RenderRefusal('invalid-asset', `the font asset ${asset.id} ${font.message}`, asset.id)
     const listed = font.names.legacyFamily ?? font.names.family
+    // Its length alone, never the name: a name is the font's own string, and one past the bound may be as long as the font is.
+    if (listed.length > MAX_DOCX_FAMILY_LENGTH)
+      throw new RenderRefusal(
+        'invalid-asset',
+        `the font asset ${asset.id} names its family in ${listed.length} characters; Word reads a family's name of at most ${MAX_DOCX_FAMILY_LENGTH}, so a Word file could name it by none a reader would find`,
+        asset.id,
+      )
     if (!writable(listed))
       throw new RenderRefusal(
         'invalid-asset',
@@ -88,7 +115,11 @@ export function planFonts(fonts: ResolvedFonts | undefined): DocxFonts {
     return face
   }
   const mapped: {
-    -readonly [F in FontFamily]?: { readonly listed: string; readonly faces: Partial<Record<FontFaceKey, ReadFace & { readonly name: string }>> }
+    -readonly [F in FontFamily]?: {
+      readonly listed: string
+      readonly longer: number
+      readonly faces: Partial<Record<FontFaceKey, ReadFace & { readonly name: string }>>
+    }
   } = {}
   for (const token of ['sans', 'serif', 'mono'] as const) {
     const resolved = fonts?.[token]
@@ -111,7 +142,7 @@ export function planFonts(fonts: ResolvedFonts | undefined): DocxFonts {
         )
       }
     }
-    mapped[token] = { listed: normal.listed, faces }
+    mapped[token] = { listed: normal.listed, longer: FONT_SLOTS * Math.max(0, attribute(normal.listed).length - MAX_DOCX_FAMILY_LENGTH), faces }
   }
   const family = (token: FontFamily | undefined): string => mapped[token ?? 'sans']?.listed ?? ROBOTO
   const table: FontEntry[] = []
@@ -122,6 +153,8 @@ export function planFonts(fonts: ResolvedFonts | undefined): DocxFonts {
   return {
     usable: (token) => token === 'sans' || mapped[token] !== undefined,
     family,
+    // Roboto is written as it is named.
+    longer: (token) => mapped[token ?? 'sans']?.longer ?? 0,
     glyphs: (wanted, subject) => {
       const token = wanted.token ?? 'sans'
       const faces = mapped[token]?.faces

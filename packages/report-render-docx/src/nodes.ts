@@ -41,6 +41,22 @@ export interface PictureNode {
 /** Where a line ends in a run's text: at a line feed, at a carriage return, and once at the two together. Each is a break of the file (`wml.ts`). */
 export const LINE_ENDING = /\r\n|\r|\n/
 
+/** `LINE_ENDING`, found one after another. */
+const EACH_ENDING = new RegExp(LINE_ENDING.source, 'g')
+
+/**
+ * The line endings `text` holds. Each is written as a break, and what
+ * follows it as a `w:t` of its own, so each is counted as a run
+ * (`check.ts`). Found without keeping a line: a text is counted before it
+ * is known to be short enough to write.
+ */
+export function lineEndings(text: string): number {
+  let found = 0
+  EACH_ENDING.lastIndex = 0
+  while (EACH_ENDING.test(text)) found += 1
+  return found
+}
+
 /**
  * `text` as the last run of a paragraph, or a cell, holds it: without the
  * line ending that ends it, where one does. The PDF's engine ends its last

@@ -1,6 +1,7 @@
-import { expectation, readDocx, STARTER_IMAGES, type Docx, type Fixture, type Starter } from '@formancy/report-corpus'
+import { deflateSync } from 'node:zlib'
+import { expectation, pngOf, readDocx, STARTER_IMAGES, type Docx, type Fixture, type Starter } from '@formancy/report-corpus'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
-import type { Block, Paragraph, ReportData, ResolvedDocument, ResolveOptions, TextStyle } from '@formancy/report-runtime'
+import type { Block, ImageAsset, Paragraph, ReportData, ResolvedDocument, ResolveOptions, TextStyle } from '@formancy/report-runtime'
 import { renderDocx } from '../render.js'
 
 /**
@@ -42,6 +43,38 @@ export function documentOf(body: readonly Block[], more: Partial<ResolvedDocumen
     pageFooter: [],
     body,
     ...more,
+  }
+}
+
+/** The bytes of a pixel of each kind of PNG `blank` makes, with its bit depth and its colour type: grey, and RGB with alpha at eight bits and at sixteen. */
+const PIXELS = { grey: [1, 8, 0], rgba: [4, 8, 6], deep: [8, 16, 6] } as const
+
+/**
+ * A PNG of `width` by `height` pixels, every byte of every scanline
+ * nothing: `deep`, sixteen bits of RGB with alpha, is the most a pixel
+ * may be, eight bytes. What it holds once inflated is its header's to
+ * say, `height` times one byte more than its pixels across, and its file
+ * is small, since nothing deflates to little: the pictures the bounds on
+ * image data are tried with. `stream` is its image data where a test
+ * wants other than those scanlines, framed and summed as a chunk all the
+ * same.
+ */
+export function blank(id: string, width: number, height: number, kind: keyof typeof PIXELS = 'deep', stream?: Uint8Array): ImageAsset {
+  const [bytes, depth, colour] = PIXELS[kind]
+  const header = new Uint8Array(13)
+  const view = new DataView(header.buffer)
+  view.setUint32(0, width)
+  view.setUint32(4, height)
+  header.set([depth, colour, 0, 0, 0], 8)
+  const data = stream ?? new Uint8Array(deflateSync(new Uint8Array(height * (1 + width * bytes))))
+  return {
+    id,
+    mediaType: 'image/png',
+    bytes: pngOf([
+      ['IHDR', header],
+      ['IDAT', data],
+      ['IEND', new Uint8Array(0)],
+    ]),
   }
 }
 

@@ -3125,7 +3125,7 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:ed10f0014cfc55cec9706a919b31709ded88687e6ae1e0c218857465f3df6ac8",
+      "reviewed": "sha256:ca264d4c0ad9955c8afae7371be1cb3b973efa7a65e27503ef4315b106fc6699",
       "limitations": [
         {
           "area": "rendering",
@@ -3148,13 +3148,13 @@
         },
         {
           "area": "rendering",
-          "says": "The Word writer measures nothing, so it writes what the PDF renderer refuses for what it measured, a kept block taller than a page, a line no page holds or more pages than a host allows among it, and refuses what the PDF prints, a report of more than 100,000 paragraphs, 4,000,000 characters, 200,000 runs or 1,024 pictures, a spacer taller than the printable area, a rectangle, a column, a framed section or a picture that rounds to none of Word’s units, and a creation date that states no zone among it; a host that calls `renderDocx` without drawing the PDF gets no such check.",
+          "says": "The Word writer measures nothing, so it writes what the PDF renderer refuses for what it measured, a kept block taller than a page, a line no page holds or more pages than a host allows among it, and what the renderer refuses for what its SVG images cost it to draw and a reader to paint, and refuses what the PDF prints, a report of more than 100,000 paragraphs, a rectangle and a section’s frame counting two, 4,000,000 characters, 200,000 runs, a line ending in a text counting one, or 1,024 pictures, a font whose family is more than 31 characters, which is what Word reads of one, a spacer taller than the printable area, a rectangle, a column, a framed section or a picture that rounds to none of Word’s units, and a creation date that states no zone or a day no calendar has among it; a host that calls `renderDocx` without drawing the PDF gets no such check.",
           "heldBy": "packages/report-render-docx/src/corpus.test.ts"
         },
         {
           "area": "rendering",
-          "says": "The Word writer holds a PNG’s image data to its checksum and to ending where the checksum begins, as the PDF renderer does, by reading the state fflate 0.8.3 keeps of a stream, which nothing fflate declares says; a host that overrides fflate’s version gets a writer whose reading may no longer hold, which its tests show and an install does not.",
-          "heldBy": "packages/report-render-docx/src/pictures.test.ts"
+          "says": "The Word writer inflates a PNG’s image data with pako, a port of zlib’s inflate, where the PDF renderer inflates it with the platform’s decompressor, so that the two refuse the same PNGs rests on pako reading a stream as zlib does: both are held to refusing alike the six ways a PNG’s data is no stream that were looked for, and no test compares them on any other; and a PNG that takes a file past the image data its pictures may hold and is no stream either is refused by the writer for its size and by the renderer for its data.",
+          "heldBy": "packages/report-render-docx/src/against-pdf.test.ts"
         },
         {
           "area": "rendering",
@@ -3173,7 +3173,12 @@
         },
         {
           "area": "rendering",
-          "says": "`renderDocx` is synchronous and takes no signal: a file at its bounds was written in one step of about two seconds, in some 650 MB, on an Intel i9-10900K under Node 24.21.0 on 17 November 2026, and a host that must stop one runs it in a worker."
+          "says": "`renderDocx` is synchronous and takes no signal: a file at its bounds was written in one step of 2.0 to 3.3 seconds, in 0.7 to 1.1 GB, the same document some 265 MB more in one process than in the next, for the shapes that were looked for on an Intel i9-10900K under Node 24.21.0 on 18 November 2026, and a host that must stop one runs it in a worker."
+        },
+        {
+          "area": "rendering",
+          "says": "The Word writer carries two compression libraries, fflate to zip the file and pako to inflate a PNG’s image data as zlib does, so a page that bundles it loads both with it: 79.4 kB, 28.1 kB gzipped, as a chunk of the Studio’s build on 18 November 2026, where the writer with fflate alone was 50.3 kB.",
+          "heldBy": "apps/studio/src/preview/chunks.test.ts"
         },
         {
           "area": "rendering",
@@ -3196,7 +3201,7 @@
         },
         {
           "area": "builders",
-          "says": "The Studio offers Download Word only beside a PDF that was drawn, the file of the render on the paper while a newer one prints, and where the writer refuses a report it shows a note in the link’s place; the writer runs on the page’s own thread after each PDF.",
+          "says": "The Studio offers Download Word only beside a PDF that was drawn, the file of the render on the paper while a newer one prints, and where the writer refuses a report it shows a note in the link’s place; the writer runs on the page’s own thread after each PDF, so the paper shows a PDF only once its Word file is written, the first once the writer’s chunk has loaded as well, and a render a person has typed past still writes its file where its PDF was already drawn.",
           "heldBy": "apps/studio/src/preview/pdf-view.test.tsx"
         },
         {

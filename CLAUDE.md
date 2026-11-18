@@ -319,32 +319,41 @@ another's; and both builders edit one language at a time (builder-core's
 `@formancy/report-render-docx` writes the resolved document as a Word
 file, beside the renderer and never through it: `renderDocx`, in
 `render.ts`, synchronous, gives the bytes or throws the runtime's
-`RenderRefusal`, on the runtime and `fflate` at exactly 0.8.3 alone.
-`check.ts` refuses before a byte is written, by where a thing stands:
-the creation date and the title, what belongs to the PDF of the document
-itself, the page, then each region's blocks in document order, and the
-pictures' bytes last. It refuses what belongs to the PDF (`pdf-only.ts`:
+`RenderRefusal`, on the runtime, `fflate` at exactly 0.8.3, which zips
+the file, and `pako` at exactly 3.0.2, which inflates a PNG's image data
+as zlib does, alone. `check.ts` refuses before a byte is written, once
+`fonts.ts` has read the faces, by where a thing stands: the creation
+date and the title, what belongs to the PDF of the document itself, the
+page, then each region's blocks in document order, and the pictures'
+bytes last. It refuses what belongs to the PDF (`pdf-only.ts`:
 a payment part, an e-invoice, a preview the runtime labelled, a chart, a
 QR code and an EPC QR code); what nobody has seen Word print as the PDF
 does (a JPEG its Exif block turns, by report-spec's
 `JpegHeader.orientation`, or of four components, in `assets.ts`, which
-reads every picture's bytes as the renderer does, a PNG's image data to
-its checksum and its end; an SVG that covers a box of other proportions,
-and a table or a page break in a framed section); what no engine prints,
-by the PDF renderer's code and subject; what Word's units do not state;
-and what is past `limits.ts`'s `MAX_DOCX_PARAGRAPHS`,
-`MAX_DOCX_CHARACTERS`, `MAX_DOCX_RUNS`, `MAX_DOCX_PICTURES` and
-`MAX_DOCX_MEDIA_BYTES`.
+reads every picture's bytes as the renderer does, a PNG's image data
+inflated by pako to one whole zlib stream of its scanlines; an SVG that
+covers a box of other proportions, and a table or a page break in a
+framed section); what no engine prints, by the PDF renderer's code and
+subject; what Word's units do not state; and what is past `limits.ts`'s
+`MAX_DOCX_PARAGRAPHS`, a rectangle and a section's frame two of them
+(`ONE_CELL_TABLE`), `MAX_DOCX_CHARACTERS`, `MAX_DOCX_RUNS`, a line ending
+one of them, `MAX_DOCX_PICTURES`, `MAX_DOCX_MEDIA_BYTES` and
+`MAX_DOCX_IMAGE_DATA`, the renderer's `MAX_IMAGE_DATA` stated again and
+counted from a picture's header before a PNG is inflated.
 `xml.ts` is the one place a string becomes markup, a type of its own, and
 `check-text.ts` holds every string to what a report prints and XML
 holds; `fonts.ts` names a mapped token by its normal face's name ID 1,
-report-spec's `FontNames.legacyFamily` beside a typographic family, and
-embeds none; `look.ts`, `rows.ts` and `widths.ts` state again what the
+report-spec's `FontNames.legacyFamily` beside a typographic family,
+refuses a family of more than `MAX_DOCX_FAMILY_LENGTH` characters, which
+is what Word reads of one, says what a family within it is written
+longer, which the walk counts with the characters, and embeds none;
+`look.ts`, `rows.ts` and `widths.ts` state again what the
 document leaves to an engine, held to the PDF by `against-pdf.test.ts`;
 `units.ts` rounds once; `nodes.ts`, `blocks.ts` and `table.ts` map the
 blocks and mark what is kept, `wml.ts` writes them in ECMA-376's order,
-and `package.ts` zips the parts, every entry dated 1 January 1980, so
-the same document is the same bytes. Lines, pages and their count are
+and `package.ts` zips the parts, every entry dated 1 January 1980 by a
+date made as the file is written, so the same document is the same
+bytes. Lines, pages and their count are
 Word's. The Studio's Preview offers the file as Download Word, or says
 why the writer refused it
 ([0068](docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
@@ -540,9 +549,10 @@ before it:
    input and approved asset bytes, never a database connection or a URL.
    A chart is laid out inside it by ECharts, which no other published package
    depends on (0058).
-   Beside it, `report-render-docx` -- the Word writer, on the runtime and
-   fflate alone, never on the renderer: the same resolved input, a Word
-   file out or a refusal; no framework, no Node, no DOM, no network (0068).
+   Beside it, `report-render-docx` -- the Word writer, on the runtime,
+   fflate and pako alone, never on the renderer: the same resolved input,
+   a Word file out or a refusal; no framework, no Node, no DOM, no network
+   (0068).
 6. `report-server-core` / `report-server` / `report-client` -- built: who
    may do what, a server that knows who is asking (0046) and keeps a
    template's draft and its images, and the client a host asks it with

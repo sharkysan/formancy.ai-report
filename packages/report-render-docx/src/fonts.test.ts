@@ -2,6 +2,8 @@ import { ALL_FIXTURES, type DocxParagraph } from '@formancy/report-corpus'
 import { readFont, refusedCharacter } from '@formancy/report-runtime'
 import type { Block, FontAsset, ResolvedFonts } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
+import { MAX_DOCX_FAMILY_LENGTH } from './limits.js'
+import { LONGEST_FAMILY, PAST_FAMILY, QUOTED_FAMILY } from './testing/fonts.js'
 import { documentOf, paragraph, refusalOf, written } from './testing/support.js'
 
 /**
@@ -214,5 +216,40 @@ describe('a face whose family Word lists under another name', () => {
   ])('with %s in its name is refused, naming the asset', (_name, family) => {
     const fonts: ResolvedFonts = { serif: { normal: fake('named', { family }) } }
     expect(refusalOf(documentOf([paragraph('x')], { fonts }))).toMatchObject({ code: 'invalid-asset', subject: 'named' })
+  })
+})
+
+describe("a family's name, held to what Word reads of one", () => {
+  // The three faces are bytes made elsewhere (`testing/fonts.ts`): held to the families the reader reads of them, so that the cases below
+  // are of the lengths they say, and of a font report-spec's reader passes whole -- it holds a PostScript name to 63 characters and a family to none.
+  test('is tried on fonts whose family is at the bound, one past it, and all quotation marks', () => {
+    expect([LONGEST_FAMILY, PAST_FAMILY, QUOTED_FAMILY].map(familyOf)).toEqual([
+      'Probe Sans Thirty-One Long Name',
+      'Probe Sans Thirty-Two Long Names',
+      '"'.repeat(MAX_DOCX_FAMILY_LENGTH),
+    ])
+    expect([familyOf(LONGEST_FAMILY).length, familyOf(PAST_FAMILY).length]).toEqual([MAX_DOCX_FAMILY_LENGTH, MAX_DOCX_FAMILY_LENGTH + 1])
+  })
+
+  // At the bound and not one short of it: applied with >= where it means >, the limit would refuse the longest name Word reads.
+  test('of as many characters as Word reads is written, in every run and in the font table', () => {
+    const fonts: ResolvedFonts = { sans: { normal: LONGEST_FAMILY } }
+    expect(faces(fonts, paragraph('AB'))).toEqual([['Probe Sans Thirty-One Long Name', false, false]])
+    expect(written(documentOf([paragraph('AB')], { fonts })).fonts).toEqual([{ name: 'Probe Sans Thirty-One Long Name', family: 'swiss', pitch: 'variable' }])
+  })
+
+  // Every run and every paragraph mark states its family four times. A family of 32,767 quotation marks, in a font of 66 KB that the
+  // reader passes, made 350 paragraphs of a letter each a string of 663 MB, which V8 refuses: a RangeError and no refusal. Word reads no
+  // name past 31 characters, so a longer one is a family no reader would find, and is refused by the asset that names it, never quoted.
+  test('of a character more is refused, naming the asset and never the name', () => {
+    const refusal = refusalOf(documentOf([paragraph('AB')], { fonts: { sans: { normal: PAST_FAMILY } } }))
+    expect(refusal).toMatchObject({ code: 'invalid-asset', subject: 'past' })
+    expect(refusal.message).toMatch(/names its family in 32 characters; Word reads a family's name of at most 31/)
+    expect(refusal.message).not.toContain('Probe')
+  })
+
+  // A quotation mark is six characters in an attribute: the name read back is the font's own, whatever it costs to write.
+  test('of quotation marks alone is written as that very name', () => {
+    expect(faces({ sans: { normal: QUOTED_FAMILY } }, paragraph('AB'))).toEqual([['"'.repeat(MAX_DOCX_FAMILY_LENGTH), false, false]])
   })
 })

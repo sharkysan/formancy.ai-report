@@ -24,14 +24,19 @@ and no picture of a page changed.
   `RenderRefusal` and gives nothing. Synchronous, in Node and in a
   browser, with no option: it counts no page, so it takes no page limit.
   It writes WordprocessingML itself and zips it with `fflate`, pinned at
-  exactly 0.8.3, MIT, a new production dependency of this package alone.
+  exactly 0.8.3, MIT, and inflates a PNG's image data, to check it, with
+  `pako`, pinned at exactly 3.0.2, MIT and Zlib, which report-documents
+  inflates with already: two new production dependencies of this package
+  alone. pako beside fflate, and not fflate's own inflater, since the PDF
+  renderer inflates a PNG with the platform's decompressor, zlib under
+  Node, pako is zlib's inflate, and fflate inflates data zlib refuses.
   The `docx` package lost: it stamps the file with the clock, with no
   option to pass a date.
 - **The same document is the same bytes.** Every entry of the zip is
   dated 1 January 1980 and the creation date is the document's, so a host
-  can store a file by its digest. Held in a Node process and in two more
-  under other time zones, and in Chromium against Node by the Studio's
-  gate.
+  can store a file by its digest. Held in a Node process and in four
+  more, two under other time zones and two that set their zone once the
+  writer has loaded, and in Chromium against Node by the Studio's gate.
 - **What the file says.** Every word and every table's cells; a table as
   a Word table, its header row marked as the one to repeat and the rows
   the PDF keeps on a page marked as kept; the page header and footer as
@@ -57,10 +62,15 @@ and no picture of a page changed.
   seen what Word does with each; a rectangle, a column, a framed section
   or a picture so small that it rounds to none of the unit Word states it
   in; a creation date that states no zone, which is another moment on
-  another machine, and would be another file there; and a file past
-  100,000 paragraphs, 4,000,000 characters, 200,000 runs, 1,024 pictures
-  or two assets'
-  worth of them, measured where the bounds are written. So the invoices,
+  another machine, and would be another file there, or a day no calendar
+  has, which the platform reads as the date after it; a font whose
+  family is more than 31 characters, which is what Word reads of a
+  font's name; and a file past 100,000 paragraphs, a rectangle and a
+  section's frame counting two, 4,000,000 characters, 200,000 runs, a
+  line ending in a text counting one, 1,024 pictures, two assets' worth
+  of their bytes, or the image data the PDF renderer holds a render to,
+  two of the largest PNG an asset may be, counted before any is
+  inflated: measured where the bounds are written. So the invoices,
   the payment reminder and the sales report have no Word file, and a host
   whose reports carry a code or a chart cannot export them. It never
   writes a file without what the report prints.
@@ -68,9 +78,13 @@ and no picture of a page changed.
   prints is refused by the writer with the PDF renderer's code and
   subject, and one wrong in several places for the place the renderer
   refuses it for. A PNG's image data is held, as the renderer holds it,
-  to being one whole stream: its checksum summed, and no byte after its
-  end, so a PNG damaged where only its checksum shows it is not embedded
-  as it is. And a text that ends in a line ending prints no line for it,
+  to being one whole zlib stream, read as zlib reads one: a block zlib
+  refuses, a checksum that does not sum and a byte after its end are each
+  refused, so a PNG damaged where only one of those shows it is not
+  embedded as it is. Held on a PNG for each way that was looked for, in
+  the corpus's list of documents no engine prints; that the two
+  decompressors agree on every other stream is pako's claim, as a port
+  of zlib. And a text that ends in a line ending prints no line for it,
   as the PDF prints none: the lines are counted on the PDF, and the file
   states as many.
 - **Nobody has opened a written file in Word.** The files are read back

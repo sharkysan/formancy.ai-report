@@ -1,6 +1,7 @@
 import {
   ALL_FIXTURES,
   FIRST_PAGE_FIXTURES,
+  IMAGE_KINDS,
   KEEP_WITH_FIXTURES,
   MALFORMED,
   readPdf,
@@ -12,11 +13,12 @@ import {
   type Fixture,
 } from '@formancy/report-corpus'
 import { renderPdf } from '@formancy/report-render-pdf'
-import { RenderRefusal, SHIFTED_SIZE } from '@formancy/report-runtime'
-import type { Block, ResolvedDocument } from '@formancy/report-runtime'
+import { MAX_ASSET_SIDE, RenderRefusal, SHIFTED_SIZE } from '@formancy/report-runtime'
+import type { Block, ImageAsset, ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
+import { MAX_DOCX_IMAGE_DATA } from './limits.js'
 import { DEFAULT_SIZE, KIND_BOLD, TABLE_SIZE } from './look.js'
-import { documentOf, paragraph, refusalOf, resolved, written } from './testing/support.js'
+import { blank, documentOf, paragraph, refusalOf, resolved, written } from './testing/support.js'
 
 /**
  * The writer held to the PDF renderer (0068). Two things a resolved
@@ -40,6 +42,11 @@ import { documentOf, paragraph, refusalOf, resolved, written } from './testing/s
  * documents, each refused by both, by the same code and the same subject;
  * and one document wrong in every place an engine looks, put right a place
  * at a time, refused by both for the same place at each step.
+ *
+ * **The image data a document's pictures may hold**, the renderer's
+ * `MAX_IMAGE_DATA` and the writer's `MAX_DOCX_IMAGE_DATA`: the renderer
+ * exports no number, so the two are held to each other by the picture
+ * each engine refuses at, a byte past the bound and not at it.
  *
  * And one thing the two must agree on that neither states: **the lines a
  * text with line endings prints**. The PDF's are counted on the page, by
@@ -295,10 +302,13 @@ describe('what no engine prints of a document', () => {
     pageHeader: [red],
     firstPageHeader: [red],
     pageFooter: [red],
+    // A face that is no font, which each engine reads before it walks anything.
+    fonts: { serif: { normal: { id: 'face', digest: `sha256:${'0'.repeat(64)}`, bytes: new Uint8Array([1, 2, 3, 4]) } } },
   })
   const STEPS: readonly (readonly [string, ResolvedDocument])[] = (
     [
-      ['info.creationDate', {}],
+      ['face', {}],
+      ['info.creationDate', { fonts: {} }],
       ['info.title', { info: { title: 7 as unknown as string, creationDate: '2026-01-01T00:00:00Z' } }],
       ['page.size', { info: { title: 'Wrong', creationDate: '2026-01-01T00:00:00Z' } }],
       ['pageHeader[0]', { page: A4 }],
@@ -309,9 +319,10 @@ describe('what no engine prints of a document', () => {
     ] as const
   ).reduce<[string, ResolvedDocument][]>((steps, [subject, right]) => [...steps, [subject, { ...(steps.at(-1)?.[1] ?? WRONG), ...right }]], [])
 
-  // Every document of the list below is wrong once. A document wrong twice is refused for one thing, and for the same thing by both: the
-  // creation date, the title, the page, the page header, page 1's own, the page footer, the body's blocks in their order, and a picture's
-  // bytes last, wherever the picture stands -- an engine that read them where it met the picture would refuse this body for another block.
+  // Every document of the list below is wrong once. A document wrong twice is refused for one thing, and for the same thing by both: a
+  // face that is no font, the creation date, the title, the page, the page header, page 1's own, the page footer, the body's blocks in
+  // their order, and a picture's bytes last, wherever the picture stands -- an engine that read them where it met the picture would
+  // refuse this body for another block.
   test.each(STEPS)(
     'a document wrong in several places is refused by both engines for %s first',
     async (subject, document) => {
@@ -321,6 +332,39 @@ describe('what no engine prints of a document', () => {
     },
     TIMEOUT,
   )
+
+  // The image data a document's pictures may hold is a number in each engine, and the writer's is stated to be the renderer's. Both
+  // refuse by the picture that crossed it, so two documents hold the numbers to each other without either being drawn: one whose third
+  // picture takes the count a byte past the bound, and one whose third takes it to the bound exactly and is not what is refused -- the
+  // fourth is, a JPEG, which both count by its bytes. An engine whose bound were a byte higher would draw the first, one whose bound
+  // were a byte lower would refuse the second a picture sooner, and one that counted no JPEG would draw the second.
+  describe('past the image data its pictures may hold', () => {
+    const image = (asset: ImageAsset): Block => ({ kind: 'image', asset, width: 32, height: 32, fit: 'contain' })
+    /** The scanlines of a PNG of sixteen-bit RGBA, eight bytes a pixel, or of eight-bit, four: a filter byte and its pixels a row. */
+    const scanlines = (width: number, height: number, bytes: number): number => height * (1 + width * bytes)
+    const SIDE = MAX_ASSET_SIDE
+    /** The largest PNG an asset may be, and one a row short of it. */
+    const [whole, short] = [blank('whole', SIDE, SIDE), blank('short', SIDE, SIDE - 1)]
+    const JPEG = IMAGE_KINDS.find((asset) => asset.mediaType === 'image/jpeg')!
+    const held = scanlines(SIDE, SIDE, 8) + scanlines(SIDE, SIDE - 1, 8)
+
+    test.each([
+      // Two rows of eight-bit RGBA are a byte more than the one row of sixteen-bit that the two pictures before them leave room for.
+      ['a byte past it', [whole, short, blank('rows', SIDE, 2, 'rgba')], held + scanlines(SIDE, 2, 4) - MAX_DOCX_IMAGE_DATA, 'rows'],
+      ['at it, and a JPEG more', [whole, short, blank('row', SIDE, 1), JPEG], held + scanlines(SIDE, 1, 8) - MAX_DOCX_IMAGE_DATA, JPEG.id],
+    ] as const)(
+      '%s, is refused by both engines by the same code, for the picture that crossed it',
+      async (_name, assets, past, subject) => {
+        // The first document's pictures are a byte past the bound together; the second's PNGs are at it, to the byte.
+        expect(past).toBe(subject === 'rows' ? 1 : 0)
+        const document = documentOf(assets.map(image))
+        const word = refusalOf(document)
+        expect(word).toMatchObject({ code: 'content-too-large', subject })
+        expect({ code: word.code, subject: word.subject }).toEqual(await pdfRefusal(document))
+      },
+      TIMEOUT,
+    )
+  })
 
   // The list holds both engines' statements of the contract together: an empty one, or one of a handful, would hold nothing.
   test('is a list of every way a document breaks its contract with an engine', () => {

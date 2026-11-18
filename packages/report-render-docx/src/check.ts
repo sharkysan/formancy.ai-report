@@ -11,12 +11,23 @@ import {
   type ResolvedDocument,
   type Section,
   type Table,
+  type TextStyle,
 } from '@formancy/report-runtime'
 import { drawnSize, readPicture, type Picture } from './assets.js'
 import { checkColor, checkStyle, checkText, checkWritten } from './check-text.js'
+import { createdOf } from './created.js'
 import type { DocxFonts } from './fonts.js'
-import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS } from './limits.js'
+import {
+  MAX_DOCX_CHARACTERS,
+  MAX_DOCX_FAMILY_LENGTH,
+  MAX_DOCX_MEDIA_BYTES,
+  MAX_DOCX_PARAGRAPHS,
+  MAX_DOCX_PICTURES,
+  MAX_DOCX_RUNS,
+  ONE_CELL_TABLE,
+} from './limits.js'
 import { PADDING_X } from './look.js'
+import { lineEndings } from './nodes.js'
 import { refusePdfOnly, refusePdfOnlyBlock } from './pdf-only.js'
 import { cellFace, styledRows } from './rows.js'
 import { eighths, emu, MAX_BORDER, MIN_BORDER, twips } from './units.js'
@@ -27,13 +38,17 @@ import { fillWidth, fixedWidth } from './widths.js'
  * (0068): a document that is refused has written nothing.
  *
  * In this order, so that a refusal is the same whichever way a document
- * is wrong twice: the creation date and the title; what belongs to the
- * PDF of the document itself (`pdf-only.ts`); the page; then the page
- * header, page 1's own, the page footer and the body, each block in
- * document order; and last the pictures' bytes, in the order the walk met
- * them. It is the PDF renderer's order for what both refuse -- its walk,
- * then its `check-images.ts` -- which `against-pdf.test.ts` holds on a
- * document wrong in every one of those places.
+ * is wrong twice: before any of this, a face that is no font, or whose
+ * family a Word file cannot name, which is refused as the fonts are read
+ * (`render.ts`, `fonts.ts`); then the creation date (`created.ts`) and
+ * the title; what
+ * belongs to the PDF of the document itself (`pdf-only.ts`); the page;
+ * then the page header, page 1's own, the page footer and the body, each
+ * block in document order; and last the pictures' bytes, in the order
+ * the walk met them. It is the PDF renderer's order for what both refuse
+ * -- its fonts, its walk, then its `check-images.ts` -- which
+ * `against-pdf.test.ts` holds on a document wrong in every one of those
+ * places.
  *
  * Four kinds of refusal come of it. **What no engine prints** of a
  * document, which is the PDF renderer's contract with it stated again: a
@@ -48,8 +63,8 @@ import { fillWidth, fixedWidth } from './widths.js'
  * height rounds to none of the unit it is written in. And **the writer's
  * own bounds**, each `content-too-large`: a picture, a rectangle or a
  * spacer taller than the printable area, which no page of a Word file
- * holds; and the file's paragraphs, characters, pictures and pictures'
- * bytes (`limits.ts`).
+ * holds; and the file's paragraphs, its text's characters and runs, its
+ * pictures, their bytes and their image data (`limits.ts`).
  *
  * What the PDF renderer refuses of what it measured -- a block taller
  * than the body between its regions, a line it cannot place, more pages
@@ -104,6 +119,8 @@ interface Walk {
   paragraphs: number
   characters: number
   runs: number
+  /** Of the characters, those that are no text: what the fonts' families are written longer than the bounds allow for (`family`). */
+  families: number
 }
 
 export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Checked {
@@ -112,46 +129,13 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   checkWritten(document.info.title, 'the title', 'info.title')
   refusePdfOnly(document)
   const page = pageOf(document.page)
-  const walk: Walk = { fonts, page, images: [], paragraphs: 0, characters: 0, runs: 0 }
+  const walk: Walk = { fonts, page, images: [], paragraphs: 0, characters: 0, runs: 0, families: 0 }
   const top = { kept: false, column: false, framed: false, width: page.width, depth: 0 }
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true, everyPage: true }, walk)
   if (document.firstPageHeader !== undefined) checkBlocks(document.firstPageHeader, 'firstPageHeader', { ...top, region: true, everyPage: false }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true, everyPage: true }, walk)
   checkBlocks(document.body, 'body', { ...top, region: false, everyPage: false }, walk)
   return { page, created, pictures: readPictures(walk.images) }
-}
-
-/**
- * The forms of a date ECMAScript reads the same on every machine: a date
- * and time that states its zone, `Z` or an offset, and a date alone,
- * which is its first moment in UTC. A date and time without a zone is
- * read in the machine's own, and anything else in a way the platform
- * chooses.
- */
-const INSTANT = /^(?:\d{4}|[+-]\d{6})-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2}))?$/
-
-/**
- * The creation date as the core properties state it: the document's
- * instant in UTC, to the second, written out here and never copied. The
- * runtime writes an instant with its zone (`canonicalInstant`); a
- * document made otherwise may state a date that is another moment in
- * another time zone, and the same document would then be another file
- * there, so one that states no instant is refused. The PDF renderer reads
- * the date as the platform does, and draws such a document.
- */
-function createdOf(stated: string): string {
-  const instant = new Date(stated)
-  if (Number.isNaN(instant.getTime())) throw new RenderRefusal('unsupported', `the creation date '${stated}' is not a date`, 'info.creationDate')
-  if (!INSTANT.test(stated))
-    throw new RenderRefusal(
-      'unsupported',
-      `the creation date '${stated}' states no instant: a Word file is dated by an ISO 8601 date and time with its zone, Z or an offset, and a date without one is another moment on another machine`,
-      'info.creationDate',
-    )
-  const created = `${instant.toISOString().slice(0, 19)}Z`
-  // A core property's date is of four digits a year: one before the year 1 or past 9999 is no W3CDTF date.
-  if (!/^\d{4}-/.test(created)) throw new RenderRefusal('unsupported', 'the creation date is of a year a Word file cannot state', 'info.creationDate')
-  return created
 }
 
 function pageOf(setup: ResolvedDocument['page']): Page {
@@ -174,7 +158,11 @@ function pageOf(setup: ResolvedDocument['page']): Page {
 /**
  * So many paragraphs, characters and runs of text more, refused past any
  * bound, naming where the count crossed it. A block that writes no run
- * of text, a spacer or a picture, counts none.
+ * of text, a spacer or a picture, counts none. A line ending in a text
+ * is a run more: it is written as a break and what follows it as a `w:t`
+ * of its own (`wml.ts`), far more than the character it is. Every one a
+ * text holds is counted, the one that ends a paragraph's or a cell's text
+ * among them, which is written as nothing, as an empty run is counted.
  */
 function count(walk: Walk, paragraphs: number, characters: number, subject: string, runs = 0): void {
   walk.paragraphs += paragraphs
@@ -183,17 +171,39 @@ function count(walk: Walk, paragraphs: number, characters: number, subject: stri
   if (walk.paragraphs > MAX_DOCX_PARAGRAPHS)
     throw new RenderRefusal(
       'content-too-large',
-      `the report holds more than ${MAX_DOCX_PARAGRAPHS} paragraphs, a table's cell being one; a Word file holds no more`,
+      `the report holds more than ${MAX_DOCX_PARAGRAPHS} paragraphs, a table's cell being one and a rectangle or a section's frame two; a Word file holds no more`,
       subject,
     )
-  if (walk.characters > MAX_DOCX_CHARACTERS)
-    throw new RenderRefusal('content-too-large', `the report's text is more than ${MAX_DOCX_CHARACTERS} characters long; a Word file holds no more`, subject)
+  if (walk.characters > MAX_DOCX_CHARACTERS) {
+    const families =
+      walk.families === 0
+        ? ''
+        : `, ${walk.families} of them what a font's family is written past ${MAX_DOCX_FAMILY_LENGTH} characters in every run and paragraph that names it`
+    throw new RenderRefusal(
+      'content-too-large',
+      `the report's text is more than ${MAX_DOCX_CHARACTERS} characters long${families}; a Word file holds no more`,
+      subject,
+    )
+  }
   if (walk.runs > MAX_DOCX_RUNS)
     throw new RenderRefusal(
       'content-too-large',
-      `the report's text is held in more than ${MAX_DOCX_RUNS} runs, a page field being three and a table's cell one; a Word file holds no more`,
+      `the report's text is held in more than ${MAX_DOCX_RUNS} runs, a page field being three, a table's cell one and each line ending in a text one more; a Word file holds no more`,
       subject,
     )
+}
+
+/**
+ * The characters `times` runs and paragraph marks of `token` are written
+ * longer than the bounds allow for: each states its family in four font
+ * slots, and one whose name is written longer than it may be named
+ * (`DocxFonts.longer`) is that much more of the file each time. Counted
+ * with the text's characters, by whoever counts those.
+ */
+function family(walk: Walk, token: TextStyle['font'], times: number): number {
+  const more = walk.fonts.longer(token) * times
+  walk.families += more
+  return more
 }
 
 function checkBlocks(blocks: readonly Block[], path: string, place: Place, walk: Walk): void {
@@ -284,16 +294,18 @@ function checkParagraph(paragraph: Paragraph, at: string, place: Place, walk: Wa
   if (!known) throw new RenderRefusal('unsupported', `${at} sets a run below or above the line in a way a report does not know`, at)
   let characters = 0
   // A page field is written as three runs, its start, its instruction and its end; an empty run of text, which writes nothing, is still read.
-  let runs = 0
+  let [runs, endings] = [0, 0]
   for (const run of paragraph.runs) {
     runs += 'text' in run ? 1 : 3
     const face = { token: style?.font, bold: ('text' in run ? run.bold : undefined) ?? style?.bold ?? false, italic: style?.italic ?? false }
     if ('text' in run) {
       checkText(run.text, face, walk.fonts, at)
       characters += run.text.length
+      endings += lineEndings(run.text)
     } else checkText(PAGE_DIGITS, face, walk.fonts, `${at}'s page field`, at)
   }
-  count(walk, 1, characters, at, runs)
+  // Every run states the paragraph's family, and so does its mark; a line ending states nothing, and is a run to the bound alone.
+  count(walk, 1, characters + family(walk, style?.font, runs + 1), at, runs + endings)
 }
 
 /** A line's weight held to what Word's borders hold: from a quarter of a point to twelve, in eighths. */
@@ -342,15 +354,18 @@ function checkImage(image: Image, place: Place, walk: Walk): void {
  * for the block by both.
  *
  * Each new asset is counted before it is read, and refused past
- * `MAX_DOCX_PICTURES`; read, and refused where its bytes are no picture
- * or one nobody has seen Word print as the PDF does (`assets.ts`); and
- * its bytes counted, and refused past `MAX_DOCX_MEDIA_BYTES`. Then each
+ * `MAX_DOCX_PICTURES`; read, and refused where its bytes are no picture,
+ * where its image data and that of the pictures before it are past
+ * `MAX_DOCX_IMAGE_DATA`, counted from its header before a PNG's is
+ * inflated, or where it is a picture nobody has seen Word print as the
+ * PDF does (`assets.ts`); and its bytes counted, and refused past
+ * `MAX_DOCX_MEDIA_BYTES`. Then each
  * image is held to its picture: an SVG to a box of its own proportions
  * where it covers one, and any picture to an extent Word's unit states.
  */
 function readPictures(images: readonly Image[]): Map<ImageAsset, Picture> {
   const pictures = new Map<ImageAsset, Picture>()
-  let media = 0
+  let [media, data] = [0, 0]
   for (const image of images) {
     const { id } = image.asset
     let picture = pictures.get(image.asset)
@@ -361,8 +376,9 @@ function readPictures(images: readonly Image[]): Map<ImageAsset, Picture> {
           `the report holds more than ${MAX_DOCX_PICTURES} pictures, ${id} the first past them; a Word file holds no more`,
           id,
         )
-      picture = readPicture(image.asset)
+      picture = readPicture(image.asset, data)
       pictures.set(image.asset, picture)
+      data += picture.data
       media += image.asset.bytes.length
       if (media > MAX_DOCX_MEDIA_BYTES)
         throw new RenderRefusal('content-too-large', `the pictures up to ${id} hold ${media} bytes; a Word file may hold ${MAX_DOCX_MEDIA_BYTES}`, id)
@@ -400,7 +416,7 @@ function checkRectangle(rectangle: Rectangle, at: string, place: Place, walk: Wa
   tall(rectangle.height, `the rectangle ${at}`, at, walk)
   if (tooSmall(rectangle.width) || tooSmall(rectangle.height))
     throw new RenderRefusal('unsupported', `${at} is a rectangle of ${rectangle.width} × ${rectangle.height} pt; ${NO_LENGTH}`, at)
-  count(walk, 1, 0, at)
+  count(walk, ONE_CELL_TABLE, 0, at)
 }
 
 function checkColumns(columns: Columns, at: string, place: Place, walk: Walk): void {
@@ -453,7 +469,7 @@ function checkSection(section: Section, at: string, place: Place, walk: Walk): v
         `${at} is a section with a border, a fill or padding where it stands ${shown(place.width)} pt wide; ${NO_LENGTH}`,
         at,
       )
-    count(walk, 1, 0, at)
+    count(walk, ONE_CELL_TABLE, 0, at)
   }
   checkBlocks(section.blocks, `${at}.blocks`, { ...place, width, framed: place.framed || framed(section), depth: place.depth + 1 }, walk)
 }
@@ -488,7 +504,7 @@ function checkTable(table: Table, width: number, walk: Walk): void {
   if (fixed > width || fillWidth(widths, width) <= 2 * PADDING_X)
     throw new RenderRefusal('content-too-large', `table ${id}'s fixed columns are ${fixed} pt wide; it stands ${width.toFixed(2)} pt wide`, id)
   for (const row of styledRows(table)) {
-    let characters = 0
+    let [characters, endings] = [0, 0]
     row.cells.forEach((text, column) => {
       const where =
         row.index !== undefined
@@ -497,9 +513,11 @@ function checkTable(table: Table, width: number, walk: Walk): void {
             ? `table ${id}'s header, column ${column + 1},`
             : `table ${id}'s empty text`
       checkText(text, cellFace(row.styles[column]!, row.kind), walk.fonts, where, id)
-      characters += text.length
+      // A cell is a paragraph of one run: the run and the mark each state the family its style names.
+      characters += text.length + family(walk, row.styles[column]!.font, 2)
+      endings += lineEndings(text)
     })
-    count(walk, row.cells.length, characters, id, row.cells.length)
+    count(walk, row.cells.length, characters, id, row.cells.length + endings)
   }
 }
 

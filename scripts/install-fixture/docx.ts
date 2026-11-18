@@ -11,14 +11,24 @@
  * class and the codes the package hands on. consume.ts runs it and prints
  * what it returns.
  *
- * What only this gate sees is the fflate a clean npm install gives the
- * writer, and the writer's own declarations with skipLibCheck off. What
- * it cannot see is the file in a browser, or in Word.
+ * What only this gate sees is the fflate and the pako a clean npm
+ * install gives the writer, and the writer's own declarations with
+ * skipLibCheck off. What it cannot see is the file in a browser, or in
+ * Word.
  */
 import { resolveReport } from '@formancy/report-runtime'
 import type { ImageResolver, ResolvedDocument } from '@formancy/report-runtime'
 import { renderDocx, RenderRefusal } from '@formancy/report-render-docx'
-import { MAX_DOCX_CHARACTERS, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS, REFUSAL_CODES } from '@formancy/report-render-docx'
+import {
+  MAX_DOCX_CHARACTERS,
+  MAX_DOCX_FAMILY_LENGTH,
+  MAX_DOCX_IMAGE_DATA,
+  MAX_DOCX_MEDIA_BYTES,
+  MAX_DOCX_PARAGRAPHS,
+  MAX_DOCX_PICTURES,
+  MAX_DOCX_RUNS,
+  REFUSAL_CODES,
+} from '@formancy/report-render-docx'
 import type { RefusalCode } from '@formancy/report-render-docx'
 import { inflateRawSync } from 'node:zlib'
 import { logo, quotation, quotationData } from './quotation.js'
@@ -53,7 +63,7 @@ function entriesOf(zip: Uint8Array): Map<string, Buffer> {
 export function wordWritten(billed: ResolvedDocument): string {
   if (!REFUSAL_CODES.includes(UNSUPPORTED)) throw new Error('the refusal codes the writer hands on do not hold unsupported')
   if (
-    ![MAX_DOCX_PARAGRAPHS, MAX_DOCX_CHARACTERS, MAX_DOCX_RUNS, MAX_DOCX_PICTURES, MAX_DOCX_MEDIA_BYTES].every(
+    ![MAX_DOCX_PARAGRAPHS, MAX_DOCX_CHARACTERS, MAX_DOCX_RUNS, MAX_DOCX_PICTURES, MAX_DOCX_MEDIA_BYTES, MAX_DOCX_IMAGE_DATA, MAX_DOCX_FAMILY_LENGTH].every(
       (bound) => Number.isSafeInteger(bound) && bound > 0,
     )
   )

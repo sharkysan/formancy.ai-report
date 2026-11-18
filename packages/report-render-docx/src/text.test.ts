@@ -365,8 +365,40 @@ describe('the title and the creation date', () => {
     ['2026-10-15T08:00:00.999Z', '2026-10-15T08:00:00Z'],
     ['2026-10-15T08:00Z', '2026-10-15T08:00:00Z'],
     ['2026-10-15', '2026-10-15T00:00:00Z'],
+    // The days and the years at the edge of what is refused below: a leap day, the last second of a day, and the first and the last year.
+    ['2028-02-29', '2028-02-29T00:00:00Z'],
+    ['2026-11-17T23:59:59-12:00', '2026-11-18T11:59:59Z'],
+    ['+002026-10-15T08:00:00Z', '2026-10-15T08:00:00Z'],
+    ['0001-01-01', '0001-01-01T00:00:00Z'],
+    ['9999-12-31T23:59:59Z', '9999-12-31T23:59:59Z'],
   ])('the creation date %s is written as the instant it is, in UTC', (creationDate, created) => {
     expect(written(documentOf([], { info: { title: 'T', creationDate } })).created).toBe(created)
+  })
+
+  // The platform reads on past the calendar: 30 February as 2 March, and an hour 24 as the first of the next day. The writer writes the
+  // instant, so each of these was written as a date the document does not state, with nothing said: 2026-02-30 as 2026-03-02.
+  test.each([
+    ['a day its month has not', '2026-02-30'],
+    ['a leap day in a year that has none', '2026-02-29T08:00:00Z'],
+    ['a thirty-first of a month of thirty days', '2026-04-31T10:00:00+02:00'],
+    ['an hour past the last of its day', '2026-11-17T24:00:00Z'],
+  ])('a creation date of %s is refused, naming it, and never written as the date after it', (_name, creationDate) => {
+    const refusal = refusalOf(documentOf([], { info: { title: 'T', creationDate } }))
+    expect(refusal).toMatchObject({ code: 'unsupported', subject: 'info.creationDate' })
+    expect(refusal.message).toMatch(/states a day or a time no calendar has/)
+  })
+
+  // A zone is hours and minutes from UTC, under a day and under an hour: the platform reads no date of one past either, and neither is written.
+  test.each(['2026-11-17T12:00:00+24:00', '2026-11-17T12:00:00+02:60'])('the creation date %s is refused for a zone that is none', (creationDate) => {
+    expect(refusalOf(documentOf([], { info: { title: 'T', creationDate } }))).toMatchObject({ code: 'unsupported', subject: 'info.creationDate' })
+  })
+
+  // A core property's date is XML Schema's, which has no year 0000: written, it is a date a reader of the schema refuses. The last is of
+  // the year 1 where it is stated and of the year before in UTC, which is what is written.
+  test.each(['0000-01-01', '0000-06-01T00:00:00Z', '0001-01-01T00:00:00+01:00'])('the creation date %s is refused for its year', (creationDate) => {
+    const refusal = refusalOf(documentOf([], { info: { title: 'T', creationDate } }))
+    expect(refusal).toMatchObject({ code: 'unsupported', subject: 'info.creationDate' })
+    expect(refusal.message).toMatch(/a year a Word file cannot state/)
   })
 
   // A date and time that states no zone is read in the machine's: the one document was three files in three zones, by their digests, before

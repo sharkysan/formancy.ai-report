@@ -78,16 +78,19 @@ describe('what belongs to the PDF is refused, naming it', () => {
     expect(refusalOf({ ...labelled, pageHeader: [] }).subject).toBe('code')
   })
 
-  // The whole order, a place at a time: a document wrong in every place the writer looks is refused for its creation date, and with each
-  // place put right for the next. A host that shows a person one refusal shows the same one whatever else the report holds.
-  test("the creation date, the title, what belongs to the PDF, the page, then the page header, page 1's own, the page footer and the body", () => {
+  // The whole order, a place at a time: a document wrong in every place the writer looks is refused for a face that is no font, which is
+  // read before anything is walked, then for its creation date, and with each place put right for the next. A host that shows a person
+  // one refusal shows the same one whatever else the report holds.
+  test("a face that is no font, the creation date, the title, what belongs to the PDF, the page, then the page header, page 1's own, the page footer and the body", () => {
     const red = paragraph('red', { color: 'red' })
-    const everywhere: ResolvedDocument = {
+    const faced: ResolvedDocument = {
       ...documentOf([red, QR], { pageHeader: [red], firstPageHeader: [red], pageFooter: [red] }),
       info: { title: 7 as unknown as string, creationDate: 'yesterday' },
       page: { size: 'A3' as 'A4', orientation: 'portrait', margins: { top: 50, right: 50, bottom: 50, left: 50 } },
       paymentPart: SLIP,
+      fonts: { serif: { normal: { id: 'face', digest: `sha256:${'0'.repeat(64)}`, bytes: new Uint8Array([1, 2, 3, 4]) } } },
     }
+    const { fonts: _face, ...everywhere } = faced
     const dated = { ...everywhere, info: { ...everywhere.info, creationDate: '2026-01-01T00:00:00Z' } }
     const titled = { ...dated, info: { ...dated.info, title: 'T' } }
     const { paymentPart: _slip, ...unpaid } = titled
@@ -95,7 +98,9 @@ describe('what belongs to the PDF is refused, naming it', () => {
     const headed = { ...paged, pageHeader: [] }
     const first = { ...headed, firstPageHeader: [] }
     const footed = { ...first, pageFooter: [] }
-    expect([everywhere, dated, titled, unpaid, paged, headed, first, footed, { ...footed, body: [QR, red] }].map((each) => refusalOf(each).subject)).toEqual([
+    const steps = [faced, everywhere, dated, titled, unpaid, paged, headed, first, footed, { ...footed, body: [QR, red] }]
+    expect(steps.map((each) => refusalOf(each).subject)).toEqual([
+      'face',
       'info.creationDate',
       'info.title',
       'paymentPart',

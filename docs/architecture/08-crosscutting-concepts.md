@@ -332,14 +332,16 @@ earlier render, keyed by the digest of the face they were measured in, so
 a width it kept is that face's [0058](../decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md).
 A Word file is the same bytes for the same document. A zip writer stamps
 each entry with the clock unless it is told otherwise, so the writer
-dates every entry 1 January 1980 by its local fields, where neither the
-clock nor a machine's time zone reaches; the creation date in the core
+dates every entry 1 January 1980 by the local fields of a date it makes
+as it writes each file, where neither the clock nor a machine's time
+zone reaches, whenever the process set it; the creation date in the core
 properties is the document's, which must state an instant -- a date and
 time without a zone is read in the machine's own, and the one document
 was three files in three time zones, so it is refused; and fflate
 deflates with its own code wherever it runs. `report-render-docx/src/stable.test.ts` holds one
 document to the same bytes twice in a process and to the same digest in
-two more, one fourteen hours ahead of UTC and one eight behind, and the
+four more, one fourteen hours ahead of UTC, one eight behind, and two
+that set their zone once they have loaded the writer, and the
 Studio's browser gate holds the file Chromium downloads to the bytes the
 writer gives under Node. The bytes are a release's: a later one may
 write the file otherwise

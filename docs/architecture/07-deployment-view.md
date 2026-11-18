@@ -305,12 +305,12 @@ serve the Studio under the same function of their own address
   read only between pdfmake's passes
   ([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 - **For a Word file:** `@formancy/report-render-docx` and nothing beside
-  it: it depends on fflate at exactly 0.8.3, ships no font and reads no
-  file. `renderDocx(document)` on the document `resolveReport` returned,
-  in Node or in a browser, synchronously and with no signal, so a host
-  that must stop one runs it in a worker: a file at the writer's bounds
-  was written in about two seconds, in some 650 MB, where 0068 measures
-  it. A report that is paid by a code, is an invoice in law or draws a
+  it: it depends on fflate at exactly 0.8.3 and pako at exactly 3.0.2,
+  ships no font and reads no file. `renderDocx(document)` on the
+  document `resolveReport` returned, in Node or in a browser,
+  synchronously and with no signal, so a host that must stop one runs it
+  in a worker: a file at the writer's bounds was written in 2.0 to 3.3
+  seconds and 0.7 to 1.1 GB, where 0068 measures it. A report that is paid by a code, is an invoice in law or draws a
   chart has no Word file, and neither has a labelled preview: each is
   refused, to be printed as a PDF. The writer measures nothing, so a host
   offers the file beside a PDF that was drawn, as the Studio does, or

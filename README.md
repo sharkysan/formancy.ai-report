@@ -514,6 +514,7 @@ gate proves and what it does not.
 | `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
 | `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |
 | `fflate`, by `@formancy/report-render-docx` | 0.8.3 | `0.8.3` |
+| `pako`, by `@formancy/report-render-docx` | 3.0.2 | `3.0.2` |
 | `echarts`, by `@formancy/report-render-pdf` | 6.1.0 | `6.1.0` |
 | `pdfkit`, by `@formancy/report-render-pdf` | 0.19.1 | `0.19.1` |
 | `pdfmake`, by `@formancy/report-render-pdf` | 0.3.11 | `0.3.11` |

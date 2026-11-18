@@ -106,10 +106,17 @@ export default defineConfig({
   // On 2026-11-18, the same way, once the writer held a PNG's image data
   // to its checksum and its end and a file to the bounds a review added,
   // its chunk was 50.3 kB and 19.1 kB gzipped; the renderer's and the
-  // runtime's were what they had been.
-  // What holds the chunks is this warning and a test that counts the chart
-  // chunk's loads and one zrender and one echarts in it; what does not is
-  // a budget for each chunk that fails, which a test reading each chunk's
-  // size would be, and nothing is that today.
+  // runtime's were what they had been. And later that day, the same way,
+  // once the writer inflated a PNG's image data with pako and no longer
+  // with fflate, whose inflater the bundler then left out: 79.4 kB and
+  // 28.1 kB gzipped, 29.1 kB and 9.0 kB more; the renderer's chunk
+  // 1,918.1 kB and 848.0 kB and the runtime's 78.7 kB and 26.5 kB, as
+  // they had been.
+  // What holds the chunks is this warning, a test that counts the chart
+  // chunk's loads and one zrender and one echarts in it, and one that
+  // holds the writer, fflate and pako to one chunk the pipeline imports
+  // dynamically (src/preview/chunks.test.ts); what does not is a budget
+  // for each chunk that fails, which a test reading each chunk's size
+  // would be, and nothing is that today.
   build: { chunkSizeWarningLimit: 2000 },
 })
