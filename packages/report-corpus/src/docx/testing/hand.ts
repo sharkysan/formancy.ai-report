@@ -150,26 +150,26 @@ export const HAND: Fixture = {
   expect: expectation(HAND_DOCUMENT, { maxPagesExpected: 2 }),
 }
 
-const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
-const R = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
-const DRAWING =
+export const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+export const R = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
+export const DRAWING =
   'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"'
-const DECLARATION = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
-const TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+export const DECLARATION = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+export const TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 const MAIN = 'application/vnd.openxmlformats-officedocument.wordprocessingml'
 
 const FONT = '<w:rFonts w:ascii="Roboto" w:hAnsi="Roboto" w:eastAsia="Roboto" w:cs="Roboto"/>'
 /** A run's properties at `size` points, black unless `more` says otherwise before the size and after it. */
 const set = (size: number, before = '<w:color w:val="000000"/>', after = ''): string =>
   `<w:rPr>${FONT}${before}<w:sz w:val="${size * 2}"/><w:szCs w:val="${size * 2}"/>${after}</w:rPr>`
-const mark = (size: number): string => `<w:rPr>${FONT}<w:sz w:val="${size * 2}"/><w:szCs w:val="${size * 2}"/></w:rPr>`
-const text = (words: string): string => `<w:t xml:space="preserve">${words}</w:t>`
-const TINY = '<w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr>'
+export const mark = (size: number): string => `<w:rPr>${FONT}<w:sz w:val="${size * 2}"/><w:szCs w:val="${size * 2}"/></w:rPr>`
+export const text = (words: string): string => `<w:t xml:space="preserve">${words}</w:t>`
+export const TINY = '<w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr>'
 /** The paragraph a point tall that stands between two tables and ends a cell. */
 export const HAND_SEPARATOR = `<w:p><w:pPr><w:spacing w:line="20" w:lineRule="exact"/>${TINY}</w:pPr></w:p>`
-const plain = (words: string, properties = ''): string => `<w:p><w:pPr>${properties}${mark(10)}</w:pPr><w:r>${set(10)}${text(words)}</w:r></w:p>`
-const side = (name: string, weight: number, colour: string): string => `<w:${name} w:val="single" w:sz="${weight}" w:space="0" w:color="${colour}"/>`
-const margins = (x: number, y: number): string =>
+export const plain = (words: string, properties = ''): string => `<w:p><w:pPr>${properties}${mark(10)}</w:pPr><w:r>${set(10)}${text(words)}</w:r></w:p>`
+export const side = (name: string, weight: number, colour: string): string => `<w:${name} w:val="single" w:sz="${weight}" w:space="0" w:color="${colour}"/>`
+export const margins = (x: number, y: number): string =>
   `<w:tblCellMar><w:top w:w="${y}" w:type="dxa"/><w:left w:w="${x}" w:type="dxa"/><w:bottom w:w="${y}" w:type="dxa"/><w:right w:w="${x}" w:type="dxa"/></w:tblCellMar>`
 /** A cell of the table: its words at 9 points in a paragraph kept with the next where `kept`. */
 const cell = (width: number, words: string, { kept = true, bold = false, right = false, more = '' } = {}): string =>
@@ -213,11 +213,11 @@ const BODY = [
   plain('After the break'),
 ].join('')
 
-const SECTION =
+export const SECTION =
   '<w:sectPr><w:headerReference w:type="default" r:id="rId4"/><w:footerReference w:type="default" r:id="rId5"/>' +
   '<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1000" w:right="1000" w:bottom="1000" w:left="1000" w:header="1000" w:footer="1000" w:gutter="0"/></w:sectPr>'
 
-const relationships = (...targets: readonly (readonly [type: string, target: string])[]): string =>
+export const relationships = (...targets: readonly (readonly [type: string, target: string])[]): string =>
   `${DECLARATION}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${targets.map(([type, target], index) => `<Relationship Id="rId${index + 1}" Type="${type}" Target="${target}"/>`).join('')}</Relationships>`
 
 /** The hand-written file's parts by name, in the order they are zipped: a test changes one and zips them again. */

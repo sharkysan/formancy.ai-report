@@ -17,12 +17,12 @@ import { IMAGE_KINDS, UNSEEN_JPEGS } from './image-kinds.js'
  * check that never failed on a defect has not been shown to see it.
  */
 
-const problems = (parts: ReadonlyMap<string, string | Uint8Array>, fixture: Fixture = HAND): string[] => verifyDocx(fixture, readDocx(handDocx(parts)))
+const problems = (parts: ReadonlyMap<string, string | Uint8Array>, fixture: Fixture = HAND): Promise<string[]> => verifyDocx(fixture, readDocx(handDocx(parts)))
 const DOCUMENT = 'word/document.xml'
 
 // The file as it was typed is the document, whole: without this, every case below could fail for a reason of its own.
-test('the hand-written file is its document, with nothing to say against it', () => {
-  expect(problems(handParts())).toEqual([])
+test('the hand-written file is its document, with nothing to say against it', async () => {
+  expect(await problems(handParts())).toEqual([])
 })
 
 describe('verifyDocx fails on a file that', () => {
@@ -258,14 +258,14 @@ describe('verifyDocx fails on a file that', () => {
       () => rewritten('word/fontTable.xml', 'w:name="Roboto"', 'w:name="Arial"'),
       /the family Roboto is named by a run and missing from the font table/,
     ],
-  ])('%s', (_name, parts, problem) => {
-    expect(problems(parts()).join('\n')).toMatch(problem)
+  ])('%s', async (_name, parts, problem) => {
+    expect((await problems(parts())).join('\n')).toMatch(problem)
   })
 
   // A file that holds more than its document is no better than one that holds less.
-  test('holds a paragraph the document does not', () => {
+  test('holds a paragraph the document does not', async () => {
     const parts = rewritten(DOCUMENT, '<w:sectPr>', `${HAND_SEPARATOR}<w:sectPr>`)
-    expect(problems(parts).join('\n')).toMatch(/body holds 1 paragraphs or tables more than its blocks state/)
+    expect((await problems(parts)).join('\n')).toMatch(/body holds 1 paragraphs or tables more than its blocks state/)
   })
 })
 
@@ -287,23 +287,23 @@ describe('the line ending that ends a text', () => {
   )
 
   // pdfmake ends its last line at such an ending and opens none after it: a check that asked for a break there would ask for a line the PDF does not print.
-  test('is no break of the file, in a paragraph and in a cell', () => {
-    expect(problems(handParts(), ended)).toEqual([])
+  test('is no break of the file, in a paragraph and in a cell', async () => {
+    expect(await problems(handParts(), ended)).toEqual([])
   })
 
   // The other way round: a writer that wrote the break would print a line more than the PDF, with every word in place.
   test.each([
     ['a paragraph', 'After the break</w:t>', /the run 'After the break' is 'After the break\n'/],
     ['a cell', 'ROW-1</w:t>', /row 1, column 1, prints 'ROW-1\n' where the table states/],
-  ])('written as a break in %s is said', (_name, from, problem) => {
-    expect(problems(rewritten(DOCUMENT, from, `${from}<w:br/>`), ended).join('\n')).toMatch(problem)
+  ])('written as a break in %s is said', async (_name, from, problem) => {
+    expect((await problems(rewritten(DOCUMENT, from, `${from}<w:br/>`), ended)).join('\n')).toMatch(problem)
   })
 
   // Only the one that ends the text: a line ending inside it is a line the PDF prints, and the file's break.
-  test('inside a text is still a break', () => {
+  test('inside a text is still a break', async () => {
     const inside = changed((block, index) => (index === LAST ? { kind: 'paragraph', runs: [{ text: 'After\nthe break' }] } : block))
-    expect(problems(handParts(), inside).join('\n')).toMatch(/the run 'After\nthe break' is 'After the break'/)
-    expect(problems(rewritten(DOCUMENT, '>After the break<', '>After</w:t><w:br/><w:t xml:space="preserve">the break<'), inside)).toEqual([])
+    expect((await problems(handParts(), inside)).join('\n')).toMatch(/the run 'After\nthe break' is 'After the break'/)
+    expect(await problems(rewritten(DOCUMENT, '>After the break<', '>After</w:t><w:br/><w:t xml:space="preserve">the break<'), inside)).toEqual([])
   })
 })
 
@@ -324,13 +324,13 @@ describe('a keep-together block that ends in a table', () => {
   }
 
   // A row is kept with the next by every paragraph of it: the row that ends the block is kept with nothing after the block, in every cell.
-  test('marks no paragraph of its last row as kept with the next', () => {
-    expect(problems(file('<w:keepLines/>'), kept)).toEqual([])
+  test('marks no paragraph of its last row as kept with the next', async () => {
+    expect(await problems(file('<w:keepLines/>'), kept)).toEqual([])
   })
 
   // "Every paragraph but the last" would mark the row's first cell and not its second: a row half kept with what follows the block.
-  test('with its last row kept in one cell and not the other is said', () => {
-    expect(problems(file('<w:keepNext/><w:keepLines/>'), kept).join('\n')).toMatch(/'Left' is kept with what follows it/)
+  test('with its last row kept in one cell and not the other is said', async () => {
+    expect((await problems(file('<w:keepNext/><w:keepLines/>'), kept)).join('\n')).toMatch(/'Left' is kept with what follows it/)
   })
 })
 
@@ -370,12 +370,6 @@ describe('wordRefusal derives', () => {
       { code: 'unsupported', subject: 'pageHeader' },
     ],
     ['a chart', body(chart), { code: 'unsupported', subject: (chart as { id: string }).id }],
-    ['a QR code', body({ kind: 'qrCode', id: 'code', text: 'x', size: 60, errorCorrection: 'M' }), { code: 'unsupported', subject: 'code' }],
-    [
-      'an EPC QR code in a column',
-      body({ kind: 'columns', columns: [{ width: 'fill', blocks: [{ kind: 'epcQrCode', id: 'pay', payload: 'x', size: 60 }] }] }),
-      { code: 'unsupported', subject: 'pay' },
-    ],
     [
       'a table in a framed section',
       body({ kind: 'section', padding: 4, blocks: [{ kind: 'table', id: 'boxed', columns: [], header: [], rows: [], emptyText: '' }] }),
@@ -400,7 +394,7 @@ describe('wordRefusal derives', () => {
     expect(wordRefusal(document)).toEqual(refusal)
   })
 
-  // What a Word file holds as well as the PDF does owes no refusal: a table in a section that only groups, an SVG that covers its own proportions, an upright JPEG.
+  // What a Word file holds as well as the PDF does owes no refusal: a table in a section that only groups, an SVG that covers its own proportions, an upright JPEG, a code.
   test.each<[string, ResolvedDocument]>([
     [
       'a table in a section with no frame',
@@ -409,13 +403,16 @@ describe('wordRefusal derives', () => {
     ['an SVG that covers a box of its own proportions', body(image(svg, 'cover', 40, 40))],
     ['an SVG contained in a box of other proportions', body(image(svg, 'contain', 80, 40))],
     ['a JPEG that is upright', body(image(kind('jpeg-colour')))],
+    // A code is the writer's to draw since 0074: what refuses one is the rules below both engines, and no reading of what a Word file holds.
+    ['a QR code', body({ kind: 'qrCode', id: 'code', text: 'x', size: 60, errorCorrection: 'M' })],
+    ['an EPC QR code in a column', body({ kind: 'columns', columns: [{ width: 'fill', blocks: [{ kind: 'epcQrCode', id: 'pay', payload: 'x', size: 60 }] }] })],
   ])('none for %s', (_name, document) => {
     expect(wordRefusal(document)).toBeUndefined()
   })
 })
 
 // The fixture's own expectation is what a file is held to: a stated key the file lacks is found by the keys, not by the walk.
-test('verifyDocx holds a file to what its fixture states beside what its document implies', () => {
+test('verifyDocx holds a file to what its fixture states beside what its document implies', async () => {
   const stated: Fixture = { ...HAND, expect: expectation(HAND_DOCUMENT, { maxPagesExpected: 2, exactText: ['Nowhere in the file'], keys: ['ROW-2', 'ROW-1'] }) }
-  expect(problems(handParts(), stated)).toEqual(["the key 'ROW-1' is printed before the key it follows", "'Nowhere in the file' is on no line"])
+  expect(await problems(handParts(), stated)).toEqual(["the key 'ROW-1' is printed before the key it follows", "'Nowhere in the file' is on no line"])
 })

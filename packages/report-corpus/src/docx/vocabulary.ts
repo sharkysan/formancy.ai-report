@@ -135,6 +135,7 @@ const cell: ElementDef = element('w', 'tc', [], () => [
       one(value('gridSpan')),
       one(element('w', 'tcBorders', [], () => sides(border, 'top', 'left', 'bottom', 'right'))),
       one(element('w', 'shd', W('val', 'color', 'fill'))),
+      one(value('textDirection')),
     ]),
   ),
   many(paragraph, table),

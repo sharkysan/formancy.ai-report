@@ -32,8 +32,9 @@ import { child, childrenNamed, type XmlNode } from './xml.js'
  * other than `PAGE` and `NUMPAGES` or one not written as its three runs, a
  * run that mixes text with a field or a picture, a border that is no
  * single line, a width in a unit other than twentieths of a point, a table
- * of another layout than fixed or whose rows do not fill its grid, and a
- * cell, a header or a footer that does not end with a paragraph.
+ * of another layout than fixed or whose rows do not fill its grid, a cell
+ * whose text is turned otherwise than from bottom to top, and a cell, a
+ * header or a footer that does not end with a paragraph.
  *
  * What this cannot show is that Word opens the file, or what it then
  * prints: no reader here lays out a line.
@@ -291,11 +292,15 @@ function cell(reading: Reading, node: XmlNode): DocxCell {
   if (shade !== undefined && (shade.attributes.get(w('val')) !== 'clear' || shade.attributes.get(w('color')) !== 'auto'))
     fail(reading, 'a cell shaded otherwise than by a plain fill')
   const span = child(properties, NS.w, 'gridSpan')
+  const direction = child(properties, NS.w, 'textDirection')?.attributes.get(w('val'))
+  if (direction !== undefined && direction !== 'btLr')
+    fail(reading, `a cell whose text is turned '${direction}', where a file turns one from bottom to top alone`)
   return {
     width: dxa(reading, child(properties, NS.w, 'tcW')) ?? fail(reading, 'a cell with no width'),
     span: span === undefined ? 1 : needed(reading, span, w('val'), 1),
     borders: sides(child(properties, NS.w, 'tcBorders'), (side) => border(reading, side)),
     ...(shade === undefined ? {} : { shade: color(reading, shade.attributes.get(w('fill')), 'a cell') }),
+    ...(direction === undefined ? {} : { direction }),
     blocks: blocks(reading, node, 'a cell'),
   }
 }

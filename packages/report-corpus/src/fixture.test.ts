@@ -203,6 +203,65 @@ describe('expectation', () => {
     }
   })
 
+  // A key is found once on the pages, or it is no key. The euro invoice asks
+  // for "den Rechnungsbetrag" in the letter under its table, whose total row
+  // is labelled "Rechnungsbetrag": derived as a key, that word would be said
+  // to print twice in every engine's output, and the report could be held by
+  // no derived expectation at all. Its row is held by its table all the same.
+  test('derives no key from a row whose first cell the body prints again, in a paragraph or another cell', () => {
+    const table = (rows: readonly (readonly string[])[]): Block => ({
+      kind: 'table',
+      id: 'totals',
+      columns: [
+        { width: 'fill', align: 'left' },
+        { width: 'fill', align: 'right' },
+      ],
+      header: ['Label', 'Amount'],
+      rows: rows.map((cells) => ({ kind: 'total', cells })),
+      emptyText: '',
+    })
+    const rows = [
+      ['Net amount', '100.00'],
+      ['Amount due', '119.00'],
+    ]
+    const letter = (words: string): ResolvedDocument => ({ ...document, body: [table(rows), text(words)] })
+    expect(expectation(letter('Thank you for your order.'), { maxPagesExpected: 1 }).keys).toEqual(['Net amount', 'Amount due'])
+    const asked = expectation(letter('Please pay the Amount due within 14 days.'), { maxPagesExpected: 1 })
+    expect(asked.keys).toEqual(['Net amount'])
+    expect(asked.tables[0]!.rows.map((row) => row.key)).toEqual(['Net amount', 'Amount due'])
+    // As whole words: "Amount due" is not printed again by "Amount due date".
+    expect(expectation(letter('Amount duelling is no payment.'), { maxPagesExpected: 1 }).keys).toEqual(['Net amount', 'Amount due'])
+    // And in another cell of a table, its own or another's.
+    const twice = { ...document, body: [table([...rows, ['Rounded', 'Amount due']])] }
+    expect(expectation(twice, { maxPagesExpected: 1 }).keys).toEqual(['Net amount', 'Rounded'])
+  })
+
+  // A page region's lines are how a page's lines are told from its body's.
+  // An EPC QR code in Austria's frame prints words, its caption: in the
+  // page footer they are a line of the footer, and derived as none they
+  // would be read as a line of the body that reaches into the footer, on
+  // every page of every engine's output. A code without the caption prints
+  // no word, and one in the body is the body's.
+  test('derives the caption of a framed EPC QR code in a page region as a line of that region', () => {
+    const code = (caption?: 'zahlenMitCode'): Block => ({
+      kind: 'epcQrCode',
+      id: 'pay',
+      payload: 'BCD',
+      size: 85.04,
+      ...(caption === undefined ? {} : { caption }),
+    })
+    const framed = code('zahlenMitCode')
+    const derived = (change: Partial<ResolvedDocument>): Expectation => expectation({ ...document, ...change }, { maxPagesExpected: 2 })
+    const plain = derived({})
+    expect(derived({ pageFooter: [...document.pageFooter, framed] }).pageFooterLines).toEqual([...plain.pageFooterLines, 'Zahlen mit Code'])
+    expect(derived({ pageHeader: [framed, ...document.pageHeader] }).pageHeaderLines).toEqual([...plain.pageHeaderLines, 'Zahlen mit Code'])
+    expect(derived({ firstPageHeader: [{ kind: 'columns', columns: [{ width: 'fill', blocks: [framed] }] }] }).firstPage?.headerLines).toEqual([
+      'Zahlen mit Code',
+    ])
+    expect(derived({ pageFooter: [...document.pageFooter, code()] }).pageFooterLines).toEqual(plain.pageFooterLines)
+    expect(derived({ body: [...document.body, framed] })).toMatchObject({ pageFooterLines: plain.pageFooterLines, pageHeaderLines: plain.pageHeaderLines })
+  })
+
   // What a fixture states wins over what is derived: the tall row's keys are
   // its words, not its one row's key.
   test('lets the fixture state what is not derived, or say it otherwise', () => {

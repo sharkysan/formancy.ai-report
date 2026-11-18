@@ -1,5 +1,5 @@
 import { deflateSync } from 'node:zlib'
-import type { Block, Image, ResolvedDocument, Table } from '../document.js'
+import type { Block, EpcQrCode, Image, QrCode, ResolvedDocument, Table } from '../document.js'
 import { IMAGE_KINDS } from '../image-kinds.js'
 import { documentOf, paragraph } from './build.js'
 import { pngOf } from './png.js'
@@ -10,8 +10,9 @@ import { SVG_AS_SAVED } from './svg.js'
  * that breaks its contract with an engine in one way -- a block where
  * none may stand, a width, a size, a colour, a field or a row the
  * document's types do not hold, bytes that are no picture, a PNG whose
- * image data is no whole zlib stream of its scanlines -- and that an
- * engine can refuse from the document alone, before it measures anything.
+ * image data is no whole zlib stream of its scanlines, a code no engine
+ * draws -- and that an engine can refuse from the document alone, before
+ * it measures anything.
  *
  * What an engine must refuse of a document is stated in each engine,
  * report-render-pdf's `check.ts` and report-render-docx's, since no
@@ -20,6 +21,11 @@ import { SVG_AS_SAVED } from './svg.js'
  * report-render-docx's `against-pdf.test.ts` holds both to the same code
  * and the same subject for each. A refusal an engine makes of what it
  * measured, or of what only it draws, is not here.
+ *
+ * What a code is refused by is the one thing here that is stated once,
+ * below both engines, in report-runtime (0074): each way a QR code or an
+ * EPC QR code is refused there is a document of this list all the same,
+ * so that an engine that stopped asking would be found out.
  */
 export interface Malformed {
   /** Stable, kebab-case. */
@@ -55,6 +61,25 @@ const nested = (depth: number): Block => (depth === 0 ? paragraph('deep') : { ki
 const field: Block = { kind: 'paragraph', runs: [{ field: 'pageNumber' }] }
 const page = (more: object): Partial<ResolvedDocument> => ({
   page: untyped({ size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 }, ...more }),
+})
+
+const qr = (more: Partial<QrCode> = {}): QrCode => ({ kind: 'qrCode', id: 'code', text: 'INV-2026-0042', size: 60, errorCorrection: 'M', ...more })
+/** EPC069-12 2.3's first example, 96 bytes, which version 6 holds at level M. */
+const EPC_EXAMPLE = ['BCD', '001', '1', 'SCT', 'BHBLDEHHXXX', 'Franz Mustermänn', 'DE71110220330123456789', 'EUR12.3', 'GDDS', 'RF18539007547034'].join('\n')
+const epc = (more: Partial<EpcQrCode> = {}): EpcQrCode => ({ kind: 'epcQrCode', id: 'pay', payload: EPC_EXAMPLE, size: 85.04, ...more })
+const CAPTIONED = { caption: 'zahlenMitCode' } as const
+/** A payload of the EPC's shape and `characters` characters, its last `last`: one byte each in UTF-8 but for an umlaut, which is two. */
+function epcPayload(characters: number, last = 'I'): string {
+  const head = ['BCD', '001', '1', 'SCT', 'BHBLDEHHXXX', 'N'.repeat(70), 'DE89370400440532013000', 'EUR999999999.99', 'GDDS', '', 'T'.repeat(140)].join('\n')
+  return characters <= head.length ? head.slice(0, characters) : `${head}\n${'I'.repeat(characters - head.length - 2)}${last}`
+}
+/** A block in a column `width` points wide, beside one that fills the rest. */
+const inColumn = (width: number, block: Block): Block => ({
+  kind: 'columns',
+  columns: [
+    { width, blocks: [block] },
+    { width: 'fill', blocks: [] },
+  ],
 })
 
 /** The header of a PNG of `width` by `height` pixels, eight bits of grey each: a filter byte and its pixels a line. */
@@ -253,5 +278,29 @@ export const MALFORMED: readonly Malformed[] = [
         { width: 400, align: 'right' },
       ],
     }),
+  ),
+  body('qr-code-no-size', 'A QR code of no size', qr({ size: 0 })),
+  body('qr-code-size-no-number', 'A QR code whose size is no number', qr({ size: Number.NaN })),
+  body('qr-code-in-column-too-wide', 'A QR code wider than its column', inColumn(50, qr())),
+  body('qr-code-level', 'A QR code at a level the standard does not have', qr({ errorCorrection: untyped('X') })),
+  body('qr-code-not-text', 'A QR code whose text is no string', qr({ text: untyped(['INV-2026-0042']) })),
+  body('qr-code-half-a-pair', 'A QR code whose text holds half of a surrogate pair', qr({ text: 'receipt \uD83E' })),
+  body('qr-code-too-many-characters', 'A QR code of more characters than any symbol holds', qr({ text: '1'.repeat(7090), size: 300, errorCorrection: 'L' })),
+  body('qr-code-too-many-bytes', 'A QR code of more bytes than a symbol holds at its level', qr({ text: 'x'.repeat(1274), size: 300, errorCorrection: 'H' })),
+  body('qr-code-too-fine', 'A QR code whose modules would be finer than 0.4 mm in its square', qr({ text: 'https://formancy.ai/report/', size: 40 })),
+  body('epc-qr-code-no-size', 'An EPC QR code whose size is no number', epc({ size: Number.NaN })),
+  body('epc-qr-code-in-column-too-wide', "An EPC QR code in Austria's frame wider than its column", inColumn(80, epc(CAPTIONED))),
+  body('epc-qr-code-caption', 'An EPC QR code with a caption no engine knows', epc({ caption: untyped('girocode') })),
+  body('epc-qr-code-not-text', 'An EPC QR code whose payload is no string', epc({ payload: untyped([EPC_EXAMPLE]) })),
+  body('epc-qr-code-half-a-pair', 'An EPC QR code whose payload holds half of a surrogate pair', epc({ payload: `${EPC_EXAMPLE}\n\uD83E` })),
+  body('epc-qr-code-too-many-characters', 'An EPC QR code of more characters than the EPC allows bytes', epc({ payload: epcPayload(332), size: 100 })),
+  body('epc-qr-code-too-many-bytes', 'An EPC QR code of 331 characters and 332 bytes', epc({ payload: epcPayload(331, 'ä'), size: 100 })),
+  body('epc-qr-code-too-fine', 'An EPC QR code without a caption whose modules would be finer than 0.4 mm', epc({ size: 55.55 })),
+  body('epc-qr-code-frame-too-small', "An EPC QR code in Austria's frame in a square no version prints in", epc({ ...CAPTIONED, size: 68.05 })),
+  body('epc-qr-code-frame-too-large', "An EPC QR code in Austria's frame in a square too large for any version", epc({ ...CAPTIONED, size: 118.61 })),
+  body(
+    'epc-qr-code-frame-too-fine',
+    "An EPC QR code in Austria's frame whose payload needs a version with modules under 15 mil",
+    epc({ ...CAPTIONED, payload: epcPayload(282) }),
   ),
 ]

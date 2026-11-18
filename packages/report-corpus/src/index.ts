@@ -1,5 +1,8 @@
 export { verify, verifyRefusal } from './checks.js'
 export { verifyDocx, wordRefusal } from './check-docx.js'
+export { readDocxCodes } from './docx-codes.js'
+export type { DocxCode } from './docx-codes.js'
+export type { CodeGrid } from './code-picture.js'
 export { readDocx } from './docx/read.js'
 export type {
   Docx,
@@ -37,6 +40,7 @@ export type {
   PageSetup,
   Paragraph,
   QrCode,
+  EpcQrCode,
   Rectangle,
   RefusalCode,
   RenderOptions,
@@ -85,6 +89,7 @@ export { IMAGE_KINDS, UNSEEN_JPEGS } from './image-kinds.js'
 export { encodePng, pngOf } from './fixtures/png.js'
 export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from './fixtures/svg.js'
 export { CHART_FIXTURES } from './fixtures/charts.js'
+export { CODE_FIXTURES } from './fixtures/codes.js'
 export { FIRST_PAGE_FIXTURES } from './fixtures/first-page-header.js'
 export { SHIFTED_FIXTURES } from './fixtures/shifted.js'
 export { JOIN_GAP, offLine } from './lines.js'
@@ -103,7 +108,7 @@ export type { CiiElement } from './testing/cii.js'
 export { rasterPage, rasterPixels } from './raster.js'
 export type { PagePixels } from './raster.js'
 export { readCodes } from './codes.js'
-export type { PdfCode } from './codes.js'
+export type { PdfCode, PixelCode } from './codes.js'
 export { readAnnotations } from './annotations.js'
 export type { PdfAnnotation } from './annotations.js'
 export {

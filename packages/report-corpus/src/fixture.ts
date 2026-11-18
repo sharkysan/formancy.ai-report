@@ -1,4 +1,4 @@
-import { faceKey, readFont, type ResolvedFonts } from '@formancy/report-runtime'
+import { EPC_CAPTION, faceKey, readFont, type ResolvedFonts } from '@formancy/report-runtime'
 import type {
   BaselineShift,
   Block,
@@ -272,7 +272,8 @@ export type Stated = Pick<Expectation, 'maxPagesExpected'> & Partial<Omit<Expect
 /**
  * The expectation a document implies, with what the fixture states laid over
  * it: keys from the first cell of every table row and the lines of every
- * keep-together block, every table's header and rows, the page header's and
+ * keep-together block, but one the body prints again (`printedOnce`), every
+ * table's header and rows, the page header's and
  * footer's lines, and page 1's own header's where it has one, the body's
  * and the page regions' images, and every layout check on.
  */
@@ -280,7 +281,7 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
   const footerEveryPage = footerPattern(document.pageFooter)
   return {
     outcome: 'render',
-    keys: keysOf(document.body, false),
+    keys: printedOnce(document.body),
     tables: tables(document.body).map(expectedTable),
     pageHeaderLines: plainLines(document.pageHeader),
     ...(document.firstPageHeader === undefined ? {} : { firstPage: firstPageOf(document.firstPageHeader, document.pageFooter) }),
@@ -492,6 +493,29 @@ export function normalise(text: string): string {
   return text.replace(/\s+/g, ' ').trim()
 }
 
+/** Every line of text `blocks` print, through every container: each paragraph's, and each cell of each table, its header's and its empty text among them. */
+function printedLines(blocks: readonly Block[]): string[] {
+  return blocks.flatMap((block): string[] => {
+    if (block.kind === 'paragraph') return [normalise(block.runs.map((run) => ('text' in run ? run.text : '')).join(''))]
+    if (block.kind === 'table') return [...block.header, block.emptyText, ...block.rows.flatMap((row) => row.cells)].map(normalise)
+    if (block.kind === 'columns') return block.columns.flatMap((column) => printedLines(column.blocks))
+    return 'blocks' in block ? printedLines(block.blocks) : []
+  })
+}
+
+/**
+ * The keys of `body` that it prints once. A key is found exactly once on
+ * the pages, as whole words, or it proves nothing; and a report's own
+ * words may print a row's first cell again -- a letter that asks for the
+ * amount due by the label of its table's total. Such a cell is on two
+ * lines of every engine's output, and is no key: its row is held by its
+ * table, cell for cell, all the same.
+ */
+function printedOnce(body: readonly Block[]): string[] {
+  const lines = printedLines(body).map((line) => ` ${line} `)
+  return keysOf(body, false).filter((key) => lines.filter((line) => line.includes(` ${key} `)).length === 1)
+}
+
 /** Each table row's first cell, and each line of a keep-together block, in document order; a row with no first cell has no key. */
 function keysOf(blocks: readonly Block[], kept: boolean): string[] {
   return blocks.flatMap((block) => {
@@ -518,12 +542,19 @@ function expectedTable(table: Table): ExpectedTable {
   }
 }
 
-/** The lines of a page region's paragraphs that have no page field; a line with one is matched by `footerPattern`. */
+/**
+ * The lines of a page region's paragraphs that have no page field; a line
+ * with one is matched by `footerPattern`. And, after them, the caption of
+ * each EPC QR code in Austria's frame (0025), wherever in the region it
+ * stands: the one line a region prints that is no paragraph's, and a
+ * page's lines are told from its body's by their text.
+ */
 function plainLines(blocks: readonly Block[]): string[] {
-  return flatten(blocks).flatMap((block) => {
+  const lines = flatten(blocks).flatMap((block) => {
     const text = block.kind === 'paragraph' ? plainText(block.runs) : undefined
     return text ? [text] : []
   })
+  return [...lines, ...epcCodes(blocks).flatMap((code) => (code.caption === undefined ? [] : [EPC_CAPTION.words]))]
 }
 
 function keptTogether(blocks: readonly Block[]): string[][] {
