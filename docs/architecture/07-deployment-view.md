@@ -215,7 +215,7 @@ reaches the public at a merge and not at a release: its Download Word
 gives files of a writer no release holds
 ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)),
 those of a report with a code since 0074, which nobody had opened in Word
-when it merged
+when that record was written
 ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
 
 Every file the Worker serves carries the headers `scripts/demo-headers.mjs`

@@ -428,7 +428,7 @@
       ]
     },
     "0020": {
-      "reviewed": "sha256:67b1be271be38af6f8702b9afe76bc8fff3281e60c301f11517cfae371f4cb0b",
+      "reviewed": "sha256:562126049db8723e245ed08f8dacaddba0d4c197b50ebf3e64da1162f34c300d",
       "limitations": [
         {
           "area": "format",
@@ -472,7 +472,8 @@
         },
         {
           "area": "testing",
-          "says": "That a QR code scans is shown by ZXing reading the page as PDF.js draws it, never by a phone's camera or a printed page."
+          "says": "That a QR code scans is shown by ZXing reading the page as PDF.js draws it, as it is drawn and, since 0074, never mirrored, turned or light on dark, which ZXing reads and the corpus’s reader refuses; never by a phone’s camera or a printed page.",
+          "heldBy": "packages/report-corpus/src/codes.test.ts"
         }
       ]
     },
@@ -3216,11 +3217,11 @@
       ]
     },
     "0074": {
-      "reviewed": "sha256:40f2f9c00564e45fdd73c55ca92637a0e280932c9f0778581f04b37eb0b0c391",
+      "reviewed": "sha256:bb85fe0a81cae6f5deb696929b5f98b2320f2362dfac7ca4fd078ab0b86bdd75",
       "limitations": [
         {
           "area": "rendering",
-          "says": "A QR code and an EPC QR code are pictures in a Word file, a PNG of whole pixels a module at 600 pixels to the inch at the code’s size and 2,400 pixels a side at the most, where the PDF draws vectors: enlarged, the file’s code shows its pixels, a code wider than four inches is drawn under 600 to the inch, and a person can stretch the picture to modules finer than the 0.4 mm the rule held them to, with nothing in the file refusing it.",
+          "says": "A QR code and an EPC QR code are pictures in a Word file, a PNG of whole pixels a module, 600 pixels to the inch at the code’s size or as many pixels a module as 2,400 a side hold, where the PDF draws vectors: enlarged, the file’s code shows its pixels, a code wider than 266 to 288 points, by its symbol’s version, is drawn under 600 to the inch, the largest symbol at 269 where it is 595 points wide, and a person can stretch the picture to modules finer than the 0.4 mm the rule held them to, with nothing in the file refusing it.",
           "heldBy": "packages/report-render-docx/src/codes.test.ts"
         },
         {
@@ -3234,12 +3235,12 @@
         },
         {
           "area": "rendering",
-          "says": "An EPC QR code in Austria’s frame is a table in a Word file, so its frame’s corners are square and its right line whole with the caption inside it, where the PSA’s figure rounds the corners by two modules and the PDF breaks the line around the caption; its line is a half, five eighths or three quarters of a point where the PDF draws half a module exactly; and its caption is named in Arial and embedded in no face, on a line of exactly 7 pt, so a reader without the family sees another, which may be longer than the symbol is tall, and where Word puts the words on that line nobody has seen.",
+          "says": "An EPC QR code in Austria’s frame is a table in a Word file, so its frame’s corners are square and its right line whole with the caption inside it, where the PSA’s figure rounds the corners by two modules and the PDF breaks the line around the caption; its line is a half, five eighths or three quarters of a point where the PDF draws half a module exactly, and its picture stands within 0.075 pt of that far from the left, as many twentieths of a point as its cell leaves it; and its caption is named in Arial and embedded in no face, on a line of exactly 7 pt, so a reader without the family sees another, which may be longer than the symbol is tall, and where Word puts the words on that line nobody has seen.",
           "heldBy": "packages/report-render-docx/src/codes.test.ts"
         },
         {
           "area": "rendering",
-          "says": "A Word file holds at most 64 QR codes and EPC QR codes, and symbols of at most 501,264 modules between them, what sixteen of the largest symbol hold: a report past either is refused as a Word file and prints as a PDF, which bounds neither; a document of codes alone at those bounds was written in up to 1.6 seconds on an Intel i9-10900K under Node 24.21.0 on 18 November 2026, on top of what the rest of a file costs.",
+          "says": "A Word file holds at most 64 QR codes and EPC QR codes, each counted as often as it stands, and symbols of at most 501,264 modules between them, what sixteen of the largest symbol hold: a report past either is refused as a Word file and prints as a PDF, which bounds neither; a document of codes alone at those bounds was written in up to 1.6 seconds on an Intel i9-10900K under Node 24.21.0 on 18 November 2026, on top of what the rest of a file costs.",
           "heldBy": "packages/report-render-docx/src/codes.test.ts"
         },
         {
@@ -3260,6 +3261,11 @@
           "area": "release",
           "says": "One refusal’s sentence changed: an EPC QR code with a caption no engine knows is refused as one a report does not know, where the PDF renderer said that the renderer did not know it; its code, its subject and every other refusal of a code are as they were.",
           "heldBy": "packages/report-runtime/src/epc-symbol.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The corpus’s `readCodes` throws on a code ZXing reads only mirrored, turned or with dark and light exchanged, in a PDF’s page as in a Word file’s picture, so a test cannot read such a code to say something else of it, and a symbol read at a slant of half a degree or more would be refused as turned; a symbol’s mirror is told by ZXing alone, and a symbol in a larger square by the corpus’s grid alone.",
+          "heldBy": "packages/report-corpus/src/codes.test.ts"
         },
         {
           "area": "testing",

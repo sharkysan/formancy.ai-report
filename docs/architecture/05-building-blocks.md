@@ -608,12 +608,15 @@ A code in a Word file is proved on the picture the file embeds
 back to its pixels, by its own walk of the chunks and Node's zlib, every
 filter undone, and refuses any other file; `code-picture.ts`'s `codeGrid`
 holds those pixels to a symbol drawn in whole pixels a module with its
-quiet zone around it, found from the pixels alone, and `readPictureCode`
-has ZXing read them, through `codes.ts`'s `codesIn`, which `readCodes`
-reads a page with; `check-docx-codes.ts` holds each code, block by block,
-to its document -- the picture's extent, place and resolution, what it
-says and at which level, an EPC QR code's version, and Austria's frame
-to the record's table -- so that `verifyDocx` is waited for;
+quiet zone around it, four modules on every side and no more, found from
+the pixels alone, and `readPictureCode` has ZXing read them, through
+`codes.ts`'s `codesIn`, which `readCodes` reads a page with and which
+refuses a code ZXing reads only mirrored, turned or with dark and light
+exchanged; `check-docx-codes.ts` holds each code, block by block, to its
+document -- the picture's extent, place and resolution, what it says and
+at which level, the version of its square to the one ZXing reads, an EPC
+QR code's version, and Austria's frame to the record's table, its
+picture no wider than its cell -- so that `verifyDocx` is waited for;
 `docx-codes.ts`'s `readDocxCodes` reads a file's codes for a test, as
 `readCodes` a PDF's; `docx/testing/hand-codes.ts` is the file written by
 hand those checks are proved on, its pictures made of the runtime's
