@@ -264,7 +264,17 @@
     were, those of a category left for Word to name, a part two
     drawings draw, a word stated as nothing, a box that may split, a
     kept group held by its heading's mark, and a group whose chart's
-    title a paragraph above also says.
+    title a paragraph above also says. And the cases added for refusals
+    the reader already made had passed on their first run, so each
+    refusal was then taken out, one at a time, the suite run and it put
+    back, on the same day: 34 of the reader's -- a plot of not one
+    kind, a pie of not one series or with an axis, a chart without its
+    axes, a label out of its order, a filled category axis, a shape that
+    states no line, a face that states nothing, a part two drawings
+    draw, and each thing the vocabulary lets stand empty or unsaid --
+    and four of the check's, a chart that shares its paragraph, a
+    series fewer, a box that may split and a series' name. Each failed
+    a case, and none survived.
   - **Not yet opened in Word.** The files this change writes -- every
     chart fixture's and the sales report's, each beside its PDF, with a
     list of what each chart should show -- were written for the person
