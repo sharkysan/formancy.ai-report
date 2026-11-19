@@ -40,8 +40,10 @@ test('asks for each code’s symbol once, a framed EPC QR code’s among them, a
 })
 
 // The bounds are there for what a code costs: one past the count is refused before anything of it is worked out, and none is encoded
-// after the one whose symbol took the file's modules past theirs.
-test('asks for no symbol of a code past the count, and for none after the code that crossed the modules’ bound', () => {
+// after the one whose symbol took the file's modules past theirs. Seventeen of the largest symbol are encoded to cross that bound,
+// which took the case 1.9 seconds here under coverage beside another build on 19 November 2026, where CI's runner took a case of this
+// suite's neighbour half as long again: under the five a case has where it states no more, and too near them to state none.
+test('asks for no symbol of a code past the count, and for none after the code that crossed the modules’ bound', { timeout: 60_000 }, () => {
   const codes = Array.from({ length: MAX_DOCX_CODES + 20 }, (_, index) => qr(index))
   expect(refusalOf(documentOf(codes))).toMatchObject({ code: 'content-too-large', subject: `code-${MAX_DOCX_CODES}` })
   expect(qrSymbol).toHaveBeenCalledTimes(MAX_DOCX_CODES)

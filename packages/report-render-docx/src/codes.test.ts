@@ -1,10 +1,24 @@
 import { readDocx, readDocxCodes, readPackage, verifyDocx, type DocxCode, type DocxParagraph, type DocxTable } from '@formancy/report-corpus'
-import { EPC_CAPTION, epcModule, QR_MIN_MODULE, qrSymbol, type Block, type EpcQrCode, type QrCode, type ResolvedDocument } from '@formancy/report-runtime'
+import {
+  EPC_CAPTION,
+  epcCaptionBreak,
+  epcModule,
+  QR_MIN_MODULE,
+  qrSymbol,
+  type Block,
+  type EpcQrCode,
+  type QrCode,
+  type ResolvedDocument,
+} from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
+import { checkDocument } from './check.js'
 import { CODE_RESOLUTION, codePng, MAX_CODE_SIDE, modulePixels } from './code-png.js'
+import { codeNodes } from './codes.js'
+import { planFonts } from './fonts.js'
 import { MAX_DOCX_CODE_MODULES, MAX_DOCX_CODES } from './limits.js'
 import { renderDocx } from './render.js'
 import { documentOf, fixtureOf, paragraph, refusalOf, written } from './testing/support.js'
+import { emu, twips } from './units.js'
 
 /**
  * QR codes and EPC QR codes in a Word file (0074), proved on the file the
@@ -167,16 +181,40 @@ describe('how a QR code is drawn in a Word file', () => {
   })
 
   // At 600 to the inch a picture grows with the square of its code's side, and what deflating it costs the thread with it: the largest
-  // symbol at the largest size a page holds was 4,995 pixels a side. Past four inches a code's picture is 2,400 pixels a side at the
-  // most -- as many whole pixels a module as that holds, twelve for the largest symbol -- and still far finer than a reader smooths.
+  // symbol at the largest size a page holds was 4,995 pixels a side. So a module is drawn in no more whole pixels than 2,400 a side
+  // hold of its symbol's modules and their quiet zone, and a code is 600 to the inch only up to the width at which that many are: by
+  // its version, since the pixels are whole. These are the figures the record, the README and the comments give of it, measured here,
+  // so that a change to the rule fails where the prose would only go stale.
   test(
-    'draws a code wider than four inches at as many whole pixels a module as 2,400 pixels a side hold',
+    'draws a module in no more whole pixels than 2,400 a side hold of its symbol, and so a wide code under 600 to the inch',
     async () => {
-      expect(MAX_CODE_SIDE).toBe(2400)
-      // Four inches are 288 points: a version 1 symbol there is 29 modules of 82 pixels, 2,378 a side, and a hair wider no finer.
-      expect([modulePixels(288 / 29, 29), modulePixels(300 / 29, 29), modulePixels(17, 29)]).toEqual([82, 82, 82])
-      expect(modulePixels(280 / 29, 29)).toBe(81)
-      expect(modulePixels(3, 185)).toBe(12)
+      expect([CODE_RESOLUTION, MAX_CODE_SIDE]).toEqual([600, 2400])
+      /** A symbol of `across` modules with its quiet zone in a square of `size` points: its picture's pixels a side, and to the inch. */
+      const drawn = (across: number, size: number): readonly [number, number] => {
+        const side = across * modulePixels(size / across, across)
+        return [side, Math.round((side * 72) / size)]
+      }
+      // The largest symbol, version 40, 185 modules across: twelve pixels a module at the most, 2,220 a side, which is 600 to the inch
+      // at 266.4 points and coarser from there, whatever the size.
+      expect([drawn(185, 266.4), drawn(185, 280), drawn(185, 288), drawn(185, 595)]).toEqual([
+        [2220, 600],
+        [2220, 571],
+        [2220, 555],
+        [2220, 269],
+      ])
+      // The smallest, version 1, 29 across: 82 pixels a module at the most, 2,378 a side, 600 to the inch up to 285.36 points.
+      expect([drawn(29, 285.36), drawn(29, 287), drawn(29, 288), drawn(29, 595)]).toEqual([
+        [2378, 600],
+        [2378, 597],
+        [2378, 595],
+        [2378, 288],
+      ])
+      // Every version between them: the most a picture is of pixels a side, and the widest its code is at 600 to the inch, in points.
+      const most = Array.from({ length: 40 }, (_, index) => 25 + 4 * (index + 1)).map((across) => Math.floor(MAX_CODE_SIDE / across) * across)
+      expect([Math.min(...most), Math.max(...most)]).toEqual([2220, 2398])
+      expect([Math.min(...most), Math.max(...most)].map((side) => (side * 72) / CODE_RESOLUTION)).toEqual([266.4, 287.76])
+      // Under that width a picture is 600 to the inch or more, and one more pixel a module is never given for a hair.
+      expect([modulePixels(280 / 29, 29), modulePixels(300 / 29, 29), modulePixels(17, 29)]).toEqual([81, 82, 82])
       const code = await onlyCode(documentOf([qr('x'.repeat(1273), 400, 'H')]))
       expect(code).toMatchObject({ pixels: 12, side: 185 * 12 })
       expect(code.read).toMatchObject({ ecLevel: 'H', version: 40 })
@@ -333,6 +371,45 @@ describe('an EPC QR code in a Word file', () => {
     expect(await problems(document)).toEqual([])
   })
 
+  // Word holds a cell's width and a picture's distance from its left in twentieths of a point, each rounded by itself, and the frame's
+  // first cell is the picture and half a module with nothing over. Rounded up together they were a hair wider than the cell -- 78.0614
+  // points in one of 78.05, in a 30 mm square -- and a picture wider than its cell is one Word may fit to it, resampling a code. Held
+  // at every size a report states, to the hundredth of a point, and at every version the PSA's frame prints in there (report-spec's
+  // `epcCaptionBreak`): the frame is laid out from its symbol's side alone, so the symbols here are blank and none is encoded.
+  test('never stands a framed code’s picture, with its distance from the left, wider than its cell', () => {
+    const [wider, elsewhere]: [string[], string[]] = [[], []]
+    const blank = Array.from({ length: 14 }, (_, version) => {
+      const side = 17 + 4 * version
+      return { modules: Array.from({ length: side }, () => Array.from({ length: side }, () => false)) }
+    })
+    let frames = 0
+    for (let hundredths = 6806; hundredths <= 11860; hundredths++) {
+      const code = epc(V1, hundredths / 100, 'zahlenMitCode')
+      for (let version = 1; version <= 13; version++) {
+        if (epcCaptionBreak(code.size, version) !== undefined) continue
+        const [, frame] = codeNodes(code, blank[version]!, { embed: () => 'rId1', next: () => 1 })
+        if (frame?.kind !== 'table') throw new Error('a framed code is not written as a table')
+        const [picture] = frame.rows[0]!.cells[0]!.content
+        const run = picture?.kind === 'paragraph' ? picture.runs[0] : undefined
+        if (picture?.kind !== 'paragraph' || run?.kind !== 'picture') throw new Error("the frame's first cell does not hold its picture")
+        frames += 1
+        // As the file states them: the cell and the distance in twentieths of a point, 635 English Metric Units each, the picture in those.
+        const [fromLeft, cell, side] = [twips(picture.indent ?? 0) * 635, frame.grid[0]! * 635, emu(run.picture.width)]
+        const where = `${code.size} pt, version ${version}`
+        if (fromLeft + side > cell) wider.push(`${where}: ${fromLeft} + ${side} > ${cell}`)
+        // And as far in as its cell leaves it, to the twentieth. The cell is rounded half a twentieth either way, and what it leaves is
+        // rounded down: so that is half a module, or less by up to a twentieth and a half, and never more by over half a one.
+        const line = (epcModule(code.size, version, 'zahlenMitCode') / 2) * 20 * 635
+        if (cell - (fromLeft + side) >= 635 || fromLeft - line > 0.51 * 635 || line - fromLeft > 1.51 * 635)
+          elsewhere.push(`${where}: ${fromLeft} of ${cell - side}, by a line of ${line}`)
+      }
+    }
+    expect(wider).toEqual([])
+    expect(elsewhere).toEqual([])
+    // The sizes the frame prints in at some version are some five thousand, and several versions print in most.
+    expect(frames).toBeGreaterThan(5000)
+  })
+
   // The caption's family is the one a file names that no report maps: listed where a caption is written, so that a reader without it
   // chooses a sans face in its place, and in no other file, which would name a family nothing in it prints in.
   test('lists the caption’s family in the font table where a caption is written, and nowhere else', () => {
@@ -397,12 +474,34 @@ describe('what the writer refuses of a code', () => {
   )
 
   // What the two bounds leave together: a symbol of version 17, 85 modules a side, as often as the count allows, and one of version 18 not.
-  test('holds as many codes as its count allows of a symbol of version 17, and not of version 18', () => {
-    // 644 and 718 bytes are what versions 17 and 18 hold at level L in byte mode (ISO/IEC 18004, table 7).
-    const sized = (bytes: number): QrCode[] =>
-      Array.from({ length: MAX_DOCX_CODES }, (_, index) => qr(`${index}`.padStart(bytes, 'x'), 120, 'L', `code-${index + 1}`))
-    expect(() => renderDocx(documentOf(sized(644)))).not.toThrow()
-    expect(refusalOf(documentOf(sized(718)))).toMatchObject({ code: 'content-too-large', subject: 'code-64' })
+  // Held on the walk that decides it, which encodes every one of the 128 symbols and writes no picture: written whole, as it was at
+  // first, the case took 7.0 seconds in CI's job on 19 November 2026, past the five a case has where it states no more, and 4.6 here
+  // under coverage beside another build. As it is it took 3.9 here, the same way: the encoder is most of it, and the bounds are held
+  // on real symbols, so the timeout is stated, for the runner.
+  test(
+    'holds as many codes as its count allows of a symbol of version 17, and not of version 18',
+    () => {
+      // 644 and 718 bytes are what versions 17 and 18 hold at level L in byte mode (ISO/IEC 18004, table 7).
+      const sized = (bytes: number): ResolvedDocument =>
+        documentOf(Array.from({ length: MAX_DOCX_CODES }, (_, index) => qr(`${index}`.padStart(bytes, 'x'), 120, 'L', `code-${index + 1}`)))
+      const fits = sized(644)
+      const checked = checkDocument(fits, planFonts(fits.fonts))
+      expect([...checked.codes.values()].map((symbol) => symbol.modules.length)).toEqual(Array.from({ length: MAX_DOCX_CODES }, () => 85))
+      expect(refusalOf(sized(718))).toMatchObject({ code: 'content-too-large', subject: 'code-64' })
+    },
+    TIMEOUT,
+  )
+
+  // The bound is on the codes a file draws, and a document may hold one block as often as it likes: counted by the blocks that are
+  // different objects, one code standing a thousand times was one code, each of them encoded and drawn, and only the modules' bound
+  // refused it, at 1,137. As often as it stands is how often it counts.
+  test('counts a code as often as it stands, the same block among them', () => {
+    const same = qr('INV-1', 40, 'M', 'same')
+    const standing = (times: number): ResolvedDocument => documentOf(Array.from({ length: times }, () => same))
+    expect(readPackage(renderDocx(standing(MAX_DOCX_CODES))).parts.size).toBeGreaterThan(0)
+    const refusal = refusalOf(standing(MAX_DOCX_CODES + 1))
+    expect(refusal).toMatchObject({ code: 'content-too-large', subject: 'same' })
+    expect(refusal.message).toMatch(/holds more than 64 QR codes/)
   })
 
   // The bound is the file's, wherever a code stands: one in the page footer and as many as the bound in the body are one too many.

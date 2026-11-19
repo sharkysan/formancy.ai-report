@@ -359,7 +359,8 @@ export const MAX_DOCX_PICTURES = 1024
  * counted costs what the count takes it for: the largest symbol, version
  * 40, 177 modules a side, takes uqr 0.1.3 some 28 ms to encode, and one
  * of version 1 half a millisecond. So the codes are counted, where the
- * walk meets one and before anything of it is worked out; and the
+ * walk meets one and before anything of it is worked out, as often as
+ * one stands, a block the document holds twice being two; and the
  * modules of their symbols, the square of each one's side, are counted
  * as each is encoded, so that no code is encoded after the one that
  * crossed. `MAX_DOCX_CODE_MODULES` is what sixteen of the largest symbol

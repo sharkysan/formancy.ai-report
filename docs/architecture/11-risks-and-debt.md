@@ -248,15 +248,16 @@ alone, and not beside a PDF that was drawn, hands that on
 ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 A code in a Word file is a picture, where the PDF draws vectors: 600
-pixels to the inch at its size, which Word scales to the paper and may
+pixels to the inch at its size, and fewer where it is wider than some
+four inches, which Word scales to the paper and may
 resample when a person saves the file -- Microsoft gives 220 pixels to
 the inch as its default picture resolution -- and which a person can
 stretch with a pointer, to modules finer than the rule held them to.
 Austria's frame is a table, whose corners are square and whose right
 line is whole, where the PSA's figure rounds the corners and the PDF
 breaks the line around the caption; and the caption is in whatever face
-the reader's machine gives Arial. Nobody had opened such a file in Word
-when it merged, and no phone has read a code from one
+the reader's machine gives Arial. When the record was written nobody
+had opened such a file in Word, and no phone has read a code from one
 ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
 
 A chart in a Word file is Word's own chart, and everything Word decides

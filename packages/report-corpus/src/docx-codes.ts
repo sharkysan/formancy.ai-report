@@ -38,7 +38,14 @@ function picturesOf(blocks: readonly DocxBlock[]): DocxPicture[] {
   )
 }
 
-/** The codes of `docx`: the page header's, page 1's own header's, the page footer's and the body's, each in document order. A picture that is no symbol's is no code, and is left out. */
+/**
+ * The codes of `docx`: the page header's, page 1's own header's, the page
+ * footer's and the body's, each in document order. A picture that is no
+ * symbol's is no code, and is left out. Throws where ZXing reads a
+ * symbol's picture only mirrored, turned or light on dark (`codesIn`): a
+ * test that reads a file's codes holds each to being drawn as it was
+ * encoded, whatever else it asks of them.
+ */
 export async function readDocxCodes(docx: Docx): Promise<DocxCode[]> {
   const regions: readonly (readonly [DocxCode['region'], readonly DocxBlock[]])[] = [
     ['header', docx.header?.blocks ?? []],

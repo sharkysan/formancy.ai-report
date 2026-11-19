@@ -365,8 +365,9 @@ A QR code and an EPC QR code are in the file as pictures. What decides a
 code's symbol, and what refuses one, is report-runtime's, below both
 engines: `qrSymbol` and a QR-bill's `swissSymbol` in `qr-symbol.ts`,
 `epcSymbol` in `epc-symbol.ts`, on `uqr` at exactly 0.1.3, the runtime's
-dependency and no engine's, each given the width a code stands at and
-throwing the `RenderRefusal` an engine refuses with; the renderer's
+dependency and no engine's, `qrSymbol` and `epcSymbol` given the width a
+code stands at and `swissSymbol` its payload alone, each throwing the
+`RenderRefusal` an engine refuses with; the renderer's
 `qr.ts` and `epc.ts` are the drawing alone. The writer's `codes.ts` asks
 the rule once, where `check.ts` meets a code, holds a file's codes to
 their bounds, and maps one to a picture's paragraph exactly its size, or,
@@ -379,8 +380,12 @@ side at the most), a repeated scanline nothing but PNG's filter, deflated
 by fflate, the same bytes for the same symbol. The corpus proves a code
 on that picture: `docx/png.ts` reads the PNG back by its own walk and
 Node's zlib, `code-picture.ts` holds its pixels to a symbol in whole
-pixels a module (`codeGrid`) and has ZXing read them (`readPictureCode`),
-`check-docx-codes.ts` holds each code to its document, which is why
+pixels a module, four modules in from every side (`codeGrid`), and has
+ZXing read them (`readPictureCode`), through `codes.ts`'s `codesIn`,
+which refuses a code read only mirrored, turned or light on dark, a
+PDF page's too: the grid cannot tell a symbol from its mirror, nor ZXing
+one from a symbol in a larger square. `check-docx-codes.ts` holds each
+code to its document, and the picture's version to ZXing's, which is why
 `verifyDocx` is waited for, `readDocxCodes` reads a file's codes for a
 test, `CODE_FIXTURES` are the documents both engines draw, and each way
 a code is refused is a document of `MALFORMED`
@@ -715,7 +720,8 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
 - A QR code is neither text nor an image to PDF.js, so it is proved from the
   page's pixels: `rasterPixels` draws the page with PDF.js and `readCodes`
   (`packages/report-corpus/src/codes.ts`) decodes every code on it with ZXing,
-  for its text, bytes, level, version and place
+  for its text, bytes, level, version and place, and refuses one ZXing
+  reads only mirrored, turned or with dark and light exchanged (0074)
   ([0020](docs/decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md),
   extending 0003). That is decoding, not a comparison of page images.
 - An SVG image is no image object to PDF.js either, so it is proved by the

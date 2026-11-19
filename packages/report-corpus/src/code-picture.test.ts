@@ -16,6 +16,13 @@ const SYMBOL = qrSymbol(code('INV-2026-0042', 'Q'), 1000)
 const pixelsOf = (symbol: QrSymbol, pixels: number, quiet = 4, spoil?: (x: number, y: number, dark: boolean) => boolean): GreyPixels =>
   readPng(codePng(symbol, pixels, quiet, spoil))
 
+/** `symbol` at the top left of a square of `side` modules, with a dark module at each of `strays`, by row and column. */
+const inSquare = (symbol: QrSymbol, side: number, strays: readonly (readonly [number, number])[] = []): QrSymbol => ({
+  modules: Array.from({ length: side }, (_, row) =>
+    Array.from({ length: side }, (_, column) => symbol.modules[row]?.[column] === true || strays.some(([r, c]) => r === row && c === column)),
+  ),
+})
+
 describe('codeGrid', () => {
   // The grid is found from the pixels: how many a module takes, and how many modules the symbol is, which is its version.
   test.each([
@@ -70,6 +77,23 @@ describe('codeGrid', () => {
       /is 27 modules of 10 pixels across, which is no version's symbol with its quiet zone/,
     ],
     [
+      // A version 1 symbol at the top left of a version 2's square: four modules of white above it and to its left, eight to its right and
+      // under it. Read as a version 2 picture, its modules at its extent are taken a seventh finer than they print.
+      'has its symbol in the corner of a larger square',
+      () => pixelsOf(inSquare(SYMBOL, 25), 10),
+      /the picture's symbol ends 80 pixels from the right and 80 from the bottom, where four modules of 10 pixels are 40/,
+    ],
+    [
+      'has its symbol four modules from the right and not from the bottom',
+      () => pixelsOf(inSquare(SYMBOL, 25, [[0, 24]]), 10),
+      /ends 40 pixels from the right and 80 from the bottom/,
+    ],
+    [
+      'has its symbol four modules from the bottom and not from the right',
+      () => pixelsOf(inSquare(SYMBOL, 25, [[24, 0]]), 10),
+      /ends 80 pixels from the right and 40 from the bottom/,
+    ],
+    [
       'has a pixel of another colour than its module',
       () => pixelsOf(SYMBOL, 10, 4, (x, y, dark) => (x === 125 && y === 133 ? !dark : dark)),
       /the pixel 125, 133 is not the colour of the module it stands in/,
@@ -99,6 +123,36 @@ describe('readPictureCode', () => {
   // A symbol of no data is what an empty code is drawn as, and no code to a scanner.
   test('reads none in a symbol of no data', async () => {
     expect(await readPictureCode(pixelsOf(qrSymbol(code(''), 1000), 8))).toBeUndefined()
+  })
+
+  // ZXing reads a symbol mirrored, turned, or with dark and light exchanged, and says so; many a banking app reads none of the three.
+  // Each is the picture a writer draws that takes a symbol's rows for its columns, or its set bits for white: every module uniform, the
+  // quiet zone white, the text, the level and the version the document's. Read as a code, each would pass for the code the report prints.
+  test.each<[string, (symbol: QrSymbol) => GreyPixels, RegExp]>([
+    ['mirrored, left to right', (symbol) => pixelsOf({ modules: symbol.modules.map((row) => [...row].reverse()) }, 8), /ZXing reads the code only mirrored: /],
+    [
+      'with its rows as its columns',
+      (symbol) => pixelsOf({ modules: symbol.modules.map((row, r) => row.map((_, c) => symbol.modules[c]![r]!)) }, 8),
+      /ZXing reads the code only mirrored: /,
+    ],
+    [
+      'turned a quarter',
+      (symbol) => pixelsOf({ modules: symbol.modules.map((row, r) => row.map((_, c) => symbol.modules[symbol.modules.length - 1 - c]![r]!)) }, 8),
+      /ZXing reads the code only turned by 90 degrees: /,
+    ],
+    [
+      'turned a quarter the other way',
+      (symbol) => pixelsOf({ modules: symbol.modules.map((row, r) => row.map((_, c) => symbol.modules[c]![symbol.modules.length - 1 - r]!)) }, 8),
+      /ZXing reads the code only turned by 90 degrees: /,
+    ],
+    [
+      'upside down',
+      (symbol) => pixelsOf({ modules: [...symbol.modules].reverse().map((row) => [...row].reverse()) }, 8),
+      /ZXing reads the code only turned by 180 degrees: /,
+    ],
+    ['light on dark', (symbol) => pixelsOf(symbol, 8, 4, (_x, _y, dark) => !dark), /ZXing reads the code only with dark and light exchanged: /],
+  ])('refuses a symbol drawn %s', async (_name, picture, why) => {
+    await expect(readPictureCode(picture(SYMBOL))).rejects.toThrow(why)
   })
 
   // One picture is one code: two in one would be a second code no document states.

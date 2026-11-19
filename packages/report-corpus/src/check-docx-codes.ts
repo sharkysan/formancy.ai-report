@@ -44,13 +44,17 @@ const near = (read: number, stated: number, within = NEAR): boolean => Math.abs(
 /** The quiet zone a code's picture holds on every side of its symbol, in modules (ISO/IEC 18004). */
 const QUIET = 4
 
+/** Word's unit of length to the point: a twentieth. */
+const TWENTIETHS = 20
+
 /**
  * The least a code's picture holds of pixels to the inch at the size it
  * prints: 600, an office printer's, so that a module's edge stands within
  * a 600th of an inch of where the symbol puts it however a reader
- * resamples the picture. And the most pixels a side it is, 2,400, which
- * is 600 to the inch up to a code four inches wide: a larger code's
- * picture is as many whole pixels a module as that many hold.
+ * resamples the picture. And the most pixels a side it is, 2,400: a
+ * picture under 600 to the inch is fine enough where one more pixel a
+ * module would take it past that many, which is where its code is wider
+ * than 266 to 288 points, by its symbol's version.
  */
 const RESOLUTION = 600
 const MOST_PIXELS = 2400
@@ -124,7 +128,8 @@ const emptyLine = (node: DocxParagraph, height: number): boolean =>
  * code's size together. The frame is a table of one row, exactly as tall
  * as the PSA's frame, bordered around its two cells by a line half a
  * module wide: the symbol's picture, its quiet zone the frame's distance
- * of four modules, half a module in from the left and from the top; and
+ * of four modules, half a module down from the top, and in from the left
+ * as many twentieths of a point as its cell leaves it; and
  * the caption's band, 7 pt, in which "Zahlen mit Code" reads from bottom
  * to top at 7 pt. The module is report-spec's `epcModule` of the version
  * the picture is, the rule both engines draw by.
@@ -175,8 +180,15 @@ export function captionedCode(
     band.borders.left === undefined
   if (!framed) say(`${what}'s frame is not a line of ${line.weight} pt, half a module, around its symbol and its caption and none between them`)
   if (symbol.shade !== undefined || band.shade !== undefined || symbol.direction !== undefined) say(`${what}'s frame is filled, or turns its symbol's cell`)
-  if (!near(picture.indent, line.weight) || !near(picture.before, line.weight) || picture.after !== 0)
-    say(`${what}'s picture does not stand half a module, ${line.weight} pt, in from its frame's left and top`)
+  // Word holds the cell and the picture's distance from its left in twentieths of a point, each rounded by itself, and the cell is the
+  // picture and half a module with nothing over: so the picture stands as many whole twentieths in as its cell leaves it, which is
+  // within 0.075 pt of half a module. One more, and the picture ends a hair past its cell, where Word may fit it to the cell.
+  const [cell] = frame.grid
+  const fromLeft = cell === undefined ? 0 : Math.floor((cell - stated) * TWENTIETHS + 1e-6) / TWENTIETHS
+  if (!near(picture.indent, fromLeft, 1e-6) || !near(picture.before, line.weight) || picture.after !== 0)
+    say(`${what}'s picture does not stand half a module, ${line.weight} pt, down from its frame's top and ${fromLeft} pt in from its left`)
+  if (cell !== undefined && picture.indent + stated > cell + 1e-6)
+    say(`${what}'s picture, ${stated} pt wide and ${picture.indent} pt in from the left, is wider than its cell of ${cell} pt`)
   captionProblems(what, band, say)
   return [{ at, ...read }]
 }
@@ -203,11 +215,13 @@ const sameBytes = (left: Uint8Array, right: Uint8Array): boolean => left.length 
 /**
  * What ZXing reads in each code's picture, held to the document: its
  * text, the text's very bytes in UTF-8, and the level it asks for, M for
- * an EPC QR code. A code of no text is a symbol of no data, which ZXing
- * reads as no code. And the version its pixels are, which no document
- * states, held to what the document's rules leave it: an EPC QR code's
- * within the EPC's and, captioned, with the PSA's modules in its square.
- * Where the symbol stands in its picture the pixels have said already
+ * an EPC QR code; read as it is drawn, never mirrored, turned or light
+ * on dark, which the reader refuses (`codesIn`). A code of no text is a
+ * symbol of no data, which ZXing reads as no code. And the version its
+ * pixels are, which no document states, held to the version ZXing reads
+ * and to what the document's rules leave it: an EPC QR code's within the
+ * EPC's and, captioned, with the PSA's modules in its square. Where the
+ * symbol stands in its picture the pixels have said already
  * (`codeGrid`).
  */
 export async function decodedProblems(pending: readonly PendingCode[]): Promise<string[]> {
@@ -224,6 +238,10 @@ export async function decodedProblems(pending: readonly PendingCode[]): Promise<
       if (read.text !== text || !sameBytes(read.bytes, new TextEncoder().encode(text)))
         problems.push(`${what} scans to other text, or other bytes, than its own`)
       if (read.ecLevel !== level) problems.push(`${what} is at level ${read.ecLevel} where it asks for ${level}`)
+      // The version the pixels are a square of is the one the document's rules are held to below, and the modules at the picture's
+      // extent are that square's: a scanner that reads another version's symbol in it reads other modules than were held.
+      if (read.version !== grid.version)
+        problems.push(`${what} is a picture of a version ${grid.version} symbol in which a scanner reads one of version ${read.version}`)
     }
     if (block.kind !== 'epcQrCode') continue
     if (grid.version > EPC_MAX_VERSION) problems.push(`${what} is a version ${grid.version} symbol, larger than the EPC allows`)

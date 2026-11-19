@@ -31,9 +31,15 @@
     module. `src/browser.test.ts` holds the browser entry to importing no
     encoder, and `src/corpus.test.ts` draws every code fixture and holds
     its PDF by the corpus's checks, a framed code's caption in the page
-    footer as a line of the footer. The README's pictures' check, the Studio's browser gate, by
-    the drawings of each Download PDF, and the e-invoice gate's recorded
-    corpus hold the PDFs they held.
+    footer as a line of the footer. The README's pictures' check, the
+    Studio's browser gate, by the drawings of each Download PDF, and the
+    e-invoice gate's recorded corpus hold the PDFs they held. One thing
+    the proof of a PDF's code gained: `readCodes` refuses a code ZXing
+    reads only mirrored, turned or with dark and light exchanged, where
+    it handed one on as the code it read, so every suite that reads a
+    page's code holds its symbol to being drawn as it was encoded.
+    report-corpus's `src/codes.test.ts` holds that on pages drawn for
+    it, and on the same symbol drawn right, which reads.
   - **The corpus's readers.** report-corpus's `src/docx/png.test.ts`
     proves `readPng` on PNGs made there with Node's zlib: a bit a pixel,
     the highest of a byte first, each of PNG's five filters undone,
@@ -46,27 +52,35 @@
     proves `codeGrid` at one, nine and 140 pixels a module and on the
     largest symbol, and refuses a picture that is not square, all white,
     a pixel short in a module, of three modules of quiet zone, a module
-    low, cut, of another colour in one pixel, or dark in its quiet zone;
-    and `readPictureCode` to the text, the bytes, the level and the place
-    ZXing reads, to nothing in a symbol of no data, and to refusing two
-    codes in one picture. `src/check-docx-codes.test.ts` holds
+    low, cut, of another colour in one pixel, dark in its quiet zone, or
+    whose symbol ends more than four modules from the right or from the
+    bottom, in the corner of a larger square; and `readPictureCode` to
+    the text, the bytes, the level and the place ZXing reads, to nothing
+    in a symbol of no data, to refusing two codes in one picture, and to
+    refusing a symbol drawn mirrored, with its rows as its columns,
+    turned a quarter either way, upside down or light on dark, each of
+    which ZXing reads. `src/check-docx-codes.test.ts` holds
     `verifyDocx` to passing a file written by hand
     (`src/docx/testing/hand-codes.ts`), its pictures made there from the
     runtime's symbols by Node's zlib and never by the writer, and to
     failing on it with one thing of a code taken out or written
     otherwise, a case each: the picture's size, a pixel, its quiet zone,
-    all white, too coarse, of more pixels than the most, another text,
-    another level, no bitmap of one bit, cropped, beside an SVG, with
-    room around it, beside a word, read by no scanner, an EPC QR code's
+    all white, too coarse, of more pixels than the most, its symbol
+    mirrored, with its rows as its columns, in the corner of a larger
+    square, one version's square around another version's symbol,
+    another text, another level, no bitmap of one bit, cropped, beside
+    an SVG, with room around it, beside a word, read by no scanner, an
+    EPC QR code's
     at another level and in a larger version than the EPC allows, modules
     finer than 0.4 mm; and of Austria's frame, the caption's words, its
     direction, its size, its weight, its family, its place and its line,
     the frame's weight, an open side, a line between the symbol and the
     caption, its height, a height that may grow, the band's width,
-    padding, a fill, a turned cell, the picture's place and size, the
-    white above it and that white's keep, a symbol whose modules are over
-    the PSA's 20 mil, a frame with no picture, one of one cell and one
-    with a line under its picture.
+    padding, a fill, a turned cell, the picture's place and size, a
+    picture a hair wider than its cell with its distance from the left,
+    the white above it and that white's keep, a symbol whose modules
+    are over the PSA's 20 mil, a frame with no picture, one of one cell
+    and one with a line under its picture.
     `src/docx/read.test.ts` holds the reader to a cell turned from bottom
     to top and to refusing one turned any other way.
     `src/docx-codes.test.ts` holds `readDocxCodes`, which the writer's
@@ -76,8 +90,9 @@
     that is no code's left out, and a code in the page header as that
     region's. `src/fixtures/fixtures.test.ts` names the code fixtures,
     and `src/fixture.test.ts` holds a key the body prints twice to being
-    no key, and the caption of a framed code in a page region to being a
-    line of that region.
+    no key, a table's empty text to counting among what the body prints
+    only where the table prints it, and the caption of a framed code in
+    a page region to being a line of that region.
   - **The writer, on the file it wrote.** report-render-docx's
     `src/codes.test.ts` reads each code back with the corpus's
     `readDocxCodes`: its text and its very bytes at each of L, M, Q and
@@ -87,18 +102,24 @@
     exactly its size, alone in its paragraph between what stands above
     and under it; whole pixels a module, the least that are 600 to the
     inch, the symbol four modules in where ZXing finds it; a module of
-    exactly so many pixels given that many; a code wider than four inches
-    at as many pixels a module as 2,400 hold; modules of exactly 0.4 mm;
+    exactly so many pixels given that many; a module in no more whole
+    pixels than 2,400 a side hold of its symbol, with every figure this
+    record gives of a wide code's picture worked out from the rule;
+    modules of exactly 0.4 mm;
     the largest symbol's picture under 16,000 bytes; a code in a column
     and in a frame's padding; a code in each page region read from that
     region's part; a heading kept with a code; each code a part of its
     own and the same document the same bytes; an EPC QR code without a
     caption the very picture a QR code of its payload at M is; one in
-    Austria's frame, to each length the file states; the caption's family
-    in the font table where a caption is written and nowhere else; the
-    331 bytes of version 13 with the caption and without; and the
+    Austria's frame, to each length the file states; a framed picture
+    never wider than its cell with its distance from the left, at every
+    size to the hundredth of a point and every version the frame prints
+    in; the caption's family in the font table where a caption is
+    written and nowhere else; the 331 bytes of version 13 with the
+    caption and without; and the
     writer's own refusals, a code past the count, one past the modules,
-    as many of version 17 as the count allows and not of version 18, the
+    as many of version 17 as the count allows and not of version 18, a
+    code counted as often as it stands, the same block among them, the
     regions' codes counted with the body's, and a code taller than the
     printable area. `src/codes-once.test.ts`, the one suite that stands
     in the runtime's place to count, holds the writer to asking for each
@@ -199,6 +220,30 @@
     the page footer, whose caption the checks of a PDF read as a line of
     the body that reached into the footer, until a region's caption was
     derived as that region's line.
+  - **Seen failing, on 19 November 2026**, after a review of this change
+    found what its proof let pass, each case written first. The corpus's
+    check, on a file written by hand whose picture showed its symbol
+    mirrored, with its rows as its columns, in the corner of a larger
+    square, and as one version's square around another's symbol: it had
+    nothing to say against any of the four. `readPictureCode`, on a
+    symbol mirrored, transposed, turned and light on dark, and
+    `readCodes`, on a page of each: both read it as the code. `codeGrid`,
+    on a symbol eight modules from the right and from the bottom. The
+    corpus's check and the writer's own, on a framed picture a hair
+    wider than its cell, which the writer's was in a 30 mm square:
+    78.0614 points in a cell of 78.05. The writer, on
+    one block standing 65 times, which it wrote. And `expectation`, on a
+    key that a table's unprinted empty text repeats, which it dropped.
+    Then, with each rule taken out again and put back: a mirrored, an
+    inverted and a turned code read as any, a mirror's own turn said
+    too, a turn by its sign, a misread code handed on, any white to the
+    right of a symbol and any under it, the picture's version not held
+    to the scanner's, a picture wider than its cell, its distance from
+    the left to the nearest twentieth and unheld, the codes counted by
+    their blocks, the frame's picture the line in to the nearest
+    twentieth, and a twentieth nearer than its cell leaves it, and the
+    picture's bound at 2,500 pixels, rounded up, and at 500 to the inch:
+    each failed by a case.
   - **Not yet opened in Word.** The files this change writes -- the code
     fixtures', the euro invoice's and its samples' -- were written, with
     their PDFs beside them, for the person who decides to open in Word
@@ -298,7 +343,7 @@ resolves otherwise, and nothing is refused elsewhere than it was.
 | The document | The Word file |
 |---|---|
 | `qrCode`, and `epcQrCode` without a caption | An inline picture in a paragraph of its own, exactly `size` points a side, with no indent and no space around it: a PNG of the symbol, its quiet zone of four modules inside it. An EPC QR code without a caption is the very picture a QR code of its payload at level M is. |
-| `epcQrCode` with `caption: 'zahlenMitCode'` | Three nodes that are `size` points tall together. An empty line as tall as the white the PSA's frame leaves above it in its square, kept with the table. A table of one row, exactly as tall as the frame, of two cells with no padding, bordered around the two by a line half a module wide and by none between them: the symbol's picture, whose quiet zone is the frame's distance of four modules, the line's width in from the left and from the top; and the caption's band, 7 pt wide, its text turned to read from bottom to top (`w:textDirection`, `btLr`), "Zahlen mit Code" at 7 pt in Arial, black, centred, on a line of exactly 7 pt. And the same empty line under it. |
+| `epcQrCode` with `caption: 'zahlenMitCode'` | Three nodes that are `size` points tall together. An empty line as tall as the white the PSA's frame leaves above it in its square, kept with the table. A table of one row, exactly as tall as the frame, of two cells with no padding, bordered around the two by a line half a module wide and by none between them: the symbol's picture, whose quiet zone is the frame's distance of four modules, the line's width down from the top, and in from the left as many twentieths of a point as its cell leaves it, which is within 0.075 pt of the line's width; and the caption's band, 7 pt wide, its text turned to read from bottom to top (`w:textDirection`, `btLr`), "Zahlen mit Code" at 7 pt in Arial, black, centred, on a line of exactly 7 pt. And the same empty line under it. |
 
 A heading kept with the next block is kept with a code, as with an
 image, and a code in a keep-together block is kept as a picture is. A
@@ -308,10 +353,18 @@ code in a page region is written into that region's part.
 module a square of whole pixels, so that no module's edge stands inside a
 pixel. As many pixels a module as make the picture 600 to the inch at
 the size it prints, `CODE_RESOLUTION`, the least whole number that does:
-ten for a module of 0.4 mm, nine for the PSA's 15 mil. And no more than
-2,400 pixels a side, `MAX_CODE_SIDE`, which is 600 to the inch up to a
-code four inches wide: a larger code's picture is as many whole pixels a
-module as 2,400 hold, twelve for the largest symbol. Each row of modules
+ten for a module of 0.4 mm, nine for the PSA's 15 mil. And no more of
+them than 2,400 pixels a side hold of the symbol's modules and their
+quiet zone, `MAX_CODE_SIDE`: twelve for the largest symbol, whose
+picture is then 2,220 pixels a side, and 82 for the smallest, 2,378.
+The pixels being whole, how wide a code is still 600 to the inch
+depends on its version: up to 266.4 points for the largest symbol, 3.7
+inches, and up to 287.8 for the version that fares best, just under
+four. Past that a picture is the coarser the wider its code: the
+largest symbol is 571 to the inch at 280 points, 555 at 288 and 269 at
+595, the widest a page holds, and the smallest 597 at 287 points and
+288 at 595. `codes.test.ts` works each of these out from the rule, on
+19 November 2026 and whenever it runs. Each row of modules
 is one scanline as it is and, after it, as many as repeat it, each
 nothing but PNG's filter for a line that is the one above it; the image
 data is deflated by fflate at its own default level, stated, and the
@@ -356,7 +409,9 @@ stands and not by its kind, as 0068 has it. The writer's own, each
   file holds, as a picture is; the PDF judges it against the body
   between its regions.
 - **More than `MAX_DOCX_CODES` codes**, 64, counted where the walk meets
-  one and before anything of it is worked out.
+  one and before anything of it is worked out, and as often as one
+  stands: a block that a document holds twice is two codes, each
+  encoded and drawn.
 - **Codes of more than `MAX_DOCX_CODE_MODULES` modules between them**,
   501,264, the square of each symbol's side summed: what sixteen of the
   largest symbol hold. Counted as each is encoded, so that none is
@@ -410,7 +465,23 @@ found from the pixels alone, and every pixel to the module it stands in.
 `verifyDocx` holds each code, block by block, to its document: the
 picture's extent and place, its resolution, what it says, at which
 level, an EPC QR code's version to the EPC's and the PSA's, and Austria's
-frame to this record's table, by the corpus's own reading of it. What a
+frame to this record's table, by the corpus's own reading of it.
+
+Neither reading is enough alone, as a review of this change showed. The
+grid cannot tell a symbol from its mirror, and ZXing reads a mirrored
+symbol and says so: a picture whose rows were its symbol's columns
+passed, with its text, its level and its version all its document's,
+and many a banking app reads no such code. So the corpus's reader,
+`codesIn`, refuses a code ZXing reads only mirrored, turned or with
+dark and light exchanged, for a Word file's picture and for a PDF's page
+alike: `readCodes` had handed such a code on too, and no test of a PDF
+would have seen a renderer draw one. And ZXing cannot tell a symbol
+from one in the corner of a larger square: `codeGrid` holds the symbol
+to ending four modules from the right and from the bottom, as it holds
+it to starting four from the top and the left, and `verifyDocx` the
+version the picture is a square of to the version ZXing reads in it.
+
+What a
 scanner reads is not at hand at once, so `verifyDocx` is waited for,
 wherever it is called. The corpus's `CODE_FIXTURES` are the documents
 both engines draw, and each way a code is refused is a document of its
@@ -423,7 +494,8 @@ label of its table's total, so that word is on two lines of any engine's
 output; held by a derived expectation for the first time, its Word file
 was said to print a key twice. `expectation` now derives no key the
 body's own words print again, and such a row is held by its table, cell
-for cell, as every row is.
+for cell, as every row is. A table's empty text is among those words
+only where the table prints it, which is where it has no detail row.
 
 **A framed code's caption in a page region is a line of that region.**
 The checks of a PDF tell a page's header and footer from its body by the
@@ -500,10 +572,20 @@ sentence says that the report prints as a PDF.
   scanner reads of it then, was not tried: a module of 0.4 mm at 220 to
   the inch is three and a half pixels, and no longer a whole number of
   them.
-- **A code wider than four inches is drawn under 600 to the inch.** At
-  2,400 pixels a side a code 595 points wide, the largest a page holds,
-  is 290 to the inch, twelve pixels a module for the largest symbol and
-  82 for the smallest.
+- **A wide code is drawn under 600 to the inch.** From 266 to 288
+  points wide, by its version, a code's picture is as many whole pixels
+  a module as 2,400 a side hold and no more: at 595 points, the widest
+  a page holds, that is 269 to the inch for the largest symbol, twelve
+  pixels a module, and 288 for the smallest, 82.
+- **The frame's picture stands half a module from the left only to
+  within a hair.** Its cell and its distance from the left are whole
+  twentieths of a point, so it stands as many of them in as the cell
+  leaves it: within 0.075 pt of the line's width, 0.026 mm.
+- **A reader that refuses.** `readCodes` throws on a code ZXing reads
+  only mirrored, turned or light on dark, so a test cannot read such a
+  code to say something else of it; and a symbol that reads at a slant
+  of half a degree or more would be refused as turned, which no page
+  or picture here is.
 - **Austria's frame is not the PSA's figure.** Its corners are square,
   its right line whole and its caption inside it, and its line is a
   half, five eighths or three quarters of a point where the PDF draws

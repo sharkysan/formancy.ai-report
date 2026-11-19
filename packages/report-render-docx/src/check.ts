@@ -118,8 +118,13 @@ interface Walk {
   readonly page: Page
   /** Every image, in the order the walk met it: its asset is read once every block has been walked (`readPictures`). */
   readonly images: Image[]
-  /** Every code met, and its symbol; and the modules those symbols have between them. */
+  /**
+   * Every code's symbol, by its block; how often a code was met, which
+   * is as often as a block of one stands, the same block among them;
+   * and the modules their symbols have between them.
+   */
   readonly codes: Map<Code, QrSymbol>
+  met: number
   modules: number
   /** The charts met that are parts of the file, and the points they hold between them. */
   charts: number
@@ -137,7 +142,7 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   checkWritten(document.info.title, 'the title', 'info.title')
   refusePdfOnly(document)
   const page = pageOf(document.page)
-  const walk: Walk = { fonts, page, images: [], codes: new Map(), modules: 0, charts: 0, points: 0, paragraphs: 0, characters: 0, runs: 0, families: 0 }
+  const walk: Walk = { fonts, page, images: [], codes: new Map(), met: 0, modules: 0, charts: 0, points: 0, paragraphs: 0, characters: 0, runs: 0, families: 0 }
   const top = { kept: false, column: false, framed: false, width: page.width, depth: 0 }
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true, everyPage: true }, walk)
   if (document.firstPageHeader !== undefined) checkBlocks(document.firstPageHeader, 'firstPageHeader', { ...top, region: true, everyPage: false }, walk)
@@ -360,14 +365,16 @@ function checkImage(image: Image, place: Place, walk: Walk): void {
 /**
  * A code is a square that stands where an image may. What it is refused
  * by but the file's bounds and its height is the runtime's, the one
- * decision both engines ask (0074): its symbol is asked for once, held
- * to what a file's codes may be together, and that symbol is the one
- * written (`codes.ts`).
+ * decision both engines ask (0074): its symbol is asked for once where
+ * it stands, held to what a file's codes may be together, and that
+ * symbol is the one written (`codes.ts`). A block that stands twice is
+ * two codes, each asked for where it stands and each counted.
  */
 function checkCode(code: Code, place: Place, walk: Walk): void {
   const { id } = code
-  const symbol = codeSymbol(code, place.width, { count: walk.codes.size, modules: walk.modules })
+  const symbol = codeSymbol(code, place.width, { count: walk.met, modules: walk.modules })
   walk.codes.set(code, symbol)
+  walk.met += 1
   walk.modules += symbol.modules.length ** 2
   tall(code.size, `the ${code.kind === 'qrCode' ? 'QR code' : 'EPC QR code'} ${id}`, id, walk)
   const { paragraphs, characters, runs } = codeCount(code)

@@ -403,7 +403,12 @@ calls: `qr.test.ts` is unchanged, and holds what it held. Where this
 record says "the renderer encodes it with uqr", "an exact dependency of
 report-render-pdf" and "the renderer depends on uqr", read the runtime.
 No PDF changed. The Word writer asks the same rule and writes the symbol
-as a picture.
+as a picture. And the proof on the page gained one thing with 0074's
+review: `readCodes` refuses a code ZXing reads only mirrored, turned or
+with dark and light exchanged, which it handed on before as the code it
+read, so the cases this record names hold a page's symbol to being
+drawn as it was encoded, where they held its text, its level and its
+version alone (`report-corpus/src/codes.test.ts`).
 
 ## Alternatives considered
 

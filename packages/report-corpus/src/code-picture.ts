@@ -8,13 +8,20 @@ import type { GreyPixels } from './docx/png.js'
  * neither the writer's.
  *
  * `codeGrid` is the picture as a drawing: a square of whole pixels a
- * module, black on white, its symbol four modules in from every side.
- * It is found from the pixels alone -- the first dark run of the first
- * row that holds one is the finder pattern's, seven modules -- and every
- * pixel is then held to the module it stands in, so a picture resampled,
- * smoothed or a pixel out is no grid. `readPictureCode` is what the
- * picture says: its text, its bytes, its level and its version, and where
- * ZXing finds its symbol.
+ * module, black on white, its symbol four modules in from every side,
+ * exactly. It is found from the pixels alone -- the first dark run of
+ * the first row that holds one is the finder pattern's, seven modules --
+ * and every pixel is then held to the module it stands in, so a picture
+ * resampled, smoothed or a pixel out is no grid, and the last dark
+ * column and row to standing four modules from the right and the
+ * bottom, so a symbol in the corner of a larger square is none either.
+ * `readPictureCode` is what the picture says: its text, its bytes, its
+ * level and its version, and where ZXing finds its symbol; a symbol
+ * ZXing reads only mirrored, turned or light on dark is refused where it
+ * is read (`codesIn`). The grid cannot tell a symbol from its mirror,
+ * and ZXing cannot tell a symbol from one in a larger square: a picture
+ * is held by both, and its version by each to the other
+ * (`check-docx-codes.ts`).
  */
 
 /** The modules of a picture's symbol and the pixels each takes. */
@@ -50,6 +57,8 @@ export function codeGrid(png: GreyPixels): CodeGrid {
   const version = (across - 2 * QUIET - 17) / 4
   if (!Number.isInteger(version) || version < 1 || version > 40)
     throw new Error(`the picture is ${across} modules of ${pixels} pixels across, which is no version's symbol with its quiet zone`)
+  // The last column and the last row that hold a dark pixel: where the symbol ends.
+  let [right, bottom] = [0, 0]
   for (let row = 0; row < height; row++) {
     const module = Math.floor(row / pixels) * pixels * width
     for (let column = 0; column < width; column++) {
@@ -58,8 +67,16 @@ export function codeGrid(png: GreyPixels): CodeGrid {
         throw new Error(`the pixel ${column}, ${row} is not the colour of the module it stands in: the picture is not whole pixels a module`)
       const quiet = Math.min(row, column, height - 1 - row, width - 1 - column) < QUIET * pixels
       if (quiet && value !== 255) throw new Error(`the pixel ${column}, ${row} is dark inside the quiet zone of four modules`)
+      if (value === 0) [right, bottom] = [Math.max(right, column), row]
     }
   }
+  // Four modules of white on the right and under the symbol, and no more: with more, the picture is a larger version's square around
+  // this symbol, and its modules at its extent are not the modules it prints.
+  const [fromRight, fromBottom] = [width - 1 - right, height - 1 - bottom]
+  if (fromRight !== QUIET * pixels || fromBottom !== QUIET * pixels)
+    throw new Error(
+      `the picture's symbol ends ${fromRight} pixels from the right and ${fromBottom} from the bottom, where four modules of ${pixels} pixels are ${QUIET * pixels}`,
+    )
   return { pixels, modules: across - 2 * QUIET, version }
 }
 
@@ -70,7 +87,7 @@ function rgba(png: GreyPixels): Uint8ClampedArray<ArrayBuffer> {
   return pixels
 }
 
-/** The one code ZXing reads in the picture, placed in the picture's pixels; undefined where it reads none; throws where it reads several. */
+/** The one code ZXing reads in the picture, placed in the picture's pixels; undefined where it reads none; throws where it reads several, or reads one only mirrored, turned or light on dark (`codesIn`). */
 export async function readPictureCode(png: GreyPixels): Promise<PixelCode | undefined> {
   const found = await codesIn({ data: rgba(png), width: png.width, height: png.height })
   if (found.length > 1) throw new Error(`the picture holds ${found.length} codes`)

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import type { Block, Inline, ResolvedDocument } from './document.js'
+import type { Block, Inline, ResolvedDocument, Table } from './document.js'
 import type { ReadPdf } from './read-pdf.js'
 import { verify } from './checks.js'
 import { chartsOf, drawingsOf, epcCodes, expectation, footerPattern, type Expectation, type Fixture, type Stated } from './fixture.js'
@@ -234,6 +234,27 @@ describe('expectation', () => {
     // And in another cell of a table, its own or another's.
     const twice = { ...document, body: [table([...rows, ['Rounded', 'Amount due']])] }
     expect(expectation(twice, { maxPagesExpected: 1 }).keys).toEqual(['Net amount', 'Rounded'])
+  })
+
+  // A table's empty text prints where the table has no detail row, and nowhere else. Counted among the body's lines of a table that
+  // has rows, it would take a key that prints once for one printed twice, and that row would be sought on no page: a table of lines
+  // whose empty text is "No lines", beside totals whose first row is labelled so.
+  test('counts a table’s empty text among the lines the body prints only where the table prints it', () => {
+    const lines = (rows: readonly ('detail' | 'total')[]): Table => ({
+      kind: 'table',
+      id: 'lines',
+      columns: [{ width: 'fill', align: 'left' }],
+      header: ['Item'],
+      rows: rows.map((kind, index) => ({ kind, cells: [`${kind} ${index}`] })),
+      emptyText: 'No lines',
+    })
+    const totals: Table = { ...lines([]), id: 'totals', rows: [{ kind: 'total', cells: ['No lines'] }], emptyText: '' }
+    const keys = (table: Block): readonly string[] => expectation({ ...document, body: [table, totals] }, { maxPagesExpected: 1 }).keys
+    // Its rows print, and its empty text does not: the label is on one line of the pages.
+    expect(keys(lines(['detail']))).toEqual(['detail 0', 'No lines'])
+    // No detail row, and the empty text prints, under a total too: the label is on two.
+    expect(keys(lines([]))).toEqual([])
+    expect(keys(lines(['total']))).toEqual(['total 0'])
   })
 
   // A page region's lines are how a page's lines are told from its body's.

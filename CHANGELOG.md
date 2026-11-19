@@ -69,8 +69,12 @@ refused by was decided in the PDF renderer and a second writer would
 have decided it a second time. It was asked that a Word file hold what a
 report prints of its codes, its slip, its chart and its e-invoice; this
 is the first of four changes, and the codes.
-Every report prints the PDF it printed: no PDF's bytes, no recorded
-digest and no picture of a page changed.
+No PDF is meant to change, and none was seen to: on 18 November 2026
+the PDF of every starter, sample and fixture, 108 of them, was rendered
+on the build before and after and compared by its SHA-256, once, by
+hand, each the same. What holds it from here is what held the PDFs
+before: the renderer's suites of codes, not a line of them changed, the
+pictures' check, and the browser gate's drawings of each Download PDF.
 - **`@formancy/report-runtime` holds the rule.** `qrSymbol(code, width)`
   and `epcSymbol(code, width)` give a code's symbol where it stands so
   wide, or throw the `RenderRefusal` an engine refuses with, and
@@ -92,8 +96,10 @@ digest and no picture of a page changed.
 - **The Word writer draws both codes**, as a picture of the symbol the
   PDF draws, in a paragraph of its own exactly the code's size: a PNG it
   makes, black on white, whole pixels a module, its quiet zone inside it,
-  600 pixels to the inch at the code's size and 2,400 a side at the
-  most, the same bytes for the same symbol in Node and in a browser. An
+  600 pixels to the inch at the code's size, or as many pixels a module
+  as 2,400 a side hold where the code is wider than 3.7 to 4 inches, by
+  its version, the same bytes for the same symbol in Node and in a
+  browser. An
   EPC QR code in Austria's frame is a table of one row around its picture
   and "Zahlen mit Code", turned to read from bottom to top. A code the
   PDF refuses is refused by the writer in the same words.
@@ -103,7 +109,8 @@ digest and no picture of a page changed.
   by two modules and breaks the line around the words; and the caption is
   named in Arial, the PSA's own, where the PDF prints Liberation Sans.
   Nobody has opened these files in Word yet, and the record says so.
-- **Two bounds more**, exported: `MAX_DOCX_CODES`, 64 codes a file, and
+- **Two bounds more**, exported: `MAX_DOCX_CODES`, 64 codes a file,
+  counted as often as a code stands, and
   `MAX_DOCX_CODE_MODULES`, the modules their symbols may have between
   them, what sixteen of the largest symbol hold. A report past either is
   refused as a Word file, as `content-too-large`, and prints as a PDF.
@@ -121,7 +128,11 @@ digest and no picture of a page changed.
   longer takes for a key a row's first cell that the report's own words
   print again, and takes the caption of a framed EPC QR code in a page
   region for a line of that region, where a PDF's checks read it as a
-  line of the body.
+  line of the body. And `readCodes` now refuses a code ZXing reads only
+  mirrored, turned or with dark and light exchanged, in a PDF's page as
+  in a Word file's picture: it handed such a code on as the code it
+  read, and a symbol drawn with its rows as its columns would have
+  passed every test of what it says.
 
 **A report is written as a Word file, beside its PDF, by a writer of its
 own**

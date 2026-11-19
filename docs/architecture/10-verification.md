@@ -474,11 +474,16 @@ that are not the writer's
 extending 0068 and 0003). The corpus's `readPng` reads the part's bytes
 back to pixels by its own walk of the chunks and Node's zlib, undoing
 every filter PNG defines; `codeGrid` holds those pixels to a symbol in
-whole pixels a module with its quiet zone around it, every pixel to the
-module it stands in; and ZXing reads them, as it reads a page, for the
-text, its bytes, the level and the version. `verifyDocx` holds each to
-its document, and so returns a promise, which every suite and the gate
-wait for. `against-pdf.test.ts` holds a file's codes to the codes
+whole pixels a module with four modules of quiet zone on every side and
+no more, every pixel to the module it stands in; and ZXing reads them,
+as it reads a page, for the text, its bytes, the level and the version.
+Neither is enough alone: the grid cannot tell a symbol from its mirror,
+nor ZXing a symbol from one in the corner of a larger square. So the
+reader refuses a code ZXing reads only mirrored, turned or with dark
+and light exchanged, a PDF page's as a picture's, and the version the
+picture is a square of is held to the one ZXing reads. `verifyDocx`
+holds each to its document, and so returns a promise, which every suite
+and the gate wait for. `against-pdf.test.ts` holds a file's codes to the codes
 decoded from the PDF of the same document, in squares of the PDF's size,
 and both engines to refusing a code in the same words. Decoding is not
 a comparison of pictures, here as for a PDF. What it does not show is
