@@ -1,14 +1,15 @@
 import { strToU8, zipSync, type Zippable } from 'fflate'
-import { SWISS_CODE_SIZE, type Block, type Chart, type ImageAsset, type QrSymbol, type ResolvedDocument } from '@formancy/report-runtime'
+import { QR_BILL_SIZE, SWISS_CODE_SIZE, type Block, type Chart, type ImageAsset, type QrSymbol, type ResolvedDocument } from '@formancy/report-runtime'
 import { SVG_FALLBACK, type Picture } from './assets.js'
 import { nodesOf, type Build } from './blocks.js'
 import { chartXml } from './chart-xml.js'
 import type { Checked } from './check.js'
 import { codePng } from './code-png.js'
 import { CAPTION_FAMILY, captioned, type Code } from './codes.js'
+import { COPY_LABEL_INSET, onSlipPage } from './copy.js'
 import type { DocxFonts, FontEntry } from './fonts.js'
 import { DEFAULT_SIZE, REGION_GAP } from './look.js'
-import { emptyLine, SEPARATOR, type BlockNode, type RelationshipId, type SectionNode } from './nodes.js'
+import { emptyLine, paragraphsOf, SEPARATOR, type BlockNode, type RelationshipId, type SectionNode } from './nodes.js'
 import { slipNodes, slipPage } from './slip.js'
 import { swissPixels, swissPng } from './slip-code.js'
 import { SLIP_FAMILY, SLIP_OTHER_FAMILY } from './slip-widths.js'
@@ -44,7 +45,11 @@ import { attribute, element, own, part, text, type AttributeValue, type Name, ty
  * or a page footer the slip's section names an empty one in its place,
  * `word/header3.xml` and `word/footer2.xml`: a header of unknown height
  * above the slip would push it down the page, and a footer would print
- * into it.
+ * into it. Of a copy of an e-invoice (0077) the slip's page's header is
+ * the copy's label, alone, the one paragraph the runtime heads every
+ * other header with: a page that printed an invoice's slip and said
+ * nothing of what it is would be the one page of the file that passes
+ * for the invoice.
  */
 
 /**
@@ -315,14 +320,23 @@ export function writePackage(document: ResolvedDocument, checked: Checked, fonts
   if (slip !== undefined) {
     // The report's section is ended by a paragraph of its own, an empty line a point tall, whatever the body ends with.
     body.push({ ...emptyLine(SEPARATOR), section: report })
-    /** An empty header or footer of the slip's page, where the report prints one that the page would otherwise print too. */
-    const none = (kind: 'header' | 'footer', printed: string | undefined, name: string): SectionNode['references'] => {
+    /** A header or footer of the slip's page's own, where the report prints one that the page would otherwise print too: empty, unless `held` says what it holds. */
+    const own = (
+      kind: 'header' | 'footer',
+      printed: string | undefined,
+      name: string,
+      held: readonly BlockNode[] = [emptyLine(SEPARATOR)],
+    ): SectionNode['references'] => {
       if (printed === undefined) return []
-      files.push([`word/${name}`, part(element(kind === 'header' ? 'w:hdr' : 'w:ftr', NAMESPACES, [write.blocks([emptyLine(SEPARATOR)])]))])
+      files.push([`word/${name}`, part(element(kind === 'header' ? 'w:hdr' : 'w:ftr', NAMESPACES, [write.blocks(held)]))])
       overrides.push([`word/${name}`, `${MAIN}.${kind}+xml`])
       return reference(kind, 'default', name)
     }
-    last = { ...slipPage(), references: [...none('header', header, 'header3.xml'), ...none('footer', footer, 'footer2.xml')] }
+    // A copy's label is text alone, and its header's part leads nowhere: what it is built with names no relationship.
+    const { copy } = checked
+    const label =
+      copy === undefined ? undefined : onSlipPage(paragraphsOf(nodesOf([copy], building(relationships()), QR_BILL_SIZE.width - 2 * COPY_LABEL_INSET)))
+    last = { ...slipPage(copy !== undefined), references: [...own('header', header, 'header3.xml', label), ...own('footer', footer, 'footer2.xml')] }
     drawn.pictures += 1
     const picture = { id: drawn.pictures, width: SWISS_CODE_SIZE, height: SWISS_CODE_SIZE, embed: links.to('image', pictures.swiss(slip.symbol)) }
     body.push(...slipNodes(slip, picture))

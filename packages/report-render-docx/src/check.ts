@@ -20,6 +20,7 @@ import { checkChart } from './chart-check.js'
 import { chartCount } from './charts.js'
 import { checkColor, checkStyle, checkText, checkWritten } from './check-text.js'
 import { codeCount, codeSymbol, type Code } from './codes.js'
+import { copyLabel } from './copy.js'
 import { createdOf } from './created.js'
 import type { DocxFonts } from './fonts.js'
 import { MAX_DOCX_CHARACTERS, MAX_DOCX_FAMILY_LENGTH, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS, ONE_CELL_TABLE } from './limits.js'
@@ -42,7 +43,9 @@ import { fillWidth, fixedWidth } from './widths.js'
  * family a Word file cannot name, which is refused as the fonts are read
  * (`render.ts`, `fonts.ts`); then the creation date (`created.ts`) and
  * the title; what
- * belongs to the PDF of the document itself (`pdf-only.ts`); the page;
+ * belongs to the PDF of the document itself (`pdf-only.ts`) and a copy
+ * of an e-invoice not labelled as one on every header (`copy.ts`, 0077);
+ * the page;
  * then the page header, page 1's own, the page footer and the body, each
  * block in document order; the pictures' bytes, in the order the walk met
  * them; and last a QR-bill's payment part and its slip (`slip-plan.ts`,
@@ -89,6 +92,8 @@ export interface Checked {
   readonly codes: ReadonlyMap<Code, QrSymbol>
   /** The QR-bill's slip, planned line by line, where the document is paid by one (0075). */
   readonly slip?: PlannedSlip
+  /** The label every header opens with, as the document carries it, where the document is a copy of an e-invoice (0077). */
+  readonly copy?: Paragraph
 }
 
 /** Where a block stands. */
@@ -133,6 +138,8 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   // The title goes into the file's properties, never onto a page: held to being text XML holds, and to no font.
   checkWritten(document.info.title, 'the title', 'info.title')
   refusePdfOnly(document)
+  const copy = copyLabel(document)
+  const labelled = copy === undefined ? {} : { copy }
   const page = pageOf(document.page)
   const walk: Walk = { fonts, page, images: [], codes: new Map(), met: 0, modules: 0, charts: 0, points: 0, paragraphs: 0, characters: 0, runs: 0, families: 0 }
   const top = { kept: false, column: false, framed: false, width: page.width, depth: 0 }
@@ -142,12 +149,14 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   checkBlocks(document.body, 'body', { ...top, region: false, everyPage: false }, walk)
   const pictures = readPictures(walk.images)
   // The payment part last, where the PDF renderer checks it: a document wrong in a block and in its bill is refused for the block by both.
-  if (document.paymentPart === undefined) return { page, created, pictures, codes: walk.codes }
+  if (document.paymentPart === undefined) return { page, created, pictures, codes: walk.codes, ...labelled }
   const slip = planSlip(document.paymentPart, document.page)
   // Its page's paragraphs, and the one that ends the report's section before it (`package.ts`).
   const { paragraphs, characters, runs } = slipCount(slip)
   count(walk, paragraphs + 1, characters, 'paymentPart', runs)
-  return { page, created, pictures, codes: walk.codes, slip }
+  // A copy's label is the header of the slip's page too (`package.ts`): a paragraph of one run more, counted as the page header's was.
+  if (copy !== undefined) count(walk, 1, (copy.runs[0] as { readonly text: string }).text.length + family(walk, copy.style?.font, 2), 'paymentPart', 1)
+  return { page, created, pictures, codes: walk.codes, slip, ...labelled }
 }
 
 /**

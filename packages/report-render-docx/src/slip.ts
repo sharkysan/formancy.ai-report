@@ -15,6 +15,7 @@ import {
   type QrBill,
   type SlipPart,
 } from '@formancy/report-runtime'
+import { COPY_LABEL_INSET } from './copy.js'
 import { BLACK } from './look.js'
 import {
   emptyLine,
@@ -44,7 +45,9 @@ import { twips } from './units.js'
  * begins, so the page's first line is that instruction and its second
  * thing the slip, whose top is then report-spec's `QR_BILL_TOP`, 192 mm
  * down, with nothing above it that could grow and push it. It prints
- * neither the report's page header nor its footer (`package.ts`).
+ * neither the report's page header nor its footer (`package.ts`); of a
+ * copy of an e-invoice it prints the copy's label as its header, and
+ * nothing else (0077).
  *
  * **The slip** is a table of one row and three cells -- the receipt, the
  * payment part's title, code and amount, and its information -- whose
@@ -82,14 +85,20 @@ const FOOT = twips(4)
 /** Where each cell of the slip starts and the last ends, from the paper's left, in twentieths: the receipt, the payment part, its information, the paper's edge. */
 const EDGES = [0, twips(SLIP_RECEIPT_WIDTH), twips(SLIP_PAYMENT_PART.information.x), twips(QR_BILL_SIZE.width)] as const
 
-/** The slip's page: A4 upright, its top margin down to the instruction, nothing at its sides and its foot, and its header and footer at the paper's edges. */
-export function slipPage(): Omit<SectionNode, 'references'> {
+/**
+ * The slip's page: A4 upright, its top margin down to the instruction,
+ * nothing at its sides and its foot, and its header and footer at the
+ * paper's edges -- but for the header of a copy of an e-invoice, which
+ * holds the copy's label and stands 5 mm down (0077, `copy.ts`): a
+ * line or two of 8 pt, with 183 mm between it and the instruction.
+ */
+export function slipPage(labelled: boolean): Omit<SectionNode, 'references'> {
   return {
     paperWidth: QR_BILL_SIZE.width,
     paperHeight: QR_BILL_TOP + QR_BILL_SIZE.height,
     landscape: false,
     margins: { top: points(twips(QR_BILL_TOP) - INSTRUCTION_LINE), right: 0, bottom: 0, left: 0 },
-    header: 0,
+    header: labelled ? COPY_LABEL_INSET : 0,
     footer: 0,
     firstPage: false,
   }

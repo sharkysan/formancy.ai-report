@@ -8,10 +8,15 @@ import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, RenderRefusal, type Block, type
  *
  * Of the document itself, before any block: its e-invoice, which is the
  * PDF/A-3b that embeds its XML or the labelled copy of an XML a host
- * sends; and a
+ * sends -- a Word file is written of the copy the runtime resolves for
+ * one, which carries no e-invoice and says on every page what it is
+ * (0077, `copy.ts`), and the refusal says to ask for it; and a
  * preview the runtime labelled, whose label a Word file holds as a
  * paragraph a person deletes -- read as the PDF renderer reads it where
- * it refuses a preview as a PDF/A (0057). A payment part was refused
+ * it refuses a preview as a PDF/A (0057). A copy's label is a paragraph
+ * a person deletes too, and what is left is the page of a final render,
+ * whose every value is the invoice's; what is left of a preview is a
+ * sample that passes for the report. A payment part was refused
  * here, as what SIX fixes to the foot of the last page, where a Word
  * file's pages are Word's; since 0075 its slip is written on a page of
  * its own, the file's last (`slip.ts`).
@@ -25,7 +30,8 @@ import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, RenderRefusal, type Block, type
  * (`charts.ts`).
  */
 
-const PRINT = 'print the report as a PDF'
+const PRINT =
+  "a Word file is written of its copy, which says on every page that it is not the invoice: resolve the report with eInvoice: 'copy' for the Word file, and print the report as a PDF"
 
 /** Refuses a document that carries what only its PDF is: an e-invoice, a preview's label. */
 export function refusePdfOnly(document: ResolvedDocument): void {
@@ -33,8 +39,8 @@ export function refusePdfOnly(document: ResolvedDocument): void {
   if (invoice !== undefined) {
     const what =
       invoice.kind === 'xrechnung'
-        ? 'the report is an XRechnung, whose page is the labelled copy of the XML a host sends; a Word file, which a person may change, is no copy'
-        : 'the report is an e-invoice, which is the PDF/A-3b that embeds its XML; a Word file is no invoice'
+        ? 'the report is an XRechnung, whose invoice is the XML a host sends and whose page is labelled as the PDF copy of it'
+        : 'the report is an e-invoice, which is the PDF/A-3b that embeds its XML, and a Word file embeds none'
     throw new RenderRefusal('unsupported', `${what}: ${PRINT}`, 'eInvoice')
   }
   if (labelledPreview(document.pageHeader)) {
