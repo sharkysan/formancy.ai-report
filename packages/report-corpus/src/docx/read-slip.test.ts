@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { readDocx } from './read.js'
-import { handSlipParts, slipWhite } from './testing/hand-slip.js'
+import { HAND_SLIP_BODY, handSlipParts, slipWhite } from './testing/hand-slip.js'
 import { HAND_SEPARATOR, handDocx, rewritten, SECTION } from './testing/hand.js'
 
 /**
@@ -21,9 +21,9 @@ describe('readDocx reads the hand-written file of a slip', () => {
   // The report's page is the first section's, and the slip's its own: read as one, the slip's margins would be taken for the report's.
   test("as two sections: the report's page and body, and the slip's page after it", () => {
     expect(docx.page.margins).toEqual({ top: 50, right: 50, bottom: 50, left: 50 })
-    expect(docx.body).toHaveLength(2)
-    expect(docx.body.at(-1)).toMatchObject({ kind: 'paragraph', runs: [], endsSection: true, line: { height: 1, rule: 'exact' } })
-    expect(docx.body[0]).not.toHaveProperty('endsSection')
+    // The report's last paragraph ends its section, and is the report's own still.
+    expect(docx.body).toHaveLength(1)
+    expect(docx.body[0]).toMatchObject({ kind: 'paragraph', runs: [{ kind: 'text', text: 'An invoice' }], endsSection: true })
     expect(docx.slip?.page).toEqual({
       width: 595.3,
       height: 841.9,
@@ -56,7 +56,7 @@ describe('readDocx reads the hand-written file of a slip', () => {
 })
 
 describe('readDocx refuses, naming the part', () => {
-  const ENDING = `<w:p><w:pPr><w:spacing w:line="20" w:lineRule="exact"/><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr>${SECTION}</w:pPr></w:p>`
+  const ENDING = HAND_SLIP_BODY
 
   test.each([
     // A section ended inside the slip's own cell: a page break nobody placed, inside the slip.

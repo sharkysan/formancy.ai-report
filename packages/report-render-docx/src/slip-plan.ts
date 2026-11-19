@@ -17,7 +17,7 @@ import {
 } from '@formancy/report-runtime'
 import { codePoint } from './check-text.js'
 import { SEPARATOR } from './nodes.js'
-import { SLIP_ASCENDER, slipWidth, unmeasured } from './slip-widths.js'
+import { SLIP_ASCENDER, SLIP_LINE, slipWidth, unmeasured } from './slip-widths.js'
 import { twips } from './units.js'
 
 /**
@@ -70,6 +70,16 @@ export interface PlannedSlip {
   readonly payment: readonly PlannedBlock[]
 }
 
+/**
+ * The face's own line at `size` points, in whole twentieths and never
+ * under it: from its ascender to its descender, which holds the ink of
+ * every character it draws. A line of an exact height shorter than this
+ * cuts what reaches past it.
+ */
+export function faceLine(size: number): number {
+  return Math.ceil(SLIP_LINE * size * 20 - 1e-9)
+}
+
 /** What each line of a part is tall, and the white between two blocks, in twentieths. */
 export interface Lettering {
   readonly heading: number
@@ -78,16 +88,20 @@ export interface Lettering {
 }
 
 /**
- * A part's lines as the PDF lays them out (`slip.ts` there): every
- * baseline a pitch below the one before, so a heading's line is shorter
- * than the pitch by what a value's ascender is longer than its own, and
- * the white before a heading longer by as much. The two are a line and a
- * blank line together, exactly.
+ * A part's lines: a heading's baseline a pitch above its first value's,
+ * as the PDF lays them out (`slip.ts` there), so a heading's line is
+ * shorter than the pitch by what a value's ascender is longer than its
+ * own. A value's line is SIX's pitch, or the face's own line at its size
+ * where that is taller, since a shorter line cuts ink: the payment part's
+ * 10 pt stands on 11.2 pt, where SIX's pitch and the PDF's is 11. The
+ * white before a heading is a value's line and what the heading's line is
+ * short of the pitch.
  */
 export function lettering(part: SlipPart): Lettering {
   const { heading, value, pitch } = part.lettering
   const short = twips(pitch - SLIP_ASCENDER * (value - heading))
-  return { heading: short, value: twips(pitch), gap: 2 * twips(pitch) - short }
+  const tall = Math.max(twips(pitch), faceLine(value))
+  return { heading: short, value: tall, gap: tall + twips(pitch) - short }
 }
 
 /** Where a part's information ends, in twentieths from the slip's top: the receipt's at its amount, the payment part's with its section. */
@@ -119,16 +133,20 @@ const AFTER_HYPHEN = /(?<=-)(?=[^0-9])/
 
 /**
  * `text` in lines no wider than `width` points at `size`, each as full
- * as it can be: broken at a space, which is then no character of either
- * line, after a hyphen that no digit follows, and inside a word only
+ * as it can be: broken at a space or a run of them, which is then no
+ * character of either line, after a hyphen that no digit follows, and inside a word only
  * where what stands between two such places is wider than a line alone.
  */
 export function broken(text: string, size: number, width: number): string[] {
   const fits = (line: string): boolean => slipWidth(line, 'normal', size) <= width + HAIR
   const lines: string[] = []
   let line = ''
-  // Each piece a line may end before, and what joins it to the piece before it on one line: a space, or nothing after a hyphen.
-  const pieces = text.split(' ').flatMap((word) => word.split(AFTER_HYPHEN).map((piece, index) => ({ piece, joint: index === 0 ? ' ' : '' })))
+  // Each piece a line may end before, and what joins it to the piece before it on one line: the spaces between two words, which at a
+  // break are the break, every one of them, or nothing after a hyphen.
+  const words = text.split(/( +)/)
+  const pieces = words.flatMap((word, at) =>
+    at % 2 === 1 ? [] : word.split(AFTER_HYPHEN).map((piece, index) => ({ piece, joint: index === 0 ? (words[at - 1] ?? '') : '' })),
+  )
   pieces.forEach(({ piece, joint }, index) => {
     const longer = index === 0 ? piece : `${line}${joint}${piece}`
     if (fits(longer)) {

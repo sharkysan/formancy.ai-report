@@ -139,14 +139,18 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true, everyPage: true }, walk)
   if (document.firstPageHeader !== undefined) checkBlocks(document.firstPageHeader, 'firstPageHeader', { ...top, region: true, everyPage: false }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true, everyPage: true }, walk)
+  const before = walk.paragraphs
   checkBlocks(document.body, 'body', { ...top, region: false, everyPage: false }, walk)
+  const empty = walk.paragraphs === before
   const pictures = readPictures(walk.images)
   // The payment part last, where the PDF renderer checks it: a document wrong in a block and in its bill is refused for the block by both.
   if (document.paymentPart === undefined) return { page, created, pictures, codes: walk.codes }
   const slip = planSlip(document.paymentPart, document.page)
-  // Its page's paragraphs, and the one that ends the report's section before it (`package.ts`).
+  // Its page's paragraphs; the line a body of nothing is given to end the report's section with; and the empty header's and footer's
+  // of its page, where the report prints its own (`package.ts`).
   const { paragraphs, characters, runs } = slipCount(slip)
-  count(walk, paragraphs + 1, characters, 'paymentPart', runs)
+  const beside = (empty ? 1 : 0) + (document.pageHeader.length > 0 ? 1 : 0) + (document.pageFooter.length > 0 ? 1 : 0)
+  count(walk, paragraphs + beside, characters, 'paymentPart', runs)
   return { page, created, pictures, codes: walk.codes, slip }
 }
 

@@ -36,6 +36,7 @@ const pictured = (png: Uint8Array): Parts => handSlipParts().set(PNG, png)
 
 const SYMBOL = HAND_SWISS_SYMBOL
 const TITLE = slipLine('Receipt', 11, true, 246, SLIP_IN)
+const SEPARATOR = '<w:p><w:pPr><w:spacing w:line="20" w:lineRule="exact"/><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr></w:pPr></w:p>'
 const INSTRUCTION = '<w:jc w:val="center"/>'
 const SECTION_MARGINS = 'w:top="10680" w:right="0" w:bottom="0" w:left="0" w:header="0" w:footer="0"'
 
@@ -75,7 +76,7 @@ describe('verifyDocx fails on a slip whose page', () => {
           '</w:tbl><w:p><w:pPr><w:spacing w:line="20" w:lineRule="exact"/><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr></w:pPr></w:p><w:sectPr><w:headerReference w:type="default" r:id="rId6"/>',
           '</w:tbl><w:p><w:pPr><w:spacing w:line="20" w:lineRule="exact"/><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr></w:pPr></w:p><w:p><w:pPr><w:spacing w:line="20" w:lineRule="exact"/><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr></w:pPr></w:p><w:sectPr><w:headerReference w:type="default" r:id="rId6"/>',
         ),
-      /is not the instruction to separate, the slip and an empty paragraph/,
+      /is not the instruction to separate, the slip and an empty paragraph a point tall/,
     ],
     ['prints another instruction', () => written('Separate before paying in', 'Cut here'), /its first line is not the bill's instruction to separate/],
     ['sets the instruction to the left', () => written(INSTRUCTION, ''), /its instruction is not 8 pt, regular and centred/],
@@ -151,12 +152,12 @@ describe('verifyDocx fails on a slip that', () => {
     ],
     [
       'leaves a line of an address out',
-      () => written(slipLine('Musterstrasse 123', 10, false, 220), slipWhite(220)),
-      /the payment part's 'Account \/ Payable to' does not print its values, line under line a pitch of 11 pt apart/,
+      () => written(slipLine('Musterstrasse 123', 10, false, 224), slipWhite(220)),
+      /the payment part's 'Account \/ Payable to' does not print its values, line under line a pitch of 11\.2 pt apart/,
     ],
     [
       'prints a value at the heading’s size',
-      () => written(slipLine('Simon Muster', 10, false, 220), slipLine('Simon Muster', 8, false, 220)),
+      () => written(slipLine('Simon Muster', 10, false, 224), slipLine('Simon Muster', 8, false, 220)),
       /the payment part's 'Payable by' does not print its values/,
     ],
     [
@@ -183,8 +184,8 @@ describe('verifyDocx fails on a slip that', () => {
       'prints a line the bill does not',
       () =>
         written(
-          `${slipLine('8000 Seldwyla', 10, false, 220)}</w:tc>`,
-          `${slipLine('8000 Seldwyla', 10, false, 220)}${slipLine('Thank you', 10, false, 220)}</w:tc>`,
+          `${slipLine('8000 Seldwyla', 10, false, 224)}</w:tc>`,
+          `${slipLine('8000 Seldwyla', 10, false, 224)}${slipLine('Thank you', 10, false, 224)}</w:tc>`,
         ),
       /'Thank you' is a line no part of the bill prints there/,
     ],
@@ -202,6 +203,35 @@ describe('verifyDocx fails on a slip that', () => {
       'puts space before a line',
       () => written(TITLE, TITLE.replace('<w:spacing ', '<w:spacing w:before="40" ')),
       /a paragraph of the slip has space before or after it/,
+    ],
+    [
+      'sets a value of 10 pt on a line of 11, shorter than its face’s own',
+      () => written(slipLine('Simon Muster', 10, false, 224), slipLine('Simon Muster', 10, false, 220)),
+      /'Simon Muster' is on a line of 11 pt, shorter than its face's own at 10 pt, 11\.17: Word would cut what reaches past it/,
+    ],
+    [
+      'puts its code on a line of an exact height',
+      () =>
+        written(`<w:p><w:pPr>${SLIP_IN}<w:rPr><w:sz w:val="2"/>`, `<w:p><w:pPr><w:spacing w:line="200" w:lineRule="exact"/>${SLIP_IN}<w:rPr><w:sz w:val="2"/>`),
+      /its code stands on a line of a stated height, which shows as much of the picture as the line is tall/,
+    ],
+    [
+      'gives its code’s paragraph a mark of 40 pt',
+      () =>
+        written(
+          `<w:p><w:pPr>${SLIP_IN}<w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr></w:pPr>`,
+          `<w:p><w:pPr>${SLIP_IN}<w:rPr><w:sz w:val="80"/><w:szCs w:val="80"/></w:rPr></w:pPr>`,
+        ),
+      /its code's paragraph has a mark of 40 pt, where one of a point leaves its line as tall as the picture/,
+    ],
+    [
+      'ends its page with a paragraph of 40 pt, which starts another page',
+      () =>
+        written(
+          `${SEPARATOR}<w:sectPr><w:headerReference w:type="default" r:id="rId6"/>`,
+          `${SEPARATOR.replace('w:line="20"', 'w:line="800"')}<w:sectPr><w:headerReference w:type="default" r:id="rId6"/>`,
+        ),
+      /is not the instruction to separate, the slip and an empty paragraph a point tall/,
     ],
     ['prints its code another size', () => everywhere('1656000', '1600000'), /its code is 125\.98\d* × 125\.98\d* pt, where SIX prints it 46 mm a side/],
     ['stands its code higher than 17 mm', () => written('w:line="435"', 'w:line="400"'), /its code does not stand 67 mm in and 17 mm down/],

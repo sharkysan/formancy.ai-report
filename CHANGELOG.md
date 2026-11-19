@@ -33,7 +33,10 @@ new.
 - **No line Word may cut.** The slip is a table whose every line is of an
   exact height, so that each section stands where SIX puts it, and whose
   rows are of a least height, never an exact one, which would cut what
-  does not fit. The writer breaks every value into its lines itself and
+  does not fit. No line is shorter than its face's own, which would cut
+  ink: the payment part's values stand 11.2 pt apart, where SIX's pitch
+  and the PDF's is 11, so a value stands 0.2 pt lower than the PDF's for
+  every value line above it, 2.6 pt at the foot of the longest bill. The writer breaks every value into its lines itself and
   holds each to the width of its place, by the widths of the slip's
   face, and each part's information to the height of its section. A bill
   whose lines do not fit is refused, as `content-too-large`, never cut
@@ -58,7 +61,9 @@ new.
   a character SIX does not allow a bill, as `unsupported`, since it has
   no width to show a line to fit by, and a heading or an amount wider
   than its place. An e-invoice and a labelled preview are refused as
-  before, an e-invoice paid by a QR-bill as the e-invoice it is.
+  before, an e-invoice paid by a QR-bill as the e-invoice it is. One
+  sentence changed: a payment part of a kind nobody knows is one "a
+  report does not know", where the PDF renderer said "the renderer".
 - **A value may break elsewhere than in the PDF** where it has a place
   to break that is neither a space nor a hyphen, and billing information
   wider than its line is filled line by line, where the PDF prints `//`

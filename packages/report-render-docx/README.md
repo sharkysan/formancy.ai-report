@@ -136,8 +136,10 @@ test claims it prints as the PDF does.
   and a page count counts it. The slip is a table of one row and three
   cells, its lines borders -- the line between the receipt and the
   payment part bears no scissors -- in which every line is of an exact
-  height, so that each section stands where SIX puts it, and no row that
-  holds text is: the writer breaks each value into its lines and holds
+  height, so that each section stands where SIX puts it, none shorter
+  than its face's own, which would cut ink -- the payment part's values
+  stand 11.2 pt apart, where SIX's pitch and the PDF's is 11 -- and no
+  row that holds text is exact: the writer breaks each value into its lines and holds
   every line to the width of its place by Liberation Sans's widths,
   which Arial's are, and refuses a bill whose lines do not fit. It is
   named in Arial, with Liberation Sans as its other name in the font

@@ -42,6 +42,17 @@ const OTHER_FAMILY = 'Liberation Sans'
 /** How far below a line's top its baseline stands, in ems: Liberation Sans's ascender, 1854 of its 2048 units, which Arial's is. */
 const ASCENDER = 1854 / 2048
 
+/** The face's own line at `size` points: from its ascender to its descender, 2,288 of its 2,048 units, which holds every character's ink. */
+const faceLine = (size: number): number => ((1854 + 434) / 2048) * size
+
+/**
+ * How far a part's value lines stand apart: SIX's pitch (SG 15), or, where
+ * the face's own line at the values' size is taller, that line in whole
+ * twentieths of a point, since a line shorter than its face's cuts ink.
+ * The payment part's 10 pt on 11 pt is such a line: 11.2 pt.
+ */
+const valuePitch = (part: Part): number => Math.max(part.pitch, Math.ceil(faceLine(part.value) * 20 - 1e-9) / 20)
+
 /** A4 upright, and the slip across its foot: 210 by 105 mm, the receipt 62 mm wide (IG 3.1, 3.3). */
 const PAPER = { width: 595.28, height: 841.89 }
 const SLIP = { top: PAPER.height - mm(105), receipt: mm(62), information: mm(118) }
@@ -130,6 +141,11 @@ function place(blocks: readonly DocxBlock[], x: number, top: number, width: numb
     const picture = block.runs.find((run) => run.kind === 'picture')
     if (block.before !== 0 || block.after !== 0) found.problems.push('a paragraph of the slip has space before or after it, which no line above it states')
     if (picture?.kind === 'picture') {
+      // A picture's line is Word's own, as tall as the picture: on a line of a stated height Word shows as much of the picture as the
+      // line is tall, and under a mark taller than a point the line is the mark's.
+      if (block.line !== undefined) found.problems.push('its code stands on a line of a stated height, which shows as much of the picture as the line is tall')
+      if (block.mark.size !== 1 || block.mark.family !== undefined)
+        found.problems.push(`its code's paragraph has a mark of ${String(block.mark.size)} pt, where one of a point leaves its line as tall as the picture`)
       found.pictures.push({ x: x + block.indent, top: down, paragraph: block })
       down += picture.picture.height
       continue
@@ -146,6 +162,11 @@ function place(blocks: readonly DocxBlock[], x: number, top: number, width: numb
         if (props.family !== FAMILY || props.color !== BLACK || props.italic || props.shift !== undefined)
           found.problems.push(`'${run.text}' is not set in ${FAMILY}, black and upright on its line`)
         if (run.text.includes('\n')) found.problems.push(`'${run.text}' holds a line break, where each line of the slip is a paragraph`)
+        // A line of an exact height shorter than the face's own, its ascender and its descender at the text's size, cuts what reaches past it.
+        if (props.size !== undefined && block.line.height < faceLine(props.size) - 1e-6)
+          found.problems.push(
+            `'${run.text}' is on a line of ${block.line.height} pt, shorter than its face's own at ${props.size} pt, ${faceLine(props.size).toFixed(2)}: Word would cut what reaches past it`,
+          )
         found.lines.push({
           x: x + block.indent,
           right: x + width - block.indentRight,
@@ -212,6 +233,9 @@ function fieldOf(table: DocxTable, x: number, top: number, found: Found): Field 
 
 const squeezed = (text: string): string => text.replaceAll(' ', '')
 
+/** A paragraph that holds nothing on a line of exactly a point: what follows a table at the end of a page and starts no other. */
+const pointTall = (block: DocxBlock): boolean => isEmpty(block) && block.kind === 'paragraph' && block.line?.rule === 'exact' && near(block.line.height, 1)
+
 /** What the slip of `document`'s bill is held to in `docx`, and the Swiss QR Code's pixels for what a scanner reads in them. */
 export function verifySlip(
   document: ResolvedDocument,
@@ -241,8 +265,8 @@ export function verifySlip(
   }
 
   const [instruction, table, closing, ...more] = slip.blocks
-  if (instruction?.kind !== 'paragraph' || table?.kind !== 'table' || closing === undefined || !isEmpty(closing) || more.length > 0) {
-    say('its page is not the instruction to separate, the slip and an empty paragraph')
+  if (instruction?.kind !== 'paragraph' || table?.kind !== 'table' || closing === undefined || !pointTall(closing) || more.length > 0) {
+    say('its page is not the instruction to separate, the slip and an empty paragraph a point tall')
     return { problems }
   }
   // The instruction above the line across, outside the payment part (IG 3.7): its line ends where the slip begins, 192 mm down the page.
@@ -318,7 +342,7 @@ export function verifySlip(
 
   const listed = docx.fonts.find((font) => font.name === FAMILY)
   if (listed === undefined || listed.family !== 'swiss') say(`the font table does not list ${FAMILY} as a swiss face`)
-  else if (listed.altName !== OTHER_FAMILY && !document.fonts) say(`the font table does not give ${OTHER_FAMILY} as ${FAMILY}'s other name`)
+  else if (listed.altName !== OTHER_FAMILY) say(`the font table does not give ${OTHER_FAMILY} as ${FAMILY}'s other name`)
 
   const code = codeProblems(found, say)
   return { problems, ...(code === undefined ? {} : { code }) }
@@ -349,6 +373,7 @@ function informationProblems(
     line(`${what}, a heading,`, block.heading, x, next, part.heading, true)
     // A value's baseline is a pitch under its heading's: its line starts that much lower less what its ascender is longer.
     let down = next + part.pitch - shift
+    const step = valuePitch(part)
     if (block.values === undefined) {
       const box = { x, top: down + 2, ...part.debtorField }
       field(what, box)
@@ -362,12 +387,12 @@ function informationProblems(
       if (at === undefined) break
       at.taken = true
       read += squeezed(at.text)
-      down += part.pitch
+      down += step
     }
-    if (read !== wanted) say(`${what} does not print its values, line under line a pitch of ${part.pitch} pt apart`)
+    if (read !== wanted) say(`${what} does not print its values, line under line a pitch of ${step} pt apart`)
     if (down > bottom + NEAR) say(`${what} ends ${(down - bottom).toFixed(2)} pt below its section`)
     // The blank line: the next heading's baseline two pitches under the last value's.
-    next = down + part.pitch + shift
+    next = down + step + shift
   }
 }
 

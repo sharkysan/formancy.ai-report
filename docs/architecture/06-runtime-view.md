@@ -1356,7 +1356,8 @@ broken into lines by the widths of the slip's face, and a line wider
 than its place or information taller than its section refuses the
 bill; and the slip is written as the file's last section, each line and
 each white of an exact height, so that each section stands where SIX
-puts it, and no row of an exact height, so that Word cuts nothing
+puts it, no line shorter than its face's own, and no row of an exact
+height, since either would cut what does not fit it
 ([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)). The writer's `refusals.test.ts` holds that order on a
 document wrong in every one of those places, put right a place at a time,
 and the corpus's `wordRefusal` derives from a document on its own what

@@ -45,16 +45,20 @@ export async function verifyDocx(fixture: Fixture, docx: Docx): Promise<string[]
     ['pageFooter', document.pageFooter, docx.footer, 'footer'],
   ]
   const codes: FoundCodes = { pending: [], paragraphs: new Set() }
-  // A report paid by a QR-bill ends its section with a paragraph of its own, an empty line a point tall, and its slip's page follows (0075).
+  // A report paid by a QR-bill ends its section with the last paragraph of its body, and its slip's page follows (0075). A body that
+  // writes nothing is given an empty line a point tall to end it with, which is then no block of the document's.
   const ending = docx.body.at(-1)
-  const ended =
-    ending?.kind === 'paragraph' && ending.endsSection === true && ending.runs.length === 0 && ending.line?.rule === 'exact' && ending.line.height === 1
-  const body = ended ? docx.body.slice(0, -1) : docx.body
+  const ended = ending?.kind === 'paragraph' && ending.endsSection === true
+  const given = ended && docx.body.length === 1 && ending.runs.length === 0 && ending.line?.rule === 'exact' && ending.line.height === 1
+  const body =
+    given && verifyContainer(document.body, [], { at: 'body', width, kind: 'body' }, fonts, { pending: [], paragraphs: new Set() }).length === 0
+      ? []
+      : docx.body
   const slip = verifySlip(document, docx)
   const stated = [
     ...(ended === (document.paymentPart !== undefined)
       ? []
-      : ["the report's section is not ended by an empty line a point tall exactly where the document is paid by a QR-bill"]),
+      : ["the report's section is not ended by the last paragraph of its body exactly where the document is paid by a QR-bill"]),
     ...slip.problems,
     ...pageProblems(document, docx),
     ...regions.flatMap(([at, blocks, region, kind]) => {

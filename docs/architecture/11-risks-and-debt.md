@@ -281,7 +281,9 @@ millimetres, and everything Word does with that layout is unseen here:
 that a page with no margin at its sides and foot prints at all and what
 Word says of it, that a line of an exact height and a row of a least
 height stand where the heights above them add up to, where a baseline
-stands in its line, and that the page after the slip stays unwritten. A
+stands in its line -- on which it rests that a line exactly as tall as
+its face's own shows all of its ink -- how tall a picture's line is,
+and that the page after the slip stays unwritten. A
 slip that Word prints a millimetre off is one a bank's reader may
 refuse, and nothing here would say so before a person measured a print.
 The slip is named in Arial, with Liberation Sans as its other name: a
