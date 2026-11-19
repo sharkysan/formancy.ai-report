@@ -13,7 +13,12 @@
  * too: written, its code a picture of one bit a pixel whose side is whole
  * pixels a module of the symbol the packed runtime's `epcSymbol` gives,
  * on the uqr a clean npm install gives the runtime, and its caption among
- * the document's text. consume.ts runs it and prints what it returns.
+ * the document's text. And the guide's quotation with its chart (0076),
+ * which chart.ts resolved and drew as a PDF: written, its chart a part
+ * of the file that is a bar chart of Word's own, holding the three
+ * amounts digit for digit as the runtime totalled them and the axis's
+ * highest tick, with no workbook in the file and no relationships part
+ * beside the chart. consume.ts runs it and prints what it returns.
  *
  * What only this gate sees is the fflate and the pako a clean npm
  * install gives the writer, the uqr it gives the runtime, and the
@@ -27,6 +32,9 @@ import type { EpcQrCode, ImageResolver, QrSymbol, ResolvedDocument } from '@form
 import { renderDocx, RenderRefusal } from '@formancy/report-render-docx'
 import {
   MAX_DOCX_CHARACTERS,
+  MAX_DOCX_CHART_DIGITS,
+  MAX_DOCX_CHART_POINTS,
+  MAX_DOCX_CHARTS,
   MAX_DOCX_CODE_MODULES,
   MAX_DOCX_CODES,
   MAX_DOCX_FAMILY_LENGTH,
@@ -95,7 +103,35 @@ function codeWritten(paid: ResolvedDocument): number {
   return side[0]
 }
 
-export function wordWritten(billed: ResolvedDocument, paid: ResolvedDocument): string {
+/**
+ * The quotation with the guide's chart, written: the length of the one
+ * part of its file that is a chart -- a bar chart of Word's own, its
+ * three amounts the runtime's digits and its axis ending at the highest
+ * tick -- in a file that holds no workbook and leads nowhere from it.
+ */
+function chartWritten(charted: ResolvedDocument): number {
+  const parts = entriesOf(renderDocx(charted))
+  const names = [...parts.keys()]
+  const charts = names.filter((name) => name.startsWith('word/charts/'))
+  const xml = parts.get('word/charts/chart1.xml')?.toString('utf8') ?? ''
+  const held: Readonly<Record<string, boolean>> = {
+    'one chart part and nothing beside it': charts.join() === 'word/charts/chart1.xml',
+    'no workbook': !names.some((name) => /embeddings|\.xlsx$|\.bin$/.test(name)),
+    "the chart's content type": (parts.get('[Content_Types].xml')?.toString('utf8') ?? '').includes(
+      '<Override PartName="/word/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>',
+    ),
+    'the reference to it in the body': (parts.get('word/document.xml')?.toString('utf8') ?? '').includes('<c:chart xmlns:c='),
+    'a bar chart': xml.includes('<c:barChart>'),
+    'the three amounts, digit for digit': ['480.00', '231.00', '480.00'].every((amount) => xml.includes(`<c:v>${amount}</c:v>`)),
+    'the axis to its highest tick': xml.includes('<c:max val="500"/>') && xml.includes('<c:min val="0"/>'),
+    'no formula and no external data': !/<c:f>|externalData|numRef|strRef/.test(xml),
+  }
+  const missed = Object.keys(held).filter((check) => held[check] !== true)
+  if (missed.length > 0) throw new Error(`the Word file of the quotation with a chart lacks ${missed.join('; ')}: its parts are ${names.join(', ')}`)
+  return xml.length
+}
+
+export function wordWritten(billed: ResolvedDocument, paid: ResolvedDocument, charted: ResolvedDocument): string {
   if (!REFUSAL_CODES.includes(UNSUPPORTED)) throw new Error('the refusal codes the writer hands on do not hold unsupported')
   if (
     ![
@@ -108,6 +144,9 @@ export function wordWritten(billed: ResolvedDocument, paid: ResolvedDocument): s
       MAX_DOCX_FAMILY_LENGTH,
       MAX_DOCX_CODES,
       MAX_DOCX_CODE_MODULES,
+      MAX_DOCX_CHARTS,
+      MAX_DOCX_CHART_POINTS,
+      MAX_DOCX_CHART_DIGITS,
     ].every((bound) => Number.isSafeInteger(bound) && bound > 0)
   )
     throw new Error("the writer's bounds are not counts")
@@ -141,5 +180,6 @@ export function wordWritten(billed: ResolvedDocument, paid: ResolvedDocument): s
   if (!(refusal instanceof RenderRefusal) || refusal.code !== UNSUPPORTED || refusal.subject !== 'paymentPart')
     throw new Error(`the quotation with a QR-bill was not refused as a Word file for its payment part: ${String(refusal)}`)
   const side = codeWritten(paid)
-  return `the quotation written as a ${file.length}-byte Word file of ${parts.size} parts that Node's zlib reads, its title and its instant in its core properties and the firm's mark the approved bytes, the same bytes twice, and with a QR-bill refused whole for its payment part; and the euro invoice written with its EPC QR code in Austria's frame, a picture ${side} pixels a side of whole pixels a module of the symbol the runtime gives`
+  const chart = chartWritten(charted)
+  return `the quotation written as a ${file.length}-byte Word file of ${parts.size} parts that Node's zlib reads, its title and its instant in its core properties and the firm's mark the approved bytes, the same bytes twice, and with a QR-bill refused whole for its payment part; and the euro invoice written with its EPC QR code in Austria's frame, a picture ${side} pixels a side of whole pixels a module of the symbol the runtime gives; and the quotation with its chart written, the chart a part of ${chart} characters that is a bar chart of Word's own with the runtime's digits and no workbook`
 }
