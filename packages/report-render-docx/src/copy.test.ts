@@ -12,7 +12,7 @@ import {
 import { E_INVOICE_COPY_LABELS, E_INVOICE_PREVIEW_LABEL, eInvoiceCopyParagraph, readCopyLabel } from '@formancy/report-runtime'
 import type { Block, Paragraph, ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
-import { MAX_DOCX_PARAGRAPHS } from './limits.js'
+import { MAX_DOCX_CHARACTERS, MAX_DOCX_PARAGRAPHS } from './limits.js'
 import { renderDocx } from './render.js'
 import { documentOf, fixtureOf, paragraph, refusalOf, resolved, written } from './testing/support.js'
 
@@ -176,10 +176,39 @@ describe('a copy paid by a QR-bill', () => {
       )
     const of = (body: readonly Block[]): ResolvedDocument => documentOf(body, { pageHeader: [own()], paymentPart: bill })
     const alone = written(of([]))
-    // Every paragraph the walk counts: the page header's label, the body's and the section's end, the slip's page, and the label on it.
-    const held = 1 + every(alone.body) + every(alone.slip!.blocks) + every(alone.slip!.header!.blocks)
+    // Every paragraph the walk counts beside a body's own: the page header's label, the slip's page, and the label on it. A body of
+    // spacers ends the report's section with its own last one, where a body of nothing is given a line for it (0075).
+    expect(every(alone.body)).toBe(1)
+    const held = 1 + every(alone.slip!.blocks) + every(alone.slip!.header!.blocks)
     expect(() => renderDocx(of(spacers(MAX_DOCX_PARAGRAPHS - held)))).not.toThrow()
     expect(refusalOf(of(spacers(MAX_DOCX_PARAGRAPHS - held + 1)))).toMatchObject({ code: 'content-too-large', subject: 'paymentPart' })
+  }, 120_000)
+})
+
+describe('the label of a copy’s slip’s page is counted with the file’s text', () => {
+  const bill = resolvedBill(BILL_EXAMPLES.one)
+  const words = (LABEL.runs[0] as { readonly text: string }).text
+  const letters = (blocks: Docx['body']): number =>
+    blocks.reduce(
+      (sum, block) =>
+        sum +
+        (block.kind === 'paragraph'
+          ? block.runs.reduce((held, run) => held + (run.kind === 'text' ? run.text.length : 0), 0)
+          : block.rows.reduce((cells, row) => cells + row.cells.reduce((held, cell) => held + letters(cell.blocks), 0), 0)),
+      0,
+    )
+
+  // Its paragraph is the one 0075 counts for the header of a slip's page; its words are text the file holds twice, in the page header
+  // and on the slip's page. Counted once, a file at the bound of its characters would be written a label past it.
+  test('its words twice: written at the bound of the file’s characters, refused a character past it, naming the payment part', () => {
+    const of = (length: number): ResolvedDocument => documentOf([paragraph('a'.repeat(length))], { pageHeader: [own()], paymentPart: bill })
+    const slip = letters(written(of(1)).slip!.blocks)
+    expect(slip).toBeGreaterThan(100)
+    const room = MAX_DOCX_CHARACTERS - 2 * words.length - slip
+    expect(() => renderDocx(of(room))).not.toThrow()
+    const refusal = refusalOf(of(room + 1))
+    expect(refusal).toMatchObject({ code: 'content-too-large', subject: 'paymentPart' })
+    expect(refusal.message).toMatch(/more than 4000000 characters long/)
   }, 120_000)
 })
 

@@ -37,7 +37,9 @@
     page 1's own; a copy paid by a QR-bill, whose slip's page's header
     is the label alone, 5 mm down and 5 mm in, its top margin the one of
     a report that is no copy; that label counted with the file's
-    paragraphs, written at `MAX_DOCX_PARAGRAPHS` and refused one past it;
+    paragraphs, as the one 0075 counts for that header, and its words
+    with the file's characters, written at each bound and refused one
+    past it;
     each refusal of a document labelled otherwise than on every header,
     by its subject and its sentence and as the corpus derives it; the
     order, after the e-invoice and before any block; and that a report

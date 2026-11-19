@@ -54,7 +54,7 @@ test('a bill the runtime made is accepted, with its Swiss QR Code encoded', () =
 describe('a bill no engine draws is refused, naming the payment part and its field and never a value', () => {
   // Each a document the runtime never makes and a host may hand over: drawn, it would be a slip that says something else than its code, or one a bank refuses.
   test.each([
-    ['a kind nobody knows', { kind: 'giro' }, 'unsupported', "the payment part is a 'giro', which the renderer does not know"],
+    ['a kind nobody knows', { kind: 'giro' }, 'unsupported', "the payment part is a 'giro', which a report does not know"],
     ['an account that is no text', { account: 7 }, 'unsupported', "the payment part's account holds something that is not text"],
     [
       'a value longer than any SIX allows',

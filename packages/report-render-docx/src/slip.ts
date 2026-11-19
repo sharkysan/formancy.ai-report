@@ -30,8 +30,8 @@ import {
   type SectionNode,
   type TableNode,
 } from './nodes.js'
-import { informationEnd, lettering, type PlannedBlock, type PlannedSlip } from './slip-plan.js'
-import { SLIP_ASCENDER, SLIP_FAMILY, SLIP_LINE } from './slip-widths.js'
+import { faceLine, informationEnd, lettering, type PlannedBlock, type PlannedSlip } from './slip-plan.js'
+import { SLIP_ASCENDER, SLIP_FAMILY } from './slip-widths.js'
 import { twips } from './units.js'
 
 /**
@@ -66,8 +66,10 @@ import { twips } from './units.js'
  * since a cell's border cannot be broken where the symbol stands and
  * nobody has seen Word place a drawing over one; the instruction above
  * the line across is the one IG 3.7 allows in the symbol's place. Where
- * in its line Word sets a baseline is Word's; the lines' tops are the
- * PDF's.
+ * in its line Word sets a baseline is Word's. No line is shorter than
+ * its face's own at its size (`faceLine`), which would cut ink: the
+ * payment part's values stand 11.2 pt apart, where the PDF's stand SIX's
+ * 11, and the receipt's lines are the PDF's.
  */
 
 /** A length in twentieths of a point as the nodes state it: in points. */
@@ -197,7 +199,7 @@ function amount(bill: QrBill, part: SlipPart, left: number, end: number, height:
   const indent = place.x - left
   // The amount's line: its baseline a pitch below the headings', so the headings' line is shorter than the pitch by what the value's ascender is longer.
   const head = twips(SLIP_ASCENDER * sizes.heading + place.pitch - SLIP_ASCENDER * sizes.value)
-  const body = twips(SLIP_LINE * sizes.value)
+  const body = faceLine(sizes.value)
   const heading = (text: string, more: Partial<ParagraphNode> = {}): ParagraphNode => line(text, sizes.heading, true, head, more)
   const value = (text: string, more: Partial<ParagraphNode> = {}): ParagraphNode => line(text, sizes.value, false, body, more)
   // The section's columns, from its cell's left: the currency's, the amount's, and where the part's text ends.
@@ -252,23 +254,20 @@ export function slipNodes(slip: PlannedSlip, picture: PictureNode): BlockNode[] 
   const { bill } = slip
   const [receipt, payment] = [SLIP_RECEIPT, SLIP_PAYMENT_PART]
   const title = (part: SlipPart, left: number): ParagraphNode =>
-    line(bill.headings[part.title.heading], SLIP_TITLE, true, twips(SLIP_LINE * SLIP_TITLE), { indent: part.title.x - left })
+    line(bill.headings[part.title.heading], SLIP_TITLE, true, faceLine(SLIP_TITLE), { indent: part.title.x - left })
 
-  const first = new Stack()
-    .to(twips(receipt.title.top))
-    .add(title(receipt, 0), twips(SLIP_LINE * SLIP_TITLE))
-    .to(twips(receipt.information.top))
+  const first = new Stack().to(twips(receipt.title.top)).add(title(receipt, 0), faceLine(SLIP_TITLE)).to(twips(receipt.information.top))
   information(first, slip.receipt, receipt, receipt.information.x)
   const acceptance = twips(SLIP_ACCEPTANCE.top)
   first
     .to(twips(receipt.amount.top))
     .add(amount(bill, receipt, 0, SLIP_ACCEPTANCE.right, acceptance - twips(receipt.amount.top)), acceptance - twips(receipt.amount.top))
     .add(
-      line(bill.headings.acceptancePoint, receipt.lettering.heading, true, twips(SLIP_LINE * receipt.lettering.heading), {
+      line(bill.headings.acceptancePoint, receipt.lettering.heading, true, faceLine(receipt.lettering.heading), {
         align: 'right',
         indentRight: SLIP_RECEIPT_WIDTH - SLIP_ACCEPTANCE.right,
       }),
-      twips(SLIP_LINE * receipt.lettering.heading),
+      faceLine(receipt.lettering.heading),
     )
 
   const left = SLIP_RECEIPT_WIDTH
@@ -283,9 +282,10 @@ export function slipNodes(slip: PlannedSlip, picture: PictureNode): BlockNode[] 
   const section = informationEnd(payment) - twips(payment.amount.top)
   const second = new Stack()
     .to(twips(payment.title.top))
-    .add(title(payment, left), twips(SLIP_LINE * SLIP_TITLE))
+    .add(title(payment, left), faceLine(SLIP_TITLE))
     .to(twips(SLIP_CODE.top))
-    // A picture's line is as tall as the picture, to the twentieth above it.
+    // A picture's line is taken as tall as the picture, to the twentieth above it. At single spacing Word adds the descent of the
+    // paragraph's mark, a point of the default face: some 0.2 to 0.3 pt, by which the amount under the code would stand 0.1 mm low.
     .add(code, Math.ceil(SWISS_CODE_SIZE * 20))
     .to(twips(payment.amount.top))
     .add(amount(bill, payment, left, payment.information.x, section), section)

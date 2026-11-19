@@ -1356,7 +1356,8 @@ broken into lines by the widths of the slip's face, and a line wider
 than its place or information taller than its section refuses the
 bill; and the slip is written as the file's last section, each line and
 each white of an exact height, so that each section stands where SIX
-puts it, and no row of an exact height, so that Word cuts nothing
+puts it, no line shorter than its face's own, and no row of an exact
+height, since either would cut what does not fit it
 ([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)). A report that carries an e-invoice is
 resolved twice by its host: once as the invoice, whose document carries
 the XML and is drawn as its PDF, and once with `eInvoice: 'copy'`, whose

@@ -3217,7 +3217,7 @@
       ]
     },
     "0074": {
-      "reviewed": "sha256:bb85fe0a81cae6f5deb696929b5f98b2320f2362dfac7ca4fd078ab0b86bdd75",
+      "reviewed": "sha256:a8c69580a0a8448758dce151b4a276ea18301d78d37c2d28bda5828e2d33da2e",
       "limitations": [
         {
           "area": "rendering",
@@ -3275,7 +3275,7 @@
       ]
     },
     "0075": {
-      "reviewed": "sha256:e270a47d66fe016c704fea0ddf6f9b7ce6b517a6046082d12cdde13b76eb48ab",
+      "reviewed": "sha256:e597c6e2f8998dea4855da29be946201419e7fa5cc7ca4fc1e78783d8b5611c7",
       "limitations": [
         {
           "area": "rendering",
@@ -3294,7 +3294,7 @@
         },
         {
           "area": "rendering",
-          "says": "The Word writer breaks each value of a slip into its lines itself, at spaces and after hyphens, each line a paragraph of its own in the file, where the PDF’s engine breaks by Unicode’s rules with the face’s kerning: a value may break elsewhere than in the PDF, billing information wider than its line is filled line by line where the PDF prints its // on a line of its own, and a bill at the very height of a section may be refused as a Word file and printed as a PDF, or the other way round.",
+          "says": "The Word writer breaks each value of a slip into its lines itself, at spaces and after hyphens, each line a paragraph of its own in the file, where the PDF’s engine breaks by Unicode’s rules with the face’s kerning: a value may break elsewhere than in the PDF, billing information wider than its line is filled line by line where the PDF prints its // on a line of its own, and a bill at the very height of a section may be refused as a Word file and printed as a PDF, or the other way round. The payment part’s values stand 11.2 pt apart, the face’s own line at 10 pt, where SIX’s pitch and the PDF’s is 11, since a line of 11 pt would cut a tall accent over a descender: a value stands 0.2 pt lower than the PDF’s for every value line above it, 2.6 pt at the foot of the longest bill of the suite.",
           "heldBy": "packages/report-render-docx/src/slip-against-pdf.test.ts"
         },
         {
@@ -3304,21 +3304,21 @@
         },
         {
           "area": "testing",
-          "says": "Nobody had opened a Word file with a slip in Word when 0075 was written, and no test opens one: that Word prints the slip at the page’s foot at 210 by 105 mm, what it says of a page with no margin at its sides and foot, that lines of an exact height and rows of a least height stand where their heights add up to, where a baseline stands in its line, that no line is broken or cut, that no empty page follows the slip, and that a Swiss banking app reads the code from the paper, is held by nothing; the tests read the file back and ZXing reads the picture’s own pixels."
+          "says": "Nobody had opened a Word file with a slip in Word when 0075 was written, and no test opens one: that Word prints the slip at the page’s foot at 210 by 105 mm, what it says of a page with no margin at its sides and foot, that lines of an exact height and rows of a least height stand where their heights add up to, where a baseline stands in its line and so whether a line exactly as tall as its face’s own shows all of its ink, whether a picture’s line is taller than the picture by the descent of its paragraph’s mark, some 0.2 to 0.3 pt, by which the amount under the code would stand 0.1 mm low, that no line is broken or cut, that no empty page follows the slip, and that a Swiss banking app reads the code from the paper, is held by nothing; the tests read the file back and ZXing reads the picture’s own pixels."
         },
         {
           "area": "testing",
-          "says": "A slip’s font table entry with another name, a paragraph’s distance from the right and a section ended by a paragraph are elements the Word writer did not write before 0075: they stand where the corpus’s vocabulary, transcribed from ECMA-376’s schema, puts them, and no file with them was validated against a schema, by hand or in CI.",
+          "says": "A slip’s font table entry with another name, a paragraph’s distance from the right and a section ended by a paragraph are elements the Word writer did not write before 0075: they stand where the corpus’s vocabulary, transcribed from ECMA-376’s schema, puts them, and files with them were validated against ISO/IEC 29500-4’s transitional schemas once, by hand, on 19 November 2026, and by no gate.",
           "heldBy": "packages/report-corpus/src/docx/read-slip.test.ts"
         },
         {
           "area": "testing",
-          "says": "That the PDF of a report paid by a QR-bill is the same bytes after the slip’s geometry and the bill’s rules moved to the runtime was compared once, by the SHA-256 of the invoice, its samples and the payment reminder in each language on 19 November 2026, and is held in CI only by the renderer’s tests of where each part of the slip is drawn.",
+          "says": "That the PDF of a report paid by a QR-bill is the same bytes after the slip’s geometry and the bill’s rules moved to the runtime was compared once, by the SHA-256 of the invoice, its samples and the payment reminder in each language on 19 November 2026; in CI the renderer’s tests hold where each part of the slip is drawn, and the e-invoice gate’s recording the inflated digests of the invoice’s and the payment reminder’s PDF/A-2b, a gate that was not run for 0075.",
           "heldBy": "packages/report-render-pdf/src/qr-bill.test.ts"
         },
         {
           "area": "rendering",
-          "says": "A slip is counted with a Word file’s paragraphs, characters and runs and has no bound of its own, being one a file: the file of a bill whose every value is as long as SIX allows was written in 82 to 90 ms the first time in a process and 41 to 42 ms thereafter, on an Intel i9-10900K under Node 24.21.0 on 19 November 2026, and each engine encodes the bill’s code for itself.",
+          "says": "A slip is counted with a Word file’s paragraphs, characters and runs and has no bound of its own, being one a file: the file of a bill whose every value is as long as SIX allows was written in 84 to 93 ms the first time in a process and 41 to 43 ms thereafter, on an Intel i9-10900K under Node 24.21.0 on 19 November 2026, and each engine encodes the bill’s code for itself.",
           "heldBy": "packages/report-render-docx/src/slip.test.ts"
         }
       ]
@@ -3383,7 +3383,7 @@
       ]
     },
     "0077": {
-      "reviewed": "sha256:845e077ff32f5f946cdcfc62195a232806636e608f517bf6343e68895d4b4611",
+      "reviewed": "sha256:bc7b58db487a0457aadbab56cf7d6c8e5f42856a582c6e0b7272277957033123",
       "limitations": [
         {
           "area": "rendering",

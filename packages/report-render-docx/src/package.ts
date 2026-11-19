@@ -318,8 +318,10 @@ export function writePackage(document: ResolvedDocument, checked: Checked, fonts
   const { slip } = checked
   let last = report
   if (slip !== undefined) {
-    // The report's section is ended by a paragraph of its own, an empty line a point tall, whatever the body ends with.
-    body.push({ ...emptyLine(SEPARATOR), section: report })
+    // The report's section is ended by the last paragraph its body holds -- after a table, the one that follows it -- and a body of
+    // nothing is given an empty line for it. Never a paragraph more: on a last page full to within a point it would start another.
+    const end = body.pop() ?? emptyLine(SEPARATOR)
+    body.push(end.kind === 'paragraph' ? { ...end, section: report } : end)
     /** A header or footer of the slip's page's own, where the report prints one that the page would otherwise print too: empty, unless `held` says what it holds. */
     const own = (
       kind: 'header' | 'footer',
@@ -374,8 +376,10 @@ export function writePackage(document: ResolvedDocument, checked: Checked, fonts
   // The family an EPC QR code's caption and a slip are named in is the one a file names that no report maps (`codes.ts`, `slip-widths.ts`): listed
   // where one is written, with the face of its widths as its other name.
   const named = new Set([...([...checked.codes.keys()].some(captioned) ? [CAPTION_FAMILY] : []), ...(slip === undefined ? [] : [SLIP_FAMILY])])
+  // A report that maps a font of that very name lists it already: its entry is given the other name, as one added here has it.
+  const listed = fonts.table.map((entry): FontEntry => (named.has(entry.name) ? { ...entry, other: SLIP_OTHER_FAMILY } : entry))
   const more = [...named].filter((family) => !fonts.table.some((entry) => entry.name === family))
-  add('word/fontTable.xml', fontTable([...fonts.table, ...more.map((name): FontEntry => ({ name, kind: 'swiss', other: SLIP_OTHER_FAMILY }))]))
+  add('word/fontTable.xml', fontTable([...listed, ...more.map((name): FontEntry => ({ name, kind: 'swiss', other: SLIP_OTHER_FAMILY }))]))
   for (const [name, content] of files) add(name, content)
   // A PNG and a JPEG are compressed already, and are stored as they are; an SVG is text, and is deflated.
   for (const [name, { bytes, kind }] of pictures.parts) parts[`word/${name}`] = kind === 'svg' ? bytes : [bytes, { level: 0 }]

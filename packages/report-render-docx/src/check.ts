@@ -146,16 +146,20 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true, everyPage: true }, walk)
   if (document.firstPageHeader !== undefined) checkBlocks(document.firstPageHeader, 'firstPageHeader', { ...top, region: true, everyPage: false }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true, everyPage: true }, walk)
+  const before = walk.paragraphs
   checkBlocks(document.body, 'body', { ...top, region: false, everyPage: false }, walk)
+  const empty = walk.paragraphs === before
   const pictures = readPictures(walk.images)
   // The payment part last, where the PDF renderer checks it: a document wrong in a block and in its bill is refused for the block by both.
   if (document.paymentPart === undefined) return { page, created, pictures, codes: walk.codes, ...labelled }
   const slip = planSlip(document.paymentPart, document.page)
-  // Its page's paragraphs, and the one that ends the report's section before it (`package.ts`).
+  // Its page's paragraphs; the line a body of nothing is given to end the report's section with; and the empty header's and footer's
+  // of its page, where the report prints its own (`package.ts`).
   const { paragraphs, characters, runs } = slipCount(slip)
-  count(walk, paragraphs + 1, characters, 'paymentPart', runs)
-  // A copy's label is the header of the slip's page too (`package.ts`): a paragraph of one run more, counted as the page header's was.
-  if (copy !== undefined) count(walk, 1, (copy.runs[0] as { readonly text: string }).text.length + family(walk, copy.style?.font, 2), 'paymentPart', 1)
+  const beside = (empty ? 1 : 0) + (document.pageHeader.length > 0 ? 1 : 0) + (document.pageFooter.length > 0 ? 1 : 0)
+  count(walk, paragraphs + beside, characters, 'paymentPart', runs)
+  // Of a copy that header's paragraph is the label and no empty line (`package.ts`, 0077): the one paragraph counted above, with its text and its run.
+  if (copy !== undefined) count(walk, 0, (copy.runs[0] as { readonly text: string }).text.length + family(walk, copy.style?.font, 2), 'paymentPart', 1)
   return { page, created, pictures, codes: walk.codes, slip, ...labelled }
 }
 

@@ -438,11 +438,13 @@ in the font table. `slip.ts` maps the plan to the page: the instruction
 to separate and a table of one row and three cells, every paragraph a
 line or white of an exact height, in twentieths of a point summed once,
 its amounts tables of their own, a blank field a table of four corner
-marks, its lines borders with no scissors, and no row that holds text
-of an exact height, so that Word cuts nothing; `slip-code.ts` draws the
+marks, its lines borders with no scissors, no line shorter than its
+face's own at its size (`faceLine`: the payment part's 10 pt on 11.2 pt,
+where SIX's pitch is 11), which would cut ink, and no row that holds
+text of an exact height, which would cut a line; `slip-code.ts` draws the
 Swiss QR Code, a PNG of whole pixels a module with no quiet zone and
 the Swiss cross in its pixels; `package.ts` ends the report's section
-with a paragraph of its own and gives the slip's an empty header and
+with the last paragraph its body holds and gives the slip's an empty header and
 footer where the report prints one; and `page.ts` is the report's paper.
 The corpus proves a slip on its page: `docx/read.ts` reads the two
 sections apart (`Docx.slip`), `check-docx-slip.ts` holds every line to

@@ -180,7 +180,7 @@ const RECEIPT =
   information([ACCOUNT, REFERENCE, PAYABLE_BY], [6, 8], [144, 180, 216], IN) +
   slipWhite(871) +
   amount([964, 2267], 794, [6, 8], [184, 179]) +
-  slipLine('Acceptance point', 6, true, 134, '<w:ind w:right="283"/><w:jc w:val="right"/>')
+  slipLine('Acceptance point', 6, true, 135, '<w:ind w:right="283"/><w:jc w:val="right"/>')
 
 /** The payment part's left: its title, the code from 17 mm, 46 mm tall, and its amount from 68 to 90. */
 const PAYMENT =
@@ -189,12 +189,18 @@ const PAYMENT =
   slipWhite(435) +
   CODE +
   slipWhite(283) +
-  amount([1134, 2041], 1247, [8, 10], [224, 223]) +
+  amount([1134, 2041], 1247, [8, 10], [224, 224]) +
   HAND_SEPARATOR
 
-/** Its information, from 5 mm down. */
+/**
+ * Its information, from 5 mm down. A value's line is 224 twentieths,
+ * 11.2 pt, where SIX's pitch is 11: the face's own line at 10 pt is
+ * 11.17 pt, its ascender and descender, 2,288 of its 2,048 units, and a
+ * line shorter than that cuts ink. A blank line is then 260: 224 and the
+ * 36 a value's ascender is longer than a heading's.
+ */
 const INFORMATION =
-  slipWhite(283) + information([ACCOUNT, REFERENCE, ['Additional information', ['Order from 15.10.2020']], PAYABLE_BY], [8, 10], [184, 220, 256], '')
+  slipWhite(283) + information([ACCOUNT, REFERENCE, ['Additional information', ['Order from 15.10.2020']], PAYABLE_BY], [8, 10], [184, 224, 260], '')
 
 /** The slip's page: the instruction, on a line that ends 192 mm down, the slip, and the paragraph after it. */
 export const HAND_SLIP_PAGE =
@@ -210,8 +216,8 @@ export const HAND_SLIP_SECTION =
   '<w:sectPr><w:headerReference w:type="default" r:id="rId6"/><w:footerReference w:type="default" r:id="rId7"/>' +
   '<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="10680" w:right="0" w:bottom="0" w:left="0" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>'
 
-/** The paragraph that ends the report's section. */
-const ENDING = `<w:p><w:pPr><w:spacing w:line="20" w:lineRule="exact"/>${TINY}${SECTION}</w:pPr></w:p>`
+/** The report's one paragraph, which ends its section: the section stands after the mark's properties, the last of the paragraph's. */
+export const HAND_SLIP_BODY = plain('An invoice').replace('</w:pPr>', `${SECTION}</w:pPr>`)
 
 const MAIN = 'application/vnd.openxmlformats-officedocument.wordprocessingml'
 
@@ -227,7 +233,7 @@ export function handSlipParts(): Map<string, string | Uint8Array> {
   )
   parts.set(
     'word/document.xml',
-    `${DECLARATION}<w:document ${W} ${R} ${DRAWING}><w:body>${plain('An invoice')}${ENDING}${HAND_SLIP_PAGE}${HAND_SLIP_SECTION}</w:body></w:document>`,
+    `${DECLARATION}<w:document ${W} ${R} ${DRAWING}><w:body>${HAND_SLIP_BODY}${HAND_SLIP_PAGE}${HAND_SLIP_SECTION}</w:body></w:document>`,
   )
   parts.set(
     'word/_rels/document.xml.rels',

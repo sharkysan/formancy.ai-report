@@ -186,13 +186,15 @@ import { MAX_ASSET_BYTES, MAX_ASSET_SIDE, MAX_CHART_CATEGORIES, MAX_CHART_SERIES
  * it, prints as a PDF where its host allows the pages, and is refused as
  * a Word file.
  *
- * A QR-bill's slip (0075) is counted with them, every paragraph of its
- * page and the one that ends the report's section before it: 78 with
- * every field blank, each corner mark's cell being one. A slip is one a
+ * A QR-bill's slip (0075) is counted with them: every paragraph of its
+ * page, 78 with every field blank, each corner mark's cell being one;
+ * the line a body of nothing is given to end the report's section with;
+ * and the one paragraph of the empty header and of the empty footer its
+ * page names where the report prints its own. A slip is one a
  * file and has no bound of its own. Measured on 19 November 2026 on the
  * machine the header names, under Node 24.21.0: the file of a bill whose
- * every value is as long as SIX allows was written in 82 to 90 ms the
- * first time in a process and in 41 to 42 ms thereafter, the median of
+ * every value is as long as SIX allows was written in 84 to 93 ms the
+ * first time in a process and in 41 to 43 ms thereafter, the median of
  * ten, in each of three processes, its Swiss QR Code a picture of
  * 1,105 pixels a side.
  */

@@ -19,8 +19,13 @@
     its starters' tests pass on the moved code unchanged, and the PDFs of
     the invoice, of its three samples and of the payment reminder in its
     four languages were the same bytes before the move and after it,
-    compared once by their SHA-256 on 19 November 2026; nothing holds
-    that comparison in CI.
+    compared once by their SHA-256 on 19 November 2026. In CI the
+    renderer's tests hold where each part of the slip is drawn, and the
+    e-invoice gate's recording (`scripts/e-invoice/recorded/run.json`)
+    holds the digest of the inflated objects of the invoice's and the
+    payment reminder's PDF/A-2b, which `staleRecorded` fails a run for
+    drawing otherwise; that gate needs Java and was not run for this
+    change.
   - **The widths.** report-render-docx's `src/slip-widths.test.ts` reads
     the advances of both faces of the Liberation Sans 2.1.5 the PDF
     renderer ships, by a walk of the font's own tables that is the
@@ -43,9 +48,13 @@
     empty footer where the report prints them and none where it does not;
     that the page count's field is the file's; that the page is A4
     upright with no margin at its sides and foot whatever the report's
-    margins; that the report's section ends with a paragraph of its own
-    after a body of nothing, one that ends in a table and one that ends
-    in a paragraph; the same bytes twice; that the slip's paragraphs are
+    margins; that the report's section is ended by the last paragraph
+    its body holds, after a table the one that follows it, and that only
+    a body of nothing is given a line for it; that every text stands on
+    a line at least as tall as its face's own at its size, by the font's
+    own ascender and descender; that Arial has its other name in a
+    report that maps a font of its own; the same bytes twice; that the
+    slip's paragraphs, and its page's empty header's and footer's, are
     counted with the file's, written at `MAX_DOCX_PARAGRAPHS` and refused
     one past it; that the corpus's check fails on a blank field's mark
     made heavier, given a third arm or moved, in what was read back; the
@@ -97,6 +106,31 @@
     without its other name; and a slip where the document has no bill,
     or none where it has. `check-docx.test.ts` holds `wordRefusal` to
     deriving none for a payment part.
+  - **Validated against the schema, once, by hand, on 19 November
+    2026**, and by no gate, as 0068 and 0076 validated their files:
+    against ISO/IEC 29500-4:2016's transitional schemas, as Ecma
+    publishes them with ECMA-376's fifth edition, Part 4, with libxml2
+    2.13.9. Of every file named under *Not yet opened in Word*, 29, the
+    `document.xml`, the `fontTable.xml` and each header's part, and of
+    one more with a page header, a page footer and a body that ends in
+    a table, those and both footers', 76 parts: none invalid. As
+    controls, a font's `w:altName` after its `w:family`, a `w:sectPr`
+    before a paragraph's `w:rPr`, and `w:ind` after `w:jc` were each
+    refused. The independent review had validated the parts of eleven
+    of the files as they were before its fixes, with the same controls.
+    The schemas are another body's files and are not in the repository;
+    no gate runs this.
+  - **Seen failing in the review's fixes, on 19 November 2026.** Each
+    case below was written first and failed: a 10 pt value on an 11 pt
+    line passed `verifyDocx`, and every bill's file held text on a line
+    shorter than its face's own; the code's paragraph on an exact line
+    of 10 pt and under a mark of 40 pt passed; a paragraph of 40 pt
+    after the slip passed; a body that ended in a table held two
+    paragraphs after it, and one that ended in a paragraph an empty
+    line more; a file whose report maps a font passed without Arial's
+    other name; the slip's page's empty header and footer were counted
+    by nothing, and a file was written a paragraph past the bound; and
+    a value with two spaces at a break began its next line with one.
   - **Made to fail.** Each of these was broken once in the code and its
     test watched fail, then put back: a width typed wrong,
     the code two points lower, no value broken, no empty header, no
@@ -129,10 +163,14 @@
     prints; that a line of an exact height and a row of a least height
     stand where the sum of the heights above them puts them, with a
     cell's top border taking no room; where in its line Word sets a
-    baseline; that an exact line of 11 pt cuts nothing of 10 pt text;
-    that no line is broken, in Arial and in Liberation Sans; that the
-    empty paragraph after the slip and the empty footer start no second
-    page; that the corner marks of a blank field are drawn as marks; that
+    baseline, and so whether a line exactly as tall as its face's own
+    shows all of its ink; that a picture's line is as tall as the
+    picture, where at single spacing Word may add the descent of the
+    paragraph's mark, a point of the default face, some 0.2 to 0.3 pt,
+    by which the amount under the code would stand 0.1 mm low; that no
+    line is broken, in Arial and in Liberation Sans; that the empty
+    paragraph after the slip and the empty footer start no second page,
+    and the line a body of nothing is given none before it; that the corner marks of a blank field are drawn as marks; that
     the picture is drawn unsmoothed at 46 mm and a Swiss banking app
     reads it from the paper; and what the page count says: all of it is
     held by no test and was seen by nobody.
@@ -164,8 +202,12 @@ as a code's symbol was before 0074.
 ## Decision
 
 **1. The page.** A report paid by a QR-bill is a Word file of two
-sections. The report's is ended by a paragraph of its own, an empty line
-a point tall after the body's last block. The slip's is the file's last:
+sections. The report's is ended by the last paragraph its body holds --
+after a table, the paragraph that follows one -- and only a body of
+nothing is given an empty line a point tall for it: a paragraph more
+would be a line more on the report's last page, and on a page full to
+within a point a blank page before the slip. The slip's is the file's
+last:
 A4 upright whatever the report's page -- which the rule below both
 engines already holds to A4 upright -- with no margin at its sides or its
 foot, and a top margin that ends where the instruction to separate
@@ -197,11 +239,24 @@ paragraph is a line of an exact height or white of an exact height, each
 stated in twentieths of a point and rounded once, so each stands where
 the sum of what is above it puts it: the titles 5 mm down, the receipt's
 information from 12 mm, the code from 17 mm, the amounts from 68 mm, the
-acceptance point at 82 mm, each line's top where the PDF's is. A part's
+acceptance point at 82 mm. A part's
 amount section is a table of its own, since two texts stand on one line
 at SIX's distances; a blank field is a table of three rows and columns
 whose corner cells are bordered on their two outer sides, 3 mm arms of
 0.75 pt.
+
+No line is shorter than its face's own. A line of an exact height cuts
+what reaches past it, and the face's line -- its ascender and its
+descender, 2,288 of its 2,048 units -- is 11.17 pt at 10 pt, where SIX's
+pitch for the payment part's values is 11: of SIX's characters, Ś, Č, Ž
+and À reach 1,830 to 1,836 units up in Arial 7.07 and ĥ, ĺ and Ů 1,854
+in Liberation Sans, with descenders to 431 below, by the review's
+reading of both fonts' outlines, so "Śląska" has ink 11.07 pt tall. So a
+line is SIX's pitch or the face's line at its size in
+whole twentieths, whichever is taller: the payment part's values stand
+on 11.2 pt, the amount's on 11.2 and the acceptance point's on 6.75; the
+receipt's 8 pt on 9 holds its 8.94. A heading's baseline stays a pitch
+above its first value's. Each part's fit is worked out with those lines.
 
 No row that holds text is of an exact height. The slip's row and each
 amount's are at least their section's height: a reader that set a line
@@ -290,8 +345,27 @@ The costs.
 - **Zero margins.** The slip's page has none at its sides and foot.
   Word tells a person who prints it that margins lie outside the
   printable area; nobody here has seen what it then does.
-- **A baseline is Word's.** The tops of the lines are the PDF's; where
-  in an exact line Word sets the baseline is not stated by the file.
+- **The payment part's values are 11.2 pt apart, not SIX's 11.** A
+  line of 11 pt would cut a hair of a tall accent over a descender, so
+  each value of the payment part's information stands 0.2 pt lower than
+  the PDF's for every value line above it. Measured on the suite's
+  bills on 19 November 2026: SIX's examples hold 4 to 10 value lines
+  and end 55.5 to 71.2 mm down their section of 90, their last line up
+  to 2.0 pt lower than at 11 pt; the bill whose every value is as long
+  as SIX allows holds 13 and ends at 83.1 mm, 2.6 pt lower, 0.9 mm.
+  Every bill of the suite still fits. A bill within those few points of
+  its section's height is refused as a Word file and printed as a PDF.
+  The receipt's lines are the PDF's.
+- **A baseline is Word's.** Where in an exact line Word sets the
+  baseline is not stated by the file: a line exactly as tall as its
+  face's own holds all of its ink only where Word sets the baseline the
+  face's ascender below the line's top.
+- **A picture's line is Word's.** The code's paragraph states no line,
+  so that Word shows the picture whole, and the writer takes its line
+  as the picture's height. At single spacing Word adds the descent of
+  the paragraph's mark, a point of the default face: some 0.2 to 0.3
+  pt, by which the amount section under the code would stand 0.1 mm
+  low. An exact line there would show a strip of the code.
 - **A reader with neither face.** Named in Arial with Liberation Sans as
   its other name, the slip is set in a face of the reader's choosing
   where it has neither. A line wider there than its cell is broken, its
@@ -305,6 +379,8 @@ The costs.
   is filled line by line, where the PDF breaks it after its `//` first
   and prints a line more. A bill at the very height of its section may
   be refused by one engine and printed by the other.
+- **Not every paragraph is where the PDF's is.** See the payment part's
+  values above.
 - **A point more after a blank field.** A blank debtor's field that
   ends a part's information must be followed by a paragraph, a point
   tall, where the PDF asks three eighths of a point.
@@ -321,10 +397,12 @@ The costs.
   one picture with no bound of its own. Measured on 19 November 2026 on
   an Intel Core i9-10900K shared with other work, under Node 24.21.0:
   the file of a bill whose every value is as long as SIX allows was
-  written in 82 to 90 ms the first time in a process and in 41 to 42 ms
+  written in 84 to 93 ms the first time in a process and in 41 to 43 ms
   thereafter, the median of ten, in each of three processes, its code's
   picture 1,105 pixels a side and 4,147 bytes; the slip with every field
-  blank is 78 paragraphs of the file. A symbol of SIX's largest version
+  blank is 78 paragraphs of the file, with one more where the body
+  holds nothing and one each for the empty header and footer of its
+  page. A symbol of SIX's largest version
   was not timed: no bill the runtime resolves from the corpus reaches
   it.
 - **Two transcriptions more.** The widths and the face's line are
@@ -332,7 +410,15 @@ The costs.
   test. `w:altName`, `w:ind`'s `w:right` and a section in a paragraph's
   properties are elements the writer did not write before: they stand
   where the corpus's vocabulary, transcribed from ECMA-376's schema,
-  puts them, and no file with them was validated against a schema.
+  puts them. Validated once, by hand; see *Verified by*.
+- **One refusal's sentence changed.** A payment part of a kind nobody
+  knows is refused as one "a report does not know", where the PDF
+  renderer said that "the renderer" did not know it: the Word writer
+  throws it too. Its code and its subject are as they were.
+- **A host's own Arial gains the other name.** A report that maps a
+  font named Arial lists it in the font table already; where a slip or
+  a caption is written, that entry is given Liberation Sans as its other
+  name, as one the writer adds has it.
 - **An encode each.** Each engine asks the runtime for the bill's
   symbol, as 0074 says of a code.
 - **Not opened in Word.** See *Verified by*.

@@ -5,8 +5,9 @@ import { MAX_DOCX_PARAGRAPHS } from './limits.js'
 import { renderDocx } from './render.js'
 import { broken, planSlip } from './slip-plan.js'
 import { slipNodes } from './slip.js'
-import { measured } from './testing/advances.js'
+import { LIBERATION, measured } from './testing/advances.js'
 import { BILLS, billDocument, resolvedBill } from './testing/bills.js'
+import { LONGEST_FAMILY } from './testing/fonts.js'
 import { documentOf, fixtureOf, paragraph, refusalOf, written } from './testing/support.js'
 
 /**
@@ -59,6 +60,25 @@ describe.each(BILLS)('%s', (name, bill) => {
     expect(widest(0, 8)).toBeLessThanOrEqual(mm(52) + 1e-6)
     expect(widest(2, 10)).toBeLessThanOrEqual(mm(87) + 1e-6)
   })
+
+  // A line of an exact height shorter than the face's own cuts ink: at 10 pt the face's line is 11.17 pt, from the top of its tallest
+  // accent to the foot of its deepest descender, and "Śląska" on a line of 11 pt would lose a hair of its Ś or its ą. So every line
+  // is at least its face's ascender and descender at its size, by the font's own tables.
+  test('sets every text on a line at least as tall as its face’s own, so that none of its ink is cut', () => {
+    const { ascender, descender, unitsPerEm } = LIBERATION.normal
+    const short: string[] = []
+    const walk = (blocks: readonly DocxBlock[]): void => {
+      for (const block of blocks) {
+        if (block.kind === 'table') for (const row of block.rows) for (const cell of row.cells) walk(cell.blocks)
+        else
+          for (const run of block.runs)
+            if (run.kind === 'text' && (block.line?.rule !== 'exact' || block.line.height < ((ascender - descender) / unitsPerEm) * run.props.size! - 1e-9))
+              short.push(`${run.text} at ${run.props.size} pt on ${block.line?.height} pt`)
+      }
+    }
+    walk(written(document).slip!.blocks)
+    expect(short).toEqual([])
+  })
 })
 
 describe('the slip’s page', () => {
@@ -103,19 +123,22 @@ describe('the slip’s page', () => {
     expect(slip?.page).toMatchObject({ width: 595.3, height: 841.9, orientation: 'portrait', margins: { right: 0, bottom: 0, left: 0 }, header: 0, footer: 0 })
   })
 
-  // A body that ends in a table, and one of nothing: the section's end is a paragraph of its own either way, so no block's own paragraph carries it.
+  // The report's section is ended by the last paragraph it holds, and only a body of nothing is given one for it: a paragraph added
+  // after a body's own last one is a line more on the report's last page, and on a page full to within a point a blank page before the slip.
   test.each([
-    ['a body of nothing', []],
+    ['a body of nothing', [], ['']],
     [
       'a body that ends in a table',
       [{ kind: 'table' as const, id: 'lines', columns: [{ width: 'fill' as const, align: 'left' as const }], header: ['Key'], rows: [], emptyText: 'None' }],
+      ['table', ''],
     ],
-    ['a body that ends in a paragraph', [paragraph('Thank you')]],
-  ])("ends the report's section after %s with an empty line of its own", async (_name, body) => {
+    ['a body that ends in a paragraph', [paragraph('Thank you')], ['Thank you']],
+  ])("ends the report's section after %s with the last paragraph it holds, and adds none", async (_name, body, held) => {
     const document = billDocument(bill, body)
     const file = written(document)
     expect(await verifyDocx(fixtureOf('ending', document), file)).toEqual([])
-    expect(file.body.at(-1)).toMatchObject({ kind: 'paragraph', runs: [], endsSection: true })
+    expect(file.body.map((block) => (block.kind === 'table' ? 'table' : block.runs.map((run) => (run.kind === 'text' ? run.text : '')).join('')))).toEqual(held)
+    expect(file.body.at(-1)).toMatchObject({ kind: 'paragraph', endsSection: true })
     expect(file.body.filter((block) => block.kind === 'paragraph' && block.endsSection === true)).toHaveLength(1)
   })
 
@@ -137,13 +160,26 @@ describe('a slip is counted with the file it is a page of', () => {
   const spacers = (length: number): Block[] => Array.from({ length }, () => ({ kind: 'spacer', height: 1 }))
 
   // A slip is some hundred paragraphs with its blank fields' marks, and the bound is of the whole file (`limits.ts`): a slip that went
-  // uncounted would be written past it. Counted from the file: every paragraph of its page, and the one that ends the report's section.
+  // uncounted would be written past it. Counted from the file: every paragraph of its page, the one a body of nothing is given to
+  // end the report's section, and the empty header's and footer's where the report prints its own.
   test('its paragraphs with the body’s: written at the bound, and refused one past it, naming the payment part', () => {
     const alone = written(billDocument(bill, []))
-    const held = every(alone.slip!.blocks) + every(alone.body)
-    expect(held).toBeGreaterThan(60)
-    expect(() => renderDocx(billDocument(bill, spacers(MAX_DOCX_PARAGRAPHS - held)))).not.toThrow()
-    expect(refusalOf(billDocument(bill, spacers(MAX_DOCX_PARAGRAPHS - held + 1)))).toMatchObject({ code: 'content-too-large', subject: 'paymentPart' })
+    const slip = every(alone.slip!.blocks)
+    expect(slip).toBeGreaterThan(60)
+    expect(every(alone.body)).toBe(1)
+    // A body of spacers ends the section with its own last one.
+    expect(() => renderDocx(billDocument(bill, spacers(MAX_DOCX_PARAGRAPHS - slip)))).not.toThrow()
+    expect(refusalOf(billDocument(bill, spacers(MAX_DOCX_PARAGRAPHS - slip + 1)))).toMatchObject({ code: 'content-too-large', subject: 'paymentPart' })
+  }, 120_000)
+
+  test('and the empty header and footer its page names, a paragraph each', () => {
+    const regions = { pageHeader: [paragraph('Letterhead')], pageFooter: [paragraph('Footer')] }
+    const file = written(billDocument(bill, [], regions))
+    // The report's own two, the line a body of nothing is given, the slip's page, and its header's and its footer's.
+    const held = 2 + 1 + every(file.slip!.blocks) + every(file.slip!.header!.blocks) + every(file.slip!.footer!.blocks)
+    expect(every(file.slip!.header!.blocks) + every(file.slip!.footer!.blocks)).toBe(2)
+    expect(() => renderDocx(billDocument(bill, spacers(MAX_DOCX_PARAGRAPHS - held + 1), regions))).not.toThrow()
+    expect(refusalOf(billDocument(bill, spacers(MAX_DOCX_PARAGRAPHS - held + 2), regions))).toMatchObject({ code: 'content-too-large', subject: 'paymentPart' })
   }, 120_000)
 })
 
@@ -186,6 +222,20 @@ describe('verifyDocx sees a slip’s blank fields', () => {
     expect(await verifyDocx(fixtureOf('blank', document), file)).toEqual([])
     change(found[0]!)
     expect((await verifyDocx(fixtureOf('blank', document), file)).join('\n')).toMatch(problem)
+  })
+})
+
+describe('verifyDocx holds the face’s other name', () => {
+  // The other name is what a reader without Arial finds the face of the slip's widths by. A report that maps fonts of its own has a
+  // slip in Arial all the same: a check that looked for the name only where the report maps none would pass such a file without it.
+  test('in a report that maps a font of its own, as in one that maps none', async () => {
+    const document = billDocument(resolvedBill(BILL_EXAMPLES.one), [], { fonts: { serif: { normal: LONGEST_FAMILY } } })
+    const file = written(document)
+    expect(await verifyDocx(fixtureOf('mapped', document), file)).toEqual([])
+    const arial = file.fonts.find((font) => font.name === 'Arial')
+    expect(arial).toMatchObject({ altName: 'Liberation Sans', family: 'swiss' })
+    delete (arial as { altName?: string }).altName
+    expect((await verifyDocx(fixtureOf('mapped', document), file)).join('\n')).toMatch(/the font table does not give Liberation Sans as Arial's other name/)
   })
 })
 
@@ -292,6 +342,13 @@ describe('a value is broken into lines by the widths of the face', () => {
     expect(numbered).toEqual(['W'.repeat(17), '1400.000-53'])
   })
 
+  // Two spaces in a value are its own, kept where they stand in a line; at a break they are the break, both of them: a line that
+  // began with the second would stand a space in from the lines above it.
+  test('at a run of spaces as at one, no line beginning or ending with a space', () => {
+    const lines = broken(`${'W'.repeat(17)}  ${'W'.repeat(17)}  W`, 8, WIDTH)
+    expect(lines).toEqual(['W'.repeat(17), `${'W'.repeat(17)}  W`])
+  })
+
   test('not at all where it fits, and a value of nothing is one line of nothing', () => {
     expect(broken('8000 Seldwyla', 8, WIDTH)).toEqual(['8000 Seldwyla'])
     expect(broken('', 8, WIDTH)).toEqual([''])
@@ -321,8 +378,8 @@ describe('a bill is refused, whole, where its slip cannot be written as SIX lays
       message: "the payment part's information is taller than its section: SIX gives it 85 mm (240.94 pt)",
     })
     // What the payment part's 87 mm hold and the receipt's 52 do not.
-    const medium = Array.from({ length: 3 }, () => 'Muster '.repeat(12).trim())
-    expect(refused({ creditor: medium, debtor: medium })).toMatchObject({
+    const medium = Array.from({ length: 3 }, () => 'Muster '.repeat(11).trim())
+    expect(refused({ creditor: medium })).toMatchObject({
       code: 'content-too-large',
       message: "the receipt's information is taller than its section: SIX gives it 56 mm (158.74 pt)",
     })

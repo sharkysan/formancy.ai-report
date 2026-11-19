@@ -72,7 +72,7 @@ export function refuseBillPage(page: PageSetup, above = 0): void {
 /** Refuses what no engine draws of `bill` on `page`, the top margin alone before anything above the slip is measured, and encodes its code. */
 export function checkQrBill(bill: QrBill, page: PageSetup, undrawn: BillUndrawn): CheckedBill {
   const { kind } = bill as { readonly kind?: unknown }
-  if (kind !== 'swissQrBill') throw new RenderRefusal('unsupported', `the payment part is a '${String(kind)}', which the renderer does not know`, 'paymentPart')
+  if (kind !== 'swissQrBill') throw new RenderRefusal('unsupported', `the payment part is a '${String(kind)}', which a report does not know`, 'paymentPart')
   refuseBillPage(page)
   const text = (value: unknown, what: string, face: BillFace): void => {
     if (typeof value !== 'string') throw refuse(`${what} holds something that is not text`)
