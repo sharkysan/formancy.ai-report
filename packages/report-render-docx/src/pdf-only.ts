@@ -14,11 +14,13 @@ import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, RenderRefusal, type Block, type
  * paragraph a person deletes -- read as the PDF renderer reads it where
  * it refuses a preview as a PDF/A (0057).
  *
- * Of its blocks: a chart, which ECharts lays out and no package but the
- * PDF renderer may depend on (0058). A QR code and an EPC QR code were
- * refused here too, while what refuses one was decided in the PDF
- * renderer alone; since 0074 it is decided below both engines, and the
- * writer draws them (`codes.ts`).
+ * Of its blocks, none any longer. A QR code and an EPC QR code were
+ * refused here while what refuses one was decided in the PDF renderer
+ * alone; since 0074 it is decided below both engines, and the writer
+ * draws them (`codes.ts`). A chart was refused here as what ECharts lays
+ * out for the PDF renderer alone (0058); since 0076 it is written as
+ * Word's own chart, from the runtime's block, with no ECharts
+ * (`charts.ts`).
  */
 
 const PRINT = 'print the report as a PDF'
@@ -55,13 +57,4 @@ function labelledPreview(pageHeader: readonly Block[]): boolean {
   if (first?.kind !== 'paragraph' || first.runs.length !== 1) return false
   const run = first.runs[0]!
   return 'text' in run && (run.text === PREVIEW_LABEL || run.text === E_INVOICE_PREVIEW_LABEL)
-}
-
-/** Refuses a chart, the block only the PDF renderer draws, naming it by its id. */
-export function refusePdfOnlyBlock(block: Extract<Block, { kind: 'chart' }>): never {
-  throw new RenderRefusal(
-    'unsupported',
-    `the chart ${block.id} is laid out by the PDF renderer alone, and a Word file without it would be the report with something left out: ${PRINT}`,
-    block.id,
-  )
 }

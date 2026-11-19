@@ -1,4 +1,4 @@
-import { MAX_ASSET_BYTES, MAX_ASSET_SIDE } from '@formancy/report-runtime'
+import { MAX_ASSET_BYTES, MAX_ASSET_SIDE, MAX_CHART_CATEGORIES, MAX_CHART_SERIES, MAX_FORMATTED_DIGITS, MAX_SCALE } from '@formancy/report-runtime'
 
 /**
  * What one Word file may hold (0068). The writer builds a file in one
@@ -404,3 +404,82 @@ export const MAX_DOCX_PICTURES = 1024
  */
 export const MAX_DOCX_CODES = 64
 export const MAX_DOCX_CODE_MODULES = 16 * 177 * 177
+
+/**
+ * The charts a file may hold as parts, and the points they may hold
+ * between them (0076). A chart with something to draw is a part of the
+ * file, an entry of its zip, written as the file is, on the thread that
+ * calls; one with nothing to draw is a cell and its words, counted with
+ * the paragraphs, and is neither.
+ *
+ * Two bounds, as a file's codes have, since a count bounds the work only
+ * where each thing counted costs what the count takes it for: a bar
+ * chart of one series over two categories, with no title, is a part of
+ * 2,824 characters of XML, and the largest the runtime resolves,
+ * `MAX_CHART_SERIES` series over `MAX_CHART_CATEGORIES` categories, one
+ * of 117,518, and of 870,518 with each value labelled -- a point states
+ * its category and its value, some 73 characters, and its label what it
+ * is set in, some 470 more. So the charts are
+ * counted, where the walk meets one and before anything of it is read;
+ * and their points, one for each series at each category, a value the
+ * series has none for among them, since its category is written all the
+ * same, or each slice of a pie, before a word or a number of the chart
+ * that crosses is read. `MAX_DOCX_CHART_POINTS` is what sixteen of the
+ * largest chart hold: a file may hold sixteen such charts, or as many as
+ * `MAX_DOCX_CHARTS` of 400 points each. The PDF renderer bounds a
+ * render's charts otherwise, by what ECharts' layouts cost it
+ * (`MAX_CHART_DRAWING` there): three of the largest line chart are past
+ * its bound and within this one, and sixty-five small charts within its
+ * bound and past this one (`against-pdf.test.ts`).
+ *
+ * Measured on 19 November 2026 on the machine the header names, an Intel
+ * Core i9-10900K shared with other work, under Node 24.21.0 with fflate
+ * 0.8.3, a process a measurement, four each, a document of charts alone
+ * on an A4 page, each with a title, both axes' titles and, past one
+ * series, a legend: the seconds `renderDocx` held the thread, and the
+ * process's resident memory at its most, which a document of one
+ * paragraph took 0.01 seconds and 68 to 69 MB of that day. As it is, and
+ * with a euro sign in every chart's title, which makes V8 hold a part's
+ * text two bytes a character:
+ *
+ *     the file                                      as it is            with a euro sign
+ *     one bar chart of two series over four
+ *       categories, labelled                        0.02 s, 70-71       0.02 s, 70-71
+ *     `MAX_DOCX_CHARTS` bar charts of eight
+ *       series over fifty categories, labelled:
+ *       both bounds at once                         0.45-0.47 s, 180-181  0.49-0.50 s, 228-240
+ *     sixteen line charts of eight series over
+ *       two hundred categories                      0.13-0.14 s, 98-100   0.13-0.14 s, 101
+ *     sixteen bar charts of as many, labelled       0.47-0.53 s, 211-213  0.51-0.53 s, 226-231
+ *     those, each category 150 ampersands:
+ *       3,840,000 of the file's characters          1.00-1.02 s, 227-231  1.08-1.10 s, 376-377
+ *     `MAX_DOCX_CHARTS` pies of eight slices        0.04 s, 85-86         0.04 s, 85-86
+ *
+ * In seconds and MB, from the least to the most of the four. Those are
+ * the shapes that were looked for, and no more is claimed.
+ *
+ * Without the two bounds, on a copy of the built writer with them taken
+ * out, three processes: 160 bar charts of eight series over two hundred
+ * categories, labelled, which is inside every other bound, held the
+ * thread 4.40 to 4.61 seconds at 542 to 545 MB, ten times the points and
+ * ten times the seconds; four times as many again were refused for the
+ * file's characters, a label's being counted.
+ */
+export const MAX_DOCX_CHARTS = 64
+export const MAX_DOCX_CHART_POINTS = 16 * MAX_CHART_SERIES * MAX_CHART_CATEGORIES
+
+/**
+ * The characters a number of a chart may be written in (0076): a minus,
+ * as many digits as the runtime's formatter prints at the most, a point,
+ * and as many places as a decimal has at the most -- derived, so that no
+ * number the runtime resolves is past it. What the writer works out of a
+ * chart's numbers -- whether its ticks ascend in equal steps, their
+ * step, whether they hold a value -- it works out in BigInt on their
+ * digits (`chart-exact.ts`), and brings two numbers to the places of the
+ * longer: a document made by hand whose lowest tick has a million places
+ * would raise ten to the millionth for every value of the chart, inside
+ * the points' bound. So a number written longer is refused, as
+ * `content-too-large`, before it is read as one. The PDF renderer holds a
+ * chart's numbers to no such bound.
+ */
+export const MAX_DOCX_CHART_DIGITS = 1 + MAX_FORMATTED_DIGITS + 1 + MAX_SCALE

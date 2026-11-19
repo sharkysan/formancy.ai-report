@@ -71,10 +71,21 @@ export function withoutLastEnding(text: string): string {
   return text.replace(/(?:\r\n|\r|\n)$/, '')
 }
 
+/** An inline chart (0076): its extent, and the relationship, in the body's part, of the part that states it. */
+export interface ChartNode {
+  /** Its number among the file's drawings, from one. */
+  readonly id: number
+  /** Points. */
+  readonly width: number
+  readonly height: number
+  readonly part: RelationshipId
+}
+
 export type RunNode =
   | { readonly kind: 'text'; readonly text: string; readonly style: RunStyle }
   | { readonly kind: 'field'; readonly field: 'PAGE' | 'NUMPAGES'; readonly style: RunStyle }
   | { readonly kind: 'picture'; readonly picture: PictureNode }
+  | { readonly kind: 'chart'; readonly chart: ChartNode }
 
 /** A single line of a border: points, and lower-case `#rrggbb`. */
 export interface Line {
@@ -112,14 +123,17 @@ export interface CellNode {
   readonly shade?: string
   /** Which way its text reads where it is turned: from bottom to top, as an EPC QR code's caption reads (0074). */
   readonly direction?: 'btLr'
+  /** Where its content stands in a cell taller than it: in the middle, as the words of a chart with nothing to draw do (0076); absent, at the top. */
+  readonly align?: 'center'
   readonly content: BlockNode[]
 }
 
 export interface RowNode {
   cantSplit: boolean
   readonly header?: true
-  /** Exactly so many points tall. */
+  /** Exactly so many points tall; or, where `grows`, at least so many, so that what it holds is never cut. */
   readonly height?: number
+  readonly grows?: true
   readonly cells: readonly CellNode[]
 }
 

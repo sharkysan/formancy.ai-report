@@ -20,7 +20,8 @@ import { refusalOf, written } from './testing/support.js'
  * check -- or refused as the corpus derives from the document. Never on
  * the nodes the writer built. A code is held on its picture's own pixels
  * and on what ZXing reads in them (0074), which is why the check is
- * waited for.
+ * waited for. A chart is held on its part, Word's own chart as the file
+ * states it (0076).
  */
 
 /** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's, the chart ones, those of runs set below or above the line and the code ones (0074). */
@@ -49,6 +50,20 @@ const WRITTEN_THOUGH_THE_PDF_REFUSES: ReadonlyMap<string, string> = new Map([
   ['shifted-empty-before', 'a lowered digit whose only neighbour prints nothing'],
   ['shifted-empty-after', 'a raised digit whose only neighbour in its word prints nothing'],
   ['shifted-too-wide', 'a word wider than its column, by the widths the PDF measured'],
+  // A chart is Word's own (0076): what fits its box is Word's to lay out, and the PDF's refusals of what ECharts laid out are not the writer's.
+  ['chart-labels-too-wide', "category labels wider than their slots, by the widths the PDF measured: Word lays a chart's labels out itself"],
+  ['chart-bars-too-thin', "bars under the least width the PDF draws: how wide a bar is in its box is Word's"],
+  ['chart-bars-too-thin-labelled', "the same bars, each labelled: where a label stands is Word's"],
+  ['chart-too-short', "a plot too short for two tick labels, by the PDF's layout: Word lays the axis out itself"],
+])
+
+/**
+ * The fixtures both engines refuse for the same thing, which no rule of
+ * `wordRefusal` derives: what any engine refuses of a chart's words is
+ * the fixture's own to state (0076). Each by its id and why.
+ */
+const REFUSED_AS_THE_PDF_REFUSES: ReadonlyMap<string, string> = new Map([
+  ['chart-unprintable-label', 'a category in a script no report prints, in a chart as in a paragraph'],
 ])
 
 /**
@@ -67,7 +82,7 @@ describe.each(CORPUS.map((fixture) => [fixture.id, fixture] as const))('%s', (_i
   const owed = wordRefusal(document)
   // A fixture whose bytes are no picture is refused by any engine, by the fixture's own refusal.
   const asset = expected.outcome === 'refuse' && expected.refusal?.code === 'invalid-asset' ? expected.refusal : undefined
-  const refusal = owed ?? asset
+  const refusal = owed ?? asset ?? (REFUSED_AS_THE_PDF_REFUSES.has(fixture.id) ? expected.refusal : undefined)
 
   if (refusal !== undefined) {
     // A file written of it would be the report with its chart or its picture left out, and nothing saying so.
@@ -96,6 +111,13 @@ describe.each(CORPUS.map((fixture) => [fixture.id, fixture] as const))('%s', (_i
 test('writes every code fixture of the corpus, and none is refused', () => {
   expect(CODE_FIXTURES.length).toBeGreaterThan(5)
   for (const fixture of CODE_FIXTURES) expect(wordRefusal(fixture.document), fixture.id).toBeUndefined()
+})
+
+// A suite that wrote no chart would hold none: every chart fixture but the one both engines refuse is written, and none is refused as a chart.
+test('writes every chart fixture of the corpus but the one no engine prints', () => {
+  expect(CHART_FIXTURES.length).toBeGreaterThan(10)
+  for (const fixture of CHART_FIXTURES) expect(wordRefusal(fixture.document), fixture.id).toBeUndefined()
+  expect(CHART_FIXTURES.filter((fixture) => REFUSED_AS_THE_PDF_REFUSES.has(fixture.id)).map((fixture) => fixture.id)).toEqual(['chart-unprintable-label'])
 })
 
 // The list above names fixtures: one that left the corpus would stay listed, and say the writer writes something it never saw.

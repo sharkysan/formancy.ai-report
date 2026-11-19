@@ -3,6 +3,7 @@ import {
   MAX_KEEP_WITH_ROWS,
   RenderRefusal,
   type Block,
+  type Chart,
   type Columns,
   type Image,
   type ImageAsset,
@@ -15,6 +16,8 @@ import {
   type TextStyle,
 } from '@formancy/report-runtime'
 import { drawnSize, readPicture, type Held, type Picture } from './assets.js'
+import { checkChart } from './chart-check.js'
+import { chartCount } from './charts.js'
 import { checkColor, checkStyle, checkText, checkWritten } from './check-text.js'
 import { codeCount, codeSymbol, type Code } from './codes.js'
 import { createdOf } from './created.js'
@@ -22,7 +25,7 @@ import type { DocxFonts } from './fonts.js'
 import { MAX_DOCX_CHARACTERS, MAX_DOCX_FAMILY_LENGTH, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS, ONE_CELL_TABLE } from './limits.js'
 import { PADDING_X } from './look.js'
 import { lineEndings } from './nodes.js'
-import { refusePdfOnly, refusePdfOnlyBlock } from './pdf-only.js'
+import { refusePdfOnly } from './pdf-only.js'
 import { cellFace, styledRows } from './rows.js'
 import { eighths, emu, MAX_BORDER, MIN_BORDER, twips } from './units.js'
 import { fillWidth, fixedWidth } from './widths.js'
@@ -50,7 +53,8 @@ import { fillWidth, fixedWidth } from './widths.js'
  * the document's types do not hold, bytes that are no picture -- by the
  * PDF renderer's codes and subjects, which `against-pdf.test.ts` holds
  * one list of malformed documents to in both engines; a code among it,
- * by the one rule both engines ask (0074, `codes.ts`). **What belongs to
+ * by the one rule both engines ask (0074, `codes.ts`), and a chart, whose
+ * contract is stated again (0076, `chart-check.ts`). **What belongs to
  * the PDF, and what nobody has seen Word print as the PDF does**, each
  * `unsupported`. **What Word's units do not state**, each `unsupported`:
  * a line lighter or heavier than its borders hold, and a rectangle, a
@@ -59,7 +63,8 @@ import { fillWidth, fixedWidth } from './widths.js'
  * own bounds**, each `content-too-large`: a picture, a rectangle or a
  * spacer taller than the printable area, which no page of a Word file
  * holds; and the file's paragraphs, its text's characters and runs, its
- * codes, its pictures, their bytes and their image data (`limits.ts`).
+ * codes, its charts and their points, its pictures, their bytes and their
+ * image data (`limits.ts`).
  *
  * What the PDF renderer refuses of what it measured -- a block taller
  * than the body between its regions, a line it cannot place, more pages
@@ -116,6 +121,9 @@ interface Walk {
   /** Every code met, and its symbol; and the modules those symbols have between them. */
   readonly codes: Map<Code, QrSymbol>
   modules: number
+  /** The charts met that are parts of the file, and the points they hold between them. */
+  charts: number
+  points: number
   paragraphs: number
   characters: number
   runs: number
@@ -129,7 +137,7 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   checkWritten(document.info.title, 'the title', 'info.title')
   refusePdfOnly(document)
   const page = pageOf(document.page)
-  const walk: Walk = { fonts, page, images: [], codes: new Map(), modules: 0, paragraphs: 0, characters: 0, runs: 0, families: 0 }
+  const walk: Walk = { fonts, page, images: [], codes: new Map(), modules: 0, charts: 0, points: 0, paragraphs: 0, characters: 0, runs: 0, families: 0 }
   const top = { kept: false, column: false, framed: false, width: page.width, depth: 0 }
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true, everyPage: true }, walk)
   if (document.firstPageHeader !== undefined) checkBlocks(document.firstPageHeader, 'firstPageHeader', { ...top, region: true, everyPage: false }, walk)
@@ -234,7 +242,8 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
       checkCode(block, place, walk)
       return
     case 'chart':
-      return refusePdfOnlyBlock(block)
+      checkDrawnChart(block, place, walk)
+      return
     case 'rule':
       if (!(block.thickness > 0 && Number.isFinite(block.thickness))) throw new RenderRefusal('unsupported', `${at} is a rule ${block.thickness} pt thick`, at)
       checkColor(block.color, at)
@@ -363,6 +372,22 @@ function checkCode(code: Code, place: Place, walk: Walk): void {
   tall(code.size, `the ${code.kind === 'qrCode' ? 'QR code' : 'EPC QR code'} ${id}`, id, walk)
   const { paragraphs, characters, runs } = codeCount(code)
   count(walk, paragraphs, characters, id, runs)
+}
+
+/**
+ * A chart is a box that stands where an image may, in the body. What it
+ * is refused by but its height is `chart-check.ts`'s, the contract every
+ * engine holds a chart's block to and the file's bounds on its charts;
+ * one that passes is counted with the file's paragraphs and characters,
+ * every word and every digit its part states among them (`charts.ts`).
+ */
+function checkDrawnChart(chart: Chart, place: Place, walk: Walk): void {
+  const points = checkChart(chart, place, walk.fonts, { count: walk.charts, points: walk.points })
+  tall(chart.height, `the chart ${chart.id}`, chart.id, walk)
+  if (chart.empty === undefined) walk.charts += 1
+  walk.points += points
+  const { paragraphs, characters, runs, families } = chartCount(chart)
+  count(walk, paragraphs, characters + family(walk, chart.style?.font, families), chart.id, runs)
 }
 
 /**

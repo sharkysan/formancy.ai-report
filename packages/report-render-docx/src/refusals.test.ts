@@ -13,7 +13,8 @@ import { documentOf, paragraph, refusalOf, written } from './testing/support.js'
  * would open in Word and look whole.
  */
 
-const CHART = CHART_FIXTURES[0]!.document.body.find((block) => block.kind === 'chart')!
+/** A chart of a kind no report knows, which any engine refuses by its id (0076): a block the writer refuses where the walk meets it. A chart as the runtime resolves one is written (`charts.test.ts`). */
+const CHART = { ...CHART_FIXTURES[0]!.document.body.find((block) => block.kind === 'chart')!, chart: 'radar' } as unknown as Block
 const CHART_ID = (CHART as { readonly id: string }).id
 const [TURNED, CMYK] = UNSEEN_JPEGS as unknown as [Image['asset'], Image['asset']]
 const SVG: Image['asset'] = { id: 'mark', mediaType: 'image/svg+xml', bytes: SVG_MARK }
@@ -54,15 +55,13 @@ describe('what belongs to the PDF is refused, naming it', () => {
       'pageHeader',
       /labelled on every page/,
     ],
-    ['a chart', documentOf([CHART]), 'unsupported', CHART_ID, /laid out by the PDF renderer alone/],
-    ['a chart in the page header', documentOf([], { pageHeader: [CHART] }), 'unsupported', CHART_ID, /the chart/],
   ]
   test.each(cases)('%s', (...each) => {
     holds(each)
   })
 
   // The order is the record's: the document's own parts before any block, so that the same report is refused for the same thing whatever else it holds.
-  test('the payment part before an e-invoice, an e-invoice before a label, a label before a chart', () => {
+  test('the payment part before an e-invoice, an e-invoice before a label, a label before a chart no engine draws', () => {
     const labelled = documentOf([CHART], { pageHeader: [label(PREVIEW_LABEL)] })
     const invoiced = { ...labelled, eInvoice: invoice('facturX') }
     expect(refusalOf({ ...invoiced, paymentPart: SLIP }).subject).toBe('paymentPart')
@@ -79,7 +78,7 @@ describe('what belongs to the PDF is refused, naming it', () => {
     expect(refusal).toMatchObject({ code: 'content-too-large', subject: 'code' })
     expect(refusal.message).toMatch(/^the QR code code is 40 pt a side, which makes the 37 modules across its symbol and quiet zone 1\.08 pt each/)
     expect(refusalOf(documentOf([red, FINE])).subject).toBe('body[0]')
-    // Before a chart after it, and a chart before it first: neither kind is refused ahead of the other but by where it stands.
+    // Before a chart no engine draws after it, and such a chart before it first: neither kind is refused ahead of the other but by where it stands.
     expect(refusalOf(documentOf([FINE, CHART])).subject).toBe('code')
     expect(refusalOf(documentOf([CHART, FINE])).subject).toBe(CHART_ID)
   })
@@ -114,7 +113,7 @@ describe('what belongs to the PDF is refused, naming it', () => {
       'pageHeader[0]',
       'firstPageHeader[0]',
       'pageFooter[0]',
-      // In the body, whichever stands first: a block no engine prints before a chart, and a chart before one.
+      // In the body, whichever stands first: a block no engine prints before a chart no engine draws, and such a chart before one.
       'body[0]',
       CHART_ID,
     ])

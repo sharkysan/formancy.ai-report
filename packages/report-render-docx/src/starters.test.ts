@@ -8,7 +8,8 @@ import { fixtureOf, refusalOf, resolved, written } from './testing/support.js'
  * final render and as a preview, and its Word file written and proved on
  * the file -- or refused, by the code and the subject this suite names
  * for it. The table below is record 0068's, starter by starter, as record
- * 0074 changed it for the euro invoice: a starter
+ * 0074 changed it for the euro invoice and 0076 for the sales report: a
+ * starter
  * that is written where the record says refused, or the other way round,
  * fails here, and so does one the table does not name.
  */
@@ -39,11 +40,11 @@ const STARTER_FILES: Readonly<Record<string, Outcome>> = {
   // An invoice in law: its final render is its PDF/A-3b or the copy of its XML, and its preview is labelled as not the invoice, a label a Word file would hold as a paragraph.
   'e-invoice': { final: refused('eInvoice'), preview: refused('pageHeader') },
   'e-invoice-xrechnung': { final: refused('eInvoice'), preview: refused('pageHeader') },
-  // Draws two charts, which ECharts lays out for the PDF renderer alone: refused for the first of them, the bar chart, by its id.
-  'sales-report': both('by-category'),
+  // Draws a bar chart and a pie, each Word's own chart since 0076, written from the runtime's block with no ECharts.
+  'sales-report': 'written',
 }
 
-// A starter added to the corpus is read before it is said to export: one that draws a chart is refused, and must say so here.
+// A starter added to the corpus is read before it is said to export: one paid by a QR-bill is refused, and must say so here.
 test('every starter is named as written or as refused, and no other', () => {
   expect(STARTERS.map((starter) => starter.id).sort()).toEqual(Object.keys(STARTER_FILES).sort())
 })
