@@ -21,8 +21,8 @@ import type { PdfA } from './pdfa.js'
  * which says on every page it is not the report, and would be kept as the
  * report; and a copy of an e-invoice the runtime labels so (0077), which
  * carries no e-invoice, says on every page it is not the invoice, and
- * would be kept as the invoice -- read by the runtime's `readCopyLabel`,
- * whatever its style. Without `pdfa` a copy is a document like any other,
+ * would be kept as the invoice -- read by the runtime's `readCopyLabel`
+ * on the page header and on page 1's own (0060), whatever its style. Without `pdfa` a copy is a document like any other,
  * drawn as a plain PDF that embeds nothing. An e-invoice the renderer does not know is refused first,
  * whatever was asked, for what it is (`e-invoice.ts`).
  *
@@ -46,7 +46,7 @@ const refusal = (message: string, subject: string): RenderRefusal => new RenderR
 export function checkPdfA(document: ResolvedDocument, asked: '2b' | undefined): PdfA | undefined {
   // An e-invoice it does not know is refused, never embedded as something else or drawn as a plain PDF (`e-invoice.ts`), whatever was asked.
   const eInvoice = document.eInvoice === undefined ? undefined : checkEInvoice(document.eInvoice)
-  if (asked === '2b') refuseAs2b(eInvoice, document.pageHeader)
+  if (asked === '2b') refuseAs2b(eInvoice, document)
   // An XRechnung's PDF is a plain copy, labelled so on every page (0038): page 1 by its own header, where it has one (0060).
   if (eInvoice?.kind === 'xrechnung') {
     checkCopyLabel(document.pageHeader, 'pageHeader')
@@ -57,8 +57,8 @@ export function checkPdfA(document: ResolvedDocument, asked: '2b' | undefined): 
   return pdfa
 }
 
-/** Refuses a document asked for as a PDF/A-2b that cannot be one: a Factur-X, an XRechnung's copy, a preview the runtime labels so, and a copy of an e-invoice it labels so. */
-function refuseAs2b(eInvoice: EInvoiceFile | undefined, pageHeader: readonly Block[]): void {
+/** Refuses a document asked for as a PDF/A-2b that cannot be one: a Factur-X, an XRechnung's copy, a preview the runtime labels so, and a copy of an e-invoice it labels so on any header. */
+function refuseAs2b(eInvoice: EInvoiceFile | undefined, { pageHeader, firstPageHeader }: ResolvedDocument): void {
   if (eInvoice?.kind === 'facturX') {
     throw refusal(
       'a Factur-X e-invoice is drawn as the PDF/A-3b that embeds its XML, and a PDF/A-2b may embed no such file: render it without pdfa',
@@ -74,11 +74,14 @@ function refuseAs2b(eInvoice: EInvoiceFile | undefined, pageHeader: readonly Blo
       'pageHeader',
     )
   }
-  if (readCopyLabel(pageHeader) !== undefined) {
-    throw refusal(
-      'this document is a copy of an e-invoice, labelled on every page as not the invoice, and a PDF/A-2b of it would be kept as the invoice: keep the invoice, and draw the copy without pdfa',
-      'pageHeader',
-    )
+  // Page 1's own header too (0060): a copy labelled there alone is still archived as the invoice by the page a reader opens first.
+  for (const [subject, header] of [['pageHeader', pageHeader] as const, ['firstPageHeader', firstPageHeader ?? []] as const]) {
+    if (readCopyLabel(header) !== undefined) {
+      throw refusal(
+        'this document is a copy of an e-invoice, labelled on every page as not the invoice, and a PDF/A-2b of it would be kept as the invoice: keep the invoice, and draw the copy without pdfa',
+        subject,
+      )
+    }
   }
 }
 

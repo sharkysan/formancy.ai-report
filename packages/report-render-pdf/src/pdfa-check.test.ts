@@ -1,7 +1,7 @@
 import pdfmake from 'pdfmake'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { E_INVOICE, QUOTATION, readPdfObjects, starterImages, XRECHNUNG_SAMPLE, type Starter } from '@formancy/report-corpus'
-import { RenderRefusal, resolveReport, type ReportData, type ResolvedDocument } from '@formancy/report-runtime'
+import { eInvoiceCopyParagraph, RenderRefusal, resolveReport, type ReportData, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf } from './node.js'
 import type { RenderOptions } from './options.js'
@@ -211,6 +211,18 @@ describe('a copy of an e-invoice (0077)', () => {
       expect(outcome).toBeInstanceOf(Uint8Array)
       expect(definitions.at(-1)).not.toHaveProperty('subset')
       expect((await readPdfObjects(outcome as Uint8Array)).embeddedFiles).toEqual([])
+    },
+    TIMEOUT,
+  )
+
+  // A document labelled as a copy on page 1's own header alone (0060), which no runtime resolves, would be archived as the invoice by the
+  // page a reader opens first. Any header that opens with a copy's label refuses the 2b, naming the header.
+  test(
+    "a document labelled as a copy on page 1's own header alone is refused as PDF/A-2b, naming firstPageHeader",
+    async () => {
+      const label = { ...eInvoiceCopyParagraph('facturX', 'de-DE')! }
+      const document: ResolvedDocument = { ...bareDocument('Rechnung', [paragraph('Rechnung 4711')]), firstPageHeader: [label] }
+      await expectRefused(document, { maxPages: 1, pdfa: '2b' }, { code: 'unsupported', subject: 'firstPageHeader', message: MSG_COPY })
     },
     TIMEOUT,
   )
