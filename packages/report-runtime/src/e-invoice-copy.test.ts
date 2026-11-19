@@ -1,4 +1,5 @@
-import type { ReportDefinition } from '@formancy/report-spec'
+import { reportWords, validateReport } from '@formancy/report-spec'
+import type { ReportDefinition, Translation } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import type { ReportData } from './data.js'
 import type { Block, Paragraph } from './document.js'
@@ -145,6 +146,28 @@ describe("a copy of an e-invoice's final render", () => {
     expect(resolved(polish, invoiceData(LINES), FINAL).document.eInvoice).toBeDefined()
   })
 
+  // A report written in several languages prints in the one a render
+  // names (0063), and its label with it: a French page under a German
+  // label tells a French reader nothing. A copy labelled in the report's
+  // own language whatever the render names would pass every case that
+  // renders in it.
+  test("is labelled in the language a render names, a translation's, and refused in one the runtime has no label in", () => {
+    const report = invoiceReport()
+    const into = (locale: string): Translation => ({
+      locale,
+      words: [...new Set(reportWords(report).map(({ text }) => text))].map((word) => ({ word, text: `${locale} ${word}` })),
+      expressions: [],
+    })
+    const written: ReportDefinition = { ...report, translations: [into('fr-CH'), into('pl-PL')] }
+    expect(validateReport(written)).toMatchObject({ valid: true })
+    expect(resolved(written, invoiceData(LINES), { ...COPY, locale: 'fr-CH' }).document.pageHeader[0]).toEqual(eInvoiceCopyParagraph('facturX', 'fr'))
+    expect(resolved(written, invoiceData(LINES), COPY).document.pageHeader[0]).toEqual(eInvoiceCopyParagraph('facturX', 'de'))
+    // The report's own language has a label and the render's none: refused, at the translation that names it.
+    expect(refused(written, invoiceData(LINES), { ...COPY, locale: 'pl-PL' })).toEqual([
+      `no-e-invoice-copy /translations/1/locale a copy of an e-invoice is labelled in the language it prints in, and the runtime has no label in the language of pl-PL: it has one in ${E_INVOICE_COPY_LANGUAGES.join(', ')}`,
+    ])
+  })
+
   // A host that writes every report's Word file asks for the copy of each:
   // a report that carries no e-invoice has nothing the option speaks of.
   test('says nothing of a report that carries no e-invoice', () => {
@@ -173,21 +196,23 @@ describe("the copy's label", () => {
         de: 'Kopie einer E-Rechnung: Die Rechnung ist das PDF, das ihr XML einbettet, und dieses Dokument ist nicht die Rechnung',
         en: 'Copy of an e-invoice: the invoice is the PDF that embeds its XML, and this document is not the invoice',
         es: 'Copia de una factura electrónica: la factura es el PDF que incorpora su XML, y este documento no es la factura',
-        fr: "Copie d'une facture électronique : la facture est le PDF qui intègre son XML, et ce document n'est pas la facture",
+        fr: "Copie d'une facture électronique\u00a0: la facture est le PDF qui intègre son XML, et ce document n'est pas la facture",
         it: 'Copia di una fattura elettronica: la fattura è il PDF che incorpora il suo XML, e questo documento non è la fattura',
-        nl: 'Kopie van een e-factuur: de factuur is de pdf waarin haar XML is ingesloten, en dit document is niet de factuur',
+        nl: 'Kopie van een e-factuur: de factuur is de pdf waarin haar XML is ingebed, en dit document is niet de factuur',
       },
       xrechnung: {
         de: 'Kopie einer XRechnung: Die Rechnung ist ihr XML, und dieses Dokument ist nicht die Rechnung',
         en: 'Copy of an XRechnung: the invoice is its XML, and this document is not the invoice',
         es: 'Copia de una XRechnung: la factura es su XML, y este documento no es la factura',
-        fr: "Copie d'une XRechnung : la facture est son XML, et ce document n'est pas la facture",
+        fr: "Copie d'une XRechnung\u00a0: la facture est son XML, et ce document n'est pas la facture",
         it: 'Copia di una XRechnung: la fattura è il suo XML, e questo documento non è la fattura',
         nl: 'Kopie van een XRechnung: de factuur is haar XML, en dit document is niet de factuur',
       },
     })
     expect(Object.keys(E_INVOICE_COPY_LABELS.facturX)).toEqual([...E_INVOICE_COPY_LANGUAGES])
     expect(Object.keys(E_INVOICE_COPY_LABELS.xrechnung)).toEqual([...E_INVOICE_COPY_LANGUAGES])
+    // French sets a colon off by a space that never breaks: a line that broke before it would open with the colon.
+    for (const kind of KINDS) expect(E_INVOICE_COPY_LABELS[kind].fr).not.toContain(' :')
     // No two labels are the same words: a label read back names one kind in one language.
     const all = KINDS.flatMap((kind) => Object.values(E_INVOICE_COPY_LABELS[kind]))
     expect(new Set(all).size).toBe(all.length)
