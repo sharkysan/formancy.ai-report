@@ -203,11 +203,12 @@ async function printed(id: string, mode: 'preview' | 'final', status: string, wo
 
 /**
  * The starters whose report a Word file holds whole (0068), the euro
- * invoice with its EPC QR code (0074) and the sales report with its two
- * charts (0076) among them, with the blank report as it opens. The
- * others carry what belongs to their PDF -- a QR-bill's slip, an
- * e-invoice or its preview's label -- and the Preview says so where the
- * link would be.
+ * invoice with its EPC QR code (0074), the sales report with its two
+ * charts (0076), and the invoice and the payment reminder, whose
+ * QR-bill's slip is the file's last page (0075), among them, with the
+ * blank report as it opens. The others carry what belongs to their PDF
+ * -- an e-invoice or its preview's label -- and the Preview says so
+ * where the link would be.
  */
 const WRITTEN_AS_WORD: ReadonlySet<string> = new Set([
   'service-inspection',
@@ -218,6 +219,8 @@ const WRITTEN_AS_WORD: ReadonlySet<string> = new Set([
   'product-data-sheet',
   'euro-invoice',
   'sales-report',
+  'invoice',
+  'payment-reminder',
   'blank',
 ])
 
@@ -466,8 +469,8 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await waitFor(() => expect(document.activeElement).toBe(within(editor()).getByRole('textbox', { name: words('field.iban') })))
   expect(within(editor()).getByRole('treeitem', { name: words('canvas.paymentPart'), selected: true })).toBeTruthy()
   await within(editor()).findByRole('button', { name: words('problem.item', { severity: words('severity.warning'), where: words('canvas.paymentPart') }) })
-  // Paid by a slip from here on: the blank report's Word file, written until now, is refused for it (0068).
-  await printed('blank', 'preview', 'Preview: printed.', 'refused')
+  // Paid by a slip from here on: the blank report's Word file is written still, its slip on a page of its own (0075).
+  await printed('blank', 'preview', 'Preview: printed.')
   await record(`Blank, a QR-bill added, in ${framework}`)
 
   // A language added at the report's level and chosen in the bar: the
@@ -481,7 +484,7 @@ async function walk(user: User, opened: Workspace, record: (state: string) => Pr
   await screen.findByText(/^Preview: refused by the runtime, \d+ problems?\.$/)
   await record(`Blank, a language added and shown, in ${framework}`)
   await user.selectOptions(language, 'en-GB')
-  await printed('blank', 'preview', 'Preview: printed.', 'refused')
+  await printed('blank', 'preview', 'Preview: printed.')
 }
 
 /**

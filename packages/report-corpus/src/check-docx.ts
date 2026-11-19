@@ -1,6 +1,7 @@
 import { checkSvg, E_INVOICE_PREVIEW_LABEL, imageHeader, PREVIEW_LABEL } from '@formancy/report-runtime'
 import { paragraphsOf, verifyContainer } from './check-docx-blocks.js'
 import { decodedProblems, type FoundCodes } from './check-docx-codes.js'
+import { slipCodeProblems, verifySlip } from './check-docx-slip.js'
 import { docxCharts } from './docx-charts.js'
 import { pageDimensions, type Block, type Image, type ResolvedDocument, type Section } from './document.js'
 import type { Docx, DocxBlock, DocxParagraph, DocxRegion, DocxRun, DocxTable } from './docx/model.js'
@@ -27,7 +28,9 @@ import { normalise, type ExpectedImage, type ExpectedRefusal, type ExpectedShift
  * scanner would (`check-docx-codes.ts`). That reading is not at hand at
  * once, so the check is waited for. A chart is held on its part (0076):
  * Word's own chart as the file states it, its words, its values' digits
- * and its axis (`check-docx-charts.ts`).
+ * and its axis (`check-docx-charts.ts`). A QR-bill's slip is held on its
+ * page, the file's last section, and its Swiss QR Code on its picture
+ * (0075, `check-docx-slip.ts`).
  *
  * What this cannot show is that Word opens the file, or prints it so.
  */
@@ -43,7 +46,17 @@ export async function verifyDocx(fixture: Fixture, docx: Docx): Promise<string[]
     ['pageFooter', document.pageFooter, docx.footer, 'footer'],
   ]
   const codes: FoundCodes = { pending: [], paragraphs: new Set() }
+  // A report paid by a QR-bill ends its section with a paragraph of its own, an empty line a point tall, and its slip's page follows (0075).
+  const ending = docx.body.at(-1)
+  const ended =
+    ending?.kind === 'paragraph' && ending.endsSection === true && ending.runs.length === 0 && ending.line?.rule === 'exact' && ending.line.height === 1
+  const body = ended ? docx.body.slice(0, -1) : docx.body
+  const slip = verifySlip(document, docx)
   const stated = [
+    ...(ended === (document.paymentPart !== undefined)
+      ? []
+      : ["the report's section is not ended by an empty line a point tall exactly where the document is paid by a QR-bill"]),
+    ...slip.problems,
     ...pageProblems(document, docx),
     ...regions.flatMap(([at, blocks, region, kind]) => {
       if (blocks.length === 0) return region === undefined ? [] : [`${at} holds nothing, and the file has a ${kind} for it`]
@@ -55,11 +68,12 @@ export async function verifyDocx(fixture: Fixture, docx: Docx): Promise<string[]
     ...(first === undefined && (docx.firstHeader !== undefined || docx.firstFooter !== undefined)
       ? ['the file gives page 1 a header or footer of its own, and the document none']
       : []),
-    ...verifyContainer(document.body, docx.body, { at: 'body', width, kind: 'body' }, fonts, codes),
-    ...expectedProblems(expect, docx, codes.paragraphs),
+    ...verifyContainer(document.body, body, { at: 'body', width, kind: 'body' }, fonts, codes),
+    ...expectedProblems(expect, { ...docx, body }, codes.paragraphs),
     ...fontProblems(docx),
   ]
-  return [...stated, ...(await decodedProblems(codes.pending))]
+  const scanned = slip.code === undefined || document.paymentPart === undefined ? [] : await slipCodeProblems(document.paymentPart, slip.code)
+  return [...stated, ...(await decodedProblems(codes.pending)), ...scanned]
 }
 
 const NEAR = 0.026
@@ -272,7 +286,7 @@ function shiftedProblems(where: string, expected: readonly ExpectedShiftedRun[],
  * The refusal a Word file's writer owes `document`, or undefined where it
  * owes none of these: derived from the document alone, by the corpus's
  * own reading of record 0068, in the order the writer refuses -- the
- * payment part, the e-invoice, a labelled preview, then the page header,
+ * e-invoice, a labelled preview, then the page header,
  * page 1's own, the page footer and the body, each block in document
  * order, and last the pictures, in that order too, since an engine reads a
  * picture's bytes once every block has been walked. It knows what belongs
@@ -281,10 +295,12 @@ function shiftedProblems(where: string, expected: readonly ExpectedShiftedRun[],
  * engines refuse among it (0074), and what the PDF renderer refuses of
  * what it measured, are a fixture's own to state. A chart was refused
  * here until 0076: Word draws one of its own, and a chart is refused
- * only as any engine refuses it.
+ * only as any engine refuses it. A payment part was refused here until
+ * 0075: its slip is written on a page of its own, and a bill is refused
+ * only as the rules below both engines refuse it, or where a line of it
+ * does not fit its place.
  */
 export function wordRefusal(document: ResolvedDocument): ExpectedRefusal | undefined {
-  if (document.paymentPart !== undefined) return { code: 'unsupported', subject: 'paymentPart' }
   if (document.eInvoice !== undefined) return { code: 'unsupported', subject: 'eInvoice' }
   const label = document.pageHeader[0]
   const run = label?.kind === 'paragraph' && label.runs.length === 1 ? label.runs[0] : undefined

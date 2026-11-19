@@ -29,6 +29,7 @@ const table = (id: string, more: Partial<Table> = {}): Table => ({
   ...more,
 })
 const label = (text: string): Block => ({ kind: 'paragraph', runs: [{ text }], style: { size: 8, bold: true, color: '#b00020' } })
+/** A payment part that is no QR-bill, which the rules below both engines refuse (0075); a bill the runtime resolved is written (`slip.test.ts`). */
 const SLIP = {} as NonNullable<ResolvedDocument['paymentPart']>
 const invoice = (kind: string): NonNullable<ResolvedDocument['eInvoice']> => ({ kind }) as NonNullable<ResolvedDocument['eInvoice']>
 /** A QR code the rules below both engines refuse (0074): its square is too small for its text at 0.4 mm a module. */
@@ -44,7 +45,6 @@ const holds = ([, document, code, subject, sentence]: Case): void => {
 
 describe('what belongs to the PDF is refused, naming it', () => {
   const cases: readonly Case[] = [
-    ['a payment part', documentOf([], { paymentPart: SLIP }), 'unsupported', 'paymentPart', /QR-bill.*slip.*print the report as a PDF/],
     ['a Factur-X e-invoice', documentOf([], { eInvoice: invoice('facturX') }), 'unsupported', 'eInvoice', /PDF\/A-3b that embeds its XML/],
     ['an XRechnung', documentOf([], { eInvoice: invoice('xrechnung') }), 'unsupported', 'eInvoice', /XRechnung.*is no copy/],
     ['a preview labelled as lacking data', documentOf([], { pageHeader: [label(PREVIEW_LABEL)] }), 'unsupported', 'pageHeader', /a paragraph a person deletes/],
@@ -61,10 +61,12 @@ describe('what belongs to the PDF is refused, naming it', () => {
   })
 
   // The order is the record's: the document's own parts before any block, so that the same report is refused for the same thing whatever else it holds.
-  test('the payment part before an e-invoice, an e-invoice before a label, a label before a chart no engine draws', () => {
+  // An e-invoice paid by a QR-bill is refused as the e-invoice it is: its slip is written since 0075, and its bill is looked at last.
+  test('an e-invoice before a label, a label before a chart no engine draws, and each before a payment part', () => {
     const labelled = documentOf([CHART], { pageHeader: [label(PREVIEW_LABEL)] })
     const invoiced = { ...labelled, eInvoice: invoice('facturX') }
-    expect(refusalOf({ ...invoiced, paymentPart: SLIP }).subject).toBe('paymentPart')
+    expect(refusalOf({ ...invoiced, paymentPart: SLIP }).subject).toBe('eInvoice')
+    expect(refusalOf({ ...labelled, paymentPart: SLIP }).subject).toBe('pageHeader')
     expect(refusalOf(invoiced).subject).toBe('eInvoice')
     expect(refusalOf(labelled).subject).toBe('pageHeader')
     expect(refusalOf({ ...labelled, pageHeader: [] }).subject).toBe(CHART_ID)
@@ -86,7 +88,7 @@ describe('what belongs to the PDF is refused, naming it', () => {
   // The whole order, a place at a time: a document wrong in every place the writer looks is refused for a face that is no font, which is
   // read before anything is walked, then for its creation date, and with each place put right for the next. A host that shows a person
   // one refusal shows the same one whatever else the report holds.
-  test("a face that is no font, the creation date, the title, what belongs to the PDF, the page, then the page header, page 1's own, the page footer and the body", () => {
+  test("a face that is no font, the creation date, the title, the page, then the page header, page 1's own, the page footer, the body, and last the payment part", () => {
     const red = paragraph('red', { color: 'red' })
     const faced: ResolvedDocument = {
       ...documentOf([red, CHART], { pageHeader: [red], firstPageHeader: [red], pageFooter: [red] }),
@@ -98,17 +100,15 @@ describe('what belongs to the PDF is refused, naming it', () => {
     const { fonts: _face, ...everywhere } = faced
     const dated = { ...everywhere, info: { ...everywhere.info, creationDate: '2026-01-01T00:00:00Z' } }
     const titled = { ...dated, info: { ...dated.info, title: 'T' } }
-    const { paymentPart: _slip, ...unpaid } = titled
-    const paged = { ...unpaid, page: documentOf([]).page }
+    const paged = { ...titled, page: documentOf([]).page }
     const headed = { ...paged, pageHeader: [] }
     const first = { ...headed, firstPageHeader: [] }
     const footed = { ...first, pageFooter: [] }
-    const steps = [faced, everywhere, dated, titled, unpaid, paged, headed, first, footed, { ...footed, body: [CHART, red] }]
+    const steps = [faced, everywhere, dated, titled, paged, headed, first, footed, { ...footed, body: [CHART, red] }, { ...footed, body: [] }]
     expect(steps.map((each) => refusalOf(each).subject)).toEqual([
       'face',
       'info.creationDate',
       'info.title',
-      'paymentPart',
       'page.size',
       'pageHeader[0]',
       'firstPageHeader[0]',
@@ -116,6 +116,8 @@ describe('what belongs to the PDF is refused, naming it', () => {
       // In the body, whichever stands first: a block no engine prints before a chart no engine draws, and such a chart before one.
       'body[0]',
       CHART_ID,
+      // A payment part that is no bill, once every block is right: where the PDF renderer looks at it (0075).
+      'paymentPart',
     ])
   })
 

@@ -6,13 +6,15 @@ import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, RenderRefusal, type Block, type
  * can read. A Word file without one of them would be the report with
  * something left out and nothing saying so.
  *
- * Of the document itself, before any block: its payment part, which SIX
- * fixes to the millimetre at the foot of the last page, where a Word
- * file's pages are Word's; its e-invoice, which is the PDF/A-3b that
- * embeds its XML or the labelled copy of an XML a host sends; and a
+ * Of the document itself, before any block: its e-invoice, which is the
+ * PDF/A-3b that embeds its XML or the labelled copy of an XML a host
+ * sends; and a
  * preview the runtime labelled, whose label a Word file holds as a
  * paragraph a person deletes -- read as the PDF renderer reads it where
- * it refuses a preview as a PDF/A (0057).
+ * it refuses a preview as a PDF/A (0057). A payment part was refused
+ * here, as what SIX fixes to the foot of the last page, where a Word
+ * file's pages are Word's; since 0075 its slip is written on a page of
+ * its own, the file's last (`slip.ts`).
  *
  * Of its blocks, none any longer. A QR code and an EPC QR code were
  * refused here while what refuses one was decided in the PDF renderer
@@ -25,15 +27,8 @@ import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, RenderRefusal, type Block, type
 
 const PRINT = 'print the report as a PDF'
 
-/** Refuses a document that carries what only its PDF is: a payment part, an e-invoice, a preview's label. */
+/** Refuses a document that carries what only its PDF is: an e-invoice, a preview's label. */
 export function refusePdfOnly(document: ResolvedDocument): void {
-  if (document.paymentPart !== undefined) {
-    throw new RenderRefusal(
-      'unsupported',
-      `the report is paid by a QR-bill, whose slip stands where SIX fixes it, at the foot of the last page; a Word file's pages are Word's, and the report without its slip is another report: ${PRINT}`,
-      'paymentPart',
-    )
-  }
   const invoice = document.eInvoice
   if (invoice !== undefined) {
     const what =

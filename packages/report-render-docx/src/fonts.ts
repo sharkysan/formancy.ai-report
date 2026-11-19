@@ -48,6 +48,8 @@ export interface FaceWanted {
 export interface FontEntry {
   readonly name: string
   readonly kind: 'swiss' | 'roman' | 'modern'
+  /** Another name a reader without the family may find it by: a face of the same widths. */
+  readonly other?: string
 }
 
 export interface DocxFonts {

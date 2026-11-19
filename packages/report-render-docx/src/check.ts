@@ -25,8 +25,11 @@ import type { DocxFonts } from './fonts.js'
 import { MAX_DOCX_CHARACTERS, MAX_DOCX_FAMILY_LENGTH, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS, ONE_CELL_TABLE } from './limits.js'
 import { PADDING_X } from './look.js'
 import { lineEndings } from './nodes.js'
+import { pageOf, type Page } from './page.js'
 import { refusePdfOnly } from './pdf-only.js'
 import { cellFace, styledRows } from './rows.js'
+import { slipCount } from './slip.js'
+import { planSlip, type PlannedSlip } from './slip-plan.js'
 import { eighths, emu, MAX_BORDER, MIN_BORDER, twips } from './units.js'
 import { fillWidth, fixedWidth } from './widths.js'
 
@@ -41,9 +44,10 @@ import { fillWidth, fixedWidth } from './widths.js'
  * the title; what
  * belongs to the PDF of the document itself (`pdf-only.ts`); the page;
  * then the page header, page 1's own, the page footer and the body, each
- * block in document order; and last the pictures' bytes, in the order
- * the walk met them. It is the PDF renderer's order for what both refuse
- * -- its fonts, its walk, then its `check-images.ts` -- which
+ * block in document order; the pictures' bytes, in the order the walk met
+ * them; and last a QR-bill's payment part and its slip (`slip-plan.ts`,
+ * 0075). It is the PDF renderer's order for what both refuse -- its
+ * fonts, its walk, its `check-images.ts`, then its bill -- which
  * `against-pdf.test.ts` holds on a document wrong in every one of those
  * places.
  *
@@ -64,27 +68,13 @@ import { fillWidth, fixedWidth } from './widths.js'
  * spacer taller than the printable area, which no page of a Word file
  * holds; and the file's paragraphs, its text's characters and runs, its
  * codes, its charts and their points, its pictures, their bytes and their
- * image data (`limits.ts`).
+ * image data (`limits.ts`); and a slip's line wider than its place, or
+ * information taller than its section.
  *
  * What the PDF renderer refuses of what it measured -- a block taller
  * than the body between its regions, a line it cannot place, more pages
  * than a host allows -- is not here: the writer measures nothing.
  */
-
-/** The paper and its printable area, in points. */
-export interface Page {
-  readonly paperWidth: number
-  readonly paperHeight: number
-  readonly margins: ResolvedDocument['page']['margins']
-  readonly width: number
-  readonly height: number
-}
-
-/** Portrait sizes in points, as the PDF renderer writes them: ISO A4 is 210 by 297 millimetres, US Letter 8.5 by 11 inches. */
-const PAPER: Readonly<Record<ResolvedDocument['page']['size'], { readonly width: number; readonly height: number }>> = {
-  A4: { width: 595.28, height: 841.89 },
-  Letter: { width: 612, height: 792 },
-}
 
 /** How deep blocks may nest: the PDF renderer's bound on its recursion, and this walk's. */
 export const MAX_DEPTH = 16
@@ -97,6 +87,8 @@ export interface Checked {
   readonly pictures: ReadonlyMap<ImageAsset, Picture>
   /** Every QR code's and EPC QR code's symbol, as the runtime decided it, once: what is refused and what is written are one symbol. */
   readonly codes: ReadonlyMap<Code, QrSymbol>
+  /** The QR-bill's slip, planned line by line, where the document is paid by one (0075). */
+  readonly slip?: PlannedSlip
 }
 
 /** Where a block stands. */
@@ -148,24 +140,14 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   if (document.firstPageHeader !== undefined) checkBlocks(document.firstPageHeader, 'firstPageHeader', { ...top, region: true, everyPage: false }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true, everyPage: true }, walk)
   checkBlocks(document.body, 'body', { ...top, region: false, everyPage: false }, walk)
-  return { page, created, pictures: readPictures(walk.images), codes: walk.codes }
-}
-
-function pageOf(setup: ResolvedDocument['page']): Page {
-  // Own sizes only: 'constructor' or 'toString' would find Object's.
-  const paper = Object.hasOwn(PAPER, setup.size) ? PAPER[setup.size] : undefined
-  if (paper === undefined) throw new RenderRefusal('unsupported', `the page size '${String(setup.size)}' is not one a report prints on`, 'page.size')
-  if (setup.orientation !== 'portrait' && setup.orientation !== 'landscape')
-    throw new RenderRefusal('unsupported', `the orientation '${String(setup.orientation)}' is not one a report prints in`, 'page.orientation')
-  const [paperWidth, paperHeight] = setup.orientation === 'portrait' ? [paper.width, paper.height] : [paper.height, paper.width]
-  const { margins } = setup
-  if (![margins.top, margins.right, margins.bottom, margins.left].every((margin) => Number.isFinite(margin) && margin >= 0))
-    throw new RenderRefusal('unsupported', 'a page margin is negative or not a number', 'page.margins')
-  const width = paperWidth - margins.left - margins.right
-  const height = paperHeight - margins.top - margins.bottom
-  if (width <= 0 || height <= 0)
-    throw new RenderRefusal('content-too-large', `the margins leave no printable area (${width.toFixed(2)} × ${height.toFixed(2)} pt)`, 'page.margins')
-  return { paperWidth, paperHeight, margins, width, height }
+  const pictures = readPictures(walk.images)
+  // The payment part last, where the PDF renderer checks it: a document wrong in a block and in its bill is refused for the block by both.
+  if (document.paymentPart === undefined) return { page, created, pictures, codes: walk.codes }
+  const slip = planSlip(document.paymentPart, document.page)
+  // Its page's paragraphs, and the one that ends the report's section before it (`package.ts`).
+  const { paragraphs, characters, runs } = slipCount(slip)
+  count(walk, paragraphs + 1, characters, 'paymentPart', runs)
+  return { page, created, pictures, codes: walk.codes, slip }
 }
 
 /**

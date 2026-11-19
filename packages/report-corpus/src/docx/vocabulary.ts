@@ -79,9 +79,11 @@ const pPr: ElementDef = element('w', 'pPr', [], () => [
   one(flag('pageBreakBefore')),
   one(element('w', 'pBdr', [], () => [one(border('top')), one(border('left')), one(border('bottom')), one(border('right')), one(border('between'))])),
   one(element('w', 'spacing', W('before', 'after', 'line', 'lineRule'))),
-  one(element('w', 'ind', W('left'))),
+  one(element('w', 'ind', W('left', 'right'))),
   one(value('jc')),
   one(rPr),
+  // The section a paragraph ends (0075): read through `content`, never before the module is whole.
+  one(sectionDef()),
 ])
 
 const blip: ElementDef = element('a', 'blip', [attr('r', 'embed')], () => [
@@ -170,6 +172,11 @@ const table: ElementDef = { uri: NS.w, local: 'tbl', attributes: [], content: ta
 
 const reference = (local: string): ElementDef => element('w', local, [attr('w', 'type'), attr('r', 'id')])
 
+/** Hoisted, since a paragraph's properties hold the section it ends. */
+function sectionDef(): ElementDef {
+  return section
+}
+
 const section: ElementDef = element('w', 'sectPr', [], () => [
   many(reference('headerReference'), reference('footerReference')),
   one(element('w', 'pgSz', W('w', 'h', 'orient'))),
@@ -195,7 +202,9 @@ export const SETTINGS: ElementDef = element('w', 'settings', [], () => [
 ])
 
 /** `word/fontTable.xml`. */
-export const FONTS: ElementDef = element('w', 'fonts', [], () => [many(element('w', 'font', W('name'), () => [one(value('family')), one(value('pitch'))]))])
+export const FONTS: ElementDef = element('w', 'fonts', [], () => [
+  many(element('w', 'font', W('name'), () => [one(value('altName')), one(value('family')), one(value('pitch'))])),
+])
 
 /** `docProps/core.xml`: the title and the creation date. */
 export const CORE: ElementDef = element('cp', 'coreProperties', [], () => [one(text('dc', 'title')), one(text('dcterms', 'created', [attr('xsi', 'type')]))])

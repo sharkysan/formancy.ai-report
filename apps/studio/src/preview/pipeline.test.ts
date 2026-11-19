@@ -39,13 +39,14 @@ function request(id: string, overrides: Partial<PreviewRequest> = {}): PreviewRe
 
 /**
  * What each starter's Word file is, as record 0068's table says it and
- * records 0074 and 0076 changed it: written, or refused by the writer, a
- * preview and a final render each for the part of the document it names.
- * A QR-bill's slip belongs to the PDF; an e-invoice's final render is
- * its PDF/A-3b or the copy of its XML, and its preview is labelled in
- * its page header as no invoice. The euro invoice, which an EPC QR code
- * pays, is written since 0074, and the sales report, whose bar chart and
- * pie are each Word's own chart in the file, since 0076.
+ * records 0074, 0075 and 0076 changed it: written, or refused by the
+ * writer, a preview and a final render each for the part of the document
+ * it names. An e-invoice's final render is its PDF/A-3b or the copy of
+ * its XML, and its preview is labelled in its page header as no invoice.
+ * The euro invoice, which an EPC QR code pays, is written since 0074,
+ * the sales report, whose bar chart and pie are each Word's own chart in
+ * the file, since 0076, and the invoice and the payment reminder, whose
+ * QR-bill's slip is a page of the file's own, since 0075.
  */
 const WORD: Readonly<Record<string, 'written' | { readonly preview: string; readonly final: string }>> = {
   'service-inspection': 'written',
@@ -57,8 +58,8 @@ const WORD: Readonly<Record<string, 'written' | { readonly preview: string; read
   'euro-invoice': 'written',
   'sales-report': 'written',
   blank: 'written',
-  invoice: { preview: 'paymentPart', final: 'paymentPart' },
-  'payment-reminder': { preview: 'paymentPart', final: 'paymentPart' },
+  invoice: 'written',
+  'payment-reminder': 'written',
   'e-invoice': { preview: 'pageHeader', final: 'eInvoice' },
   'e-invoice-xrechnung': { preview: 'pageHeader', final: 'eInvoice' },
 }

@@ -1,5 +1,7 @@
 export { verify, verifyRefusal } from './checks.js'
 export { verifyDocx, wordRefusal } from './check-docx.js'
+export { readSlipCode, swissVersion } from './check-docx-slip.js'
+export type { DocxSlipCode } from './check-docx-slip.js'
 export { readDocxCodes } from './docx-codes.js'
 export type { DocxCode } from './docx-codes.js'
 export { docxCharts } from './docx-charts.js'
@@ -17,6 +19,7 @@ export type {
   DocxRow,
   DocxRun,
   DocxRunProps,
+  DocxSlipPage,
   DocxTable,
   DocxChart,
   DocxChartFace,

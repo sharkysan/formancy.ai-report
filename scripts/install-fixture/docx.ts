@@ -7,8 +7,13 @@
  * core properties, the report's title among the document's text and the
  * firm's mark as the very bytes the host approved; written twice, the
  * same bytes; and the quotation as a bill, which consume.ts resolved,
- * refused whole as `unsupported`, naming its payment part, through the
- * class and the codes the package hands on. And the euro invoice with
+ * written with its slip on a page of its own (0075) -- a second section,
+ * whose top margin ends where the slip's instruction begins, the bill's
+ * account among the document's text, and its Swiss QR Code a picture of
+ * one bit a pixel whose side is whole pixels a module of the symbol the
+ * packed runtime's `swissSymbol` gives -- and, in a currency SIX does
+ * not allow, refused whole as `unsupported`, naming its payment part,
+ * through the class and the codes the package hands on. And the euro invoice with
  * its EPC QR code in Austria's frame (0074), which consume.ts resolved
  * too: written, its code a picture of one bit a pixel whose side is whole
  * pixels a module of the symbol the packed runtime's `epcSymbol` gives,
@@ -27,7 +32,7 @@
  * picture: no decoder is in this host.
  */
 import { resolveReport } from '@formancy/report-runtime'
-import { epcSymbol, QR_QUIET_ZONE } from '@formancy/report-runtime'
+import { epcSymbol, QR_QUIET_ZONE, swissSymbol } from '@formancy/report-runtime'
 import type { EpcQrCode, ImageResolver, QrSymbol, ResolvedDocument } from '@formancy/report-runtime'
 import { renderDocx, RenderRefusal } from '@formancy/report-render-docx'
 import {
@@ -104,6 +109,44 @@ function codeWritten(paid: ResolvedDocument): number {
 }
 
 /**
+ * The quotation as a bill, written: the side, in pixels, of the one
+ * picture of its file that is its Swiss QR Code -- a PNG of one bit of
+ * grey a pixel, square, as many whole pixels a module as its side over
+ * the symbol's modules, with no quiet zone of its own -- in a file of two
+ * sections, the second the slip's page, which holds the bill's account
+ * and its instruction to separate as text.
+ */
+function slipWritten(billed: ResolvedDocument): number {
+  const bill = billed.paymentPart
+  if (bill === undefined) throw new Error('the quotation as a bill holds no payment part')
+  const across = swissSymbol(bill.payload).modules.length
+  const parts = entriesOf(renderDocx(billed))
+  const xml = parts.get('word/document.xml')?.toString('utf8') ?? ''
+  const sides = [...parts]
+    .filter(([name, part]) => /^word\/media\/image\d+\.png$/.test(name) && part.readUInt8(24) === 1 && part.readUInt8(25) === 0)
+    .map(([, part]) => [part.readUInt32BE(16), part.readUInt32BE(20)] as const)
+    .filter(([width, height]) => width === height && width % across === 0)
+  const [side] = sides
+  const held: Readonly<Record<string, boolean>> = {
+    'one picture of its code': sides.length === 1,
+    "two sections, the report's and the slip's page": xml.split('<w:sectPr>').length === 3,
+    // 192 mm down an A4 page less the instruction's line, in twentieths of a point: the slip then starts where SIX puts it.
+    "the slip's page with no margin but its top's, down to the instruction": xml.includes(
+      '<w:pgMar w:top="10680" w:right="0" w:bottom="0" w:left="0" w:header="0" w:footer="0" w:gutter="0"/>',
+    ),
+    "the bill's account as text": xml.includes(`>${bill.account}</w:t>`),
+    'its instruction to separate as text': xml.includes(`>${bill.headings.separate}</w:t>`),
+    'Arial with Liberation Sans as its other name': (parts.get('word/fontTable.xml')?.toString('utf8') ?? '').includes(
+      '<w:font w:name="Arial"><w:altName w:val="Liberation Sans"/>',
+    ),
+  }
+  const missed = Object.keys(held).filter((check) => held[check] !== true)
+  if (missed.length > 0 || side === undefined)
+    throw new Error(`the Word file of the quotation as a bill lacks ${missed.join('; ')}: its parts are ${[...parts.keys()].join(', ')}`)
+  return side[0]
+}
+
+/**
  * The quotation with the guide's chart, written: the length of the one
  * part of its file that is a chart -- a bar chart of Word's own, its
  * three amounts the runtime's digits and its axis ending at the highest
@@ -171,15 +214,19 @@ export function wordWritten(billed: ResolvedDocument, paid: ResolvedDocument, ch
   const missed = Object.keys(held).filter((check) => held[check] !== true)
   if (missed.length > 0) throw new Error(`the quotation's Word file lacks ${missed.join('; ')}: its parts are ${[...parts.keys()].join(', ')}`)
 
+  const slip = slipWritten(billed)
+  if (billed.paymentPart === undefined) throw new Error('the quotation as a bill holds no payment part')
+  // A currency SIX does not allow, which no runtime resolves: the rule below both engines refuses the bill, and nothing is written of it.
+  const unpayable: ResolvedDocument = { ...billed, paymentPart: { ...billed.paymentPart, currency: 'USD' as 'CHF' } }
   let refusal: unknown
   try {
-    renderDocx(billed)
+    renderDocx(unpayable)
   } catch (error) {
     refusal = error
   }
   if (!(refusal instanceof RenderRefusal) || refusal.code !== UNSUPPORTED || refusal.subject !== 'paymentPart')
-    throw new Error(`the quotation with a QR-bill was not refused as a Word file for its payment part: ${String(refusal)}`)
+    throw new Error(`the quotation with a QR-bill in a currency SIX does not allow was not refused as a Word file for its payment part: ${String(refusal)}`)
   const side = codeWritten(paid)
   const chart = chartWritten(charted)
-  return `the quotation written as a ${file.length}-byte Word file of ${parts.size} parts that Node's zlib reads, its title and its instant in its core properties and the firm's mark the approved bytes, the same bytes twice, and with a QR-bill refused whole for its payment part; and the euro invoice written with its EPC QR code in Austria's frame, a picture ${side} pixels a side of whole pixels a module of the symbol the runtime gives; and the quotation with its chart written, the chart a part of ${chart} characters that is a bar chart of Word's own with the runtime's digits and no workbook`
+  return `the quotation written as a ${file.length}-byte Word file of ${parts.size} parts that Node's zlib reads, its title and its instant in its core properties and the firm's mark the approved bytes, the same bytes twice, and with a QR-bill written with its slip on a page of its own, its Swiss QR Code a picture ${slip} pixels a side of whole pixels a module, and refused whole for its payment part in a currency SIX does not allow; and the euro invoice written with its EPC QR code in Austria's frame, a picture ${side} pixels a side of whole pixels a module of the symbol the runtime gives; and the quotation with its chart written, the chart a part of ${chart} characters that is a bar chart of Word's own with the runtime's digits and no workbook`
 }

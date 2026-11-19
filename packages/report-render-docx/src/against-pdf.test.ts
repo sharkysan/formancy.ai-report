@@ -216,8 +216,9 @@ describe('what a document leaves to an engine', () => {
   // A suite that compared nothing would hold nothing: the starters that export and the fixtures both write are all here.
   test('is compared on every starter and fixture both engines write', () => {
     expect(BOTH.length).toBeGreaterThan(20)
-    // The six of record 0068, the euro invoice, which is paid by a code (0074), and the sales report, which draws two charts (0076).
-    expect(BOTH.filter(([name]) => name.endsWith('starter'))).toHaveLength(8)
+    // The six of record 0068, the euro invoice, which is paid by a code (0074), the sales report, which draws two charts (0076), and the
+    // invoice and the payment reminder, which a QR-bill pays (0075).
+    expect(BOTH.filter(([name]) => name.endsWith('starter'))).toHaveLength(10)
   })
 
   // The sizes and the bold no style states are the renderer's constants, typed again in look.ts: one changed alone would print a report's
@@ -226,7 +227,9 @@ describe('what a document leaves to an engine', () => {
     'prints %s with the sizes, weights and slants the PDF prints it with',
     async (_name, document) => {
       const body = bodyAlone(document)
-      const [file, pdf] = [wordsOfFile(written(body).body), await wordsOfPdf(body)]
+      // A slip's words are the file's too (0075): each heading and value at the size and in the weight the PDF prints it.
+      const read = written(body)
+      const [file, pdf] = [wordsOfFile([...read.body, ...(read.slip?.blocks ?? [])]), await wordsOfPdf(body)]
       // A word pdfmake broke across lines is several words to PDF.js and one to the file: an identifier with no space in it, past forty
       // characters. Such a word is held by its pieces, each a piece of it printed as it prints.
       const long = [...file].filter((word) => word.indexOf(' @ ') > 40)
