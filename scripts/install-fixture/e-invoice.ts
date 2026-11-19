@@ -31,6 +31,7 @@ import {
 } from '@formancy/report-runtime'
 import type { EInvoiceFile, Paragraph, ReportData, Resolution } from '@formancy/report-runtime'
 import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
+import { copyWritten } from './docx.js'
 import { readEmbedding, SRGB2014 } from './embedding.js'
 import type { Embedding } from './embedding.js'
 
@@ -371,8 +372,12 @@ export async function drawnEInvoice(page: ReportDefinition['page']): Promise<str
       `the preview of the e-invoice did not render to a PDF that embeds nothing: ${JSON.stringify({ ...previewEmbedding, associated: previewEmbedding.associated.length })}`,
     )
   }
+  // The copy (0077): the same report resolved once more as `eInvoice: 'copy'`, which is what a Word file is written of.
+  const copied: Resolution = resolveReport(invoiced, invoiceData, { mode: 'final', eInvoice: 'copy', creationDate: '2026-10-16T08:00:00Z' })
+  if (!copied.ok) throw new Error(`the copy of the e-invoice did not resolve: ${copied.errors.map((error) => `${error.code} at ${error.path}`).join('; ')}`)
+  const word = copyWritten(invoicedResolution.document, copied.document, String(invoiceData.header?.['number'] ?? ''))
   const xrechnung = await drawnXRechnung(invoiced, addressedBlock, invoiceData, addressedXml)
-  return `an e-invoice validated, a country outside its list was refused by its rule, its business process, electronic addresses and seller's contact were written where given and a telephone number of no digits refused by XRechnung's rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing, and refused the Factur-X as a PDF/A-2b; ${xrechnung}`
+  return `an e-invoice validated, a country outside its list was refused by its rule, its business process, electronic addresses and seller's contact were written where given and a telephone number of no digits refused by XRechnung's rule, a final render wrote ${file.xml.length} characters of CII XML holding the totals its page prints, and the renderer drew it as a ${invoicePdf.length}-byte PDF/A-3b that embeds those bytes as ${file.fileName}, says so in its XMP and carries the reviewed sRGB profile, and its labelled preview as a ${invoicePreview.length}-byte PDF that embeds nothing, and refused the Factur-X as a PDF/A-2b; ${word}; ${xrechnung}`
 }
 
 /**

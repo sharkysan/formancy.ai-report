@@ -18,6 +18,15 @@
  * PDF. Nothing is written of a document the renderer did not draw, so the
  * page limit that bounds the PDF bounds what the writer is handed, on the
  * page's own thread.
+ *
+ * But for a final render of an e-invoice (0077). Its document is the
+ * invoice, which no Word file is: the Word file is written of its copy,
+ * the same report resolved once more from the same request with
+ * `eInvoice: 'copy'`, which carries no XML and says on every page, in the
+ * report's language, that it is not the invoice. The PDF and the XML
+ * beside it stay the invoice's. The copy is the drawn document with one
+ * line more in each header, and is not drawn here: the page limit holds
+ * the invoice it is a copy of.
  */
 import { renderPdf } from '@formancy/report-render-pdf/browser'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
@@ -81,13 +90,8 @@ export async function preview(
   { maxPages = PREVIEW_PAGE_LIMIT }: { readonly maxPages?: number } = {},
 ): Promise<PreviewOutcome> {
   const { report, starter, mode, images, creationDate, locale } = request
-  const resolved = resolveReport(report, starter.data, {
-    mode,
-    parameters: starter.parameters,
-    images,
-    creationDate,
-    ...(locale === undefined ? {} : { locale }),
-  })
+  const options = { mode, parameters: starter.parameters, images, creationDate, ...(locale === undefined ? {} : { locale }) }
+  const resolved = resolveReport(report, starter.data, options)
   if (!resolved.ok) return { kind: 'refused', errors: resolved.errors }
   let pdf: Uint8Array
   try {
@@ -97,8 +101,18 @@ export async function preview(
     return { kind: 'not-drawn', refusal: notDrawn(error) }
   }
   const { document, manifest, warnings } = resolved
-  return { kind: 'printed', pdf, xml: document.eInvoice?.xml, word: await wordFile(document), manifest, warnings }
+  // An e-invoice's Word file is its copy's, resolved from the same request; any other document's is its own.
+  const copy = document.eInvoice === undefined ? resolved : resolveReport(report, starter.data, { ...options, eInvoice: 'copy' })
+  const word: WordFile = copy.ok ? await wordFile(copy.document) : { kind: 'refused', refusal: noCopy(copy.errors) }
+  return { kind: 'printed', pdf, xml: document.eInvoice?.xml, word, manifest, warnings }
 }
+
+/** Why an e-invoice has no copy to write a Word file of, in the runtime's own sentences: a refusal of the Word file's alone, about the e-invoice. */
+const noCopy = (errors: readonly RuntimeError[]): NotDrawn => ({
+  code: 'unsupported',
+  message: errors.map((error) => error.message).join('; '),
+  subject: 'eInvoice',
+})
 
 const notDrawn = (refusal: RenderRefusal): NotDrawn => ({ code: refusal.code, message: refusal.message, subject: refusal.subject })
 

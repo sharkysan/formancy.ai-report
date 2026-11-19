@@ -168,7 +168,7 @@ async function show(user: User, framework: Framework): Promise<void> {
  * writer refuses, a note at one it writes, or the file of another render
  * fails here.
  */
-async function printed(id: string, mode: 'preview' | 'final', status: string, word: 'written' | 'refused' = wordOf(id)): Promise<void> {
+async function printed(id: string, mode: 'preview' | 'final', status: string, word: 'written' | 'refused' = wordOf(id, mode)): Promise<void> {
   await screen.findByText(status)
   const renders = seen.outcomes.flatMap((each) => (each.id === id && each.mode === mode && each.outcome.kind === 'printed' ? [each.outcome] : []))
   await waitFor(() => expect(renders.map((render) => render.pdf)).toContain(seen.shown.at(-1)))
@@ -206,9 +206,10 @@ async function printed(id: string, mode: 'preview' | 'final', status: string, wo
  * invoice with its EPC QR code (0074), the sales report with its two
  * charts (0076), and the invoice and the payment reminder, whose
  * QR-bill's slip is the file's last page (0075), among them, with the
- * blank report as it opens. The others carry what belongs to their PDF
- * -- an e-invoice or its preview's label -- and the Preview says so
- * where the link would be.
+ * blank report as it opens. The others are e-invoices: a final render's
+ * Word file is its copy's, labelled on every page (0077), and a
+ * preview's is refused for its label, which the Preview says where the
+ * link would be.
  */
 const WRITTEN_AS_WORD: ReadonlySet<string> = new Set([
   'service-inspection',
@@ -224,7 +225,7 @@ const WRITTEN_AS_WORD: ReadonlySet<string> = new Set([
   'blank',
 ])
 
-const wordOf = (id: string): 'written' | 'refused' => (WRITTEN_AS_WORD.has(id) ? 'written' : 'refused')
+const wordOf = (id: string, mode: 'preview' | 'final'): 'written' | 'refused' => (WRITTEN_AS_WORD.has(id) || mode === 'final' ? 'written' : 'refused')
 
 /**
  * What the Preview says once a starter's preview has printed: printed, and
