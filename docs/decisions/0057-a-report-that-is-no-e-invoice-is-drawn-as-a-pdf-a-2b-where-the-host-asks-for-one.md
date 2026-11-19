@@ -14,7 +14,7 @@
   [0038](0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md),
   whose copy is refused as a PDF/A-2b, and
   [0014](0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
-  whose release report judges a third format
+  whose release report judges a third format; extended by [0077](0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md), whose copy of an e-invoice `pdfa-check.ts` refuses as a PDF/A-2b beside a preview
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
 - **Verified by:** each case below was watched failing before the code

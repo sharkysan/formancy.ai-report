@@ -544,6 +544,30 @@ where a baseline stands, or that a banking app reads the code from the
 paper. Nobody had opened a file with a slip in Word when 0075 was
 written.
 
+**A copy of an e-invoice in a Word file, on every header.** A report
+that carries an e-invoice is written from its copy, and the copy is
+proved on the headers the file states
+([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)), extending 0068 and 0003.
+The runtime's suite holds the copy itself: the label of its kind in the
+render's language at the top of each header, no XML, and each way the
+option is refused. The corpus's `verifyDocx` then holds the file: the
+invoice's lines and totals by the expectation its PDF is held to, as any
+report's, and every header -- the page header, page 1's own, and a
+slip's page's, which holds nothing else -- to opening with the label
+alone in its paragraph, at its size, weight and colour. That check is
+proved on files typed out by hand, which pass as they stand and fail
+with the label taken out, moved, set among other words or printed
+otherwise. The writer's suite writes the copy of every e-invoice sample
+and holds that no part of the file holds the XML's root element and
+that every part is one a report's file has; the corpus's reader already
+refuses a part no relationship reaches and a relationship that leads
+outside the package. `against-pdf.test.ts` holds the label and the body
+to the PDF drawn of the same copy. What none of it shows is that Word
+prints a header on every page, or what a person does to the file
+afterwards: a copy whose label was deleted, or whose total was typed
+over, is a Word file like any other. Nobody had opened a copy in Word
+when 0077 was written.
+
 What it does not show is Word. That Word opens the file, repeats the
 marked row, keeps the marked ones, draws the SVG, puts page 1's header
 where the file says and works both fields out is held by no test, and no
@@ -690,8 +714,8 @@ later releases and say why, and the legal gate waits for a lawyer
   reader of the format -- LibreOffice, a previewer, a converter -- was
   tried. The files were validated against the schema once, by hand, and
   the starters' and the fixtures' files opened in Word once, by hand,
-  those with a code (0074), a chart (0076) or a QR-bill's slip (0075)
-  not yet.
+  those with a code (0074), a chart (0076), a QR-bill's slip (0075) or
+  a copy's label (0077) not yet.
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **No phone, no bank, no paper.** ZXing decodes every code a test prints,

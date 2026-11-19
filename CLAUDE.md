@@ -326,7 +326,8 @@ as zlib does, alone. `check.ts` refuses before a byte is written, once
 date and the title, what belongs to the PDF of the document itself, the
 page, then each region's blocks in document order, the pictures'
 bytes, and a QR-bill's payment part last. It refuses what belongs to the PDF (`pdf-only.ts`:
-an e-invoice and a preview the runtime labelled);
+the document that carries an e-invoice, which is written from its copy
+instead, and a preview the runtime labelled);
 what nobody has seen Word print as the PDF
 does (a JPEG its Exif block turns, by report-spec's
 `JpegHeader.orientation`, or of four components, in `assets.ts`, which
@@ -452,6 +453,24 @@ around it, `readSlipCode` reads a file's slip's code for a test,
 `docx/testing/hand-slip.ts` is the file typed out by hand those are
 proved on, and `fixtures/bills.ts` the bills both engines' tests draw
 ([0075](docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
+A report that carries an e-invoice is written into a Word file as its
+copy, never as the invoice: the runtime's `resolveReport` takes
+`eInvoice: 'copy'` and resolves a final render whose every header opens
+with the copy's label, in the render's language, and which carries no
+XML (`e-invoice-copy.ts`: `E_INVOICE_COPY_LABELS` by kind and language,
+`eInvoiceCopyParagraph`, frozen, and `readCopyLabel`, by which an engine
+knows a copy; `page-label.ts` is the paragraph every label is), refused
+as `no-e-invoice-copy` of a preview, in a language no label is written
+in, and as any other value; the writer's `copy.ts` holds every header to
+that label and decides no word of it, `package.ts` writes it once more
+as the header of a slip's page, 5 mm down and in (`COPY_LABEL_INSET`),
+and `pdf-only.ts` still refuses the document that carries the XML, in a
+sentence that says to ask for the copy; the renderer's `pdfa-check.ts`
+refuses a copy as a PDF/A-2b; the corpus's `check-docx-copy.ts` holds
+every header the file states to the label, a slip's page's among them;
+and the Studio's `preview/pipeline.ts` resolves an e-invoice's final
+render once more as the copy for Download Word alone
+([0077](docs/decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
 `@formancy/report-documents` is the one reader of PDFs, beside report-spec,
 which holds no PDF engine, and nothing calls it yet: `readDocument`, in
 `read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
@@ -792,8 +811,13 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
   reference: its words, each value's digits as a string and its axis,
   held to the block (`packages/report-corpus/src/check-docx-charts.ts`,
   [0076](docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
+  A copy of an e-invoice in one is proved on every header the file
+  states, each of which opens with the copy's label
+  (`packages/report-corpus/src/check-docx-copy.ts`,
+  [0077](docs/decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
   That is what the file says, never what Word does with it: lines, pages,
-  whether a marked row repeats, and where a chart's words stand and what
+  whether a marked row repeats, whether a header prints on every page,
+  and where a chart's words stand and what
   its value axis says are Word's, no schema judges the file
   in CI, and no gate opens one in Word. A claim says which it rests on.
 - Never silently drop, clip or truncate content. A report that cannot fit says
@@ -916,7 +940,9 @@ What holds this section:
   Word file as its Download Word gives it, read whole by the corpus's
   `readDocx`, held to the document resolved under Node and byte for byte
   the file the writer writes of it there, or the note of why the writer
-  refused it, and the Word file of an edit holding the edit
+  refused it, an e-invoice's final render's the file of its copy,
+  resolved under Node as the page resolves it (0077), and the Word file
+  of an edit holding the edit
   (`gate-word.mjs`, 0068), a pane and the
   Preview hidden and shown again,
   the Preview beside the builder where the window has room for it and
@@ -1241,9 +1267,11 @@ Locally, run the same commands for what you changed.
   quotation with its chart, in `chart.ts` (0058), and writes the
   quotation as a Word file, in `docx.ts`, its parts read with Node alone
   (0068), the quotation with a QR-bill, its slip the file's last
-  section, and refused in a currency SIX does not allow (0075), and the quotation
+  section, and refused in a currency SIX does not allow (0075), the quotation
   with its chart, its chart a part of the runtime's digits and no
-  workbook beside it (0076);
+  workbook beside it (0076), and the e-invoice's copy, its page header
+  opening with the runtime's label and no part holding the XML, the
+  invoice itself refused (0077);
   `server.ts`, the server made in its host's process and asked over a
   socket, a draft saved through the packed client, read back and a stale
   save refused `draft-changed`;

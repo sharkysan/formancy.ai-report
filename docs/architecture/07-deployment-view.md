@@ -321,9 +321,13 @@ serve the Studio under the same function of their own address
   rows, where 0068 measures it and says why V8 takes one amount or
   another for one file. A report of more than
   70,000 paragraphs, a table's cell being one, is refused for its size.
-  A report that is an invoice in law has no
-  Word file, and neither has a labelled preview: each is
-  refused, to be printed as a PDF. A report paid by a QR-bill has its
+  A labelled preview has no Word file, and neither has the document
+  that is an invoice in law: each is refused, to be printed as a PDF. A
+  host whose report carries an e-invoice resolves it once more as its
+  copy for the Word file, which is labelled on every page, in one of six
+  languages or refused, and embeds no XML; what a person then changes in
+  it is tied to the invoice by nothing
+  ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)). A report paid by a QR-bill has its
   slip on a page of its own at the end of the file, where the PDF prints
   it at the foot of the last page, so the file is a page longer and its
   page count says so; the slip is named in Arial, with Liberation Sans as

@@ -37,7 +37,9 @@ The pieces, each a package:
   [0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md));
 - a **Word writer** that writes the same document as a Word file a person
   can go on writing in, its lines and pages Word's, a QR-bill's slip on a
-  page of the file's own ([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)), and refuses what
+  page of the file's own ([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)), a report that carries an e-invoice as its copy,
+  labelled on every page as not the invoice
+  ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)), and refuses what
   belongs to the report's PDF
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md));
 - a **provider** that reads a report's data from Formancy Data 0.1.0,

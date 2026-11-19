@@ -93,8 +93,11 @@ follow from that:
   artefact or an API response.
 - **Silent wrong output**: a production PDF or Word file that drops rows,
   truncates content or rounds a total without saying so, a Word file
-  written without a QR-bill's slip or an e-invoice its report holds,
-  which the writer refuses, a Word file whose QR code or EPC QR code
+  written without a QR-bill's slip its report holds, a Word file of a
+  report that carries an e-invoice which does not say at the top of
+  every page, a slip's page among them, that it is a copy and not the
+  invoice, or which embeds the invoice's XML or anything else that is
+  not the report's own text and pictures (0077), a Word file whose QR code or EPC QR code
   scans to anything but what its report's PDF scans to (0074), and one
   whose chart states another number or another word than its report's,
   or leaves one out (0076) -- an integrity failure, and in scope. Where
@@ -102,7 +105,11 @@ follow from that:
   layout, which 0068 states, and not a finding; nor is where Word puts a
   chart's words, what it writes on a chart's value axis from the numbers
   the file states, or that it draws a bar from the double nearest a
-  number of many digits, which 0076 states.
+  number of many digits, which 0076 states. Nor is a copy of an
+  e-invoice whose label or whose figures a person changed in Word: a
+  Word file is one a person changes, the copy says so on every page as
+  it leaves the writer, and the invoice is the PDF or the XML a host
+  kept, which 0077 states.
 
 Nothing in the packages is meant to fetch a URL but the two clients, each
 through what the host gives it: the Data provider, through the Data client

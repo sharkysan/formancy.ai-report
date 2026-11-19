@@ -190,7 +190,9 @@ const french = resolveReport(report, data, { mode: 'final', creationDate: '2026-
 
 The runtime's own words -- a preview's label, an XRechnung copy's label and
 paragraph, a boolean's `true` and `false` -- are English in every
-language. A translation's locale the engine's `Intl` cannot write is
+language. The one exception is the label of a copy of an e-invoice, which
+is written in the language the render prints in, or refused
+([0077](../../docs/decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)). A translation's locale the engine's `Intl` cannot write is
 refused as `unsupported-locale`, at the translation that declares it.
 
 ## Several tables
@@ -430,6 +432,29 @@ if (resolution.ok && resolution.document.eInvoice?.kind === 'xrechnung') send(re
   reference so that a parser gives it back; a character XML 1.0 cannot hold
   is refused where it is read. The same report and data are the same
   bytes.
+- **A copy, where a host asks for one**
+  ([0077](../../docs/decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
+  `resolveReport(report, data, { mode: 'final', eInvoice: 'copy' })`
+  resolves the same final render as its copy: the page header, and page
+  1's own where the report has one, each open with the copy's label, the
+  manifest says `eInvoice: 'copy'`, and the document carries no
+  `eInvoice`, so nothing can embed or send an invoice from it. It is
+  what a Word file is written of. The terms are held and the XML written
+  as for the invoice, then dropped, so a copy is refused wherever the
+  invoice is. The label says that the page is a copy, what the invoice
+  is -- the PDF that embeds its XML, of a Factur-X, or its XML, of an
+  XRechnung, whose copy carries this label in the place of
+  `XRECHNUNG_COPY_LABEL` -- and that this document is not it, in the
+  language of the render's locale: `E_INVOICE_COPY_LABELS`, written in
+  `E_INVOICE_COPY_LANGUAGES`, German, English, Spanish, French, Italian
+  and Dutch, four of which no native speaker has read.
+  `eInvoiceCopyParagraph(kind, locale)` is the paragraph as the runtime
+  writes it, frozen, and `readCopyLabel(header)` says which label a
+  header opens with and whether it stands as written, which is how an
+  engine knows a copy. Refused, `no-e-invoice-copy`: a copy of a preview,
+  which writes no XML to be a copy of; a copy in a language no label is
+  written in, at the locale; and any other value of the option. Of a
+  report that carries no e-invoice the option says nothing.
 - **A preview is not the invoice.** It prints the totals of what it has,
   takes a term it has no value for as one it lacks and holds what the data
   does give to the rules; it writes no XML, warns `e-invoice-preview`, and

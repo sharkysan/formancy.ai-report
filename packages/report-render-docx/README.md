@@ -13,8 +13,10 @@ how it writes a QR code and an EPC QR code
 [0074](../../docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md),
 how it writes a chart
 [0076](../../docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md),
-and how it writes a QR-bill's slip
-[0075](../../docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md).
+how it writes a QR-bill's slip
+[0075](../../docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md),
+and how it writes a report that carries an e-invoice
+[0077](../../docs/decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md).
 No framework, no Node, no DOM and no network: ES2023's library and no
 `@types/node`.
 
@@ -29,7 +31,9 @@ in Word when that record was written, and it says so; nor one with a
 chart, which it writes since 0076 as Word's own chart, where everything
 Word lays out -- where a word stands, what the value axis says -- is
 unseen; nor one with a QR-bill's slip, which it writes since 0075 on a
-page of its own, where what Word prints of the page is unseen.
+page of its own, where what Word prints of the page is unseen; nor a
+copy of an e-invoice, which it writes since 0077, where that Word prints
+the label on every page is unseen.
 
 ## Write a report as a Word file
 
@@ -156,7 +160,8 @@ Each as a `RenderRefusal`, whole, naming what it is about:
 
 | What | Code |
 |---|---|
-| An e-invoice of either kind and a preview the runtime labelled: each belongs to the report's PDF | `unsupported` |
+| A document that carries an e-invoice of either kind, which is the invoice and belongs to its PDF: a Word file is written of its copy, and the sentence says how to ask for it. And a preview the runtime labelled | `unsupported` |
+| A document labelled as a copy of an e-invoice otherwise than on every header: the label printed otherwise than the runtime writes it, in white or at one point; page 1's own header without it, or with another; a label on page 1's own header alone | `unsupported` |
 | A QR-bill no engine draws, in the words the PDF renderer refuses it in: a kind nobody knows, a page that is not A4 upright, text that is not text, an amount or a currency SIX does not print, more lines than a slip prints; and a character SIX does not allow a bill, which has no width to show its line to fit by | `unsupported` |
 | And of a QR-bill: information taller than its section, in the PDF renderer's words, a heading, a currency or an amount wider than its place on one line, a payload past SIX's 997 characters, and a top margin that reaches into the slip | `content-too-large` |
 | A chart no engine prints, by the PDF renderer's code, naming the chart: in a page region, of a kind or a size no report knows, past the runtime's bounds, with parts that do not match, a word that is no text a chart prints, a tick's among them, or numbers that are no axis and no shares | `unsupported`, and `content-too-large` past `MAX_CHART_CATEGORIES` |
@@ -170,8 +175,24 @@ Each as a `RenderRefusal`, whole, naming what it is about:
 | A picture, a chart, a rectangle or fixed columns wider than where they stand; a picture, a code, a chart, a rectangle or a spacer taller than the printable area; more than `MAX_DOCX_CODES` codes, 64, or codes whose symbols hold more than `MAX_DOCX_CODE_MODULES` modules between them, what sixteen of the largest symbol hold; more than `MAX_DOCX_CHARTS` charts, 64, charts of more than `MAX_DOCX_CHART_POINTS` points between them, 25,600, what sixteen of the largest chart hold, or a chart's number written in more than `MAX_DOCX_CHART_DIGITS` characters, 330; more than `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one and a rectangle or a section's frame two; `MAX_DOCX_CHARACTERS` characters of text, with what a font's family is written longer than `MAX_DOCX_FAMILY_LENGTH` characters in every run and paragraph; `MAX_DOCX_RUNS` runs, a page field being three, a cell one and each line ending in a text one more; `MAX_DOCX_PICTURES` pictures, each asset counted once, `MAX_DOCX_MEDIA_BYTES` of them as they are stored, or `MAX_DOCX_IMAGE_DATA` of image data, a PNG's scanlines as its header promises them and a JPEG's bytes, which is what the PDF renderer holds a render to | `content-too-large` |
 | Bytes that are not the picture or the font they are declared as: a PNG whose image data is not one whole zlib stream of the scanlines its header promises, as zlib reads one, among them; an SVG that is not the drawing report-spec's `cleanSvg` writes; and a font whose family is more than `MAX_DOCX_FAMILY_LENGTH` characters, 31, which is what Word reads of a font's name | `invalid-asset` |
 
-So a report that is an invoice in law has no Word file, and neither has
-a preview of incomplete data: print those as PDFs. A report paid by a
+So a preview of incomplete data has no Word file, and neither has the
+document that is an invoice in law: print those as PDFs. A report that
+carries an e-invoice has one all the same, written of its copy:
+
+```ts
+const copy = resolveReport(invoice, data, { mode: 'final', eInvoice: 'copy', creationDate: CREATED })
+if (copy.ok) renderDocx(copy.document) // the invoice's page, labelled on every page as a copy that is not the invoice
+```
+
+The runtime labels the copy, in the report's language, at the top of the
+page header and of page 1's own, and hands it on with no XML; the writer
+holds every header to that label and writes it once more as the header
+of a QR-bill's slip's page, which is a section of the file's own. The
+file embeds nothing: the e-invoice is still the Factur-X PDF/A-3b, or
+the XRechnung's XML, from the render without the option. A person may
+change a copy, its label and its totals among it, and nothing ties it to
+the XML afterwards: that is the cost, and why every page says what it
+is. A report paid by a
 QR-bill has one, its slip on a page of its own at the end. A chart is in the file, as Word's own chart: its data in the
 file's own part and no workbook, so "Edit Data" has nothing to open; its
 values the report's digits and its words the runtime's, but the value

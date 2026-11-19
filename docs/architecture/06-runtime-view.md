@@ -1357,7 +1357,15 @@ than its place or information taller than its section refuses the
 bill; and the slip is written as the file's last section, each line and
 each white of an exact height, so that each section stands where SIX
 puts it, and no row of an exact height, so that Word cuts nothing
-([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)). The writer's `refusals.test.ts` holds that order on a
+([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)). A report that carries an e-invoice is
+resolved twice by its host: once as the invoice, whose document carries
+the XML and is drawn as its PDF, and once with `eInvoice: 'copy'`, whose
+document opens every header with the copy's label, carries no XML, and
+is what the writer is handed. The writer refuses the first for its
+e-invoice; of the second it reads the label before any block is walked,
+refuses a header that does not open with it as written, and writes it
+once more as the header of a slip's page
+([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)). The writer's `refusals.test.ts` holds that order on a
 document wrong in every one of those places, put right a place at a time,
 and the corpus's `wordRefusal` derives from a document on its own what
 the writer must refuse of what belongs to the PDF. What belongs to the

@@ -68,13 +68,17 @@ pnpm test:e2e:install
 #    the sales report, that each chart is drawn in its box, its bars and
 #    its slices where its numbers put them, with its title, its labels
 #    and its legend, what its value axis says, and that no word lies over
-#    another (0076). Say
+#    another (0076); and, with Final on at each e-invoice starter, that
+#    the label of a copy is the first line at the top of every page, red
+#    and bold, page 1 included, and that Word says nothing of links or
+#    embedded content when it opens the file (0077). Say
 #    what was seen, in which Word and on which day, in record 0068's "Seen,
-#    once, by hand", of a code in record 0074's and of a chart in record
-#    0076's, then
+#    once, by hand", of a code in record 0074's, of a chart in record
+#    0076's and of a copy in record 0077's, then
 #    node scripts/release-report/limitations.mjs --stamp 0068
 #    node scripts/release-report/limitations.mjs --stamp 0074
 #    node scripts/release-report/limitations.mjs --stamp 0076
+#    node scripts/release-report/limitations.mjs --stamp 0077
 
 # 4. Get the release commit onto main, through a pull request like any other.
 #    From the merge on, the pages at formancy.ai/report/ name the release,

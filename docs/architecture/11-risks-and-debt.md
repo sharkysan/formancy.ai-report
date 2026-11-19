@@ -294,6 +294,21 @@ line down the slip bears no scissors, and the slip's page counts in the
 report's page count
 ([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
 
+### A Word copy of an e-invoice may be changed, and then disagrees with its XML
+
+A report that carries an e-invoice is written as a Word file from its
+copy, which says at the top of every page that it is a copy and not the
+invoice. The label is a paragraph, and the totals are text: a person
+deletes the one and types over the other, and nothing in the file is
+tied to the XML a host sent. That is accepted, not fixed: a Word file is
+one a person changes, the invoice is the PDF or the XML, and what the
+writer can hold is that the file says what it is as it leaves it. The
+label is written in six languages, four of which no native speaker has
+read, and a report in any other has no Word file while it carries an
+e-invoice. A preview's label and an XRechnung's PDF's are still English.
+And nobody has seen Word print the label on every page
+([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
+
 ### An SVG logo costs every reader, and some files are refused
 
 Every recipient's viewer, and the Studio's Preview on every edit, pays to
