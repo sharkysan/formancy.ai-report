@@ -317,6 +317,97 @@ describe('readDocx refuses a chart', () => {
       () => written(LINE_CHART, '<c:axId val="1"/><c:axId val="2"/></c:lineChart>', '<c:axId val="1"/><c:axId val="3"/></c:lineChart>'),
       /the chart is drawn on other axes than its two/,
     ],
+    [
+      'whose bars have a line around them',
+      () =>
+        written(
+          BAR_CHART,
+          '<c:tx><c:v>Plan</c:v></c:tx><c:spPr><a:solidFill><a:srgbClr val="1F77B4"/></a:solidFill><a:ln><a:noFill/></a:ln>',
+          '<c:tx><c:v>Plan</c:v></c:tx><c:spPr><a:solidFill><a:srgbClr val="1F77B4"/></a:solidFill><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln>',
+        ),
+      /series 0 is not filled in one colour with no line around it/,
+    ],
+    [
+      'painted in a colour that is no six hex digits',
+      () =>
+        written(PIE_CHART, '<c:idx val="1"/><c:spPr><a:solidFill><a:srgbClr val="D95F02"/>', '<c:idx val="1"/><c:spPr><a:solidFill><a:srgbClr val="orange"/>'),
+      /point 1 of series 0 names the colour 'orange', which is not six hex digits/,
+    ],
+    [
+      'with more categories than values',
+      () => written(LINE_CHART, '<c:cat><c:strLit><c:ptCount val="3"/>', '<c:cat><c:strLit><c:ptCount val="4"/>'),
+      /series 0 has 4 categories for 3 values/,
+    ],
+    [
+      'whose count of points is no number',
+      () => written(LINE_CHART, '<c:cat><c:strLit><c:ptCount val="3"/>', '<c:cat><c:strLit><c:ptCount val="three"/>'),
+      /strLit states ptCount as 'three', which is no whole number/,
+    ],
+    [
+      'a slice of which is painted twice',
+      () => written(PIE_CHART, '<c:dPt><c:idx val="2"/>', '<c:dPt><c:idx val="1"/>'),
+      /series 0 paints a point twice, or one past its count/,
+    ],
+    [
+      'a slice of which is left for Word to paint',
+      () =>
+        written(PIE_CHART, '<c:dPt><c:idx val="2"/><c:spPr><a:solidFill><a:srgbClr val="1B9E77"/></a:solidFill><a:ln><a:noFill/></a:ln></c:spPr></c:dPt>', ''),
+      /series 0 is a pie's and does not paint each of its points, and only them/,
+    ],
+    [
+      'without its value axis',
+      () => written(LINE_CHART, /<c:valAx>.*<\/c:valAx>/.exec(handChartParts().get(LINE_CHART) as string)![0], ''),
+      /a bar or a line chart without its two axes/,
+    ],
+    ['whose title holds no text', () => written(PIE_CHART, '<a:t>Shares</a:t>', ''), /the title holds no text/],
+    ['a word of which states no size', () => written(PIE_CHART, '<a:rPr sz="800" b="1" i="0">', '<a:rPr b="1" i="0">'), /the title states no sz/],
+    [
+      'a word of which states its weight in a word',
+      () => written(PIE_CHART, '<a:rPr sz="800" b="1" i="0">', '<a:rPr sz="800" b="true" i="0">'),
+      /the title states its weight or its slant as neither 0 nor 1/,
+    ],
+    ['whose line is filled', () => written(LINE_CHART, '<c:spPr><a:ln w="19050">', '<c:spPr><a:noFill/><a:ln w="19050">'), /series 0 is a line with a fill/],
+    [
+      'whose line is not drawn',
+      () =>
+        written(
+          LINE_CHART,
+          '<c:spPr><a:ln w="19050"><a:solidFill><a:srgbClr val="1B9E77"/></a:solidFill></a:ln></c:spPr><c:marker>',
+          '<c:spPr><a:ln><a:noFill/></a:ln></c:spPr><c:marker>',
+        ),
+      /series 0 is a line that is not drawn/,
+    ],
+    [
+      'whose one series is numbered otherwise than by its place',
+      () => written(LINE_CHART, '<c:ser><c:idx val="0"/>', '<c:ser><c:idx val="1"/>'),
+      /ser states idx as '1', where a report's chart states '0'/,
+    ],
+    [
+      'a series of which holds no values',
+      () => written(LINE_CHART, /<c:val>.*<\/c:val>/.exec(handChartParts().get(LINE_CHART) as string)![0], ''),
+      /series 0 holds no literal data/,
+    ],
+    [
+      'whose category axis states a range',
+      () =>
+        written(
+          LINE_CHART,
+          '<c:catAx><c:axId val="1"/><c:scaling><c:orientation val="minMax"/>',
+          '<c:catAx><c:axId val="1"/><c:scaling><c:orientation val="minMax"/><c:max val="2"/>',
+        ),
+      /the category axis states a range/,
+    ],
+    [
+      'whose category axis stands at the top',
+      () => written(LINE_CHART, '<c:crosses val="min"/>', '<c:crosses val="max"/>'),
+      /the category axis crosses the value axis at 'max'/,
+    ],
+    [
+      'whose outline is both drawn and not',
+      () => written(PIE_CHART, '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>', '<c:spPr><a:noFill/><a:ln w="9525"><a:noFill/></a:ln></c:spPr>'),
+      /the chart has a line both drawn and not/,
+    ],
+    ['that states a choice and no value for it', () => written(PIE_CHART, '<c:firstSliceAng val="0"/>', '<c:firstSliceAng/>'), /firstSliceAng states no value/],
   ])('%s', (_name, parts, message) => {
     expect(() => readDocx(handDocx(parts()))).toThrow(message)
   })

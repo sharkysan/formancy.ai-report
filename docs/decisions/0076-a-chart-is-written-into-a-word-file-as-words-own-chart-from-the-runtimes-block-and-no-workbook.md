@@ -29,7 +29,17 @@
     axis, points on the gridlines, a line on the value axis, a series
     that labels its values itself, a label that is a share Word works
     out, words that name three families, other axes than the chart's
-    two, and a cell whose words stand at its foot.
+    two, and a cell whose words stand at its foot; and bars with a line
+    around them, a colour that is no six hex digits, more categories
+    than values, a count that is no number, a slice painted twice and
+    one left to Word, a chart without its value axis, a title of no
+    text, a word that states no size or its weight in a word, a line
+    with a fill and one not drawn, a series numbered otherwise than by
+    its place or holding no values, a category axis with a range or at
+    the top, an outline both drawn and not, and a choice stated without
+    its value. Of the reader's branches, twelve in a hundred are reached
+    by no case, each the refusal of an element the vocabulary lets stand
+    empty.
   - **The corpus's check.** The same suite holds `verifyDocx` to passing
     that file, and to failing on it with one thing of a chart taken out
     or written otherwise, a case each: another size, room around it,
