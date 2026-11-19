@@ -88,7 +88,7 @@ on it unchanged
 | The runtime, on data | `report-runtime/src/lower-payment-part.test.ts`, `qr-bill.test.ts` | `report-runtime/src/lower-epc-qr-code.test.ts` |
 | The renderer, on the PDF it produced: the code decoded from the pixels, the text read back | `report-render-pdf/src/qr-bill.test.ts`, `qr-bill-pages.test.ts` | `report-render-pdf/src/epc-qr-code.test.ts`, which also reads the caption, the frame and the quiet zone from the PDF's text, its drawing and its pixels |
 | The symbol and what refuses it, decided once for both engines ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)) | `report-runtime/src/qr-symbol.test.ts`, its Swiss QR Code's cases | `report-runtime/src/epc-symbol.test.ts` |
-| The Word writer, on the file it wrote: the code decoded from its picture's pixels | Refused, with the slip: `report-render-docx/src/refusals.test.ts` | `report-render-docx/src/codes.test.ts`, with Austria's frame as a table states it, and `against-pdf.test.ts`, the file's code held to the PDF's |
+| The Word writer, on the file it wrote: the code decoded from its picture's pixels | `report-render-docx/src/slip.test.ts`, the slip on its page as the file states it and its Swiss QR Code decoded with the white the slip leaves around it, and `slip-against-pdf.test.ts`, the file's lines and code held to the PDF's ([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)) | `report-render-docx/src/codes.test.ts`, with Austria's frame as a table states it, and `against-pdf.test.ts`, the file's code held to the PDF's |
 | A starter, its code decoded by `readCodes` and asking for the total the page prints | The invoice, in `report-render-pdf/src/starters.test.ts` | The euro invoice, in the same file, with the details the code holds read beside it; `report-corpus/src/starters/starters.test.ts` holds its payload to a total recomputed in BigInt; and its six samples, in `report-render-pdf/src/euro-samples.test.ts`, each in its locale |
 | The editing core's commands and the warning on SIX's examples | `report-core/src/commands/payment-part.test.ts`, `registry.test.ts`, which reads the commands that may change the bill and the e-invoice from the registry, `replaceDocument` among them, and runs the bill's own on an e-invoice that takes one, and `diagnostics/example-payment-part.test.ts` ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)) | The bill's commands keep every EPC QR code; an account is an `updateComponent` |
 | The builders | `report-builder-core/src/payment-part.test.ts`, with an IBAN of the other kind taking the reference with it, and `editor.test.ts`, a part the editor has none of refused; the scenarios "select the QR-bill on the canvas, and edit it field by field", "add a QR-bill to a report without one, then delete it and bring it back" and "add a QR-bill and make it pay a QR-IBAN with a QR reference", run by the core, React and Angular; the Studio's `parity.test.tsx`, `journey.test.tsx` and `studio.test.tsx` with the bill selected ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)) | `report-builder-core/src/epc-qr-code.test.ts`, and the scenario "insert an EPC payment code, and type its account", run by the core, React and Angular |
@@ -515,6 +515,35 @@ where it puts a word, whether two meet, how long a bar is, and what it
 writes on the value axis. Nobody had opened a file with a chart in Word
 when 0076 was written.
 
+**A QR-bill's slip in a Word file, on its page.** The slip is the file's
+last section, and is proved on what the file states of that page
+([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md),
+extending 0068 and 0003). The corpus's `readDocx` reads the two sections
+apart and refuses a section ended anywhere else. `verifyDocx` works out
+where each line stands from the exact heights the file states above it,
+and holds each to SIX's millimetres, written out in the corpus from the
+guidelines and the style guide and never read from the writer: the page,
+the two lines the slip is cut along, each heading and value at its size
+and weight, the blank fields' corner marks, and that no row that holds
+text is of an exact height, which would cut a line. The Swiss QR Code is
+held on its picture: whole pixels a module from its very corner, the
+Swiss cross where SIX's millimetres put each part of it, and what ZXing
+reads in the pixels with the white the slip leaves around them, the
+payload byte for byte. Reader and check are proved on a file typed out
+by hand, which passes as it stands and fails with one thing written
+otherwise; the corner marks' cases are the writer's own, on what was
+read back of its file. The corpus holds no face's widths, so that a
+line fits its place is the writer's suite's to show: by the advances of
+the renderer's own font files, read by the test's own walk of their
+tables. `slip-against-pdf.test.ts` holds the information's lines to the
+lines PDF.js reads in the PDF's slip, the code to the code ZXing reads
+on the PDF's page, and a list of bills no engine draws to the same
+refusal from both. What none of it shows is anything Word prints: that
+the slip stands at the page's foot at its size, that no line is broken,
+where a baseline stands, or that a banking app reads the code from the
+paper. Nobody had opened a file with a slip in Word when 0075 was
+written.
+
 What it does not show is Word. That Word opens the file, repeats the
 marked row, keeps the marked ones, draws the SVG, puts page 1's header
 where the file says and works both fields out is held by no test, and no
@@ -661,7 +690,8 @@ later releases and say why, and the legal gate waits for a lawyer
   reader of the format -- LibreOffice, a previewer, a converter -- was
   tried. The files were validated against the schema once, by hand, and
   the starters' and the fixtures' files opened in Word once, by hand,
-  those with a code (0074) or a chart (0076) not yet.
+  those with a code (0074), a chart (0076) or a QR-bill's slip (0075)
+  not yet.
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **No phone, no bank, no paper.** ZXing decodes every code a test prints,

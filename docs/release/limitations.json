@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:a47f2530f66d19324bc7a8284d5cb7927cda2bc0664ee51855ca6178eb36b98b",
+      "reviewed": "sha256:f74a211d8bc79210397858ad92648f081f264d3224120c8a4ba60ee4fcbe893c",
       "limitations": [
         {
           "area": "testing",
@@ -500,7 +500,7 @@
       ]
     },
     "0022": {
-      "reviewed": "sha256:2a2ea126c86620852349612230ae5cfb6d44e268d12a30786ae5984da4542bbb",
+      "reviewed": "sha256:7ba67017abafb16daed38f905a2c6b3afdfa0d308acf03ffeaef12f9310c4931",
       "limitations": [
         {
           "area": "format",
@@ -3126,11 +3126,11 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:1e4915e78ef29180f7e9acd623fb25c87adeb5086b610d9d5f993bc427c7e153",
+      "reviewed": "sha256:738ab46d058f7d7517af772eb4d22bb4117d92f7ce8de1861b418693984949d8",
       "limitations": [
         {
           "area": "rendering",
-          "says": "A report that is paid by a QR-bill or is an e-invoice of either kind is refused as a Word file, in a final render and in a preview, and so is any preview the runtime labels, so a host whose reports carry a QR-bill or an e-invoice cannot export them and prints them as PDFs; a QR code and an EPC QR code are written since 0074, and a chart since 0076.",
+          "says": "A report that is an e-invoice of either kind is refused as a Word file, in a final render and in a preview, and so is any preview the runtime labels, so a host whose reports are e-invoices cannot export them and prints them as PDFs; a QR code and an EPC QR code are written since 0074, a chart since 0076 and a QR-bill’s slip since 0075.",
           "heldBy": "packages/report-render-docx/src/starters.test.ts"
         },
         {
@@ -3271,6 +3271,55 @@
           "area": "testing",
           "says": "The corpus’s `verifyDocx` returns a promise, since ZXing reads a code’s picture, so a caller that does not wait for it holds a file to nothing; a derived expectation takes no key from a row whose first cell the report’s own words print again, and holds that row by its table alone; it takes the caption of a framed EPC QR code in a page region for a line of that region, so a report that prints the caption in its page footer and in its body cannot be held by the corpus’s checks of a PDF, which tell a page’s regions by the text of their lines; and the corpus’s check walks a code’s nodes by its own reading of the record’s table, so a row both it and the writer misread passes.",
           "heldBy": "packages/report-corpus/src/check-docx-codes.test.ts"
+        }
+      ]
+    },
+    "0075": {
+      "reviewed": "sha256:4489e043d2f3fc82a3adc3d53caf33aceacc80b13b1c983096c7aa02cef80fcb",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A QR-bill’s slip in a Word file is a page of its own at the end of the file, where the PDF prints it at the foot of the report’s last page when it fits: the file is a page longer, a page count the report prints counts the slip’s page, and that page prints neither the report’s page header nor a page number.",
+          "heldBy": "packages/report-render-docx/src/slip.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The line between the receipt and the payment part bears no scissors in a Word file, which the PDF draws: it is a cell’s border, the instruction to separate stands above the line across as in the PDF, and the slip’s row ends four points above the paper’s foot, so the line down ends 1.4 mm above the edge.",
+          "heldBy": "packages/report-corpus/src/check-docx-slip.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A Word file’s slip is named in Arial with Liberation Sans as its other name and embeds neither: a reader with neither face sets it in one of other widths, in which a line may be broken, its row grow and the sections under it stand lower or on a second page, with nothing cut and nothing saying so; that Arial’s widths are Liberation Sans’s was read once, from the Arial 7.07 of one Windows 11 machine on 19 November 2026, and no gate holds it.",
+          "heldBy": "packages/report-render-docx/src/slip-widths.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The Word writer breaks each value of a slip into its lines itself, at spaces and after hyphens, each line a paragraph of its own in the file, where the PDF’s engine breaks by Unicode’s rules with the face’s kerning: a value may break elsewhere than in the PDF, billing information wider than its line is filled line by line where the PDF prints its // on a line of its own, and a bill at the very height of a section may be refused as a Word file and printed as a PDF, or the other way round.",
+          "heldBy": "packages/report-render-docx/src/slip-against-pdf.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A bill that prints a character SIX does not allow, which no runtime resolves, is refused as a Word file, where the PDF draws what Liberation Sans draws; and a report paid by a QR-bill on another paper than A4 upright is refused as a Word file as it is as a PDF, though the slip has a page of its own there.",
+          "heldBy": "packages/report-render-docx/src/slip-against-pdf.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "Nobody had opened a Word file with a slip in Word when 0075 was written, and no test opens one: that Word prints the slip at the page’s foot at 210 by 105 mm, what it says of a page with no margin at its sides and foot, that lines of an exact height and rows of a least height stand where their heights add up to, where a baseline stands in its line, that no line is broken or cut, that no empty page follows the slip, and that a Swiss banking app reads the code from the paper, is held by nothing; the tests read the file back and ZXing reads the picture’s own pixels."
+        },
+        {
+          "area": "testing",
+          "says": "A slip’s font table entry with another name, a paragraph’s distance from the right and a section ended by a paragraph are elements the Word writer did not write before 0075: they stand where the corpus’s vocabulary, transcribed from ECMA-376’s schema, puts them, and no file with them was validated against a schema, by hand or in CI.",
+          "heldBy": "packages/report-corpus/src/docx/read-slip.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "That the PDF of a report paid by a QR-bill is the same bytes after the slip’s geometry and the bill’s rules moved to the runtime was compared once, by the SHA-256 of the invoice, its samples and the payment reminder in each language on 19 November 2026, and is held in CI only by the renderer’s tests of where each part of the slip is drawn.",
+          "heldBy": "packages/report-render-pdf/src/qr-bill.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A slip is counted with a Word file’s paragraphs, characters and runs and has no bound of its own, being one a file: the file of a bill whose every value is as long as SIX allows was written in 82 to 90 ms the first time in a process and 41 to 42 ms thereafter, on an Intel i9-10900K under Node 24.21.0 on 19 November 2026, and each engine encodes the bill’s code for itself.",
+          "heldBy": "packages/report-render-docx/src/slip.test.ts"
         }
       ]
     },

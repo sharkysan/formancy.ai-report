@@ -276,6 +276,24 @@ writer, and held together by a list of malformed charts, by code and
 subject, never by sentence
 ([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
 
+A QR-bill's slip in a Word file is laid out by the writer, to SIX's
+millimetres, and everything Word does with that layout is unseen here:
+that a page with no margin at its sides and foot prints at all and what
+Word says of it, that a line of an exact height and a row of a least
+height stand where the heights above them add up to, where a baseline
+stands in its line, and that the page after the slip stays unwritten. A
+slip that Word prints a millimetre off is one a bank's reader may
+refuse, and nothing here would say so before a person measured a print.
+The slip is named in Arial, with Liberation Sans as its other name: a
+reader with neither sets it in a face of other widths, where a line may
+break, its row grow and the sections under it move, visibly and with
+nothing cut. The widths the lines are shown to fit by are Liberation
+Sans's, held to the renderer's font by a test; that Arial's are the
+same was read once from one machine's Arial and is held by nothing. The
+line down the slip bears no scissors, and the slip's page counts in the
+report's page count
+([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
+
 ### An SVG logo costs every reader, and some files are refused
 
 Every recipient's viewer, and the Studio's Preview on every edit, pays to

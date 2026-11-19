@@ -161,6 +161,15 @@ the runtime, so each engine draws the block its own way -- ECharts'
 layout in the PDF, Word's in the file -- and what Word then draws is no
 part of the proof
 ([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
+A QR-bill's slip in that file is proved on the page the file states for
+it: each line where the exact heights above it put it, by the corpus's
+own reading of SIX's numbers, and its Swiss QR Code on its picture's
+pixels, by ZXing. Where each part of a slip stands, and what refuses a
+bill, stand in the runtime, below both engines; that a line fits its
+place is shown by the widths of the slip's face, stated in the writer
+and held to the renderer's font by a test, since the writer embeds no
+face and measures with none
+([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
 
 ## 6. Depend, never copy, and let the licence choose the dependencies
 
