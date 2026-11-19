@@ -262,13 +262,11 @@ export function writePackage(document: ResolvedDocument, checked: Checked, fonts
   })
   const files: [string, string][] = []
   const overrides: [string, string][] = []
-  /** Each chart's part, its name under `word/`: written once as the body meets it, in that order. */
-  const charts = new Map<Chart, string>()
+  /** A chart's part, its name under `word/`: one for each chart the body draws, numbered as the body meets it. */
+  let charts = 0
   const chartPart = (chart: Chart): string => {
-    const known = charts.get(chart)
-    if (known !== undefined) return known
-    const name = `charts/chart${charts.size + 1}.xml`
-    charts.set(chart, name)
+    charts += 1
+    const name = `charts/chart${charts}.xml`
     files.push([`word/${name}`, chartXml(chart, fonts)])
     overrides.push([`word/${name}`, CHART_TYPE])
     return name

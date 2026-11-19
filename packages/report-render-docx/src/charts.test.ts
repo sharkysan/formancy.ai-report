@@ -4,6 +4,7 @@ import { describe, expect, test } from 'vitest'
 import { MAX_DOCX_CHARACTERS, MAX_DOCX_CHART_DIGITS, MAX_DOCX_CHART_POINTS, MAX_DOCX_CHARTS, MAX_DOCX_PARAGRAPHS } from './limits.js'
 import { renderDocx } from './render.js'
 import { documentOf, paragraph, refusalOf, written } from './testing/support.js'
+import { decimal } from './xml.js'
 
 /**
  * Charts in a Word file (0076), proved on the file the writer produced
@@ -120,6 +121,12 @@ describe('a chart with something to draw', () => {
       ['word/charts/chart2.xml', 'pie', 'Chart 2'],
       ['word/charts/chart3.xml', 'line', 'Chart 3'],
     ])
+  })
+
+  // A block a document holds twice is drawn twice, and each drawing has a part of its own: two drawings of one part is a file nobody has seen Word open.
+  test('is a part of its own for each time the body draws it, the same block twice among them', () => {
+    const chart = bars()
+    expect(charts(chart, chart).map((frame) => frame.chart.part)).toEqual(['word/charts/chart1.xml', 'word/charts/chart2.xml'])
   })
 
   // The same document is the same file (0068): a part named by a counter that outlived the call, or a map walked in another order, would break it.
@@ -290,6 +297,13 @@ describe('a chart with something to draw', () => {
   })
 })
 
+// The checks refuse a number that is no decimal before anything is written: one that reached the part all the same is a defect, never digits Word reads otherwise.
+test('a number is written as the decimal it is, digit for digit, and nothing else is written as one', () => {
+  expect(String(decimal('-0.50'))).toBe('-0.50')
+  for (const wrong of ['1e3', '1,5', '.5', '5.', '+1', '0x10', '1 000', ''])
+    expect(() => decimal(wrong)).toThrow(/a value that is no decimal reached the writer/)
+})
+
 describe('a chart with nothing to draw', () => {
   // Word's own chart of no data is an empty plot with nowhere to say why: the box and the two words the PDF prints are what a reader needs.
   test('is its box, a cell as wide and at least as tall, with its title, bold, and its empty text in the middle, and no part', () => {
@@ -362,7 +376,15 @@ describe('a chart is refused', () => {
   })
 })
 
-describe('the charts of a file, and the points they hold between them', () => {
+/**
+ * How long a case of the bounds may take. The heaviest writes four
+ * million characters into one chart's categories, four times: 1.0
+ * seconds alone, and 6.1 under coverage beside another job, which is how
+ * CI's test job runs this suite and is past vitest's own 5 seconds:
+ * measured on 19 November 2026 on an Intel Core i9-10900K shared with
+ * other work, under Node 24.21.0. No CI runner was timed.
+ */
+describe('the charts of a file, and the points they hold between them', { timeout: TIMEOUT }, () => {
   // The bounds as they are stated and measured (`limits.ts`): one changed alone would leave the record and the README stating another.
   test('are 64 charts and 25,600 points, sixteen of the largest chart the runtime resolves', () => {
     expect([MAX_DOCX_CHARTS, MAX_DOCX_CHART_POINTS]).toEqual([64, 25_600])

@@ -59,7 +59,8 @@
     `docxCharts`: a part of its own that the body draws inline in
     exactly its box; no workbook in the file, no relationships part
     beside a chart, and no `c:externalData`, formula or reference in its
-    XML; each chart numbered as the body meets it, through columns; the
+    XML; each chart numbered as the body meets it, through columns, and
+    a block drawn twice a part each time; the
     same document the same bytes; a value of forty-two digits and one
     written `0.10` as those digits; the value axis from its lowest tick
     to its highest in their step for whole numbers, quarters, tenths,
@@ -106,8 +107,8 @@
     its own, three of the largest line chart past the PDF's and within
     the writer's, sixty-five small ones the other way round. And every
     chart of the corpus's `MALFORMED` list
-    (`fixtures/malformed-charts.ts`), thirty-nine documents, is refused
-    by both engines by the same code and subject.
+    (`fixtures/malformed-charts.ts`) is refused by both engines by the
+    same code and subject.
   - **The Studio.** `src/preview/pipeline.test.ts` names the sales
     report's Word file as written, a preview and a final render, and
     holds it by `verifyDocx`; `src/journey.test.tsx` holds its Download
@@ -126,7 +127,7 @@
     writer as 0074 left it, 58 cases of `charts.test.ts`,
     `corpus.test.ts` and `starters.test.ts` failed, each on "the chart
     … is laid out by the PDF renderer alone", and three of the
-    thirty-nine malformed charts, the ones refused as
+    thirty-nine malformed charts there then were, the ones refused as
     `content-too-large`, which that writer refused as `unsupported`; the
     corpus's `check-docx.test.ts` failed twice, on a chart that
     `wordRefusal` no longer refuses; and the writer's `corpus.test.ts`
@@ -184,7 +185,16 @@
     colour, and the colours' check then failed a case. And the
     architecture's guard, `scripts/architecture.test.mjs`, failed on a
     chart part's name written as code in the building blocks, which is
-    no path of the checkout, until it was said in words.
+    no path of the checkout, until it was said in words. Last, three
+    things the writer's coverage showed no case reached: a pie whose
+    legend names one slice of two, which became a malformed chart; a
+    block the body draws twice, which was one part for both drawings,
+    and whose case failed on that until each drawing was a part of its
+    own; and `decimal`'s own refusal of what is no decimal, whose case
+    failed with the refusal taken out. And a case of the bounds, which
+    writes four million characters four times, timed out at vitest's
+    five seconds under coverage beside another job, 6.1 seconds where it
+    takes 1.0 alone, until the bounds' cases were given a minute.
   - **Not yet opened in Word.** The files this change writes -- every
     chart fixture's and the sales report's, each beside its PDF, with a
     list of what each chart should show -- were written for the person
@@ -336,8 +346,8 @@ it refuses is what any engine refuses of the block, stated again in its
 `chart-check.ts` by the PDF renderer's codes and with the chart's id as
 the subject -- where it stands, its kind, its size, the runtime's bounds,
 its style and colours, its parts, its words, a tick's among them, and
-its numbers -- and held to the renderer by thirty-nine malformed charts
-of the corpus's `MALFORMED` list, each refused by both. And its own: a
+its numbers -- and held to the renderer by the malformed charts of the
+corpus's `MALFORMED` list, each refused by both. And its own: a
 chart taller than the printable area, and its bounds. What the PDF
 renderer refuses of what ECharts laid out -- words that would meet,
 labels too wide for their slots, bars under 3.5 pt, a plot too short --

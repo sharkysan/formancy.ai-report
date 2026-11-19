@@ -67,11 +67,9 @@ export function placesOf(value: Exact): number {
   return places
 }
 
-/** `value` as the digits of a decimal, at as many places as it needs. */
+/** `value`, which is above nothing, as the digits of a decimal, at as many places as it needs: an axis's step is written so. */
 export function digitsOf(value: Exact): string {
   const places = placesOf(value)
-  const units = value.units / 10n ** BigInt(value.scale - places)
-  const digits = (units < 0n ? -units : units).toString().padStart(places + 1, '0')
-  const whole = digits.slice(0, digits.length - places)
-  return `${units < 0n ? '-' : ''}${whole}${places === 0 ? '' : `.${digits.slice(digits.length - places)}`}`
+  const digits = (value.units / 10n ** BigInt(value.scale - places)).toString().padStart(places + 1, '0')
+  return places === 0 ? digits : `${digits.slice(0, -places)}.${digits.slice(-places)}`
 }

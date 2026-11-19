@@ -3269,7 +3269,7 @@
       ]
     },
     "0076": {
-      "reviewed": "sha256:9fe60d63656dbc699e7aac4aeebae45a907ef519417675c93ca44ff99993e401",
+      "reviewed": "sha256:9e9719ecc0cf91e78c1cecb70998ac23b45435b67be9007f60b3bbda751bdae3",
       "limitations": [
         {
           "area": "rendering",
@@ -3312,7 +3312,7 @@
         },
         {
           "area": "testing",
-          "says": "What no engine prints of a chart’s block is stated twice, in the PDF renderer’s check and in the Word writer’s, each with its own arithmetic on a number’s digits: thirty-nine malformed charts hold the two to the same code and subject, never to the same sentence, and a kind of wrong that list lacks could be refused by one engine and written by the other.",
+          "says": "What no engine prints of a chart’s block is stated twice, in the PDF renderer’s check and in the Word writer’s, each with its own arithmetic on a number’s digits: a list of malformed charts holds the two to the same code and subject, never to the same sentence, and a kind of wrong that list lacks could be refused by one engine and written by the other.",
           "heldBy": "packages/report-render-docx/src/against-pdf.test.ts"
         },
         {

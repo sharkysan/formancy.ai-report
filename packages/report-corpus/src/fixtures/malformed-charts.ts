@@ -125,6 +125,7 @@ export const MALFORMED_CHARTS: readonly MalformedChart[] = [
   }),
   body('chart-values-short', 'A series with a value too few', { ...BARS, series: [{ color: '#1f77b4', values: [value('4')] }, BARS.series[1]!] }),
   body('chart-legend-short', 'A legend that names one series of two', { ...BARS, legend: [BARS.legend[0]!] }),
+  body('chart-pie-legend-short', 'A pie whose legend names one slice of two', { ...PIE, legend: [PIE.legend[0]!] }),
   body('chart-legend-other-colour', "A legend entry in another series' colour", { ...BARS, legend: [BARS.legend[1]!, BARS.legend[0]!] }),
   body('chart-empty-with-marks', 'A chart with nothing to draw that holds a series', {
     ...NOTHING,
