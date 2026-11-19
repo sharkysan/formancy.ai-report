@@ -1,6 +1,7 @@
 import {
   BILL_EXAMPLES,
   E_INVOICE_SAMPLES,
+  INVOICE_SAMPLES,
   resolvedBill,
   verifyDocx,
   wordRefusal,
@@ -9,7 +10,7 @@ import {
   type DocxRegion,
   type Starter,
 } from '@formancy/report-corpus'
-import { E_INVOICE_COPY_LABELS, E_INVOICE_PREVIEW_LABEL, eInvoiceCopyParagraph, readCopyLabel } from '@formancy/report-runtime'
+import { E_INVOICE_COPY_LABELS, E_INVOICE_PREVIEW_LABEL, eInvoiceCopyParagraph, readCopyLabel, XRECHNUNG_COPY_PARAGRAPH } from '@formancy/report-runtime'
 import type { Block, Paragraph, ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { MAX_DOCX_CHARACTERS, MAX_DOCX_PARAGRAPHS } from './limits.js'
@@ -185,6 +186,57 @@ describe('a copy paid by a QR-bill', () => {
   }, 120_000)
 })
 
+describe('a copy the runtime resolves, with what the hand-built ones above stand for', () => {
+  const SWISS = 'CH52 0483 5012 3456 7100 0'
+
+  /**
+   * The Factur-X sample paid by a QR-bill too: its account a Swiss one wherever the report writes it, which the e-invoice, its EPC QR code
+   * and the bill all pay (0044), and the bill the invoice starter's, of no amount, debtor or reference, in euros.
+   */
+  const paidByBill = (): Starter => {
+    const sample = E_INVOICE_SAMPLES[0]!
+    const report = JSON.parse(
+      JSON.stringify(sample.report).split('DE83 0123 4567 0012 3456 78').join(SWISS).split('FMNCDEF0XXX').join('POFICHBEXXX'),
+    ) as Starter['report']
+    const { amount: _amount, debtor: _debtor, reference: _reference, ...bill } = INVOICE_SAMPLES[0]!.report.paymentPart!
+    return { ...sample, report: { ...report, paymentPart: { ...bill, account: [{ kind: 'text', text: SWISS }], currency: 'EUR' } } }
+  }
+
+  // The slip's page's label is proved above on documents made by hand; a runtime that labelled a copy's page header and resolved its bill
+  // otherwise than they assume would pass them all. The copy of an invoice paid by a QR-bill, resolved, says on the slip's page what it is.
+  test('of an e-invoice paid by a QR-bill says so on the slip’s page', async () => {
+    const document = resolved(paidByBill(), { eInvoice: 'copy' })
+    expect(document.paymentPart).toBeDefined()
+    const file = written(document)
+    expect(await verifyDocx(fixtureOf('copy-with-bill', document), file)).toEqual([])
+    expect(headersOf(file).map((header) => opening(header)?.text)).toEqual([E_INVOICE_COPY_LABELS.facturX.de, E_INVOICE_COPY_LABELS.facturX.de])
+    expect(file.slip?.header?.part).toBe('word/header3.xml')
+  }, 120_000)
+
+  // Page 1's own header (0060) is labelled by the runtime as the page header is; the writer holds the two to each other. Resolved with
+  // none and with one of the report's own, each file opens both headers with the label, and the report's own words stand below it.
+  test.each(SAMPLES.filter((starter) => starter.id === 'e-invoice' || starter.id === 'e-invoice-xrechnung').map((starter) => [starter.id, starter] as const))(
+    'of %s with a header of page 1’s own, empty or not, opens both headers with the label',
+    async (id, starter) => {
+      const words = E_INVOICE_COPY_LABELS[starter.report.eInvoice!.kind].de
+      const own = { kind: 'text', id: 'first-page', content: [{ kind: 'text', text: 'Erste Seite' }] } as const
+      for (const firstPageHeader of [[], [own]]) {
+        const report = { ...starter.report, regions: { ...starter.report.regions, firstPageHeader } } as Starter['report']
+        const document = resolved({ ...starter, report }, { eInvoice: 'copy' })
+        const file = written(document)
+        expect(await verifyDocx(fixtureOf(`${id}-first-${firstPageHeader.length}`, document), file)).toEqual([])
+        expect(file.page.titlePage).toBe(true)
+        expect(headersOf(file).map((header) => opening(header)?.text)).toEqual([words, words])
+        const texts = file.firstHeader!.blocks.flatMap((block) =>
+          block.kind === 'paragraph' ? block.runs.flatMap((run) => (run.kind === 'text' ? [run.text] : [])) : [],
+        )
+        expect(texts).toEqual(firstPageHeader.length === 0 ? [words] : [words, 'Erste Seite'])
+      }
+    },
+    120_000,
+  )
+})
+
 describe('the label of a copy’s slip’s page is counted with the file’s text', () => {
   const bill = resolvedBill(BILL_EXAMPLES.one)
   const words = (LABEL.runs[0] as { readonly text: string }).text
@@ -235,6 +287,25 @@ describe('a document labelled as a copy otherwise than on every page is refused'
     expect({ code: refusal.code, subject: refusal.subject }).toEqual({ code: 'unsupported', subject })
     expect(refusal.message).toMatch(sentence)
     expect(wordRefusal(document)).toEqual({ code: 'unsupported', subject })
+  })
+
+  // An XRechnung's final render with its XML taken off is still its PDF's copy: every page says "this PDF is not the invoice", which in a
+  // Word file is a sentence about another file, and the file would stand where the copy the runtime labels for one does. The PDF's
+  // label, on either header and in any style, is refused as what only the PDF prints, saying to ask for the copy.
+  test("an XRechnung's PDF copy with its XML taken off, labelled on either header", () => {
+    const { eInvoice: _xml, ...stripped } = resolved(XRECHNUNG_SAMPLES[0]!)
+    expect(stripped.pageHeader[0]).toEqual(XRECHNUNG_COPY_PARAGRAPH)
+    const cases: readonly (readonly [ResolvedDocument, string])[] = [
+      [stripped, 'pageHeader'],
+      [documentOf([paragraph('Rechnung')], { pageHeader: [{ ...XRECHNUNG_COPY_PARAGRAPH, style: { color: '#ffffff' } }, other] }), 'pageHeader'],
+      [documentOf([paragraph('Rechnung')], { pageHeader: [other], firstPageHeader: [{ ...XRECHNUNG_COPY_PARAGRAPH }] }), 'firstPageHeader'],
+    ]
+    for (const [document, subject] of cases) {
+      const refusal = refusalOf(document)
+      expect({ code: refusal.code, subject: refusal.subject }).toEqual({ code: 'unsupported', subject })
+      expect(refusal.message).toMatch(/XRechnung's PDF.*resolve the report with eInvoice: 'copy'/)
+      expect(wordRefusal(document)).toEqual({ code: 'unsupported', subject })
+    }
   })
 
   // The order: the e-invoice itself first, then a preview's label, then the copy's, each before any block is walked.

@@ -1,4 +1,4 @@
-import { checkSvg, E_INVOICE_PREVIEW_LABEL, imageHeader, PREVIEW_LABEL } from '@formancy/report-runtime'
+import { checkSvg, E_INVOICE_PREVIEW_LABEL, imageHeader, PREVIEW_LABEL, XRECHNUNG_COPY_LABEL } from '@formancy/report-runtime'
 import { paragraphsOf, verifyContainer } from './check-docx-blocks.js'
 import { copyProblems, copyRefusal } from './check-docx-copy.js'
 import { decodedProblems, type FoundCodes } from './check-docx-codes.js'
@@ -306,8 +306,9 @@ function shiftedProblems(where: string, expected: readonly ExpectedShiftedRun[],
  * The refusal a Word file's writer owes `document`, or undefined where it
  * owes none of these: derived from the document alone, by the corpus's
  * own reading of record 0068, in the order the writer refuses -- the
- * e-invoice, a labelled preview, a copy of an e-invoice whose headers
- * are not all labelled as the runtime labels one (0077), then the page header,
+ * e-invoice, a labelled preview, an XRechnung's PDF copy, a copy of an
+ * e-invoice whose headers are not all labelled as the runtime labels one
+ * (0077), then the page header,
  * page 1's own, the page footer and the body, each block in document
  * order, and last the pictures, in that order too, since an engine reads a
  * picture's bytes once every block has been walked. It knows what belongs
@@ -323,10 +324,16 @@ function shiftedProblems(where: string, expected: readonly ExpectedShiftedRun[],
  */
 export function wordRefusal(document: ResolvedDocument): ExpectedRefusal | undefined {
   if (document.eInvoice !== undefined) return { code: 'unsupported', subject: 'eInvoice' }
-  const label = document.pageHeader[0]
-  const run = label?.kind === 'paragraph' && label.runs.length === 1 ? label.runs[0] : undefined
-  if (run !== undefined && 'text' in run && (run.text === PREVIEW_LABEL || run.text === E_INVOICE_PREVIEW_LABEL))
-    return { code: 'unsupported', subject: 'pageHeader' }
+  const opening = (header: readonly Block[] | undefined): string | undefined => {
+    const label = header?.[0]
+    const run = label?.kind === 'paragraph' && label.runs.length === 1 ? label.runs[0] : undefined
+    return run !== undefined && 'text' in run ? run.text : undefined
+  }
+  const words = opening(document.pageHeader)
+  if (words === PREVIEW_LABEL || words === E_INVOICE_PREVIEW_LABEL) return { code: 'unsupported', subject: 'pageHeader' }
+  // An XRechnung's PDF copy, its XML taken off: labelled as a PDF on either header (0077).
+  if (words === XRECHNUNG_COPY_LABEL) return { code: 'unsupported', subject: 'pageHeader' }
+  if (opening(document.firstPageHeader) === XRECHNUNG_COPY_LABEL) return { code: 'unsupported', subject: 'firstPageHeader' }
   // A copy of an e-invoice labelled otherwise than the runtime labels one, on every header (0077).
   const copy = copyRefusal(document)
   if (copy !== undefined) return copy

@@ -1,4 +1,4 @@
-import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, RenderRefusal, type Block, type ResolvedDocument } from '@formancy/report-runtime'
+import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, RenderRefusal, XRECHNUNG_COPY_LABEL, type Block, type ResolvedDocument } from '@formancy/report-runtime'
 
 /**
  * What belongs to a report's PDF, and is refused whole in a Word file
@@ -16,7 +16,13 @@ import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, RenderRefusal, type Block, type
  * it refuses a preview as a PDF/A (0057). A copy's label is a paragraph
  * a person deletes too, and what is left is the page of a final render,
  * whose every value is the invoice's; what is left of a preview is a
- * sample that passes for the report. A payment part was refused
+ * sample that passes for the report. And an XRechnung's PDF copy, its
+ * XML taken off by a host, which says on every page, on page 1's own
+ * header too, that "this PDF" is not the invoice: in a Word file that
+ * sentence is about another file. A Factur-X's final render with its XML
+ * taken off carries no label and is written as a report like any other;
+ * a Word file is held to what the runtime resolved, and 0077 says so
+ * among its costs. A payment part was refused
  * here, as what SIX fixes to the foot of the last page, where a Word
  * file's pages are Word's; since 0075 its slip is written on a page of
  * its own, the file's last (`slip.ts`).
@@ -50,12 +56,27 @@ export function refusePdfOnly(document: ResolvedDocument): void {
       'pageHeader',
     )
   }
+  // An XRechnung's final render with its XML taken off is its PDF's copy still, and says so on every page: in a Word file the sentence is
+  // about another file, and the file would stand where the copy the runtime labels for one does (0077).
+  for (const [subject, header] of [['pageHeader', document.pageHeader] as const, ['firstPageHeader', document.firstPageHeader ?? []] as const]) {
+    if (opensWith(header, [XRECHNUNG_COPY_LABEL]))
+      throw new RenderRefusal(
+        'unsupported',
+        `this document is an XRechnung's PDF copy, labelled on every page as "this PDF is not the invoice", which a Word file is not: ${PRINT}`,
+        subject,
+      )
+  }
 }
 
-/** Whether a page header opens as the runtime heads a preview's every page: a paragraph of its label, the one run. */
+/** Whether a header opens as the runtime heads a preview's every page: a paragraph of its label, the one run. */
 function labelledPreview(pageHeader: readonly Block[]): boolean {
-  const first = pageHeader[0]
+  return opensWith(pageHeader, [PREVIEW_LABEL, E_INVOICE_PREVIEW_LABEL])
+}
+
+/** Whether `header` opens with a paragraph of one of `labels` alone, the one run, whatever its style. */
+function opensWith(header: readonly Block[], labels: readonly string[]): boolean {
+  const first = header[0]
   if (first?.kind !== 'paragraph' || first.runs.length !== 1) return false
   const run = first.runs[0]!
-  return 'text' in run && (run.text === PREVIEW_LABEL || run.text === E_INVOICE_PREVIEW_LABEL)
+  return 'text' in run && labels.includes(run.text)
 }
