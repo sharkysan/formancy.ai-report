@@ -31,7 +31,10 @@
  * writes no XML, and is labelled whatever its data:
  * `E_INVOICE_PREVIEW_LABEL` where nothing else is lacking. A final render
  * of an XRechnung is labelled too, `XRECHNUNG_COPY_LABEL`: its XML is the
- * invoice, and its PDF a copy (0038).
+ * invoice, and its PDF a copy (0038). And a final render of an e-invoice
+ * of either kind that a host asks for as the copy (`eInvoice: 'copy'`,
+ * 0077) is labelled as one in the render's language and carries no XML
+ * (`e-invoice-copy.ts`): what a Word file is written of.
  */
 import { decimalToString } from '@formancy/expressions'
 import type { Decimal } from '@formancy/expressions'
@@ -40,12 +43,14 @@ import type { ReportDefinition } from '@formancy/report-spec'
 import { checkData } from './data.js'
 import type { Completeness, Consistency, DataMode, ReportData } from './data.js'
 import type { Block, Paragraph, ResolvedDocument } from './document.js'
+import { E_INVOICE_COPY_LANGUAGES, eInvoiceCopyParagraph } from './e-invoice-copy.js'
 import { createFormatter } from './format.js'
 import { localePath } from './languages.js'
 import { eInvoiceFile, resolveEInvoice } from './lower-e-invoice.js'
 import { resolveFonts } from './lower-fonts.js'
 import { lowerPaymentPart } from './lower-payment-part.js'
 import { lowerRegions } from './lower.js'
+import { frozen, label } from './page-label.js'
 import { checkParameters } from './parameters.js'
 import type { CheckedParameters } from './parameters.js'
 import type { AssetResolver } from './render-context.js'
@@ -76,6 +81,17 @@ export interface ResolveOptions {
    * headings and the labels form data must have been read in.
    */
   readonly locale?: string
+  /**
+   * `'copy'` resolves a final render of an e-invoice as its copy (0077):
+   * every header opens with the copy's label, in the render's language,
+   * and the document carries no XML. The invoice's terms are held and its
+   * XML written as for the invoice, so a copy is of an invoice that
+   * exists. Absent, the render is the invoice. It says nothing of a
+   * report that carries no e-invoice; of a preview, in a language no
+   * label is written in, or as any other value it is refused,
+   * `no-e-invoice-copy`.
+   */
+  readonly eInvoice?: 'copy'
 }
 
 /** What a document was resolved from, to keep beside the PDF (plan 14). Nothing in it is the data's. */
@@ -100,6 +116,8 @@ export interface RenderManifest {
    * source.
    */
   readonly source?: DataSource
+  /** `'copy'` where the document is the copy of the report's e-invoice a host asked for, and not the invoice (0077); absent otherwise. */
+  readonly eInvoice?: 'copy'
 }
 
 export type Resolution =
@@ -120,9 +138,6 @@ export const E_INVOICE_PREVIEW_LABEL = 'Preview: not an e-invoice, and not a fin
 /** What every page of a final render of an XRechnung says: the invoice is the XML the document carries, which a host sends, and the PDF drawn of the page is a copy (0038). */
 export const XRECHNUNG_COPY_LABEL = 'Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice'
 
-/** A label, as the runtime heads every page with one: the text alone, small, bold and red, in a paragraph of its own. */
-const label = (text: string): Paragraph => ({ kind: 'paragraph', runs: [{ text }], style: { size: 8, bold: true, color: '#b00020' } })
-
 /**
  * The paragraph that opens every page's header of a final render of an
  * XRechnung, as the runtime writes it: `XRECHNUNG_COPY_LABEL` in the
@@ -135,12 +150,27 @@ const label = (text: string): Paragraph => ({ kind: 'paragraph', runs: [{ text }
  */
 export const XRECHNUNG_COPY_PARAGRAPH: Paragraph = frozen(label(XRECHNUNG_COPY_LABEL))
 
-/** `paragraph` frozen through: its runs, each run, and its style. */
-function frozen(paragraph: Paragraph): Paragraph {
-  for (const run of paragraph.runs) Object.freeze(run)
-  Object.freeze(paragraph.runs)
-  Object.freeze(paragraph.style)
-  return Object.freeze(paragraph)
+/**
+ * The label a copy of `report`'s e-invoice is headed with where `options`
+ * ask for one (0077), `locale` the one the render prints in: its text,
+ * undefined where no copy is asked for or the report carries no
+ * e-invoice, or the error that refuses the copy. The option is the
+ * host's, whatever its type says.
+ */
+function copyLabel(report: ReportDefinition, own: ReportDefinition, locale: string, options: ResolveOptions): string | RuntimeError | undefined {
+  const asked: unknown = options.eInvoice
+  if (asked === undefined) return undefined
+  const no = (path: string, message: string): RuntimeError => ({ stage: 'resolve', code: 'no-e-invoice-copy', path, message })
+  if (asked !== 'copy') return no('', "a render's eInvoice option is 'copy' or absent")
+  if (report.eInvoice === undefined) return undefined
+  if (options.mode === 'preview') return no('', 'a copy is of a final render of an e-invoice; a preview writes no XML, and there is no invoice it is a copy of')
+  const [run] = eInvoiceCopyParagraph(report.eInvoice.kind, locale)?.runs ?? []
+  if (run === undefined || !('text' in run))
+    return no(
+      localePath(own, locale),
+      `a copy of an e-invoice is labelled in the language it prints in, and the runtime has no label in the language of ${locale}: it has one in ${E_INVOICE_COPY_LANGUAGES.join(', ')}`,
+    )
+  return run.text
 }
 
 /** Each parameter's value as the format writes one. */
@@ -182,6 +212,8 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
   if (!parameters.ok) errors.push(...parameters.errors.map((error) => fromData('parameters', error)))
   const checkedData = checkData(valid, data, { mode: options.mode, reportLocale: checked.report.locale })
   if (!checkedData.ok) errors.push(...checkedData.errors.map((error) => fromData('data', error)))
+  const copy = copyLabel(valid, checked.report, valid.locale, options)
+  if (typeof copy === 'object') errors.push(copy)
   if (errors.length > 0 || creationDate === undefined || !formatter.ok || !parameters.ok || !checkedData.ok) return { ok: false, errors }
 
   const problems = new Problems()
@@ -213,9 +245,11 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
   const warnings = problems.warnings()
   const lacking = !completeness.complete || warnings.some(({ code }) => code !== 'e-invoice-preview')
   const labelled = !preview
-    ? eInvoice?.kind === 'xrechnung'
-      ? XRECHNUNG_COPY_LABEL
-      : undefined
+    ? typeof copy === 'string'
+      ? copy
+      : eInvoice?.kind === 'xrechnung'
+        ? XRECHNUNG_COPY_LABEL
+        : undefined
     : lacking
       ? PREVIEW_LABEL
       : invoice === undefined
@@ -231,7 +265,8 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
     pageFooter: regions.pageFooter,
     body: regions.body,
     ...(paymentPart === undefined ? {} : { paymentPart }),
-    ...(eInvoice === undefined ? {} : { eInvoice }),
+    // A copy carries no XML: no engine embeds or sends anything from it (0077).
+    ...(eInvoice === undefined || typeof copy === 'string' ? {} : { eInvoice }),
     ...(fonts === undefined ? {} : { fonts }),
   }
   const manifest: RenderManifest = {
@@ -244,6 +279,7 @@ export function resolveReport(report: ReportDefinition, data: ReportData, option
     completeness,
     parameters: writtenParameters(parameters.values),
     ...(source === undefined ? {} : { source }),
+    ...(typeof copy === 'string' ? { eInvoice: 'copy' as const } : {}),
   }
   return { ok: true, document, manifest, warnings }
 }

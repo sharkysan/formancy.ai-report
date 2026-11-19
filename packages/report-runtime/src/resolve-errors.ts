@@ -59,6 +59,12 @@ export const RESOLVE_ERROR_CODES = [
   /** A warning, never an error: a preview of an e-invoice, which writes no XML and is not the invoice. */
   'e-invoice-preview',
   /**
+   * A copy of an e-invoice a render does not make (0077): asked for as
+   * anything but `'copy'`, of a preview, which writes no XML to be a copy
+   * of, or in a language the runtime has no label in.
+   */
+  'no-e-invoice-copy',
+  /**
    * A chart of more categories than the runtime groups, `MAX_CHART_CATEGORIES`,
    * or a pie of more categories than its palette has colours: two slices of
    * one colour would be told apart by nothing.
