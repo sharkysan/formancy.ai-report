@@ -1,4 +1,5 @@
 import { checkSvg, imageHeader, readFont, type ResolvedFonts } from '@formancy/report-runtime'
+import { drawnChart, emptyChart } from './check-docx-charts.js'
 import { captionedCode, plainCode, type FoundCodes } from './check-docx-codes.js'
 import type { Block, Columns, Image, Inline, Paragraph, Rectangle, Section, Table, TextStyle } from './document.js'
 import type { DocxBlock, DocxBorder, DocxParagraph, DocxRunProps, DocxTable } from './docx/model.js'
@@ -12,8 +13,10 @@ import type { DocxBlock, DocxBorder, DocxParagraph, DocxRunProps, DocxTable } fr
  * a table's grid, rows, cells and marks, a picture's bytes, extent, place
  * and crop, a rule's weight and colour, a rectangle's size and paints, a
  * spacer's height, a section's frame, a columns block's widths, a page
- * break, and a code's picture and, where it has them, its frame and
- * caption (`check-docx-codes.ts`, 0074). What the document leaves to an
+ * break, a code's picture and, where it has them, its frame and
+ * caption (`check-docx-codes.ts`, 0074), and a chart as Word's own, or
+ * its words in its box where it has nothing to draw
+ * (`check-docx-charts.ts`, 0076). What the document leaves to an
  * engine -- a size no style states,
  * a table's rules and padding, the space around a rule -- is not the
  * corpus's to know, and is held to the PDF where the writer's tests hold
@@ -232,6 +235,18 @@ function matchBlock(block: Block, cursor: Cursor, at: string, width: number, wal
       for (const paragraph of paragraphsOf(cursor.nodes.slice(from, cursor.at))) walk.codes.paragraphs.add(paragraph)
       return
     }
+    case 'chart': {
+      // What a word of it is set in, as far as its style states it: a run's properties and a chart word's are held alike.
+      const faced = (face: DocxRunProps, bold: boolean): string[] => styleProblems(block.style, face, walk.fonts, bold)
+      if (block.empty === undefined) {
+        const node = take(cursor, 'paragraph', at, walk)
+        if (node !== undefined) drawnChart(block, node, faced, say)
+      } else {
+        const node = take(cursor, 'table', at, walk)
+        if (node !== undefined) emptyChart(block, node, faced, say)
+      }
+      return
+    }
     case 'rule': {
       const node = take(cursor, 'paragraph', at, walk)
       if (node === undefined) return
@@ -285,7 +300,8 @@ function matchBlock(block: Block, cursor: Cursor, at: string, width: number, wal
       return
     }
     default:
-      say(`a ${block.kind} block, which no Word file holds`)
+      // Every kind the document's types hold is matched above: one made by hand, or by a later runtime, is no block of a Word file.
+      say(`a ${String((block as { readonly kind?: unknown }).kind)} block, which no Word file holds`)
   }
 }
 

@@ -1,8 +1,10 @@
+import { readChart } from './chart.js'
 import type {
   Docx,
   DocxBlock,
   DocxBorder,
   DocxCell,
+  DocxChartFrame,
   DocxPage,
   DocxParagraph,
   DocxPicture,
@@ -33,8 +35,12 @@ import { child, childrenNamed, type XmlNode } from './xml.js'
  * run that mixes text with a field or a picture, a border that is no
  * single line, a width in a unit other than twentieths of a point, a table
  * of another layout than fixed or whose rows do not fill its grid, a cell
- * whose text is turned otherwise than from bottom to top, and a cell, a
- * header or a footer that does not end with a paragraph.
+ * whose text is turned otherwise than from bottom to top or stands
+ * otherwise than at its top or in its middle, a cell, a header or a
+ * footer that does not end with a paragraph, a chart in a header or a
+ * footer, and a chart's part in any form but the one a report's chart is
+ * written in, a part that leads to a workbook or an address among them
+ * (`chart.ts`, 0076).
  *
  * What this cannot show is that Word opens the file, or what it then
  * prints: no reader here lays out a line.
@@ -127,7 +133,6 @@ function picture(reading: Reading, drawing: XmlNode): DocxPicture {
   const extent = only(inline, NS.wp, 'extent', reading.name)
   const named = only(inline, NS.wp, 'docPr', reading.name)
   const data = only(only(inline, NS.a, 'graphic', reading.name), NS.a, 'graphicData', reading.name)
-  if (data.attributes.get('uri') !== NS.pic) fail(reading, 'a drawing that is no picture')
   const pic = only(data, NS.pic, 'pic', reading.name)
   const fill = only(pic, NS.pic, 'blipFill', reading.name)
   const blip = only(fill, NS.a, 'blip', reading.name)
@@ -151,6 +156,30 @@ function picture(reading: Reading, drawing: XmlNode): DocxPicture {
     ...(svg[0] === undefined ? {} : { svg: image(reading, svg[0]) }),
     ...(crop === undefined ? {} : { crop: { left: cut('l'), top: cut('t'), right: cut('r'), bottom: cut('b') } }),
   }
+}
+
+/** An inline chart: its extent, and the part the reference in it leads to, read as the chart it is (`chart.ts`). */
+function chartFrame(reading: Reading, drawing: XmlNode): DocxChartFrame {
+  const inline = only(drawing, NS.wp, 'inline', reading.name)
+  const extent = only(inline, NS.wp, 'extent', reading.name)
+  const named = only(inline, NS.wp, 'docPr', reading.name)
+  const reference = only(only(only(inline, NS.a, 'graphic', reading.name), NS.a, 'graphicData', reading.name), NS.c, 'chart', reading.name)
+  return {
+    id: needed(reading, named, 'id', 1),
+    name: named.attributes.get('name') ?? fail(reading, 'a chart with no name'),
+    width: needed(reading, extent, 'cx', EMU),
+    height: needed(reading, extent, 'cy', EMU),
+    chart: readChart(related(reading, reference.attributes.get(attr('r', 'id')), 'chart'), reading.opc),
+  }
+}
+
+/** What a drawing's `a:graphicData` says it holds, which is what it must hold: a picture or a chart. */
+function drawn(reading: Reading, drawing: XmlNode): 'picture' | 'chart' {
+  const data = only(only(only(drawing, NS.wp, 'inline', reading.name), NS.a, 'graphic', reading.name), NS.a, 'graphicData', reading.name)
+  const [uri, holds] = [data.attributes.get('uri'), data.children.map((each) => each.uri).join()]
+  if (uri === NS.c && holds === NS.c) return 'chart'
+  if (uri === NS.pic && holds === NS.pic) return 'picture'
+  return fail(reading, 'a drawing that is neither a picture nor a chart, or says it is one and holds the other')
 }
 
 /** The part `node` embeds, through an image relationship of the part being read. */
@@ -191,6 +220,7 @@ function runs(reading: Reading, paragraph: XmlNode): DocxRun[] {
       preserved(reading, content[0]!)
       field.instruction = content[0]!.text
     } else if (field !== undefined) fail(reading, 'a field with something else inside it')
+    else if (alone('drawing') && drawn(reading, content[0]!) === 'chart') read.push({ kind: 'chart', frame: chartFrame(reading, content[0]!), props })
     else if (alone('drawing')) read.push({ kind: 'picture', picture: picture(reading, content[0]!), props })
     else if (content.length > 0 && content.every((each) => each.local === 't' || each.local === 'br')) {
       read.push({ kind: 'text', text: content.map((each) => (each.local === 'br' ? '\n' : preserved(reading, each))).join(''), props })
@@ -293,6 +323,8 @@ function cell(reading: Reading, node: XmlNode): DocxCell {
     fail(reading, 'a cell shaded otherwise than by a plain fill')
   const span = child(properties, NS.w, 'gridSpan')
   const direction = child(properties, NS.w, 'textDirection')?.attributes.get(w('val'))
+  const align = child(properties, NS.w, 'vAlign')?.attributes.get(w('val'))
+  if (align !== undefined && align !== 'center') fail(reading, `a cell whose blocks stand '${align}', where a file states the middle alone`)
   if (direction !== undefined && direction !== 'btLr')
     fail(reading, `a cell whose text is turned '${direction}', where a file turns one from bottom to top alone`)
   return {
@@ -301,6 +333,7 @@ function cell(reading: Reading, node: XmlNode): DocxCell {
     borders: sides(child(properties, NS.w, 'tcBorders'), (side) => border(reading, side)),
     ...(shade === undefined ? {} : { shade: color(reading, shade.attributes.get(w('fill')), 'a cell') }),
     ...(direction === undefined ? {} : { direction }),
+    ...(align === undefined ? {} : { align }),
     blocks: blocks(reading, node, 'a cell'),
   }
 }
@@ -374,7 +407,8 @@ export function readDocx(bytes: Uint8Array): Docx {
     return target
   }
   const [styles, settings, fonts] = [single('styles', 'styles'), single('settings', 'settings'), single('fontTable', 'fontTable')]
-  unused(reading, ['header', 'footer', 'styles', 'settings', 'fontTable'])
+  // A chart stands in the body alone (0076): a header's or a footer's part holds no relationship to one.
+  unused(reading, ['header', 'footer', 'styles', 'settings', 'fontTable', 'chart'])
   const properties = core[0] === undefined ? undefined : readPart(opc.parts.get(core[0].target)!.bytes, core[0].target, CORE)
   const [title, created] = ['title', 'created'].map((local, index) =>
     properties === undefined ? undefined : child(properties, index === 0 ? NS.dc : NS.dcterms, local)?.text,

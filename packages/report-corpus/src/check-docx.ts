@@ -1,6 +1,7 @@
 import { checkSvg, E_INVOICE_PREVIEW_LABEL, imageHeader, PREVIEW_LABEL } from '@formancy/report-runtime'
 import { paragraphsOf, verifyContainer } from './check-docx-blocks.js'
 import { decodedProblems, type FoundCodes } from './check-docx-codes.js'
+import { docxCharts } from './docx-charts.js'
 import { pageDimensions, type Block, type Image, type ResolvedDocument, type Section } from './document.js'
 import type { Docx, DocxBlock, DocxParagraph, DocxRegion, DocxRun, DocxTable } from './docx/model.js'
 import { normalise, type ExpectedImage, type ExpectedRefusal, type ExpectedShiftedRun, type ExpectedTable, type Fixture } from './fixture.js'
@@ -24,7 +25,9 @@ import { normalise, type ExpectedImage, type ExpectedRefusal, type ExpectedShift
  * A code is held on its picture (0074): the pixels the file embeds, read
  * back by the corpus's own PNG reader, and what ZXing reads in them, as a
  * scanner would (`check-docx-codes.ts`). That reading is not at hand at
- * once, so the check is waited for.
+ * once, so the check is waited for. A chart is held on its part (0076):
+ * Word's own chart as the file states it, its words, its values' digits
+ * and its axis (`check-docx-charts.ts`).
  *
  * What this cannot show is that Word opens the file, or prints it so.
  */
@@ -169,7 +172,11 @@ function expectedProblems(expect: Fixture['expect'], docx: Docx, coded: Readonly
   // A line that stands in the body itself is kept with the next unless it is the group's last; one in a table's cell may stand in the row that ends
   // its block, which is kept with nothing after it, and what it is kept with is the block walk's to say (`check-docx-blocks.ts`).
   const standsAlone = new Set<DocxBlock>(docx.body)
+  // A chart's title is a word of its part, and no paragraph of the body: a group kept with one is not sought among the paragraphs, and what a
+  // chart is kept with -- the heading over it, the lines of its keep-together block -- is the block walk's to say, mark by mark.
+  const charted = new Set(docxCharts(docx).flatMap((frame) => (frame.chart.title === undefined ? [] : [normalise(frame.chart.title.text)])))
   for (const group of expect.keptTogether) {
+    if (group.some((line) => charted.has(line) && !lines.includes(line))) continue
     const kept = group.map((line) => body.find((paragraph) => lineOf(paragraph) === line))
     const loose = (paragraph: DocxParagraph, index: number): boolean =>
       !paragraph.keepLines || (index < kept.length - 1 && standsAlone.has(paragraph) && !paragraph.keepNext)
@@ -272,7 +279,9 @@ function shiftedProblems(where: string, expected: readonly ExpectedShiftedRun[],
  * to the PDF and what nobody has seen Word print as the PDF does; what any
  * engine refuses of a malformed document, a code the rules below both
  * engines refuse among it (0074), and what the PDF renderer refuses of
- * what it measured, are a fixture's own to state.
+ * what it measured, are a fixture's own to state. A chart was refused
+ * here until 0076: Word draws one of its own, and a chart is refused
+ * only as any engine refuses it.
  */
 export function wordRefusal(document: ResolvedDocument): ExpectedRefusal | undefined {
   if (document.paymentPart !== undefined) return { code: 'unsupported', subject: 'paymentPart' }
@@ -314,7 +323,6 @@ function refusalAmong(blocks: readonly Block[], path: string, inFrame: boolean):
   for (const [index, block] of blocks.entries()) {
     const at = `${path}[${index}]`
     const unsupported = (subject: string): ExpectedRefusal => ({ code: 'unsupported', subject })
-    if (block.kind === 'chart') return unsupported(block.id)
     if (block.kind === 'table' && inFrame) return unsupported(block.id)
     if (block.kind === 'pageBreak' && inFrame) return unsupported(at)
     const inner =

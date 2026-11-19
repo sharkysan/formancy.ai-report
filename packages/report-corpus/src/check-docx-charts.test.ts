@@ -1,0 +1,618 @@
+import { describe, expect, test } from 'vitest'
+import { verifyDocx } from './check-docx.js'
+import type { Block, Chart } from './document.js'
+import { docxCharts } from './docx-charts.js'
+import { readDocx } from './docx/read.js'
+import {
+  BAR_CHART,
+  CHART_CONTENT_TYPE,
+  HAND_BARS,
+  HAND_CHARTS,
+  HAND_CHARTS_DOCUMENT,
+  HAND_LINE,
+  HAND_PIE,
+  handChartParts,
+  LINE_CHART,
+  PIE_CHART,
+} from './docx/testing/hand-charts.js'
+import { handDocx, relationships, rewritten, TYPE } from './docx/testing/hand.js'
+import { expectation, type Fixture } from './fixture.js'
+
+/**
+ * What `readDocx` reads of a chart and `verifyDocx` holds one to (0076),
+ * proved on the file written by hand (`docx/testing/hand-charts.ts`),
+ * never on one the writer wrote: the file passes as it stands, and with
+ * one thing of a chart taken out of it or written otherwise the reader
+ * refuses it or the check says so. A check that never failed on a defect
+ * has not been shown to see it.
+ */
+
+type Parts = Map<string, string | Uint8Array>
+const DOCUMENT = 'word/document.xml'
+
+const problems = async (parts: ReadonlyMap<string, string | Uint8Array>, fixture: Fixture = HAND_CHARTS): Promise<string> =>
+  (await verifyDocx(fixture, readDocx(handDocx(parts)))).join('\n')
+
+/** The hand-written file with `from` in the part `name` written as `to`. */
+const written = (name: string, from: string, to: string): Parts => rewritten(name, from, to, handChartParts())
+
+/** The fixture with the chart `id` of its body changed by `change`. */
+const changed = (id: string, change: (chart: Chart) => Chart): Fixture => {
+  const body = HAND_CHARTS_DOCUMENT.body.map((block): Block => (block.kind === 'chart' && block.id === id ? change(block) : block))
+  const document = { ...HAND_CHARTS_DOCUMENT, body }
+  return { ...HAND_CHARTS, document, expect: expectation(document, { maxPagesExpected: 2 }) }
+}
+
+// The file as it was typed is its document, whole: without this, every case below could fail for a reason of its own.
+test('the hand-written file of charts is its document, with nothing to say against it', async () => {
+  expect(await problems(handChartParts())).toBe('')
+})
+
+describe('readDocx reads a chart’s part', () => {
+  const [bars, line, pie, ...more] = docxCharts(readDocx(handDocx(handChartParts())))
+
+  // A chart with nothing to draw is words in a box, and no part: a reader that listed it would have a check look for a chart that is none.
+  test('for each chart that draws something, in the document’s order, and none for one that draws nothing', () => {
+    expect([bars?.chart.kind, line?.chart.kind, pie?.chart.kind]).toEqual(['bar', 'line', 'pie'])
+    expect(more).toEqual([])
+    expect([bars?.width, bars?.height, bars?.name]).toEqual([360, 240, 'Chart 1'])
+  })
+
+  // The digits are what a check holds to the report's: read through a number, 10.25 and 10.250 would be one value, and a 40-digit total another.
+  test('each value as the digits the part writes, and a point the part states none for as none', () => {
+    expect(bars!.chart.series.map((series) => series.values)).toEqual([
+      ['10.25', '-5', null, '7.5'],
+      ['15', '2.5', '-2.5', '0'],
+    ])
+    expect(line!.chart.series[0]!.values).toEqual(['0.5', null, '1.25'])
+  })
+
+  // What a word is set in is what a check compares with the chart's style: a property read wrongly is a style never checked.
+  test('every word the part states with what it is set in, and each series’ name, colour and labels', () => {
+    expect(bars!.chart.title).toEqual({ text: 'Sales by region', face: { family: 'Roboto', size: 8, bold: true, italic: false, color: '#333333' } })
+    expect(bars!.chart.series[0]).toMatchObject({ name: 'Plan', color: '#1f77b4', categories: ['North', 'South', 'East', 'West'], labelPosition: 'outEnd' })
+    expect(bars!.chart.series[0]!.labels.map((label) => label?.text ?? null)).toEqual(['10.25', '-5.00', null, '7.50'])
+    expect(line!.chart.series[0]).toMatchObject({ color: '#1b9e77', line: 1.5, marker: 4, labels: [null, null, null] })
+    expect(line!.chart.title).toBeUndefined()
+  })
+
+  // The axis is what keeps Word from scaling the chart itself: its ends, its step and its labels' format as the part writes them.
+  test('the value axis from its lowest value to its highest, its step and its format, and where the category axis stands', () => {
+    expect(bars!.chart.valueAxis).toMatchObject({ min: '-5', max: '15', step: '5', format: '0', grid: { weight: 0.5, color: '#d9d9d9' } })
+    expect(bars!.chart.categoryAxis).toMatchObject({ crosses: 'autoZero', every: 1, line: { weight: 0.75, color: '#000000' } })
+    expect(line!.chart.valueAxis).toMatchObject({ min: '0', max: '1.5', step: '0.5', format: '0.0' })
+    expect(line!.chart.categoryAxis!.crosses).toBe('min')
+    expect(bars!.chart.bars).toEqual({ gapWidth: 56, overlap: -25 })
+  })
+
+  // A pie's slices are points of one series, each its own colour, and its legend's entries its categories.
+  test('a pie’s slices, their colours and their names, and its legend at the foot', () => {
+    expect(pie!.chart.series).toHaveLength(1)
+    expect(pie!.chart.series[0]).toMatchObject({
+      values: ['45', '0', '55'],
+      points: ['#1f77b4', '#d95f02', '#1b9e77'],
+      categories: ['North: 45 (45.0 %)', 'South: 0 (0.0 %)', 'East: 55 (55.0 %)'],
+    })
+    expect(pie!.chart.legend).toMatchObject({ position: 'b' })
+    expect(line!.chart.legend).toBeUndefined()
+  })
+})
+
+const CHART_RELS = 'word/charts/_rels/chart1.xml.rels'
+
+describe('readDocx refuses a chart', () => {
+  // Each a file that leads somewhere or leaves something to Word that a report's chart states: a reader that took it would let a writer's mistake pass every check built on it.
+  test.each<[string, () => Parts, RegExp]>([
+    [
+      'that takes its data from an address',
+      () => {
+        const rels = `${relationships([`${TYPE}/oleObject`, 'https://example.invalid/book.xlsx']).replace('/>', ' TargetMode="External"/>')}`
+        return handChartParts().set(CHART_RELS, rels)
+      },
+      /the relationship rId1 leads outside the package/,
+    ],
+    [
+      'that holds a workbook of its own',
+      () => {
+        const parts = handChartParts()
+        parts.set(
+          '[Content_Types].xml',
+          (parts.get('[Content_Types].xml') as string).replace(
+            '<Default Extension="png"',
+            '<Default Extension="xlsx" ContentType="application/vnd.ms-excel"/><Default Extension="png"',
+          ),
+        )
+        parts.set(CHART_RELS, relationships([`${TYPE}/package`, '../embeddings/book.xlsx']))
+        return parts.set('word/embeddings/book.xlsx', new Uint8Array([80, 75]))
+      },
+      /chart1\.xml: the chart leads to another part, where a chart holds its data itself/,
+    ],
+    [
+      'that names where its data comes from',
+      () => written(BAR_CHART, '</c:chartSpace>', '<c:externalData r:id="rId1" xmlns:r="x"/></c:chartSpace>'),
+      /externalData in .*chartSpace, which the vocabulary does not hold there/,
+    ],
+    [
+      'whose values are a formula’s cache',
+      () => written(LINE_CHART, '<c:val><c:numLit>', '<c:val><c:numRef><c:f>Sheet1!$B$2:$B$4</c:f></c:numRef><c:numLit>'),
+      /numRef in .*val, which the vocabulary does not hold there/,
+    ],
+    [
+      'of another content type',
+      () => written('[Content_Types].xml', `<Override PartName="/word/charts/chart2.xml" ContentType="${CHART_CONTENT_TYPE}"/>`, ''),
+      /chart2\.xml: the part is drawn as a chart and is of another content type/,
+    ],
+    [
+      'in a page header',
+      () => handChartParts().set('word/_rels/header1.xml.rels', relationships([`${TYPE}/chart`, 'charts/chart3.xml'])),
+      /header1\.xml: the relationship rId1 is of a type a file does not hold/,
+    ],
+    [
+      'that a drawing says is a picture',
+      () =>
+        written(
+          DOCUMENT,
+          'uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId8"/>',
+          'uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId8"/>',
+        ),
+      /a drawing that is neither a picture nor a chart, or says it is one and holds the other/,
+    ],
+    ['with rounded corners', () => written(PIE_CHART, '<c:roundedCorners val="0"/>', '<c:roundedCorners val="1"/>'), /chartSpace states roundedCorners as '1'/],
+    [
+      'whose lines Word smooths',
+      () => written(LINE_CHART, '<c:smooth val="0"/>', '<c:smooth val="1"/>'),
+      /ser states smooth as '1', where a report's chart states '0'/,
+    ],
+    [
+      'whose bars below zero Word paints otherwise',
+      () =>
+        written(
+          BAR_CHART,
+          '<c:invertIfNegative val="0"/><c:dLbls><c:dLbl><c:idx val="0"/><c:tx><c:rich><a:bodyPr rot="0" vert="horz"/><a:p><a:r><a:rPr sz="800" b="0" i="0"><a:solidFill><a:srgbClr val="333333"/></a:solidFill><a:latin typeface="Roboto"/><a:ea typeface="Roboto"/><a:cs typeface="Roboto"/></a:rPr><a:t>10.25<',
+          '<c:invertIfNegative val="1"/><c:dLbls><c:dLbl><c:idx val="0"/><c:tx><c:rich><a:bodyPr rot="0" vert="horz"/><a:p><a:r><a:rPr sz="800" b="0" i="0"><a:solidFill><a:srgbClr val="333333"/></a:solidFill><a:latin typeface="Roboto"/><a:ea typeface="Roboto"/><a:cs typeface="Roboto"/></a:rPr><a:t>10.25<',
+        ),
+      /ser states invertIfNegative as '1'/,
+    ],
+    [
+      'that Word titles itself',
+      () => written(LINE_CHART, '<c:autoTitleDeleted val="1"/>', '<c:autoTitleDeleted val="0"/>'),
+      /chart states autoTitleDeleted as '0', where a report's chart states '1'/,
+    ],
+    [
+      'whose missing values Word draws as zero',
+      () => written(LINE_CHART, '<c:dispBlanksAs val="gap"/>', '<c:dispBlanksAs val="zero"/>'),
+      /chart states dispBlanksAs as 'zero'/,
+    ],
+    ['whose slices Word paints alike', () => written(PIE_CHART, '<c:varyColors val="1"/>', '<c:varyColors val="0"/>'), /pieChart states varyColors as '0'/],
+    [
+      'whose first slice starts elsewhere than at the top',
+      () => written(PIE_CHART, '<c:firstSliceAng val="0"/>', '<c:firstSliceAng val="90"/>'),
+      /pieChart states firstSliceAng as '90'/,
+    ],
+    ['whose bars lie', () => written(BAR_CHART, '<c:barDir val="col"/>', '<c:barDir val="bar"/>'), /barChart states barDir as 'bar'/],
+    [
+      'whose bars are stacked',
+      () => written(BAR_CHART, '<c:grouping val="clustered"/>', '<c:grouping val="stacked"/>'),
+      /barChart states grouping as 'stacked'/,
+    ],
+    ['whose line has no markers', () => written(LINE_CHART, '<c:marker val="1"/>', '<c:marker val="0"/>'), /lineChart states marker as '0'/],
+    [
+      'whose markers are another colour than their line',
+      () =>
+        written(
+          LINE_CHART,
+          '<c:size val="4"/><c:spPr><a:solidFill><a:srgbClr val="1B9E77"/>',
+          '<c:size val="4"/><c:spPr><a:solidFill><a:srgbClr val="000000"/>',
+        ),
+      /series 0 has markers of another colour than its line/,
+    ],
+    ['whose title lies over its plot', () => written(PIE_CHART, '</c:tx><c:overlay val="0"/>', '</c:tx><c:overlay val="1"/>'), /title states overlay as '1'/],
+    [
+      'a word of which is turned',
+      () => written(PIE_CHART, '<c:title><c:tx><c:rich><a:bodyPr rot="0" vert="horz"/>', '<c:title><c:tx><c:rich><a:bodyPr rot="-5400000" vert="horz"/>'),
+      /the title is not held across: Word may turn it/,
+    ],
+    [
+      'whose background is left to Word',
+      () => written(PIE_CHART, '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>', '<c:spPr><a:ln><a:noFill/></a:ln></c:spPr>'),
+      /the chart is filled, or left for Word to fill/,
+    ],
+    [
+      'with a line around it',
+      () =>
+        written(
+          PIE_CHART,
+          '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>',
+          '<c:spPr><a:noFill/><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr>',
+        ),
+      /the chart has a line around it/,
+    ],
+    [
+      'with a value that is no decimal',
+      () => written(LINE_CHART, '<c:v>1.25</c:v>', '<c:v>1.25E0</c:v>'),
+      /a value of series 0 is '1\.25E0', which is no decimal/,
+    ],
+    [
+      'with a point past its count',
+      () => written(LINE_CHART, '<c:pt idx="2"><c:v>1.25</c:v>', '<c:pt idx="3"><c:v>1.25</c:v>'),
+      /series 0 has a point out of its order, or past its count/,
+    ],
+    [
+      'whose values state a format',
+      () => written(LINE_CHART, '<c:formatCode>General</c:formatCode>', '<c:formatCode>0.00</c:formatCode>'),
+      /series 0 states a format for its values/,
+    ],
+    [
+      'whose axis takes its format from a workbook',
+      () => written(LINE_CHART, 'sourceLinked="0"', 'sourceLinked="1"'),
+      /the value axis takes its labels' format from a workbook/,
+    ],
+    [
+      'with an axis taken away',
+      () => written(LINE_CHART, '<c:delete val="0"/><c:axPos val="l"/>', '<c:delete val="1"/><c:axPos val="l"/>'),
+      /valAx states delete as '1'/,
+    ],
+    [
+      'with tick marks',
+      () =>
+        written(
+          LINE_CHART,
+          '<c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="low"/>',
+          '<c:majorTickMark val="out"/><c:minorTickMark val="none"/><c:tickLblPos val="low"/>',
+        ),
+      /catAx states majorTickMark as 'out'/,
+    ],
+    [
+      'whose category labels stand beside the axis',
+      () => written(LINE_CHART, '<c:tickLblPos val="low"/>', '<c:tickLblPos val="nextTo"/>'),
+      /catAx states tickLblPos as 'nextTo'/,
+    ],
+    [
+      'whose points stand on the gridlines',
+      () => written(LINE_CHART, '<c:crossBetween val="between"/>', '<c:crossBetween val="midCat"/>'),
+      /valAx states crossBetween as 'midCat'/,
+    ],
+    [
+      'whose value axis has a line',
+      () =>
+        written(
+          LINE_CHART,
+          '<c:tickLblPos val="nextTo"/><c:spPr><a:ln><a:noFill/></a:ln></c:spPr>',
+          '<c:tickLblPos val="nextTo"/><c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr>',
+        ),
+      /the value axis has a line, or a fill/,
+    ],
+    [
+      'whose series labels every value itself',
+      () =>
+        written(
+          BAR_CHART,
+          '<c:showVal val="0"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/></c:dLbls><c:cat><c:strLit><c:ptCount val="4"/><c:pt idx="0"><c:v>North</c:v></c:pt><c:pt idx="1"><c:v>South</c:v></c:pt><c:pt idx="2"><c:v>East</c:v></c:pt><c:pt idx="3"><c:v>West</c:v></c:pt></c:strLit></c:cat><c:val><c:numLit><c:formatCode>General</c:formatCode><c:ptCount val="4"/><c:pt idx="0"><c:v>10.25<',
+          '<c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/></c:dLbls><c:cat><c:strLit><c:ptCount val="4"/><c:pt idx="0"><c:v>North</c:v></c:pt><c:pt idx="1"><c:v>South</c:v></c:pt><c:pt idx="2"><c:v>East</c:v></c:pt><c:pt idx="3"><c:v>West</c:v></c:pt></c:strLit></c:cat><c:val><c:numLit><c:formatCode>General</c:formatCode><c:ptCount val="4"/><c:pt idx="0"><c:v>10.25<',
+        ),
+      /dLbls states showVal as '1', where a report's chart states '0'/,
+    ],
+    [
+      'with a label that is a share Word works out',
+      () =>
+        written(
+          BAR_CHART,
+          '<a:t>7.50</a:t></a:r></a:p></c:rich></c:tx><c:dLblPos val="outEnd"/><c:showLegendKey val="0"/><c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/>',
+          '<a:t>7.50</a:t></a:r></a:p></c:rich></c:tx><c:dLblPos val="outEnd"/><c:showLegendKey val="0"/><c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="1"/>',
+        ),
+      /dLbl states showPercent as '1'/,
+    ],
+    [
+      'whose words name three families',
+      () =>
+        written(
+          PIE_CHART,
+          '<a:rPr sz="800" b="1" i="0"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:latin typeface="Roboto"/><a:ea typeface="Roboto"/>',
+          '<a:rPr sz="800" b="1" i="0"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:latin typeface="Roboto"/><a:ea typeface="Arial"/>',
+        ),
+      /the title names its three typeface slots otherwise than alike/,
+    ],
+    [
+      'on other axes than its own',
+      () => written(LINE_CHART, '<c:axId val="1"/><c:axId val="2"/></c:lineChart>', '<c:axId val="1"/><c:axId val="3"/></c:lineChart>'),
+      /the chart is drawn on other axes than its two/,
+    ],
+  ])('%s', (_name, parts, message) => {
+    expect(() => readDocx(handDocx(parts()))).toThrow(message)
+  })
+
+  // A cell's words at its foot are no words in the middle of a box: the reader knows the middle alone.
+  test('whose box of nothing to draw holds its words at its foot', () => {
+    expect(() => readDocx(handDocx(written(DOCUMENT, '<w:vAlign w:val="center"/>', '<w:vAlign w:val="bottom"/>')))).toThrow(
+      /a cell whose blocks stand 'bottom'/,
+    )
+  })
+})
+
+const NORTH_LABEL = '<a:t>10.25</a:t>'
+
+describe('verifyDocx fails on a chart', () => {
+  // Each a way a writer states a chart that Word then draws as another chart than the report's, with nothing in the file saying so.
+  test.each<[string, () => Parts, RegExp, Fixture?]>([
+    [
+      'of another size than its box',
+      () => written(DOCUMENT, '<wp:extent cx="4572000" cy="3048000"/>', '<wp:extent cx="4572000" cy="3000000"/>'),
+      /the chart sales is drawn 360 × 236\.2\d+ pt where its box is 360 × 240/,
+    ],
+    [
+      'with room around it',
+      () =>
+        written(
+          DOCUMENT,
+          '<w:p><w:pPr><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="4572000"',
+          '<w:p><w:pPr><w:ind w:left="200"/><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="2"/><w:szCs w:val="2"/></w:rPr><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="4572000"',
+        ),
+      /the chart sales stands with room around it/,
+    ],
+    [
+      'of another kind',
+      handChartParts,
+      /the chart balance is a line chart where the document's is a bar chart/,
+      changed('balance', (chart) => ({ ...(chart as typeof HAND_LINE), chart: 'bar' })),
+    ],
+    [
+      'with another title',
+      () => written(BAR_CHART, '<a:t>Sales by region</a:t>', '<a:t>Sales by area</a:t>'),
+      /the chart sales the title is 'Sales by area' where the chart prints 'Sales by region'/,
+    ],
+    [
+      'with a title it does not have',
+      handChartParts,
+      /the chart shares the title is 'Shares' where the chart prints none/,
+      changed('shares', ({ title: _title, ...chart }) => chart),
+    ],
+    [
+      'without its title',
+      handChartParts,
+      /the chart balance the title is missing where the chart prints 'Balance'/,
+      changed('balance', (chart) => ({ ...chart, title: 'Balance' })),
+    ],
+    [
+      'whose title is not bold',
+      () => written(BAR_CHART, '<a:rPr sz="800" b="1" i="0">', '<a:rPr sz="800" b="0" i="0">'),
+      /the chart sales the title is not bold/,
+    ],
+    [
+      'a value of which is written with other digits',
+      () => written(BAR_CHART, '<c:v>10.25</c:v>', '<c:v>10.250</c:v>'),
+      /series 0 holds the values 10\.250, -5, –, 7\.5 where the chart's are 10\.25, -5, –, 7\.5/,
+    ],
+    [
+      'with a value where it has none',
+      () => written(BAR_CHART, '<c:pt idx="1"><c:v>-5</c:v></c:pt>', '<c:pt idx="1"><c:v>-5</c:v></c:pt><c:pt idx="2"><c:v>0</c:v></c:pt>'),
+      /series 0 holds the values 10\.25, -5, 0, 7\.5/,
+    ],
+    [
+      'a category of which says something else',
+      () => written(LINE_CHART, '<c:v>Feb</c:v>', '<c:v>February</c:v>'),
+      /the chart balance series 0 names the categories Jan, February, Mar/,
+    ],
+    [
+      'a series of which is named otherwise',
+      () => written(BAR_CHART, '<c:tx><c:v>Plan</c:v></c:tx>', '<c:tx><c:v>Budget</c:v></c:tx>'),
+      /series 0 is named 'Budget' where the chart's legend says 'Plan'/,
+    ],
+    [
+      'a series of which is another colour',
+      () =>
+        written(
+          BAR_CHART,
+          '<c:tx><c:v>Actual</c:v></c:tx><c:spPr><a:solidFill><a:srgbClr val="D95F02"/>',
+          '<c:tx><c:v>Actual</c:v></c:tx><c:spPr><a:solidFill><a:srgbClr val="D95F03"/>',
+        ),
+      /series 1 is painted #d95f03 where the chart's is #d95f02/,
+    ],
+    [
+      'a label of which says another value',
+      () => written(BAR_CHART, NORTH_LABEL, '<a:t>10.3</a:t>'),
+      /series 0's label at category 0 is '10\.3' where the chart prints '10\.25'/,
+    ],
+    [
+      'that labels values the chart does not',
+      handChartParts,
+      /series 0's label at category 0 is '10\.25' where the chart prints none/,
+      changed('sales', (chart) => ({ ...(chart as typeof HAND_BARS), valueLabels: false })),
+    ],
+    [
+      'that leaves a value unlabelled',
+      handChartParts,
+      /the chart balance series 0's label at category 0 is missing where the chart prints '0\.5'/,
+      changed('balance', (chart) => ({ ...(chart as typeof HAND_LINE), valueLabels: true })),
+    ],
+    [
+      'whose axis starts elsewhere than at its lowest tick',
+      () => written(BAR_CHART, '<c:min val="-5"/>', '<c:min val="-10"/>'),
+      /has a value axis from -10 to 15 where its ticks run from -5 to 15/,
+    ],
+    [
+      'whose axis ends at a number written otherwise',
+      () => written(LINE_CHART, '<c:max val="1.5"/>', '<c:max val="1.50"/>'),
+      /has a value axis from 0 to 1\.50 where its ticks run from 0 to 1\.5/,
+    ],
+    [
+      'whose gridlines stand at another step',
+      () => written(BAR_CHART, '<c:majorUnit val="5"/>', '<c:majorUnit val="2.5"/>'),
+      /has gridlines every 2\.5, which is not the step between its ticks/,
+    ],
+    [
+      'whose axis prints fewer places than its ticks need',
+      () => written(LINE_CHART, 'formatCode="0.0"', 'formatCode="0"'),
+      /prints its value axis as '0' where its ticks need '0\.0'/,
+    ],
+    [
+      'that labels every other category',
+      () => written(BAR_CHART, '<c:tickLblSkip val="1"/>', '<c:tickLblSkip val="2"/>'),
+      /labels every 2th category, where a chart labels each/,
+    ],
+    [
+      'whose bars stand on the axis’s foot',
+      () => written(BAR_CHART, '<c:crosses val="autoZero"/><c:auto', '<c:crosses val="min"/><c:auto'),
+      /the chart sales has its category axis at 'min' of its value axis/,
+    ],
+    [
+      'whose category axis is titled otherwise',
+      () => written(BAR_CHART, '<a:t>Region</a:t>', '<a:t>Area</a:t>'),
+      /the category axis's title is 'Area' where the chart prints 'Region'/,
+    ],
+    [
+      'whose value axis is titled otherwise',
+      () => written(BAR_CHART, '<a:t>CHF thousands</a:t>', '<a:t>CHF</a:t>'),
+      /the value axis's title is 'CHF' where the chart prints 'CHF thousands'/,
+    ],
+    [
+      'without its legend',
+      () => written(PIE_CHART, /<c:legend>.*<\/c:legend>/.exec(handChartParts().get(PIE_CHART) as string)![0], ''),
+      /the chart shares has no legend where the chart has one/,
+    ],
+    [
+      'with a legend it does not have',
+      handChartParts,
+      /the chart shares has a legend where the chart has none/,
+      changed('shares', (chart) => ({ ...chart, legend: [] })),
+    ],
+    [
+      'whose legend stands at its side',
+      () => written(PIE_CHART, '<c:legendPos val="b"/>', '<c:legendPos val="r"/>'),
+      /the chart shares has its legend at 'r', and not at its foot/,
+    ],
+    [
+      'a slice of which is another value',
+      () => written(PIE_CHART, '<c:v>55</c:v>', '<c:v>54</c:v>'),
+      /the chart shares holds the slices 45, 0, 54 where the chart's are 45, 0, 55/,
+    ],
+    [
+      'a slice of which is another colour',
+      () =>
+        written(PIE_CHART, '<c:idx val="1"/><c:spPr><a:solidFill><a:srgbClr val="D95F02"/>', '<c:idx val="1"/><c:spPr><a:solidFill><a:srgbClr val="1F77B4"/>'),
+      /paints its slices #1f77b4, #1f77b4, #1b9e77/,
+    ],
+    [
+      'a slice of which is named with another share',
+      () => written(PIE_CHART, 'North: 45 (45.0 %)', 'North: 45 (45 %)'),
+      /names its slices North: 45 \(45 %\), South: 0/,
+    ],
+    [
+      'whose words are another size than its style says',
+      () =>
+        written(
+          BAR_CHART,
+          `${NORTH_LABEL.replace('<a:t>10.25</a:t>', '')}<a:rPr sz="800" b="0" i="0"><a:solidFill><a:srgbClr val="333333"/></a:solidFill><a:latin typeface="Roboto"/><a:ea typeface="Roboto"/><a:cs typeface="Roboto"/></a:rPr><a:t>10.25</a:t>`,
+          '<a:rPr sz="900" b="0" i="0"><a:solidFill><a:srgbClr val="333333"/></a:solidFill><a:latin typeface="Roboto"/><a:ea typeface="Roboto"/><a:cs typeface="Roboto"/></a:rPr><a:t>10.25</a:t>',
+        ),
+      /series 0's label at category 0 is 9 pt where its style says 8/,
+    ],
+    [
+      'whose words are another colour than its style says',
+      handChartParts,
+      /the chart sales the title is #333333 where its style says #000000/,
+      changed('sales', (chart) => ({ ...chart, style: { ...chart.style, color: '#000000' } })),
+    ],
+    [
+      'whose words are upright where its style slants them',
+      handChartParts,
+      /the chart sales its words' default is not italic/,
+      changed('sales', (chart) => ({ ...chart, style: { ...chart.style, italic: true } })),
+    ],
+  ])('%s', async (_name, parts, message, fixture) => {
+    expect(await problems(parts(), fixture)).toMatch(message)
+  })
+})
+
+describe('verifyDocx fails on a chart with nothing to draw', () => {
+  // Its box and its words are all a reader has of it: each a way the file loses one of them.
+  test.each<[string, () => Parts, RegExp, Fixture?]>([
+    [
+      'whose box is exactly as tall, and may cut its words',
+      () => written(DOCUMENT, 'w:hRule="atLeast"', 'w:hRule="exact"'),
+      /the chart nothing, which has nothing to draw, is not a cell 300 pt wide and at least 120 pt tall/,
+    ],
+    [
+      'whose box is another width',
+      () => written(DOCUMENT, '<w:tblW w:w="6000" w:type="dxa"/>', '<w:tblW w:w="5000" w:type="dxa"/>'),
+      /is not a cell 300 pt wide and at least 120 pt tall/,
+    ],
+    [
+      'whose box is filled',
+      () => written(DOCUMENT, '<w:vAlign w:val="center"/>', '<w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/><w:vAlign w:val="center"/>'),
+      /is a box with a line, a fill or padding/,
+    ],
+    ['whose words stand at the top of its box', () => written(DOCUMENT, '<w:vAlign w:val="center"/>', ''), /does not hold its words in the middle of its box/],
+    [
+      'with another empty text',
+      () => written(DOCUMENT, 'No rows to chart', 'Nothing'),
+      /does not print its empty text 'No rows to chart' as a paragraph of one run/,
+    ],
+    [
+      'without its title',
+      handChartParts,
+      /holds 2 paragraphs where it prints 1 of its title and its empty text/,
+      changed('nothing', ({ title: _title, ...chart }) => chart),
+    ],
+    [
+      'whose title is not centred',
+      () =>
+        written(
+          DOCUMENT,
+          '<w:jc w:val="center"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto" w:eastAsia="Roboto" w:cs="Roboto"/><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto" w:eastAsia="Roboto" w:cs="Roboto"/><w:b/>',
+          '<w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto" w:eastAsia="Roboto" w:cs="Roboto"/><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto" w:eastAsia="Roboto" w:cs="Roboto"/><w:b/>',
+        ),
+      /does not centre its title/,
+    ],
+    [
+      'whose title is not bold',
+      () => written(DOCUMENT, '<w:b/><w:color w:val="000000"/><w:sz w:val="16"/>', '<w:color w:val="000000"/><w:sz w:val="16"/>'),
+      /its title is not bold/,
+    ],
+    [
+      'drawn as a chart of Word’s',
+      handChartParts,
+      /body\[2\] is a paragraph where the file holds its table/,
+      changed('balance', () => ({ ...HAND_LINE, id: 'balance', empty: 'None', categories: [], series: [], ticks: [] })),
+    ],
+  ])('%s', async (_name, parts, message, fixture) => {
+    expect(await problems(parts(), fixture)).toMatch(message)
+  })
+
+  // A chart that prints neither word still reserves its box: the cell ends with a paragraph, as every cell does, and holds nothing else.
+  test('that prints something where it has neither a title nor an empty text', async () => {
+    const bare = changed('nothing', ({ title: _title, ...chart }) => ({ ...chart, empty: ' ' }))
+    expect(await problems(handChartParts(), bare)).toMatch(/prints something where it has no title and no empty text/)
+  })
+})
+
+// The pie's legend is its categories: a pie the document gives no legend names no slice, and the check holds the file to that.
+test('verifyDocx fails on a pie that names its slices where the chart has no legend', async () => {
+  expect(
+    await problems(
+      handChartParts(),
+      changed('shares', (chart) => ({ ...(chart as typeof HAND_PIE), legend: [] })),
+    ),
+  ).toMatch(/names its slices North: 45 \(45\.0 %\), South: 0 \(0\.0 %\), East: 55 \(55\.0 %\) where the chart's legend says –, –, –/)
+})
+
+describe('a group of lines kept on one page with a chart', () => {
+  const kept = (...group: string[]): Fixture => ({ ...HAND_CHARTS, expect: expectation(HAND_CHARTS_DOCUMENT, { maxPagesExpected: 2, keptTogether: [group] }) })
+
+  // A chart's title is a word of its part: sought among the body's paragraphs it is found nowhere, and every chart under a heading would fail.
+  test('is not sought among the paragraphs where one of its lines is a chart’s title', async () => {
+    expect(await problems(handChartParts(), kept('Charts by hand', 'Sales by region'))).toBe('')
+  })
+
+  // Only a chart's title is excused: a line that is neither a paragraph nor a word of a chart is still a line the file lost.
+  test('is still sought where a line of it is nowhere in the file', async () => {
+    expect(await problems(handChartParts(), kept('Charts by hand', 'Sales by nobody'))).toMatch(
+      /the kept lines from 'Charts by hand' are not all marked to stay on one page/,
+    )
+  })
+
+  // What the heading is kept with is the block walk's to say: without its mark the file fails there.
+  test('fails where the heading over the chart is not kept with it', async () => {
+    const parts = written(DOCUMENT, '<w:keepNext/>', '')
+    expect(await problems(parts, kept('Charts by hand', 'Sales by region'))).toMatch(/'Charts by hand' is not kept with what follows it/)
+  })
+})
