@@ -16,7 +16,8 @@ import { twips } from './units.js'
  * A chart with nothing to draw is no chart of Word's, which would draw
  * an empty plot and has no place for the words the PDF prints in its
  * stead: it is its box, a cell as wide as the chart and at least as
- * tall, never exactly, so that Word cuts no word of it, and in the
+ * tall, never exactly, so that Word cuts no word of it, in a row that
+ * does not split across pages, and in the
  * middle of it the chart's title, bold, and its empty text, each centred.
  *
  * This module holds what the check, the count and the two writings of a
@@ -158,7 +159,8 @@ export function chartNodes(chart: Chart, fonts: DocxFonts, parts: ChartParts): B
   const words = [...line(chart.title, faces.title), ...line(chart.empty, faces.words)]
   const width = twips(chart.width)
   // At least the chart's height, never exactly: a row of an exact height cuts what does not fit it, and the words' lines are Word's.
-  const row = { cantSplit: false, height: chart.height, grows: true as const }
+  // And whole: the PDF reserves the box on one page, and a row that may split would break it across two.
+  const row = { cantSplit: true, height: chart.height, grows: true as const }
   return [
     {
       kind: 'table',

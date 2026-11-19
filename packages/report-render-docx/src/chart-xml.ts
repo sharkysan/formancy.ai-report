@@ -26,7 +26,9 @@ import { attribute, decimal, element, hexColor, own, part, text, type AttributeV
  * - **Words.** Every word the block gives is one the part states: the
  *   title, the axes' titles, each category's label, each series' name --
  *   its legend entry -- and each value's label, a point's own text and
- *   never a number Word formats. A pie's categories are its legend's
+ *   never a number Word formats. A category's label and a series' name
+ *   that print nothing are stated all the same, as nothing, so that Word
+ *   writes no word of its own in the slot. A pie's categories are its legend's
  *   entries, which hold each value and its share as the runtime wrote
  *   them; no label stands on a slice. The value axis's labels alone are
  *   Word's: it writes them from the numbers, in the reader's own
@@ -100,8 +102,9 @@ function points(entries: readonly (Xml | undefined)[]): Xml[] {
   ]
 }
 
+/** A series' categories, every one stated: a label that prints nothing as nothing, since a category the part leaves out is one Word numbers itself. */
 const categories = (labels: readonly (string | undefined)[]): Xml =>
-  element('c:cat', [], [element('c:strLit', [], points(labels.map((label) => (printed(label) === undefined ? undefined : text(printed(label)!)))))])
+  element('c:cat', [], [element('c:strLit', [], points(labels.map((label) => text(printed(label) ?? ''))))])
 
 /** A series' values, each the block's digits; the format is General, so that the part says nothing of how a value prints. */
 const values = (exact: readonly (string | undefined)[]): Xml =>
@@ -137,10 +140,15 @@ function labels(chart: AxisChart, { values: each }: ChartSeriesValues, face: Cha
   return [element('c:dLbls', [], [...stated, defaults(face), placed, ...shows(false)])]
 }
 
-/** What every series opens with: its place, and its name, the legend's entry, where the chart has a legend. */
+/**
+ * What every series opens with: its place, and its name, the legend's
+ * entry, where the chart has a legend -- stated though it prints nothing,
+ * as nothing, since a series the part does not name is one Word names
+ * itself, "Series2", beside the swatch.
+ */
 function opening(chart: AxisChart, index: number): Xml[] {
-  const name = printed(chart.legend[index]?.text)
-  return [val('c:idx', index), val('c:order', index), ...(name === undefined ? [] : [element('c:tx', [], [element('c:v', [], [text(name)])])])]
+  const name = chart.legend.length === 0 ? [] : [element('c:tx', [], [element('c:v', [], [text(printed(chart.legend[index]?.text) ?? '')])])]
+  return [val('c:idx', index), val('c:order', index), ...name]
 }
 
 /** The two axes' ids, each the other's cross axis. */
@@ -324,7 +332,7 @@ export function chartXml(chart: Chart, fonts: DocxFonts): string {
       ...titled,
       // Without a title of its own Word titles a chart of one series by that series' name: said not to.
       flag('c:autoTitleDeleted', titled.length === 0),
-      element('c:plotArea', [], [...plot, shape(NO_FILL)]),
+      element('c:plotArea', [], [...plot, shape(NO_FILL, NO_LINE)]),
       ...legend,
       flag('c:plotVisOnly', true),
       val('c:dispBlanksAs', own('gap')),
