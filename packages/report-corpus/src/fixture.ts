@@ -493,11 +493,14 @@ export function normalise(text: string): string {
   return text.replace(/\s+/g, ' ').trim()
 }
 
-/** Every line of text `blocks` print, through every container: each paragraph's, and each cell of each table, its header's and its empty text among them. */
+/** The empty text `table` prints: its own where it has no detail row, and nothing where it has one. */
+const emptyTextOf = (table: Table): string => (table.rows.some((row) => row.kind === 'detail') ? '' : normalise(table.emptyText))
+
+/** Every line of text `blocks` print, through every container: each paragraph's, and each cell of each table, its header's and the empty text it prints among them. */
 function printedLines(blocks: readonly Block[]): string[] {
   return blocks.flatMap((block): string[] => {
     if (block.kind === 'paragraph') return [normalise(block.runs.map((run) => ('text' in run ? run.text : '')).join(''))]
-    if (block.kind === 'table') return [...block.header, block.emptyText, ...block.rows.flatMap((row) => row.cells)].map(normalise)
+    if (block.kind === 'table') return [...block.header, emptyTextOf(block), ...block.rows.flatMap((row) => row.cells)].map(normalise)
     if (block.kind === 'columns') return block.columns.flatMap((column) => printedLines(column.blocks))
     return 'blocks' in block ? printedLines(block.blocks) : []
   })
@@ -538,7 +541,7 @@ function expectedTable(table: Table): ExpectedTable {
       cells: printed(row.cells),
       ...(row.keepWithRows === undefined ? {} : { keepWithRows: row.keepWithRows }),
     })),
-    emptyText: table.rows.some((row) => row.kind === 'detail') ? '' : normalise(table.emptyText),
+    emptyText: emptyTextOf(table),
   }
 }
 

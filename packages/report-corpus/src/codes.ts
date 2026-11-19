@@ -38,9 +38,31 @@ let wasmBinary: ArrayBuffer | undefined
 export type PixelCode = PdfCode
 
 /**
+ * How ZXing had to read a symbol that is not drawn as it was encoded, or
+ * nothing where it read it as it stands. ZXing reads a symbol mirrored,
+ * turned, or with dark and light exchanged, and says which; a scanner
+ * that tries none of them reads nothing there, and a mirrored symbol is
+ * what an engine draws that takes a symbol's rows for its columns, with
+ * its text, its level and its version all its document's.
+ */
+function misread(result: { readonly isMirrored: boolean; readonly isInverted: boolean; readonly orientation: number }): string | undefined {
+  // A mirrored symbol's turn is the mirror's own: across the other diagonal it is no turn at all.
+  const turn = result.isMirrored ? 0 : Math.abs(result.orientation)
+  const how = [
+    ...(result.isMirrored ? ['mirrored'] : []),
+    ...(turn === 0 ? [] : [`turned by ${turn} degrees`]),
+    ...(result.isInverted ? ['with dark and light exchanged'] : []),
+  ]
+  return how.length === 0 ? undefined : how.join(' and ')
+}
+
+/**
  * Every QR code `pixels` show, as ZXing reads them, each placed in the
  * pixels' own unit: a page PDF.js drew (`readCodes`), or the picture a
- * Word file embeds for a code (`code-picture.ts`, 0074).
+ * Word file embeds for a code (`code-picture.ts`, 0074). Throws where
+ * ZXing reads one only mirrored, turned, or with dark and light
+ * exchanged (`misread`): such a code is none an engine drew right, and
+ * no caller is left to ask.
  */
 export async function codesIn(pixels: PagePixels): Promise<PixelCode[]> {
   wasmBinary ??= new Uint8Array(readFileSync(createRequire(import.meta.url).resolve('zxing-wasm/reader/zxing_reader.wasm'))).buffer
@@ -49,6 +71,11 @@ export async function codesIn(pixels: PagePixels): Promise<PixelCode[]> {
   // Read as an ImageData by its data, width and height alone, which is all a page's pixels have here: Node has no ImageData.
   const results = await readBarcodes(pixels as ImageData, { formats: ['QRCode'], maxNumberOfSymbols: 255 })
   return results.map((result): PixelCode => {
+    const how = misread(result)
+    if (how !== undefined)
+      throw new Error(
+        `ZXing reads the code only ${how}: its symbol is not drawn as it was encoded, and a scanner that tries no other reading reads nothing in it`,
+      )
     const { topLeft, topRight, bottomLeft, bottomRight } = result.position
     const xs = [topLeft.x, topRight.x, bottomLeft.x, bottomRight.x]
     const ys = [topLeft.y, topRight.y, bottomLeft.y, bottomRight.y]

@@ -1,4 +1,4 @@
-import { epcSymbol, qrSymbol } from '@formancy/report-runtime'
+import { epcSymbol, qrSymbol, type QrSymbol } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { verifyDocx } from './check-docx.js'
 import type { Block } from './document.js'
@@ -33,6 +33,13 @@ const changed = (change: (block: Block) => Block): Fixture => {
 }
 
 const QR_SYMBOL = qrSymbol(HAND_QR, 1000)
+
+/** The QR code's symbol at the top left of a square of `side` modules, with a dark module at each of `strays`, by row and column. */
+const inSquare = (side: number, strays: readonly (readonly [number, number])[] = []): QrSymbol => ({
+  modules: Array.from({ length: side }, (_, row) =>
+    Array.from({ length: side }, (_, column) => QR_SYMBOL.modules[row]?.[column] === true || strays.some(([r, c]) => r === row && c === column)),
+  ),
+})
 
 // The file as it was typed is its document, whole: without this, every case below could fail for a reason of its own.
 test('the hand-written file of codes is its document, with nothing to say against it', async () => {
@@ -79,6 +86,42 @@ describe('verifyDocx fails on a code whose picture', () => {
       'is of more pixels than a code’s is at the most',
       () => handCodeParts().set(QR_PNG, codePng(QR_SYMBOL, 73)),
       /a picture of 2409 pixels a side, more than the 2400 a code's is at the most/,
+    ],
+    [
+      // The picture a writer draws that takes a symbol's rows for its columns: every module uniform, the quiet zone white, the text, the
+      // level and the version the document's. ZXing reads it, mirrored, and many a banking app does not.
+      'shows its symbol with its rows as its columns',
+      () => handCodeParts().set(QR_PNG, codePng({ modules: QR_SYMBOL.modules.map((row, r) => row.map((_, c) => QR_SYMBOL.modules[c]![r]!)) }, 19)),
+      /body\[1\]: the QR code code: ZXing reads the code only mirrored: /,
+    ],
+    [
+      'shows its symbol mirrored, left to right',
+      () => handCodeParts().set(QR_PNG, codePng({ modules: QR_SYMBOL.modules.map((row) => [...row].reverse()) }, 19)),
+      /the QR code code: ZXing reads the code only mirrored: /,
+    ],
+    [
+      // Four modules of white above the symbol and to its left, eight to its right and under it: 37 modules across at 17 pixels, fine
+      // enough for its inch. Taken for a version 3 picture, its modules would be held to a ninth finer than they print.
+      'shows its symbol in the corner of a larger square',
+      () => handCodeParts().set(QR_PNG, codePng(inSquare(29), 17)),
+      /the QR code code: the picture's symbol ends 136 pixels from the right and 136 from the bottom, where four modules of 17 pixels are 68/,
+    ],
+    [
+      // The same, with a speck at each far corner of the square, so that the drawing reaches four modules from every side: what the
+      // pixels are a picture of and what a scanner reads in them are then two versions, and the scanner's is the symbol's.
+      'is one version’s square around another version’s symbol',
+      () =>
+        handCodeParts().set(
+          QR_PNG,
+          codePng(
+            inSquare(29, [
+              [0, 28],
+              [28, 0],
+            ]),
+            17,
+          ),
+        ),
+      /the QR code code is a picture of a version 3 symbol in which a scanner reads one of version 2/,
     ],
     [
       'says another text',
@@ -163,8 +206,8 @@ describe('verifyDocx fails on a code whose picture', () => {
     expect(await problems(low, plain(HAND_QR.text))).toMatch(/the EPC QR code code is at level L where it asks for M/)
   })
 
-  // A code wider than four inches would be more than 2,400 pixels a side at 600 to the inch: its picture is as many whole pixels a module
-  // as 2,400 hold, and fine enough at that. At a pixel a module fewer it is too coarse, as any picture under 600 to the inch is.
+  // A wide code would be more than 2,400 pixels a side at 600 to the inch: its picture is as many whole pixels a module as 2,400 hold,
+  // and fine enough at that. At a pixel a module fewer it is too coarse, as any picture under 600 to the inch is.
   test('is a large code’s, fine enough at as many pixels a module as the most hold', async () => {
     const large = (pixels: number): Promise<string> => {
       const parts = handCodeParts().set(QR_PNG, codePng(QR_SYMBOL, pixels))
@@ -315,8 +358,25 @@ describe('verifyDocx fails on a captioned EPC QR code whose', () => {
     ],
     [
       'picture stands at its frame’s corner',
-      () => written('<w:spacing w:before="14"/><w:ind w:left="14"/>', ''),
-      /the EPC QR code pay's picture does not stand half a module, 0\.67\d+ pt, in from its frame's left and top/,
+      () => written('<w:spacing w:before="14"/><w:ind w:left="13"/>', ''),
+      /the EPC QR code pay's picture does not stand half a module, 0\.67\d+ pt, down from its frame's top and 0\.65 pt in from its left/,
+    ],
+    [
+      // Half a module is 0.6786 pt, fourteen twentieths to the nearest; the picture, 77.3614 pt, would then end 78.0614 pt into a cell
+      // of 78.05, and a picture wider than its cell is one Word may fit to it, resampling a code. It stands thirteen in.
+      'picture and its distance from the left are a hair wider than its cell',
+      () => written('<w:spacing w:before="14"/><w:ind w:left="13"/>', '<w:spacing w:before="14"/><w:ind w:left="14"/>'),
+      /the EPC QR code pay's picture, 77\.36\d+ pt wide and 0\.7 pt in from the left, is wider than its cell of 78\.05 pt/,
+    ],
+    [
+      'picture stands two twentieths of a point short of half a module in',
+      () => written('<w:spacing w:before="14"/><w:ind w:left="13"/>', '<w:spacing w:before="14"/><w:ind w:left="12"/>'),
+      /the EPC QR code pay's picture does not stand half a module, 0\.67\d+ pt, down from its frame's top and 0\.65 pt in from its left/,
+    ],
+    [
+      'picture stands a twentieth of a point short of half a module down',
+      () => written('<w:spacing w:before="14"/><w:ind w:left="13"/>', '<w:spacing w:before="13"/><w:ind w:left="13"/>'),
+      /the EPC QR code pay's picture does not stand half a module, 0\.67\d+ pt, down from its frame's top and 0\.65 pt in from its left/,
     ],
     [
       'picture is another size than its modules',
