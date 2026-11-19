@@ -162,7 +162,7 @@ Each as a `RenderRefusal`, whole, naming what it is about:
 
 | What | Code |
 |---|---|
-| A document that carries an e-invoice of either kind, which is the invoice and belongs to its PDF: a Word file is written of its copy, and the sentence says how to ask for it. And a preview the runtime labelled | `unsupported` |
+| A document that carries an e-invoice of either kind, which is the invoice and belongs to its PDF: a Word file is written of its copy, and the sentence says how to ask for it. A preview the runtime labelled. And an XRechnung's PDF copy with its XML taken off, whose page header or page 1's own opens with the label that says "this PDF" is not the invoice | `unsupported` |
 | A document labelled as a copy of an e-invoice otherwise than on every header: the label printed otherwise than the runtime writes it, in white or at one point; page 1's own header without it, or with another; a label on page 1's own header alone | `unsupported` |
 | A QR-bill no engine draws, in the words the PDF renderer refuses it in: a kind nobody knows, a page that is not A4 upright, text that is not text, an amount or a currency SIX does not print, more lines than a slip prints; and a character SIX does not allow a bill, which has no width to show its line to fit by | `unsupported` |
 | And of a QR-bill: information taller than its section, in the PDF renderer's words, a heading, a currency or an amount wider than its place on one line, a payload past SIX's 997 characters, and a top margin that reaches into the slip | `content-too-large` |
@@ -186,7 +186,7 @@ const copy = resolveReport(invoice, data, { mode: 'final', eInvoice: 'copy', cre
 if (copy.ok) renderDocx(copy.document) // the invoice's page, labelled on every page as a copy that is not the invoice
 ```
 
-The runtime labels the copy, in the report's language, at the top of the
+The runtime labels the copy, in the render's language, at the top of the
 page header and of page 1's own, and hands it on with no XML; the writer
 holds every header to that label and writes it once more as the header
 of a QR-bill's slip's page, which is a section of the file's own. The
@@ -194,7 +194,10 @@ file embeds nothing: the e-invoice is still the Factur-X PDF/A-3b, or
 the XRechnung's XML, from the render without the option. A person may
 change a copy, its label and its totals among it, and nothing ties it to
 the XML afterwards: that is the cost, and why every page says what it
-is. A report paid by a
+is. The file says so only of a document the runtime resolved as a copy:
+a Factur-X's final render whose XML a host takes off carries no label
+and is written as any report, and an XRechnung's, labelled as its PDF,
+is refused. A report paid by a
 QR-bill has one, its slip on a page of its own at the end. A chart is in the file, as Word's own chart: its data in the
 file's own part and no workbook, so "Edit Data" has nothing to open; its
 values the report's digits and its words the runtime's, but the value

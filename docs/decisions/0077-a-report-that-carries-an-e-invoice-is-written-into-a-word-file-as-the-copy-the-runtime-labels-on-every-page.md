@@ -15,7 +15,11 @@
     is refused, by the same errors, of a preview, as any other value of
     the option, and in a language no label is written in, at the locale;
     that the option says nothing of a report without an e-invoice, in a
-    final render and in a preview; every label, word for word, each
+    final render and in a preview; that a report written in a second
+    language (0063) and rendered in it is labelled in that language, and
+    refused at that translation's locale where it is one no label is
+    written in; every label, word for word, French's colon set off by a
+    space that does not break, each
     found by a locale's first subtag and none by `constructor`; that the
     paragraphs are frozen and in the style every label of the runtime is
     printed in; and `readCopyLabel`: the label a header opens with, none
@@ -34,14 +38,21 @@
     invoice itself is refused, naming `eInvoice` and the option that
     asks for the copy, and its preview, naming `pageHeader`; the same
     bytes twice; a copy under each label, with a header of
-    page 1's own; a copy paid by a QR-bill, whose slip's page's header
+    page 1's own; the copy the runtime resolves of each starter with a
+    header of page 1's own, empty and of the report's own words, and of
+    the Factur-X sample paid by a QR-bill too, each held by `verifyDocx`
+    and opening every header the file states with the label; a copy
+    paid by a QR-bill, whose slip's page's header
     is the label alone, 5 mm down and 5 mm in, its top margin the one of
     a report that is no copy; that label counted with the file's
     paragraphs, as the one 0075 counts for that header, and its words
     with the file's characters, written at each bound and refused one
     past it;
     each refusal of a document labelled otherwise than on every header,
-    by its subject and its sentence and as the corpus derives it; the
+    by its subject and its sentence and as the corpus derives it; an
+    XRechnung's final render with its XML taken off, and a document
+    that opens either header with its PDF's label in any style, refused
+    as its PDF copy, naming the header; the
     order, after the e-invoice and before any block; and that a report
     which only quotes the label is written and is no copy.
     `refusals.test.ts` holds the sentences of the e-invoice's refusals,
@@ -51,12 +62,15 @@
   - **Both engines.** `src/against-pdf.test.ts` holds every word of the
     copy of each e-invoice starter to the size, weight and slant the PDF
     of that same document prints it at, the body's as every starter's;
-    the label's words, read in the header each engine prints; the EPC
+    the label's words, as the Word file's page header states them, to
+    the words the PDF of the same copy prints anywhere on its pages; the EPC
     QR code each copy is paid by, to the code ZXing reads on that PDF;
     and that the PDF drawn of a copy embeds nothing. report-render-pdf's
     `src/pdfa-check.test.ts` holds that the renderer draws a copy of
     either kind as a plain PDF that embeds nothing, and refuses it as a
-    PDF/A-2b, naming `pageHeader`, before pdfmake is handed anything.
+    PDF/A-2b, naming `pageHeader`, before pdfmake is handed anything, and
+    a document labelled as a copy on page 1's own header alone, naming
+    `firstPageHeader`.
   - **The corpus's check.** report-corpus's
     `src/check-docx-copy.test.ts` proves `verifyDocx` on files written by
     hand, which pass as they stand and fail with one thing written
@@ -68,7 +82,8 @@
     it light, stands at the paper's edge, or is the report's own; that a
     report which is no copy is asked for no label and keeps its slip's
     empty header at the edge; and `wordRefusal`, which derives none for a
-    copy labelled on every header and one for each way it is not.
+    copy labelled on every header and one for each way it is not, and
+    one for an XRechnung's PDF label on either header.
   - **Made to fail.** Each of these was broken once in the code and its
     test watched fail, then put back: the runtime without the option, at
     which nine cases of its suite failed; the corpus's check without
@@ -77,7 +92,12 @@
     `copy.ts`, at which sixteen failed; the renderer's 2b rule, the
     Studio's pipeline writing the file of the document it drew, the copy
     still carrying its XML, the slip's label uncounted, and the slip's
-    label set at the paper's edge.
+    label set at the paper's edge; and, after review, the label read in
+    the report's own language in place of the render's, the writer and
+    the corpus without the refusal of an XRechnung's PDF label, the 2b
+    rule reading the page header alone, and the slip's page without its
+    label under the copy the runtime resolves of a report paid by a
+    QR-bill.
   - **The Studio and the install gate.** The Studio's `pipeline.test.ts`
     holds the Word file of each e-invoice starter's final render to the
     copy it resolves for itself, the XML beside it the invoice's, and a
@@ -151,8 +171,18 @@ has it for the XRechnung's PDF.
 
 The invoice's own document, the one that carries the XML, is refused by
 the writer as it was, `unsupported` naming `eInvoice`, in a sentence
-that now says what to ask for. So a Word file of an e-invoice report
-exists only of a document that carries the label.
+that now says what to ask for. So of a document the runtime resolved, a
+Word file of an e-invoice report exists only of one that carries the
+label.
+
+A host may take the XML off the invoice's own document and hand the
+writer the rest, which no runtime resolves. Of an XRechnung that is its
+PDF's copy, every page of which says "this PDF is not the invoice": the
+writer refuses a document whose page header or page 1's own opens with
+that label, in any style, `unsupported` naming the header, as what only
+the PDF prints. Of a Factur-X it is the invoice's page with no label at
+all, which nothing tells from a report that is no invoice, and it is
+written; that is among the costs.
 
 **2. The copy carries no XML.** The invoice's terms are held and its XML
 written exactly as for the invoice, so that a copy is of an invoice that
@@ -218,7 +248,8 @@ passes for the report.
 like any other to it: drawn as a plain PDF that embeds nothing, with the
 label on every page. Asked for as a PDF/A-2b it is refused, in
 `pdfa-check.ts`, beside a preview and for the same reason: archived, it
-would be kept as the invoice.
+would be kept as the invoice. It is refused where any header it holds
+opens with a copy's label, page 1's own among them, naming that header.
 
 **8. Where a person gets the e-invoice.** Not from the Word file. The
 Studio's Preview resolves an e-invoice's final render once more as the
@@ -267,7 +298,22 @@ What it costs:
   document.** A copy is known to an engine by the paragraph its page
   header opens with. A host that builds a document by hand with those
   words in white is refused; one that builds a document without them has
-  an ordinary report, which is what it built.
+  an ordinary report, which is what it built. That includes a Factur-X's
+  final render with its XML taken off: written as a report, with no
+  label, a picture of the invoice that says nothing of what it is. The
+  writer holds a file to what the runtime resolved, and cannot tell such
+  a document from one that is no invoice without a mark the alternatives
+  below decline.
+- **The copy's file is titled as the invoice.** The file's
+  `dc:title` is the report's title as the invoice's PDF has it,
+  "Rechnung (ZUGFeRD)" of the e-invoice starter, so Word's File > Info
+  and a list of files name the copy as the invoice. A title of the
+  copy's own would be a word the runtime does not have in any language:
+  its label is a sentence, written for a page, and no title.
+- **A host that wrote an XRechnung's PDF copy as a Word file is
+  refused.** Before this change the writer wrote an XRechnung's final
+  render with its XML taken off, labelled "this PDF is not the invoice";
+  it is refused now, naming the header, and the copy is what to ask for.
 - **`pdf-only.ts`'s sentences changed**, and a host that matched them
   reads other words; the code and the subject are as they were.
 - **A slip's page of a copy is not the slip's page of a report.** Its
@@ -315,9 +361,9 @@ languages, and a Word file that embeds the XML could each be added.
   one header, on data that is a sample.
 - **Embed the XML in the Word file**, as an attachment or a custom part.
   A file a person edits that carries an invoice it may no longer agree
-  with, a part Word may drop on saving, and the one thing SECURITY.md
-  says a Word file here never holds: something that is not the report's
-  own text and pictures.
+  with, a part Word may drop on saving, and what SECURITY.md, as this
+  change words it, puts in scope where a Word file of an e-invoice holds
+  it: anything of the invoice beyond its printed page.
 - **A watermark across the page, or a text box.** A drawing nobody has
   seen Word place, where a header's first paragraph is what 0068 already
   writes and the corpus already reads.

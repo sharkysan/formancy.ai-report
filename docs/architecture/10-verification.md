@@ -550,8 +550,8 @@ that carries an e-invoice is written from its copy, and the copy is
 proved on the headers the file states
 ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)), extending 0068 and 0003.
 The runtime's suite holds the copy itself: the label of its kind in the
-render's language at the top of each header, no XML, and each way the
-option is refused. The corpus's `verifyDocx` then holds the file: the
+render's language at the top of each header, a translation's among them,
+no XML, and each way the option is refused. The corpus's `verifyDocx` then holds the file: the
 invoice's lines and totals by the expectation its PDF is held to, as any
 report's, and every header -- the page header, page 1's own, and a
 slip's page's, which holds nothing else -- to opening with the label
@@ -562,7 +562,11 @@ otherwise. The writer's suite writes the copy of every e-invoice sample
 and holds that no part of the file holds the XML's root element and
 that every part is one a report's file has; the corpus's reader already
 refuses a part no relationship reaches and a relationship that leads
-outside the package. `against-pdf.test.ts` holds the label and the body
+outside the package. It writes the copy the runtime resolves of a report
+paid by a QR-bill and of one with a header of page 1's own, and refuses
+an XRechnung's final render with its XML taken off, labelled as its PDF.
+A Factur-X's with its XML taken off has no label to hold, and is written
+as any report: the proof is of a document the runtime resolved. `against-pdf.test.ts` holds the label and the body
 to the PDF drawn of the same copy. What none of it shows is that Word
 prints a header on every page, or what a person does to the file
 afterwards: a copy whose label was deleted, or whose total was typed

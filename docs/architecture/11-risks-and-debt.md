@@ -308,6 +308,10 @@ writer can hold is that the file says what it is as it leaves it. The
 label is written in six languages, four of which no native speaker has
 read, and a report in any other has no Word file while it carries an
 e-invoice. A preview's label and an XRechnung's PDF's are still English.
+The file says what it is only of a document the runtime resolved as a
+copy: a Factur-X's final render whose XML a host takes off carries no
+label and is written as any report, and the copy's file is titled as
+the invoice, which is what Word's File > Info names it.
 And nobody has seen Word print the label on every page
 ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
 

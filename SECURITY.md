@@ -93,11 +93,12 @@ follow from that:
   artefact or an API response.
 - **Silent wrong output**: a production PDF or Word file that drops rows,
   truncates content or rounds a total without saying so, a Word file
-  written without a QR-bill's slip its report holds, a Word file of a
-  report that carries an e-invoice which does not say at the top of
-  every page, a slip's page among them, that it is a copy and not the
-  invoice, or which embeds the invoice's XML or anything else that is
-  not the report's own text and pictures (0077), a Word file whose QR code or EPC QR code
+  written without a QR-bill's slip its report holds, a Word file of the
+  copy the runtime resolves of a report that carries an e-invoice which
+  does not say at the top of every page, a slip's page among them, that
+  it is a copy and not the invoice, or which embeds the invoice's XML or
+  anything else of the invoice beyond its printed page (0077), a Word
+  file whose QR code or EPC QR code
   scans to anything but what its report's PDF scans to (0074), and one
   whose chart states another number or another word than its report's,
   or leaves one out (0076) -- an integrity failure, and in scope. Where

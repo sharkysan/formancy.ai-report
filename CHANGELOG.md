@@ -27,7 +27,10 @@ nothing depends on anything new.
   `eInvoice` for it, in other words than before: they now say to ask
   for the copy. So a host resolves an e-invoice twice, once for the
   invoice it keeps and sends and once for the Word file. The option
-  says nothing of a report that carries no e-invoice.
+  says nothing of a report that carries no e-invoice. An XRechnung's
+  final render with its XML taken off, which says on every page that
+  "this PDF" is not the invoice and which the writer wrote until now, is
+  refused, naming the header that opens with that label.
 - **What the label says, and in which language.** That the page is a
   copy, what the invoice is -- the PDF that embeds its XML, of a
   Factur-X, or its XML, of an XRechnung -- and that this document is not
@@ -51,8 +54,13 @@ nothing depends on anything new.
   its label it is a sample that passes for the report.
 - **What it costs.** A person may change a copy in Word, its label and
   its totals among it, and nothing ties the file to the XML afterwards;
-  that is why it says on every page what it is. The PDF renderer refuses
-  a copy asked for as a PDF/A-2b, as it refuses a preview. A new runtime
+  that is why it says on every page what it is. The file says it only
+  of a document the runtime resolved as a copy: a Factur-X's final
+  render whose XML a host takes off has no label and is written as any
+  report. The file's title is the invoice's, so Word's File > Info
+  names the copy as the invoice. The PDF renderer refuses a copy asked
+  for as a PDF/A-2b, as it refuses a preview, whichever header carries
+  its label. A new runtime
   error code, `no-e-invoice-copy`, and a manifest that says
   `eInvoice: 'copy'` of a copy. Nobody had opened a copy in Word when
   this merged.

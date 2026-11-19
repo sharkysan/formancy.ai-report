@@ -327,7 +327,7 @@ date and the title, what belongs to the PDF of the document itself, the
 page, then each region's blocks in document order, the pictures'
 bytes, and a QR-bill's payment part last. It refuses what belongs to the PDF (`pdf-only.ts`:
 the document that carries an e-invoice, which is written from its copy
-instead, and a preview the runtime labelled);
+instead, a preview the runtime labelled, and an XRechnung's PDF copy);
 what nobody has seen Word print as the PDF
 does (a JPEG its Exif block turns, by report-spec's
 `JpegHeader.orientation`, or of four components, in `assets.ts`, which
@@ -467,8 +467,10 @@ in, and as any other value; the writer's `copy.ts` holds every header to
 that label and decides no word of it, `package.ts` writes it once more
 as the header of a slip's page, 5 mm down and in (`COPY_LABEL_INSET`),
 and `pdf-only.ts` still refuses the document that carries the XML, in a
-sentence that says to ask for the copy; the renderer's `pdfa-check.ts`
-refuses a copy as a PDF/A-2b; the corpus's `check-docx-copy.ts` holds
+sentence that says to ask for the copy, and an XRechnung's PDF copy, its
+XML taken off, by the label on either header; the renderer's
+`pdfa-check.ts` refuses a copy as a PDF/A-2b, whichever header carries
+its label; the corpus's `check-docx-copy.ts` holds
 every header the file states to the label, a slip's page's among them;
 and the Studio's `preview/pipeline.ts` resolves an e-invoice's final
 render once more as the copy for Download Word alone

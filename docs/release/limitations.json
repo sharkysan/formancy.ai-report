@@ -3383,7 +3383,7 @@
       ]
     },
     "0077": {
-      "reviewed": "sha256:bc7b58db487a0457aadbab56cf7d6c8e5f42856a582c6e0b7272277957033123",
+      "reviewed": "sha256:7cc741a68b92094d4bd4708e5138abe34be4c8dbba6eb97deb43db6f1f7b130d",
       "limitations": [
         {
           "area": "rendering",
@@ -3392,7 +3392,7 @@
         },
         {
           "area": "runtime",
-          "says": "A host resolves an e-invoice twice to have its Word file, once as the invoice and once with eInvoice: ’copy’, since the invoice’s own document is refused by the Word writer; the Studio’s Preview does so for every final render of an e-invoice.",
+          "says": "A host resolves an e-invoice twice to have its Word file, once as the invoice and once with eInvoice: 'copy', since the invoice’s own document is refused by the Word writer; the Studio’s Preview does so for every final render of an e-invoice.",
           "heldBy": "packages/report-runtime/src/e-invoice-copy.test.ts"
         },
         {
@@ -3407,7 +3407,7 @@
         },
         {
           "area": "rendering",
-          "says": "A copy of an e-invoice is known to the Word writer and the PDF renderer by the paragraph its page header opens with: the renderer refuses it as a PDF/A-2b, and the writer’s sentences for a report that carries an e-invoice changed, their code and subject as they were.",
+          "says": "A copy of an e-invoice is known to the Word writer and the PDF renderer by the paragraph a header opens with: the renderer refuses it as a PDF/A-2b where the page header or page 1’s own opens with a copy’s label, and the writer’s sentences for a report that carries an e-invoice changed, their code and subject as they were.",
           "heldBy": "packages/report-render-pdf/src/pdfa-check.test.ts"
         },
         {
@@ -3416,8 +3416,17 @@
         },
         {
           "area": "testing",
-          "says": "No starter or sample is an e-invoice paid by a QR-bill, so the label on a slip’s page is proved on a copy with a bill put on its document by hand, and on a file typed out by hand.",
+          "says": "No starter or sample is an e-invoice paid by a QR-bill, so the label on a slip’s page is proved on the Factur-X sample given the invoice starter’s bill and a Swiss account in the test, on copies with a bill put on their document by hand, and on a file typed out by hand.",
           "heldBy": "packages/report-render-docx/src/copy.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A Word file says it is a copy only of a document the runtime resolved as one: a Factur-X’s final render whose XML a host takes off is written as a report with no label, which nothing tells from one that is no invoice; an XRechnung’s, whose every page names its PDF, is refused, where 0068 wrote it.",
+          "heldBy": "packages/report-render-docx/src/copy.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The Word file of a copy carries the report’s title as the invoice’s PDF does, Rechnung (ZUGFeRD) of the e-invoice starter, so Word’s File > Info and a list of files name the copy as the invoice; the runtime has no title of a copy’s own in any language."
         }
       ]
     }
