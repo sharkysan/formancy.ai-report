@@ -24,6 +24,9 @@ function literal(reading: ChartReading, holder: XmlNode | undefined, kind: 'strL
     const written = c(point, 'v')?.text ?? fail(`${of} has a point with no value`)
     points[index] = kind === 'numLit' ? decimal(written, `a value of ${of}`) : written
   }
+  // A value a series has none for is a point the part does not state; a word is always stated, as nothing where it prints nothing, or Word
+  // writes a number of its own in its place.
+  if (kind === 'strLit' && points.includes(null)) fail(`${of} leave a point for Word to name`)
   return points
 }
 

@@ -82,11 +82,11 @@ export function filled(reading: ChartReading, shape: XmlNode | undefined, of: st
   return colour(reading, a(shape, 'solidFill'), of)
 }
 
-/** A shape that paints nothing: no fill and, where `outlined`, no line either. */
-export function unpainted(reading: ChartReading, shape: XmlNode | undefined, of: string, outlined = true): void {
+/** A shape that paints nothing: no fill, and a line stated as none. */
+export function unpainted(reading: ChartReading, shape: XmlNode | undefined, of: string): void {
   const { a, fail } = reading
   if (shape === undefined || a(shape, 'noFill') === undefined || a(shape, 'solidFill') !== undefined) return fail(`${of} is filled, or left for Word to fill`)
-  if (outlined ? line(reading, shape, of) !== undefined : a(shape, 'ln') !== undefined) fail(`${of} has a line around it`)
+  if (line(reading, shape, of) !== undefined) fail(`${of} has a line around it`)
 }
 
 /** Held across: without it Word may turn a word. */

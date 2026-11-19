@@ -42,7 +42,7 @@ export function readChart(part: Part, opc: OpcPackage): DocxChart {
   unpainted(reading, c(root, 'spPr'), 'the chart')
   const chart = need(root, 'chart')
   const area = need(chart, 'plotArea')
-  unpainted(reading, c(area, 'spPr'), 'the plot', false)
+  unpainted(reading, c(area, 'spPr'), 'the plot')
   const drawn = (['bar', 'line', 'pie'] as const).flatMap((kind) => {
     const node = c(area, `${kind}Chart`)
     return node === undefined ? [] : [{ kind, node }]

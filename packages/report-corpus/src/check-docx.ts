@@ -1,7 +1,6 @@
 import { checkSvg, E_INVOICE_PREVIEW_LABEL, imageHeader, PREVIEW_LABEL } from '@formancy/report-runtime'
 import { paragraphsOf, verifyContainer } from './check-docx-blocks.js'
 import { decodedProblems, type FoundCodes } from './check-docx-codes.js'
-import { docxCharts } from './docx-charts.js'
 import { pageDimensions, type Block, type Image, type ResolvedDocument, type Section } from './document.js'
 import type { Docx, DocxBlock, DocxParagraph, DocxRegion, DocxRun, DocxTable } from './docx/model.js'
 import { normalise, type ExpectedImage, type ExpectedRefusal, type ExpectedShiftedRun, type ExpectedTable, type Fixture } from './fixture.js'
@@ -100,6 +99,12 @@ function fontProblems(docx: Docx): string[] {
   return [...named].filter((family) => !listed.has(family)).map((family) => `the family ${family} is named by a run and missing from the font table`)
 }
 
+/** The title of the chart `paragraph` draws, as a line of extracted text has it; undefined where it draws none, or one with no title. */
+function titleOf(paragraph: DocxParagraph): string | undefined {
+  const [run] = paragraph.runs
+  return run?.kind === 'chart' && run.frame.chart.title !== undefined ? normalise(run.frame.chart.title.text) : undefined
+}
+
 /** A paragraph's words as a line of extracted text has them; a field as nothing. */
 const lineOf = (paragraph: DocxParagraph): string => normalise(paragraph.runs.map((run) => (run.kind === 'text' ? run.text : '')).join(''))
 
@@ -172,14 +177,21 @@ function expectedProblems(expect: Fixture['expect'], docx: Docx, coded: Readonly
   // A line that stands in the body itself is kept with the next unless it is the group's last; one in a table's cell may stand in the row that ends
   // its block, which is kept with nothing after it, and what it is kept with is the block walk's to say (`check-docx-blocks.ts`).
   const standsAlone = new Set<DocxBlock>(docx.body)
-  // A chart's title is a word of its part, and no paragraph of the body: a group kept with one is not sought among the paragraphs, and what a
-  // chart is kept with -- the heading over it, the lines of its keep-together block -- is the block walk's to say, mark by mark.
-  const charted = new Set(docxCharts(docx).flatMap((frame) => (frame.chart.title === undefined ? [] : [normalise(frame.chart.title.text)])))
   for (const group of expect.keptTogether) {
-    if (group.some((line) => charted.has(line) && !lines.includes(line))) continue
-    const kept = group.map((line) => body.find((paragraph) => lineOf(paragraph) === line))
+    // A group's lines are sought in their order, each after the one before it. A chart's title is a word of its part and no paragraph of
+    // the body: it is found at the chart's own paragraph, there and nowhere else, whatever a paragraph elsewhere says.
+    let from = 0
+    const kept = group.map((line) => {
+      const at = body.findIndex((paragraph, index) => index >= from && (lineOf(paragraph) === line || titleOf(paragraph) === line))
+      if (at >= 0) from = at + 1
+      return body[at]
+    })
+    const charted = kept.map((paragraph) => paragraph !== undefined && titleOf(paragraph) !== undefined)
+    // A heading kept with the chart under it is one paragraph kept with the next, and neither keeps its lines: only a keep-together
+    // block's do. So a chart's line, and the line before it, are held by what each is kept with, and their lines by the block walk.
     const loose = (paragraph: DocxParagraph, index: number): boolean =>
-      !paragraph.keepLines || (index < kept.length - 1 && standsAlone.has(paragraph) && !paragraph.keepNext)
+      (!paragraph.keepLines && charted[index] !== true && charted[index + 1] !== true) ||
+      (index < kept.length - 1 && standsAlone.has(paragraph) && !paragraph.keepNext)
     if (kept.some((paragraph, index) => paragraph === undefined || loose(paragraph, index)))
       problems.push(`the kept lines from '${group[0] ?? ''}' are not all marked to stay on one page`)
   }

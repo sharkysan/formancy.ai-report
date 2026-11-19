@@ -157,7 +157,7 @@ const valueAxis = (min: string, max: string, step: string, format: string, hex: 
 
 /** A chart's part: its title or none, its plot, its legend or none, and what paints nothing and sets its words. */
 const space = (titled: string, plot: string, legend: boolean, hex: string): string =>
-  `${DECLARATION}<c:chartSpace ${C} ${A}><c:roundedCorners val="0"/><c:chart>${titled}<c:autoTitleDeleted val="${titled === '' ? 1 : 0}"/><c:plotArea>${plot}<c:spPr><a:noFill/></c:spPr></c:plotArea>` +
+  `${DECLARATION}<c:chartSpace ${C} ${A}><c:roundedCorners val="0"/><c:chart>${titled}<c:autoTitleDeleted val="${titled === '' ? 1 : 0}"/><c:plotArea>${plot}<c:spPr><a:noFill/>${NO_LINE}</c:spPr></c:plotArea>` +
   `${legend ? `<c:legend><c:legendPos val="b"/><c:overlay val="0"/>${defaults(hex)}</c:legend>` : ''}<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart>` +
   `<c:spPr><a:noFill/>${NO_LINE}</c:spPr>${defaults(hex)}</c:chartSpace>`
 
@@ -215,7 +215,7 @@ const centred = (words: string, bold: boolean): string =>
 /** The box of the chart with nothing to draw: 300 points wide and at least 120 tall, its title and its empty text in its middle. */
 const EMPTY =
   `<w:tbl><w:tblPr><w:tblW w:w="6000" w:type="dxa"/><w:tblLayout w:type="fixed"/>${margins(0, 0)}</w:tblPr><w:tblGrid><w:gridCol w:w="6000"/></w:tblGrid>` +
-  '<w:tr><w:trPr><w:trHeight w:val="2400" w:hRule="atLeast"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="6000" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>' +
+  '<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="2400" w:hRule="atLeast"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="6000" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>' +
   `${centred('Balance', true)}${centred('No rows to chart', false)}</w:tc></w:tr></w:tbl>`
 
 const BODY = [
