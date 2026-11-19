@@ -116,8 +116,13 @@ export const MALFORMED_CHARTS: readonly MalformedChart[] = [
   body('chart-too-many-ticks', 'An axis of more ticks than the runtime writes', { ...BARS, ticks: many(8, (index) => value(String(index * 2))) }),
   body('chart-unmapped-font', 'A chart set in a font the report maps to nothing', { ...BARS, style: { font: 'serif' } }),
   body('chart-size-of-words', 'A chart whose words are larger than any text', { ...BARS, style: { size: 400 } }),
-  body('chart-series-colour', 'A series in a colour that is none', { ...BARS, series: [{ ...BARS.series[0]!, color: 'blue' }, BARS.series[1]!] }),
-  body('chart-legend-colour', 'A legend entry in a colour that is none', { ...PIE, legend: [{ text: 'North', color: '#1F77B4' }, PIE.legend[1]!] }),
+  // Each with no legend, or one in the same colour: a legend in another colour than its series is refused for that, whatever the colour is.
+  body('chart-series-colour', 'A series in a colour that is none', { ...BARS, series: [{ ...BARS.series[0]!, color: 'blue' }, BARS.series[1]!], legend: [] }),
+  body('chart-slice-colour', 'A slice in a colour written in capitals', {
+    ...PIE,
+    slices: [{ ...PIE.slices[0]!, color: '#1F77B4' }, PIE.slices[1]!],
+    legend: [{ text: 'North', color: '#1F77B4' }, PIE.legend[1]!],
+  }),
   body('chart-values-short', 'A series with a value too few', { ...BARS, series: [{ color: '#1f77b4', values: [value('4')] }, BARS.series[1]!] }),
   body('chart-legend-short', 'A legend that names one series of two', { ...BARS, legend: [BARS.legend[0]!] }),
   body('chart-legend-other-colour', "A legend entry in another series' colour", { ...BARS, legend: [BARS.legend[1]!, BARS.legend[0]!] }),
