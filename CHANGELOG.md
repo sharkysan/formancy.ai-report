@@ -10,6 +10,57 @@ later.
 
 ## Unreleased
 
+**A chart is written into a Word file, as Word's own chart**
+([0076](docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
+The Word writer refused every report with a chart, since ECharts lays a
+chart out and only the PDF renderer may depend on it. It was asked that a
+Word file hold a report's chart as a chart Word draws, not as a picture
+of the PDF's; this is the second of four changes.
+No PDF changed, and the writer depends on nothing new.
+- **What a host notices.** `renderDocx` writes a report with a chart
+  where it threw `unsupported` naming the chart: the sales report has a
+  Word file, and the Studio's Preview offers it. A chart with something
+  to draw is a part of the file, `word/charts/chartN.xml`, which the body
+  draws inline in exactly the chart's box; one with nothing to draw is
+  its title and its empty text in a cell at least as tall as its box.
+- **No workbook.** The chart's data are literals in its own part. The
+  file holds no embedded workbook, and the part has no relationship and
+  names no cell, so that a written file still holds no object and leads
+  nowhere. The cost is that "Edit Data" in Word has nothing to open: a
+  person restyles the chart and changes its title, and rebuilds it to
+  change its numbers.
+- **The report's digits and the runtime's words.** Each value is written
+  as the digits the runtime resolved, never through a JavaScript number,
+  and the value axis is the report's ticks, its ends and its step all
+  stated, so that Word scales nothing itself. The title, the axes'
+  titles, the categories, the legend and each value's label are the
+  runtime's text; a pie's shares stand in its legend's entries as the
+  runtime rounded them. Word reads the numbers as doubles to draw.
+- **The value axis's labels are Word's.** DrawingML has no place for a
+  tick's own text, so Word writes each label from the number: digits in
+  the reader's own separators, with no grouping, currency or unit, where
+  the PDF prints the runtime's text. Give the axis a title that says the
+  currency or the unit, or label the values.
+- **Where a word stands is Word's**, as lines and pages are. The PDF
+  refuses a chart whose words would meet or whose bars would be too thin
+  in ECharts' layout; the writer writes those charts, and what Word makes
+  of them nobody here has seen. A bar chart's category axis is drawn at
+  zero in the Word file and at the plot's foot in the PDF.
+- **What is refused.** A chart in a page region, as the PDF refuses it; a
+  chart's block no engine prints, by the PDF renderer's code, naming the
+  chart; and past the file's bounds, as `content-too-large`: more than
+  `MAX_DOCX_CHARTS` charts, 64, more than `MAX_DOCX_CHART_POINTS` points
+  between them, 25,600, which sixteen of the largest chart the runtime
+  resolves hold, and a number written in more than
+  `MAX_DOCX_CHART_DIGITS` characters, 330, which no runtime resolves.
+  The PDF bounds a render's charts otherwise, so a report of very many
+  charts may print as one and not as the other.
+- **`@formancy/report-runtime` hands on `MAX_SCALE`**, report-spec's
+  bound on a decimal's places, beside `MAX_FORMATTED_DIGITS`.
+- **Not yet opened in Word.** The files were read back by a reader that
+  is not their writer and held to the report; nobody had opened one in
+  Word when this merged, and the record says what that leaves unseen.
+
 **A QR code and an EPC QR code are written into a Word file, and what
 refuses a code is decided once, below both engines**
 ([0074](docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).

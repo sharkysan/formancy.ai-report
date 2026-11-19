@@ -297,9 +297,10 @@ thread. The viewer keeps it with the PDF it was written beside, as the
 XML, so that Download Word gives the file of the render on the paper,
 under the starter's id. Where the writer refused, the link is not drawn
 and a note says why in the writer's own sentence, which is how a person
-learns that an invoice, a report paid by a QR-bill, one with a chart and
+learns that an invoice, a report paid by a QR-bill and
 a labelled preview have no Word file; a report with a QR code or an EPC
-QR code has one, the euro invoice among them (0074). A fault of the writer's, or a chunk
+QR code has one, the euro invoice among them (0074), and so has one with
+a chart, the sales report among them (0076). A fault of the writer's, or a chunk
 that did not load, is the Word file's alone and leaves the PDF as it
 printed, which `word-fault.test.ts` and `word-chunk.test.ts` hold, a
 suite each; and the writer, with the two libraries it zips and inflates
@@ -1335,12 +1336,18 @@ anything is built, so a file is written whole or not at all, and by where
 a thing stands, not by its kind: a face that is no font, as the fonts
 are read, the creation date and the title, what
 belongs to the PDF of the document itself, the page, then each region's
-blocks in document order -- a chart, or a code the rules refuse, where
-the walk meets it, after a block no engine prints that stands before it
--- and the pictures' bytes last. A code's symbol is the runtime's, asked
+blocks in document order -- a chart no engine draws, or a code the rules
+refuse, where the walk meets it, after a block no engine prints that
+stands before it -- and the pictures' bytes last. A code's symbol is the runtime's, asked
 for once where the walk meets the code, and the picture written is of
 that symbol: what is refused and what is written are one decision, and
-the PDF's ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)). The writer's `refusals.test.ts` holds that order on a
+the PDF's ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)). A chart is held where the walk meets it too: to
+the file's bound on its charts before anything of it is read, to what
+any engine refuses of its block, to the bound on its points before a
+word or a number of it is read, and counted with the paragraphs and the
+characters; it is written as a part of its own as the body is built,
+from the block alone, and nothing of it is laid out
+([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)). The writer's `refusals.test.ts` holds that order on a
 document wrong in every one of those places, put right a place at a time,
 and the corpus's `wordRefusal` derives from a document on its own what
 the writer must refuse of what belongs to the PDF. What belongs to the

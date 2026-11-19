@@ -486,6 +486,30 @@ what Word draws of the picture, or what a phone reads of what Word
 prints: nobody had opened a file with a code in Word when 0074 was
 written.
 
+**A chart in a Word file, on its part.** A chart with something to draw
+is a part of the file, Word's own chart, and is proved on that part by
+readers that are not the writer
+([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md),
+extending 0068 and 0003). The corpus's `readDocx` reads the part by a
+closed vocabulary of its own, transcribed from the schema a second time,
+and holds it to the one form a report's chart is written in: a part that
+leads to a workbook or an address, names a cell, or leaves to Word what
+a report's chart states -- a title of Word's own, a smoothed line, a
+missing value drawn as zero -- is refused. `verifyDocx` holds each chart
+to its block: its kind, its box, every word, each value's digits as a
+string, never as a number, the axis's ends as the block's lowest and
+highest tick and its step as theirs, worked out in the corpus's own
+BigInt, and the colours. Reader and check are proved on a file typed out
+by hand, which passes as it stands and fails with one thing written
+otherwise. `against-pdf.test.ts` holds every word a chart's part states
+to a word the PDF draws, at that size in a face of that weight and
+slant, and every word the PDF draws of a chart to one the part states or
+a tick's text; and both engines to refusing each malformed chart by the
+same code and subject. What none of it shows is anything Word draws:
+where it puts a word, whether two meet, how long a bar is, and what it
+writes on the value axis. Nobody had opened a file with a chart in Word
+when 0076 was written.
+
 What it does not show is Word. That Word opens the file, repeats the
 marked row, keeps the marked ones, draws the SVG, puts page 1's header
 where the file says and works both fields out is held by no test, and no
@@ -632,7 +656,7 @@ later releases and say why, and the legal gate waits for a lawyer
   reader of the format -- LibreOffice, a previewer, a converter -- was
   tried. The files were validated against the schema once, by hand, and
   the starters' and the fixtures' files opened in Word once, by hand,
-  those with a code not yet (0074).
+  those with a code (0074) or a chart (0076) not yet.
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **No phone, no bank, no paper.** ZXing decodes every code a test prints,

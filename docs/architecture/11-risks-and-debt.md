@@ -238,8 +238,8 @@ the demo with nobody opening its files, and a reader may meet a file Word
 repairs, lays out otherwise than the marks ask, or does not open.
 
 What is refused is refused for the same reason and costs a host its
-export: a report paid by a QR-bill, an invoice in law
-and a report with a chart have no Word file at all, and a turned or CMYK
+export: a report paid by a QR-bill and an invoice in law
+have no Word file at all, and a turned or CMYK
 JPEG, an SVG that covers a box of other proportions and a table or a
 page break in a framed section are refused until somebody has seen what
 Word does with each. And the writer measures nothing, so it writes what
@@ -258,6 +258,22 @@ breaks the line around the caption; and the caption is in whatever face
 the reader's machine gives Arial. Nobody had opened such a file in Word
 when it merged, and no phone has read a code from one
 ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
+
+A chart in a Word file is Word's own chart, and everything Word decides
+of one is unseen here: where each word stands and whether two meet,
+whether a category's label that does not fit is wrapped or cut, what
+the value axis says -- Word writes its labels from the numbers, in the
+reader's own separators, without the currency the PDF's carry -- and how
+it draws a number of more digits than a double holds. The PDF refuses a
+chart whose words would meet in ECharts' layout; the Word file of the
+same chart is written. The part holds its data as literals and has no
+workbook, which is believed to draw and was not seen to: should Word not
+draw such a chart, the change is to cached references, which the record
+names. And a person cannot edit the chart's data in Word. What no engine
+prints of a chart's block is stated twice, in the renderer and in the
+writer, and held together by a list of malformed charts, by code and
+subject, never by sentence
+([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
 
 ### An SVG logo costs every reader, and some files are refused
 
