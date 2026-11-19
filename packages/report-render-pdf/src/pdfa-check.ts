@@ -1,4 +1,4 @@
-import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, RenderRefusal } from '@formancy/report-runtime'
+import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, readCopyLabel, RenderRefusal } from '@formancy/report-runtime'
 import type { Block, EInvoiceFile, ResolvedDocument } from '@formancy/report-runtime'
 import { checkCopyLabel, checkEInvoice } from './e-invoice.js'
 import type { PdfA } from './pdfa.js'
@@ -17,9 +17,13 @@ import type { PdfA } from './pdfa.js'
  * may embed its XML, and which drawn as a 2b would be a picture of the
  * invoice in an archive that cannot hold the invoice; an XRechnung's copy,
  * whose invoice is its XML, which a host sends, and whose PDF says on
- * every page it is not the invoice; and a preview the runtime labels so,
+ * every page it is not the invoice; a preview the runtime labels so,
  * which says on every page it is not the report, and would be kept as the
- * report. An e-invoice the renderer does not know is refused first,
+ * report; and a copy of an e-invoice the runtime labels so (0077), which
+ * carries no e-invoice, says on every page it is not the invoice, and
+ * would be kept as the invoice -- read by the runtime's `readCopyLabel`,
+ * whatever its style. Without `pdfa` a copy is a document like any other,
+ * drawn as a plain PDF that embeds nothing. An e-invoice the renderer does not know is refused first,
  * whatever was asked, for what it is (`e-invoice.ts`).
  *
  * The renderer has no mode: a resolved document carries none, and the
@@ -53,7 +57,7 @@ export function checkPdfA(document: ResolvedDocument, asked: '2b' | undefined): 
   return pdfa
 }
 
-/** Refuses a document asked for as a PDF/A-2b that cannot be one: a Factur-X, an XRechnung's copy and a preview the runtime labels so. */
+/** Refuses a document asked for as a PDF/A-2b that cannot be one: a Factur-X, an XRechnung's copy, a preview the runtime labels so, and a copy of an e-invoice it labels so. */
 function refuseAs2b(eInvoice: EInvoiceFile | undefined, pageHeader: readonly Block[]): void {
   if (eInvoice?.kind === 'facturX') {
     throw refusal(
@@ -67,6 +71,12 @@ function refuseAs2b(eInvoice: EInvoiceFile | undefined, pageHeader: readonly Blo
   if (labelledPreview(pageHeader)) {
     throw refusal(
       'this document is a preview, labelled on every page as not a final report, and a PDF/A-2b of it would be kept as the report: draw the final render as PDF/A-2b, and the preview without pdfa',
+      'pageHeader',
+    )
+  }
+  if (readCopyLabel(pageHeader) !== undefined) {
+    throw refusal(
+      'this document is a copy of an e-invoice, labelled on every page as not the invoice, and a PDF/A-2b of it would be kept as the invoice: keep the invoice, and draw the copy without pdfa',
       'pageHeader',
     )
   }
