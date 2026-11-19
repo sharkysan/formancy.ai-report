@@ -631,7 +631,10 @@ A chart in a Word file is proved on the part the file holds
 `docx/chart-vocabulary.ts` is the closed vocabulary a `c:chartSpace` is
 read in, transcribed from the transitional `dml-chart.xsd`, which holds
 no `c:externalData`, no reference and no formula; `docx/chart.ts`'s
-`readChart` reads the part into the model and refuses one that leads to
+`readChart`, with `docx/chart-parts.ts`, `docx/chart-series.ts` and
+`docx/chart-axes.ts`, which read what every reading shares, a series
+and the axes, reads the part into the model and refuses one that two
+drawings draw, that leaves a category for Word to name, or that leads to
 any other part or states anything of a chart otherwise than a report's
 chart does; `check-docx-charts.ts` holds each chart, block by block, to
 its document -- its kind, its box, every word, each value's digits, the
