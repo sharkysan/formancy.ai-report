@@ -234,7 +234,8 @@ describe('a chart with something to draw', () => {
   })
 
   // The PDF trims a word and prints none of one that is blank; a Word file that kept the spaces, or an empty title, would print otherwise.
-  test('writes each word trimmed, and none for a word that prints nothing: its slot stays', () => {
+  // And a slot whose word prints nothing is stated as nothing: left unstated, Word writes a number for the category and "Series2" for the series.
+  test('writes each word trimmed, a category and a series’ name that print nothing as nothing, and no title or label of nothing', () => {
     const chart = bars({
       title: '   ',
       categoryTitle: ' Region ',
@@ -253,10 +254,10 @@ describe('a chart with something to draw', () => {
     expect(read.title).toBeUndefined()
     expect(read.categoryAxis!.title!.text).toBe('Region')
     expect(read.series.map((series) => series.categories)).toEqual([
-      ['North', null],
-      ['North', null],
+      ['North', ''],
+      ['North', ''],
     ])
-    expect(read.series.map((series) => series.name)).toEqual(['Plan', undefined])
+    expect(read.series.map((series) => series.name)).toEqual(['Plan', ''])
     expect(read.series[0]!.labels.map((label) => label?.text ?? null)).toEqual(['4.00', null])
   })
 
@@ -265,6 +266,8 @@ describe('a chart with something to draw', () => {
     const [series] = only(pie()).chart.series
     expect(series).toMatchObject({ categories: ['North: 3 (75.0 %)', 'South: 1 (25.0 %)'], values: ['3', '1'], points: ['#1f77b4', '#d95f02'] })
     expect(series!.labels).toEqual([null, null])
+    // A legend entry that prints nothing is its slice's name all the same, as nothing.
+    expect(only(pie({ legend: [pie().legend[0]!, { text: ' ', color: '#d95f02' }] })).chart.series[0]!.categories).toEqual(['North: 3 (75.0 %)', ''])
     const bare = only(pie({ legend: [] })).chart
     expect(bare.series[0]!.categories).toEqual([null, null])
     expect(bare.legend).toBeUndefined()
@@ -311,7 +314,8 @@ describe('a chart with nothing to draw', () => {
     expect(docxCharts(docx)).toEqual([])
     expect([...docx.parts.keys()].filter((name) => name.startsWith('word/charts/'))).toEqual([])
     const [box] = docx.body as DocxTable[]
-    expect(box).toMatchObject({ width: 300, grid: [300], rows: [{ height: { value: 120, rule: 'atLeast' }, cells: [{ align: 'center' }] }] })
+    // And the row does not split: the PDF reserves the box whole, on one page.
+    expect(box).toMatchObject({ width: 300, grid: [300], rows: [{ cantSplit: true, height: { value: 120, rule: 'atLeast' }, cells: [{ align: 'center' }] }] })
     const lines = box!.rows[0]!.cells[0]!.blocks as DocxParagraph[]
     expect(lines.map((line) => [line.runs[0], line.align])).toEqual([
       [{ kind: 'text', text: 'Balance', props: { family: 'Roboto', bold: true, italic: false, color: '#000000', size: 8 } }, 'center'],

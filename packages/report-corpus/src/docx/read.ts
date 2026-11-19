@@ -39,7 +39,7 @@ import { child, childrenNamed, type XmlNode } from './xml.js'
  * whose text is turned otherwise than from bottom to top or stands
  * otherwise than at its top or in its middle, a cell, a header or a
  * footer that does not end with a paragraph, a chart in a header or a
- * footer, and a chart's part in any form but the one a report's chart is
+ * footer, a chart's part that two drawings draw, and a chart's part in any form but the one a report's chart is
  * written in, a part that leads to a workbook or an address among them
  * (`chart.ts`, 0076), a section ended anywhere but by a paragraph of the
  * body itself, more than two sections, and a second with a header or a
@@ -162,17 +162,26 @@ function picture(reading: Reading, drawing: XmlNode): DocxPicture {
 }
 
 /** An inline chart: its extent, and the part the reference in it leads to, read as the chart it is (`chart.ts`). */
+/** The chart parts each package's drawings have drawn so far: a part is one drawing's. */
+const DRAWN = new WeakMap<OpcPackage, Set<string>>()
+
 function chartFrame(reading: Reading, drawing: XmlNode): DocxChartFrame {
   const inline = only(drawing, NS.wp, 'inline', reading.name)
   const extent = only(inline, NS.wp, 'extent', reading.name)
   const named = only(inline, NS.wp, 'docPr', reading.name)
   const reference = only(only(only(inline, NS.a, 'graphic', reading.name), NS.a, 'graphicData', reading.name), NS.c, 'chart', reading.name)
+  const part = related(reading, reference.attributes.get(attr('r', 'id')), 'chart')
+  const drawn = DRAWN.get(reading.opc) ?? new Set<string>()
+  DRAWN.set(reading.opc, drawn)
+  // The writer gives each drawing a part of its own, and nobody has seen Word open two drawings of one.
+  if (drawn.has(part.name)) fail(reading, `${part.name} is drawn twice, where each drawing has a part of its own`)
+  drawn.add(part.name)
   return {
     id: needed(reading, named, 'id', 1),
     name: named.attributes.get('name') ?? fail(reading, 'a chart with no name'),
     width: needed(reading, extent, 'cx', EMU),
     height: needed(reading, extent, 'cy', EMU),
-    chart: readChart(related(reading, reference.attributes.get(attr('r', 'id')), 'chart'), reading.opc),
+    chart: readChart(part, reading.opc),
   }
 }
 

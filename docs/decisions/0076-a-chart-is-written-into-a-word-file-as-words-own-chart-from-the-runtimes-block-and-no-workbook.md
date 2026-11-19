@@ -37,9 +37,23 @@
     with a fill and one not drawn, a series numbered otherwise than by
     its place or holding no values, a category axis with a range or at
     the top, an outline both drawn and not, and a choice stated without
-    its value. Of the reader's branches, twelve in a hundred are reached
-    by no case, each the refusal of an element the vocabulary lets stand
-    empty.
+    its value; and, after this record's review, a plot that holds a line
+    chart beside its bars, a pie of two series and one with an axis, a
+    label out of its order and one past its count, a filled category
+    axis, bars and a plot that leave their outline to Word, a category
+    left for Word to name, a part two drawings draw, a legend that
+    states nothing of what it is set in, and each thing the vocabulary
+    lets stand empty or unsaid -- an axis's line, the gridlines, a
+    format, a line's weight, a point's index and its value, a series'
+    name, a title's text, a word's colour. A pie without a legend is read
+    with its slices unnamed. Measured on 19 November 2026, every branch
+    of the reader's four modules, `docx/chart.ts`, `chart-parts.ts`,
+    `chart-series.ts` and `chart-axes.ts`, is reached by a case. The
+    record said before that twelve in a hundred were not and that each
+    was the refusal of an element the vocabulary lets stand empty, which
+    was wrong: a plot of two kinds, a pie of two series, a label out of
+    its order and a filled axis were among them, each a form the
+    vocabulary admits.
   - **The corpus's check.** The same suite holds `verifyDocx` to passing
     that file, and to failing on it with one thing of a chart taken out
     or written otherwise, a case each: another size, room around it,
@@ -62,6 +76,16 @@
     place, and words where it prints none. A group of lines kept on one
     page with a chart is held by the heading's mark, and still fails
     where a line of it is nowhere in the file.
+    A chart that shares its paragraph, one with a series fewer than the
+    document's, a box that may split across two pages, and a category
+    or a series' name that prints nothing and is not stated as nothing
+    fail too; and a kept group whose chart's title a paragraph above
+    also says is found at the chart. Of the check's own branches, nine
+    in a hundred are reached by no case, measured the same day: those
+    no file the reader takes can reach -- a pie of other than one
+    series, a chart without its axes, a value that is no decimal --
+    with a box that is no table of one cell, and what a run's or a
+    paragraph's properties are read as where the file states none.
     `src/check-docx.test.ts` holds `wordRefusal` to deriving no refusal
     for a chart, in a framed section too.
   - **The writer, on the file it wrote.** report-render-docx's
@@ -205,6 +229,52 @@
     writes four million characters four times, timed out at vitest's
     five seconds under coverage beside another job, 6.1 seconds where it
     takes 1.0 alone, until the bounds' cases were given a minute.
+  - **Validated against the schema, once, by hand, on 19 November
+    2026**, and by no gate, as 0068 validated its files: against
+    ISO/IEC 29500-4:2016's transitional schemas, as Ecma publishes them
+    with ECMA-376's fifth edition, Part 4, with libxml2 2.13.9. Every
+    chart part the writer writes of the files named under *Not yet
+    opened in Word* -- every chart fixture it writes, the sales report
+    as a final render and as a preview, and a chart of words that print
+    nothing -- 22 parts, and the three parts of the file written by
+    hand, against `dml-chart.xsd` and what it imports: none invalid.
+    And the `document.xml` of each of those files, 18, against `wml.xsd`
+    and `dml-chart.xsd` together, so that the reference to a chart in a
+    drawing is judged, with the cell whose words stand in its middle and
+    the row that is at least so tall and does not split: none invalid.
+    The schema found nothing to fix. As controls, a part with
+    `c:overlap` before `c:gapWidth`, an element the schema does not
+    know, a point without its value, `c:crosses` and `c:dLblPos` of a
+    value the schema does not list, and a gap past 500 were each
+    refused, as were a chart's reference holding an element and a
+    cell aligned `middle`; a point whose value is empty, which is how a
+    word that prints nothing is stated, was accepted; and so was a chart
+    with no `c:autoTitleDeleted`, which the schema lets be left out and
+    the reader does not. The schemas are another body's files and are
+    not in the repository; no gate runs this.
+  - **Seen failing in the review's fixes, on 19 November 2026.** With
+    the hand-written file's plot given its outline stated as none, the
+    reader refused every chart, "the plot has a line around it", until
+    it asked for that line; and with the reader asking, 40 cases of the
+    writer's `charts.test.ts` and `corpus.test.ts` failed on "the plot
+    states no line", until the writer wrote it. With the writer as it
+    was, the cases of a category and a series' name that print nothing,
+    of a pie's blank legend entry, and of the box's row that does not
+    split failed; in the corpus, with the check and the reader as they
+    were, those of a category left for Word to name, a part two
+    drawings draw, a word stated as nothing, a box that may split, a
+    kept group held by its heading's mark, and a group whose chart's
+    title a paragraph above also says. And the cases added for refusals
+    the reader already made had passed on their first run, so each
+    refusal was then taken out, one at a time, the suite run and it put
+    back, on the same day: 34 of the reader's -- a plot of not one
+    kind, a pie of not one series or with an axis, a chart without its
+    axes, a label out of its order, a filled category axis, a shape that
+    states no line, a face that states nothing, a part two drawings
+    draw, and each thing the vocabulary lets stand empty or unsaid --
+    and four of the check's, a chart that shares its paragraph, a
+    series fewer, a box that may split and a series' name. Each failed
+    a case, and none survived.
   - **Not yet opened in Word.** The files this change writes -- every
     chart fixture's and the sales report's, each beside its PDF, with a
     list of what each chart should show -- were written for the person
@@ -316,8 +386,15 @@ are all said, so nothing of the axis is Word's automatic scaling.
 value axis's labels. A value's label is a point's own text and not a
 number Word formats; a pie's shares stand in its legend's entries, which
 the runtime wrote, and Word's `showPercent` is off. Each word is trimmed
-of the whitespace at its ends and none is written for a word that prints
-nothing, as the PDF prints them.
+of the whitespace at its ends, as the PDF prints them. A title, an
+axis's title and a value's label that print nothing are not written. A
+category's label and a series' name that print nothing name a slot that
+stays -- the category's place on the axis, the series' swatch in the
+legend, a pie's slice's -- and are stated all the same, as nothing: a
+category the part leaves out is one Word numbers itself, and a series it
+does not name is one Word calls "Series2". A category of nothing is no
+oddity of a document made by hand: a text key of spaces, or a preview's
+missing field with no label for it, resolves to one.
 
 **The value axis's labels are Word's.** DrawingML has no place for a
 tick's own text: Word writes each label from the number, by the axis's
@@ -348,8 +425,9 @@ category's label wraps, and what it does with labels that meet.
 least as tall, with no line, no fill and no padding, holding the chart's
 title, bold, and its empty text, each a centred paragraph, in the middle
 of the cell (`w:vAlign`). At least as tall and never exactly: a row of an
-exact height cuts what does not fit it. It is no part of the file and no
-chart of Word's.
+exact height cuts what does not fit it. And the row does not split
+(`w:cantSplit`), since the PDF reserves the box whole, on one page. It is
+no part of the file and no chart of Word's.
 
 **What refuses a chart.** The writer decides nothing of a chart, so what
 it refuses is what any engine refuses of the block, stated again in its

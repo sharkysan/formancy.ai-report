@@ -409,7 +409,8 @@ charts to their bounds, each before the work it bounds. What the
 renderer refuses of ECharts' layout the writer writes: the layout is
 Word's. The corpus proves a chart on its part: `docx/chart-vocabulary.ts`
 is the closed vocabulary of a `c:chartSpace`, `docx/chart.ts`'s
-`readChart` holds a part to the one form a report's chart is written in
+`readChart`, over `docx/chart-parts.ts`, `docx/chart-series.ts` and
+`docx/chart-axes.ts`, holds a part to the one form a report's chart is written in
 and to leading nowhere, `check-docx-charts.ts` holds each chart to its
 block, `docxCharts` reads a file's charts for a test,
 `docx/testing/hand-charts.ts` is the file typed out by hand those are

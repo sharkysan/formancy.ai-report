@@ -3324,7 +3324,7 @@
       ]
     },
     "0076": {
-      "reviewed": "sha256:89591204c88149437c8d3b2a596c72f993dee4cd9f5add47fd33cdb69389cef0",
+      "reviewed": "sha256:0cd6f73af44f02dd4fd7c52ce2ec746cd4c59349385544ac7c6bdf5252516c86",
       "limitations": [
         {
           "area": "rendering",
@@ -3352,7 +3352,7 @@
         },
         {
           "area": "rendering",
-          "says": "A chart with nothing to draw is no chart in a Word file but its title and its empty text, together in the middle of a cell as wide as its box and at least as tall, where the PDF prints the title at the top of the box and the empty text in its middle; and the cell grows where its words need more than the box’s height.",
+          "says": "A chart with nothing to draw is no chart in a Word file but its title and its empty text, together in the middle of a cell as wide as its box and at least as tall, where the PDF prints the title at the top of the box and the empty text in its middle; the cell grows where its words need more than the box’s height, and its row does not split, so it moves to the next page whole.",
           "heldBy": "packages/report-render-docx/src/charts.test.ts"
         },
         {
@@ -3372,7 +3372,7 @@
         },
         {
           "area": "testing",
-          "says": "The corpus’s reader takes one form of chart, the writer’s, by a vocabulary transcribed from ECMA-376’s chart schema a second time: a mistake made in both transcriptions passes, no file with a chart was validated against a schema, by hand or in CI, and the corpus’s check holds what the document states and not the bars’ gaps, a line’s weight or the gridlines, which the writer’s own tests hold to its constants and nothing holds to a page.",
+          "says": "The corpus’s reader takes one form of chart, the writer’s, by a vocabulary transcribed from ECMA-376’s chart schema a second time: a mistake made in both transcriptions passes, the chart parts of the fixtures and the sales report were validated against ECMA-376’s transitional schema once, by hand, on 19 November 2026, and by nothing in CI, and the corpus’s check holds what the document states and not the bars’ gaps, a line’s weight or the gridlines, which the writer’s own tests hold to its constants and nothing holds to a page.",
           "heldBy": "packages/report-corpus/src/check-docx-charts.test.ts"
         },
         {

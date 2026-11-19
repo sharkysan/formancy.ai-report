@@ -56,13 +56,14 @@ export interface DocxChartWord {
 
 /** One series of a chart, every list of it as long as its points' count, a point the part states none for null. */
 export interface DocxChartSeries {
-  /** Its name, which the legend prints. */
+  /** Its name, which the legend prints, empty where it prints nothing; absent where the part states none, and Word names the series itself. */
   readonly name?: string
   /** A bar's fill, or a line's stroke and its markers' fill; a pie's series has none, each point its own. */
   readonly color?: string
   /** A line's weight in points, and its markers' size. */
   readonly line?: number
   readonly marker?: number
+  /** Each category's label, empty where it prints nothing; null throughout where the part states no categories, as a pie without a legend. */
   readonly categories: readonly (string | null)[]
   /** Each value as the part writes it, digit for digit. */
   readonly values: readonly (string | null)[]

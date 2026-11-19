@@ -11,8 +11,9 @@ import type { DocxChart, DocxChartFace, DocxChartSeries, DocxChartWord, DocxPara
  * its box, every word the block gives it -- the title, the axes' titles,
  * each category's label, each series' name where it has a legend, each
  * value's label where it labels them, a pie's legend entries as its
- * categories -- each value's digits exactly as the block holds them, a
- * value the block has none for stated as none; the value axis from its
+ * categories, a word that prints nothing stated as nothing and never left
+ * for Word to write -- each value's digits exactly as the block holds
+ * them, a value the block has none for stated as none; the value axis from its
  * lowest tick to its highest in the ticks' step, worked out here in
  * BigInt; every colour the block paints; what the words are set in, as
  * far as the block's style states it; and a legend exactly where the
@@ -20,7 +21,8 @@ import type { DocxChart, DocxChartFace, DocxChartSeries, DocxChartWord, DocxPara
  * holds literal data alone, the reader holds (`docx/chart.ts`).
  *
  * A chart with nothing to draw is no chart of Word's: its box, a cell at
- * least as tall, and its title and its empty text in the middle of it.
+ * least as tall that does not split across pages, and its title and its
+ * empty text in the middle of it.
  *
  * What it cannot show is anything Word draws: where a word stands,
  * whether two meet, how long a bar is, or what the value axis's labels
@@ -37,6 +39,9 @@ const near = (read: number, stated: number): boolean => Math.abs(read - stated) 
 
 /** What a face is held to: the chart's style as far as it states one, and whether the word is bold. */
 export type FaceProblems = (face: DocxChartFace, bold: boolean) => string[]
+
+/** A word as a chart's part states it where it names a slot -- a category, a series -- that stays though the word prints nothing: trimmed, and empty then, so that Word writes no word of its own there. */
+const stated = (text: string | undefined): string => text?.trim() ?? ''
 
 /** A word as a chart prints it: trimmed, and no word where nothing is left. */
 const printed = (text: string | undefined): string | null => (text === undefined || text.trim() === '' ? null : text.trim())
@@ -108,11 +113,11 @@ const listed = (values: readonly (string | null)[]): string => values.map((each)
 
 function seriesProblems(chart: AxisChart, read: readonly DocxChartSeries[], faced: FaceProblems, bold: boolean): string[] {
   if (read.length !== chart.series.length) return [`holds ${read.length} series where the chart has ${chart.series.length}`]
-  const categories = chart.categories.map(printed)
+  const categories = chart.categories.map(stated)
   return chart.series.flatMap(({ color, values }, index) => {
     const series = read[index]!
     const what = `series ${index}`
-    const name = chart.legend.length === 0 ? null : printed(chart.legend[index]?.text)
+    const name = chart.legend.length === 0 ? undefined : stated(chart.legend[index]?.text)
     const exact = values.map((value) => value?.exact ?? null)
     return [
       // Digit for digit: a value written through a double would be another string.
@@ -120,9 +125,11 @@ function seriesProblems(chart: AxisChart, read: readonly DocxChartSeries[], face
       ...(sameList(series.categories, categories)
         ? []
         : [`${what} names the categories ${listed(series.categories)} where the chart's are ${listed(categories)}`]),
-      ...((series.name ?? null) === name
+      ...(series.name === name
         ? []
-        : [`${what} is named '${String(series.name)}' where the chart's legend ${name === null ? 'names none' : `says '${name}'`}`]),
+        : [
+            `${what} is ${series.name === undefined ? 'named by Word' : `named '${series.name}'`} where the chart's legend ${name === undefined ? 'names none' : `says '${name}'`}`,
+          ]),
       ...(series.color === color ? [] : [`${what} is painted ${String(series.color)} where the chart's is ${color}`]),
       ...values.flatMap((value, at) =>
         wordProblems(`${what}'s label at category ${at}`, series.labels[at], chart.valueLabels ? printed(value?.text) : null, faced, bold),
@@ -160,7 +167,7 @@ function pieProblems(chart: PieChart, read: readonly DocxChartSeries[]): string[
   if (series === undefined || read.length !== 1) return ['is a pie of not one series']
   const exact = chart.slices.map(({ value }) => value.exact)
   // A pie's legend entries are its categories: each the runtime's own words, its value and its share among them where it labels them.
-  const categories = chart.slices.map((_, index) => printed(chart.legend[index]?.text))
+  const categories = chart.slices.map((_, index) => (chart.legend.length === 0 ? null : stated(chart.legend[index]?.text)))
   const paints = chart.slices.map(({ color }) => color)
   return [
     ...(sameList(series.values, exact) ? [] : [`holds the slices ${listed(series.values)} where the chart's are ${listed(exact)}`]),
@@ -212,6 +219,8 @@ export function emptyChart(chart: Chart, node: DocxTable, faced: FaceProblems, s
   if (row === undefined || cell === undefined || rows.length > 0 || cells.length > 0) return say(`${what} is not a table of one cell`)
   if (!near(node.width, chart.width) || row.height?.rule !== 'atLeast' || !near(row.height.value, chart.height))
     say(`${what} is not a cell ${chart.width} pt wide and at least ${chart.height} pt tall, the box the chart reserves`)
+  // The PDF reserves the box whole: a row that may split would break it across two pages.
+  if (!row.cantSplit) say(`${what} is a box that may split across two pages`)
   const sides = ['top', 'left', 'bottom', 'right'] as const
   if (
     Object.keys(node.borders).length > 0 ||

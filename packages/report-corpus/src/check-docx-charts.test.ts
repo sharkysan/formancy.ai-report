@@ -15,7 +15,7 @@ import {
   LINE_CHART,
   PIE_CHART,
 } from './docx/testing/hand-charts.js'
-import { handDocx, relationships, rewritten, TYPE } from './docx/testing/hand.js'
+import { handDocx, plain, relationships, rewritten, TINY, TYPE } from './docx/testing/hand.js'
 import { expectation, type Fixture } from './fixture.js'
 
 /**
@@ -42,6 +42,20 @@ const changed = (id: string, change: (chart: Chart) => Chart): Fixture => {
   const document = { ...HAND_CHARTS_DOCUMENT, body }
   return { ...HAND_CHARTS, document, expect: expectation(document, { maxPagesExpected: 2 }) }
 }
+
+/** The hand-written file with the first `from` in the part `name` written as `to`, where it stands there more than once. */
+const first = (name: string, from: string, to: string): Parts => {
+  const parts = handChartParts()
+  const part = parts.get(name) as string
+  if (!part.includes(from)) throw new Error(`'${from}' does not stand in ${name}`)
+  return parts.set(
+    name,
+    part.replace(from, () => to),
+  )
+}
+
+/** What `pattern` finds in the hand-written part `name`. */
+const found = (name: string, pattern: RegExp): string => pattern.exec(handChartParts().get(name) as string)![0]
 
 // The file as it was typed is its document, whole: without this, every case below could fail for a reason of its own.
 test('the hand-written file of charts is its document, with nothing to say against it', async () => {
@@ -214,7 +228,7 @@ describe('readDocx refuses a chart', () => {
     ],
     [
       'whose background is left to Word',
-      () => written(PIE_CHART, '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>', '<c:spPr><a:ln><a:noFill/></a:ln></c:spPr>'),
+      () => written(PIE_CHART, '</c:chart><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>', '</c:chart><c:spPr><a:ln><a:noFill/></a:ln></c:spPr>'),
       /the chart is filled, or left for Word to fill/,
     ],
     [
@@ -222,8 +236,8 @@ describe('readDocx refuses a chart', () => {
       () =>
         written(
           PIE_CHART,
-          '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>',
-          '<c:spPr><a:noFill/><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr>',
+          '</c:chart><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>',
+          '</c:chart><c:spPr><a:noFill/><a:ln w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:ln></c:spPr>',
         ),
       /the chart has a line around it/,
     ],
@@ -335,7 +349,13 @@ describe('readDocx refuses a chart', () => {
     ],
     [
       'with more categories than values',
-      () => written(LINE_CHART, '<c:cat><c:strLit><c:ptCount val="3"/>', '<c:cat><c:strLit><c:ptCount val="4"/>'),
+      () =>
+        rewritten(
+          LINE_CHART,
+          '<c:v>Mar</c:v></c:pt>',
+          '<c:v>Mar</c:v></c:pt><c:pt idx="3"><c:v>Apr</c:v></c:pt>',
+          written(LINE_CHART, '<c:cat><c:strLit><c:ptCount val="3"/>', '<c:cat><c:strLit><c:ptCount val="4"/>'),
+        ),
       /series 0 has 4 categories for 3 values/,
     ],
     [
@@ -404,10 +424,187 @@ describe('readDocx refuses a chart', () => {
     ],
     [
       'whose outline is both drawn and not',
-      () => written(PIE_CHART, '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>', '<c:spPr><a:noFill/><a:ln w="9525"><a:noFill/></a:ln></c:spPr>'),
+      () =>
+        written(
+          PIE_CHART,
+          '</c:chart><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>',
+          '</c:chart><c:spPr><a:noFill/><a:ln w="9525"><a:noFill/></a:ln></c:spPr>',
+        ),
       /the chart has a line both drawn and not/,
     ],
     ['that states a choice and no value for it', () => written(PIE_CHART, '<c:firstSliceAng val="0"/>', '<c:firstSliceAng/>'), /firstSliceAng states no value/],
+    // A plot that held a second kind would pass with the first read and the rest ignored: one chart of one kind is all a report's chart is.
+    [
+      'whose plot holds a line chart beside its bars',
+      () =>
+        written(
+          BAR_CHART,
+          '</c:barChart>',
+          '</c:barChart><c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/><c:marker val="1"/><c:axId val="1"/><c:axId val="2"/></c:lineChart>',
+        ),
+      /the plot holds not one bar, line or pie chart/,
+    ],
+    [
+      'that is a pie of two series',
+      () => {
+        const series = found(PIE_CHART, /<c:ser>.*<\/c:ser>/)
+        return written(
+          PIE_CHART,
+          series,
+          `${series}${series.replace('<c:ser><c:idx val="0"/><c:order val="0"/>', '<c:ser><c:idx val="1"/><c:order val="1"/>')}`,
+        )
+      },
+      /a pie of not one series, or with an axis/,
+    ],
+    [
+      'that is a pie with an axis',
+      () => written(PIE_CHART, '</c:pieChart>', `</c:pieChart>${found(LINE_CHART, /<c:catAx>.*<\/c:catAx>/)}`),
+      /a pie of not one series, or with an axis/,
+    ],
+    [
+      'a label of which stands out of its order',
+      () => first(BAR_CHART, '<c:dLbl><c:idx val="1"/>', '<c:dLbl><c:idx val="0"/>'),
+      /series 0 labels a point out of its order, or past its count/,
+    ],
+    [
+      'whose category axis is filled',
+      () => written(LINE_CHART, '<c:spPr><a:ln w="9525">', '<c:spPr><a:noFill/><a:ln w="9525">'),
+      /the category axis is filled/,
+    ],
+    [
+      'whose bars leave their outline to Word',
+      () => first(BAR_CHART, '<a:ln><a:noFill/></a:ln></c:spPr><c:invertIfNegative', '</c:spPr><c:invertIfNegative'),
+      /series 0 states no line, which Word then draws as it likes/,
+    ],
+    [
+      'whose legend states nothing of what it is set in',
+      () => {
+        const legend = found(PIE_CHART, /<c:legend>.*<\/c:legend>/)
+        return written(PIE_CHART, legend, legend.replace(/<a:pPr>.*<\/a:pPr>/, ''))
+      },
+      /the legend states nothing of what it is set in/,
+    ],
+    // The plot's outline is pinned as the chart's is: left unsaid, Word draws one in its own colour.
+    [
+      'whose plot leaves its outline to Word',
+      () => written(BAR_CHART, '<c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr></c:plotArea>', '<c:spPr><a:noFill/></c:spPr></c:plotArea>'),
+      /the plot states no line, which Word then draws as it likes/,
+    ],
+    // A category the part does not state is one Word numbers itself: a label that prints nothing is stated, as nothing.
+    [
+      'that leaves a category for Word to name',
+      () => written(LINE_CHART, '<c:pt idx="1"><c:v>Feb</c:v></c:pt>', ''),
+      /the categories of series 0 leave a point for Word to name/,
+    ],
+    // Two drawings of one part is a form the writer never writes, and nobody has seen Word open.
+    [
+      'that two drawings draw',
+      () => written(DOCUMENT, 'r:id="rId7"', 'r:id="rId6"'),
+      /word\/charts\/chart1\.xml is drawn twice, where each drawing has a part of its own/,
+    ],
+    // What the vocabulary lets stand empty or unsaid, each a thing Word would then decide: refused, never read as its default.
+    [
+      'whose category axis has no line',
+      () =>
+        written(
+          LINE_CHART,
+          /<c:spPr><a:ln w="9525">.*?<\/a:ln><\/c:spPr>/.exec(handChartParts().get(LINE_CHART) as string)![0],
+          '<c:spPr><a:ln><a:noFill/></a:ln></c:spPr>',
+        ),
+      /the category axis has no line/,
+    ],
+    [
+      'whose gridlines are not drawn',
+      () =>
+        written(
+          LINE_CHART,
+          /<c:majorGridlines>.*<\/c:majorGridlines>/.exec(handChartParts().get(LINE_CHART) as string)![0],
+          '<c:majorGridlines><c:spPr><a:ln><a:noFill/></a:ln></c:spPr></c:majorGridlines>',
+        ),
+      /the value axis has no gridlines/,
+    ],
+    [
+      'whose value axis states no format',
+      () => written(LINE_CHART, '<c:numFmt formatCode="0.0" sourceLinked="0"/>', '<c:numFmt sourceLinked="0"/>'),
+      /the value axis states no format/,
+    ],
+    ['whose line has no weight', () => written(LINE_CHART, '<c:spPr><a:ln w="19050">', '<c:spPr><a:ln>'), /series 0 has a line of no weight/],
+    [
+      'a point of which has no index',
+      () => written(LINE_CHART, '<c:pt idx="2"><c:v>1.25</c:v>', '<c:pt><c:v>1.25</c:v>'),
+      /series 0 has a point with no index/,
+    ],
+    [
+      'a point of which has no value',
+      () => written(LINE_CHART, '<c:pt idx="2"><c:v>1.25</c:v></c:pt>', '<c:pt idx="2"/>'),
+      /series 0 has a point with no value/,
+    ],
+    [
+      'a series of which has a name that is no text',
+      () => written(BAR_CHART, '<c:tx><c:v>Plan</c:v></c:tx>', '<c:tx/>'),
+      /series 0 has a name that is no text/,
+    ],
+    [
+      'whose title is no word of the file’s own',
+      () => written(PIE_CHART, /<c:title><c:tx>.*?<\/c:tx>/.exec(handChartParts().get(PIE_CHART) as string)![0], '<c:title><c:tx/>'),
+      /the title is no word of the file's own/,
+    ],
+    [
+      'whose title holds no paragraph',
+      () =>
+        written(
+          PIE_CHART,
+          /<c:title><c:tx><c:rich><a:bodyPr rot="0" vert="horz"\/><a:p>.*?<\/a:p>/.exec(handChartParts().get(PIE_CHART) as string)![0],
+          '<c:title><c:tx><c:rich><a:bodyPr rot="0" vert="horz"/>',
+        ),
+      /the title holds no text/,
+    ],
+    [
+      'whose title holds no run',
+      () =>
+        written(
+          PIE_CHART,
+          /<c:title><c:tx><c:rich><a:bodyPr rot="0" vert="horz"\/><a:p>.*?<\/a:p>/.exec(handChartParts().get(PIE_CHART) as string)![0],
+          '<c:title><c:tx><c:rich><a:bodyPr rot="0" vert="horz"/><a:p/>',
+        ),
+      /the title holds no text/,
+    ],
+    [
+      'a slice past its count of which is painted',
+      () => written(PIE_CHART, '<c:dPt><c:idx val="2"/>', '<c:dPt><c:idx val="5"/>'),
+      /series 0 paints a point twice, or one past its count/,
+    ],
+    [
+      'a label of which stands past its count',
+      () => first(BAR_CHART, '<c:dLbl><c:idx val="3"/>', '<c:dLbl><c:idx val="9"/>'),
+      /series 0 labels a point out of its order, or past its count/,
+    ],
+    ['whose legend says not where it stands', () => written(PIE_CHART, '<c:legendPos val="b"/>', ''), /legend holds no legendPos/],
+    [
+      'whose defaults state no paragraph',
+      () =>
+        written(
+          PIE_CHART,
+          /<\/c:chart><c:spPr>.*?<\/c:spPr><c:txPr><a:bodyPr rot="0" vert="horz"\/><a:p>.*?<\/a:p>/.exec(handChartParts().get(PIE_CHART) as string)![0],
+          '</c:chart><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr><c:txPr><a:bodyPr rot="0" vert="horz"/>',
+        ),
+      /the chart states nothing of what it is set in/,
+    ],
+    [
+      'a word of which names no colour',
+      () => written(PIE_CHART, '<a:rPr sz="800" b="1" i="0"><a:solidFill><a:srgbClr val="000000"/></a:solidFill>', '<a:rPr sz="800" b="1" i="0">'),
+      /the title names the colour 'undefined'/,
+    ],
+    [
+      'without its gridlines',
+      () => written(LINE_CHART, found(LINE_CHART, /<c:majorGridlines>.*<\/c:majorGridlines>/), ''),
+      /the gridlines states no line, which Word then draws as it likes/,
+    ],
+    [
+      'whose markers state no paint',
+      () => written(LINE_CHART, found(LINE_CHART, /<c:size val="4"\/><c:spPr>.*?<\/c:spPr>/), '<c:size val="4"/>'),
+      /the markers of series 0 is not filled in one colour with no line around it/,
+    ],
   ])('%s', (_name, parts, message) => {
     expect(() => readDocx(handDocx(parts()))).toThrow(message)
   })
@@ -614,6 +811,53 @@ describe('verifyDocx fails on a chart', () => {
   })
 })
 
+describe('a word of a chart that prints nothing', () => {
+  const blankCategory = changed('balance', (chart) => ({ ...(chart as typeof HAND_LINE), categories: ['Jan', ' ', 'Mar'] }))
+  const blankName = changed('sales', (chart) => ({ ...chart, legend: [chart.legend[0]!, { ...chart.legend[1]!, text: ' ' }] }))
+
+  // Left unstated, Word fills the slot with a number of its own, or "Series2": the part states the word, as nothing.
+  test('is stated as nothing, a category and a series’ name alike', async () => {
+    expect(await problems(written(LINE_CHART, '<c:v>Feb</c:v>', '<c:v></c:v>'), blankCategory)).toBe('')
+    expect(await problems(written(BAR_CHART, '<c:tx><c:v>Actual</c:v></c:tx>', '<c:tx><c:v></c:v></c:tx>'), blankName)).toBe('')
+  })
+
+  // A file that still says the word, or leaves the name out for Word to give, is another chart than the report's.
+  test('fails where the file says a word in its place, or leaves the series unnamed', async () => {
+    expect(await problems(handChartParts(), blankCategory)).toMatch(/series 0 names the categories Jan, Feb, Mar where the chart's are Jan, , Mar/)
+    expect(await problems(written(BAR_CHART, '<c:tx><c:v>Actual</c:v></c:tx>', ''), blankName)).toMatch(
+      /series 1 is named by Word where the chart's legend says ''/,
+    )
+  })
+})
+
+// A pie the document gives no legend states no categories at all, and its slices are read all the same, each unnamed.
+test('a pie without a legend is read with its slices unnamed, and is its document', async () => {
+  const bare = rewritten(PIE_CHART, found(PIE_CHART, /<c:cat>.*<\/c:cat>/), '', written(PIE_CHART, found(PIE_CHART, /<c:legend>.*<\/c:legend>/), ''))
+  const [, , pie] = docxCharts(readDocx(handDocx(bare)))
+  expect(pie!.chart.series[0]!.categories).toEqual([null, null, null])
+  expect(
+    await problems(
+      bare,
+      changed('shares', (chart) => ({ ...chart, legend: [] })),
+    ),
+  ).toBe('')
+})
+
+// A series the file lacks is a series of the report's left out: said once, before any series is compared with another's.
+test('verifyDocx fails on a chart with a series fewer than the document’s', async () => {
+  const more = changed('balance', (chart) => {
+    const line = chart as typeof HAND_LINE
+    return { ...line, series: [...line.series, { color: '#d95f02', values: [null, null, null] }] }
+  })
+  expect(await problems(handChartParts(), more)).toMatch(/the chart balance holds 1 series where the chart has 2/)
+})
+
+// A chart that is not alone in its paragraph has something beside it the document does not: the walk says so before it reads the chart.
+test('verifyDocx fails on a chart that shares its paragraph', async () => {
+  const beside = first(DOCUMENT, '</w:drawing></w:r></w:p>', `</w:drawing></w:r><w:r>${TINY}<w:t xml:space="preserve">x</w:t></w:r></w:p>`)
+  expect(await problems(beside)).toMatch(/the chart sales is not a paragraph of one chart/)
+})
+
 describe('verifyDocx fails on a chart with nothing to draw', () => {
   // Its box and its words are all a reader has of it: each a way the file loses one of them.
   test.each<[string, () => Parts, RegExp, Fixture?]>([
@@ -621,6 +865,11 @@ describe('verifyDocx fails on a chart with nothing to draw', () => {
       'whose box is exactly as tall, and may cut its words',
       () => written(DOCUMENT, 'w:hRule="atLeast"', 'w:hRule="exact"'),
       /the chart nothing, which has nothing to draw, is not a cell 300 pt wide and at least 120 pt tall/,
+    ],
+    [
+      'whose box may break across two pages',
+      () => written(DOCUMENT, '<w:cantSplit/>', ''),
+      /the chart nothing, which has nothing to draw, is a box that may split across two pages/,
     ],
     [
       'whose box is another width',
@@ -688,22 +937,41 @@ test('verifyDocx fails on a pie that names its slices where the chart has no leg
 
 describe('a group of lines kept on one page with a chart', () => {
   const kept = (...group: string[]): Fixture => ({ ...HAND_CHARTS, expect: expectation(HAND_CHARTS_DOCUMENT, { maxPagesExpected: 2, keptTogether: [group] }) })
+  const HEADING = plain('Charts by hand', '<w:keepNext/>')
 
   // A chart's title is a word of its part: sought among the body's paragraphs it is found nowhere, and every chart under a heading would fail.
-  test('is not sought among the paragraphs where one of its lines is a chart’s title', async () => {
+  test('finds a line that is a chart’s title at the chart’s own paragraph', async () => {
     expect(await problems(handChartParts(), kept('Charts by hand', 'Sales by region'))).toBe('')
   })
 
-  // Only a chart's title is excused: a line that is neither a paragraph nor a word of a chart is still a line the file lost.
+  // Only a chart's title is found at a chart: a line that is neither a paragraph nor a word of a chart is still a line the file lost.
   test('is still sought where a line of it is nowhere in the file', async () => {
     expect(await problems(handChartParts(), kept('Charts by hand', 'Sales by nobody'))).toMatch(
       /the kept lines from 'Charts by hand' are not all marked to stay on one page/,
     )
   })
 
-  // What the heading is kept with is the block walk's to say: without its mark the file fails there.
-  test('fails where the heading over the chart is not kept with it', async () => {
+  // The group holds the heading itself, and not the block walk alone: the line before the chart's is kept with it, or the group fails.
+  test('fails by the group where the heading over the chart is not kept with it', async () => {
     const parts = written(DOCUMENT, '<w:keepNext/>', '')
-    expect(await problems(parts, kept('Charts by hand', 'Sales by region'))).toMatch(/'Charts by hand' is not kept with what follows it/)
+    expect(await problems(parts, kept('Charts by hand', 'Sales by region'))).toMatch(
+      /the kept lines from 'Charts by hand' are not all marked to stay on one page/,
+    )
+  })
+
+  // A paragraph that says what the chart's title says is not the chart: the group's lines are sought in their order, the title after the heading.
+  test('is found at the chart though a paragraph before the heading says its title', async () => {
+    const said = { kind: 'paragraph', runs: [{ text: 'Sales by region' }], style: { size: 10 } } as const
+    const document = { ...HAND_CHARTS_DOCUMENT, body: [said, ...HAND_CHARTS_DOCUMENT.body] }
+    const fixture: Fixture = {
+      ...HAND_CHARTS,
+      document,
+      expect: expectation(document, { maxPagesExpected: 2, keptTogether: [['Charts by hand', 'Sales by region']] }),
+    }
+    expect(await problems(written(DOCUMENT, HEADING, `${plain('Sales by region')}${HEADING}`), fixture)).toBe('')
+    // And the heading's mark is still what holds it: without it the group fails, whatever the paragraph above says.
+    expect(await problems(written(DOCUMENT, HEADING, `${plain('Sales by region')}${plain('Charts by hand')}`), fixture)).toMatch(
+      /the kept lines from 'Charts by hand'/,
+    )
   })
 })
