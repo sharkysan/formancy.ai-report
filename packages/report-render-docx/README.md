@@ -90,8 +90,11 @@ test claims it prints as the PDF does.
   symbol the PDF draws, which `@formancy/report-runtime` decides for
   both: a PNG the writer makes, black on white, whole pixels a module,
   its quiet zone inside it, in a paragraph of its own exactly the code's
-  size. It is 600 pixels to the inch at that size, and 2,400 pixels a
-  side at the most, which a code wider than four inches is drawn at. An
+  size. It is 600 pixels to the inch at that size, in the fewest whole
+  pixels a module that are, and never more pixels a module than 2,400 a
+  side hold: so a code wider than 266 to 288 points, by its symbol's
+  version, is drawn coarser, the largest symbol at 269 to the inch
+  where it is 595 points wide. An
   EPC QR code in Austria's frame is a table of one row around its
   picture and "Zahlen mit Code", which reads from bottom to top at 7 pt
   in Arial; the table's borders are the frame, so its corners are square

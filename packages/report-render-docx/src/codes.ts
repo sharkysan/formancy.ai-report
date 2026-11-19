@@ -15,7 +15,7 @@ import { modulePixels } from './code-png.js'
 import { MAX_DOCX_CODE_MODULES, MAX_DOCX_CODES } from './limits.js'
 import { BLACK } from './look.js'
 import { emptyLine, type BlockNode, type Line, type ParagraphNode, type RelationshipId } from './nodes.js'
-import { twips } from './units.js'
+import { emu, twips } from './units.js'
 
 /**
  * A QR code and an EPC QR code in a Word file (0074): its symbol the
@@ -34,7 +34,10 @@ import { twips } from './units.js'
  * zone the frame's distance of four modules, and the caption's band, in
  * which "Zahlen mit Code" reads from bottom to top at 7 pt -- and the
  * white under it. The module, the frame and the band are report-spec's
- * `epc-print.ts`, the rules the PDF draws by.
+ * `epc-print.ts`, the rules the PDF draws by. The picture stands the
+ * line's width down from the frame's top, and in from its left as far as
+ * its cell leaves it once both are in Word's units: within 0.075 pt of
+ * the line's width.
  *
  * What a Word file's frame is not, since a table's borders are what
  * draws it: its corners are square where the PSA's figure rounds them by
@@ -49,6 +52,10 @@ export type Code = QrCode | EpcQrCode
 
 /** The family the caption is named in. */
 export const CAPTION_FAMILY = 'Arial'
+
+/** Word's twentieths to the point, and the English Metric Units a twentieth is: the units a cell's width and a picture's extent are written in (`units.ts`). */
+const TWENTIETHS = 20
+const EMU_A_TWENTIETH = 635
 
 /** What the codes a walk met before one hold together: how many they are, and the modules of their symbols. */
 export interface HeldCodes {
@@ -125,6 +132,12 @@ export function codeNodes(code: Code, symbol: QrSymbol, pictures: CodePictures):
   const height = (symbol.modules.length + 2 * (EPC_FRAME.line + EPC_FRAME.distance)) * module
   const white = (code.size - height) / 2
   const grid = [twips(code.size - EPC_CAPTION.band), twips(EPC_CAPTION.band)] as const
+  const side = across * module
+  // The first cell is the picture and the line beside it with nothing over, and Word holds the cell and the picture's distance from
+  // its left in twentieths of a point, each rounded by itself: rounded up together they are a hair wider than the cell, and a
+  // picture wider than its cell is one Word may fit to it. So from the left the picture stands as many whole twentieths in as the
+  // cell, as it is written, leaves the picture, as it is written: within 0.075 pt of the line's width, a twentieth and a half.
+  const fromLeft = Math.floor((grid[0] * EMU_A_TWENTIETH - emu(side)) / EMU_A_TWENTIETH) / TWENTIETHS
   const style = { family: CAPTION_FAMILY, size: EPC_CAPTION.size, bold: false, italic: false, color: BLACK }
   const caption: ParagraphNode = {
     kind: 'paragraph',
@@ -151,7 +164,7 @@ export function codeNodes(code: Code, symbol: QrSymbol, pictures: CodePictures):
             {
               width: grid[0],
               borders: { top: line, left: line, bottom: line },
-              content: [{ ...picture(code, symbol, across * module, module, pictures), indent: inset, before: inset }],
+              content: [{ ...picture(code, symbol, side, module, pictures), indent: fromLeft, before: inset }],
             },
             { width: grid[1], borders: { top: line, bottom: line, right: line }, direction: 'btLr', content: [caption] },
           ],

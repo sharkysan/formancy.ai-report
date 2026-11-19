@@ -31,16 +31,21 @@ import { QR_QUIET_ZONE, type QrSymbol } from '@formancy/report-runtime'
 export const CODE_RESOLUTION = 600
 
 /**
- * The most pixels a side a code's picture is: 2,400, which is
- * `CODE_RESOLUTION` up to a code four inches wide, 101.6 mm. A larger
- * code's picture is as many whole pixels a module as that holds: twelve
- * for the largest symbol, 185 modules across with its quiet zone, so an
- * edge a reader smooths is smoothed over a twelfth of a module at the
- * most. Without it a picture grows with the square of the code's side,
- * and what deflating it costs with it: the largest symbol at the largest
- * size a page holds, 595 points, was 4,995 pixels a side and 3,126,870
- * bytes of scanlines, which fflate deflated in 46 ms, and 64 of them held
- * the thread 6.1 to 7.5 seconds (`limits.ts`).
+ * The most pixels a side a code's picture is: 2,400. A module is drawn
+ * in no more whole pixels than that many hold of the symbol's modules
+ * and their quiet zone: twelve for the largest symbol, 185 across, whose
+ * picture is then 2,220 pixels a side, and 82 for the smallest, 2,378.
+ * So a code is `CODE_RESOLUTION` to the inch up to a width that depends
+ * on its version -- 266.4 points for the largest symbol, 287.8 for the
+ * version that fares best -- and coarser past it, the largest symbol 269
+ * to the inch at 595 points; an edge a reader smooths is smoothed over a
+ * twelfth of a module at the most. `codes.test.ts` works these figures
+ * out from `modulePixels`. Without it a picture grows with the square of
+ * the code's side, and what deflating it costs with it: the largest
+ * symbol at the largest size a page holds, 595 points, was 4,995 pixels
+ * a side and 3,126,870 bytes of scanlines, which fflate deflated in
+ * 46 ms, and 64 of them held the thread 6.1 to 7.5 seconds
+ * (`limits.ts`).
  */
 export const MAX_CODE_SIDE = 2400
 
