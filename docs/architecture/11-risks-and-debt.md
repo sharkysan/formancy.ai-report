@@ -284,7 +284,9 @@ subject, never by sentence
 ([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
 
 A QR-bill's slip in a Word file is laid out by the writer, to SIX's
-millimetres, and everything Word does with that layout is unseen here:
+millimetres, and everything Word does with that layout is held by
+nothing here, and was looked at once, by hand, on 20 November 2026, the
+slip found alone on the last page, at its foot, and its code readable:
 that a page with no margin at its sides and foot prints at all and what
 Word says of it, that a line of an exact height and a row of a least
 height stand where the heights above them add up to, where a baseline

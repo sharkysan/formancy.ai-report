@@ -29,10 +29,11 @@ in Word once, by hand, on 20 November 2026, and 0074 says what was seen.
 The files with a chart, which it writes since 0076 as Word's own chart,
 were opened in Word once, by hand, the same day, and 0076 says what was
 seen; everything Word lays out of one -- where a word stands, what the
-value axis says -- is held by no test.
-A file with a QR-bill's slip, which it writes since 0075 on a page of
-its own, nobody had opened in Word when that record was written, and
-what Word prints of the page is unseen.
+value axis says -- is held by no test. The files with a QR-bill's
+slip, which it writes since 0075 on a page of its own, were opened in
+Word once, by hand, the same day, and 0075 says what was seen;
+everything Word prints of the page -- where the slip stands, its lines,
+its code -- is held by no test.
 
 ## Write a report as a Word file
 
@@ -158,7 +159,9 @@ test claims it prints as the PDF does.
   table; a reader with neither sets it in a face of other widths, where
   a line may break and move what is under it. The Swiss QR Code is a
   picture of 46 mm, whole pixels a module, the Swiss cross in its
-  pixels. What Word prints of the page nobody has seen yet.
+  pixels. What Word prints of the page was seen once, by hand, on 20
+  November 2026: the slip alone on the last page, at its foot, and its
+  code readable.
 - **A length is rounded to Word's unit**: a size to the half point, a
   rule's weight to the eighth, a length to the twentieth.
 - **The file states no language**, since the resolved document carries no

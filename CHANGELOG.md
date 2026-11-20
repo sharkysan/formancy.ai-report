@@ -74,11 +74,13 @@ new.
   slip to SIX's numbers, and `readSlipCode` reads its code. The bills the
   renderer's tests drew are the corpus's now (`BILL_EXAMPLES`), with one
   whose every value is as long as SIX allows.
-- **Not yet opened in Word.** The files were read back by a reader that
-  is not their writer and held to SIX's numbers; nobody had opened one in
-  Word when this merged. That the slip prints at the page's foot at its
-  size, that no line is broken, and that a banking app reads the code
-  from the paper, is what the record says is unseen.
+- **Opened in Word once, by hand.** The files are read back by a reader
+  that is not their writer and held to SIX's numbers. On 20 November
+  2026 every file with a slip the writer writes of the starters, the
+  samples and the tests' bills was opened in Word, each beside its PDF
+  and a list of what it should show, and found fine: the slip alone on
+  the last page, at its foot, and its Swiss QR Code readable. Nothing
+  more of what Word did was written down, and no test opens one.
 
 **A chart is written into a Word file, as Word's own chart**
 ([0076](docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).

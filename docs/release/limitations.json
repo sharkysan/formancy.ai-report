@@ -3276,7 +3276,7 @@
       ]
     },
     "0075": {
-      "reviewed": "sha256:628e953e6888ef1b69d090cfde5d2468daedae545dd7be4ee907c7c87087ae32",
+      "reviewed": "sha256:f7a802a143c88a73237a4bd1d2494ec7c810c5995af549e3de35b8b851fdcf90",
       "limitations": [
         {
           "area": "rendering",
@@ -3305,7 +3305,7 @@
         },
         {
           "area": "testing",
-          "says": "Nobody had opened a Word file with a slip in Word when 0075 was written, and no test opens one: that Word prints the slip at the page’s foot at 210 by 105 mm, what it says of a page with no margin at its sides and foot, that lines of an exact height and rows of a least height stand where their heights add up to, where a baseline stands in its line and so whether a line exactly as tall as its face’s own shows all of its ink, whether a picture’s line is taller than the picture by the descent of its paragraph’s mark, some 0.2 to 0.3 pt, by which the amount under the code would stand 0.1 mm low, that no line is broken or cut, that no empty page follows the slip, and that a Swiss banking app reads the code from the paper, is held by nothing; the tests read the file back and ZXing reads the picture’s own pixels."
+          "says": "The Word files with a slip were opened in Word once, by hand, on 20 November 2026, each beside its PDF, and found as its list says, the slip alone on the last page, at its foot, and its code readable, with nothing more of what Word did written down; no test opens one: that Word prints the slip at the page’s foot at 210 by 105 mm, what it says of a page with no margin at its sides and foot, that lines of an exact height and rows of a least height stand where their heights add up to, where a baseline stands in its line and so whether a line exactly as tall as its face’s own shows all of its ink, whether a picture’s line is taller than the picture by the descent of its paragraph’s mark, some 0.2 to 0.3 pt, by which the amount under the code would stand 0.1 mm low, that no line is broken or cut, that no empty page follows the slip, and that a Swiss banking app reads the code from the paper, is held by nothing; the tests read the file back and ZXing reads the picture’s own pixels."
         },
         {
           "area": "testing",

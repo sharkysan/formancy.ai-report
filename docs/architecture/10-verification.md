@@ -556,8 +556,11 @@ on the PDF's page, and a list of bills no engine draws to the same
 refusal from both. What none of it shows is anything Word prints: that
 the slip stands at the page's foot at its size, that no line is broken,
 where a baseline stands, or that a banking app reads the code from the
-paper. Nobody had opened a file with a slip in Word when 0075 was
-written.
+paper. Every file with a slip the writer writes of the starters, the
+samples and the tests' bills was opened in Word once, by hand, on 20
+November 2026, and found fine: the slip alone on the last page, at its
+foot, and its code readable; nothing more of what Word did was written
+down.
 
 What it does not show is Word. That Word opens the file, repeats the
 marked row, keeps the marked ones, draws the SVG, puts page 1's header
@@ -707,8 +710,8 @@ later releases and say why, and the legal gate waits for a lawyer
   the starters' and the fixtures' files opened in Word once, by hand,
   those with a code once too, on 20 November 2026, the euro invoice from
   Austria after its frame was written as the variant approved in Word
-  (0074), and those with a chart on the same day (0076); those with a
-  QR-bill's slip (0075) not yet.
+  (0074), and those with a chart (0076) and those with a QR-bill's
+  slip (0075) on the same day.
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **No phone, no bank, no paper.** ZXing decodes every code a test prints,
