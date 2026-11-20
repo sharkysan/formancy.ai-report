@@ -112,6 +112,8 @@ describe('expectation', () => {
     expect(derived.footerEveryPage?.exec('Page 2')?.groups).toEqual({ pageNumber: '2' })
     // A line with a page field prints differently on every page; it is not a line to find.
     expect(derived.keptTogether).toEqual([['Summary']])
+    // Lines no block keeps on one page share one only where a fixture placed them so, and say so: none is derived.
+    expect(derived.onOnePage).toEqual([])
     expect(derived.images).toEqual([{ kind: 'raster', width: 10, height: 20 }])
     expect(derived.pageRegionImages).toEqual([])
     expect(derived).toMatchObject({

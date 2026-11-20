@@ -223,6 +223,16 @@ export interface Expectation {
    * moved every later one does too.
    */
   readonly keptTogetherByRoom: boolean
+  /**
+   * Groups of lines that must print on one page though no keep-together
+   * block holds them, which a fixture states where it places them so: a
+   * heading kept with the next block over the first row of the table it
+   * heads, and the line it stands under where every plausible engine has
+   * room for all of them. Each group's lines all appear on one page. No
+   * block marks them to stay together, so a Word file, whose pages are
+   * Word's, is not held to them.
+   */
+  readonly onOnePage: readonly (readonly string[])[]
   readonly minPagesExpected: number
   readonly maxPagesExpected: number
   /** No page's last table line is a group header or the column header: a heading never ends a page alone. */
@@ -290,6 +300,7 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     wrappedText: [],
     keptTogether: keptTogether(document.body),
     keptTogetherByRoom: false,
+    onOnePage: [],
     minPagesExpected: 1,
     noOrphanedHeaders: true,
     noEmptyPages: !flatten(document.body).some((block) => block.kind === 'spacer' || block.kind === 'rule'),
