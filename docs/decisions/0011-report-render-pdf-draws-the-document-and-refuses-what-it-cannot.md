@@ -403,19 +403,22 @@ page from anywhere else, since pdfmake keeps one position for the cell
 and writes over it; and a patched pdfmake, a copy of upstream
 ([0002](0002-depend-on-upstream-never-copy-it.md)).
 `pdfmake.test.ts` pins the rewrite: a header cell with an id reads the
-last of three or more pages its table reaches, and the first row's cell
-page 1. `flow.test.ts` holds on the PDF a heading over a 120-row table
+last of three or more pages its table reaches, and the first row's cell,
+kept with the header as the renderer's planned tables keep it, page 1. `flow.test.ts` holds on the PDF a heading over a 120-row table
 alone, as a run of two, in a framed section and over a group header
 keeping three rows, each on page 1 with the line above it and the first
 row, under the header on every page; and a heading at a page's foot over
 such a table, over an empty table and over a keep-together block opening
 with a table moving to the next page with it, as before. The corpus's
-`kept-heading` fixture holds both cases on any engine, by the lines it
-places on one page (`onOnePage`), and `corpus.test.ts` and
-`browser.test.ts` render it in both entries. On the header's anchor
-again the fixture and four of `flow.test.ts`'s cases fail, naming the
-lines split across pages; without the header kept with where no body row
-prints, the case of a table whose rows print nothing fails. What it
+`kept-heading` fixture states both cases as the lines any engine that
+keeps a heading with the next block must print on one page
+(`onOnePage`); `corpus.test.ts` and `browser.test.ts` render it in the
+renderer's two entries, and the trial's pdfmake adapter, which keeps a
+heading with a table's header, fails both, as the renderer did. On the
+header's anchor again the fixture and four of `flow.test.ts`'s cases
+fail, naming the lines split across pages; without the header kept with
+where no body row prints, both cases of a table whose rows print nothing
+fail, the one that holds the cost below among them. What it
 costs: such a table is still kept with by its header, and where it runs
 past its page its heading still moves with it, leaving its own page
 empty under the line before it. Nothing is lost or misprinted, and

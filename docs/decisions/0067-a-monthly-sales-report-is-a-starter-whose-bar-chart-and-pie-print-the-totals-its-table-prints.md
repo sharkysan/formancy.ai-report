@@ -1,6 +1,6 @@
 # 0067 — A monthly sales report is a starter whose bar chart and pie print the totals its table prints
 
-- **Status:** accepted; numbered while 0066 was held by a branch not yet merged
+- **Status:** accepted; numbered while 0066 was held by a branch not yet merged; 0064's defect, its reason for leaving its heading unkept, fixed on 2026-11-20 under [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)
 - **Date:** 2026-11-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -320,6 +320,19 @@ recorded with `--record`.
 
 **What it forecloses.** Nothing that cannot be undone: the starter can be
 taken out of `STARTERS`, its lists, its picture and its recording with it.
+
+**Amended 2026-11-20: the defect fixed.** 0064's defect, which *The
+heading is not kept with its table* above gives as its reason, is fixed
+under
+[0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md):
+a heading kept with a table that runs past its page stays on its page,
+over the table's first row. The heading over the lines is left as the
+starter was written, not kept: it stands under the charts, far from
+page 1's foot, where kept or not it prints the same, every stream of the
+PDF the same once inflated, the kept one naming one destination more
+(measured on 20 November 2026). The sales report keeps no heading, and
+prints byte for byte what it did. Keeping it in the starter is a change
+to the starter of its own.
 
 ## Alternatives considered
 

@@ -323,8 +323,8 @@ over the table's first row. The heading of what was received, kept with
 its table, is no longer moved with a table too long for the rest of its
 page, and *The second heading exposed* above no longer holds. The
 overdue invoices' heading is left as the starter was written, not kept:
-it stands at the top of page 1's body, where kept or not it prints the
-same, every stream of the PDF the same once inflated in each of the
+it stands near the top of page 1's body, under the opening paragraph,
+where kept or not it prints the same, every stream of the PDF the same once inflated in each of the
 four languages, the kept one naming one destination more (measured on
 20 November 2026). The reminder prints every run where it did in each
 of its languages; only the named destination of its kept heading

@@ -34,15 +34,20 @@ reached. 0064 found it and left it for a change of its own.
   22 of them, the site visit's, the order confirmation's and the payment
   reminder's among them, differ in that destination's place alone, and
   the rest are byte for byte the same.
-- **The corpus holds it on any engine**: `kept-heading`
-  (`KEPT_HEADING_FIXTURES`), a heading under one line and a run of two,
-  each over a table longer than any plausible page, and
-  `Expectation.onOnePage`, lines a fixture places on one page though no
-  block keeps them, which the corpus's checks hold.
+- **The corpus holds it**: `kept-heading` (`KEPT_HEADING_FIXTURES`), a
+  heading under one line and a run of two, each over a table longer than
+  any plausible page, and `Expectation.onOnePage`, lines a fixture places
+  on one page though no block keeps them: the lines any engine that keeps
+  a heading with the next block must print on one page, which the
+  corpus's checks hold. The renderer answers to it; the trial's pdfmake
+  adapter, which keeps a heading with a table's header, fails it as the
+  renderer did.
 - **The starters are as they were.** The order confirmation's goods
-  heading and the payment reminder's overdue invoices' heading, left
-  unkept while the defect stood, stand at the top of page 1's body, where
-  kept or not they print the same (0064, 0066).
+  heading, the payment reminder's overdue invoices' heading and the sales
+  report's heading over its lines, left unkept while the defect stood,
+  stand where page 1's body starts, near its top and under the charts,
+  where kept or not each prints the same, every stream of each PDF the
+  same (0064, 0066, 0067).
 
 **A report is written as a Word file, beside its PDF, by a writer of its
 own**

@@ -160,12 +160,12 @@ Every block of the resolved document:
   more.
 - **Keep-together blocks**, moved whole to the next page when they do not
   fit, and paragraphs **kept with the next** block. A table is kept with by
-  its first row under the column header, never by the header, which
-  pdfmake repeats on every page the table continues on and writes that
-  page into: a heading over a table that runs past its page stays on its
-  page with the table's first rows. A table whose rows print nothing is
-  kept with by its header, and its heading still moves with it where it
-  runs past its page
+  its first row under the column header, and by its header only where no
+  row prints, or inside a keep-together block, which moves whole: pdfmake
+  repeats the header on every page the table continues on and writes that
+  page into it, so a heading over a table that runs past its page stays on
+  its page with the table's first rows. Where a table whose rows print
+  nothing runs past its page, its heading still moves with it
   ([0011](../../docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 - **The page header and footer**, on every page, with the page number and
   the page count. The body is laid out between them, after both are
