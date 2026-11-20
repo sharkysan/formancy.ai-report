@@ -162,10 +162,11 @@ const REPORT: ReportDefinition = {
         ],
       },
       { id: 'table-gap', kind: 'spacer', height: 16 },
-      // Not kept with its table: the renderer moves a heading kept with a
-      // table that runs past its page to the next page with the whole
-      // table, leaving page 1 without either (0064). It stands under the
-      // charts, far from page 1's foot.
+      // Not kept with its table: left so while the renderer moved a heading
+      // kept with a table that runs past its page to the next page with the
+      // whole table (0064). It stands under the charts, far from page 1's
+      // foot, and kept or not it prints the same there (0011, fixed
+      // 2026-11-20).
       { id: 'lines-heading', kind: 'text', style: 'heading', content: [text('Belege nach Sparte')] },
       {
         id: 'lines',
