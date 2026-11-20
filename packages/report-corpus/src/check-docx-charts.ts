@@ -75,8 +75,17 @@ function axisOf(chart: AxisChart): { readonly step: Exact; readonly places: numb
   if (first === undefined || second === undefined || ticks.includes(undefined)) return undefined
   const scale = Math.max(first.scale, second.scale)
   const step = { units: second.units * 10n ** BigInt(scale - second.scale) - first.units * 10n ** BigInt(scale - first.scale), scale }
-  const places = Math.max(...chart.ticks.map(({ exact }) => (/\.(\d*?)0*$/.exec(exact)?.[1] ?? '').length))
+  const places = Math.max(...chart.ticks.map(({ exact }) => neededPlaces(exact)))
   return { step, places }
+}
+
+/** The places a decimal's digits need: those after its point, without the zeros that end them. Counted in one pass, by no pattern a long run of zeros could make slow. */
+function neededPlaces(exact: string): number {
+  const point = exact.indexOf('.')
+  if (point < 0) return 0
+  let end = exact.length
+  while (end > point + 1 && exact[end - 1] === '0') end -= 1
+  return end - point - 1
 }
 
 /** The chart `node` draws, alone in its paragraph in exactly the block's box, or nothing where a problem was said of it. */
