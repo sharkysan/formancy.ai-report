@@ -284,6 +284,39 @@ describe("pdfmake's positions, which the table rules read", () => {
       .getBuffer()
     expect(seen).toEqual([2, 2])
   })
+
+  // A table's header rows are laid out once and kept as a fragment of the
+  // very lines laid out, which pdfmake adds again at the top of every page
+  // the table continues on (src/PageElementWriter.js 78,
+  // src/TableProcessor.js 604); each time, it writes the page it adds
+  // them on into the first position of each line's node with an id
+  // (src/ElementWriter.js 340). So a header cell with an id says it
+  // starts on the last page the table reaches, and a body row's cell
+  // where it does: why a heading is kept with a table's first body row,
+  // never its header (content.ts's anchorOf). This fails first if pdfmake
+  // stops writing that page, and the reason goes with it.
+  test("writes the last page a table's header repeats on into its cell's start, and leaves a body row's", async () => {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    const rows = Array.from({ length: 150 }, (_, index) => [{ text: `Row ${index}` }])
+    const seen = new Map<string, number>()
+    const pdf = await readPdf(
+      new Uint8Array(
+        await pdfmake
+          .createPdf({
+            content: [{ table: { headerRows: 1, body: [[{ text: 'Header', id: 'header' }], [{ text: 'First', id: 'first' }], ...rows] } }],
+            defaultStyle: { font: 'Roboto' },
+            pageBreakBefore: (node) => {
+              if (node.id !== undefined) seen.set(node.id, node.startPosition.pageNumber)
+              return false
+            },
+          })
+          .getBuffer(),
+      ),
+    )
+    expect(pdf.pages.length).toBeGreaterThan(2)
+    expect(pdf.pages.map((page) => page.items.filter((item) => item.text === 'Header').length)).toEqual(pdf.pages.map(() => 1))
+    expect(Object.fromEntries(seen)).toEqual({ header: pdf.pages.length, first: 1 })
+  })
 })
 
 describe("pdfmake's detached nodes, which a chart is drawn as", () => {
