@@ -11,12 +11,15 @@
 // held by `verifyDocx` to the document the gate resolves under Node from
 // the corpus's starter, at the instant the file says it was made; and
 // byte for byte the file report-render-docx writes of that document under
-// Node. Where the writer refuses the report -- a QR-bill, an EPC QR code,
-// an e-invoice, a preview's label, a chart -- no link, and a note in its
-// place named "No Word file: " and the sentence the writer refuses that
-// document with under Node. Which starters are which is the writer's to say, here
-// under Node: the Studio's suite names them (pipeline.test.ts), and the
-// journey fails a pass that read no file, or no refusal.
+// Node. Where the writer refuses the report -- a QR-bill, an e-invoice,
+// a preview's label, a chart -- no link, and a note in its place named
+// "No Word file: " and the sentence the writer refuses that document
+// with under Node. A code in a file that is written -- the euro
+// invoice's EPC QR code -- is read by `verifyDocx` from its picture's
+// pixels, by ZXing, which is why the check is waited for (0074). Which
+// starters are which is the writer's to say, here under Node: the
+// Studio's suite names them (pipeline.test.ts), and the journey fails a
+// pass that read no file, or no refusal.
 //
 // And in the framework switch (`wordHolds`, gate-switch.mjs): the Word
 // file offered at the first moment the paper is no longer busy after an
@@ -133,7 +136,8 @@ export async function wordChecks(gate, page, state, { id, mode = 'preview' }) {
     return null
   }
   const document = resolved(starter, mode, docx.created)
-  const problems = verifyDocx({ id, title: id, document, maxPages: PAGES, expect: expectation(document, { maxPagesExpected: PAGES }) }, docx)
+  // Waited for: a code is held by what ZXing reads in its picture (0074).
+  const problems = await verifyDocx({ id, title: id, document, maxPages: PAGES, expect: expectation(document, { maxPagesExpected: PAGES }) }, docx)
   check(
     `${state}: it holds what the document says, resolved under Node at the instant the file was made`,
     problems.length === 0 ? null : problems.slice(0, 4).join('; '),

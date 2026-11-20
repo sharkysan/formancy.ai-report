@@ -7,7 +7,8 @@ import { fixtureOf, refusalOf, resolved, written } from './testing/support.js'
  * runtime against its synthetic data, in each language it declares, as a
  * final render and as a preview, and its Word file written and proved on
  * the file -- or refused, by the code and the subject this suite names
- * for it. The table below is record 0068's, starter by starter: a starter
+ * for it. The table below is record 0068's, starter by starter, as record
+ * 0074 changed it for the euro invoice: a starter
  * that is written where the record says refused, or the other way round,
  * fails here, and so does one the table does not name.
  */
@@ -30,11 +31,11 @@ const STARTER_FILES: Readonly<Record<string, Outcome>> = {
   'site-visit': 'written',
   'order-confirmation': 'written',
   'product-data-sheet': 'written',
+  // Paid by an EPC QR code, which the writer draws since 0074: what refuses one is decided below both engines.
+  'euro-invoice': 'written',
   // Paid by a QR-bill, whose slip belongs to the last page of its PDF.
   invoice: both('paymentPart'),
   'payment-reminder': both('paymentPart'),
-  // Paid by an EPC QR code, whose refusals are decided in the PDF renderer.
-  'euro-invoice': both('payment-code'),
   // An invoice in law: its final render is its PDF/A-3b or the copy of its XML, and its preview is labelled as not the invoice, a label a Word file would hold as a paragraph.
   'e-invoice': { final: refused('eInvoice'), preview: refused('pageHeader') },
   'e-invoice-xrechnung': { final: refused('eInvoice'), preview: refused('pageHeader') },
@@ -52,12 +53,12 @@ describe.each(STARTERS.map((starter) => [starter.id, starter] as const))('%s', (
   const locales = [starter.report.locale, ...(starter.report.translations ?? []).map((each) => each.locale)]
   const renders = locales.flatMap((locale) => (['final', 'preview'] as const).map((mode) => [locale, mode] as const))
 
-  test.each(renders)('in %s, as a %s render', (locale, mode) => {
+  test.each(renders)('in %s, as a %s render', async (locale, mode) => {
     const document = resolved(starter, { mode, locale })
     if (outcome === undefined || outcome === 'written') {
-      // Every word, cell, mark and picture the report prints, on the file; and nothing the corpus says a Word file may not hold.
+      // Every word, cell, mark, picture and code the report prints, on the file; and nothing the corpus says a Word file may not hold.
       expect(wordRefusal(document)).toBeUndefined()
-      expect(verifyDocx(fixtureOf(id, document), written(document))).toEqual([])
+      expect(await verifyDocx(fixtureOf(id, document), written(document))).toEqual([])
     } else {
       // Refused whole, for the first thing a Word file cannot hold, as the corpus derives it from the document too.
       expect(refusalOf(document)).toMatchObject(outcome[mode])

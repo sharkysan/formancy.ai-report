@@ -1,6 +1,6 @@
 import { verifyDocx, type Docx, type DocxBlock, type DocxParagraph, type DocxTable } from '@formancy/report-corpus'
 import type { Block, ResolvedDocument, Table } from '@formancy/report-runtime'
-import { describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test } from 'vitest'
 import { HEADER_RULE, OUTLINE, PADDING_X, PADDING_Y, REGION_GAP, ROW_RULE, RULE, RULE_GAP } from './look.js'
 import { documentOf, fixtureOf, paragraph, written } from './testing/support.js'
 
@@ -13,12 +13,21 @@ import { documentOf, fixtureOf, paragraph, written } from './testing/support.js'
  * so that a change of one is a change someone made.
  */
 
-/** `document` written and read back, once the corpus's check has nothing to say against the file. */
+/**
+ * `document` written and read back, the corpus's check having nothing to
+ * say against the file. The check is waited for, since what a scanner
+ * reads in a code's picture is (0074): asked here, and held once the case
+ * that asked has run.
+ */
+const checks: Promise<void>[] = []
 function file(document: ResolvedDocument): Docx {
   const docx = written(document)
-  expect(verifyDocx(fixtureOf('blocks', document), docx)).toEqual([])
+  checks.push(verifyDocx(fixtureOf('blocks', document), docx).then((problems) => expect(problems).toEqual([])))
   return docx
 }
+afterEach(async () => {
+  await Promise.all(checks.splice(0))
+})
 
 const body = (...blocks: readonly Block[]): DocxBlock[] => [...file(documentOf(blocks)).body]
 const words = (block: DocxBlock | undefined): string =>

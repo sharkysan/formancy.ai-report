@@ -110,14 +110,18 @@ export interface CellNode {
   readonly borders?: { readonly top?: Line; readonly left?: Line; readonly bottom?: Line; readonly right?: Line }
   /** Lower-case `#rrggbb`. */
   readonly shade?: string
+  /** Which way its text reads where it is turned: from bottom to top, as an EPC QR code's caption reads (0074). */
+  readonly direction?: 'btLr'
   readonly content: BlockNode[]
 }
 
 export interface RowNode {
   cantSplit: boolean
   readonly header?: true
-  /** Exactly so many points tall. */
+  /** Exactly so many points tall, or at least so many where `atLeast`. */
   readonly height?: number
+  /** Its height the least it is, which Word grows the row past to hold what its cells hold: Austria's frame's (0074), and no other row. */
+  readonly atLeast?: true
   readonly cells: readonly CellNode[]
 }
 

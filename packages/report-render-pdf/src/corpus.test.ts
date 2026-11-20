@@ -3,6 +3,7 @@ import {
   ALL_FIXTURES,
   AXIS_PAINT,
   CHART_FIXTURES,
+  CODE_FIXTURES,
   E_INVOICE,
   FIRST_PAGE_FIXTURES,
   GRID_PAINT,
@@ -39,11 +40,15 @@ import { documentOf, fixture, fixtureOf, paragraph, TIMEOUT, type Stated } from 
  * trial's engines never drew, its kept rows' fixture (0059), which they
  * never kept, its fixtures of page 1's own header (0060), which they
  * never drew either, its runs set below or above the line (0061),
- * which they never set, and its headings kept with tables that run past
- * the page, which the trial's pdfme never kept.
+ * which they never set, its QR codes and EPC QR codes (0074), which a
+ * Word file's are held to: a code fixture this renderer refused, or drew
+ * over its neighbours, would be compared with nothing there -- what each
+ * code says is read from the page by qr.test.ts and epc-qr-code.test.ts --
+ * and its headings kept with tables that run past the page, which the
+ * trial's pdfme never kept.
  */
 
-/** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's, the chart ones, those of runs set below or above the line and the kept headings'. */
+/** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's, the chart ones, those of runs set below or above the line, the codes' and the kept headings'. */
 const CORPUS: readonly Fixture[] = [
   ...ALL_FIXTURES,
   ...SVG_FIXTURES,
@@ -51,6 +56,7 @@ const CORPUS: readonly Fixture[] = [
   ...FIRST_PAGE_FIXTURES,
   ...CHART_FIXTURES,
   ...SHIFTED_FIXTURES,
+  ...CODE_FIXTURES,
   ...KEPT_HEADING_FIXTURES,
 ]
 
@@ -152,6 +158,7 @@ describe('the renderer on the corpus', () => {
     expect(CHART_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect([...CHART_REFUSALS.keys()]).toEqual(CHART_FIXTURES.filter((fixture) => fixture.expect.outcome === 'refuse').map((fixture) => fixture.id))
     expect(SHIFTED_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
+    expect(CODE_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect(KEPT_HEADING_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render').length).toBeGreaterThan(0)
     expect([...CANNOT.keys()]).toEqual([])
   })

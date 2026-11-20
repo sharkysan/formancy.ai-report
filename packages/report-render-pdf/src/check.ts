@@ -1,4 +1,6 @@
 import {
+  epcSymbol,
+  qrSymbol,
   RenderRefusal,
   type Block,
   type Chart,
@@ -7,6 +9,7 @@ import {
   type Image,
   type ImageAsset,
   type QrCode,
+  type QrSymbol,
   type Rectangle,
   type ResolvedDocument,
   type Section,
@@ -19,11 +22,9 @@ import { checkImages } from './check-images.js'
 import { checkTable, checkTableCells } from './check-table.js'
 import { tall, type Measured, type Place, type Tall, type Walk } from './check-walk.js'
 import { frameOf, RULE_GAP, runFace } from './content.js'
-import { epcSymbol } from './epc.js'
 import type { RenderFonts } from './host-fonts.js'
 import { checkPdfA } from './pdfa-check.js'
 import type { PdfA } from './pdfa.js'
-import { qrSymbol, type QrSymbol } from './qr.js'
 import { checkBaselines } from './shifted.js'
 import { fillWidth, fixedWidth } from './widths.js'
 
@@ -44,8 +45,9 @@ import { fillWidth, fixedWidth } from './widths.js'
  * The walk also collects what can only be judged once the page regions are
  * measured -- whatever is too tall for any page's body -- and what the body
  * pass measures: its tables and keep-together blocks, each at the width it
- * stands at. It encodes every QR code and EPC QR code, once, and what it
- * encodes is what every pass draws (`qr.ts`, `epc.ts`). It finds every
+ * stands at. It asks the runtime for every QR code's and EPC QR code's
+ * symbol, once, and that symbol is what every pass draws (`qr.ts`,
+ * `epc.ts`). It finds every
  * image, and `check-images.ts` reads each asset once and holds the render to
  * what its images cost together. It holds the render to what its charts
  * cost to draw together (`checkChartDrawing`).
@@ -244,24 +246,17 @@ function checkImage(image: Image, place: Place, walk: Walk): void {
   tall(walk, place, image.height, `the image ${id}`, id)
 }
 
-/** A QR code is a square that stands where an image may: no wider than where it stands, no taller than the body. */
+/** A QR code is a square that stands where an image may; its symbol, and what refuses it but a body too short, are the runtime's (0074). */
 function checkQrCode(code: QrCode, place: Place, walk: Walk): void {
-  const { id, size } = code
-  if (!(size > 0 && Number.isFinite(size))) throw new RenderRefusal('unsupported', `the QR code ${id} is drawn ${size} pt a side`, id)
-  if (size > place.width) throw new RenderRefusal('content-too-large', `the QR code ${id} is ${size} pt wide; it stands ${place.width.toFixed(2)} pt wide`, id)
-  walk.codes.set(code, qrSymbol(code))
-  tall(walk, place, size, `the QR code ${id}`, id)
+  walk.codes.set(code, qrSymbol(code, place.width))
+  tall(walk, place, code.size, `the QR code ${code.id}`, code.id)
 }
 
 /** An EPC QR code is a square that stands where a QR code may, and its caption, when it has one, is drawn inside it. */
 function checkEpcQrCode(code: EpcQrCode, place: Place, walk: Walk): void {
-  const { id, size } = code
-  if (!(size > 0 && Number.isFinite(size))) throw new RenderRefusal('unsupported', `the EPC QR code ${id} is drawn ${size} pt a side`, id)
-  if (size > place.width)
-    throw new RenderRefusal('content-too-large', `the EPC QR code ${id} is ${size} pt wide; it stands ${place.width.toFixed(2)} pt wide`, id)
-  walk.codes.set(code, epcSymbol(code))
+  walk.codes.set(code, epcSymbol(code, place.width))
   walk.captioned ||= code.caption !== undefined
-  tall(walk, place, size, `the EPC QR code ${id}`, id)
+  tall(walk, place, code.size, `the EPC QR code ${code.id}`, code.id)
 }
 
 function checkRectangle(rectangle: Rectangle, at: string, place: Place, walk: Walk): void {

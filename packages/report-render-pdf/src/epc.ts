@@ -1,86 +1,22 @@
 import type { ContentSvg } from 'pdfmake/interfaces.js'
-import { encode } from 'uqr'
-import {
-  EPC_CAPTION,
-  EPC_FRAME,
-  EPC_MAX_BYTES,
-  EPC_MAX_VERSION,
-  epcCaptionBreak,
-  epcLeastVersion,
-  epcModule,
-  RenderRefusal,
-  type EpcQrCode,
-} from '@formancy/report-runtime'
-import { codePoint } from './glyphs.js'
-import { darkRuns, qrContent, refuseFineModules, type QrSymbol } from './qr.js'
+import { EPC_CAPTION, EPC_FRAME, epcModule, qrSymbolVersion, type EpcQrCode, type QrSymbol } from '@formancy/report-runtime'
+import { darkRuns, qrContent } from './qr.js'
 import { LIBERATION_SANS } from './style.js'
 import type { ConvertedSvg } from './svg-content.js'
 
 /**
- * An EPC QR code (EPC069-12 v3.1), encoded by uqr and drawn as a QR code
- * is (0020): its payload as UTF-8 at level M, in a symbol of version 13 at
- * most, encoded once when the document is checked, its dark modules one
- * path filled once over a white square exactly its size.
+ * An EPC QR code (EPC069-12 v3.1), drawn as a QR code is (0020): its
+ * symbol the runtime's (`epcSymbol`, 0074), encoded once when the document
+ * is checked, its dark modules one path filled once over a white square
+ * exactly its size.
  *
  * Without a caption it is a QR code's square, its quiet zone of four
- * modules inside it, held to the 0.4 mm floor. With Austria's caption it
- * is the PSA's (PSA v3.0 5), laid out by report-spec's `epc-print.ts`, the
- * one place its rules are decided: modules of 15 to 20 mil, a frame of
- * half a module with corners of two, four modules from the symbol, and
- * "Zahlen mit Code" at 7 pt in Liberation Sans, reading from bottom to top
- * on the right. In a square the author sized, the version that just holds
- * a payload may have modules over 20 mil: the code is drawn at the least
- * version that prints (`epcLeastVersion`), a larger symbol of the same
- * payload at the same level.
- *
- * Every refusal names the code by its id, and none quotes the payload: it
- * holds a name and an account.
+ * modules inside it. With Austria's caption it is the PSA's (PSA v3.0 5),
+ * laid out by report-spec's `epc-print.ts`, the one place its rules are
+ * decided: a frame of half a module with corners of two, four modules
+ * from the symbol, and "Zahlen mit Code" at 7 pt in Liberation Sans,
+ * reading from bottom to top on the right.
  */
-
-/** The version `symbol` is, from its modules a side (ISO/IEC 18004: 4 a version and 17). */
-const versionOf = (symbol: QrSymbol): number => (symbol.modules.length - 17) / 4
-
-/**
- * `code`'s symbol, or the refusal that says why it is not drawn: a caption
- * the renderer does not know, or a payload that is not text, as
- * `unsupported`; a payload past 331 bytes, refused unencoded when it is
- * longer than that in characters, or modules the square cannot print, as
- * `content-too-large`. Its size is checked already.
- */
-export function epcSymbol(code: EpcQrCode): QrSymbol {
-  const { id, payload, size, caption } = code
-  const what = `the EPC QR code ${id}`
-  if (caption !== undefined && caption !== 'zahlenMitCode')
-    throw new RenderRefusal('unsupported', `${what} asks for the caption '${String(caption)}', which the renderer does not know`, id)
-  if (typeof payload !== 'string') throw new RenderRefusal('unsupported', `${what} holds something that is not text`, id)
-  const lone = /\p{Cs}/u.exec(payload)?.[0]
-  if (lone !== undefined)
-    throw new RenderRefusal('unsupported', `${what} holds ${codePoint(lone.charCodeAt(0))}, half of a surrogate pair without the other, which has no UTF-8`, id)
-  // No character is fewer bytes than code units, so a payload longer than the limit in code units is longer in bytes, and is refused without being encoded.
-  if (payload.length > EPC_MAX_BYTES) throw new RenderRefusal('content-too-large', `${what} holds more than the ${EPC_MAX_BYTES} bytes the EPC allows`, id)
-  const square = caption === undefined ? undefined : epcCaptionBreak(size)
-  if (square !== undefined) throw new RenderRefusal('content-too-large', `${what} cannot be printed as the PSA prints it: ${square}`, id)
-  // A size the caption's rules take has a least version (report-spec's epc-print.test.ts holds every one).
-  const least = epcLeastVersion(size, caption) as number
-  let symbol: QrSymbol
-  try {
-    symbol = { modules: encode(payload, { ecc: 'M', border: 0, boostEcc: false, minVersion: least, maxVersion: EPC_MAX_VERSION }).data }
-  } catch (error) {
-    if (!(error instanceof RangeError && error.message === 'Data too long')) throw error
-    throw new RenderRefusal(
-      'content-too-large',
-      `${what} holds ${new TextEncoder().encode(payload).length} bytes, more than version ${EPC_MAX_VERSION} holds at level M, the largest code the EPC allows`,
-      id,
-    )
-  }
-  if (caption === undefined) {
-    refuseFineModules(symbol, size, what, 'its payload', id)
-    return symbol
-  }
-  const version = epcCaptionBreak(size, versionOf(symbol))
-  if (version !== undefined) throw new RenderRefusal('content-too-large', `${what} cannot be printed as the PSA prints it: ${version}`, id)
-  return symbol
-}
 
 /**
  * Between each end of the caption and the frame's right line, which is
@@ -134,7 +70,7 @@ export function epcContent(symbol: QrSymbol, code: EpcQrCode): ContentSvg | Conv
  */
 function captionedContent(symbol: QrSymbol, size: number): ConvertedSvg {
   const modules = symbol.modules.length
-  const module = epcModule(size, versionOf(symbol), 'zahlenMitCode')
+  const module = epcModule(size, qrSymbolVersion(symbol), 'zahlenMitCode')
   const line = EPC_FRAME.line * module
   const inset = line + EPC_FRAME.distance * module
   const side = modules * module

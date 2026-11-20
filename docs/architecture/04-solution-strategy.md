@@ -147,6 +147,12 @@ writer, and held to the document and to the PDF of the same document.
 That is what the file says: what Word then does with it is no part of
 the proof, and the documents say so wherever they claim anything of one
 ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+A code in that file is proved as a PDF's is, by what a scanner reads: on
+the picture the file embeds, its pixels read back by the corpus's own
+reader and decoded by ZXing. And it is the PDF's code, since what
+decides a code's symbol and what refuses one stands in the runtime,
+below both engines, and neither decides it again
+([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
 
 ## 6. Depend, never copy, and let the licence choose the dependencies
 

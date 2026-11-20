@@ -1,6 +1,8 @@
 export { renderDocx } from './render.js'
 export {
   MAX_DOCX_CHARACTERS,
+  MAX_DOCX_CODE_MODULES,
+  MAX_DOCX_CODES,
   MAX_DOCX_FAMILY_LENGTH,
   MAX_DOCX_IMAGE_DATA,
   MAX_DOCX_MEDIA_BYTES,

@@ -6,6 +6,7 @@ import { flatten, normalise, plainText, tables } from '../fixture.js'
 import { ALL_FIXTURES } from './all.js'
 import { CHART_FIXTURES, chartPageFoot, FOOT_SPACERS } from './charts.js'
 import { decimals } from './decimals.js'
+import { CODE_FIXTURES } from './codes.js'
 import { FIRST_PAGE_FIXTURES } from './first-page-header.js'
 import { fonts } from './fonts.js'
 import { BODY_HEIGHT, bodyHeight, BODY_SIZE, CHAR_EM_RANGE, LINE_FACTOR_RANGE, lineHeight, PRINTABLE_WIDTH, ROWS_PER_PAGE_RANGE } from './geometry.js'
@@ -65,7 +66,7 @@ function documentLines(document: ResolvedDocument): string[] {
   )
 }
 
-/** Section 20's fixtures, the SVG ones, the kept rows' one, the first page header's, the chart ones, those of runs set below or above the line and the kept headings': every fixture an engine answers to. */
+/** Section 20's fixtures, the SVG ones, the kept rows' one, the first page header's, the chart ones, those of runs set below or above the line, the code ones and the kept headings': every fixture an engine answers to. */
 const EVERY = [
   ...ALL_FIXTURES,
   ...SVG_FIXTURES,
@@ -73,6 +74,7 @@ const EVERY = [
   ...FIRST_PAGE_FIXTURES,
   ...CHART_FIXTURES,
   ...SHIFTED_FIXTURES,
+  ...CODE_FIXTURES,
   ...KEPT_HEADING_FIXTURES,
 ]
 
@@ -160,6 +162,25 @@ describe('the corpus', () => {
       'shifted-empty-after',
       'shifted-too-wide',
     ])
+  })
+
+  // The code fixtures stand beside them too (0074): one dropped would leave
+  // a way a report places a code, or a kind of code, unproved on the PDF and
+  // on the Word file. Every one of them is drawn: what refuses a code is a
+  // document of the malformed list each.
+  test('has the code fixtures beside them, each once, and every one drawn', () => {
+    expect(CODE_FIXTURES.map((fixture) => fixture.id)).toEqual([
+      'qr-codes',
+      'qr-code-placed',
+      'qr-code-regions',
+      'qr-code-largest',
+      'qr-code-smallest-module',
+      'qr-code-empty',
+      'epc-qr-codes',
+      'epc-qr-code-placed',
+      'epc-qr-code-footer',
+    ])
+    for (const fixture of CODE_FIXTURES) expect(fixture.expect.outcome, fixture.id).toBe('render')
   })
 
   // The kept headings' fixture stands beside them too: dropped, a renderer

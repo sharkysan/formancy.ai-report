@@ -4,12 +4,13 @@ import {
   QR_BILL_CURRENCIES,
   qrBillPageBreak,
   RenderRefusal,
+  swissSymbol,
   type PageSetup,
   type QrBill,
   type QrBillHeadings,
+  type QrSymbol,
 } from '@formancy/report-runtime'
 import { codePoint, missingGlyph, type BillFace, type BillGlyphs } from './glyphs.js'
-import { swissSymbol, type QrSymbol } from './qr.js'
 
 /**
  * What the renderer refuses about a QR-bill's payment part before anything
@@ -22,7 +23,8 @@ import { swissSymbol, type QrSymbol } from './qr.js'
  * payment part it does not know, a page the slip has no room on, text that
  * is not text or that its font has no glyph for, an amount or currency SIX
  * does not print, more lines than a slip prints, a value longer than any
- * SIX allows, and a code larger than SIX allows (`qr.ts`). Where one of
+ * SIX allows, and a code larger than SIX allows (the runtime's
+ * `swissSymbol`, 0074). Where one of
  * those is SIX's rule -- the page, the currencies, the amounts, the longest
  * value -- it is report-spec's, which the runtime hands on, so that what
  * the editor accepts and what the renderer draws cannot part. Every

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import type { DocxParagraph, DocxTable } from './model.js'
 import { readDocx } from './read.js'
+import { handCodeParts } from './testing/hand-codes.js'
 import { HAND_PNG, HAND_SEPARATOR, handDocx, handParts, rewritten, zipOf } from './testing/hand.js'
 import { readZip } from './zip.js'
 
@@ -322,5 +323,14 @@ describe('readDocx refuses', () => {
   // The package's own shape: one main document of the right kind.
   test('a package whose main document is of another content type', () => {
     expect(refused(rewritten('[Content_Types].xml', 'document.main+xml', 'template.main+xml'))).toThrow(/main document is of another content type/)
+  })
+
+  // An EPC QR code's caption reads from bottom to top (0074), and that is the one way a file turns a cell: turned any other way, the caption
+  // would read down the page, or be read by a check as though it read up it.
+  test('a cell whose text is turned otherwise than from bottom to top, which it reads as such', () => {
+    const frame = readDocx(handDocx(handCodeParts())).body.find((block): block is DocxTable => block.kind === 'table')!
+    expect(frame.rows[0]!.cells.map((cell) => cell.direction)).toEqual([undefined, 'btLr'])
+    const down = rewritten('word/document.xml', '<w:textDirection w:val="btLr"/>', '<w:textDirection w:val="tbRl"/>', handCodeParts())
+    expect(refused(down)).toThrow(/a cell whose text is turned 'tbRl', where a file turns one from bottom to top alone/)
   })
 })

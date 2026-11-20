@@ -202,10 +202,11 @@ async function printed(id: string, mode: 'preview' | 'final', status: string, wo
 }
 
 /**
- * The starters whose report a Word file holds whole (0068), with the
- * blank report as it opens. The others carry what belongs to their PDF --
- * a QR-bill's slip, an EPC QR code, an e-invoice or its preview's label,
- * a chart -- and the Preview says so where the link would be.
+ * The starters whose report a Word file holds whole (0068), the euro
+ * invoice with its EPC QR code among them (0074), with the blank report
+ * as it opens. The others carry what belongs to their PDF -- a QR-bill's
+ * slip, an e-invoice or its preview's label, a chart -- and the Preview
+ * says so where the link would be.
  */
 const WRITTEN_AS_WORD: ReadonlySet<string> = new Set([
   'service-inspection',
@@ -214,6 +215,7 @@ const WRITTEN_AS_WORD: ReadonlySet<string> = new Set([
   'site-visit',
   'order-confirmation',
   'product-data-sheet',
+  'euro-invoice',
   'blank',
 ])
 

@@ -87,6 +87,8 @@ on it unchanged
 | The editing core: its texts and its amount compiled in the report's scope | `report-core/src/diagnostics/parts.test.ts`, `diagnose.test.ts` | The same two |
 | The runtime, on data | `report-runtime/src/lower-payment-part.test.ts`, `qr-bill.test.ts` | `report-runtime/src/lower-epc-qr-code.test.ts` |
 | The renderer, on the PDF it produced: the code decoded from the pixels, the text read back | `report-render-pdf/src/qr-bill.test.ts`, `qr-bill-pages.test.ts` | `report-render-pdf/src/epc-qr-code.test.ts`, which also reads the caption, the frame and the quiet zone from the PDF's text, its drawing and its pixels |
+| The symbol and what refuses it, decided once for both engines ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)) | `report-runtime/src/qr-symbol.test.ts`, its Swiss QR Code's cases | `report-runtime/src/epc-symbol.test.ts` |
+| The Word writer, on the file it wrote: the code decoded from its picture's pixels | Refused, with the slip: `report-render-docx/src/refusals.test.ts` | `report-render-docx/src/codes.test.ts`, with Austria's frame as a table states it, and `against-pdf.test.ts`, the file's code held to the PDF's |
 | A starter, its code decoded by `readCodes` and asking for the total the page prints | The invoice, in `report-render-pdf/src/starters.test.ts` | The euro invoice, in the same file, with the details the code holds read beside it; `report-corpus/src/starters/starters.test.ts` holds its payload to a total recomputed in BigInt; and its six samples, in `report-render-pdf/src/euro-samples.test.ts`, each in its locale |
 | The editing core's commands and the warning on SIX's examples | `report-core/src/commands/payment-part.test.ts`, `registry.test.ts`, which reads the commands that may change the bill and the e-invoice from the registry, `replaceDocument` among them, and runs the bill's own on an e-invoice that takes one, and `diagnostics/example-payment-part.test.ts` ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)) | The bill's commands keep every EPC QR code; an account is an `updateComponent` |
 | The builders | `report-builder-core/src/payment-part.test.ts`, with an IBAN of the other kind taking the reference with it, and `editor.test.ts`, a part the editor has none of refused; the scenarios "select the QR-bill on the canvas, and edit it field by field", "add a QR-bill to a report without one, then delete it and bring it back" and "add a QR-bill and make it pay a QR-IBAN with a QR reference", run by the core, React and Angular; the Studio's `parity.test.tsx`, `journey.test.tsx` and `studio.test.tsx` with the bill selected ([0039](../decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)) | `report-builder-core/src/epc-qr-code.test.ts`, and the scenario "insert an EPC payment code, and type its account", run by the core, React and Angular |
@@ -478,6 +480,31 @@ libraries to a chunk the pipeline imports dynamically
 the file Chromium downloads to the document resolved under Node and to
 the bytes Node writes (`apps/studio/scripts/gate-word.mjs`).
 
+**A code in a Word file, on its picture.** A code is neither text nor a
+table to the reader of a Word file, as it is neither text nor an image
+to PDF.js: it is proved on the picture the file embeds, by two readings
+that are not the writer's
+([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md),
+extending 0068 and 0003). The corpus's `readPng` reads the part's bytes
+back to pixels by its own walk of the chunks and Node's zlib, undoing
+every filter PNG defines; `codeGrid` holds those pixels to a symbol in
+whole pixels a module with four modules of quiet zone on every side and
+no more, every pixel to the module it stands in; and ZXing reads them,
+as it reads a page, for the text, its bytes, the level and the version.
+Neither is enough alone: the grid cannot tell a symbol from its mirror,
+nor ZXing a symbol from one in the corner of a larger square. So the
+reader refuses a code ZXing reads only mirrored, turned or with dark
+and light exchanged, a PDF page's as a picture's, and the version the
+picture is a square of is held to the one ZXing reads. `verifyDocx`
+holds each to its document, and so returns a promise, which every suite
+and the gate wait for. `against-pdf.test.ts` holds a file's codes to the codes
+decoded from the PDF of the same document, in squares of the PDF's size,
+and both engines to refusing a code in the same words. Decoding is not
+a comparison of pictures, here as for a PDF. What it does not show is
+what Word draws of the picture, or what a phone reads of what Word
+prints: the files with a code were opened in Word once, by hand, on 20
+November 2026, and no test opens one.
+
 What it does not show is Word. That Word opens the file, repeats the
 marked row, keeps the marked ones, draws the SVG, puts page 1's header
 where the file says and works both fields out is held by no test, and no
@@ -623,10 +650,14 @@ later releases and say why, and the legal gate waits for a lawyer
   opens one in Word or judges one by ECMA-376's schemas, and no other
   reader of the format -- LibreOffice, a previewer, a converter -- was
   tried. The files were validated against the schema once, by hand, and
-  the starters' and the fixtures' files opened in Word once, by hand.
+  the starters' and the fixtures' files opened in Word once, by hand,
+  those with a code once too, on 20 November 2026, the euro invoice from
+  Austria after its frame was written as the variant approved in Word
+  (0074).
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
-- **No phone, no bank, no paper.** ZXing decodes every code a test prints;
+- **No phone, no bank, no paper.** ZXing decodes every code a test prints,
+  from a PDF's page and from a Word file's picture (0074);
   nothing here scanned one with a phone, paid a bill, initiated a transfer
   from an EPC QR code in a banking app, or printed a slip or a code
   ([0020](../decisions/0020-a-qr-code-is-drawn-from-its-own-matrix-and-refused-where-it-may-not-scan.md),

@@ -150,10 +150,10 @@ describe('an SVG', () => {
 
 describe('every kind of image the PDF embeds', () => {
   // Each kind PDFKit embeds in a way of its own is one a host may hold: a Word file embeds the bytes, so each is the same part, and each is held to the file.
-  test.each(IMAGE_KINDS.map((asset) => [asset.id, asset] as const))('%s is written as its bytes', (id, asset) => {
+  test.each(IMAGE_KINDS.map((asset) => [asset.id, asset] as const))('%s is written as its bytes', async (id, asset) => {
     const document = documentOf([image(asset, 32, 32)])
     const docx = written(document)
-    expect(verifyDocx(fixtureOf(id, document), docx)).toEqual([])
+    expect(await verifyDocx(fixtureOf(id, document), docx)).toEqual([])
     expect(picturesOf(docx.body)[0]!.picture.part.bytes).toEqual(asset.bytes)
   })
 

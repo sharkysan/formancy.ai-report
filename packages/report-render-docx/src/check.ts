@@ -7,6 +7,7 @@ import {
   type Image,
   type ImageAsset,
   type Paragraph,
+  type QrSymbol,
   type Rectangle,
   type ResolvedDocument,
   type Section,
@@ -15,6 +16,7 @@ import {
 } from '@formancy/report-runtime'
 import { drawnSize, readPicture, type Held, type Picture } from './assets.js'
 import { checkColor, checkStyle, checkText, checkWritten } from './check-text.js'
+import { codeCount, codeSymbol, type Code } from './codes.js'
 import { createdOf } from './created.js'
 import type { DocxFonts } from './fonts.js'
 import { MAX_DOCX_CHARACTERS, MAX_DOCX_FAMILY_LENGTH, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS, ONE_CELL_TABLE } from './limits.js'
@@ -47,7 +49,8 @@ import { fillWidth, fixedWidth } from './widths.js'
  * block that stands where none may, a width, a size, a colour, a field
  * the document's types do not hold, bytes that are no picture -- by the
  * PDF renderer's codes and subjects, which `against-pdf.test.ts` holds
- * one list of malformed documents to in both engines. **What belongs to
+ * one list of malformed documents to in both engines; a code among it,
+ * by the one rule both engines ask (0074, `codes.ts`). **What belongs to
  * the PDF, and what nobody has seen Word print as the PDF does**, each
  * `unsupported`. **What Word's units do not state**, each `unsupported`:
  * a line lighter or heavier than its borders hold, and a rectangle, a
@@ -56,7 +59,7 @@ import { fillWidth, fixedWidth } from './widths.js'
  * own bounds**, each `content-too-large`: a picture, a rectangle or a
  * spacer taller than the printable area, which no page of a Word file
  * holds; and the file's paragraphs, its text's characters and runs, its
- * pictures, their bytes and their image data (`limits.ts`).
+ * codes, its pictures, their bytes and their image data (`limits.ts`).
  *
  * What the PDF renderer refuses of what it measured -- a block taller
  * than the body between its regions, a line it cannot place, more pages
@@ -87,6 +90,8 @@ export interface Checked {
   readonly created: string
   /** Every picture's asset as it is embedded, read once however many images draw it. */
   readonly pictures: ReadonlyMap<ImageAsset, Picture>
+  /** Every QR code's and EPC QR code's symbol, as the runtime decided it, once: what is refused and what is written are one symbol. */
+  readonly codes: ReadonlyMap<Code, QrSymbol>
 }
 
 /** Where a block stands. */
@@ -108,6 +113,14 @@ interface Walk {
   readonly page: Page
   /** Every image, in the order the walk met it: its asset is read once every block has been walked (`readPictures`). */
   readonly images: Image[]
+  /**
+   * Every code's symbol, by its block; how often a code was met, which
+   * is as often as a block of one stands, the same block among them;
+   * and the modules their symbols have between them.
+   */
+  readonly codes: Map<Code, QrSymbol>
+  met: number
+  modules: number
   paragraphs: number
   characters: number
   runs: number
@@ -121,13 +134,13 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   checkWritten(document.info.title, 'the title', 'info.title')
   refusePdfOnly(document)
   const page = pageOf(document.page)
-  const walk: Walk = { fonts, page, images: [], paragraphs: 0, characters: 0, runs: 0, families: 0 }
+  const walk: Walk = { fonts, page, images: [], codes: new Map(), met: 0, modules: 0, paragraphs: 0, characters: 0, runs: 0, families: 0 }
   const top = { kept: false, column: false, framed: false, width: page.width, depth: 0 }
   checkBlocks(document.pageHeader, 'pageHeader', { ...top, region: true, everyPage: true }, walk)
   if (document.firstPageHeader !== undefined) checkBlocks(document.firstPageHeader, 'firstPageHeader', { ...top, region: true, everyPage: false }, walk)
   checkBlocks(document.pageFooter, 'pageFooter', { ...top, region: true, everyPage: true }, walk)
   checkBlocks(document.body, 'body', { ...top, region: false, everyPage: false }, walk)
-  return { page, created, pictures: readPictures(walk.images) }
+  return { page, created, pictures: readPictures(walk.images), codes: walk.codes }
 }
 
 function pageOf(setup: ResolvedDocument['page']): Page {
@@ -223,6 +236,8 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
       return
     case 'qrCode':
     case 'epcQrCode':
+      checkCode(block, place, walk)
+      return
     case 'chart':
       return refusePdfOnlyBlock(block)
     case 'rule':
@@ -336,6 +351,25 @@ function checkImage(image: Image, place: Place, walk: Walk): void {
   tall(image.height, `the image ${id}`, id, walk)
   walk.images.push(image)
   count(walk, 1, 0, id)
+}
+
+/**
+ * A code is a square that stands where an image may. What it is refused
+ * by but the file's bounds and its height is the runtime's, the one
+ * decision both engines ask (0074): its symbol is asked for once where
+ * it stands, held to what a file's codes may be together, and that
+ * symbol is the one written (`codes.ts`). A block that stands twice is
+ * two codes, each asked for where it stands and each counted.
+ */
+function checkCode(code: Code, place: Place, walk: Walk): void {
+  const { id } = code
+  const symbol = codeSymbol(code, place.width, { count: walk.met, modules: walk.modules })
+  walk.codes.set(code, symbol)
+  walk.met += 1
+  walk.modules += symbol.modules.length ** 2
+  tall(code.size, `the ${code.kind === 'qrCode' ? 'QR code' : 'EPC QR code'} ${id}`, id, walk)
+  const { paragraphs, characters, runs } = codeCount(code)
+  count(walk, paragraphs, characters, id, runs)
 }
 
 /**

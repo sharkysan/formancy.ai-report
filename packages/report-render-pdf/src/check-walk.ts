@@ -1,7 +1,6 @@
-import type { Block, Chart, EpcQrCode, KeepTogether, QrCode, Table } from '@formancy/report-runtime'
+import type { Block, Chart, EpcQrCode, KeepTogether, QrCode, QrSymbol, Table } from '@formancy/report-runtime'
 import type { PlacedImage } from './check-images.js'
 import type { RenderFonts } from './host-fonts.js'
-import type { QrSymbol } from './qr.js'
 import type { RowLine } from './check-table.js'
 
 /** A block that is drawn at a fixed height, which no page may be too short for. */
