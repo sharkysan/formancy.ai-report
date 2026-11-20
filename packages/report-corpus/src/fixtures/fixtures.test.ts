@@ -12,6 +12,7 @@ import { BODY_HEIGHT, bodyHeight, BODY_SIZE, CHAR_EM_RANGE, LINE_FACTOR_RANGE, l
 import { groupBoundary } from './group-boundary.js'
 import { groupKeepWith, KEEP_WITH_FIXTURES, KEPT } from './group-keep-with.js'
 import { imageInvalid, images } from './images.js'
+import { keptHeading, KEPT_HEADING_FIXTURES } from './kept-heading.js'
 import { IDENTIFIER, longParagraph, PARAGRAPH_WORDS } from './long-paragraph.js'
 import { longTable } from './long-table.js'
 import { oversized } from './oversized.js'
@@ -64,8 +65,16 @@ function documentLines(document: ResolvedDocument): string[] {
   )
 }
 
-/** Section 20's fixtures, the SVG ones, the kept rows' one, the first page header's, the chart ones and those of runs set below or above the line: every fixture an engine answers to. */
-const EVERY = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES, ...SHIFTED_FIXTURES]
+/** Section 20's fixtures, the SVG ones, the kept rows' one, the first page header's, the chart ones, those of runs set below or above the line and the kept headings': every fixture an engine answers to. */
+const EVERY = [
+  ...ALL_FIXTURES,
+  ...SVG_FIXTURES,
+  ...KEEP_WITH_FIXTURES,
+  ...FIRST_PAGE_FIXTURES,
+  ...CHART_FIXTURES,
+  ...SHIFTED_FIXTURES,
+  ...KEPT_HEADING_FIXTURES,
+]
 
 describe('the corpus', () => {
   // Section 20's list, spelled out once here: a fixture dropped from the
@@ -153,6 +162,14 @@ describe('the corpus', () => {
     ])
   })
 
+  // The kept headings' fixture stands beside them too: dropped, a renderer
+  // that took a heading to the next page with a table that runs past its
+  // page, and left the page it stood on empty below it, would pass every
+  // fixture there is.
+  test('has the kept heading fixture beside them, each once', () => {
+    expect(KEPT_HEADING_FIXTURES.map((fixture) => fixture.id)).toEqual(['kept-heading'])
+  })
+
   // A refusal without a code would accept any refusal, and a code on a
   // fixture that must render would be ignored and mislead whoever reads it.
   test('names a refusal exactly where one is allowed, and page bounds inside the page limit', () => {
@@ -196,6 +213,16 @@ describe('the corpus', () => {
         ).toBe(true)
       }
       for (const text of fixture.expect.wrappedText) expect(lines, fixture.id).toContain(text)
+    }
+  })
+
+  // A line held to a page by its words is found by them: printed twice in
+  // the body, it could stand on the right page while the line the fixture
+  // means stood on another, and the group would pass.
+  test('places on one page only lines its body prints once', () => {
+    for (const fixture of EVERY) {
+      const inBody = occurrencesIn(bodyWords(fixture.document.body))
+      for (const text of fixture.expect.onOnePage.flat()) expect(inBody(text), `${fixture.id}: ${text}`).toHaveLength(1)
     }
   })
 
@@ -294,6 +321,34 @@ describe('the boundary arithmetic', () => {
     )
     expect(Math.ceil(rows.length / ROWS_PER_PAGE_RANGE.max)).toBeGreaterThanOrEqual(2)
     expect(longTable.expect.minPagesExpected).toBeGreaterThanOrEqual(2)
+  })
+
+  // A table that ends on the page it starts on repeats no header, and a
+  // heading kept with it shows nothing of one that does; and a heading
+  // that stood where an engine might lack room for it and the rows under
+  // it could move to the next page and be right. So every table of
+  // kept-heading runs past its page however dense the rows, its first
+  // group opens with the body's first block, one line, the heading right
+  // under it, and every group ends with a table's first row under the
+  // headings it holds, each kept with the next.
+  test('kept-heading runs every table past its page, and holds each heading to the first row under it', () => {
+    const { body } = keptHeading.document
+    for (const table of tables(body)) expect(table.rows.length, table.id).toBeGreaterThan(ROWS_PER_PAGE_RANGE.max)
+    const [opening] = body
+    expect(opening?.kind === 'paragraph' && opening.keepWithNext !== true && opening.runs.length === 1).toBe(true)
+    const textOf = (block: Block | undefined): string | undefined => (block?.kind === 'paragraph' ? plainText(block.runs) : undefined)
+    const groups = keptHeading.expect.onOnePage
+    expect(groups[0]?.[0]).toBe(textOf(opening))
+    for (const group of groups) {
+      const at = body.findIndex((block) => block.kind === 'table' && block.rows[0]?.cells[0] === group.at(-1))
+      const under = group[0] === textOf(opening)
+      const headings = group.slice(under ? 1 : 0, -1)
+      const above = body.slice(at - headings.length, at)
+      if (under) expect(at - headings.length, 'the first heading under the opening line').toBe(1)
+      expect(above.map(textOf), group.join(', ')).toEqual(headings)
+      expect(above.every((block) => block.kind === 'paragraph' && block.keepWithNext === true)).toBe(true)
+    }
+    expect(groups.map((group) => group.length)).toEqual([3, 3])
   })
 
   // For every page height an engine might give, an engine that did not keep
