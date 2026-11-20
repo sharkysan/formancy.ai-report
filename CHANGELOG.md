@@ -10,6 +10,45 @@ later.
 
 ## Unreleased
 
+**A heading kept with a table that runs past its page stays on its page**
+([0011](docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+A heading kept with the next block moved to the next page with any table
+too long for the rest of its page, however much room its page had left,
+leaving that page empty under the line before it; a run of two headings
+moved one at a time, the first left alone on a page. Under one line at the
+top of a page, a heading over a table of 120 rows printed on page 2, and
+with a run of two headings the document took five pages where three hold
+it. pdfmake writes the page each repetition of a table's column header
+stands on into the header's cells, and the heading was kept with the
+header's first cell, so the table read as starting on the last page it
+reached. 0064 found it and left it for a change of its own.
+- **A heading is kept with the table's first row under its header**, and
+  with its header only where no row prints. A table whose rows print
+  nothing still takes its heading to the next page where it runs past its
+  page; nothing is lost, and the renderer's test holds it as it stands.
+- **What else a PDF shows of it.** A heading kept with a table names its
+  destination in the PDF, `kept-N`, at the table's first row, a row below
+  its header. Rendered on the build before and after, every starter and
+  sample in each language, final and preview, every corpus fixture but
+  the new one below, and the e-invoice gate's PDFs print what they did;
+  22 of them, the site visit's, the order confirmation's and the payment
+  reminder's among them, differ in that destination's place alone, and
+  the rest are byte for byte the same.
+- **The corpus holds it**: `kept-heading` (`KEPT_HEADING_FIXTURES`), a
+  heading under one line and a run of two, each over a table longer than
+  any plausible page, and `Expectation.onOnePage`, lines a fixture places
+  on one page though no block keeps them: the lines any engine that keeps
+  a heading with the next block must print on one page, which the
+  corpus's checks hold. The renderer answers to it; the trial's pdfmake
+  adapter, which keeps a heading with a table's header, fails it as the
+  renderer did.
+- **The starters are as they were.** The order confirmation's goods
+  heading, the payment reminder's overdue invoices' heading and the sales
+  report's heading over its lines, left unkept while the defect stood,
+  stand where page 1's body starts, near its top and under the charts,
+  where kept or not each prints the same, every stream of each PDF the
+  same (0064, 0066, 0067).
+
 **A QR code and an EPC QR code are written into a Word file, and what
 refuses a code is decided once, below both engines**
 ([0074](docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
@@ -345,11 +384,12 @@ digest it had.
   (goods/amount)", covered it there, and the browser gate's axe could not
   tell the colour behind it. Every table a person duplicates could meet
   it. The stylesheet alone changes, through no new variable.
-- **Found, not fixed: a heading kept with a table that runs past its
-  page moves, with the whole table, to the next page**, leaving its own
-  page without either; the order confirmation's goods heading is not kept
-  with its table for that reason, and the renderer is left as it is for a
-  change of its own.
+- **Found here, fixed since: a heading kept with a table that runs past
+  its page moved, with the whole table, to the next page**, leaving its
+  own page without either; the order confirmation's goods heading is not
+  kept with its table for that reason, and the renderer was left as it
+  was for the change of its own above, which keeps the heading on its
+  page.
 
 **A report may hold several tables over its detail rows, each printing,
 ordering, grouping and totalling the rows its own condition selects**

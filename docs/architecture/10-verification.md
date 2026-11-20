@@ -280,6 +280,20 @@ corpus's fixture is built of rows that fit
 | The orphan check holding a header to its count, and every other header as before; the fixture placed for every plausible number of rows a page | `report-corpus/src/checks.test.ts`, `report-corpus/src/fixtures/fixtures.test.ts`, rendered by `report-render-pdf/src/corpus.test.ts` and `browser.test.ts` |
 | The field in both builders, typed, refused, written as none and undone; given back as it reads, no edit; shown on a group whose header has no text, absent without a group | `report-builder-core/src/scenarios.test.ts` and `properties.test.ts`, React's `scenarios.test.tsx`, Angular's `scenarios.test.ts`, and the Studio's `parity.test.tsx` |
 
+**A heading kept with a table whose header repeats.** A heading kept with
+the next block is kept with a table's first body row, never the header
+pdfmake repeats, whose page pdfmake writes over each time; the case is
+held where it rests on pdfmake, on the PDF, and by a fixture any engine
+answers to
+([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)):
+
+| Where | What holds it |
+|---|---|
+| What it rests on in pdfmake 0.3.11: a repeated header's cell with an id reading the last page its table reaches, a body row's cell the page it starts on | `report-render-pdf/src/pdfmake.test.ts`, "pdfmake's positions" |
+| On the PDF: a heading over a 120-row table alone, as a run of two, in a framed section and over a group header that keeps three rows, each on page 1 with the line above it and the table's first row, the header on every page; one at a page's foot moving with such a table, with an empty table and with a keep-together block opening with a table; a table whose rows print nothing kept with by its header, and its heading, held as it stands, moved where such a table runs past its page | `report-render-pdf/src/flow.test.ts` |
+| The fixture: a heading under the body's first line and a run of two, each on one page with its table's first row, the header over each table on every page, in both entries | `report-corpus/src/fixtures/kept-heading.ts`, rendered by `report-render-pdf/src/corpus.test.ts` and `browser.test.ts` |
+| The check and the fixture's arithmetic: lines placed on one page found split across pages, or one not printed, each on a real PDF watched failing; none derived; every table of the fixture past every plausible page, its first heading under the body's first line, every line it places printed once | `report-corpus/src/checks.test.ts`, `fixture.test.ts`, `fixtures/fixtures.test.ts` |
+
 **A first page's own header, at every layer that reads it.** Which header
 a page prints is decided once, by the renderer, and every layer that reads
 the region is held where it reads it; a report without it is held to

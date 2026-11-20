@@ -2,7 +2,8 @@ import { describe, expect, test } from 'vitest'
 import type { Block, Inline, ResolvedDocument, Table } from './document.js'
 import type { ReadPdf } from './read-pdf.js'
 import { verify } from './checks.js'
-import { chartsOf, drawingsOf, epcCodes, expectation, footerPattern, type Expectation, type Fixture, type Stated } from './fixture.js'
+import { chartsOf, drawingsOf, epcCodes, expectation, type Expectation, type Fixture, type Stated } from './fixture.js'
+import { footerPattern } from './footer-pattern.js'
 import { hostFonts } from './fixtures/host-fonts.js'
 
 const page = { size: 'A4', orientation: 'portrait', margins: { top: 36, right: 40, bottom: 36, left: 40 } } as const
@@ -112,6 +113,8 @@ describe('expectation', () => {
     expect(derived.footerEveryPage?.exec('Page 2')?.groups).toEqual({ pageNumber: '2' })
     // A line with a page field prints differently on every page; it is not a line to find.
     expect(derived.keptTogether).toEqual([['Summary']])
+    // Lines no block keeps on one page share one only where a fixture placed them so, and say so: none is derived.
+    expect(derived.onOnePage).toEqual([])
     expect(derived.images).toEqual([{ kind: 'raster', width: 10, height: 20 }])
     expect(derived.pageRegionImages).toEqual([])
     expect(derived).toMatchObject({

@@ -181,10 +181,11 @@ const REPORT: ReportDefinition = {
       { id: 'head-gap', kind: 'spacer', height: 18 },
     ],
     body: [
-      // Not kept with its table: the renderer moves a heading kept with a
-      // table that runs past its page to the next page with the whole table,
-      // leaving page 1 without it (0064). The heading stands where page 1's
-      // body starts, so no page ends under it.
+      // Not kept with its table: left so while the renderer moved a heading
+      // kept with a table that runs past its page to the next page with the
+      // whole table (0064). The heading stands where page 1's body starts, so
+      // no page ends under it, and kept or not it prints the same there
+      // (0011, fixed 2026-11-20).
       heading('goods-heading', 'Waren', false),
       {
         id: 'goods',

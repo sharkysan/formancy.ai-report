@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:fb643d2417e18c0825ca43c158827a11b04d79c782000c3474fa126f09afe4e5",
+      "reviewed": "sha256:5539c15977f5dd7487c939e390800c6db87070fb979243d4f455e0bbdbe1cdcc",
       "limitations": [
         {
           "area": "rendering",
@@ -292,6 +292,11 @@
           "area": "rendering",
           "says": "A table is refused when a line of one of its rows does not fit under the table's repeated header with a point to spare, so a line within that point of fitting is refused though pdfmake would print it: a 40 pt row of Roboto under a 40 pt header prints from a body of 103.25 pt, and is refused below 104.25.",
           "heldBy": "packages/report-render-pdf/src/tables.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A heading kept with a table whose rows print nothing is kept with its column header, whose page pdfmake writes over each time it repeats the header, so where such a table runs past its page the heading moves to the next page with it and leaves its own page empty under the line before it.",
+          "heldBy": "packages/report-render-pdf/src/flow.test.ts"
         }
       ]
     },
@@ -2997,11 +3002,11 @@
       ]
     },
     "0064": {
-      "reviewed": "sha256:1af4c710f9df11e7c391fc6b88c4d40942d882b237afbb994f7f57b5335e94ce",
+      "reviewed": "sha256:0d91c4f17b2a82ef7d613f715e2e358deff6dcbd73ca5dbd520f2f330f4aa1cd",
       "limitations": [
         {
           "area": "rendering",
-          "says": "A heading kept with what follows it over a table that runs past its page moves to the next page with the whole table, leaving its own page without either, so the order confirmation's goods heading is not kept with its table, and nothing fixes that yet."
+          "says": "The order confirmation's goods heading is not kept with its table, as it was left while a heading kept with a long table moved with it, so an author who copies the starter and moves that table down a page may find the heading at a page's foot."
         },
         {
           "area": "builders",
@@ -3060,7 +3065,7 @@
       ]
     },
     "0066": {
-      "reviewed": "sha256:c37e20077790d2705528662eadb65805eea590f16f0da88d4af697636f4e17a7",
+      "reviewed": "sha256:4878d74df8d1936a74d0ec0402a618790000e0cc6f211e8c2344d74f4150b4c5",
       "limitations": [
         {
           "area": "data",
@@ -3076,10 +3081,6 @@
           "area": "data",
           "says": "A payment reminder whose items leave nothing due -- what was received as much as what is owed or more, or no items at all -- is refused in a final render for its bill, whose amount runs from 0.01 as SIX’s rules say: a host sends no reminder of a balance below one cent.",
           "heldBy": "packages/report-corpus/src/starters/payment-reminder.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "The payment reminder’s heading of what was received is kept with its table, so a customer with more payments and credit notes than the rest of the page holds has the heading printed with the whole table on the next page, as any heading kept with a table that runs past its page is."
         },
         {
           "area": "builders",
@@ -3102,7 +3103,7 @@
       ]
     },
     "0067": {
-      "reviewed": "sha256:3ba62134e0bfbab50e567a7bf8893948995192a2b6f78180cbb4010f49188663",
+      "reviewed": "sha256:000e66ea0e2dbb53c631897bc9390a6c8ccef441ac20faf58f1cb7db06861cba",
       "limitations": [
         {
           "area": "builders",
