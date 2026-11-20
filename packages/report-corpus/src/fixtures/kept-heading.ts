@@ -1,5 +1,5 @@
 import type { Paragraph, TableRow } from '../document.js'
-import { expectation, type Fixture } from '../fixture.js'
+import { expectation, plainText, type Fixture } from '../fixture.js'
 import { details, documentOf, heading, ledger, paragraph } from './build.js'
 import { pagesOfRows, ROWS_PER_PAGE_RANGE } from './geometry.js'
 
@@ -39,11 +39,11 @@ const deliveries = details(1, pastThePage(10))
 const returns = details(deliveries.length + 1, deliveries.length + pastThePage(20))
 const run = [heading('Returns'), heading('Returned goods')] as const
 
-/** A paragraph's one run of text, which is how it prints. */
-const textOf = ({ runs: [first] }: Paragraph): string => (first !== undefined && 'text' in first ? first.text : '')
+/** A paragraph's text, as a line of it is read: every paragraph here is text alone. */
+const textOf = ({ runs }: Paragraph): string => plainText(runs)!
 
-/** A table's first row's key, which is how the corpus finds it. */
-const keyOf = ([row]: readonly TableRow[]): string => row?.cells[0] ?? ''
+/** A table's first row's key, which is how the corpus finds it: every table here has rows. */
+const keyOf = (rows: readonly TableRow[]): string => rows[0]!.cells[0]!
 
 const document = documentOf('Kept headings', [opening, titled, ledger('deliveries', deliveries), ...run, ledger('returns', returns)])
 
