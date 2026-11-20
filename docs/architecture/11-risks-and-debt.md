@@ -254,10 +254,14 @@ resample when a person saves the file -- Microsoft gives 220 pixels to
 the inch as its default picture resolution -- and which a person can
 stretch with a pointer, to modules finer than the rule held them to.
 Austria's frame is a table, whose corners are square and whose right
-line is whole, where the PSA's figure rounds the corners and the PDF
-breaks the line around the caption; and the caption is in whatever face
-the reader's machine gives Arial. When the record was written nobody
-had opened such a file in Word, and no phone has read a code from one
+line is whole, the caption beside it, outside the frame, where the PSA's
+figure rounds the corners and the PDF breaks the line around the
+caption; its row is at least the frame's height, so that Word grows it
+to what its cells hold; and the caption is in whatever face the
+reader's machine gives Arial. Of these files, the euro invoice from
+Austria alone has been opened in Word, for its frame, which Word cut and
+which is now written as the variant approved there on 20 November 2026;
+no phone has read a code from one
 ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
 
 ### An SVG logo costs every reader, and some files are refused

@@ -74,8 +74,9 @@
     at another level and in a larger version than the EPC allows, modules
     finer than 0.4 mm; and of Austria's frame, the caption's words, its
     direction, its size, its weight, its family, its place and its line,
-    the frame's weight, an open side, a line between the symbol and the
-    caption, its height, a height that may grow, the band's width,
+    the frame's weight, the symbol's cell open on the right, a line
+    around the caption's band, its height, a row of an exact height, the
+    band's width,
     padding, a fill, a turned cell, the picture's place and size, a
     picture a hair wider than its cell with its distance from the left,
     the white above it and that white's keep, a symbol whose modules
@@ -111,7 +112,9 @@
     region's part; a heading kept with a code; each code a part of its
     own and the same document the same bytes; an EPC QR code without a
     caption the very picture a QR code of its payload at M is; one in
-    Austria's frame, to each length the file states; a framed picture
+    Austria's frame, to each length the file states, the line on each
+    side of the symbol's cell and on none of the caption's band, the row
+    at least its height; a framed picture
     never wider than its cell with its distance from the left, at every
     size to the hundredth of a point and every version the frame prints
     in; the caption's family in the font table where a caption is
@@ -244,15 +247,49 @@
     twentieth, and a twentieth nearer than its cell leaves it, and the
     picture's bound at 2,500 pixels, rounded up, and at 500 to the inch:
     each failed by a case.
-  - **Not yet opened in Word.** The files this change writes -- the code
-    fixtures', the euro invoice's and its samples' -- were written, with
-    their PDFs beside them, for the person who decides to open in Word
-    before this change merges, as 0068 asks of a change to what the
-    writer writes. When this record was written nobody had opened one:
-    that Word draws a code's picture at its size and unsmoothed, that a
-    phone reads it from the page Word prints, that the frame's table
-    stands as the file states it, and that the caption reads from bottom
-    to top in its band, are held by no test and were seen by nobody.
+  - **Seen in Word, on 20 November 2026**, by the person who decides,
+    and by no gate: the euro invoice from Austria's Word file, as this
+    change first wrote it, its frame a table bordered around the
+    picture and the caption and its row of an exact height. Its frame's
+    right line was missing, and the white under the code was cut. Four
+    variants of that file, its XML edited by hand, were opened in Word
+    the same day, and for each was said whether the right line was there
+    and whether the white around the code was even: the row at least its
+    height, neither; the caption's band two points narrower, the line
+    and not the white; both, the line and not the white; the caption
+    not turned, neither, its words on the line. So the table stood a
+    hair wider in Word than its column, which the narrower band showed,
+    and Word cut off the line at its right edge; the exact height cut
+    the white at the foot, which a row at least its height did not; and
+    with the caption close beside the code inside the frame, the white
+    on the right looked the smaller. A fifth was approved in Word that
+    day: the symbol's cell bordered on each side, the caption's band
+    beside it with no border, and the row at least its height. The
+    writer writes that now: its file of the sample is, part for part,
+    the one approved, compared once the same day, outside any test.
+    Before the change, the corpus's `check-docx-codes.test.ts` failed
+    nine of its cases on the hand-written file of the new frame -- the
+    file itself, three that read the file whole, and the five of the
+    frame's line and row as they are now written -- and the writer's
+    `codes.test.ts` its framed case and its framed 331 bytes. Then, with
+    each rule taken out and put back: the symbol's cell held on three
+    sides, a border on the caption's band let pass, an exact row and a
+    row of another height let pass, each failed by its case of the
+    corpus; the writer's row written exact again, its symbol's cell
+    without the right line and its band bordered on the right, each
+    failed by `codes.test.ts`.
+  - **Not yet opened in Word.** The other files this change writes --
+    the code fixtures', the euro invoice's and its other samples' --
+    were written, with their PDFs beside them, for the person who
+    decides to open in Word before this change merges, as 0068 asks of
+    a change to what the writer writes; those with a frame were written
+    again on 20 November 2026, with the frame approved in Word. When
+    this record was written nobody had opened one: that Word draws a
+    code's picture at its size and unsmoothed, that a phone reads it
+    from the page Word prints, that the frame's table stands as the file
+    states it, and that the caption reads from bottom to top in its
+    band, are held by no test and were seen by nobody; of the sample
+    from Austria, its frame alone was looked at.
 
 ## Context
 
@@ -305,8 +342,9 @@ The forces:
 decides again. The document is as it was. `@formancy/report-render-docx`
 draws a QR code and an EPC QR code as a picture of that symbol, a PNG it
 makes of whole pixels a module, exactly the code's size; an EPC QR code
-in Austria's frame as a table around that picture and the caption; and
-refuses a code as the PDF refuses it, in the same words.**
+in Austria's frame as a table of that picture, the frame's line around
+its cell, and the caption beside it; and refuses a code as the PDF
+refuses it, in the same words.**
 
 **Where the rules stand.** report-runtime's `qr-symbol.ts` and
 `epc-symbol.ts`, moved from report-render-pdf's `qr.ts` and `epc.ts`
@@ -343,7 +381,7 @@ resolves otherwise, and nothing is refused elsewhere than it was.
 | The document | The Word file |
 |---|---|
 | `qrCode`, and `epcQrCode` without a caption | An inline picture in a paragraph of its own, exactly `size` points a side, with no indent and no space around it: a PNG of the symbol, its quiet zone of four modules inside it. An EPC QR code without a caption is the very picture a QR code of its payload at level M is. |
-| `epcQrCode` with `caption: 'zahlenMitCode'` | Three nodes that are `size` points tall together. An empty line as tall as the white the PSA's frame leaves above it in its square, kept with the table. A table of one row, exactly as tall as the frame, of two cells with no padding, bordered around the two by a line half a module wide and by none between them: the symbol's picture, whose quiet zone is the frame's distance of four modules, the line's width down from the top, and in from the left as many twentieths of a point as its cell leaves it, which is within 0.075 pt of the line's width; and the caption's band, 7 pt wide, its text turned to read from bottom to top (`w:textDirection`, `btLr`), "Zahlen mit Code" at 7 pt in Arial, black, centred, on a line of exactly 7 pt. And the same empty line under it. |
+| `epcQrCode` with `caption: 'zahlenMitCode'` | Three nodes that are `size` points tall together, as the file states them. An empty line as tall as the white the PSA's frame leaves above it in its square, kept with the table. A table of one row, at least as tall as the frame (`w:hRule`, `atLeast`), of two cells with no padding: the symbol's picture, in a cell bordered on each side by a line half a module wide, whose quiet zone is the frame's distance of four modules, the line's width down from the top, and in from the left as many twentieths of a point as its cell leaves it, which is within 0.075 pt of the line's width; and beside it, outside the line and bordered by none, the caption's band, 7 pt wide, its text turned to read from bottom to top (`w:textDirection`, `btLr`), "Zahlen mit Code" at 7 pt in Arial, black, centred, on a line of exactly 7 pt. And the same empty line under it. |
 
 A heading kept with the next block is kept with a code, as with an
 image, and a code in a keep-together block is kept as a picture is. A
@@ -384,9 +422,15 @@ the PSA's figure:
 
 - **The corners are square.** A table's borders draw the frame, and they
   turn no corner by two modules.
-- **The right line is whole, and the caption stands inside it.** The PDF
-  runs the line along the caption's baseline and breaks it a module
-  beyond each end of the words; a cell's border is one line.
+- **The right line is whole, and the caption stands beside it, outside
+  the frame.** The PSA's figure and the PDF run the line along the
+  caption's baseline and break it a module beyond each end of the words;
+  a cell's border is one line, and the writer merges no cells to break
+  it. The line is the symbol's cell's own right side. Drawn around both
+  cells, as this change first wrote it, the line stood at the table's
+  right edge, a hair past its column in Word, which cut it off, and the
+  caption stood inside the frame beside the code, so that the white on
+  the right looked the smaller.
 - **The caption is named in Arial.** The PSA asks for "Arial o.s.
   non-serifs", and the PDF prints Liberation Sans, whose widths are
   Arial's: named in Arial, the caption is as long as report-spec counts
@@ -394,6 +438,10 @@ the PSA's figure:
   the family, which one with Word has. The file embeds no face, and
   lists the family in its font table where a caption is written and in
   no other file.
+
+**The row is at least the frame's height**, the one row the writer
+writes so, where every other is exact: of an exact height, Word cut the
+white under the symbol. Word grows such a row to what its cells hold.
 
 The line is held in Word's eighths of a point: half a module is 0.54 to
 0.72 pt, written as a half, five eighths or three quarters of a point,
@@ -556,9 +604,11 @@ sentence says that the report prints as a PDF.
   third engine asks the same rule.
 
 **What it costs.**
-- **Nobody has opened these files in Word.** What Word draws of a code's
-  picture, of the frame's table and of a turned caption is not known
-  here until a person has looked, and is held by no test after that.
+- **One of these files has been opened in Word.** The euro invoice from
+  Austria, on 20 November 2026, whose frame Word cut and which is now
+  written as the variant approved there. What Word draws of every other
+  file's code picture, frame and turned caption is not known here until
+  a person has looked, and is held by no test after that.
 - **A raster, where the PDF draws vectors.** Enlarged on a screen, a
   Word file's code shows its pixels sooner than its PDF's would. A
   picture of 600 to the inch is finer than most printers resolve a
@@ -587,10 +637,14 @@ sentence says that the report prints as a PDF.
   of half a degree or more would be refused as turned, which no page
   or picture here is.
 - **Austria's frame is not the PSA's figure.** Its corners are square,
-  its right line whole and its caption inside it, and its line is a
-  half, five eighths or three quarters of a point where the PDF draws
-  half a module exactly. Whether a bank or a reader minds was asked of
-  nobody.
+  its right line whole and its caption beside it, outside the frame,
+  and its line is a half, five eighths or three quarters of a point
+  where the PDF draws half a module exactly. Whether a bank or a reader
+  minds was asked of nobody.
+- **The frame's row may grow.** It is at least the frame's height, so
+  where Word lays its cells out taller than the frame, the code stands
+  taller than its square by as much; nothing here measures it, and the
+  corpus holds what the file states.
 - **The caption is in whatever face the reader's machine gives Arial.**
   Where the family is missing Word chooses another, the caption may be
   longer than the symbol is tall, and the file says nothing of it. Its
@@ -711,6 +765,24 @@ large ones cost.
 body may print one reference twice. The parts are some hundreds of
 bytes, and a second key to find a picture by is a second thing to be
 wrong.
+
+**The frame around the picture and the caption**, a table bordered
+around both cells, its row of an exact height, as this change first
+wrote it: the PDF's frame, the caption inside it. Opened in Word, the
+line at the table's right edge was cut off and so was the white under
+the symbol. With the caption's band two points narrower the line was
+there and the white around the code uneven, the caption close beside
+it; with the row at least its height and the band as it was, neither
+was right.
+
+**The caption not turned**, its words across the band. Opened in Word,
+its words lay on the line.
+
+**The right line broken around the caption**, as the PDF breaks it: the
+frame three rows, the symbol's cell merged down them (`w:vMerge`), and
+the line on the band's cells above and under the caption's. Cells
+merged down a table, which the writer writes nowhere else and nobody
+here has seen Word draw.
 
 **The frame drawn in the picture**, corners rounded as the PSA's figure
 rounds them. The caption would then have to stand over the picture, in a

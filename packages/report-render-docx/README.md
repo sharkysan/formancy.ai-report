@@ -95,12 +95,18 @@ test claims it prints as the PDF does.
   side hold: so a code wider than 266 to 288 points, by its symbol's
   version, is drawn coarser, the largest symbol at 269 to the inch
   where it is 595 points wide. An
-  EPC QR code in Austria's frame is a table of one row around its
-  picture and "Zahlen mit Code", which reads from bottom to top at 7 pt
-  in Arial; the table's borders are the frame, so its corners are square
-  and its right line whole, where the PDF rounds the corners and breaks
-  the line around the words. A code is a raster here and vectors in the
-  PDF, and what Word prints of either nobody has seen yet.
+  EPC QR code in Austria's frame is a table of one row, at least the
+  frame's height: its picture, in a cell the frame's line borders on
+  each side, and beside it, outside the line, "Zahlen mit Code", which
+  reads from bottom to top at 7 pt in Arial. The cell's borders are the
+  frame, so its corners are square and its right line whole, the
+  caption beside it, where the PDF rounds the corners and runs the line
+  along the words, broken around them. A code is a raster here and
+  vectors in the PDF. Of what Word prints, the frame of the euro invoice
+  from Austria alone has been seen: written first around the picture
+  and the caption, with a row of an exact height, it lost its right
+  line and the white under the code, and it is now written as the
+  variant approved in Word on 20 November 2026.
 - **A length is rounded to Word's unit**: a size to the half point, a
   rule's weight to the eighth, a length to the twentieth.
 - **The file states no language**, since the resolved document carries no

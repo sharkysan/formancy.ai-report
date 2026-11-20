@@ -3217,7 +3217,7 @@
       ]
     },
     "0074": {
-      "reviewed": "sha256:bb85fe0a81cae6f5deb696929b5f98b2320f2362dfac7ca4fd078ab0b86bdd75",
+      "reviewed": "sha256:94a5cd230467597c9f9b218c498f80e181e05a72d93232f70b26c59e245c1b66",
       "limitations": [
         {
           "area": "rendering",
@@ -3226,7 +3226,7 @@
         },
         {
           "area": "testing",
-          "says": "Nobody had opened a Word file with a code in Word when 0074 was written, and no test opens one: that Word draws the picture at its size and unsmoothed, that it leaves the picture as it is when a person saves the file, Microsoft giving 220 pixels to the inch as its default picture resolution, and that a phone reads the code from the page Word prints, is held by nothing; ZXing reads the picture’s own pixels."
+          "says": "Nobody had opened a Word file with a code in Word when 0074 was written, and of them only the euro invoice from Austria has been opened since, for its frame, on 20 November 2026; no test opens one: that Word draws the picture at its size and unsmoothed, that it leaves the picture as it is when a person saves the file, Microsoft giving 220 pixels to the inch as its default picture resolution, and that a phone reads the code from the page Word prints, is held by nothing; ZXing reads the picture’s own pixels."
         },
         {
           "area": "testing",
@@ -3235,7 +3235,7 @@
         },
         {
           "area": "rendering",
-          "says": "An EPC QR code in Austria’s frame is a table in a Word file, so its frame’s corners are square and its right line whole with the caption inside it, where the PSA’s figure rounds the corners by two modules and the PDF breaks the line around the caption; its line is a half, five eighths or three quarters of a point where the PDF draws half a module exactly, and its picture stands within 0.075 pt of that far from the left, as many twentieths of a point as its cell leaves it; and its caption is named in Arial and embedded in no face, on a line of exactly 7 pt, so a reader without the family sees another, which may be longer than the symbol is tall, and where Word puts the words on that line nobody has seen.",
+          "says": "An EPC QR code in Austria’s frame is a table in a Word file, so its frame’s corners are square and its right line whole with the caption beside it, outside the frame, where the PSA’s figure rounds the corners by two modules and the PDF breaks the line around the caption; the frame’s row is at least its height, so Word grows it to what its cells hold and the code then stands taller than its square by as much, which nothing measures; its line is a half, five eighths or three quarters of a point where the PDF draws half a module exactly, and its picture stands within 0.075 pt of that far from the left, as many twentieths of a point as its cell leaves it; and its caption is named in Arial and embedded in no face, on a line of exactly 7 pt, so a reader without the family sees another, which may be longer than the symbol is tall, and where Word puts the words on that line nobody has seen.",
           "heldBy": "packages/report-render-docx/src/codes.test.ts"
         },
         {

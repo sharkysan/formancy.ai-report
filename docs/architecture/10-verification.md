@@ -637,7 +637,8 @@ later releases and say why, and the legal gate waits for a lawyer
   reader of the format -- LibreOffice, a previewer, a converter -- was
   tried. The files were validated against the schema once, by hand, and
   the starters' and the fixtures' files opened in Word once, by hand,
-  those with a code not yet (0074).
+  those with a code not yet but the euro invoice from Austria, for its
+  frame (0074).
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **No phone, no bank, no paper.** ZXing decodes every code a test prints,
