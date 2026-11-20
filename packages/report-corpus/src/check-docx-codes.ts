@@ -125,14 +125,15 @@ const emptyLine = (node: DocxParagraph, height: number): boolean =>
 /**
  * An EPC QR code with Austria's caption (0025), as record 0074 writes
  * it: the white above the frame, the frame, and the white under it, the
- * code's size together. The frame is a table of one row, exactly as tall
- * as the PSA's frame, bordered around its two cells by a line half a
- * module wide: the symbol's picture, its quiet zone the frame's distance
- * of four modules, half a module down from the top, and in from the left
- * as many twentieths of a point as its cell leaves it; and
- * the caption's band, 7 pt, in which "Zahlen mit Code" reads from bottom
- * to top at 7 pt. The module is report-spec's `epcModule` of the version
- * the picture is, the rule both engines draw by.
+ * code's size together. The frame is a table of one row, at least as
+ * tall as the PSA's frame, of two cells. The symbol's, bordered on each
+ * side by a line half a module wide: its picture, its quiet zone the
+ * frame's distance of four modules, half a module down from the top, and
+ * in from the left as many twentieths of a point as its cell leaves it.
+ * And beside it, outside the line and bordered by none, the caption's
+ * band, 7 pt, in which "Zahlen mit Code" reads from bottom to top at
+ * 7 pt. The module is report-spec's `epcModule` of the version the
+ * picture is, the rule both engines draw by.
  */
 export function captionedCode(
   block: EpcQrCode,
@@ -169,16 +170,16 @@ export function captionedCode(
   const width = block.size - EPC_CAPTION.band
   if (frame.grid.length !== 2 || !near(frame.grid[0]!, width) || !near(frame.grid[1]!, EPC_CAPTION.band))
     say(`${what}'s frame is ${frame.grid.join(' and ')} pt across where its symbol's room is ${width} and its caption's band ${EPC_CAPTION.band}`)
-  if (row.height?.rule !== 'exact' || !near(row.height.value, height)) say(`${what}'s frame is not exactly ${height} pt tall`)
+  // Of an exact height, Word cut the white under the symbol (0074): at least the frame's height, the row is as tall as Word lays its picture out.
+  if (row.height?.rule !== 'atLeast') say(`${what}'s frame is not a row at least its height, where an exact one cut the white under its symbol in Word`)
+  else if (!near(row.height.value, height)) say(`${what}'s frame is a row of at least ${row.height.value} pt where the PSA's frame is ${height} pt tall`)
   if (Object.keys(frame.borders).length > 0 || (['top', 'left', 'bottom', 'right'] as const).some((side) => frame.margins?.[side] !== 0))
     say(`${what}'s frame is a table with rules of its own, or one that pads its cells`)
-  const framed =
-    [symbol.borders.top, symbol.borders.left, symbol.borders.bottom, band.borders.top, band.borders.right, band.borders.bottom].every((each) =>
-      sameBorder(each, line),
-    ) &&
-    symbol.borders.right === undefined &&
-    band.borders.left === undefined
-  if (!framed) say(`${what}'s frame is not a line of ${line.weight} pt, half a module, around its symbol and its caption and none between them`)
+  // The frame's right line is the symbol's cell's, and the caption stands beside it, outside the line: a line at the table's own right
+  // edge, around the caption, is one Word cut off (0074).
+  if (!(['top', 'left', 'bottom', 'right'] as const).every((side) => sameBorder(symbol.borders[side], line)))
+    say(`${what}'s frame is not a line of ${line.weight} pt, half a module, on each side of its symbol's cell`)
+  if (Object.keys(band.borders).length > 0) say(`${what}'s caption's band is bordered, where the caption stands outside the frame's line`)
   if (symbol.shade !== undefined || band.shade !== undefined || symbol.direction !== undefined) say(`${what}'s frame is filled, or turns its symbol's cell`)
   // Word holds the cell and the picture's distance from its left in twentieths of a point, each rounded by itself, and the cell is the
   // picture and half a module with nothing over: so the picture stands as many whole twentieths in as its cell leaves it, which is
