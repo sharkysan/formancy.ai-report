@@ -45,8 +45,9 @@ No PDF changed, and the writer depends on nothing new.
 - **Where a word stands is Word's**, as lines and pages are. The PDF
   refuses a chart whose words would meet or whose bars would be too thin
   in ECharts' layout; the writer writes those charts, and what Word makes
-  of them nobody here has seen. A bar chart's category axis is drawn at
-  zero in the Word file and at the plot's foot in the PDF.
+  of them was looked at once, by hand, and is held by no test. A bar
+  chart's category axis is drawn at zero in the Word file and at the
+  plot's foot in the PDF.
 - **What is refused.** A chart in a page region, as the PDF refuses it; a
   chart's block no engine prints, by the PDF renderer's code, naming the
   chart; and past the file's bounds, as `content-too-large`: more than
@@ -58,9 +59,14 @@ No PDF changed, and the writer depends on nothing new.
   charts may print as one and not as the other.
 - **`@formancy/report-runtime` hands on `MAX_SCALE`**, report-spec's
   bound on a decimal's places, beside `MAX_FORMATTED_DIGITS`.
-- **Not yet opened in Word.** The files were read back by a reader that
-  is not their writer and held to the report; nobody had opened one in
-  Word when this merged, and the record says what that leaves unseen.
+- **Opened in Word once, by hand.** The files are read back by a reader
+  that is not their writer and held to the report. On 20 November 2026
+  every chart file the writer writes of the corpus and the sales report
+  was opened in Word, each beside its PDF and a list of what it should
+  show, and found fine: the charts in their place, their values, colours
+  and order as the PDF's, and the sales report's value axis grouped,
+  `20’000.00` on Swiss settings. Nothing more of what Word did was
+  written down, and no test opens one.
 
 **A QR code and an EPC QR code are written into a Word file, and what
 refuses a code is decided once, below both engines**

@@ -512,8 +512,8 @@ slant, and every word the PDF draws of a chart to one the part states or
 a tick's text; and both engines to refusing each malformed chart by the
 same code and subject. What none of it shows is anything Word draws:
 where it puts a word, whether two meet, how long a bar is, and what it
-writes on the value axis. Nobody had opened a file with a chart in Word
-when 0076 was written.
+writes on the value axis. The files with a chart were opened in Word
+once, by hand, on 20 November 2026, and no test opens one.
 
 What it does not show is Word. That Word opens the file, repeats the
 marked row, keeps the marked ones, draws the SVG, puts page 1's header
@@ -663,7 +663,7 @@ later releases and say why, and the legal gate waits for a lawyer
   the starters' and the fixtures' files opened in Word once, by hand,
   those with a code once too, on 20 November 2026, the euro invoice from
   Austria after its frame was written as the variant approved in Word
-  (0074), and those with a chart (0076) not yet.
+  (0074), and those with a chart on the same day (0076).
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **No phone, no bank, no paper.** ZXing decodes every code a test prints,

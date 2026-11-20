@@ -24,10 +24,10 @@ Word once, before it merged, and found fine. What Word does with a file
 is held by no test, and 0068 says what was seen. The files with a QR
 code or an EPC QR code, which the writer writes since 0074, were opened
 in Word once, by hand, on 20 November 2026, and 0074 says what was seen.
-A file with a chart, which it writes since 0076 as Word's own chart,
-nobody had opened in Word when that record was written, where
-everything Word lays out -- where a word stands, what the value axis
-says -- is unseen.
+The files with a chart, which it writes since 0076 as Word's own chart,
+were opened in Word once, by hand, the same day, and 0076 says what was
+seen; everything Word lays out of one -- where a word stands, what the
+value axis says -- is held by no test.
 
 ## Write a report as a Word file
 
@@ -130,7 +130,9 @@ test claims it prints as the PDF does.
   would meet, and the Word file of it is written. Word reads the numbers
   as doubles to draw. A chart with nothing to draw is its title and its
   empty text in a cell at least as tall as its box. What Word draws of a
-  chart nobody has seen yet.
+  chart was seen once, by hand, on 20 November 2026: each chart in its
+  place, its values, colours and order as the PDF's, and the sales
+  report's value axis grouped, `20’000.00` on Swiss settings.
 - **A length is rounded to Word's unit**: a size to the half point, a
   rule's weight to the eighth, a length to the twentieth.
 - **The file states no language**, since the resolved document carries no

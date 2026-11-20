@@ -3275,11 +3275,11 @@
       ]
     },
     "0076": {
-      "reviewed": "sha256:d9b25debf4c6c31c5c01e13e73944761eff28ae440959dd724355ad9118f72b6",
+      "reviewed": "sha256:7589f05f65eb1b01663bc913609d6f9852c879c388da0d6da29af0b2ea502d3d",
       "limitations": [
         {
           "area": "rendering",
-          "says": "A chart in a Word file holds its data in its own part, as literals, and the file holds no workbook: Word’s “Edit Data” has nothing to open, so a person restyles the chart and changes its title, and rebuilds it to change its numbers; nobody here has seen what Word says when it is asked.",
+          "says": "A chart in a Word file holds its data in its own part, as literals, and the file holds no workbook: Word’s “Edit Data” has nothing to open, so a person restyles the chart and changes its title, and rebuilds it to change its numbers; what Word says when it is asked was not written down.",
           "heldBy": "packages/report-render-docx/src/charts.test.ts"
         },
         {
@@ -3294,7 +3294,7 @@
         },
         {
           "area": "testing",
-          "says": "Nobody had opened a Word file with a chart in Word when 0076 was written, and no test opens one: that Word draws a chart whose data are literals and which has no workbook, that it draws it in its box with its bars, its line and its slices where the numbers put them, where it puts each word and whether two meet, whether it wraps or cuts a category’s label, that a bar below zero hangs from zero with its label under its end, what it writes on the value axis, and that the words of a chart with nothing to draw stand in the middle of its box, is held by nothing; the tests read the part back."
+          "says": "The Word files with a chart were opened in Word once, by hand, on 20 November 2026, each beside its PDF where there is one, and found as its list says, the charts in their place, their values, colours and order as the PDF’s and the sales report’s value axis grouped, with nothing more of what Word did written down; no test opens one: that Word draws a chart whose data are literals and which has no workbook, that it draws it in its box with its bars, its line and its slices where the numbers put them, where it puts each word and whether two meet, whether it wraps or cuts a category’s label, that a bar below zero hangs from zero with its label under its end, what it writes on the value axis, and that the words of a chart with nothing to draw stand in the middle of its box, is held by nothing; the tests read the part back."
         },
         {
           "area": "rendering",

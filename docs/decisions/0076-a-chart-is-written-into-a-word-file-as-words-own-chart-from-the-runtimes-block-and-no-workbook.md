@@ -242,8 +242,9 @@
     2026**, and by no gate, as 0068 validated its files: against
     ISO/IEC 29500-4:2016's transitional schemas, as Ecma publishes them
     with ECMA-376's fifth edition, Part 4, with libxml2 2.13.9. Every
-    chart part the writer writes of the files named under *Not yet
-    opened in Word* -- every chart fixture it writes, the sales report
+    chart part the writer then wrote of the files named under *Seen in
+    Word*, before their value axis grouped its thousands -- every chart
+    fixture it writes, the sales report
     as a final render and as a preview, and a chart of words that print
     nothing -- 22 parts, and the three parts of the file written by
     hand, against `dml-chart.xsd` and what it imports: none invalid.
@@ -284,20 +285,26 @@
     and four of the check's, a chart that shares its paragraph, a
     series fewer, a box that may split and a series' name. Each failed
     a case, and none survived.
-  - **Not yet opened in Word.** The files this change writes -- every
-    chart fixture's and the sales report's, each beside its PDF, with a
-    list of what each chart should show -- were written for the person
-    who decides to open in Word before this change merges, as 0068 asks
-    of a change to what the writer writes. When this record was written
-    nobody had opened one. That Word draws a chart whose data are
-    literals and which has no workbook; that it draws it in its box,
-    with the bars, the line and the slices where the numbers put them;
-    where it puts each word, whether two meet, and whether it wraps or
-    hides a category's label that does not fit; that a bar below zero
-    hangs from zero with its label under its end; what it writes on the
-    value axis, in which separators; what "Edit Data" says; and that the
-    words of a chart with nothing to draw stand in the middle of its
-    box: all of it is held by no test and was seen by nobody.
+  - **Seen in Word, on 20 November 2026**, by the person who decides,
+    by hand and by no gate, as 0068 asks of a change to what the writer
+    writes: every file this change writes -- the Word file of each chart
+    fixture the writer writes, and of the sales report as a final render
+    and as a preview -- with the PDF of each beside it where the PDF
+    renderer draws one, the four fixtures it refuses for what ECharts
+    laid out having none, and a list of what each chart should show,
+    written by this change's writer once the value axis grouped its
+    thousands. All of them were found fine ("Alle Diagramme ok") against
+    the list: the charts in their place, their values, their colours and
+    their order as the PDF's, and the sales report's value axis grouped,
+    `20’000.00` on Swiss settings. The same day, once 0074 as it merged
+    was taken into this change, the writer and the renderer wrote each of
+    those files again byte for byte, compared once, outside any test.
+    Nothing more of what Word did was written down, and nothing of it is
+    held by a test: that Word draws a chart whose data are literals and
+    which has no workbook, where it puts each word and whether two meet,
+    that a bar below zero hangs from zero, what it writes on the value
+    axis, what "Edit Data" says, and where the words of a chart with
+    nothing to draw stand rest on that look.
 
 ## Context
 
@@ -504,9 +511,13 @@ since Word lays them out. The writer depends on nothing new.
 
 **What it costs.**
 
+- **These files were opened in Word once, by hand.** Each of them on
+  20 November 2026, against the list it came with. What Word draws of a
+  chart -- where its words stand, its bars, lines and slices, the value
+  axis's labels -- rests on that look, and no test holds it.
 - **"Edit Data" does not work.** The file has no workbook, so Word has
   nothing to open. A person who wants to change a chart's numbers
-  rebuilds it. Nobody here has seen what Word says when it is asked.
+  rebuilds it. What Word says when it is asked was not written down.
 - **The value axis's labels are not the report's.** They are the
   ticks' digits and places, grouped where the runtime grouped them, in
   the reader's own separators and with no currency or unit, where the
@@ -519,11 +530,12 @@ since Word lays them out. The writer depends on nothing new.
   Word draws a bar from the double nearest them, and prints an axis
   label from that. Two ticks that share seventeen digits are one to
   Word, where the PDF's axis stands each at its place.
-- **The layout is Word's, and nothing here has seen it.** Where a word
-  stands, whether two meet, whether a category's label wraps or is cut,
-  how much of the box the plot takes: none of it is stated or tested.
-  The PDF refuses a chart whose words would meet; the Word file of the
-  same chart is written, and may print words over each other.
+- **The layout is Word's, and was seen once.** Where a word stands,
+  whether two meet, whether a category's label wraps or is cut, how much
+  of the box the plot takes: none of it is stated or tested, and it was
+  looked at in the files of 20 November 2026 alone. The PDF refuses a
+  chart whose words would meet; the Word file of the same chart is
+  written, and may print words over each other.
 - **A bar chart's category axis stands at zero**, where the PDF draws
   its line at the plot's foot: under an axis that starts below zero the
   line is drawn through the plot in the Word file. Its labels are at the
@@ -581,9 +593,10 @@ until DrawingML or the block gives a way to state it.
   like, and is known to draw. It lost because a reference must state a
   formula, and the formula would name cells of a workbook that is not
   there: the part would say its data come from somewhere, and they do
-  not. Should Word turn out not to draw a chart of literals, this is the
-  change to make, in `chart-xml.ts`'s `categories` and `values` and the
-  reader's vocabulary, and the record is corrected then.
+  not. Word drew every chart of literals it was given on 20 November
+  2026 (*Seen in Word*); should a Word turn out not to draw one, this is
+  the change to make, in `chart-xml.ts`'s `categories` and `values` and
+  the reader's vocabulary, and the record is corrected then.
 - **An embedded workbook**, so that "Edit Data" works. It needs a
   workbook's writer, which 0069 is held for, and puts an embedded object
   in every file with a chart, which `SECURITY.md` treats as a finding;
@@ -637,9 +650,8 @@ until DrawingML or the block gives a way to state it.
 
 - 0075, the QR-bill's slip on a page of its own at the end of the file,
   and 0077, the e-invoice as a labelled copy: each its own record.
-- Once a person has opened the files: what Word draws is written into
-  this record's *Not yet opened in Word*, and whatever it draws
-  otherwise than this record says is a change to the writer or a cost
-  here.
+- What Word was seen to draw is written under this record's *Seen in
+  Word*; whatever a Word is seen to draw otherwise than this record says
+  is a change to the writer or a cost here.
 - A chart's data in a workbook a person can edit, when a workbook's
   export exists.

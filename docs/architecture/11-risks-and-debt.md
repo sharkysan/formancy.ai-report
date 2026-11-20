@@ -266,15 +266,16 @@ no test opens one
 ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
 
 A chart in a Word file is Word's own chart, and everything Word decides
-of one is unseen here: where each word stands and whether two meet,
-whether a category's label that does not fit is wrapped or cut, what
-the value axis says -- Word writes its labels from the numbers, grouped
-as the PDF's are, in the reader's own separators, without the currency
-the PDF's carry -- and how
-it draws a number of more digits than a double holds. The PDF refuses a
+of one is held by nothing here, and was looked at once, by hand, on 20
+November 2026: where each word stands and whether two meet, whether a
+category's label that does not fit is wrapped or cut, what the value
+axis says -- Word writes its labels from the numbers, grouped as the
+PDF's are, in the reader's own separators, without the currency the
+PDF's carry -- and how it draws a number of more digits than a double
+holds. The PDF refuses a
 chart whose words would meet in ECharts' layout; the Word file of the
 same chart is written. The part holds its data as literals and has no
-workbook, which is believed to draw and was not seen to: should Word not
+workbook, which Word was seen to draw in those files: should a Word not
 draw such a chart, the change is to cached references, which the record
 names. And a person cannot edit the chart's data in Word. What no engine
 prints of a chart's block is stated twice, in the renderer and in the
