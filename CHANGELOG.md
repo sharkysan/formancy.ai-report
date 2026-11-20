@@ -67,8 +67,9 @@ pictures' check, and the browser gate's drawings of each Download PDF.
   cut. The frame is now written as the variant of it approved in Word on
   20 November 2026: the line around the picture's cell, the caption
   beside it, and the row at least its height, so that Word grows the row
-  to what its cells hold. No other file with a code has been opened in
-  Word yet, and the record says so.
+  to what its cells hold. Every file with a code was then opened in
+  Word once, by hand, on 20 November 2026, and found fine; no test
+  opens one.
 - **Two bounds more**, exported: `MAX_DOCX_CODES`, 64 codes a file,
   counted as often as a code stands, and
   `MAX_DOCX_CODE_MODULES`, the modules their symbols may have between

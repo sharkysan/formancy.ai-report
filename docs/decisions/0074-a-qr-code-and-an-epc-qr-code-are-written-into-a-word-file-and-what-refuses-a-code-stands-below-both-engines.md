@@ -278,18 +278,18 @@
     corpus; the writer's row written exact again, its symbol's cell
     without the right line and its band bordered on the right, each
     failed by `codes.test.ts`.
-  - **Not yet opened in Word.** The other files this change writes --
-    the code fixtures', the euro invoice's and its other samples' --
-    were written, with their PDFs beside them, for the person who
-    decides to open in Word before this change merges, as 0068 asks of
-    a change to what the writer writes; those with a frame were written
-    again on 20 November 2026, with the frame approved in Word. When
-    this record was written nobody had opened one: that Word draws a
-    code's picture at its size and unsmoothed, that a phone reads it
-    from the page Word prints, that the frame's table stands as the file
-    states it, and that the caption reads from bottom to top in its
-    band, are held by no test and were seen by nobody; of the sample
-    from Austria, its frame alone was looked at.
+  - **Seen in Word, on 20 November 2026**, by the person who decides,
+    by hand and by no gate: every other file this change writes -- the
+    code fixtures', the euro invoice's and its other samples' -- each
+    with its PDF beside it and a list of what it should show, those with
+    a frame as they were written again that day with the frame approved
+    in Word. They were found fine ("codes sind ok") against the list:
+    each code at its PDF's size and crisp, a phone reading it, the
+    frame closed with its caption beside it. Nothing more of what Word
+    did was written down, and nothing of it is held by a test: that
+    Word draws a code's picture at its size and unsmoothed, that a phone
+    reads it from the page Word prints, and that the frame stands as the
+    file states it rest on that look.
 
 ## Context
 
@@ -604,11 +604,11 @@ sentence says that the report prints as a PDF.
   third engine asks the same rule.
 
 **What it costs.**
-- **One of these files has been opened in Word.** The euro invoice from
-  Austria, on 20 November 2026, whose frame Word cut and which is now
-  written as the variant approved there. What Word draws of every other
-  file's code picture, frame and turned caption is not known here until
-  a person has looked, and is held by no test after that.
+- **These files were opened in Word once, by hand.** Each of them on
+  20 November 2026, the euro invoice from Austria after its frame, which
+  Word cut, was written as the variant approved there. What Word draws
+  of a code's picture, its frame and its turned caption rests on that
+  look, and no test holds it.
 - **A raster, where the PDF draws vectors.** Enlarged on a screen, a
   Word file's code shows its pixels sooner than its PDF's would. A
   picture of 600 to the inch is finer than most printers resolve a

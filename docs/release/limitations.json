@@ -3217,7 +3217,7 @@
       ]
     },
     "0074": {
-      "reviewed": "sha256:94a5cd230467597c9f9b218c498f80e181e05a72d93232f70b26c59e245c1b66",
+      "reviewed": "sha256:af5c66ae990be813c0f7371edf6317aab6a7396dfe3f0272e6e5277c9a140be8",
       "limitations": [
         {
           "area": "rendering",
@@ -3226,7 +3226,7 @@
         },
         {
           "area": "testing",
-          "says": "Nobody had opened a Word file with a code in Word when 0074 was written, and of them only the euro invoice from Austria has been opened since, for its frame, on 20 November 2026; no test opens one: that Word draws the picture at its size and unsmoothed, that it leaves the picture as it is when a person saves the file, Microsoft giving 220 pixels to the inch as its default picture resolution, and that a phone reads the code from the page Word prints, is held by nothing; ZXing reads the picture’s own pixels."
+          "says": "The Word files with a code were opened in Word once, by hand, on 20 November 2026, the euro invoice from Austria after its frame was written as the variant approved there; no test opens one: that Word draws the picture at its size and unsmoothed, that it leaves the picture as it is when a person saves the file, Microsoft giving 220 pixels to the inch as its default picture resolution, and that a phone reads the code from the page Word prints, is held by nothing; ZXing reads the picture’s own pixels."
         },
         {
           "area": "testing",

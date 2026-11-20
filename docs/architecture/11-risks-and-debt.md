@@ -258,10 +258,11 @@ line is whole, the caption beside it, outside the frame, where the PSA's
 figure rounds the corners and the PDF breaks the line around the
 caption; its row is at least the frame's height, so that Word grows it
 to what its cells hold; and the caption is in whatever face the
-reader's machine gives Arial. Of these files, the euro invoice from
-Austria alone has been opened in Word, for its frame, which Word cut and
-which is now written as the variant approved there on 20 November 2026;
-no phone has read a code from one
+reader's machine gives Arial. These files were opened in Word once, by
+hand, on 20 November 2026, the euro invoice from Austria after its
+frame, which Word cut, was written as the variant approved there; what
+was looked at beyond the list each came with was not written down, and
+no test opens one
 ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
 
 ### An SVG logo costs every reader, and some files are refused
