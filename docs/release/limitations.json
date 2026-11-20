@@ -3275,7 +3275,7 @@
       ]
     },
     "0076": {
-      "reviewed": "sha256:0cd6f73af44f02dd4fd7c52ce2ec746cd4c59349385544ac7c6bdf5252516c86",
+      "reviewed": "sha256:d9b25debf4c6c31c5c01e13e73944761eff28ae440959dd724355ad9118f72b6",
       "limitations": [
         {
           "area": "rendering",
@@ -3284,7 +3284,7 @@
         },
         {
           "area": "rendering",
-          "says": "The labels on a chart’s value axis in a Word file are Word’s, written from the numbers by a format of digits alone at as many places as the ticks need: they print in the reader’s own separators with no grouping, currency or unit, where the PDF prints the runtime’s text in the render’s locale, so one report’s axis may say 1,5 beside labels that say 1.50; the currency stands only in an axis’s title where the report gives one, and in the values’ labels where the chart labels them.",
+          "says": "The labels on a chart’s value axis in a Word file are Word’s, written from the numbers by a format read from the ticks’ text, at the places they print and with their thousands grouped where the runtime grouped them: they print in the reader’s own separators with no currency or unit, where the PDF prints the runtime’s text in the render’s locale, so one report’s axis may say 1.000,50 beside labels that say 1,000.50; the currency stands only in an axis’s title where the report gives one, and in the values’ labels where the chart labels them.",
           "heldBy": "packages/report-render-docx/src/against-pdf.test.ts"
         },
         {

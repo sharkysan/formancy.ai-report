@@ -263,8 +263,9 @@ had opened such a file in Word, and no phone has read a code from one
 A chart in a Word file is Word's own chart, and everything Word decides
 of one is unseen here: where each word stands and whether two meet,
 whether a category's label that does not fit is wrapped or cut, what
-the value axis says -- Word writes its labels from the numbers, in the
-reader's own separators, without the currency the PDF's carry -- and how
+the value axis says -- Word writes its labels from the numbers, grouped
+as the PDF's are, in the reader's own separators, without the currency
+the PDF's carry -- and how
 it draws a number of more digits than a double holds. The PDF refuses a
 chart whose words would meet in ECharts' layout; the Word file of the
 same chart is written. The part holds its data as literals and has no

@@ -37,8 +37,9 @@ No PDF changed, and the writer depends on nothing new.
   runtime's text; a pie's shares stand in its legend's entries as the
   runtime rounded them. Word reads the numbers as doubles to draw.
 - **The value axis's labels are Word's.** DrawingML has no place for a
-  tick's own text, so Word writes each label from the number: digits in
-  the reader's own separators, with no grouping, currency or unit, where
+  tick's own text, so Word writes each label from the number: at the
+  places the ticks print, thousands grouped where the PDF groups them,
+  in the reader's own separators and with no currency or unit, where
   the PDF prints the runtime's text. Give the axis a title that says the
   currency or the unit, or label the values.
 - **Where a word stands is Word's**, as lines and pages are. The PDF

@@ -329,8 +329,9 @@ serve the Studio under the same function of their own address
   was written with in up to 1.6 seconds
   ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)). A chart is in the file as Word's own chart, with no
   workbook, so a person who opens it cannot edit its data; its value
-  axis is labelled by Word, in the reader's own separators and without
-  the report's currency; a file holds at most 64 charts and 25,600
+  axis is labelled by Word, at the places and with the grouping the
+  report's ticks print, in the reader's own separators and without the
+  report's currency; a file holds at most 64 charts and 25,600
   points between them, which a document of charts alone was written with
   in up to 0.53 seconds; and a report of very many charts may print as a
   PDF and not be written as a Word file, or the other way round, each

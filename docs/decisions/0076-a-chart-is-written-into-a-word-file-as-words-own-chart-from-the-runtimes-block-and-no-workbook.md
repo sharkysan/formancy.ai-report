@@ -64,7 +64,13 @@
     value left unlabelled, an axis that starts elsewhere than at its
     lowest tick, one that ends at a number written otherwise (1.50 for
     1.5), gridlines at another step, a format of fewer places than the
-    ticks need, every other category labelled, a bar chart's category
+    ticks need, every other category labelled; and the format each
+    axis's ticks are to print in, by `valueAxisFormat`: the places their
+    text prints and never fewer than their values need, and thousands
+    grouped where a tick of a thousand or more prints its whole part's
+    digits apart, by a point, an apostrophe or a space, behind a
+    currency or not, and not where a decimal comma stands before three
+    places; a bar chart's category
     axis at the axis's foot, another category title, another value
     title, no legend, a legend the chart has not, a legend at the side,
     another slice's value, colour and name, words of another size and
@@ -99,7 +105,10 @@
     written `0.10` as those digits; the value axis from its lowest tick
     to its highest in their step for whole numbers, quarters, tenths,
     ticks written with zeros they do not need and ticks below zero
-    alone; no point for a value the chart has none for; the bars' gaps
+    alone; the axis's format at the places its ticks' text prints, its
+    thousands grouped where the runtime grouped them, by an apostrophe
+    or by a point behind a currency, and not where they print as one
+    run or under a thousand; no point for a value the chart has none for; the bars' gaps
     for one, two and eight series; a line's weight, its markers, the
     gridlines and the category axis's line; where each kind's category
     axis stands; each value's label as the runtime's own text, above a
@@ -369,7 +378,7 @@ file: its numbers are here, and come from nowhere.
 | `series[].values[].text`, where `valueLabels` | A `c:dLbl` of the point's own, whose rich text is the runtime's text: above a bar's end (`outEnd`), above a line's point (`t`). Of itself a series labels nothing. |
 | `series[].color` | A bar's fill, with no line around it and `c:invertIfNegative` off; a line's stroke, 1.5 pt, never smoothed, and its circular markers' fill. |
 | `legend` | Each series' name (`c:tx`) and a `c:legend` at the foot; none where the block has none. |
-| `ticks` | The value axis's `c:min` and `c:max`, the lowest and the highest tick's digits, and `c:majorUnit`, their step, with a gridline at each; `c:numFmt`, digits at as many places as the tick that needs the most. |
+| `ticks` | The value axis's `c:min` and `c:max`, the lowest and the highest tick's digits, and `c:majorUnit`, their step, with a gridline at each; `c:numFmt`, digits at the places the ticks' text prints, and never fewer than a value needs, `#,##` before them where the runtime grouped a tick's thousands. |
 | `categoryTitle`, `valueTitle` | Each axis's `c:title`, held across. |
 | A pie's `slices` | One series, each slice a `c:dPt` in its colour, from the top, clockwise, as the PDF draws it; its values the slices' digits. |
 | A pie's `legend` | Its categories, each entry the runtime's own words -- its label and, where it labels its values, its value and its share. No label stands on a slice. |
@@ -398,14 +407,24 @@ missing field with no label for it, resolves to one.
 
 **The value axis's labels are Word's.** DrawingML has no place for a
 tick's own text: Word writes each label from the number, by the axis's
-format code. The part states that code as digits alone, at as many places
-as the tick that needs the most -- `0`, `0.0`, `0.00` -- with no
-grouping, no currency and no unit, none of which the block states apart
-from the text it printed them in. So where the PDF's axis says
-`CHF 1'000.00`, Word's says `1000`, in the reader's own decimal
-separator. The currency or the unit stands in the axis's title where the
-report gives it one, and in every value's label where the chart labels
-them.
+format code. The block states no format apart from the text it printed
+the ticks in, so the part's code is read from that text: digits at the
+places the ticks print, and never fewer than a tick's value needs --
+`0`, `0.0`, `0.00` -- their thousands grouped, `#,##0.00`, where the
+runtime printed a tick of a thousand or more with its whole part's
+digits apart; no currency and no unit. Word prints a code's grouping
+and its decimal sign in the reader's own separators, so where the
+PDF's axis says `CHF 1'000.00`, Word's says `1’000.00` to a reader of
+Swiss German settings, `1.000,00` to one of German and `1,000.00` to
+one of English. A fixed separator is not a format code's to state: the
+grouping character is the reader's, and a literal one written into the
+code by conditional sections breaks below zero and at a million. The
+currency or the unit stands in the axis's title where the report gives
+it one, and in every value's label where the chart labels them. The
+person who decides asked, on 20 November 2026, for the thousands
+grouped as the PDF groups them; until then the part stated digits
+alone, at the places the values need, and the sales report's axis said
+`20000` under the PDF's `20'000.00`.
 
 **Look.** What DrawingML lets a file pin is pinned: every colour the
 block's; every word's face; no fill and no line around the chart or its
@@ -488,11 +507,14 @@ since Word lays them out. The writer depends on nothing new.
 - **"Edit Data" does not work.** The file has no workbook, so Word has
   nothing to open. A person who wants to change a chart's numbers
   rebuilds it. Nobody here has seen what Word says when it is asked.
-- **The value axis's labels are not the report's.** They are digits in
-  the reader's own separators, with no grouping, currency or unit, where
-  the PDF's are the runtime's text in the render's locale. A German
-  reader of an English report sees `1,5` on the axis and `1.50` on the
-  labels beside the bars.
+- **The value axis's labels are not the report's.** They are the
+  ticks' digits and places, grouped where the runtime grouped them, in
+  the reader's own separators and with no currency or unit, where the
+  PDF's are the runtime's text in the render's locale. A German reader
+  of an English report sees `1.000,50` on the axis and `1,000.50` on the
+  labels beside the bars. The format is read from the ticks' text, so a
+  tick printed with a digit beside its number, a unit such as `m3`, is
+  read no further than the number.
 - **Word reads the numbers as doubles.** The file states forty digits;
   Word draws a bar from the double nearest them, and prints an axis
   label from that. Two ticks that share seventeen digits are one to

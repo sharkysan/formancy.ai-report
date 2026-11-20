@@ -115,8 +115,9 @@ test claims it prints as the PDF does.
   and the value axis is the report's ticks, its ends and its step
   stated. The title, the axes' titles, the categories, the legend and
   each value's label are the runtime's text, a pie's shares in its
-  legend's entries; the value axis's labels alone are Word's, digits in
-  the reader's own separators with no currency or unit. Every colour is
+  legend's entries; the value axis's labels alone are Word's, at the
+  places and with the grouping the ticks print, in the reader's own
+  separators with no currency or unit. Every colour is
   the report's and every word's face is stated. Where a word stands is
   Word's, as lines and pages are: the PDF refuses a chart whose words
   would meet, and the Word file of it is written. Word reads the numbers

@@ -67,7 +67,7 @@ function sameNumber(left: string, right: Exact): boolean {
   return read.units * 10n ** BigInt(scale - read.scale) === right.units * 10n ** BigInt(scale - right.scale)
 }
 
-/** The step between a chart's first two ticks, and the most places any tick's value needs: what Word's axis and its labels' format are held to. */
+/** The step between a chart's first two ticks, and the most places any tick's value needs: what Word's axis is held to, and the fewest places its labels' format may have. */
 function axisOf(chart: AxisChart): { readonly step: Exact; readonly places: number } | undefined {
   const ticks = chart.ticks.map(({ exact }) => exactOf(exact))
   const [first, second] = ticks
@@ -138,12 +138,48 @@ function seriesProblems(chart: AxisChart, read: readonly DocxChartSeries[], face
   })
 }
 
+/** What may stand between the digits of a printed number: a decimal sign, and the characters the formatter groups thousands with. */
+const BETWEEN = new Set(['.', ',', "'", '\u2019', '\u00a0', '\u202f', ' '])
+
+/** The number a tick's text prints: from its first digit, through the digits and what may stand between them, to its last such digit. */
+function printedNumber(text: string): string {
+  const start = text.search(/\d/)
+  if (start < 0) return ''
+  let end = start
+  for (let at = start; at < text.length; at += 1) {
+    if (/\d/.test(text[at]!)) end = at + 1
+    else if (!BETWEEN.has(text[at]!)) break
+  }
+  return text.slice(start, end)
+}
+
+/**
+ * The format `chart`'s value axis is to print in, by the corpus's own
+ * reading of 0076: the places its ticks' text prints, and never fewer
+ * than a tick's value needs, its thousands grouped where a tick of a
+ * thousand or more prints the digits of its whole part apart; undefined
+ * for ticks that are no decimals.
+ */
+export function valueAxisFormat(chart: AxisChart): string | undefined {
+  const axis = axisOf(chart)
+  if (axis === undefined) return undefined
+  let places = axis.places
+  let grouped = false
+  for (const { exact, text } of chart.ticks) {
+    const whole = exact.replace(/^-/, '').split('.')[0]!
+    const number = printedNumber(text)
+    places = Math.max(places, number.replace(/\D/g, '').length - whole.length)
+    if (whole.length >= 4 && !number.includes(whole)) grouped = true
+  }
+  return `${grouped ? '#,##' : ''}${places === 0 ? '0' : `0.${'0'.repeat(places)}`}`
+}
+
 function axisProblems(chart: AxisChart, read: DocxChart, faced: FaceProblems, bold: boolean): string[] {
   const { categoryAxis, valueAxis } = read
   const axis = axisOf(chart)
   if (categoryAxis === undefined || valueAxis === undefined || axis === undefined) return ['has no axes to hold to its ticks, or ticks that are no decimals']
   const [lowest, highest] = [chart.ticks[0]!.exact, chart.ticks.at(-1)!.exact]
-  const format = axis.places === 0 ? '0' : `0.${'0'.repeat(axis.places)}`
+  const format = valueAxisFormat(chart)
   return [
     // The axis is the runtime's ticks, and nothing of it Word's own scaling: its ends digit for digit, and its step the ticks'.
     ...(valueAxis.min === lowest && valueAxis.max === highest

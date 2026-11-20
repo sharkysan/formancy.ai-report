@@ -1,4 +1,4 @@
-import type { AxisChart, Chart, ChartSeriesValues, PieChart } from '@formancy/report-runtime'
+import type { AxisChart, Chart, ChartSeriesValues, ChartValue, PieChart } from '@formancy/report-runtime'
 import { digitsOf, exactOf, minus, placesOf } from './chart-exact.js'
 import { chartFaces, printed, type ChartFace } from './charts.js'
 import type { DocxFonts } from './fonts.js'
@@ -32,7 +32,8 @@ import { attribute, decimal, element, hexColor, own, part, text, type AttributeV
  *   entries, which hold each value and its share as the runtime wrote
  *   them; no label stands on a slice. The value axis's labels alone are
  *   Word's: it writes them from the numbers, in the reader's own
- *   separators, at as many places as the ticks need (`axisFormat`).
+ *   separators, at the places the ticks print and with their thousands
+ *   grouped where the runtime grouped them (`axisFormat`).
  * - **Look.** Each series and slice in the block's colour, with no line
  *   around it; every word in the chart's face, held across; no fill and
  *   no line around the chart or its plot; gridlines and the category
@@ -271,14 +272,36 @@ function categoryAxis(chart: AxisChart, face: ChartFace): Xml {
 }
 
 /**
- * The format Word prints the value axis's labels in: digits, at as many
- * places as the tick that needs the most, and nothing else -- no
- * grouping, no currency and no unit, none of which the block states
- * apart from the text it printed them in.
+ * The format Word prints the value axis's labels in, read from the text
+ * the runtime printed each tick in, since the block states no format
+ * apart from it: digits at the places the ticks print, their thousands
+ * grouped where the runtime grouped them, and nothing else -- no
+ * currency and no unit. Word writes the labels in the reader's own
+ * separators, so a reader's settings decide which characters group and
+ * which one is the decimal sign.
  */
-function axisFormat(ticks: readonly string[]): Xml {
-  const places = Math.max(...ticks.map((tick) => placesOf(exactOf(tick)!)))
-  return attribute(places === 0 ? '0' : `0.${'0'.repeat(places)}`)
+function axisFormat(ticks: readonly ChartValue[]): Xml {
+  const places = Math.max(...ticks.map(printedPlaces))
+  const digits = places === 0 ? '0' : `0.${'0'.repeat(places)}`
+  return attribute(ticks.some(groupedTick) ? `#,##${digits}` : digits)
+}
+
+/** The number in a tick's text: its first run of digits and what separates them, without a currency or a unit around it. */
+const numberIn = (text: string): string => /\d(?:[\d.,'\u2019\u00a0\u202f ]*\d)?/.exec(text)?.[0] ?? ''
+
+/** How many digits of the whole part of `exact` there are. */
+const wholeDigits = (exact: string): number => /^-?(\d+)/.exec(exact)?.[1]?.length ?? 0
+
+/** The places a tick's text prints: its number's digits past those of its whole part, and never fewer than its value needs. */
+function printedPlaces({ exact, text }: ChartValue): number {
+  const digits = numberIn(text).replace(/\D/g, '').length - wholeDigits(exact)
+  return Math.max(digits, placesOf(exactOf(exact)!))
+}
+
+/** Whether a tick's text groups its thousands: a whole part of four digits or more, not printed as one run of digits. */
+function groupedTick({ exact, text }: ChartValue): boolean {
+  const whole = wholeDigits(exact)
+  return whole >= 4 && (/\d+/.exec(numberIn(text))?.[0].length ?? 0) < whole
 }
 
 /**
@@ -301,7 +324,7 @@ function valueAxis(chart: AxisChart, face: ChartFace): Xml {
       element('c:majorGridlines', [], [shape(stroke(GRID.weight, GRID.color))]),
       ...title(chart.valueTitle, face),
       element('c:numFmt', [
-        ['formatCode', axisFormat(ticks)],
+        ['formatCode', axisFormat(chart.ticks)],
         ['sourceLinked', 0],
       ]),
       ...UNMARKED,

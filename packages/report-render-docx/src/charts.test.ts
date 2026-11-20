@@ -148,16 +148,17 @@ describe('a chart with something to draw', () => {
   })
 
   // Left to itself Word scales an axis from the values, to other ends and another step than the report's ticks: all three are said, exactly.
-  test.each<[string, string[], { min: string; max: string; step: string; format: string }]>([
+  test.each<[string, string[], { min: string; max: string; step: string; format: string }, string[]?]>([
     ['whole numbers', ['-5', '0', '5', '10'], { min: '-5', max: '10', step: '5', format: '0' }],
     ['quarters', ['0', '0.25', '0.5', '0.75'], { min: '0', max: '0.75', step: '0.25', format: '0.00' }],
     ['a step that a double does not hold', ['0.1', '0.2', '0.3'], { min: '0.1', max: '0.3', step: '0.1', format: '0.0' }],
-    ['ticks written with zeros they do not need', ['0', '0.50', '1.00'], { min: '0', max: '1.00', step: '0.5', format: '0.0' }],
+    // Zeros the exact digits are written with are not places the axis prints: its format is the places the ticks' text prints.
+    ['ticks written with zeros they do not need', ['0', '0.50', '1.00'], { min: '0', max: '1.00', step: '0.5', format: '0.0' }, ['0.0', '0.5', '1.0']],
     ['ticks below zero alone', ['-0.02', '-0.01', '0'], { min: '-0.02', max: '0', step: '0.01', format: '0.00' }],
-  ])('states the value axis from its lowest tick to its highest in their step: %s', (_name, ticks, axis) => {
+  ])('states the value axis from its lowest tick to its highest in their step: %s', (_name, ticks, axis, texts) => {
     const chart = bars({
       chart: 'line',
-      ticks: ticks.map((tick) => value(tick)),
+      ticks: ticks.map((tick, at) => value(tick, texts?.[at])),
       series: [{ color: '#1f77b4', values: [value(ticks[0]!), value(ticks.at(-1)!)] }],
     })
     expect(only(chart).chart.valueAxis).toMatchObject(axis)
@@ -186,6 +187,21 @@ describe('a chart with something to draw', () => {
     expect(series[0]).toMatchObject({ color: '#1f77b4', line: 1.5, marker: 4 })
     expect(valueAxis!.grid).toEqual({ weight: 0.5, color: '#d9d9d9' })
     expect(categoryAxis!.line).toEqual({ weight: 0.75, color: '#000000' })
+  })
+
+  // Word writes the value axis's labels from the numbers, in the reader's own separators. Where the runtime printed the ticks with their
+  // thousands grouped, a format that groups none would print 20000 under a table's 20'000; one that groups where the runtime did not
+  // would print a separator the report never prints.
+  test('groups the value axis’s thousands where the runtime printed its ticks grouped, and only there', () => {
+    const format = (ticks: readonly ChartValue[]): string =>
+      only(bars({ ticks, series: [{ color: '#1f77b4', values: [ticks[0]!, ticks.at(-1)!] }] })).chart.valueAxis!.format
+    expect(format([value('0', '0.00'), value('10000', '10’000.00'), value('20000', '20’000.00')])).toBe('#,##0.00')
+    // Grouped by a point, behind a currency, the same.
+    expect(format([value('0', 'EUR 0'), value('5000', 'EUR 5.000'), value('10000', 'EUR 10.000')])).toBe('#,##0')
+    expect(format([value('0', '0.00'), value('10000', '10000.00'), value('20000', '20000.00')])).toBe('0.00')
+    // Under a thousand there is nothing to group, and a decimal comma before three places is no grouping.
+    expect(format([value('0'), value('5'), value('10')])).toBe('0')
+    expect(format([value('0', '0,000'), value('0.5', '0,500'), value('1', '1,000')])).toBe('0.000')
   })
 
   // A bar stands on where the category axis crosses: at the axis's foot a bar of -5 on an axis from -5 would be no bar at all.
