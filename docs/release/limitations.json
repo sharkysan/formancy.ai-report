@@ -3211,7 +3211,7 @@
         },
         {
           "area": "release",
-          "says": "The getting-started guide writes no Word file, since its quotation draws a chart, which the writer refuses; the package’s README carries the example, held to the lines the install gate runs.",
+          "says": "The getting-started guide writes no Word file: its quotation draws a chart, which the writer refused when 0068 was written, and the guide was not given one when 0076 wrote charts; the package’s README carries the example, held to the lines the install gate runs.",
           "heldBy": "scripts/readme-example.test.mjs"
         }
       ]
