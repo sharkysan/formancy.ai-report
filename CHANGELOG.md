@@ -107,15 +107,17 @@ No PDF changed, and the writer depends on nothing new.
   runtime's text; a pie's shares stand in its legend's entries as the
   runtime rounded them. Word reads the numbers as doubles to draw.
 - **The value axis's labels are Word's.** DrawingML has no place for a
-  tick's own text, so Word writes each label from the number: digits in
-  the reader's own separators, with no grouping, currency or unit, where
+  tick's own text, so Word writes each label from the number: at the
+  places the ticks print, thousands grouped where the PDF groups them,
+  in the reader's own separators and with no currency or unit, where
   the PDF prints the runtime's text. Give the axis a title that says the
   currency or the unit, or label the values.
 - **Where a word stands is Word's**, as lines and pages are. The PDF
   refuses a chart whose words would meet or whose bars would be too thin
   in ECharts' layout; the writer writes those charts, and what Word makes
-  of them nobody here has seen. A bar chart's category axis is drawn at
-  zero in the Word file and at the plot's foot in the PDF.
+  of them was looked at once, by hand, and is held by no test. A bar
+  chart's category axis is drawn at zero in the Word file and at the
+  plot's foot in the PDF.
 - **What is refused.** A chart in a page region, as the PDF refuses it; a
   chart's block no engine prints, by the PDF renderer's code, naming the
   chart; and past the file's bounds, as `content-too-large`: more than
@@ -127,9 +129,53 @@ No PDF changed, and the writer depends on nothing new.
   charts may print as one and not as the other.
 - **`@formancy/report-runtime` hands on `MAX_SCALE`**, report-spec's
   bound on a decimal's places, beside `MAX_FORMATTED_DIGITS`.
-- **Not yet opened in Word.** The files were read back by a reader that
-  is not their writer and held to the report; nobody had opened one in
-  Word when this merged, and the record says what that leaves unseen.
+- **Opened in Word once, by hand.** The files are read back by a reader
+  that is not their writer and held to the report. On 20 November 2026
+  every chart file the writer writes of the corpus and the sales report
+  was opened in Word, each beside its PDF and a list of what it should
+  show, and found fine: the charts in their place, their values, colours
+  and order as the PDF's, and the sales report's value axis grouped,
+  `20’000.00` on Swiss settings. Nothing more of what Word did was
+  written down, and no test opens one.
+
+**A heading kept with a table that runs past its page stays on its page**
+([0011](docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+A heading kept with the next block moved to the next page with any table
+too long for the rest of its page, however much room its page had left,
+leaving that page empty under the line before it; a run of two headings
+moved one at a time, the first left alone on a page. Under one line at the
+top of a page, a heading over a table of 120 rows printed on page 2, and
+with a run of two headings the document took five pages where three hold
+it. pdfmake writes the page each repetition of a table's column header
+stands on into the header's cells, and the heading was kept with the
+header's first cell, so the table read as starting on the last page it
+reached. 0064 found it and left it for a change of its own.
+- **A heading is kept with the table's first row under its header**, and
+  with its header only where no row prints. A table whose rows print
+  nothing still takes its heading to the next page where it runs past its
+  page; nothing is lost, and the renderer's test holds it as it stands.
+- **What else a PDF shows of it.** A heading kept with a table names its
+  destination in the PDF, `kept-N`, at the table's first row, a row below
+  its header. Rendered on the build before and after, every starter and
+  sample in each language, final and preview, every corpus fixture but
+  the new one below, and the e-invoice gate's PDFs print what they did;
+  22 of them, the site visit's, the order confirmation's and the payment
+  reminder's among them, differ in that destination's place alone, and
+  the rest are byte for byte the same.
+- **The corpus holds it**: `kept-heading` (`KEPT_HEADING_FIXTURES`), a
+  heading under one line and a run of two, each over a table longer than
+  any plausible page, and `Expectation.onOnePage`, lines a fixture places
+  on one page though no block keeps them: the lines any engine that keeps
+  a heading with the next block must print on one page, which the
+  corpus's checks hold. The renderer answers to it; the trial's pdfmake
+  adapter, which keeps a heading with a table's header, fails it as the
+  renderer did.
+- **The starters are as they were.** The order confirmation's goods
+  heading, the payment reminder's overdue invoices' heading and the sales
+  report's heading over its lines, left unkept while the defect stood,
+  stand where page 1's body starts, near its top and under the charts,
+  where kept or not each prints the same, every stream of each PDF the
+  same (0064, 0066, 0067).
 
 **A QR code and an EPC QR code are written into a Word file, and what
 refuses a code is decided once, below both engines**
@@ -170,15 +216,27 @@ pictures' check, and the browser gate's drawings of each Download PDF.
   as 2,400 a side hold where the code is wider than 3.7 to 4 inches, by
   its version, the same bytes for the same symbol in Node and in a
   browser. An
-  EPC QR code in Austria's frame is a table of one row around its picture
-  and "Zahlen mit Code", turned to read from bottom to top. A code the
-  PDF refuses is refused by the writer in the same words.
+  EPC QR code in Austria's frame is a table of one row, at least the
+  frame's height: its picture in a cell the frame's line borders on each
+  side, and beside it, outside the line, "Zahlen mit Code", turned to
+  read from bottom to top. A code the PDF refuses is refused by the
+  writer in the same words.
 - **What is Word's, and not the PDF's.** A code is a raster, where the
   PDF draws vectors. Austria's frame has square corners and a whole
-  right line with the caption inside it, where the PDF rounds the corners
-  by two modules and breaks the line around the words; and the caption is
-  named in Arial, the PSA's own, where the PDF prints Liberation Sans.
-  Nobody has opened these files in Word yet, and the record says so.
+  right line with the caption beside it, outside the frame, where the
+  PDF rounds the corners by two modules and runs the line along the
+  words, broken around them; and the caption is named in Arial, the
+  PSA's own, where the PDF prints Liberation Sans.
+- **Austria's frame as Word showed it.** Written first as a table
+  bordered around the picture and the caption, its row of an exact
+  height, the sample from Austria opened in Word without its frame's
+  right line, at the table's edge, and with the white under its code
+  cut. The frame is now written as the variant of it approved in Word on
+  20 November 2026: the line around the picture's cell, the caption
+  beside it, and the row at least its height, so that Word grows the row
+  to what its cells hold. Every file with a code was then opened in
+  Word once, by hand, on 20 November 2026, and found fine; no test
+  opens one.
 - **Two bounds more**, exported: `MAX_DOCX_CODES`, 64 codes a file,
   counted as often as a code stands, and
   `MAX_DOCX_CODE_MODULES`, the modules their symbols may have between
@@ -454,11 +512,12 @@ digest it had.
   (goods/amount)", covered it there, and the browser gate's axe could not
   tell the colour behind it. Every table a person duplicates could meet
   it. The stylesheet alone changes, through no new variable.
-- **Found, not fixed: a heading kept with a table that runs past its
-  page moves, with the whole table, to the next page**, leaving its own
-  page without either; the order confirmation's goods heading is not kept
-  with its table for that reason, and the renderer is left as it is for a
-  change of its own.
+- **Found here, fixed since: a heading kept with a table that runs past
+  its page moved, with the whole table, to the next page**, leaving its
+  own page without either; the order confirmation's goods heading is not
+  kept with its table for that reason, and the renderer was left as it
+  was for the change of its own above, which keeps the heading on its
+  page.
 
 **A report may hold several tables over its detail rows, each printing,
 ordering, grouping and totalling the rows its own condition selects**

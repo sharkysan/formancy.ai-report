@@ -64,7 +64,13 @@
     value left unlabelled, an axis that starts elsewhere than at its
     lowest tick, one that ends at a number written otherwise (1.50 for
     1.5), gridlines at another step, a format of fewer places than the
-    ticks need, every other category labelled, a bar chart's category
+    ticks need, every other category labelled; and the format each
+    axis's ticks are to print in, by `valueAxisFormat`: the places their
+    text prints and never fewer than their values need, and thousands
+    grouped where a tick of a thousand or more prints its whole part's
+    digits apart, by a point, an apostrophe or a space, behind a
+    currency or not, and not where a decimal comma stands before three
+    places; a bar chart's category
     axis at the axis's foot, another category title, another value
     title, no legend, a legend the chart has not, a legend at the side,
     another slice's value, colour and name, words of another size and
@@ -99,7 +105,10 @@
     written `0.10` as those digits; the value axis from its lowest tick
     to its highest in their step for whole numbers, quarters, tenths,
     ticks written with zeros they do not need and ticks below zero
-    alone; no point for a value the chart has none for; the bars' gaps
+    alone; the axis's format at the places its ticks' text prints, its
+    thousands grouped where the runtime grouped them, by an apostrophe
+    or by a point behind a currency, and not where they print as one
+    run or under a thousand; no point for a value the chart has none for; the bars' gaps
     for one, two and eight series; a line's weight, its markers, the
     gridlines and the category axis's line; where each kind's category
     axis stands; each value's label as the runtime's own text, above a
@@ -233,8 +242,9 @@
     2026**, and by no gate, as 0068 validated its files: against
     ISO/IEC 29500-4:2016's transitional schemas, as Ecma publishes them
     with ECMA-376's fifth edition, Part 4, with libxml2 2.13.9. Every
-    chart part the writer writes of the files named under *Not yet
-    opened in Word* -- every chart fixture it writes, the sales report
+    chart part the writer then wrote of the files named under *Seen in
+    Word*, before their value axis grouped its thousands -- every chart
+    fixture it writes, the sales report
     as a final render and as a preview, and a chart of words that print
     nothing -- 22 parts, and the three parts of the file written by
     hand, against `dml-chart.xsd` and what it imports: none invalid.
@@ -275,20 +285,28 @@
     and four of the check's, a chart that shares its paragraph, a
     series fewer, a box that may split and a series' name. Each failed
     a case, and none survived.
-  - **Not yet opened in Word.** The files this change writes -- every
-    chart fixture's and the sales report's, each beside its PDF, with a
-    list of what each chart should show -- were written for the person
-    who decides to open in Word before this change merges, as 0068 asks
-    of a change to what the writer writes. When this record was written
-    nobody had opened one. That Word draws a chart whose data are
-    literals and which has no workbook; that it draws it in its box,
-    with the bars, the line and the slices where the numbers put them;
-    where it puts each word, whether two meet, and whether it wraps or
-    hides a category's label that does not fit; that a bar below zero
-    hangs from zero with its label under its end; what it writes on the
-    value axis, in which separators; what "Edit Data" says; and that the
-    words of a chart with nothing to draw stand in the middle of its
-    box: all of it is held by no test and was seen by nobody.
+  - **Seen in Word, on 20 November 2026**, by the person who decides,
+    by hand and by no gate, as 0068 asks of a change to what the writer
+    writes: every file this change writes -- the Word file of each chart
+    fixture the writer writes, and of the sales report as a final render
+    and as a preview -- with the PDF of each beside it where the PDF
+    renderer draws one, the four fixtures it refuses for what ECharts
+    laid out having none, and a list of what each chart should show,
+    written by this change's writer once the value axis grouped its
+    thousands. All of them were found fine ("Alle Diagramme ok") against
+    the list: the charts in their place, their values, their colours and
+    their order as the PDF's, and the sales report's value axis grouped,
+    `20’000.00` on Swiss settings. The same day, once 0074 as it merged
+    was taken into this change, and again once the fix to a heading kept
+    with a table (0011) was, the writer and the renderer wrote each of
+    those files again byte for byte, compared once each time, outside any
+    test.
+    Nothing more of what Word did was written down, and nothing of it is
+    held by a test: that Word draws a chart whose data are literals and
+    which has no workbook, where it puts each word and whether two meet,
+    that a bar below zero hangs from zero, what it writes on the value
+    axis, what "Edit Data" says, and where the words of a chart with
+    nothing to draw stand rest on that look.
 
 ## Context
 
@@ -369,7 +387,7 @@ file: its numbers are here, and come from nowhere.
 | `series[].values[].text`, where `valueLabels` | A `c:dLbl` of the point's own, whose rich text is the runtime's text: above a bar's end (`outEnd`), above a line's point (`t`). Of itself a series labels nothing. |
 | `series[].color` | A bar's fill, with no line around it and `c:invertIfNegative` off; a line's stroke, 1.5 pt, never smoothed, and its circular markers' fill. |
 | `legend` | Each series' name (`c:tx`) and a `c:legend` at the foot; none where the block has none. |
-| `ticks` | The value axis's `c:min` and `c:max`, the lowest and the highest tick's digits, and `c:majorUnit`, their step, with a gridline at each; `c:numFmt`, digits at as many places as the tick that needs the most. |
+| `ticks` | The value axis's `c:min` and `c:max`, the lowest and the highest tick's digits, and `c:majorUnit`, their step, with a gridline at each; `c:numFmt`, digits at the places the ticks' text prints, and never fewer than a value needs, `#,##` before them where the runtime grouped a tick's thousands. |
 | `categoryTitle`, `valueTitle` | Each axis's `c:title`, held across. |
 | A pie's `slices` | One series, each slice a `c:dPt` in its colour, from the top, clockwise, as the PDF draws it; its values the slices' digits. |
 | A pie's `legend` | Its categories, each entry the runtime's own words -- its label and, where it labels its values, its value and its share. No label stands on a slice. |
@@ -398,14 +416,26 @@ missing field with no label for it, resolves to one.
 
 **The value axis's labels are Word's.** DrawingML has no place for a
 tick's own text: Word writes each label from the number, by the axis's
-format code. The part states that code as digits alone, at as many places
-as the tick that needs the most -- `0`, `0.0`, `0.00` -- with no
-grouping, no currency and no unit, none of which the block states apart
-from the text it printed them in. So where the PDF's axis says
-`CHF 1'000.00`, Word's says `1000`, in the reader's own decimal
-separator. The currency or the unit stands in the axis's title where the
-report gives it one, and in every value's label where the chart labels
-them.
+format code. The block states no format apart from the text it printed
+the ticks in, so the part's code is read from that text: digits at the
+places the ticks print, never fewer than a tick's value needs and never
+more than any number the runtime resolves has (`MAX_SCALE`), so that a
+tick's text written longer by hand writes no longer a format --
+`0`, `0.0`, `0.00` -- their thousands grouped, `#,##0.00`, where the
+runtime printed a tick of a thousand or more with its whole part's
+digits apart; no currency and no unit. Word prints a code's grouping
+and its decimal sign in the reader's own separators, so where the
+PDF's axis says `CHF 1'000.00`, Word's says `1’000.00` to a reader of
+Swiss German settings, `1.000,00` to one of German and `1,000.00` to
+one of English. A fixed separator is not a format code's to state: the
+grouping character is the reader's, and a literal one written into the
+code by conditional sections breaks below zero and at a million. The
+currency or the unit stands in the axis's title where the report gives
+it one, and in every value's label where the chart labels them. The
+person who decides asked, on 20 November 2026, for the thousands
+grouped as the PDF groups them; until then the part stated digits
+alone, at the places the values need, and the sales report's axis said
+`20000` under the PDF's `20'000.00`.
 
 **Look.** What DrawingML lets a file pin is pinned: every colour the
 block's; every word's face; no fill and no line around the chart or its
@@ -485,23 +515,31 @@ since Word lays them out. The writer depends on nothing new.
 
 **What it costs.**
 
+- **These files were opened in Word once, by hand.** Each of them on
+  20 November 2026, against the list it came with. What Word draws of a
+  chart -- where its words stand, its bars, lines and slices, the value
+  axis's labels -- rests on that look, and no test holds it.
 - **"Edit Data" does not work.** The file has no workbook, so Word has
   nothing to open. A person who wants to change a chart's numbers
-  rebuilds it. Nobody here has seen what Word says when it is asked.
-- **The value axis's labels are not the report's.** They are digits in
-  the reader's own separators, with no grouping, currency or unit, where
-  the PDF's are the runtime's text in the render's locale. A German
-  reader of an English report sees `1,5` on the axis and `1.50` on the
-  labels beside the bars.
+  rebuilds it. What Word says when it is asked was not written down.
+- **The value axis's labels are not the report's.** They are the
+  ticks' digits and places, grouped where the runtime grouped them, in
+  the reader's own separators and with no currency or unit, where the
+  PDF's are the runtime's text in the render's locale. A German reader
+  of an English report sees `1.000,50` on the axis and `1,000.50` on the
+  labels beside the bars. The format is read from the ticks' text, so a
+  tick printed with a digit beside its number, a unit such as `m3`, is
+  read no further than the number.
 - **Word reads the numbers as doubles.** The file states forty digits;
   Word draws a bar from the double nearest them, and prints an axis
   label from that. Two ticks that share seventeen digits are one to
   Word, where the PDF's axis stands each at its place.
-- **The layout is Word's, and nothing here has seen it.** Where a word
-  stands, whether two meet, whether a category's label wraps or is cut,
-  how much of the box the plot takes: none of it is stated or tested.
-  The PDF refuses a chart whose words would meet; the Word file of the
-  same chart is written, and may print words over each other.
+- **The layout is Word's, and was seen once.** Where a word stands,
+  whether two meet, whether a category's label wraps or is cut, how much
+  of the box the plot takes: none of it is stated or tested, and it was
+  looked at in the files of 20 November 2026 alone. The PDF refuses a
+  chart whose words would meet; the Word file of the same chart is
+  written, and may print words over each other.
 - **A bar chart's category axis stands at zero**, where the PDF draws
   its line at the plot's foot: under an axis that starts below zero the
   line is drawn through the plot in the Word file. Its labels are at the
@@ -559,9 +597,10 @@ until DrawingML or the block gives a way to state it.
   like, and is known to draw. It lost because a reference must state a
   formula, and the formula would name cells of a workbook that is not
   there: the part would say its data come from somewhere, and they do
-  not. Should Word turn out not to draw a chart of literals, this is the
-  change to make, in `chart-xml.ts`'s `categories` and `values` and the
-  reader's vocabulary, and the record is corrected then.
+  not. Word drew every chart of literals it was given on 20 November
+  2026 (*Seen in Word*); should a Word turn out not to draw one, this is
+  the change to make, in `chart-xml.ts`'s `categories` and `values` and
+  the reader's vocabulary, and the record is corrected then.
 - **An embedded workbook**, so that "Edit Data" works. It needs a
   workbook's writer, which 0069 is held for, and puts an embedded object
   in every file with a chart, which `SECURITY.md` treats as a finding;
@@ -615,9 +654,8 @@ until DrawingML or the block gives a way to state it.
 
 - 0075, the QR-bill's slip on a page of its own at the end of the file,
   and 0077, the e-invoice as a labelled copy: each its own record.
-- Once a person has opened the files: what Word draws is written into
-  this record's *Not yet opened in Word*, and whatever it draws
-  otherwise than this record says is a change to the writer or a cost
-  here.
+- What Word was seen to draw is written under this record's *Seen in
+  Word*; whatever a Word is seen to draw otherwise than this record says
+  is a change to the writer or a cost here.
 - A chart's data in a workbook a person can edit, when a workbook's
   export exists.

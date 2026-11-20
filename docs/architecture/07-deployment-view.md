@@ -214,10 +214,11 @@ deploy happened or what the address serves. So what the Studio offers
 reaches the public at a merge and not at a release: its Download Word
 gives files of a writer no release holds
 ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)),
-those of a report with a code since 0074, which nobody had opened in Word
-when that record was written
+those of a report with a code since 0074, opened in Word once, by hand,
+on 20 November 2026
 ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)),
-and those of a report with a chart since 0076, likewise unopened
+and those of a report with a chart since 0076, opened in Word once, by
+hand, the same day
 ([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
 
 Every file the Worker serves carries the headers `scripts/demo-headers.mjs`
@@ -336,8 +337,9 @@ serve the Studio under the same function of their own address
   was written with in up to 1.6 seconds
   ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)). A chart is in the file as Word's own chart, with no
   workbook, so a person who opens it cannot edit its data; its value
-  axis is labelled by Word, in the reader's own separators and without
-  the report's currency; a file holds at most 64 charts and 25,600
+  axis is labelled by Word, at the places and with the grouping the
+  report's ticks print, in the reader's own separators and without the
+  report's currency; a file holds at most 64 charts and 25,600
   points between them, which a document of charts alone was written with
   in up to 0.53 seconds; and a report of very many charts may print as a
   PDF and not be written as a Word file, or the other way round, each
@@ -347,7 +349,9 @@ serve the Studio under the same function of their own address
   hands on what the renderer would have refused. The file names the
   report's fonts and embeds none, so a reader without the family sees the
   face Word chooses. The starters' files were opened in Word once, by
-  hand, those with a code, a chart or a slip not yet, and no test opens one
+  hand, those with a code or a chart too, on 20 November 2026, the euro
+  invoice from Austria after its frame was written again, those with a
+  slip not yet, and no test opens one
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **What it has authorised, and what it fixes:** the data, the parameters
   and an image lookup by id and digest; a time zone for instants; and the

@@ -96,25 +96,27 @@ const ARIAL = '<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs
 const SEVEN = '<w:sz w:val="14"/><w:szCs w:val="14"/>'
 
 /**
- * The frame, by hand. In a square of 85.04 points a version 8 symbol, 49
+ * The frame, by hand: a line around the symbol's cell, and the caption's
+ * band beside it, outside the line. In a square of 85.04 points a version 8 symbol, 49
  * modules, has modules of (85.04 - 7) / 57.5 = 1.3572 points (report-spec's
  * `epcModule`): its picture, with four of quiet zone a side, 57 modules,
  * 77.3614 points, 982,490 English Metric Units; the frame's line half a
- * module, 0.6786 points, five eighths of a point as a border and fourteen
- * twentieths as the picture's distance from the frame's top; the frame 58
- * modules tall, 78.7186 points, 1,574 twentieths; the white above and
- * under it half of what the square has left, 3.1607 points, 63
- * twentieths; and across, 78.04 points to the caption's band of 7, 1,561
- * twentieths, of which the picture leaves 13.77: so it stands thirteen
- * twentieths in from the left, as many whole ones as it is left, where
- * fourteen would take it a hair past its cell.
+ * module, 0.6786 points, five eighths of a point as a border on each side
+ * of the symbol's cell and on none of the caption's, and fourteen
+ * twentieths as the picture's distance from the frame's top; the frame's
+ * row at least 58 modules tall, 78.7186 points, 1,574 twentieths; the
+ * white above and under it half of what the square has left, 3.1607
+ * points, 63 twentieths; and across, 78.04 points to the caption's band
+ * of 7, 1,561 twentieths, of which the picture leaves 13.77: so it stands
+ * thirteen twentieths in from the left, as many whole ones as it is left,
+ * where fourteen would take it a hair past its cell.
  */
 const FRAME =
   `<w:tbl><w:tblPr><w:tblW w:w="1701" w:type="dxa"/><w:tblLayout w:type="fixed"/>${margins(0, 0)}</w:tblPr><w:tblGrid><w:gridCol w:w="1561"/><w:gridCol w:w="140"/></w:tblGrid>` +
-  '<w:tr><w:trPr><w:trHeight w:val="1574" w:hRule="exact"/></w:trPr>' +
-  `<w:tc><w:tcPr><w:tcW w:w="1561" w:type="dxa"/><w:tcBorders>${['top', 'left', 'bottom'].map((each) => side(each, 5, '000000')).join('')}</w:tcBorders></w:tcPr>` +
+  '<w:tr><w:trPr><w:trHeight w:val="1574" w:hRule="atLeast"/></w:trPr>' +
+  `<w:tc><w:tcPr><w:tcW w:w="1561" w:type="dxa"/><w:tcBorders>${['top', 'left', 'bottom', 'right'].map((each) => side(each, 5, '000000')).join('')}</w:tcBorders></w:tcPr>` +
   `<w:p><w:pPr><w:spacing w:before="14"/><w:ind w:left="13"/>${TINY}</w:pPr><w:r>${TINY}${picture(2, 'rId7', 982490)}</w:r></w:p></w:tc>` +
-  `<w:tc><w:tcPr><w:tcW w:w="140" w:type="dxa"/><w:tcBorders>${['top', 'bottom', 'right'].map((each) => side(each, 5, '000000')).join('')}</w:tcBorders><w:textDirection w:val="btLr"/></w:tcPr>` +
+  `<w:tc><w:tcPr><w:tcW w:w="140" w:type="dxa"/><w:textDirection w:val="btLr"/></w:tcPr>` +
   `<w:p><w:pPr><w:spacing w:line="140" w:lineRule="exact"/><w:jc w:val="center"/><w:rPr>${ARIAL}${SEVEN}</w:rPr></w:pPr>` +
   `<w:r><w:rPr>${ARIAL}<w:color w:val="000000"/>${SEVEN}</w:rPr><w:t xml:space="preserve">Zahlen mit Code</w:t></w:r></w:p></w:tc></w:tr></w:tbl>`
 

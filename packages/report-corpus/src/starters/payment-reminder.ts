@@ -179,10 +179,12 @@ function reminder(words: ReminderWords): ReportDefinition {
           content: [text(words.intro[0]), { kind: 'field', field: header('remindedOn'), format: { kind: 'date', style: 'long' } }, text(words.intro[1])],
         },
         { id: 'intro-gap', kind: 'spacer', height: 12 },
-        // Not kept with its table: the renderer moves a heading kept with a
-        // table that runs past its page to the next page with the whole
-        // table (0064), which a reminder of more invoices meets. It stands
-        // near the top of page 1's body, so no page ends under it.
+        // Not kept with its table: left so while the renderer moved a
+        // heading kept with a table that runs past its page to the next page
+        // with the whole table (0064), which a reminder of more invoices
+        // met. It stands near the top of page 1's body, so no page ends under
+        // it, and kept or not it prints the same there (0011, fixed
+        // 2026-11-20).
         { id: 'overdue-heading', kind: 'text', style: 'heading', content: [text(words.overdue)] },
         {
           id: 'overdue',

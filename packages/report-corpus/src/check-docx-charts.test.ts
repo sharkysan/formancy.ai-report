@@ -1,4 +1,6 @@
+import { MAX_SCALE } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
+import { valueAxisFormat } from './check-docx-charts.js'
 import { verifyDocx } from './check-docx.js'
 import type { Block, Chart } from './document.js'
 import { docxCharts } from './docx-charts.js'
@@ -618,6 +620,22 @@ describe('readDocx refuses a chart', () => {
 })
 
 const NORTH_LABEL = '<a:t>10.25</a:t>'
+
+// Word writes the value axis's labels from a format the file states, in the reader's own separators. It is held to the places the ticks'
+// text prints and to grouped thousands where the runtime printed them grouped: the values' own places would print 20000 under the
+// PDF's 20'000.00, and grouping the runtime did not do would print a separator the report never prints.
+test('a value axis is held to the places its ticks print, its thousands grouped where they print grouped', () => {
+  const axis = (...ticks: (readonly [string, string])[]): string | undefined =>
+    valueAxisFormat({ ...HAND_BARS, ticks: ticks.map(([exact, text]) => ({ exact, text })) })
+  expect(axis(['0', '0.00'], ['10000', '10\u2019000.00'], ['20000', '20\u2019000.00'])).toBe('#,##0.00')
+  expect(axis(['0', 'EUR 0'], ['5000', 'EUR 5.000'], ['10000', 'EUR 10.000'])).toBe('#,##0')
+  expect(axis(['0', '0.00'], ['10000', '10000.00'], ['20000', '20000.00'])).toBe('0.00')
+  expect(axis(['-5', '-5'], ['0', '0'], ['5', '5'])).toBe('0')
+  expect(axis(['0', '0,000'], ['0.5', '0,500'], ['1', '1,000'])).toBe('0.000')
+  expect(axis(['0', '0.0'], ['0.50', '0.5'], ['1.00', '1.0'])).toBe('0.0')
+  // A tick's text written longer than any number the runtime resolves, by hand, asks no more places of the format than MAX_SCALE.
+  expect(axis(['0', `0.${'1'.repeat(10_000)}`], ['5', '5'], ['10', '10'])).toBe(`0.${'0'.repeat(MAX_SCALE)}`)
+})
 
 describe('verifyDocx fails on a chart', () => {
   // Each a way a writer states a chart that Word then draws as another chart than the report's, with nothing in the file saying so.

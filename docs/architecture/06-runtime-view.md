@@ -1271,7 +1271,7 @@ checkDocument: before a byte is written, in this order                          
    ├─ a creation date that is no date, states no instant, a day no
    │  calendar has or a year no core property has; a title XML cannot
    │  hold ────────────────────────────────────────────────────────────▶ unsupported
-   ├─ a payment part, an e-invoice, a preview's label ─────────────────▶ unsupported
+   ├─ an e-invoice, a preview's label ─────────────────────────────────▶ unsupported
    ├─ a page of no known size or turn; margins that leave nothing ─────▶ unsupported,
    │                                                                     content-too-large
    │  then one walk: the page header, page 1's own, the page footer and
@@ -1310,6 +1310,12 @@ checkDocument: before a byte is written, in this order                          
    ├─ a JPEG its Exif block turns or of four components ───────────────▶ unsupported
    ├─ an SVG that covers a box of other proportions, a picture drawn
    │  at under an English Metric Unit ─────────────────────────────────▶ unsupported
+   ├─ a QR-bill's payment part, last, where the PDF renderer checks its
+   │  bill: what the runtime's checkQrBill refuses, in its words, and a
+   │  character SIX does not allow a bill, which has no width here ────▶ unsupported,
+   │                                                                     content-too-large
+   │  a line wider than its place, a part's information taller than its
+   │  section; past the file's bounds with the slip's paragraphs ──────▶ content-too-large
    ▼
 each region's blocks as paragraphs and tables, in points          nodes.ts, blocks.ts, table.ts
    │  a text without the line ending that ends it; the keep rules mark
@@ -1317,8 +1323,9 @@ each region's blocks as paragraphs and tables, in points          nodes.ts, bloc
    │  block but what ends it, the header row, a group header's kept
    │  rows, the row before a closing row
    │  a code a picture's paragraph exactly its size; in Austria's frame
-   │  an empty line kept with a table of its picture and its caption,
-   │  bordered around, and an empty line under it                             codes.ts
+   │  an empty line kept with a table of its picture, its cell bordered
+   │  around, and its caption beside it, the row at least the frame's
+   │  height, and an empty line under it                                      codes.ts
    ▼
 WordprocessingML, every element's children in ECMA-376's order; every
 string through text or attribute, markup a type of its own               wml.ts, xml.ts

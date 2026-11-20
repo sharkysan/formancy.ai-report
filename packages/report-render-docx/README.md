@@ -23,13 +23,16 @@ writes is read back in the tests by readers that are not the writer, and
 was validated against ISO/IEC 29500-4:2016's transitional schema once, by
 hand; the files of the starters and the corpus's fixtures were opened in
 Word once, before it merged, and found fine. What Word does with a file
-is held by no test, and 0068 says what was seen. A file with a QR code
-or an EPC QR code, which the writer writes since 0074, nobody had opened
-in Word when that record was written, and it says so; nor one with a
-chart, which it writes since 0076 as Word's own chart, where everything
-Word lays out -- where a word stands, what the value axis says -- is
-unseen; nor one with a QR-bill's slip, which it writes since 0075 on a
-page of its own, where what Word prints of the page is unseen.
+is held by no test, and 0068 says what was seen. The files with a QR
+code or an EPC QR code, which the writer writes since 0074, were opened
+in Word once, by hand, on 20 November 2026, and 0074 says what was seen.
+The files with a chart, which it writes since 0076 as Word's own chart,
+were opened in Word once, by hand, the same day, and 0076 says what was
+seen; everything Word lays out of one -- where a word stands, what the
+value axis says -- is held by no test.
+A file with a QR-bill's slip, which it writes since 0075 on a page of
+its own, nobody had opened in Word when that record was written, and
+what Word prints of the page is unseen.
 
 ## Write a report as a Word file
 
@@ -105,12 +108,18 @@ test claims it prints as the PDF does.
   side hold: so a code wider than 266 to 288 points, by its symbol's
   version, is drawn coarser, the largest symbol at 269 to the inch
   where it is 595 points wide. An
-  EPC QR code in Austria's frame is a table of one row around its
-  picture and "Zahlen mit Code", which reads from bottom to top at 7 pt
-  in Arial; the table's borders are the frame, so its corners are square
-  and its right line whole, where the PDF rounds the corners and breaks
-  the line around the words. A code is a raster here and vectors in the
-  PDF, and what Word prints of either nobody has seen yet.
+  EPC QR code in Austria's frame is a table of one row, at least the
+  frame's height: its picture, in a cell the frame's line borders on
+  each side, and beside it, outside the line, "Zahlen mit Code", which
+  reads from bottom to top at 7 pt in Arial. The cell's borders are the
+  frame, so its corners are square and its right line whole, the
+  caption beside it, where the PDF rounds the corners and runs the line
+  along the words, broken around them. A code is a raster here and
+  vectors in the PDF. Of what Word prints, the frame of the euro invoice
+  from Austria alone has been seen: written first around the picture
+  and the caption, with a row of an exact height, it lost its right
+  line and the white under the code, and it is now written as the
+  variant approved in Word on 20 November 2026.
 - **A chart is Word's own chart**, a part of the file
   (`word/charts/chartN.xml`) that the body draws inline in exactly the
   chart's box, written from the runtime's block alone. Its data are
@@ -120,14 +129,17 @@ test claims it prints as the PDF does.
   and the value axis is the report's ticks, its ends and its step
   stated. The title, the axes' titles, the categories, the legend and
   each value's label are the runtime's text, a pie's shares in its
-  legend's entries; the value axis's labels alone are Word's, digits in
-  the reader's own separators with no currency or unit. Every colour is
+  legend's entries; the value axis's labels alone are Word's, at the
+  places and with the grouping the ticks print, in the reader's own
+  separators with no currency or unit. Every colour is
   the report's and every word's face is stated. Where a word stands is
   Word's, as lines and pages are: the PDF refuses a chart whose words
   would meet, and the Word file of it is written. Word reads the numbers
   as doubles to draw. A chart with nothing to draw is its title and its
   empty text in a cell at least as tall as its box. What Word draws of a
-  chart nobody has seen yet.
+  chart was seen once, by hand, on 20 November 2026: each chart in its
+  place, its values, colours and order as the PDF's, and the sales
+  report's value axis grouped, `20’000.00` on Swiss settings.
 - **A QR-bill's slip is a page of its own**, the file's last, in a
   section of its own: A4 upright with no margin at its sides and foot,
   the slip 192 mm down, the instruction to separate above its top line,

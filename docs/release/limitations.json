@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:fb643d2417e18c0825ca43c158827a11b04d79c782000c3474fa126f09afe4e5",
+      "reviewed": "sha256:5539c15977f5dd7487c939e390800c6db87070fb979243d4f455e0bbdbe1cdcc",
       "limitations": [
         {
           "area": "rendering",
@@ -292,6 +292,11 @@
           "area": "rendering",
           "says": "A table is refused when a line of one of its rows does not fit under the table's repeated header with a point to spare, so a line within that point of fitting is refused though pdfmake would print it: a 40 pt row of Roboto under a 40 pt header prints from a body of 103.25 pt, and is refused below 104.25.",
           "heldBy": "packages/report-render-pdf/src/tables.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A heading kept with a table whose rows print nothing is kept with its column header, whose page pdfmake writes over each time it repeats the header, so where such a table runs past its page the heading moves to the next page with it and leaves its own page empty under the line before it.",
+          "heldBy": "packages/report-render-pdf/src/flow.test.ts"
         }
       ]
     },
@@ -2997,11 +3002,11 @@
       ]
     },
     "0064": {
-      "reviewed": "sha256:1af4c710f9df11e7c391fc6b88c4d40942d882b237afbb994f7f57b5335e94ce",
+      "reviewed": "sha256:0d91c4f17b2a82ef7d613f715e2e358deff6dcbd73ca5dbd520f2f330f4aa1cd",
       "limitations": [
         {
           "area": "rendering",
-          "says": "A heading kept with what follows it over a table that runs past its page moves to the next page with the whole table, leaving its own page without either, so the order confirmation's goods heading is not kept with its table, and nothing fixes that yet."
+          "says": "The order confirmation's goods heading is not kept with its table, as it was left while a heading kept with a long table moved with it, so an author who copies the starter and moves that table down a page may find the heading at a page's foot."
         },
         {
           "area": "builders",
@@ -3060,7 +3065,7 @@
       ]
     },
     "0066": {
-      "reviewed": "sha256:c37e20077790d2705528662eadb65805eea590f16f0da88d4af697636f4e17a7",
+      "reviewed": "sha256:4878d74df8d1936a74d0ec0402a618790000e0cc6f211e8c2344d74f4150b4c5",
       "limitations": [
         {
           "area": "data",
@@ -3076,10 +3081,6 @@
           "area": "data",
           "says": "A payment reminder whose items leave nothing due -- what was received as much as what is owed or more, or no items at all -- is refused in a final render for its bill, whose amount runs from 0.01 as SIX’s rules say: a host sends no reminder of a balance below one cent.",
           "heldBy": "packages/report-corpus/src/starters/payment-reminder.test.ts"
-        },
-        {
-          "area": "rendering",
-          "says": "The payment reminder’s heading of what was received is kept with its table, so a customer with more payments and credit notes than the rest of the page holds has the heading printed with the whole table on the next page, as any heading kept with a table that runs past its page is."
         },
         {
           "area": "builders",
@@ -3102,7 +3103,7 @@
       ]
     },
     "0067": {
-      "reviewed": "sha256:3ba62134e0bfbab50e567a7bf8893948995192a2b6f78180cbb4010f49188663",
+      "reviewed": "sha256:000e66ea0e2dbb53c631897bc9390a6c8ccef441ac20faf58f1cb7db06861cba",
       "limitations": [
         {
           "area": "builders",
@@ -3211,13 +3212,13 @@
         },
         {
           "area": "release",
-          "says": "The getting-started guide writes no Word file, since its quotation draws a chart, which the writer refuses; the package’s README carries the example, held to the lines the install gate runs.",
+          "says": "The getting-started guide writes no Word file: its quotation draws a chart, which the writer refused when 0068 was written, and the guide was not given one when 0076 wrote charts; the package’s README carries the example, held to the lines the install gate runs.",
           "heldBy": "scripts/readme-example.test.mjs"
         }
       ]
     },
     "0074": {
-      "reviewed": "sha256:a8c69580a0a8448758dce151b4a276ea18301d78d37c2d28bda5828e2d33da2e",
+      "reviewed": "sha256:cd31d4fa423a3572cf4e9c0d267da7e86b33234d95673f6e72c740388793c5c5",
       "limitations": [
         {
           "area": "rendering",
@@ -3226,7 +3227,7 @@
         },
         {
           "area": "testing",
-          "says": "Nobody had opened a Word file with a code in Word when 0074 was written, and no test opens one: that Word draws the picture at its size and unsmoothed, that it leaves the picture as it is when a person saves the file, Microsoft giving 220 pixels to the inch as its default picture resolution, and that a phone reads the code from the page Word prints, is held by nothing; ZXing reads the picture’s own pixels."
+          "says": "The Word files with a code were opened in Word once, by hand, on 20 November 2026, the euro invoice from Austria after its frame was written as the variant approved there; no test opens one: that Word draws the picture at its size and unsmoothed, that it leaves the picture as it is when a person saves the file, Microsoft giving 220 pixels to the inch as its default picture resolution, and that a phone reads the code from the page Word prints, is held by nothing; ZXing reads the picture’s own pixels."
         },
         {
           "area": "testing",
@@ -3235,7 +3236,7 @@
         },
         {
           "area": "rendering",
-          "says": "An EPC QR code in Austria’s frame is a table in a Word file, so its frame’s corners are square and its right line whole with the caption inside it, where the PSA’s figure rounds the corners by two modules and the PDF breaks the line around the caption; its line is a half, five eighths or three quarters of a point where the PDF draws half a module exactly, and its picture stands within 0.075 pt of that far from the left, as many twentieths of a point as its cell leaves it; and its caption is named in Arial and embedded in no face, on a line of exactly 7 pt, so a reader without the family sees another, which may be longer than the symbol is tall, and where Word puts the words on that line nobody has seen.",
+          "says": "An EPC QR code in Austria’s frame is a table in a Word file, so its frame’s corners are square and its right line whole with the caption beside it, outside the frame, where the PSA’s figure rounds the corners by two modules and the PDF breaks the line around the caption; the frame’s row is at least its height, so Word grows it to what its cells hold and the code then stands taller than its square by as much, which nothing measures; its line is a half, five eighths or three quarters of a point where the PDF draws half a module exactly, and its picture stands within 0.075 pt of that far from the left, as many twentieths of a point as its cell leaves it; and its caption is named in Arial and embedded in no face, on a line of exactly 7 pt, so a reader without the family sees another, which may be longer than the symbol is tall, and where Word puts the words on that line nobody has seen.",
           "heldBy": "packages/report-render-docx/src/codes.test.ts"
         },
         {
@@ -3324,16 +3325,16 @@
       ]
     },
     "0076": {
-      "reviewed": "sha256:0cd6f73af44f02dd4fd7c52ce2ec746cd4c59349385544ac7c6bdf5252516c86",
+      "reviewed": "sha256:d867a1e72b90e53128c1c3dfffac8ffd27859c7cdd853a0a8052f20714d75d5d",
       "limitations": [
         {
           "area": "rendering",
-          "says": "A chart in a Word file holds its data in its own part, as literals, and the file holds no workbook: Word’s “Edit Data” has nothing to open, so a person restyles the chart and changes its title, and rebuilds it to change its numbers; nobody here has seen what Word says when it is asked.",
+          "says": "A chart in a Word file holds its data in its own part, as literals, and the file holds no workbook: Word’s “Edit Data” has nothing to open, so a person restyles the chart and changes its title, and rebuilds it to change its numbers; what Word says when it is asked was not written down.",
           "heldBy": "packages/report-render-docx/src/charts.test.ts"
         },
         {
           "area": "rendering",
-          "says": "The labels on a chart’s value axis in a Word file are Word’s, written from the numbers by a format of digits alone at as many places as the ticks need: they print in the reader’s own separators with no grouping, currency or unit, where the PDF prints the runtime’s text in the render’s locale, so one report’s axis may say 1,5 beside labels that say 1.50; the currency stands only in an axis’s title where the report gives one, and in the values’ labels where the chart labels them.",
+          "says": "The labels on a chart’s value axis in a Word file are Word’s, written from the numbers by a format read from the ticks’ text, at the places they print and with their thousands grouped where the runtime grouped them: they print in the reader’s own separators with no currency or unit, where the PDF prints the runtime’s text in the render’s locale, so one report’s axis may say 1.000,50 beside labels that say 1,000.50; the currency stands only in an axis’s title where the report gives one, and in the values’ labels where the chart labels them.",
           "heldBy": "packages/report-render-docx/src/against-pdf.test.ts"
         },
         {
@@ -3343,7 +3344,7 @@
         },
         {
           "area": "testing",
-          "says": "Nobody had opened a Word file with a chart in Word when 0076 was written, and no test opens one: that Word draws a chart whose data are literals and which has no workbook, that it draws it in its box with its bars, its line and its slices where the numbers put them, where it puts each word and whether two meet, whether it wraps or cuts a category’s label, that a bar below zero hangs from zero with its label under its end, what it writes on the value axis, and that the words of a chart with nothing to draw stand in the middle of its box, is held by nothing; the tests read the part back."
+          "says": "The Word files with a chart were opened in Word once, by hand, on 20 November 2026, each beside its PDF where there is one, and found as its list says, the charts in their place, their values, colours and order as the PDF’s and the sales report’s value axis grouped, with nothing more of what Word did written down; no test opens one: that Word draws a chart whose data are literals and which has no workbook, that it draws it in its box with its bars, its line and its slices where the numbers put them, where it puts each word and whether two meet, whether it wraps or cuts a category’s label, that a bar below zero hangs from zero with its label under its end, what it writes on the value axis, and that the words of a chart with nothing to draw stand in the middle of its box, is held by nothing; the tests read the part back."
         },
         {
           "area": "rendering",

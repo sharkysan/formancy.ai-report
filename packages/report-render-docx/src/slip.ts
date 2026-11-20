@@ -196,7 +196,7 @@ function amount(bill: QrBill, part: SlipPart, left: number, end: number, height:
   // The section's columns, from its cell's left: the currency's, the amount's, and where the part's text ends.
   const [from, to] = [twips(place.x + place.indent) - twips(left), twips(end) - twips(left)]
   const table = (grid: number[], rows: RowNode[]): TableNode => ({ kind: 'table', grid, padding: { x: 0, y: 0 }, rows })
-  const tall = (cells: CellNode[], most = height): RowNode => ({ cantSplit: true, height: points(most), grows: true, cells })
+  const tall = (cells: CellNode[], most = height): RowNode => ({ cantSplit: true, height: points(most), atLeast: true, cells })
   if (bill.amount !== null) {
     return table(
       [from, to - from],
@@ -293,7 +293,7 @@ export function slipNodes(slip: PlannedSlip, picture: PictureNode): BlockNode[] 
       {
         cantSplit: true,
         height: points(twips(QR_BILL_SIZE.height) - FOOT),
-        grows: true,
+        atLeast: true,
         cells: [
           cell(widths[0], first.closed(), { borders: { top: CUT, right: CUT } }),
           cell(widths[1], second.closed(), { borders: { top: CUT } }),

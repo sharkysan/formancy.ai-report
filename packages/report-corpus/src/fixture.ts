@@ -13,6 +13,7 @@ import type {
   Table,
   TableRow,
 } from './document.js'
+import { footerPattern } from './footer-pattern.js'
 
 /**
  * A fixture is a document an engine must render, or refuse, and what the PDF
@@ -223,6 +224,16 @@ export interface Expectation {
    * moved every later one does too.
    */
   readonly keptTogetherByRoom: boolean
+  /**
+   * Groups of lines that must print on one page though no keep-together
+   * block holds them, which a fixture states where it places them so: a
+   * heading kept with the next block over the first row of the table it
+   * heads, and the line it stands under where every plausible engine has
+   * room for all of them. Each group's lines all appear on one page. No
+   * block marks them to stay together, so a Word file, whose pages are
+   * Word's, is not held to them.
+   */
+  readonly onOnePage: readonly (readonly string[])[]
   readonly minPagesExpected: number
   readonly maxPagesExpected: number
   /** No page's last table line is a group header or the column header: a heading never ends a page alone. */
@@ -291,6 +302,7 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
     wrappedText: [],
     keptTogether: keptTogether(document.body),
     keptTogetherByRoom: false,
+    onOnePage: [],
     minPagesExpected: 1,
     noOrphanedHeaders: true,
     noEmptyPages: !flatten(document.body).some((block) => block.kind === 'spacer' || block.kind === 'rule'),
@@ -569,24 +581,4 @@ function keptTogether(blocks: readonly Block[]): string[][] {
         return text ? [text] : []
       }),
     )
-}
-
-/**
- * The line the page footer prints, as a pattern: its text literally, each
- * page field as digits in a named group. The first paragraph with a page
- * field is the one matched; a footer without one has no pattern.
- */
-export function footerPattern(footer: readonly Block[]): RegExp | undefined {
-  const paragraph = footer.find((block) => block.kind === 'paragraph' && block.runs.some((run) => 'field' in run))
-  if (paragraph?.kind !== 'paragraph') return undefined
-  const named = new Set<string>()
-  const source = paragraph.runs
-    .map((run) => {
-      if ('text' in run) return run.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      if (named.has(run.field)) return `\\k<${run.field}>`
-      named.add(run.field)
-      return `(?<${run.field}>\\d+)`
-    })
-    .join('')
-  return new RegExp(`^${source.replace(/\s+/g, ' ').trim()}$`)
 }
