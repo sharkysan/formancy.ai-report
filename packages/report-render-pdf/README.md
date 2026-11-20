@@ -159,7 +159,14 @@ Every block of the resolved document:
   body, tables and page breaks included; without one, its blocks and nothing
   more.
 - **Keep-together blocks**, moved whole to the next page when they do not
-  fit, and paragraphs **kept with the next** block.
+  fit, and paragraphs **kept with the next** block. A table is kept with by
+  its first row under the column header, never by the header, which
+  pdfmake repeats on every page the table continues on and writes that
+  page into: a heading over a table that runs past its page stays on its
+  page with the table's first rows. A table whose rows print nothing is
+  kept with by its header, and its heading still moves with it where it
+  runs past its page
+  ([0011](../../docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 - **The page header and footer**, on every page, with the page number and
   the page count. The body is laid out between them, after both are
   measured.
@@ -876,7 +883,12 @@ holds a refusal to the one the fixture allows
 These are the tests decision 0005 names; the corpus's kept rows' fixture
 (`KEEP_WITH_FIXTURES`), which the trial never drew, is rendered beside
 them, and `group-rows.test.ts` holds a group header to the rows its row
-keeps, or as many as fit, on the PDFs (0059). Each block kind is read back from
+keeps, or as many as fit, on the PDFs (0059); and so is its kept headings'
+fixture (`KEPT_HEADING_FIXTURES`), a heading and a run of two over tables
+longer than any plausible page, the heading on the page of the line it
+stands under and of its table's first row, the run on its table's first
+row's, which `flow.test.ts` holds through a framed section and over a kept
+group header too (0011). Each block kind is read back from
 the PDF it produced: its text and images with PDF.js, through the corpus's
 reader, and its lines, rectangles, clips and text colours from the PDF's own
 content streams (`src/testing/drawing.ts`), which PDF.js's text does not

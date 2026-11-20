@@ -1,6 +1,6 @@
 # 0066 — A payment reminder is a starter that pays the balance of a customer's overdue invoices by a QR-bill in the customer's language
 
-- **Status:** accepted
+- **Status:** accepted; its heading of what was received no longer meets 0064's defect, fixed on 2026-11-20 under [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)
 - **Date:** 2026-11-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -314,6 +314,21 @@ in `starters/payment-reminder-words.ts`).
 
 **What it forecloses.** Nothing that cannot be undone: the starter can be
 taken out of `STARTERS`, its lists and its picture with it.
+
+**Amended 2026-11-20: the second heading no longer exposed.** 0064's
+defect is fixed under
+[0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md):
+a heading kept with a table that runs past its page stays on its page,
+over the table's first row. The heading of what was received, kept with
+its table, is no longer moved with a table too long for the rest of its
+page, and *The second heading exposed* above no longer holds. The
+overdue invoices' heading is left as the starter was written, not kept:
+it stands at the top of page 1's body, where kept or not it prints the
+same, every stream of the PDF the same once inflated in each of the
+four languages, the kept one naming one destination more (measured on
+20 November 2026). The reminder prints every run where it did in each
+of its languages; only the named destination of its kept heading
+moved, to the table's first row.
 
 ## Alternatives considered
 

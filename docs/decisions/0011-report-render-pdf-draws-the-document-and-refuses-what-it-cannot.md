@@ -373,6 +373,69 @@ by `charts.test.ts`, `chart-draw.test.ts` and `chart-content.test.ts`, and
 on the corpus's chart fixtures by `corpus.test.ts`; `refusals.test.ts`'s
 case of the interim refusal is gone with it.
 
+**Fixed 2026-11-20: a heading kept with a table whose header repeats.** A
+paragraph kept with the next block breaks to the next page when that
+block does not start on its page, and a block starts where its first
+text does (`content.ts`'s `anchorOf`): a table's was its column header's
+first cell. pdfmake 0.3.11 lays a table's header rows out once and adds
+the same lines again at the top of every page the table continues on
+(`src/PageElementWriter.js` 78, `src/TableProcessor.js` 604), and each
+time writes that page into the first position of each line's node with
+an id (`src/ElementWriter.js` 340), so the header's first cell said the
+table started on the last page it reached. A heading kept with a table
+that ran past its page therefore moved to the next page with it,
+whatever room its own page had left. Under one line at the top of the
+body, over a table of 120 rows, it printed on page 2 and page 1 held the
+line alone; a run of two headings moved one at a time, the first left
+alone on a page, and the document took five pages where three hold it
+(20 November 2026, in the renderer's own documents).
+[0064](0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)
+found it and left it for a change of its own, and
+[0066](0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md)'s
+heading of what was received was exposed to it. A heading is now kept
+with a table's first body row, the first after its header rows, whose
+page pdfmake records where it lays the row out and, the cell having an
+id, corrects where it moves the row; and with the header only where no
+body row prints. A keep-together block is kept with as before, by its
+first text wherever it stands, its table's header first, since no header
+repeats inside a block that moves whole. Not taken: reading the header's
+page from anywhere else, since pdfmake keeps one position for the cell
+and writes over it; and a patched pdfmake, a copy of upstream
+([0002](0002-depend-on-upstream-never-copy-it.md)).
+`pdfmake.test.ts` pins the rewrite: a header cell with an id reads the
+last of three or more pages its table reaches, and the first row's cell
+page 1. `flow.test.ts` holds on the PDF a heading over a 120-row table
+alone, as a run of two, in a framed section and over a group header
+keeping three rows, each on page 1 with the line above it and the first
+row, under the header on every page; and a heading at a page's foot over
+such a table, over an empty table and over a keep-together block opening
+with a table moving to the next page with it, as before. The corpus's
+`kept-heading` fixture holds both cases on any engine, by the lines it
+places on one page (`onOnePage`), and `corpus.test.ts` and
+`browser.test.ts` render it in both entries. On the header's anchor
+again the fixture and four of `flow.test.ts`'s cases fail, naming the
+lines split across pages; without the header kept with where no body row
+prints, the case of a table whose rows print nothing fails. What it
+costs: such a table is still kept with by its header, and where it runs
+past its page its heading still moves with it, leaving its own page
+empty under the line before it. Nothing is lost or misprinted, and
+`flow.test.ts` holds it as it stands. And the heading's named
+destination, `kept-N`, now names the table's first row, a row below the
+header. Of 158 documents rendered on main's build and on this one --
+every starter and sample in each language, final and preview, the
+four-language invoice in each of its locales, every corpus fixture and
+the e-invoice gate's 46 PDFs -- the 14 refusals are the same in code,
+subject and words, 121 PDFs are byte for byte what they were, and 22
+differ in that destination's place alone: every stream of each, its
+pages' contents among them, is the same once inflated, and nothing else
+in it differs but a `kept-N` destination 15.05 points lower, a row, and
+the offsets after it. They are the site visit and the order
+confirmation, final and preview, the payment reminder in each of its
+four languages, final and preview, `one-row`, `empty-dataset`, both
+summary fixtures, and six of the e-invoice gate's PDFs, which its record
+holds by digest. `kept-heading`, new, printed six pages on main's build
+and prints four (20 November 2026).
+
 ## Alternatives considered
 
 **Let pdfmake break a long word in a cell**, as it does in a paragraph.
