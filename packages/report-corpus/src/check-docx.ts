@@ -1,5 +1,6 @@
 import { checkSvg, E_INVOICE_PREVIEW_LABEL, imageHeader, PREVIEW_LABEL } from '@formancy/report-runtime'
 import { paragraphsOf, verifyContainer } from './check-docx-blocks.js'
+import { decodedProblems, type FoundCodes } from './check-docx-codes.js'
 import { pageDimensions, type Block, type Image, type ResolvedDocument, type Section } from './document.js'
 import type { Docx, DocxBlock, DocxParagraph, DocxRegion, DocxRun, DocxTable } from './docx/model.js'
 import { normalise, type ExpectedImage, type ExpectedRefusal, type ExpectedShiftedRun, type ExpectedTable, type Fixture } from './fixture.js'
@@ -20,9 +21,14 @@ import { normalise, type ExpectedImage, type ExpectedRefusal, type ExpectedShift
  * outright, block by block (`check-docx-blocks.ts`), with the page, the
  * regions' parts, the title and the creation date.
  *
+ * A code is held on its picture (0074): the pixels the file embeds, read
+ * back by the corpus's own PNG reader, and what ZXing reads in them, as a
+ * scanner would (`check-docx-codes.ts`). That reading is not at hand at
+ * once, so the check is waited for.
+ *
  * What this cannot show is that Word opens the file, or prints it so.
  */
-export function verifyDocx(fixture: Fixture, docx: Docx): string[] {
+export async function verifyDocx(fixture: Fixture, docx: Docx): Promise<string[]> {
   const { document, expect } = fixture
   const { fonts } = document
   const paper = pageDimensions(document.page)
@@ -33,11 +39,12 @@ export function verifyDocx(fixture: Fixture, docx: Docx): string[] {
     ['firstPageHeader', first ?? [], docx.firstHeader, 'header'],
     ['pageFooter', document.pageFooter, docx.footer, 'footer'],
   ]
-  return [
+  const codes: FoundCodes = { pending: [], paragraphs: new Set() }
+  const stated = [
     ...pageProblems(document, docx),
     ...regions.flatMap(([at, blocks, region, kind]) => {
       if (blocks.length === 0) return region === undefined ? [] : [`${at} holds nothing, and the file has a ${kind} for it`]
-      return region === undefined ? [`${at} has no ${kind} in the file`] : verifyContainer(blocks, region.blocks, { at, width, kind }, fonts)
+      return region === undefined ? [`${at} has no ${kind} in the file`] : verifyContainer(blocks, region.blocks, { at, width, kind }, fonts, codes)
     }),
     ...(first !== undefined && docx.footer !== undefined && docx.firstFooter?.part !== docx.footer.part
       ? ['page 1 does not print the page footer every page prints']
@@ -45,10 +52,11 @@ export function verifyDocx(fixture: Fixture, docx: Docx): string[] {
     ...(first === undefined && (docx.firstHeader !== undefined || docx.firstFooter !== undefined)
       ? ['the file gives page 1 a header or footer of its own, and the document none']
       : []),
-    ...verifyContainer(document.body, docx.body, { at: 'body', width, kind: 'body' }, fonts),
-    ...expectedProblems(expect, docx),
+    ...verifyContainer(document.body, docx.body, { at: 'body', width, kind: 'body' }, fonts, codes),
+    ...expectedProblems(expect, docx, codes.paragraphs),
     ...fontProblems(docx),
   ]
+  return [...stated, ...(await decodedProblems(codes.pending))]
 }
 
 const NEAR = 0.026
@@ -111,7 +119,8 @@ function inOrder(lines: readonly string[], expected: readonly string[]): string 
   return undefined
 }
 
-function expectedProblems(expect: Fixture['expect'], docx: Docx): string[] {
+/** The expectation held to the file; `coded` are the paragraphs its codes are written as, whose pictures are no image of the document's. */
+function expectedProblems(expect: Fixture['expect'], docx: Docx, coded: ReadonlySet<DocxParagraph>): string[] {
   const problems: string[] = []
   const body = paragraphsOf(docx.body)
   const lines = body.map(lineOf)
@@ -168,7 +177,7 @@ function expectedProblems(expect: Fixture['expect'], docx: Docx): string[] {
       problems.push(`the kept lines from '${group[0] ?? ''}' are not all marked to stay on one page`)
   }
   const pictures = (blocks: readonly DocxBlock[]): DocxParagraph[] =>
-    paragraphsOf(blocks).filter((paragraph) => paragraph.runs.some((run) => run.kind === 'picture'))
+    paragraphsOf(blocks).filter((paragraph) => !coded.has(paragraph) && paragraph.runs.some((run) => run.kind === 'picture'))
   problems.push(...imageProblems('the body', expect.images, pictures(docx.body)))
   problems.push(...imageProblems('the page header and footer', expect.pageRegionImages, pictures([...header, ...footer])))
   problems.push(...shiftedProblems('the body', expect.shiftedRuns, docx.body))
@@ -261,8 +270,9 @@ function shiftedProblems(where: string, expected: readonly ExpectedShiftedRun[],
  * order, and last the pictures, in that order too, since an engine reads a
  * picture's bytes once every block has been walked. It knows what belongs
  * to the PDF and what nobody has seen Word print as the PDF does; what any
- * engine refuses of a malformed document, and what the PDF renderer
- * refuses of what it measured, are a fixture's own to state.
+ * engine refuses of a malformed document, a code the rules below both
+ * engines refuse among it (0074), and what the PDF renderer refuses of
+ * what it measured, are a fixture's own to state.
  */
 export function wordRefusal(document: ResolvedDocument): ExpectedRefusal | undefined {
   if (document.paymentPart !== undefined) return { code: 'unsupported', subject: 'paymentPart' }
@@ -304,7 +314,7 @@ function refusalAmong(blocks: readonly Block[], path: string, inFrame: boolean):
   for (const [index, block] of blocks.entries()) {
     const at = `${path}[${index}]`
     const unsupported = (subject: string): ExpectedRefusal => ({ code: 'unsupported', subject })
-    if (block.kind === 'chart' || block.kind === 'qrCode' || block.kind === 'epcQrCode') return unsupported(block.id)
+    if (block.kind === 'chart') return unsupported(block.id)
     if (block.kind === 'table' && inFrame) return unsupported(block.id)
     if (block.kind === 'pageBreak' && inFrame) return unsupported(at)
     const inner =

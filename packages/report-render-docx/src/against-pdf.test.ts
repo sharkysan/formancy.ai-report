@@ -1,9 +1,13 @@
 import {
   ALL_FIXTURES,
+  CODE_FIXTURES,
+  EURO_INVOICE_AT,
   FIRST_PAGE_FIXTURES,
   IMAGE_KINDS,
   KEEP_WITH_FIXTURES,
   MALFORMED,
+  readCodes,
+  readDocxCodes,
   readPdf,
   SHIFTED_FIXTURES,
   STARTERS,
@@ -14,7 +18,7 @@ import {
 } from '@formancy/report-corpus'
 import { renderPdf } from '@formancy/report-render-pdf'
 import { MAX_ASSET_BYTES, MAX_ASSET_SIDE, RenderRefusal, SHIFTED_SIZE } from '@formancy/report-runtime'
-import type { Block, ImageAsset, ResolvedDocument } from '@formancy/report-runtime'
+import type { Block, EpcQrCode, ImageAsset, QrCode, ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { MAX_DOCX_IMAGE_DATA } from './limits.js'
 import { DEFAULT_SIZE, KIND_BOLD, TABLE_SIZE } from './look.js'
@@ -57,6 +61,13 @@ import { blank, documentOf, padded, paragraph, refusalOf, resolved, written } fr
  * text with line endings prints**. The PDF's are counted on the page, by
  * where the paragraph after the text stands; the file's are the breaks it
  * states.
+ *
+ * **A code** is the one thing both draw of a decision made below both
+ * (0074): its symbol and what refuses it are report-runtime's. So a code
+ * of the Word file, decoded from its picture, is the code the PDF prints,
+ * decoded from its page -- its text, its bytes, its level and its version
+ * -- in a square of the PDF's size, at the PDF's module; and a code that
+ * is refused is refused by both in the same words.
  */
 
 const TIMEOUT = 240_000
@@ -103,7 +114,9 @@ async function wordsOfPdf(document: ResolvedDocument): Promise<Set<string>> {
   const words = new Set<string>()
   for (const page of pdf.pages)
     for (const item of page.items)
-      for (const word of item.text.split(/\s+/)) if (word !== '') words.add(printed(word, item.height, /Medium|Bold/.test(item.font), /Italic/.test(item.font)))
+      // A run that reads across the page is as tall as its size; one turned a quarter turn, an EPC QR code's caption, is as wide.
+      for (const word of item.text.split(/\s+/))
+        if (word !== '') words.add(printed(word, item.angle === 90 ? item.width : item.height, /Medium|Bold/.test(item.font), /Italic/.test(item.font)))
   return words
 }
 
@@ -114,9 +127,14 @@ function bodyAlone(document: ResolvedDocument): ResolvedDocument {
 }
 
 /** The fixtures both engines write: those the PDF renders and a Word file holds. */
-const FIXTURES: readonly Fixture[] = [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...SHIFTED_FIXTURES].filter(
-  (fixture) => fixture.expect.outcome === 'render' && wordRefusal(fixture.document) === undefined,
-)
+const FIXTURES: readonly Fixture[] = [
+  ...ALL_FIXTURES,
+  ...SVG_FIXTURES,
+  ...KEEP_WITH_FIXTURES,
+  ...FIRST_PAGE_FIXTURES,
+  ...SHIFTED_FIXTURES,
+  ...CODE_FIXTURES,
+].filter((fixture) => fixture.expect.outcome === 'render' && wordRefusal(fixture.document) === undefined)
 
 const BOTH: readonly (readonly [string, ResolvedDocument])[] = [
   ...STARTERS.map((starter) => [`the ${starter.id} starter`, resolved(starter)] as const).filter(([, document]) => wordRefusal(document) === undefined),
@@ -127,7 +145,8 @@ describe('what a document leaves to an engine', () => {
   // A suite that compared nothing would hold nothing: the starters that export and the fixtures both write are all here.
   test('is compared on every starter and fixture both engines write', () => {
     expect(BOTH.length).toBeGreaterThan(20)
-    expect(BOTH.filter(([name]) => name.endsWith('starter'))).toHaveLength(6)
+    // The six of record 0068 and the euro invoice, which is paid by a code (0074).
+    expect(BOTH.filter(([name]) => name.endsWith('starter'))).toHaveLength(7)
   })
 
   // The sizes and the bold no style states are the renderer's constants, typed again in look.ts: one changed alone would print a report's
@@ -178,6 +197,137 @@ describe('what a document leaves to an engine', () => {
     },
     TIMEOUT,
   )
+})
+
+describe('a code in both engines', () => {
+  /** Every code among `blocks`, inside every container, in document order. */
+  const codesOf = (blocks: readonly Block[]): (QrCode | EpcQrCode)[] =>
+    blocks.flatMap((block): (QrCode | EpcQrCode)[] => {
+      if (block.kind === 'qrCode' || block.kind === 'epcQrCode') return [block]
+      if (block.kind === 'columns') return block.columns.flatMap((slot) => codesOf(slot.blocks))
+      return 'blocks' in block ? codesOf(block.blocks) : []
+    })
+
+  /** What a scanner reads of a code, as one line: its text, its level and its version. */
+  const said = (code: { readonly text: string; readonly ecLevel: string; readonly version: number }): string => `${code.ecLevel} ${code.version} ${code.text}`
+
+  /**
+   * The documents with a code that both engines draw: every code fixture
+   * of the corpus, the euro invoice, and its Austrian sample, whose code
+   * stands in the PSA's frame. Without their page regions, which a PDF
+   * prints on every page; the regions' codes are the code fixtures' own
+   * case below.
+   */
+  const CODED: readonly (readonly [string, ResolvedDocument])[] = [
+    ...BOTH.filter(([, document]) => codesOf(document.body).length > 0),
+    ['the euro invoice from Austria', resolved(EURO_INVOICE_AT)] as const,
+  ]
+
+  // A suite that compared no code would hold none: the fixtures of codes and the starter a code pays.
+  test('is compared on every code fixture and on the starters a code pays', () => {
+    expect(CODED.map(([name]) => name)).toEqual([
+      'the euro-invoice starter',
+      ...CODE_FIXTURES.filter((fixture) => codesOf(fixture.document.body).length > 0).map((fixture) => `the ${fixture.id} fixture`),
+      'the euro invoice from Austria',
+    ])
+    expect(CODED.length).toBeGreaterThan(8)
+  })
+
+  // The symbol is decided once, below both engines, and each draws it its own way: vectors on a page, pixels in a picture. Read back by
+  // ZXing from each, a code says the same text in the same bytes at the same level and version, stands in a square of the same size --
+  // the PDF's is the white it paints under the code, the file's the picture's extent -- and has modules of the same size. A writer
+  // that drew another symbol, or the same at another size, would print a report whose Word file pays another account than its PDF.
+  test.each(CODED)(
+    "prints %s with the codes the PDF prints, in squares of the PDF's size",
+    async (_name, document) => {
+      const body = bodyAlone(document)
+      const bytes = await renderPdf(body, { maxPages: 20 })
+      const pdf = await readPdf(bytes)
+      const drawn = (await Promise.all(pdf.pages.map(async (page) => (await readCodes(bytes, page.number)).map((code) => ({ code, page }))))).flat()
+      const file = await readDocxCodes(written(body))
+      const blocks = codesOf(body.body)
+      expect(file).toHaveLength(blocks.length)
+      // A code of no text is a symbol of no data, which a scanner reads in neither. Every other is read in both, in the document's order:
+      // down the page in the PDF, block by block in the file.
+      const stated = blocks.flatMap((block, index) => ((block.kind === 'qrCode' ? block.text : block.payload) === '' ? [] : [{ block, written: file[index]! }]))
+      expect(stated.map(({ written: each }) => each.read && said(each.read))).toEqual(drawn.map(({ code }) => said(code)))
+      stated.forEach(({ block, written: each }, index) => {
+        const { code, page } = drawn[index]!
+        expect(each.read!.bytes).toEqual(code.bytes)
+        // The white the PDF paints under the code, exactly its square: the smallest white square around where the scanner found the symbol.
+        const squares = page.paths.filter(
+          (path) =>
+            path.fill === '#ffffff' &&
+            Math.abs(path.width - path.height) < 0.01 &&
+            path.x <= code.x &&
+            path.top <= code.top &&
+            path.x + path.width >= code.x + code.width,
+        )
+        const side = Math.min(...squares.map((path) => path.width))
+        expect(side).toBeCloseTo(block.size, 2)
+        const { modules } = each
+        if (block.kind === 'epcQrCode' && block.caption !== undefined) {
+          // In Austria's frame the picture is the symbol and its distance from the frame, at the module the PDF draws -- the symbol's side
+          // over its modules, within what a scanner's corners allow -- and the frame's line, the picture and the caption's band are the square.
+          expect(Math.abs(each.module - code.width / modules)).toBeLessThan(0.02)
+          expect(each.module * (modules + 8.5) + 7).toBeCloseTo(side, 2)
+        } else {
+          expect(each.picture.width).toBeCloseTo(side, 2)
+          expect(each.picture.height).toBeCloseTo(side, 2)
+          expect(each.module).toBeCloseTo(side / (modules + 8), 3)
+        }
+      })
+    },
+    TIMEOUT,
+  )
+
+  // A code in a page region is drawn on every page of the PDF, and written once into the region's part of the file: each of the fixture's
+  // three regions' codes says in the file what it says on the page, the page footer's on every page and page 1's own header's on page 1 alone.
+  test(
+    "prints the codes of the page regions the PDF prints: the footer's on every page, page 1's own on page 1",
+    async () => {
+      const { document, maxPages } = CODE_FIXTURES.find((fixture) => fixture.id === 'qr-code-regions')!
+      const bytes = await renderPdf(document, { maxPages })
+      const pages = (await readPdf(bytes)).pages.length
+      expect(pages).toBeGreaterThan(1)
+      const file = await readDocxCodes(written(document))
+      const [header, first, footer] = (['header', 'firstHeader', 'footer'] as const).map((region) => said(file.find((code) => code.region === region)!.read!))
+      for (let page = 1; page <= pages; page++) {
+        const drawn = (await readCodes(bytes, page)).map(said)
+        expect(drawn.sort()).toEqual([page === 1 ? first : header, footer].sort())
+      }
+    },
+    TIMEOUT,
+  )
+
+  // What refuses a code is one rule, asked by both: a code of the corpus's malformed documents is refused by both in the very same words,
+  // where every other document of that list is held to the same code and subject alone. An engine that came to decide a code for itself
+  // again would say it otherwise.
+  test('refuses a code in the words the PDF refuses it in', async () => {
+    const codes = MALFORMED.filter((each) => /(^|-)qr-code-/.test(each.id))
+    expect(codes.length).toBeGreaterThan(15)
+    for (const { id, document } of codes) {
+      const pdf = await renderPdf(document, { maxPages: 5 }).then(
+        () => 'drawn',
+        (error: unknown) => (error instanceof RenderRefusal ? error.message : 'failed'),
+      )
+      expect(refusalOf(document).message, id).toBe(pdf)
+    }
+  })
+
+  // The one refusal of a code each engine makes for itself: taller than a page. The PDF judges it against the body between its regions
+  // and the writer against the printable area, each in its own words, and both by the same code and for the same code.
+  test('refuses a code taller than a page as the PDF does, by its code and its id', async () => {
+    const document = documentOf([{ kind: 'qrCode', id: 'tall-code', text: 'A', size: 500, errorCorrection: 'M' }])
+    const landscape = { ...document, page: { ...document.page, orientation: 'landscape' as const } }
+    const pdf = await renderPdf(landscape, { maxPages: 5 }).then(
+      () => undefined,
+      (error: unknown) => (error instanceof RenderRefusal ? { code: error.code, subject: error.subject } : undefined),
+    )
+    expect(pdf).toEqual({ code: 'content-too-large', subject: 'tall-code' })
+    const word = refusalOf(landscape)
+    expect({ code: word.code, subject: word.subject }).toEqual(pdf)
+  })
 })
 
 describe('the lines a text with line endings prints', () => {

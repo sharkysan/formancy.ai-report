@@ -1,3 +1,5 @@
+import { qrSymbol, type QrSymbol } from '@formancy/report-runtime'
+import type { Content } from 'pdfmake/interfaces.js'
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest'
 import { readCodes, symbolOf } from './codes.js'
 import { pdfmakePdf } from './testing/pdfmake.js'
@@ -7,8 +9,30 @@ import { pdfmakePdf } from './testing/pdfmake.js'
  * the page drawn by PDF.js and decoded by ZXing. The codes here are
  * pdfmake's own `qr` nodes, which draw a symbol with no quiet zone at
  * exactly where they are put: a reader that is right about them is right
- * about the page, not about one engine's way of drawing a code.
+ * about the page, not about one engine's way of drawing a code. A symbol
+ * no engine draws -- mirrored, turned, light on dark -- is drawn here as
+ * rectangles, from the symbol the runtime's rule gives.
  */
+
+const SYMBOL = qrSymbol({ kind: 'qrCode', id: 'code', text: 'INV-2026-0042', size: 100, errorCorrection: 'Q' }, 1000)
+
+/** `symbol` at 100 points from the page's top and left, 4 points a module: `ink` on a square of `paper` four modules larger on every side. */
+function drawn(symbol: QrSymbol, ink = 'black', paper = 'white'): Content {
+  const side = (symbol.modules.length + 8) * 4
+  const modules = symbol.modules.flatMap((row, r) =>
+    row.flatMap((dark, c) => (dark ? [{ type: 'rect' as const, x: 16 + c * 4, y: 16 + r * 4, w: 4, h: 4, color: ink }] : [])),
+  )
+  return { canvas: [{ type: 'rect', x: 0, y: 0, w: side, h: side, color: paper }, ...modules], absolutePosition: { x: 84, y: 84 } }
+}
+
+const turned = (symbol: QrSymbol, from: (row: number, column: number, last: number) => readonly [number, number]): QrSymbol => ({
+  modules: symbol.modules.map((cells, row) =>
+    cells.map((_, column) => {
+      const [r, c] = from(row, column, symbol.modules.length - 1)
+      return symbol.modules[r]![c]!
+    }),
+  ),
+})
 
 // The decoder's own way to its WebAssembly is an address on a CDN. A test
 // support module that fetched it would make every run depend on the
@@ -100,6 +124,23 @@ describe('readCodes', () => {
     ])
     // The tops ZXing gives do differ, and the wrong way: this is the case the rounding is for.
     expect(codes[0]!.top).toBeGreaterThan(codes[1]!.top)
+  })
+
+  // ZXing reads a symbol mirrored, turned, or with dark and light exchanged, and says so; a scanner that tries none of them reads nothing
+  // in it. A renderer that drew a symbol's rows as its columns would print codes whose text, level and version are every one its
+  // document's, and a reader that kept ZXing's word to itself would prove it right. As it was encoded, the same drawing reads.
+  test('reads a symbol drawn as it was encoded, and refuses one drawn mirrored, turned or light on dark', async () => {
+    const page = (symbol: QrSymbol, ink?: string, paper?: string): Promise<Uint8Array> => pdfmakePdf({ pageSize: 'A4', content: [drawn(symbol, ink, paper)] })
+    expect((await readCodes(await page(SYMBOL), 1)).map(({ text, ecLevel, version }) => ({ text, ecLevel, version }))).toEqual([
+      { text: 'INV-2026-0042', ecLevel: 'Q', version: 1 },
+    ])
+    const mirrored = turned(SYMBOL, (row, column, last) => [row, last - column])
+    await expect(readCodes(await page(mirrored), 1)).rejects.toThrow('ZXing reads the code only mirrored: ')
+    const transposed = turned(SYMBOL, (row, column) => [column, row])
+    await expect(readCodes(await page(transposed), 1)).rejects.toThrow('ZXing reads the code only mirrored: ')
+    const quarter = turned(SYMBOL, (row, column, last) => [last - column, row])
+    await expect(readCodes(await page(quarter), 1)).rejects.toThrow('ZXing reads the code only turned by 90 degrees: ')
+    await expect(readCodes(await page(SYMBOL, 'white', 'black'), 1)).rejects.toThrow('ZXing reads the code only with dark and light exchanged: ')
   })
 
   // ZXing gives a code's level and version in a JSON string of details,

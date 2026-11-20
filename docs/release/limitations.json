@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:b058f4ed63f8752f5c26d36a581d12d23b852ccf9e628c7cb501c6ed4a7edae7",
+      "reviewed": "sha256:cc6dfcbde9da2795a330d5f0aa9ed9fe8e4c6806ad17d1f107f27f4c6306f5ff",
       "limitations": [
         {
           "area": "testing",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:0647ca6ffb6941b2c03d71559d11289d1c5363add3e8e2e03ec91fb18baaab86",
+      "reviewed": "sha256:d8a6f7b169a86e153cdcc429ecd766e22db0b2b338d310a797e1215ca622c20f",
       "limitations": [
         {
           "area": "runtime",
@@ -428,7 +428,7 @@
       ]
     },
     "0020": {
-      "reviewed": "sha256:cc67bc877239b330fd6aa213bf1a76b4334ce3711f7b11b7992f528f48c16bda",
+      "reviewed": "sha256:562126049db8723e245ed08f8dacaddba0d4c197b50ebf3e64da1162f34c300d",
       "limitations": [
         {
           "area": "format",
@@ -467,12 +467,13 @@
         },
         {
           "area": "release",
-          "says": "The renderer depends on uqr 0.1.3 at an exact version, and on that version's behaviour, such as the error it throws for text too long, so a fix to the QR encoder reaches an installation only through a release of this module whose tests ran on it.",
-          "heldBy": "packages/report-render-pdf/src/qr.test.ts"
+          "says": "The runtime depends on uqr 0.1.3 at an exact version, since 0074, where the renderer did before, and on that version’s behaviour, such as the error it throws for text too long, so a fix to the QR encoder reaches an installation only through a release of this module whose tests ran on it.",
+          "heldBy": "packages/report-runtime/src/qr-symbol.test.ts"
         },
         {
           "area": "testing",
-          "says": "That a QR code scans is shown by ZXing reading the page as PDF.js draws it, never by a phone's camera or a printed page."
+          "says": "That a QR code scans is shown by ZXing reading the page as PDF.js draws it, as it is drawn and, since 0074, never mirrored, turned or light on dark, which ZXing reads and the corpus’s reader refuses; never by a phone’s camera or a printed page.",
+          "heldBy": "packages/report-corpus/src/codes.test.ts"
         }
       ]
     },
@@ -499,7 +500,7 @@
       ]
     },
     "0022": {
-      "reviewed": "sha256:5bf3e4e77f1e23f6a5ae838186d966c7488e0ffbec3c931be4d129cd3301687a",
+      "reviewed": "sha256:2a2ea126c86620852349612230ae5cfb6d44e268d12a30786ae5984da4542bbb",
       "limitations": [
         {
           "area": "format",
@@ -630,7 +631,7 @@
       ]
     },
     "0025": {
-      "reviewed": "sha256:262b761ce3f40ad512988140ac8e0fe8923b634f12885184f3b5c607a51b4886",
+      "reviewed": "sha256:ab0ab36d75e2998df9191546ee1a4d20f3bd6850c7009186d24642d1cd40e21f",
       "limitations": [
         {
           "area": "format",
@@ -3125,11 +3126,11 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:91bb7de23da217f50ef929302cd2cdda07efa981ac91ab59110f8d16de1df236",
+      "reviewed": "sha256:ab882286bde715fcf4d5cbef7e24b122029003ab1e8ec4fe29743c1eb7d5cbf4",
       "limitations": [
         {
           "area": "rendering",
-          "says": "A report that is paid by a QR-bill or an EPC QR code, is an e-invoice of either kind, draws a chart or holds a QR code is refused as a Word file, in a final render and in a preview, and so is any preview the runtime labels, so a host whose reports carry a code or a chart cannot export them and prints them as PDFs.",
+          "says": "A report that is paid by a QR-bill, is an e-invoice of either kind or draws a chart is refused as a Word file, in a final render and in a preview, and so is any preview the runtime labels, so a host whose reports carry a QR-bill, an e-invoice or a chart cannot export them and prints them as PDFs; a QR code and an EPC QR code are written since 0074.",
           "heldBy": "packages/report-render-docx/src/starters.test.ts"
         },
         {
@@ -3177,7 +3178,7 @@
         },
         {
           "area": "rendering",
-          "says": "The Word writer carries two compression libraries, fflate to zip the file and pako to inflate a PNG’s image data as zlib does, so a page that bundles it loads both with it: 79.4 kB, 28.1 kB gzipped, as a chunk of the Studio’s build on 18 November 2026, where the writer with fflate alone was 50.3 kB.",
+          "says": "The Word writer carries two compression libraries, fflate to zip the file and pako to inflate a PNG’s image data as zlib does, so a page that bundles it loads both with it: 83.3 kB, 29.5 kB gzipped, as a chunk of the Studio’s build on 18 November 2026 once it drew codes (0074), where it was 79.4 kB before and the writer with fflate alone 50.3 kB.",
           "heldBy": "apps/studio/src/preview/chunks.test.ts"
         },
         {
@@ -3212,6 +3213,64 @@
           "area": "release",
           "says": "The getting-started guide writes no Word file, since its quotation draws a chart, which the writer refuses; the package’s README carries the example, held to the lines the install gate runs.",
           "heldBy": "scripts/readme-example.test.mjs"
+        }
+      ]
+    },
+    "0074": {
+      "reviewed": "sha256:af5c66ae990be813c0f7371edf6317aab6a7396dfe3f0272e6e5277c9a140be8",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A QR code and an EPC QR code are pictures in a Word file, a PNG of whole pixels a module, 600 pixels to the inch at the code’s size or as many pixels a module as 2,400 a side hold, where the PDF draws vectors: enlarged, the file’s code shows its pixels, a code wider than 266 to 288 points, by its symbol’s version, is drawn under 600 to the inch, the largest symbol at 269 where it is 595 points wide, and a person can stretch the picture to modules finer than the 0.4 mm the rule held them to, with nothing in the file refusing it.",
+          "heldBy": "packages/report-render-docx/src/codes.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The Word files with a code were opened in Word once, by hand, on 20 November 2026, the euro invoice from Austria after its frame was written as the variant approved there; no test opens one: that Word draws the picture at its size and unsmoothed, that it leaves the picture as it is when a person saves the file, Microsoft giving 220 pixels to the inch as its default picture resolution, and that a phone reads the code from the page Word prints, is held by nothing; ZXing reads the picture’s own pixels."
+        },
+        {
+          "area": "testing",
+          "says": "The caption of Austria’s frame is turned by `w:textDirection`, an element the Word writer did not write before: it stands where the corpus’s vocabulary, transcribed from ECMA-376’s schema, puts it, and no file with it was validated against a schema, by hand or in CI.",
+          "heldBy": "packages/report-corpus/src/docx/read.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "An EPC QR code in Austria’s frame is a table in a Word file, so its frame’s corners are square and its right line whole with the caption beside it, outside the frame, where the PSA’s figure rounds the corners by two modules and the PDF breaks the line around the caption; the frame’s row is at least its height, so Word grows it to what its cells hold and the code then stands taller than its square by as much, which nothing measures; its line is a half, five eighths or three quarters of a point where the PDF draws half a module exactly, and its picture stands within 0.075 pt of that far from the left, as many twentieths of a point as its cell leaves it; and its caption is named in Arial and embedded in no face, on a line of exactly 7 pt, so a reader without the family sees another, which may be longer than the symbol is tall, and where Word puts the words on that line nobody has seen.",
+          "heldBy": "packages/report-render-docx/src/codes.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A Word file holds at most 64 QR codes and EPC QR codes, each counted as often as it stands, and symbols of at most 501,264 modules between them, what sixteen of the largest symbol hold: a report past either is refused as a Word file and prints as a PDF, which bounds neither; a document of codes alone at those bounds was written in up to 1.6 seconds on an Intel i9-10900K under Node 24.21.0 on 18 November 2026, on top of what the rest of a file costs.",
+          "heldBy": "packages/report-render-docx/src/codes.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The runtime depends on uqr 0.1.3, which every package that depends on the runtime installs, the form bridge and the data provider among them, though they draw no code; the PDF renderer no longer declares it, and reaches it through the runtime.",
+          "heldBy": "packages/report-runtime/src/qr-symbol.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Each engine asks the runtime for a code’s symbol, so a host that prints a PDF and writes a Word file of one document encodes each of its codes twice, some 28 ms each time for the largest symbol; and resolving a report asks for none, so a code too long for its square is refused where it is drawn or written, never where the report is resolved.",
+          "heldBy": "packages/report-render-docx/src/codes-once.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A code in a Word file is no text and carries no description of its own: search, copy and a screen reader find nothing in its picture, as they find nothing in the PDF’s code."
+        },
+        {
+          "area": "release",
+          "says": "One refusal’s sentence changed: an EPC QR code with a caption no engine knows is refused as one a report does not know, where the PDF renderer said that the renderer did not know it; its code, its subject and every other refusal of a code are as they were.",
+          "heldBy": "packages/report-runtime/src/epc-symbol.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The corpus’s `readCodes` throws on a code ZXing reads only mirrored, turned or with dark and light exchanged, in a PDF’s page as in a Word file’s picture, so a test cannot read such a code to say something else of it, and a symbol read at a slant of half a degree or more would be refused as turned; a symbol’s mirror is told by ZXing alone, and a symbol in a larger square by the corpus’s grid alone.",
+          "heldBy": "packages/report-corpus/src/codes.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The corpus’s `verifyDocx` returns a promise, since ZXing reads a code’s picture, so a caller that does not wait for it holds a file to nothing; a derived expectation takes no key from a row whose first cell the report’s own words print again, and holds that row by its table alone; it takes the caption of a framed EPC QR code in a page region for a line of that region, so a report that prints the caption in its page footer and in its body cannot be held by the corpus’s checks of a PDF, which tell a page’s regions by the text of their lines; and the corpus’s check walks a code’s nodes by its own reading of the record’s table, so a row both it and the writer misread passes.",
+          "heldBy": "packages/report-corpus/src/check-docx-codes.test.ts"
         }
       ]
     }

@@ -24,7 +24,8 @@ import type { PreviewRequest } from './pipeline.js'
  *
  * The Word file a printed render hands on (0068) is read back the same
  * way: by the corpus's `readDocx`, which is not its writer, and held by
- * `verifyDocx` to the document this suite resolves for itself.
+ * `verifyDocx` to the document this suite resolves for itself, a code in
+ * it by what ZXing reads in its picture (0074).
  */
 
 const { starters, images } = decodeStarters(encodeStarters(STARTERS, STARTER_IMAGES))
@@ -37,13 +38,14 @@ function request(id: string, overrides: Partial<PreviewRequest> = {}): PreviewRe
 }
 
 /**
- * What each starter's Word file is, as record 0068's table says it:
- * written, or refused by the writer, a preview and a final render each
- * for the part of the document it names. A QR-bill's slip and an EPC QR
- * code belong to the PDF; an e-invoice's final render is its PDF/A-3b or
- * the copy of its XML, and its preview is labelled in its page header as
- * no invoice; and a chart is laid out for the PDF alone, so the sales
- * report is refused for the first of its two, by its id.
+ * What each starter's Word file is, as record 0068's table says it and
+ * record 0074 changed it: written, or refused by the writer, a preview
+ * and a final render each for the part of the document it names. A
+ * QR-bill's slip belongs to the PDF; an e-invoice's final render is its
+ * PDF/A-3b or the copy of its XML, and its preview is labelled in its
+ * page header as no invoice; and a chart is laid out for the PDF alone,
+ * so the sales report is refused for the first of its two, by its id.
+ * The euro invoice, which an EPC QR code pays, is written since 0074.
  */
 const WORD: Readonly<Record<string, 'written' | { readonly preview: string; readonly final: string }>> = {
   'service-inspection': 'written',
@@ -52,10 +54,10 @@ const WORD: Readonly<Record<string, 'written' | { readonly preview: string; read
   'site-visit': 'written',
   'order-confirmation': 'written',
   'product-data-sheet': 'written',
+  'euro-invoice': 'written',
   blank: 'written',
   invoice: { preview: 'paymentPart', final: 'paymentPart' },
   'payment-reminder': { preview: 'paymentPart', final: 'paymentPart' },
-  'euro-invoice': { preview: 'payment-code', final: 'payment-code' },
   'e-invoice': { preview: 'pageHeader', final: 'eInvoice' },
   'e-invoice-xrechnung': { preview: 'pageHeader', final: 'eInvoice' },
   'sales-report': { preview: 'by-category', final: 'by-category' },
@@ -298,7 +300,7 @@ describe('the preview pipeline', () => {
         expect(wordRefusal(document)).toBeUndefined()
         // Its pages are Word's: the page counts a fixture states are read by no check of a Word file.
         const fixture = { id, title: id, document, maxPages: PREVIEW_PAGE_LIMIT, expect: expectation(document, { maxPagesExpected: PREVIEW_PAGE_LIMIT }) }
-        expect(verifyDocx(fixture, readDocx(outcome.word.docx))).toEqual([])
+        expect(await verifyDocx(fixture, readDocx(outcome.word.docx))).toEqual([])
       } else {
         const refusal = { code: 'unsupported', subject: expected[mode] }
         expect(outcome.word).toEqual({ kind: 'refused', refusal: { ...refusal, message: expect.stringMatching(/print (the report|the preview) as a PDF$/) } })

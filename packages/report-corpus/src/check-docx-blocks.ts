@@ -1,4 +1,5 @@
 import { checkSvg, imageHeader, readFont, type ResolvedFonts } from '@formancy/report-runtime'
+import { captionedCode, plainCode, type FoundCodes } from './check-docx-codes.js'
 import type { Block, Columns, Image, Inline, Paragraph, Rectangle, Section, Table, TextStyle } from './document.js'
 import type { DocxBlock, DocxBorder, DocxParagraph, DocxRunProps, DocxTable } from './docx/model.js'
 
@@ -11,7 +12,9 @@ import type { DocxBlock, DocxBorder, DocxParagraph, DocxRunProps, DocxTable } fr
  * a table's grid, rows, cells and marks, a picture's bytes, extent, place
  * and crop, a rule's weight and colour, a rectangle's size and paints, a
  * spacer's height, a section's frame, a columns block's widths, a page
- * break. What the document leaves to an engine -- a size no style states,
+ * break, and a code's picture and, where it has them, its frame and
+ * caption (`check-docx-codes.ts`, 0074). What the document leaves to an
+ * engine -- a size no style states,
  * a table's rules and padding, the space around a rule -- is not the
  * corpus's to know, and is held to the PDF where the writer's tests hold
  * it (`against-pdf.test.ts`).
@@ -34,6 +37,8 @@ interface Walk {
   readonly problems: string[]
   /** Every paragraph met, and whether it must be kept with the next and its lines together. */
   readonly kept: Map<DocxParagraph, { next: boolean; lines: boolean }>
+  /** The codes met: each whose picture is a symbol's, and every paragraph one is written as. */
+  readonly codes: FoundCodes
 }
 
 /** A length in points read back from Word's units is the document's to within half of the coarsest unit, a twentieth of a point. */
@@ -92,9 +97,19 @@ function emptyLine(node: DocxBlock | undefined, height?: number): node is DocxPa
   )
 }
 
-/** `blocks` held to `nodes`, the whole of what the container holds; every difference a line of `problems`. */
-export function verifyContainer(blocks: readonly Block[], nodes: readonly DocxBlock[], container: Container, fonts: ResolvedFonts | undefined): string[] {
-  const walk: Walk = { fonts, problems: [], kept: new Map() }
+/**
+ * `blocks` held to `nodes`, the whole of what the container holds; every
+ * difference a line of `problems`. Each code met is added to `codes`: what
+ * a scanner reads in its picture is the caller's to wait for.
+ */
+export function verifyContainer(
+  blocks: readonly Block[],
+  nodes: readonly DocxBlock[],
+  container: Container,
+  fonts: ResolvedFonts | undefined,
+  codes: FoundCodes,
+): string[] {
+  const walk: Walk = { fonts, problems: [], kept: new Map(), codes }
   matchContainer(blocks, nodes, container, walk)
   for (const paragraph of paragraphsOf(nodes)) {
     const want = walk.kept.get(paragraph) ?? { next: false, lines: false }
@@ -198,6 +213,23 @@ function matchBlock(block: Block, cursor: Cursor, at: string, width: number, wal
     case 'image': {
       const node = take(cursor, 'paragraph', at, walk)
       if (node !== undefined) checkImage(block, node, say)
+      return
+    }
+    case 'qrCode':
+    case 'epcQrCode': {
+      const from = cursor.at
+      if (block.kind === 'qrCode' || block.caption === undefined) {
+        const node = take(cursor, 'paragraph', at, walk)
+        if (node !== undefined) walk.codes.pending.push(...plainCode(block, node, at, say))
+      } else {
+        // Austria's frame: the white above it, which is kept with it, the frame, and the white under it.
+        const [lead, frame, trail] = [take(cursor, 'paragraph', at, walk), take(cursor, 'table', at, walk), take(cursor, 'paragraph', at, walk)]
+        if (lead !== undefined && frame !== undefined && trail !== undefined) {
+          keep(walk, [lead], { next: true })
+          walk.codes.pending.push(...captionedCode(block, [lead, frame, trail], at, say))
+        }
+      }
+      for (const paragraph of paragraphsOf(cursor.nodes.slice(from, cursor.at))) walk.codes.paragraphs.add(paragraph)
       return
     }
     case 'rule': {

@@ -1,6 +1,7 @@
-import type { Block, Columns, Image, ImageAsset, Paragraph, Rectangle, Section } from '@formancy/report-runtime'
+import type { Block, Columns, Image, ImageAsset, Paragraph, QrSymbol, Rectangle, Section } from '@formancy/report-runtime'
 import { drawnSize, type Picture } from './assets.js'
 import { framed } from './check.js'
+import { codeNodes, type Code } from './codes.js'
 import type { DocxFonts } from './fonts.js'
 import { BLACK, DEFAULT_SIZE, OUTLINE, RULE_GAP } from './look.js'
 import {
@@ -41,6 +42,9 @@ export interface Build {
   /** The relationship, in the part being built, of the part that holds `asset`'s bytes, and of the fallback an SVG is shown as where no SVG is drawn. */
   readonly embed: (asset: ImageAsset, picture: Picture) => RelationshipId
   readonly fallback: () => RelationshipId
+  /** Every code's symbol as the checks were handed it, and the relationship of the part its picture is, drawn at so many pixels a module. */
+  readonly codes: ReadonlyMap<Code, QrSymbol>
+  readonly code: (code: Code, symbol: QrSymbol, pixels: number) => RelationshipId
   /** The file's pictures so far: each takes the next number. */
   readonly drawn: { pictures: number }
 }
@@ -94,6 +98,8 @@ function prints(block: Block): boolean {
     case 'table':
       return block.header.some(inked) || block.rows.some((row) => row.cells.some(inked)) || (printsEmptyText(block) && inked(block.emptyText))
     case 'image':
+    case 'qrCode':
+    case 'epcQrCode':
       return true
     case 'keepTogether':
     case 'section':
@@ -143,6 +149,11 @@ function blockNodes(block: Block, out: Out, build: Build, width: number): void {
       return push(out, tableNode(block, build.fonts, width))
     case 'image':
       return push(out, imageNode(block, build))
+    case 'qrCode':
+    case 'epcQrCode':
+      // check.ts asks for every code's symbol before anything is built.
+      for (const node of codeNodes(block, build.codes.get(block)!, { embed: build.code, next: () => (build.drawn.pictures += 1) })) push(out, node)
+      return
     case 'rule':
       // Its line under an exact line as tall as the space above it, and the space below it after: the PDF's rule, gap for gap.
       return push(out, { ...emptyLine(RULE_GAP), after: RULE_GAP, rule: { weight: block.thickness, color: block.color ?? BLACK } })
@@ -174,7 +185,7 @@ function blockNodes(block: Block, out: Out, build: Build, width: number): void {
       // One without a frame was replaced by its blocks before this.
       return push(out, sectionNode(block, build, width))
     default:
-      // A chart or a code: check.ts refuses one before anything is built.
+      // A chart: check.ts refuses one before anything is built.
       throw new Error(`a ${block.kind} block reached the writer`)
   }
 }

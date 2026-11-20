@@ -83,13 +83,16 @@ describe('the paragraphs and the characters of a file', () => {
   }, 120_000)
 
   const DOT: ImageAsset = { id: 'dot', mediaType: 'image/png', bytes: encodePng(1, 1, () => [0, 0, 0]) }
+  /** An EPC QR code in Austria's frame, whose caption is fifteen characters of the file's text in a run of its own. */
+  const FRAMED: Block = { kind: 'epcQrCode', id: 'pay', payload: 'BCD', size: 85.04, caption: 'zahlenMitCode' }
 
   // Each of these is written as a paragraph of its own, or as a table's cell that ends with one, and none of them is text: a kind whose
   // count were dropped would let a report of nothing else -- a hundred thousand rules, or boxes -- past the bound that the cells are held
   // to. A rectangle and a section's frame are a table each around their paragraph, with its own properties, its grid, its row and its
   // cell's borders and fill, twice a cell of a table in the XML it is written in: counted as one, 100,000 filled rectangles were written
-  // in 3.3 seconds and 1,250 MB, where a table of as many cells took 724 to 993 MB. One of each after spacers: at the bound written,
-  // and one past it refused by the block that crossed it.
+  // in 3.3 seconds and 1,250 MB, where a table of as many cells took 724 to 993 MB. A code's picture is a paragraph, and one in
+  // Austria's frame four: the white above the frame, its picture's, its caption's and the white under it (0074). One of each after
+  // spacers: at the bound written, and one past it refused by the block that crossed it.
   test.each<[string, Block, number, (at: string) => string]>([
     ['a picture', { kind: 'image', asset: DOT, width: 10, height: 10, fit: 'contain' }, 1, () => DOT.id],
     ['a rule', { kind: 'rule', thickness: 1 }, 1, (at) => at],
@@ -97,6 +100,8 @@ describe('the paragraphs and the characters of a file', () => {
     ['a column', { kind: 'columns', columns: [{ width: 'fill', blocks: [] }] }, 1, (at) => at],
     ['a rectangle', { kind: 'rectangle', width: 10, height: 10 }, 2, (at) => at],
     ['a framed section', { kind: 'section', padding: 2, blocks: [] }, 2, (at) => at],
+    ['a QR code', { kind: 'qrCode', id: 'code', text: 'A', size: 40, errorCorrection: 'M' }, 1, () => 'code'],
+    ["an EPC QR code in Austria's frame", FRAMED, 4, () => 'pay'],
   ])(
     '%s is counted with the paragraphs: at the bound written, and past it refused by the block that crossed it',
     (_name, block, counted, subject) => {
@@ -113,6 +118,16 @@ describe('the paragraphs and the characters of a file', () => {
     expect(refusal).toMatchObject({ code: 'content-too-large', subject: 'body[1]' })
     expect(refusal.message).toMatch(/more than 4000000 characters long/)
   })
+
+  // "Zahlen mit Code" is text of the file though no report wrote it, fifteen characters in one run: uncounted, a report at the bound
+  // of its characters or its runs would be written past it by as many framed codes as it holds.
+  test("a framed code's caption is counted with the characters and with the runs", () => {
+    expect(() => renderDocx(documentOf([paragraph('a'.repeat(MAX_DOCX_CHARACTERS - 15)), FRAMED]))).not.toThrow()
+    expect(refusalOf(documentOf([paragraph('a'.repeat(MAX_DOCX_CHARACTERS - 14)), FRAMED]))).toMatchObject({ code: 'content-too-large', subject: 'pay' })
+    const runs = (length: number): Paragraph => ({ kind: 'paragraph', runs: Array.from({ length }, () => ({ text: 'a' })) })
+    expect(() => renderDocx(documentOf([runs(MAX_DOCX_RUNS - 1), FRAMED]))).not.toThrow()
+    expect(refusalOf(documentOf([runs(MAX_DOCX_RUNS), FRAMED]))).toMatchObject({ code: 'content-too-large', subject: 'pay' })
+  }, 120_000)
 
   // At the bound and not one short of it: applied with >= where it means >, the limit would refuse the text it promised to write.
   test('the characters at the bound in one paragraph are written', () => {

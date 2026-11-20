@@ -297,8 +297,9 @@ thread. The viewer keeps it with the PDF it was written beside, as the
 XML, so that Download Word gives the file of the render on the paper,
 under the starter's id. Where the writer refused, the link is not drawn
 and a note says why in the writer's own sentence, which is how a person
-learns that an invoice, a report paid by a code, one with a chart and a
-labelled preview have no Word file. A fault of the writer's, or a chunk
+learns that an invoice, a report paid by a QR-bill, one with a chart and
+a labelled preview have no Word file; a report with a QR code or an EPC
+QR code has one, the euro invoice among them (0074). A fault of the writer's, or a chunk
 that did not load, is the Word file's alone and leaves the PDF as it
 printed, which `word-fault.test.ts` and `word-chunk.test.ts` hold, a
 suite each; and the writer, with the two libraries it zips and inflates
@@ -407,7 +408,8 @@ resolveReport: each text read as a paragraph's in the report's scope
    ▼
 EpcQrCode: report-spec's epcPayload of the checked texts, held to EPC_MAX_BYTES
    ▼
-renderPdf: the payload encoded once by uqr, at level M and EPC_MAX_VERSION at most
+renderPdf: the payload encoded once, by the runtime's epcSymbol and uqr (0074),
+           at level M and EPC_MAX_VERSION at most
    ├─ past the EPC's bytes, or modules its square cannot print ─▶ content-too-large,
    │                                              naming the code, never its payload
    ├─ no caption: drawn as a QR code of its payload is, held to the same floor
@@ -1273,7 +1275,14 @@ checkDocument: before a byte is written, in this order                          
    │                                                                     content-too-large
    │  then one walk: the page header, page 1's own, the page footer and
    │  the body, each block in document order:
-   ├─ a chart, a QR code, an EPC QR code ──────────────────────────────▶ unsupported
+   ├─ a chart ─────────────────────────────────────────────────────────▶ unsupported
+   ├─ a QR code or an EPC QR code: past MAX_DOCX_CODES, before anything
+   │  of it is worked out ─────────────────────────────────────────────▶ content-too-large
+   │  its symbol, by the runtime's qrSymbol or epcSymbol, once: what
+   │  the PDF renderer refuses, in its words ──────────────────────────▶ unsupported,
+   │                                                                     content-too-large
+   │  past MAX_DOCX_CODE_MODULES, its symbol's modules with those of
+   │  the codes before it; taller than the printable area ─────────────▶ content-too-large
    ├─ a table or a page break in a framed section ─────────────────────▶ unsupported
    ├─ what no engine prints, by the PDF renderer's code and subject ───▶ unsupported,
    │                                                                     content-too-large
@@ -1306,11 +1315,16 @@ each region's blocks as paragraphs and tables, in points          nodes.ts, bloc
    │  them, each in one pass: a heading through to what it heads, a kept
    │  block but what ends it, the header row, a group header's kept
    │  rows, the row before a closing row
+   │  a code a picture's paragraph exactly its size; in Austria's frame
+   │  an empty line kept with a table of its picture, its cell bordered
+   │  around, and its caption beside it, the row at least the frame's
+   │  height, and an empty line under it                                      codes.ts
    ▼
 WordprocessingML, every element's children in ECMA-376's order; every
 string through text or attribute, markup a type of its own               wml.ts, xml.ts
    ▼
 the parts, their content types and relationships, named by the writer alone;
+a code's picture a PNG made of its symbol, whole pixels a module          code-png.ts
 zipped by fflate, every entry dated 1 January 1980                          package.ts
    ▼
 Uint8Array ── the same bytes for the same document
@@ -1322,9 +1336,12 @@ anything is built, so a file is written whole or not at all, and by where
 a thing stands, not by its kind: a face that is no font, as the fonts
 are read, the creation date and the title, what
 belongs to the PDF of the document itself, the page, then each region's
-blocks in document order -- a chart or a code where the walk meets it,
-after a block no engine prints that stands before it -- and the pictures'
-bytes last. The writer's `refusals.test.ts` holds that order on a
+blocks in document order -- a chart, or a code the rules refuse, where
+the walk meets it, after a block no engine prints that stands before it
+-- and the pictures' bytes last. A code's symbol is the runtime's, asked
+for once where the walk meets the code, and the picture written is of
+that symbol: what is refused and what is written are one decision, and
+the PDF's ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)). The writer's `refusals.test.ts` holds that order on a
 document wrong in every one of those places, put right a place at a time,
 and the corpus's `wordRefusal` derives from a document on its own what
 the writer must refuse of what belongs to the PDF. What belongs to the

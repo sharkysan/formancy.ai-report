@@ -10,6 +10,91 @@ later.
 
 ## Unreleased
 
+**A QR code and an EPC QR code are written into a Word file, and what
+refuses a code is decided once, below both engines**
+([0074](docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
+The Word writer refused every report with a code, since what a code is
+refused by was decided in the PDF renderer and a second writer would
+have decided it a second time. It was asked that a Word file hold what a
+report prints of its codes, its slip, its chart and its e-invoice; this
+is the first of four changes, and the codes.
+No PDF is meant to change, and none was seen to: on 18 November 2026
+the PDF of every starter, sample and fixture, 108 of them, was rendered
+on the build before and after and compared by its SHA-256, once, by
+hand, each the same. What holds it from here is what held the PDFs
+before: the renderer's suites of codes, not a line of them changed, the
+pictures' check, and the browser gate's drawings of each Download PDF.
+- **`@formancy/report-runtime` holds the rule.** `qrSymbol(code, width)`
+  and `epcSymbol(code, width)` give a code's symbol where it stands so
+  wide, or throw the `RenderRefusal` an engine refuses with, and
+  `swissSymbol(payload)` a QR-bill's; with them `QR_QUIET_ZONE`,
+  `QR_MIN_MODULE`, `QR_MAX_CHARACTERS`, `SWISS_QR_MAX_CHARACTERS`,
+  `qrSymbolVersion` and the type `QrSymbol`. They are the PDF renderer's
+  own code, moved line for line, with the two refusals of a code's
+  square. The resolved document is as it was, and resolving a report
+  calls none of them.
+- **`uqr` moves with it.** 0.1.3, MIT, at the same exact version, is now
+  a production dependency of `@formancy/report-runtime` and no longer of
+  `@formancy/report-render-pdf`: an installation that has the runtime has
+  the encoder, and one package pins it.
+- **One refusal's sentence changed.** An EPC QR code with a caption no
+  engine knows was refused as one "which the renderer does not know" and
+  is now one "which a report does not know", since the Word writer says
+  it too. Its code and its subject, and every other refusal of a code,
+  are word for word what they were.
+- **The Word writer draws both codes**, as a picture of the symbol the
+  PDF draws, in a paragraph of its own exactly the code's size: a PNG it
+  makes, black on white, whole pixels a module, its quiet zone inside it,
+  600 pixels to the inch at the code's size, or as many pixels a module
+  as 2,400 a side hold where the code is wider than 3.7 to 4 inches, by
+  its version, the same bytes for the same symbol in Node and in a
+  browser. An
+  EPC QR code in Austria's frame is a table of one row, at least the
+  frame's height: its picture in a cell the frame's line borders on each
+  side, and beside it, outside the line, "Zahlen mit Code", turned to
+  read from bottom to top. A code the PDF refuses is refused by the
+  writer in the same words.
+- **What is Word's, and not the PDF's.** A code is a raster, where the
+  PDF draws vectors. Austria's frame has square corners and a whole
+  right line with the caption beside it, outside the frame, where the
+  PDF rounds the corners by two modules and runs the line along the
+  words, broken around them; and the caption is named in Arial, the
+  PSA's own, where the PDF prints Liberation Sans.
+- **Austria's frame as Word showed it.** Written first as a table
+  bordered around the picture and the caption, its row of an exact
+  height, the sample from Austria opened in Word without its frame's
+  right line, at the table's edge, and with the white under its code
+  cut. The frame is now written as the variant of it approved in Word on
+  20 November 2026: the line around the picture's cell, the caption
+  beside it, and the row at least its height, so that Word grows the row
+  to what its cells hold. Every file with a code was then opened in
+  Word once, by hand, on 20 November 2026, and found fine; no test
+  opens one.
+- **Two bounds more**, exported: `MAX_DOCX_CODES`, 64 codes a file,
+  counted as often as a code stands, and
+  `MAX_DOCX_CODE_MODULES`, the modules their symbols may have between
+  them, what sixteen of the largest symbol hold. A report past either is
+  refused as a Word file, as `content-too-large`, and prints as a PDF.
+- **The euro invoice has a Word file**, and so have its samples from six
+  more countries and any report whose only reason for none was a code:
+  the Studio offers Download Word for them. A report paid by a QR-bill,
+  an e-invoice and a report with a chart are refused as before, each
+  until its own change.
+- **The test support reads a code from the file.** The corpus's
+  `verifyDocx` now returns a promise: it reads each code's picture back
+  with a PNG reader of its own and has ZXing decode it, as a PDF's code
+  is decoded from its page. `readDocxCodes` reads a file's codes for a
+  test, `CODE_FIXTURES` are the documents both engines draw, and
+  `MALFORMED` holds each way a code is refused. A derived expectation no
+  longer takes for a key a row's first cell that the report's own words
+  print again, and takes the caption of a framed EPC QR code in a page
+  region for a line of that region, where a PDF's checks read it as a
+  line of the body. And `readCodes` now refuses a code ZXing reads only
+  mirrored, turned or with dark and light exchanged, in a PDF's page as
+  in a Word file's picture: it handed such a code on as the code it
+  read, and a symbol drawn with its rows as its columns would have
+  passed every test of what it says.
+
 **A report is written as a Word file, beside its PDF, by a writer of its
 own**
 ([0068](docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).

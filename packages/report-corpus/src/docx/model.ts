@@ -85,6 +85,8 @@ export interface DocxCell {
   readonly borders: Sides<DocxBorder>
   /** Its fill, lower-case `#rrggbb`. */
   readonly shade?: string
+  /** Which way its text reads where it is turned: from bottom to top, each line to the right of the last, as an EPC QR code's caption reads (0074). */
+  readonly direction?: 'btLr'
   readonly blocks: readonly DocxBlock[]
 }
 

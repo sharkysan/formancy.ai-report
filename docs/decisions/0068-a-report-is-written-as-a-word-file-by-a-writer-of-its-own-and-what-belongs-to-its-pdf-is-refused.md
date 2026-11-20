@@ -1,6 +1,6 @@
 # 0068 — A report is written as a Word file by a writer of its own, which says what the resolved document says in Word's own pages, and refuses what belongs to its PDF
 
-- **Status:** accepted; numbered while 0067 was another branch's; extends [0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md), whose proof on the PDF an engine produced is a proof on the file a writer produced: a Word file is read back, by readers that are not its writer, and held to the expectation its PDF is held to; [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), whose Preview offers the file beside the PDF; [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md), whose `imageHeader` now says how a JPEG's Exif block turns it; and [0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), whose reader now hands on the family of name ID 1 beside a typographic one; and reads again the absence [0056](0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md) put on the start page as "no print format but PDF", with the predicate that held it
+- **Status:** accepted; numbered while 0067 was another branch's; extends [0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md), whose proof on the PDF an engine produced is a proof on the file a writer produced: a Word file is read back, by readers that are not its writer, and held to the expectation its PDF is held to; [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), whose Preview offers the file beside the PDF; [0033](0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md), whose `imageHeader` now says how a JPEG's Exif block turns it; and [0040](0040-a-font-is-read-by-report-specs-own-reader-which-says-what-it-may-be-embedded-as-and-which-characters-it-draws.md), whose reader now hands on the family of name ID 1 beside a typographic one; and reads again the absence [0056](0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md) put on the start page as "no print format but PDF", with the predicate that held it; extended by [0074](0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md), which lifts its refusal of a QR code and an EPC QR code: what a code is refused by stands in report-runtime, where both engines read it, and the writer draws both as pictures of that symbol, the payment part, the e-invoice and the chart refused as they are here, each named there as a record to come
 - **Date:** 2026-11-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -1226,6 +1226,22 @@ written twice.
 its own, nothing else depends on it, and the Studio's link is one link.
 The file's shape is not a contract: a later release may write styles,
 embed faces or draw codes, and the same document then gives other bytes.
+
+**Added 2026-11-18: the codes.** [0074](0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)
+lifts what this record refuses of a QR code and an EPC QR code. The
+rules a code is refused by stand in report-runtime, `qrSymbol` and
+`epcSymbol`, which the PDF renderer and this writer both ask, and the
+writer draws a code as a picture of that symbol, a PNG it makes of
+whole pixels a module, and an EPC QR code in Austria's frame as a table
+around its picture and its caption. So of this record: `pdf-only.ts`
+refuses a chart alone among the blocks; the euro invoice is written,
+where the table of the starters says refused; "every starter that is
+paid by a code" reads "by a QR-bill"; a file's bounds are two more,
+`MAX_DOCX_CODES` and `MAX_DOCX_CODE_MODULES`; the corpus's `verifyDocx`
+is waited for; and the roadmap's item names the payment part, the chart
+and the e-invoice as records to come, 0075 to 0077, where this record's
+last paragraph of *The roadmap* leaves them the PDF's. The files with a
+code are not among those this record says were seen in Word.
 
 ## Alternatives considered
 

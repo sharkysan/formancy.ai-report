@@ -128,7 +128,8 @@ Every block of the resolved document:
   `cover` fills the box, centred, and is clipped to it. A JPEG is fitted by
   the size it is shown at, after its Exif orientation. An SVG is drawn as
   vectors (below), fitted by its viewBox.
-- **QR codes** (ISO/IEC 18004), encoded by [uqr](https://github.com/unjs/uqr)
+- **QR codes** (ISO/IEC 18004), their symbol the runtime's, which
+  encodes it with [uqr](https://github.com/unjs/uqr)
   in the smallest version that holds their text at the level asked for,
   never a higher level, and drawn in vectors as a square exactly their size:
   white, with the quiet zone of four modules inside it, and the dark
@@ -320,7 +321,12 @@ exports clears them, so a chart's words stay in the process.
 ## QR codes
 
 A code is refused, naming it by its id, rather than drawn as one that may
-not scan:
+not scan. What decides its symbol, and every refusal below but the last
+part of the third, is `@formancy/report-runtime`'s `qrSymbol`, the one
+rule the Word writer asks too
+([0074](../../docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)):
+the renderer asks it once, when it checks the document, and draws the
+symbol it is handed.
 
 | Code | When |
 |---|---|
@@ -339,7 +345,8 @@ whose code has a value that is null, or prints nothing.
 An `epcQrCode` block's payload, which the runtime has written and held to
 the EPC's rules, is encoded by uqr as UTF-8 at level M, its level never
 raised (`boostEcc: false`), in a symbol of version 13 at most (EPC069-12
-2.1), once, when the document is checked. The renderer formats and checks nothing of what the payload says;
+2.1), once, when the document is checked, by the runtime's `epcSymbol`,
+which refuses what follows as well (0074). The renderer formats and checks nothing of what the payload says;
 it decides how the code is drawn. Why it is drawn so, and what that costs,
 is [0025](../../docs/decisions/0025-a-report-prints-an-epc-qr-code-held-to-the-epc-rules-beside-the-qr-bill.md).
 

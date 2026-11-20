@@ -1,9 +1,11 @@
 import { strToU8, zipSync, type Zippable } from 'fflate'
-import type { Block, ImageAsset, ResolvedDocument } from '@formancy/report-runtime'
+import type { Block, ImageAsset, QrSymbol, ResolvedDocument } from '@formancy/report-runtime'
 import { SVG_FALLBACK, type Picture } from './assets.js'
 import { nodesOf, type Build } from './blocks.js'
 import type { Checked, Page } from './check.js'
-import type { DocxFonts } from './fonts.js'
+import { codePng } from './code-png.js'
+import { CAPTION_FAMILY, captioned, type Code } from './codes.js'
+import type { DocxFonts, FontEntry } from './fonts.js'
 import { DEFAULT_SIZE, REGION_GAP } from './look.js'
 import { emptyLine, SEPARATOR, type BlockNode, type RelationshipId } from './nodes.js'
 import { halfPoints, twips } from './units.js'
@@ -24,7 +26,9 @@ import { attribute, element, own, part, text, type AttributeValue, type Name, ty
  * The same document gives the same bytes: the parts are written in one
  * order, every entry is dated `zipEpoch` and deflated by fflate's own
  * code, which is the same in every host -- or stored as it is, where it
- * is a PNG or a JPEG, which are compressed already.
+ * is a PNG or a JPEG, which are compressed already. A code's picture is
+ * a PNG the writer makes of its symbol (`code-png.ts`), whose data
+ * fflate deflated already, and is stored as one.
  */
 
 /**
@@ -94,26 +98,33 @@ const EXTENSIONS: Readonly<Record<Picture['kind'], { readonly extension: string;
   svg: { extension: 'svg', contentType: 'image/svg+xml' },
 }
 
-/** The file's pictures: each asset's bytes a part, written once however often it is drawn, numbered as it is first met. */
+/** The file's pictures: each asset's bytes a part, written once however often it is drawn, and each code's picture a part, numbered as it is first met. */
 interface Media {
   readonly of: (asset: ImageAsset, picture: Picture) => string
   readonly fallback: () => string
+  /** The part of `code`'s picture: its symbol drawn at `pixels` a module. */
+  readonly code: (code: Code, symbol: QrSymbol, pixels: number) => string
   /** Each part's name under `word/`, its bytes, and whether it is deflated. */
   readonly parts: Map<string, { readonly bytes: Uint8Array; readonly kind: Picture['kind'] }>
 }
 
 function media(): Media {
   const parts: Media['parts'] = new Map()
-  const names = new Map<ImageAsset | 'fallback', string>()
-  const named = (key: ImageAsset | 'fallback', bytes: Uint8Array, kind: Picture['kind']): string => {
+  const names = new Map<ImageAsset | Code | 'fallback', string>()
+  const named = (key: ImageAsset | Code | 'fallback', bytes: () => Uint8Array, kind: Picture['kind']): string => {
     const known = names.get(key)
     if (known !== undefined) return known
     const name = `media/image${names.size + 1}.${EXTENSIONS[kind].extension}`
     names.set(key, name)
-    parts.set(name, { bytes, kind })
+    parts.set(name, { bytes: bytes(), kind })
     return name
   }
-  return { of: (asset, picture) => named(asset, asset.bytes, picture.kind), fallback: () => named('fallback', SVG_FALLBACK, 'png'), parts }
+  return {
+    of: (asset, picture) => named(asset, () => asset.bytes, picture.kind),
+    fallback: () => named('fallback', () => SVG_FALLBACK, 'png'),
+    code: (code, symbol, pixels) => named(code, () => codePng(symbol, pixels), 'png'),
+    parts,
+  }
 }
 
 /** An element whose one attribute is `w:val`. */
@@ -177,8 +188,8 @@ function settings(): string {
 }
 
 /** The font table: each family the file may name, and the kind a reader without it chooses another by; a modern face is of fixed pitch. */
-function fontTable(fonts: DocxFonts): string {
-  const entries = fonts.table.map(({ name, kind }) =>
+function fontTable(families: readonly FontEntry[]): string {
+  const entries = families.map(({ name, kind }) =>
     element('w:font', [['w:name', attribute(name)]], [valued('w:family', own(kind)), valued('w:pitch', own(kind === 'modern' ? 'fixed' : 'variable'))]),
   )
   return part(element('w:fonts', [NAMESPACES[0]!], entries))
@@ -238,6 +249,8 @@ export function writePackage(document: ResolvedDocument, checked: Checked, fonts
     pictures: checked.pictures,
     embed: (asset, picture) => links.to('image', pictures.of(asset, picture)),
     fallback: () => links.to('image', pictures.fallback()),
+    codes: checked.codes,
+    code: (code, symbol, pixels) => links.to('image', pictures.code(code, symbol, pixels)),
     drawn,
   })
   const files: [string, string][] = []
@@ -309,7 +322,9 @@ export function writePackage(document: ResolvedDocument, checked: Checked, fonts
   add('word/_rels/document.xml.rels', links.part()!)
   add('word/styles.xml', styles(fonts))
   add('word/settings.xml', settings())
-  add('word/fontTable.xml', fontTable(fonts))
+  // The family an EPC QR code's caption is named in is the one a file names that no report maps (`codes.ts`): listed where one is written.
+  const caption = [...checked.codes.keys()].some(captioned) && !fonts.table.some((entry) => entry.name === CAPTION_FAMILY)
+  add('word/fontTable.xml', fontTable(caption ? [...fonts.table, { name: CAPTION_FAMILY, kind: 'swiss' }] : fonts.table))
   for (const [name, content] of files) add(name, content)
   // A PNG and a JPEG are compressed already, and are stored as they are; an SVG is text, and is deflated.
   for (const [name, { bytes, kind }] of pictures.parts) parts[`word/${name}`] = kind === 'svg' ? bytes : [bytes, { level: 0 }]

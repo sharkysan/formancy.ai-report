@@ -8,7 +8,9 @@ with the approved asset bytes already in it, and never a database
 connection, a file name or an address. Why it writes WordprocessingML
 itself, what it writes block by block, and what it refuses and why, is
 decision
-[0068](../../docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md).
+[0068](../../docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md),
+and how it writes a QR code and an EPC QR code
+[0074](../../docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md).
 No framework, no Node, no DOM and no network: ES2023's library and no
 `@types/node`.
 
@@ -17,7 +19,9 @@ writes is read back in the tests by readers that are not the writer, and
 was validated against ISO/IEC 29500-4:2016's transitional schema once, by
 hand; the files of the starters and the corpus's fixtures were opened in
 Word once, before it merged, and found fine. What Word does with a file
-is held by no test, and 0068 says what was seen.
+is held by no test, and 0068 says what was seen. The files with a QR
+code or an EPC QR code, which the writer writes since 0074, were opened
+in Word once, by hand, on 20 November 2026, and 0074 says what was seen.
 
 ## Write a report as a Word file
 
@@ -82,6 +86,27 @@ test claims it prints as the PDF does.
 - **An SVG is the asset's own drawing**, as an `svgBlip`, an extension
   Microsoft's Open XML SDK lists as Office 2019's; a reader that does not
   know it shows a grey box in its place.
+- **A QR code and an EPC QR code are pictures of their symbols**, the
+  symbol the PDF draws, which `@formancy/report-runtime` decides for
+  both: a PNG the writer makes, black on white, whole pixels a module,
+  its quiet zone inside it, in a paragraph of its own exactly the code's
+  size. It is 600 pixels to the inch at that size, in the fewest whole
+  pixels a module that are, and never more pixels a module than 2,400 a
+  side hold: so a code wider than 266 to 288 points, by its symbol's
+  version, is drawn coarser, the largest symbol at 269 to the inch
+  where it is 595 points wide. An
+  EPC QR code in Austria's frame is a table of one row, at least the
+  frame's height: its picture, in a cell the frame's line borders on
+  each side, and beside it, outside the line, "Zahlen mit Code", which
+  reads from bottom to top at 7 pt in Arial. The cell's borders are the
+  frame, so its corners are square and its right line whole, the
+  caption beside it, where the PDF rounds the corners and runs the line
+  along the words, broken around them. A code is a raster here and
+  vectors in the PDF. Of what Word prints, the frame of the euro invoice
+  from Austria alone has been seen: written first around the picture
+  and the caption, with a row of an exact height, it lost its right
+  line and the white under the code, and it is now written as the
+  variant approved in Word on 20 November 2026.
 - **A length is rounded to Word's unit**: a size to the half point, a
   rule's weight to the eighth, a length to the twentieth.
 - **The file states no language**, since the resolved document carries no
@@ -93,18 +118,20 @@ Each as a `RenderRefusal`, whole, naming what it is about:
 
 | What | Code |
 |---|---|
-| A payment part, an e-invoice of either kind, a preview the runtime labelled, a chart, a QR code and an EPC QR code: each belongs to the report's PDF | `unsupported` |
+| A payment part, an e-invoice of either kind, a preview the runtime labelled and a chart: each belongs to the report's PDF | `unsupported` |
 | A JPEG its Exif block turns or one of four components, an SVG that covers a box of other proportions than its own, and a table or a page break in a section with a border, a fill or padding: nobody has seen Word print them as the PDF does | `unsupported` |
 | What no engine prints, by the PDF renderer's code and subject: a table in a columns block, a page break in a page region, a page field outside the page header and footer, a block or a style the document's types do not hold | `unsupported` |
+| A QR code or an EPC QR code the runtime's rule refuses, in the words the PDF renderer refuses it in: a square of no size, a level, a caption or text no encoder draws | `unsupported` |
+| And of a code: a square wider than where it stands, text or a payload no symbol holds, modules finer than 0.4 mm, or outside the PSA's 15 to 20 mil in Austria's frame | `content-too-large` |
 | A `serif` or `mono` token the report maps no font to, a weight or a slant a mapped token has no face for, faces of different families under one token, and a character the mapped face does not draw or a report does not print | `unsupported` |
 | What Word's units do not state: a rule or a border lighter than a quarter of a point or heavier than twelve; a rectangle, a column or a framed section under a fortieth of a point, and a picture drawn at under an English Metric Unit, which would be written with no width or no height | `unsupported` |
 | A creation date that states no zone, or is no ISO 8601 date: it is another moment on another machine, and the same document would be another file there. One of a day or an hour no calendar has, which the platform reads as the date after it, and one of a year before 0001 or past 9999. `resolveReport` writes an instant with its zone | `unsupported` |
-| A picture, a rectangle or fixed columns wider than where they stand; a picture, a rectangle or a spacer taller than the printable area; more than `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one and a rectangle or a section's frame two; `MAX_DOCX_CHARACTERS` characters of text, with what a font's family is written longer than `MAX_DOCX_FAMILY_LENGTH` characters in every run and paragraph; `MAX_DOCX_RUNS` runs, a page field being three, a cell one and each line ending in a text one more; `MAX_DOCX_PICTURES` pictures, each asset counted once, `MAX_DOCX_MEDIA_BYTES` of them as they are stored, or `MAX_DOCX_IMAGE_DATA` of image data, a PNG's scanlines as its header promises them and a JPEG's bytes, which is what the PDF renderer holds a render to | `content-too-large` |
+| A picture, a rectangle or fixed columns wider than where they stand; a picture, a code, a rectangle or a spacer taller than the printable area; more than `MAX_DOCX_CODES` codes, 64, or codes whose symbols hold more than `MAX_DOCX_CODE_MODULES` modules between them, what sixteen of the largest symbol hold; more than `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one and a rectangle or a section's frame two; `MAX_DOCX_CHARACTERS` characters of text, with what a font's family is written longer than `MAX_DOCX_FAMILY_LENGTH` characters in every run and paragraph; `MAX_DOCX_RUNS` runs, a page field being three, a cell one and each line ending in a text one more; `MAX_DOCX_PICTURES` pictures, each asset counted once, `MAX_DOCX_MEDIA_BYTES` of them as they are stored, or `MAX_DOCX_IMAGE_DATA` of image data, a PNG's scanlines as its header promises them and a JPEG's bytes, which is what the PDF renderer holds a render to | `content-too-large` |
 | Bytes that are not the picture or the font they are declared as: a PNG whose image data is not one whole zlib stream of the scanlines its header promises, as zlib reads one, among them; an SVG that is not the drawing report-spec's `cleanSvg` writes; and a font whose family is more than `MAX_DOCX_FAMILY_LENGTH` characters, 31, which is what Word reads of a font's name | `invalid-asset` |
 
-So a report that is paid by a code, is an invoice in law or draws a chart
-has no Word file, and neither has a preview of incomplete data: print
-those as PDFs. And the writer measures nothing, so what the PDF renderer
+So a report that is paid by a QR-bill, is an invoice in law or draws a
+chart has no Word file, and neither has a preview of incomplete data:
+print those as PDFs. And the writer measures nothing, so what the PDF renderer
 refuses for what it measured -- a block taller than a page's body, more
 pages than a host allows -- the writer writes. A host that offers the
 Word file only beside a PDF that was drawn, as the Studio does, hands a
@@ -128,7 +155,18 @@ though the runtime reads 100,000.
 A host that must stop a write runs it in a worker, and one that must
 bound its memory in a process of its own.
 
-It depends on `@formancy/report-runtime`, on `fflate` at exactly 0.8.3,
-which zips the parts, and on `pako` at exactly 3.0.2, which inflates a
-PNG's image data, as zlib does, to hold it to its header. The package
+A file's codes are bounded twice, since the largest symbol takes the
+encoder some sixty times what the smallest takes: by their count, and by
+the modules of their symbols. Measured on 18 November 2026 on that
+machine, a document of codes alone: 64 of the EPC's 331 bytes in
+Austria's frame were written in 0.5 to 0.6 seconds, 64 of version 1 at
+the largest size a page holds in 0.8 to 0.9, sixteen of the largest
+symbol in 0.7 to 0.8, and fifteen of them with 49 small ones in 0.9 to
+1.6, each in under 215 MB; 64 of the largest, which the modules' bound
+now refuses, had held the thread 2.6 to 3.2 seconds.
+
+It depends on `@formancy/report-runtime`, which decides a code's symbol,
+on `fflate` at exactly 0.8.3, which zips the parts and deflates a code's
+picture, and on `pako` at exactly 3.0.2, which inflates a PNG's image
+data, as zlib does, to hold it to its header. The package
 declares the source-available licence, in `LICENSE.md`.

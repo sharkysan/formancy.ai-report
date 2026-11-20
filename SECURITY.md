@@ -80,20 +80,22 @@ follow from that:
   bounded evaluation, runs code, reads the clock or randomness where a report
   must be reproducible, or exhausts its budget unnoticed.
 - **Resource exhaustion**: rows, pages, image pixels, fonts, nesting, time or
-  output size -- a PDF's or a Word file's, whose paragraphs, runs, characters
-  and pictures the writer bounds -- that a limit should have refused, and a
-  cancelled job that keeps consuming a worker.
+  output size -- a PDF's or a Word file's, whose paragraphs, runs, characters,
+  pictures and codes the writer bounds -- that a limit should have refused,
+  and a cancelled job that keeps consuming a worker.
 - **Parser input**: font, image and SVG files that reach a parser without
   their type, size and dimensions checked.
 - **Sensitive data in diagnostics**: a row, a parameter holding personal data,
   a connection detail or a credential in a log line, an error message, a debug
   artefact or an API response.
 - **Silent wrong output**: a production PDF or Word file that drops rows,
-  truncates content or rounds a total without saying so, and a Word file
-  written without a QR-bill's slip, an e-invoice, a chart or a QR code its
-  report holds, which the writer refuses -- an integrity failure, and in
-  scope. Where Word breaks a line or a page otherwise than the PDF does is
-  Word's layout, which 0068 states, and not a finding.
+  truncates content or rounds a total without saying so, a Word file
+  written without a QR-bill's slip, an e-invoice or a chart its report
+  holds, which the writer refuses, and a Word file whose QR code or EPC QR
+  code scans to anything but what its report's PDF scans to (0074) -- an
+  integrity failure, and in scope. Where Word breaks a line or a page
+  otherwise than the PDF does is Word's layout, which 0068 states, and not
+  a finding.
 
 Nothing in the packages is meant to fetch a URL but the two clients, each
 through what the host gives it: the Data provider, through the Data client

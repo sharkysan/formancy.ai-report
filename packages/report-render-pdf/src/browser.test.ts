@@ -471,7 +471,8 @@ describe('the browser entry', () => {
       return { files, external, dynamic }
     }
     const browser = reach('browser.ts')
-    expect([...browser.external].sort()).toEqual(['@formancy/report-runtime', 'pdfmake/build/pdfmake.js', 'pdfmake/build/vfs_fonts.js', 'uqr'])
+    // No encoder among them: a code's symbol is the runtime's (0074), and an encoder imported here again would decide a code a second time.
+    expect([...browser.external].sort()).toEqual(['@formancy/report-runtime', 'pdfmake/build/pdfmake.js', 'pdfmake/build/vfs_fonts.js'])
     expect([...browser.dynamic].sort()).toEqual(['./bill-fonts.js', './chart-draw.js'])
     expect(browser.files.has('bill-fonts.ts')).toBe(false)
     // The drawing, which alone imports ECharts, is the render's import of a document with a chart that is not empty (R23).

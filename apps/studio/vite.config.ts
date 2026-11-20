@@ -112,6 +112,14 @@ export default defineConfig({
   // 28.1 kB gzipped, 29.1 kB and 9.0 kB more; the renderer's chunk
   // 1,918.1 kB and 848.0 kB and the runtime's 78.7 kB and 26.5 kB, as
   // they had been.
+  // And once more on 2026-11-18, on the same machine and tools, once the
+  // writer drew a QR code and an EPC QR code and the encoder, uqr, stood
+  // under the runtime and no longer under the renderer (0074), against
+  // the sizes above, the checkout before it not built again: the
+  // writer's chunk 83.3 kB and 29.5 kB gzipped, 3.9 kB and 1.4 kB more;
+  // the runtime's 92.6 kB and 31.3 kB gzipped, 13.9 kB and 4.8 kB more,
+  // and the renderer's 1,904.0 kB and 842.9 kB, 14.1 kB and 5.1 kB
+  // less, with 96.0 kB of room under the limit.
   // What holds the chunks is this warning, a test that counts the chart
   // chunk's loads and one zrender and one echarts in it, and one that
   // holds the writer, fflate and pako to one chunk the pipeline imports

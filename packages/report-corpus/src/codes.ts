@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { prepareZXingModule, readBarcodes } from 'zxing-wasm/reader'
 import type { PdfBox } from './read-pdf.js'
-import { rasterPixels } from './raster.js'
+import { rasterPixels, type PagePixels } from './raster.js'
 
 /**
  * The QR codes a page prints, read as a scanner reads them: the page drawn
@@ -34,6 +34,57 @@ const SCALE = 4
 
 let wasmBinary: ArrayBuffer | undefined
 
+/** A code as ZXing finds it in a picture's pixels: what it says, and where its symbol stands, in pixels from the top left, without the quiet zone. */
+export type PixelCode = PdfCode
+
+/**
+ * How ZXing had to read a symbol that is not drawn as it was encoded, or
+ * nothing where it read it as it stands. ZXing reads a symbol mirrored,
+ * turned, or with dark and light exchanged, and says which; a scanner
+ * that tries none of them reads nothing there, and a mirrored symbol is
+ * what an engine draws that takes a symbol's rows for its columns, with
+ * its text, its level and its version all its document's.
+ */
+function misread(result: { readonly isMirrored: boolean; readonly isInverted: boolean; readonly orientation: number }): string | undefined {
+  // A mirrored symbol's turn is the mirror's own: across the other diagonal it is no turn at all.
+  const turn = result.isMirrored ? 0 : Math.abs(result.orientation)
+  const how = [
+    ...(result.isMirrored ? ['mirrored'] : []),
+    ...(turn === 0 ? [] : [`turned by ${turn} degrees`]),
+    ...(result.isInverted ? ['with dark and light exchanged'] : []),
+  ]
+  return how.length === 0 ? undefined : how.join(' and ')
+}
+
+/**
+ * Every QR code `pixels` show, as ZXing reads them, each placed in the
+ * pixels' own unit: a page PDF.js drew (`readCodes`), or the picture a
+ * Word file embeds for a code (`code-picture.ts`, 0074). Throws where
+ * ZXing reads one only mirrored, turned, or with dark and light
+ * exchanged (`misread`): such a code is none an engine drew right, and
+ * no caller is left to ask.
+ */
+export async function codesIn(pixels: PagePixels): Promise<PixelCode[]> {
+  wasmBinary ??= new Uint8Array(readFileSync(createRequire(import.meta.url).resolve('zxing-wasm/reader/zxing_reader.wasm'))).buffer
+  // The same bytes every call, so zxing-wasm keeps the module it made of them.
+  await prepareZXingModule({ overrides: { wasmBinary }, fireImmediately: true })
+  // Read as an ImageData by its data, width and height alone, which is all a page's pixels have here: Node has no ImageData.
+  const results = await readBarcodes(pixels as ImageData, { formats: ['QRCode'], maxNumberOfSymbols: 255 })
+  return results.map((result): PixelCode => {
+    const how = misread(result)
+    if (how !== undefined)
+      throw new Error(
+        `ZXing reads the code only ${how}: its symbol is not drawn as it was encoded, and a scanner that tries no other reading reads nothing in it`,
+      )
+    const { topLeft, topRight, bottomLeft, bottomRight } = result.position
+    const xs = [topLeft.x, topRight.x, bottomLeft.x, bottomRight.x]
+    const ys = [topLeft.y, topRight.y, bottomLeft.y, bottomRight.y]
+    const [x, top, right, bottom] = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
+    const { ecLevel, version } = symbolOf(result.extra)
+    return { text: result.text, bytes: result.bytes, ecLevel, version, x, top, width: right - x, height: bottom - top, bottom }
+  })
+}
+
 /**
  * Every QR code on page `pageNumber`, from 1, in reading order: by their
  * tops to the nearest point, then from the left. ZXing places a code by its
@@ -41,21 +92,16 @@ let wasmBinary: ArrayBuffer | undefined
  * fraction of a point apart. Positions are in points, without the quiet zone.
  */
 export async function readCodes(bytes: Uint8Array, pageNumber: number, scale = SCALE): Promise<PdfCode[]> {
-  const pixels = await rasterPixels(bytes, pageNumber, scale)
-  wasmBinary ??= new Uint8Array(readFileSync(createRequire(import.meta.url).resolve('zxing-wasm/reader/zxing_reader.wasm'))).buffer
-  // The same bytes every call, so zxing-wasm keeps the module it made of them.
-  await prepareZXingModule({ overrides: { wasmBinary }, fireImmediately: true })
-  // Read as an ImageData by its data, width and height alone, which is all a page's pixels have here: Node has no ImageData.
-  const results = await readBarcodes(pixels as ImageData, { formats: ['QRCode'], maxNumberOfSymbols: 255 })
-  return results
-    .map((result): PdfCode => {
-      const { topLeft, topRight, bottomLeft, bottomRight } = result.position
-      const xs = [topLeft.x, topRight.x, bottomLeft.x, bottomRight.x].map((x) => x / scale)
-      const ys = [topLeft.y, topRight.y, bottomLeft.y, bottomRight.y].map((y) => y / scale)
-      const [x, top, right, bottom] = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
-      const { ecLevel, version } = symbolOf(result.extra)
-      return { text: result.text, bytes: result.bytes, ecLevel, version, x, top, width: right - x, height: bottom - top, bottom }
-    })
+  const found = await codesIn(await rasterPixels(bytes, pageNumber, scale))
+  return found
+    .map((code): PdfCode => ({
+      ...code,
+      x: code.x / scale,
+      top: code.top / scale,
+      width: code.width / scale,
+      height: code.height / scale,
+      bottom: code.bottom / scale,
+    }))
     .sort((a, b) => Math.round(a.top) - Math.round(b.top) || a.x - b.x)
 }
 

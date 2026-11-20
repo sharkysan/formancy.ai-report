@@ -13,7 +13,11 @@
   what stands at the top of its last column there; and amended by it, the
   palette's EPC payment code, in a report with an e-invoice, paying the
   e-invoice's account with its BIC, and offered only where the e-invoice
-  gives payment instructions
+  gives payment instructions; and extended by
+  [0074](0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md),
+  under which the symbol and every refusal of it are report-runtime's
+  `epcSymbol`, which the Word writer asks too, and a Word file holds the
+  code as a picture, Austria's frame as a table around it and the caption
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
