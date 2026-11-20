@@ -292,9 +292,11 @@ describe("pdfmake's positions, which the table rules read", () => {
   // them on into the first position of each line's node with an id
   // (src/ElementWriter.js 340). So a header cell with an id says it
   // starts on the last page the table reaches, and a body row's cell
-  // where it does: why a heading is kept with a table's first body row,
-  // never its header (content.ts's anchorOf). This fails first if pdfmake
-  // stops writing that page, and the reason goes with it.
+  // where it does, the first row here kept with the header as the
+  // renderer's planned tables keep it (`keepWithHeaderRows`): why a
+  // heading is kept with a table's first body row and not its header
+  // (content.ts's anchorOf). This fails first if pdfmake stops writing
+  // that page, and the reason goes with it.
   test("writes the last page a table's header repeats on into its cell's start, and leaves a body row's", async () => {
     await renderPdf(fixture('one-row').document, { maxPages: 5 })
     const rows = Array.from({ length: 150 }, (_, index) => [{ text: `Row ${index}` }])
@@ -303,7 +305,9 @@ describe("pdfmake's positions, which the table rules read", () => {
       new Uint8Array(
         await pdfmake
           .createPdf({
-            content: [{ table: { headerRows: 1, body: [[{ text: 'Header', id: 'header' }], [{ text: 'First', id: 'first' }], ...rows] } }],
+            content: [
+              { table: { headerRows: 1, keepWithHeaderRows: 1, body: [[{ text: 'Header', id: 'header' }], [{ text: 'First', id: 'first' }], ...rows] } },
+            ],
             defaultStyle: { font: 'Roboto' },
             pageBreakBefore: (node) => {
               if (node.id !== undefined) seen.set(node.id, node.startPosition.pageNumber)
