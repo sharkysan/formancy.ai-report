@@ -297,8 +297,10 @@
     the list: the charts in their place, their values, their colours and
     their order as the PDF's, and the sales report's value axis grouped,
     `20’000.00` on Swiss settings. The same day, once 0074 as it merged
-    was taken into this change, the writer and the renderer wrote each of
-    those files again byte for byte, compared once, outside any test.
+    was taken into this change, and again once the fix to a heading kept
+    with a table (0011) was, the writer and the renderer wrote each of
+    those files again byte for byte, compared once each time, outside any
+    test.
     Nothing more of what Word did was written down, and nothing of it is
     held by a test: that Word draws a chart whose data are literals and
     which has no workbook, where it puts each word and whether two meet,
