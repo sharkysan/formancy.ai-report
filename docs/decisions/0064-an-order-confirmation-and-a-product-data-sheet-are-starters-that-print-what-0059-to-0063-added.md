@@ -1,6 +1,6 @@
 # 0064 — An order confirmation and a product data sheet are starters that print what 0059 to 0063 added
 
-- **Status:** accepted; lifts [0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)'s limitation that no e-invoice variant draws a header of page 1's own
+- **Status:** accepted; lifts [0060](0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md)'s limitation that no e-invoice variant draws a header of page 1's own; the renderer's defect it left for a change of its own, a heading kept with a long table, fixed on 2026-11-20 under [0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)
 - **Date:** 2026-11-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -326,6 +326,23 @@ this one's.
 
 **What it forecloses.** Nothing that cannot be undone: a starter can be
 taken out of `STARTERS`, its lists and its pictures with it.
+
+**Amended 2026-11-20: the defect fixed.** The renderer's heading kept
+with a long table, which *Not decided here* above left for a change of
+its own, is fixed under
+[0011](0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md):
+a heading is kept with a table's first row under its header, and stays
+on its page over a table that runs past it. The goods heading is left as
+the starter was written, not kept with its table; it stands where page
+1's body starts, where kept or not it prints the same, every stream of
+the PDF the same once inflated, the kept one naming one destination
+more (measured on 20 November 2026). The order confirmation prints
+every run where it did, only the named destinations of the headings it
+keeps having moved, each a row lower. *A heading not kept, for a defect*
+now reads: an author who copies the starter and moves the goods table
+down a page may find the heading at a page's foot, and one who keeps it
+with the table has it kept. Keeping it in the starter is a change to
+the starter of its own.
 
 ## Alternatives considered
 

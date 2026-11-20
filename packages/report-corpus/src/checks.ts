@@ -42,6 +42,7 @@ export function verify(fixture: Fixture, pdf: ReadPdf): string[] {
     ...capped(rowProblems(tables)),
     ...capped(expected.keptTogether.flatMap((group) => keptTogether(pages, group))),
     ...(expected.keptTogetherByRoom ? keptByRoom(pages, expected.keptTogether) : []),
+    ...capped(expected.onOnePage.flatMap((group) => keptTogether(pages, group, 'on one page'))),
     ...capped(regions(pages, expected)),
     ...capped(expected.footerEveryPage === undefined ? [] : footers(pages, expected.footerEveryPage)),
     ...capped(expected.noEmptyPages ? emptyPages(pages) : []),

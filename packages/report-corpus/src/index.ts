@@ -88,6 +88,7 @@ export {
 export type { StoredSubmission } from './forms/site-visit.js'
 export { ALL_FIXTURES } from './fixtures/all.js'
 export { KEEP_WITH_FIXTURES } from './fixtures/group-keep-with.js'
+export { KEPT_HEADING_FIXTURES } from './fixtures/kept-heading.js'
 export { MALFORMED } from './fixtures/malformed.js'
 export type { Malformed } from './fixtures/malformed.js'
 export { IMAGE_KINDS, UNSEEN_JPEGS } from './image-kinds.js'

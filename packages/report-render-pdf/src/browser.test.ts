@@ -14,6 +14,7 @@ import {
   FIRST_PAGE_FIXTURES,
   inflatedDigest,
   KEEP_WITH_FIXTURES,
+  KEPT_HEADING_FIXTURES,
   QUOTATION,
   readAnnotations,
   readCodes,
@@ -85,6 +86,17 @@ function finalDocument(starter: Starter): ResolvedDocument {
   return outcome.document
 }
 
+/** Every fixture the Node entry answers to (`corpus.test.ts`), which the browser entry must render as it does. */
+const FIXTURES = [
+  ...ALL_FIXTURES,
+  ...SVG_FIXTURES,
+  ...KEEP_WITH_FIXTURES,
+  ...FIRST_PAGE_FIXTURES,
+  ...CHART_FIXTURES,
+  ...SHIFTED_FIXTURES,
+  ...KEPT_HEADING_FIXTURES,
+]
+
 /** The SHA-256 of the ICC's sRGB2014.icc, which the licence guard reviewed in pdfkit's file (`e-invoice.test.ts`). */
 const SRGB2014 = '384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a'
 
@@ -139,7 +151,7 @@ describe('the browser entry', () => {
           const order = new Map<string, number>()
           return pass.replace(/\bzr\d+-[a-z]+(?:-\d+|\d+)\b/g, (name) => `zr-${String(order.get(name) ?? order.set(name, order.size).size - 1)}`)
         })
-      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES, ...SHIFTED_FIXTURES]) {
+      for (const each of FIXTURES) {
         const options = { maxPages: each.maxPages }
         const inNode = await rendering(nodePdfmake, () => renderInNode(each.document, options))
         const inBrowser = await rendering(browserPdfmake, () => renderInBrowser(each.document, options))
@@ -159,7 +171,7 @@ describe('the browser entry', () => {
   test(
     'renders every fixture of the corpus as its checks expect, or refuses it as they allow',
     async () => {
-      for (const each of [...ALL_FIXTURES, ...SVG_FIXTURES, ...KEEP_WITH_FIXTURES, ...FIRST_PAGE_FIXTURES, ...CHART_FIXTURES, ...SHIFTED_FIXTURES]) {
+      for (const each of FIXTURES) {
         const rendered = await renderInBrowser(each.document, { maxPages: each.maxPages }).then(
           (bytes) => ({ bytes }),
           (error: unknown) => ({ error }),

@@ -166,6 +166,7 @@ export function expectation(document: ResolvedDocument, stated: Stated): Expecta
       .filter((block) => block.kind === 'keepTogether')
       .map((block) => plainLines(block.blocks)),
     keptTogetherByRoom: false,
+    onOnePage: [],
     minPagesExpected: 1,
     noOrphanedHeaders: true,
     // A page of these alone prints nothing the corpus's checks see: no text, and no image. An EPC QR code's caption is text, but the code need not have one.
