@@ -1,4 +1,5 @@
 import type { AxisChart, Chart, PieChart } from './document.js'
+import { MAX_SCALE } from '@formancy/report-runtime'
 import type { DocxChart, DocxChartFace, DocxChartSeries, DocxChartWord, DocxParagraph, DocxTable } from './docx/model.js'
 
 /**
@@ -171,6 +172,8 @@ export function valueAxisFormat(chart: AxisChart): string | undefined {
     places = Math.max(places, number.replace(/\D/g, '').length - whole.length)
     if (whole.length >= 4 && !number.includes(whole)) grouped = true
   }
+  // No number the runtime resolves has more places than MAX_SCALE, and no format a writer states for one.
+  places = Math.min(MAX_SCALE, places)
   return `${grouped ? '#,##' : ''}${places === 0 ? '0' : `0.${'0'.repeat(places)}`}`
 }
 

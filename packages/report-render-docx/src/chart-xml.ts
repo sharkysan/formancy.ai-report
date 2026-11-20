@@ -1,4 +1,4 @@
-import type { AxisChart, Chart, ChartSeriesValues, ChartValue, PieChart } from '@formancy/report-runtime'
+import { MAX_SCALE, type AxisChart, type Chart, type ChartSeriesValues, type ChartValue, type PieChart } from '@formancy/report-runtime'
 import { digitsOf, exactOf, minus, placesOf } from './chart-exact.js'
 import { chartFaces, printed, type ChartFace } from './charts.js'
 import type { DocxFonts } from './fonts.js'
@@ -281,7 +281,8 @@ function categoryAxis(chart: AxisChart, face: ChartFace): Xml {
  * which one is the decimal sign.
  */
 function axisFormat(ticks: readonly ChartValue[]): Xml {
-  const places = Math.max(...ticks.map(printedPlaces))
+  // No number the runtime resolves has more places than MAX_SCALE: a tick's text written longer by hand writes no longer a format.
+  const places = Math.min(MAX_SCALE, Math.max(...ticks.map(printedPlaces)))
   const digits = places === 0 ? '0' : `0.${'0'.repeat(places)}`
   return attribute(ticks.some(groupedTick) ? `#,##${digits}` : digits)
 }

@@ -1,3 +1,4 @@
+import { MAX_SCALE } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { valueAxisFormat } from './check-docx-charts.js'
 import { verifyDocx } from './check-docx.js'
@@ -632,6 +633,8 @@ test('a value axis is held to the places its ticks print, its thousands grouped 
   expect(axis(['-5', '-5'], ['0', '0'], ['5', '5'])).toBe('0')
   expect(axis(['0', '0,000'], ['0.5', '0,500'], ['1', '1,000'])).toBe('0.000')
   expect(axis(['0', '0.0'], ['0.50', '0.5'], ['1.00', '1.0'])).toBe('0.0')
+  // A tick's text written longer than any number the runtime resolves, by hand, asks no more places of the format than MAX_SCALE.
+  expect(axis(['0', `0.${'1'.repeat(10_000)}`], ['5', '5'], ['10', '10'])).toBe(`0.${'0'.repeat(MAX_SCALE)}`)
 })
 
 describe('verifyDocx fails on a chart', () => {

@@ -1,5 +1,5 @@
 import { CHART_FIXTURES, docxCharts, readDocx, readPackage, readZip, type DocxChartFrame, type DocxParagraph, type DocxTable } from '@formancy/report-corpus'
-import type { AxisChart, Block, Chart, ChartValue, PieChart, ResolvedDocument } from '@formancy/report-runtime'
+import { MAX_SCALE, type AxisChart, type Block, type Chart, type ChartValue, type PieChart, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { MAX_DOCX_CHARACTERS, MAX_DOCX_CHART_DIGITS, MAX_DOCX_CHART_POINTS, MAX_DOCX_CHARTS, MAX_DOCX_PARAGRAPHS } from './limits.js'
 import { renderDocx } from './render.js'
@@ -202,6 +202,15 @@ describe('a chart with something to draw', () => {
     // Under a thousand there is nothing to group, and a decimal comma before three places is no grouping.
     expect(format([value('0'), value('5'), value('10')])).toBe('0')
     expect(format([value('0', '0,000'), value('0.5', '0,500'), value('1', '1,000')])).toBe('0.000')
+  })
+
+  // The places are read from a tick's text, which a document made by hand may write at any length: unbounded, a tick of ten thousand
+  // digits would write a format code as long into the part, counted by no bound. No number the runtime resolves has more places than
+  // MAX_SCALE, so no format has more.
+  test('writes the value axis’s format at no more places than any number the runtime resolves', () => {
+    const long = `0.${'1'.repeat(10_000)}`
+    const chart = bars({ ticks: [value('0', long), value('5'), value('10')], series: [{ color: '#1f77b4', values: [value('0'), value('10')] }] })
+    expect(only(chart).chart.valueAxis!.format).toBe(`0.${'0'.repeat(MAX_SCALE)}`)
   })
 
   // A bar stands on where the category axis crosses: at the axis's foot a bar of -5 on an axis from -5 would be no bar at all.

@@ -418,7 +418,9 @@ missing field with no label for it, resolves to one.
 tick's own text: Word writes each label from the number, by the axis's
 format code. The block states no format apart from the text it printed
 the ticks in, so the part's code is read from that text: digits at the
-places the ticks print, and never fewer than a tick's value needs --
+places the ticks print, never fewer than a tick's value needs and never
+more than any number the runtime resolves has (`MAX_SCALE`), so that a
+tick's text written longer by hand writes no longer a format --
 `0`, `0.0`, `0.00` -- their thousands grouped, `#,##0.00`, where the
 runtime printed a tick of a thousand or more with its whole part's
 digits apart; no currency and no unit. Word prints a code's grouping
