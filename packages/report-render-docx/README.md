@@ -21,12 +21,13 @@ writes is read back in the tests by readers that are not the writer, and
 was validated against ISO/IEC 29500-4:2016's transitional schema once, by
 hand; the files of the starters and the corpus's fixtures were opened in
 Word once, before it merged, and found fine. What Word does with a file
-is held by no test, and 0068 says what was seen. A file with a QR code
-or an EPC QR code, which the writer writes since 0074, nobody had opened
-in Word when that record was written, and it says so; nor one with a
-chart, which it writes since 0076 as Word's own chart, where everything
-Word lays out -- where a word stands, what the value axis says -- is
-unseen.
+is held by no test, and 0068 says what was seen. The files with a QR
+code or an EPC QR code, which the writer writes since 0074, were opened
+in Word once, by hand, on 20 November 2026, and 0074 says what was seen.
+A file with a chart, which it writes since 0076 as Word's own chart,
+nobody had opened in Word when that record was written, where
+everything Word lays out -- where a word stands, what the value axis
+says -- is unseen.
 
 ## Write a report as a Word file
 
@@ -100,12 +101,18 @@ test claims it prints as the PDF does.
   side hold: so a code wider than 266 to 288 points, by its symbol's
   version, is drawn coarser, the largest symbol at 269 to the inch
   where it is 595 points wide. An
-  EPC QR code in Austria's frame is a table of one row around its
-  picture and "Zahlen mit Code", which reads from bottom to top at 7 pt
-  in Arial; the table's borders are the frame, so its corners are square
-  and its right line whole, where the PDF rounds the corners and breaks
-  the line around the words. A code is a raster here and vectors in the
-  PDF, and what Word prints of either nobody has seen yet.
+  EPC QR code in Austria's frame is a table of one row, at least the
+  frame's height: its picture, in a cell the frame's line borders on
+  each side, and beside it, outside the line, "Zahlen mit Code", which
+  reads from bottom to top at 7 pt in Arial. The cell's borders are the
+  frame, so its corners are square and its right line whole, the
+  caption beside it, where the PDF rounds the corners and runs the line
+  along the words, broken around them. A code is a raster here and
+  vectors in the PDF. Of what Word prints, the frame of the euro invoice
+  from Austria alone has been seen: written first around the picture
+  and the caption, with a row of an exact height, it lost its right
+  line and the white under the code, and it is now written as the
+  variant approved in Word on 20 November 2026.
 - **A chart is Word's own chart**, a part of the file
   (`word/charts/chartN.xml`) that the body draws inline in exactly the
   chart's box, written from the runtime's block alone. Its data are

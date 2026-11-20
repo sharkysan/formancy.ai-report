@@ -101,15 +101,27 @@ pictures' check, and the browser gate's drawings of each Download PDF.
   as 2,400 a side hold where the code is wider than 3.7 to 4 inches, by
   its version, the same bytes for the same symbol in Node and in a
   browser. An
-  EPC QR code in Austria's frame is a table of one row around its picture
-  and "Zahlen mit Code", turned to read from bottom to top. A code the
-  PDF refuses is refused by the writer in the same words.
+  EPC QR code in Austria's frame is a table of one row, at least the
+  frame's height: its picture in a cell the frame's line borders on each
+  side, and beside it, outside the line, "Zahlen mit Code", turned to
+  read from bottom to top. A code the PDF refuses is refused by the
+  writer in the same words.
 - **What is Word's, and not the PDF's.** A code is a raster, where the
   PDF draws vectors. Austria's frame has square corners and a whole
-  right line with the caption inside it, where the PDF rounds the corners
-  by two modules and breaks the line around the words; and the caption is
-  named in Arial, the PSA's own, where the PDF prints Liberation Sans.
-  Nobody has opened these files in Word yet, and the record says so.
+  right line with the caption beside it, outside the frame, where the
+  PDF rounds the corners by two modules and runs the line along the
+  words, broken around them; and the caption is named in Arial, the
+  PSA's own, where the PDF prints Liberation Sans.
+- **Austria's frame as Word showed it.** Written first as a table
+  bordered around the picture and the caption, its row of an exact
+  height, the sample from Austria opened in Word without its frame's
+  right line, at the table's edge, and with the white under its code
+  cut. The frame is now written as the variant of it approved in Word on
+  20 November 2026: the line around the picture's cell, the caption
+  beside it, and the row at least its height, so that Word grows the row
+  to what its cells hold. Every file with a code was then opened in
+  Word once, by hand, on 20 November 2026, and found fine; no test
+  opens one.
 - **Two bounds more**, exported: `MAX_DOCX_CODES`, 64 codes a file,
   counted as often as a code stands, and
   `MAX_DOCX_CODE_MODULES`, the modules their symbols may have between

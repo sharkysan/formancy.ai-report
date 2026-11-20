@@ -1317,8 +1317,9 @@ each region's blocks as paragraphs and tables, in points          nodes.ts, bloc
    │  block but what ends it, the header row, a group header's kept
    │  rows, the row before a closing row
    │  a code a picture's paragraph exactly its size; in Austria's frame
-   │  an empty line kept with a table of its picture and its caption,
-   │  bordered around, and an empty line under it                             codes.ts
+   │  an empty line kept with a table of its picture, its cell bordered
+   │  around, and its caption beside it, the row at least the frame's
+   │  height, and an empty line under it                                      codes.ts
    ▼
 WordprocessingML, every element's children in ECMA-376's order; every
 string through text or attribute, markup a type of its own               wml.ts, xml.ts

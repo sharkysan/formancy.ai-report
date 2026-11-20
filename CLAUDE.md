@@ -371,9 +371,10 @@ code stands at and `swissSymbol` its payload alone, each throwing the
 `qr.ts` and `epc.ts` are the drawing alone. The writer's `codes.ts` asks
 the rule once, where `check.ts` meets a code, holds a file's codes to
 their bounds, and maps one to a picture's paragraph exactly its size, or,
-in Austria's frame, to an empty line kept with a table of one row -- the
-picture, and "Zahlen mit Code" in Arial in a cell turned `btLr`,
-bordered around by half a module -- and an empty line under it;
+in Austria's frame, to an empty line kept with a table of one row at
+least the frame's height -- the picture in a cell bordered on each side
+by half a module, and beside it, outside the line, "Zahlen mit Code" in
+Arial in a cell turned `btLr` -- and an empty line under it;
 `code-png.ts` makes the picture, a PNG of one bit a pixel, whole pixels a
 module (`modulePixels`: `CODE_RESOLUTION` to the inch, `MAX_CODE_SIDE` a
 side at the most), a repeated scanline nothing but PNG's filter, deflated

@@ -131,9 +131,10 @@ export interface CellNode {
 export interface RowNode {
   cantSplit: boolean
   readonly header?: true
-  /** Exactly so many points tall; or, where `grows`, at least so many, so that what it holds is never cut. */
+  /** Exactly so many points tall, or at least so many where `atLeast`. */
   readonly height?: number
-  readonly grows?: true
+  /** Its height the least it is, which Word grows the row past to hold what its cells hold: Austria's frame's (0074) and a chart's with nothing to draw (0076), and no other row. */
+  readonly atLeast?: true
   readonly cells: readonly CellNode[]
 }
 

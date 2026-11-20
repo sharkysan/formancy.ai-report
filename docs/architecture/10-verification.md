@@ -488,8 +488,8 @@ decoded from the PDF of the same document, in squares of the PDF's size,
 and both engines to refusing a code in the same words. Decoding is not
 a comparison of pictures, here as for a PDF. What it does not show is
 what Word draws of the picture, or what a phone reads of what Word
-prints: nobody had opened a file with a code in Word when 0074 was
-written.
+prints: the files with a code were opened in Word once, by hand, on 20
+November 2026, and no test opens one.
 
 **A chart in a Word file, on its part.** A chart with something to draw
 is a part of the file, Word's own chart, and is proved on that part by
@@ -661,7 +661,9 @@ later releases and say why, and the legal gate waits for a lawyer
   reader of the format -- LibreOffice, a previewer, a converter -- was
   tried. The files were validated against the schema once, by hand, and
   the starters' and the fixtures' files opened in Word once, by hand,
-  those with a code (0074) or a chart (0076) not yet.
+  those with a code once too, on 20 November 2026, the euro invoice from
+  Austria after its frame was written as the variant approved in Word
+  (0074), and those with a chart (0076) not yet.
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **No phone, no bank, no paper.** ZXing decodes every code a test prints,
