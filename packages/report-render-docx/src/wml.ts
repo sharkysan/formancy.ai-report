@@ -187,7 +187,7 @@ export function writer(): Writer {
         : [
             element('w:trHeight', [
               ['w:val', twips(node.height)],
-              ['w:hRule', own('exact')],
+              ['w:hRule', own(node.atLeast === true ? 'atLeast' : 'exact')],
             ]),
           ]),
       ...(node.header === true ? [element('w:tblHeader')] : []),

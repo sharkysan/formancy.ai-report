@@ -29,23 +29,29 @@ import { emu, twips } from './units.js'
  * With Austria's caption (0025) it is the PSA's frame, stated as Word
  * states one, in three nodes that are the code's size together: the
  * white the frame leaves above it in its square, kept with it; a table of
- * one row, exactly as tall as the frame, whose two cells are bordered
- * around by a line half a module wide -- the symbol's picture, its quiet
- * zone the frame's distance of four modules, and the caption's band, in
- * which "Zahlen mit Code" reads from bottom to top at 7 pt -- and the
- * white under it. The module, the frame and the band are report-spec's
- * `epc-print.ts`, the rules the PDF draws by. The picture stands the
- * line's width down from the frame's top, and in from its left as far as
- * its cell leaves it once both are in Word's units: within 0.075 pt of
- * the line's width.
+ * one row, at least as tall as the frame, of two cells -- the symbol's
+ * picture, its quiet zone the frame's distance of four modules, in a cell
+ * bordered on each side by a line half a module wide, and beside it,
+ * outside the line, the caption's band, in which "Zahlen mit Code" reads
+ * from bottom to top at 7 pt -- and the white under it. The module, the
+ * frame and the band are report-spec's `epc-print.ts`, the rules the PDF
+ * draws by. The picture stands the line's width down from the frame's
+ * top, and in from its left as far as its cell leaves it once both are
+ * in Word's units: within 0.075 pt of the line's width.
  *
  * What a Word file's frame is not, since a table's borders are what
  * draws it: its corners are square where the PSA's figure rounds them by
- * two modules, and its right line is whole, the caption standing inside
- * it, where the PDF breaks the line around the caption. And the caption
- * is named in Arial, the PSA's own "Arial o.s. non-serifs", which a
- * reader with Word has and whose widths are those of the Liberation Sans
- * the PDF prints it in; the file embeds no face.
+ * two modules, and its right line is whole, the caption standing beside
+ * it, outside the frame, where the PSA's figure and the PDF break the
+ * line around the caption. Drawn around both cells, as it first was, the
+ * right line stood at the table's own edge, which Word cut off, and a row
+ * of an exact height cut the white under the symbol: both were seen in
+ * Word on 20 November 2026. The row is the least it is, so Word grows it
+ * to what its cells hold, and where that is more than the frame the code
+ * stands taller than its square by as much, which nothing here measures.
+ * And the caption is named in Arial, the PSA's own "Arial o.s.
+ * non-serifs", which a reader with Word has and whose widths are those of
+ * the Liberation Sans the PDF prints it in; the file embeds no face.
  */
 
 export type Code = QrCode | EpcQrCode
@@ -159,14 +165,18 @@ export function codeNodes(code: Code, symbol: QrSymbol, pictures: CodePictures):
       rows: [
         {
           cantSplit: false,
+          // At least the frame's height: of an exact one, Word cut the white under the symbol.
           height,
+          atLeast: true,
           cells: [
             {
               width: grid[0],
-              borders: { top: line, left: line, bottom: line },
+              // The frame's right line is this cell's, and the caption stands beside it: drawn at the table's own right edge, around the
+              // caption, the line was cut off by Word.
+              borders: { top: line, left: line, bottom: line, right: line },
               content: [{ ...picture(code, symbol, side, module, pictures), indent: fromLeft, before: inset }],
             },
-            { width: grid[1], borders: { top: line, bottom: line, right: line }, direction: 'btLr', content: [caption] },
+            { width: grid[1], direction: 'btLr', content: [caption] },
           ],
         },
       ],
