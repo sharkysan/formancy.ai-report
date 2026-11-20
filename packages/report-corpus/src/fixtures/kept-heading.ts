@@ -24,8 +24,11 @@ import { pagesOfRows, ROWS_PER_PAGE_RANGE } from './geometry.js'
  *
  * Not in `ALL_FIXTURES`, which is the corpus the renderer trial chose an
  * engine on (0005): the trial's pdfme adapter keeps no heading with
- * anything, and the trial's findings are of that corpus as it stood. The
- * renderer answers to it as it answers to those. The Word writer does
+ * anything, its pdfmake adapter keeps one with a table's header
+ * (`trial/pdfmake-content.ts`'s `anchorOf`) and fails both groups here,
+ * as the renderer did until 2026-11-20 (0011), and the trial's findings
+ * are of that corpus as it stood. The renderer answers to it as it
+ * answers to those. The Word writer does
  * not: what it is about is where a page breaks, which in a Word file is
  * Word's (0068), and its headings' marks are every other fixture's.
  */
