@@ -110,7 +110,8 @@ interface Anchor {
   readonly svg?: unknown
   readonly stack?: readonly Anchor[]
   readonly columns?: readonly Anchor[]
-  readonly table?: { readonly body: readonly (readonly Anchor[])[] }
+  /** A table, its rows as pdfmake takes them: `headerRows` of them first, which pdfmake repeats on every page the table continues on. */
+  readonly table?: { readonly headerRows?: number; readonly body: readonly (readonly Anchor[])[] }
   /** A keep-together block in the PDF's pass, or a chart: laid out where it starts and moved whole. */
   readonly unbreakable?: boolean
   id?: string
@@ -119,17 +120,24 @@ interface Anchor {
 
 /**
  * The first node of `node` that prints text, or an image or a QR code when
- * no text comes first: where pdfmake records the content's start. Of an
- * unbreakable node -- a keep-together block, a chart -- the first that
- * prints text wherever it stands in it, and an image or an SVG only where
+ * no text comes first: where pdfmake records the content's start. Of a
+ * table, the first of its body rows' cells, and of its header rows' only
+ * where none of those prints: pdfmake writes the page each repetition of
+ * a table's header stands on into the start of the header's cells, so
+ * that one says the table starts on the last page it reaches
+ * (`pdfmake.test.ts`), and a heading kept with it moved to the next page
+ * whenever the table ran past its own. Of an unbreakable node -- a
+ * keep-together block, a chart -- the first that prints text wherever it
+ * stands in it, a table's header first, and an image or an SVG only where
  * none does: pdfmake records where each of its nodes starts on the page
  * its layout began on, and corrects that page, once it moves the node to
- * the next, for text with an id alone (`pdfmake.test.ts`); and a chart
- * paints its marks before its first word.
+ * the next, for text with an id alone (`pdfmake.test.ts`); a chart paints
+ * its marks before its first word; and no header repeats inside a block
+ * that moves whole.
  */
 function anchorOf(node: Anchor): Anchor | undefined {
   if (node.unbreakable === true) return firstOf(node, printsText) ?? firstOf(node, prints)
-  const inner = innerOf(node)
+  const inner = node.table === undefined ? innerOf(node) : bodyFirst(node.table)
   if (inner === undefined) return prints(node) ? node : undefined
   for (const each of inner) {
     const anchor = anchorOf(each)
@@ -140,6 +148,11 @@ function anchorOf(node: Anchor): Anchor | undefined {
 
 /** The nodes `node` holds, in the order pdfmake lays them out: a stack's, columns', or a table's cells, row by row; none for a leaf. */
 const innerOf = (node: Anchor): readonly Anchor[] | undefined => node.stack ?? node.columns ?? node.table?.body.flat()
+
+/** A table's cells, row by row, its body rows' before its header rows', which pdfmake repeats on every page the table continues on. */
+function bodyFirst({ headerRows = 0, body }: NonNullable<Anchor['table']>): readonly Anchor[] {
+  return [...body.slice(headerRows), ...body.slice(0, headerRows)].flat()
+}
 
 /** The first node of `node`, itself or one it holds, in the order pdfmake lays them out, that `takes`. */
 function firstOf(node: Anchor, takes: (leaf: Anchor) => boolean): Anchor | undefined {
