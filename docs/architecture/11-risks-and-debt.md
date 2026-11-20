@@ -238,8 +238,8 @@ the demo with nobody opening its files, and a reader may meet a file Word
 repairs, lays out otherwise than the marks ask, or does not open.
 
 What is refused is refused for the same reason and costs a host its
-export: a report paid by a QR-bill and an invoice in law
-have no Word file at all, and a turned or CMYK
+export: an invoice in law has no Word file at all, and a
+turned or CMYK
 JPEG, an SVG that covers a box of other proportions and a table or a
 page break in a framed section are refused until somebody has seen what
 Word does with each. And the writer measures nothing, so it writes what

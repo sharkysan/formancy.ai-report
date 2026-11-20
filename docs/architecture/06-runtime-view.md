@@ -297,10 +297,11 @@ thread. The viewer keeps it with the PDF it was written beside, as the
 XML, so that Download Word gives the file of the render on the paper,
 under the starter's id. Where the writer refused, the link is not drawn
 and a note says why in the writer's own sentence, which is how a person
-learns that an invoice, a report paid by a QR-bill and
-a labelled preview have no Word file; a report with a QR code or an EPC
-QR code has one, the euro invoice among them (0074), and so has one with
-a chart, the sales report among them (0076). A fault of the writer's, or a chunk
+learns that an e-invoice and a labelled preview have no Word file; a
+report with a QR code or an EPC QR code has one, the euro invoice among
+them (0074), and so has one with a chart, the sales report among them
+(0076), and one paid by a QR-bill, the invoice and the payment reminder
+among them, its slip the file's last page (0075). A fault of the writer's, or a chunk
 that did not load, is the Word file's alone and leaves the PDF as it
 printed, which `word-fault.test.ts` and `word-chunk.test.ts` hold, a
 suite each; and the writer, with the two libraries it zips and inflates
