@@ -153,6 +153,14 @@ reader and decoded by ZXing. And it is the PDF's code, since what
 decides a code's symbol and what refuses one stands in the runtime,
 below both engines, and neither decides it again
 ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
+A chart in that file is Word's own chart, and proved on the part the
+file holds: read back by the corpus's reader, which takes one form of
+chart and no workbook, and held to the runtime's block in every word,
+every value's digits and the axis. Of a chart nothing is decided outside
+the runtime, so each engine draws the block its own way -- ECharts'
+layout in the PDF, Word's in the file -- and what Word then draws is no
+part of the proof
+([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
 
 ## 6. Depend, never copy, and let the licence choose the dependencies
 

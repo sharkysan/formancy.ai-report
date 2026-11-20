@@ -23,7 +23,7 @@ declare const markup: unique symbol
 /** XML the writer made: escaped text, an attribute's escaped value, or elements built of them. */
 export type Xml = string & { readonly [markup]: true }
 
-type Prefix = 'w' | 'r' | 'wp' | 'a' | 'pic' | 'asvg' | 'cp' | 'dc' | 'dcterms' | 'xsi' | 'xml' | 'xmlns'
+type Prefix = 'w' | 'r' | 'wp' | 'a' | 'pic' | 'asvg' | 'c' | 'cp' | 'dc' | 'dcterms' | 'xsi' | 'xml' | 'xmlns'
 
 /** An element's or an attribute's name: one of the writer's prefixes, or a name of a package's own vocabulary, which has none. */
 export type Name = `${Prefix}:${string}` | PackageName
@@ -56,6 +56,16 @@ type PackageName =
   | 'distB'
   | 'distL'
   | 'distR'
+  | 'val'
+  | 'idx'
+  | 'sz'
+  | 'i'
+  | 'rot'
+  | 'vert'
+  | 'w'
+  | 'typeface'
+  | 'formatCode'
+  | 'sourceLinked'
 
 /** A string type that is a literal, or a union of literals: never `string` itself. */
 type Literal<T extends string> = string extends T ? never : T
@@ -108,6 +118,19 @@ export function own<T extends string>(literal: Literal<T>): Xml {
 export function hexColor(color: string): Xml {
   if (!/^#[0-9a-f]{6}$/.test(color)) throw new Error('a colour that is not #rrggbb reached the writer: the checks refuse it before anything is written')
   return color.slice(1).toUpperCase() as Xml
+}
+
+/**
+ * A decimal as the runtime writes one -- a minus or none, digits, and a
+ * point and digits or none -- as markup, digit for digit: a chart's value
+ * and its axis's ends are the report's own digits (0076), never a number
+ * JavaScript read and wrote again. Held to being one here, so that what
+ * is written is digits whatever it was handed; the checks refuse anything
+ * else before anything is written.
+ */
+export function decimal(exact: string): Xml {
+  if (!/^-?\d+(?:\.\d+)?$/.test(exact)) throw new Error('a value that is no decimal reached the writer: the checks refuse it before anything is written')
+  return exact as Xml
 }
 
 /** An attribute's value: markup, or a whole number, which the writer's units are. */

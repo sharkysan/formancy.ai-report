@@ -216,7 +216,10 @@ gives files of a writer no release holds
 ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)),
 those of a report with a code since 0074, opened in Word once, by hand,
 on 20 November 2026
-([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
+([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)),
+and those of a report with a chart since 0076, opened in Word once, by
+hand, the same day
+([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
 
 Every file the Worker serves carries the headers `scripts/demo-headers.mjs`
 states for the demo's address, written by the deploy as one `_headers` rule:
@@ -319,19 +322,29 @@ serve the Studio under the same function of their own address
   rows, where 0068 measures it and says why V8 takes one amount or
   another for one file. A report of more than
   70,000 paragraphs, a table's cell being one, is refused for its size.
-  A report that is paid by a QR-bill, is an invoice in law or draws a
-  chart has no Word file, and neither has a labelled preview: each is
+  A report that is paid by a QR-bill or is an invoice in law has no
+  Word file, and neither has a labelled preview: each is
   refused, to be printed as a PDF. A QR code and an EPC QR code are in
   the file, as pictures of the symbol the PDF draws, at most 64 of them
   and sixteen of the largest symbol, which a document of codes alone
   was written with in up to 1.6 seconds
-  ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)). The writer measures nothing, so a host
+  ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)). A chart is in the file as Word's own chart, with no
+  workbook, so a person who opens it cannot edit its data; its value
+  axis is labelled by Word, at the places and with the grouping the
+  report's ticks print, in the reader's own separators and without the
+  report's currency; a file holds at most 64 charts and 25,600
+  points between them, which a document of charts alone was written with
+  in up to 0.53 seconds; and a report of very many charts may print as a
+  PDF and not be written as a Word file, or the other way round, each
+  engine bounding them by its own cost
+  ([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)). The writer measures nothing, so a host
   offers the file beside a PDF that was drawn, as the Studio does, or
   hands on what the renderer would have refused. The file names the
   report's fonts and embeds none, so a reader without the family sees the
   face Word chooses. The starters' files were opened in Word once, by
-  hand, those with a code not yet but the euro invoice from Austria,
-  for its frame, and no test opens one
+  hand, those with a code or a chart too, on 20 November 2026, the euro
+  invoice from Austria after its frame was written again, and no test
+  opens one
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **What it has authorised, and what it fixes:** the data, the parameters
   and an image lookup by id and digest; a time zone for instants; and the

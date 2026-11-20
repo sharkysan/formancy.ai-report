@@ -36,12 +36,96 @@ export interface DocxPicture {
   readonly crop?: { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number }
 }
 
+/** What a word of a chart is set in, as its own properties state it. */
+export interface DocxChartFace {
+  /** The one family its three typeface slots name. */
+  readonly family: string
+  /** Points. */
+  readonly size: number
+  readonly bold: boolean
+  readonly italic: boolean
+  /** Lower-case `#rrggbb`. */
+  readonly color: string
+}
+
+/** A word the chart's part states itself: its text, and what it is set in. */
+export interface DocxChartWord {
+  readonly text: string
+  readonly face: DocxChartFace
+}
+
+/** One series of a chart, every list of it as long as its points' count, a point the part states none for null. */
+export interface DocxChartSeries {
+  /** Its name, which the legend prints, empty where it prints nothing; absent where the part states none, and Word names the series itself. */
+  readonly name?: string
+  /** A bar's fill, or a line's stroke and its markers' fill; a pie's series has none, each point its own. */
+  readonly color?: string
+  /** A line's weight in points, and its markers' size. */
+  readonly line?: number
+  readonly marker?: number
+  /** Each category's label, empty where it prints nothing; null throughout where the part states no categories, as a pie without a legend. */
+  readonly categories: readonly (string | null)[]
+  /** Each value as the part writes it, digit for digit. */
+  readonly values: readonly (string | null)[]
+  /** Each point's label, where the part states one. */
+  readonly labels: readonly (DocxChartWord | null)[]
+  /** Where its labels stand; absent where it labels nothing. */
+  readonly labelPosition?: string
+  /** A pie's points' fills. */
+  readonly points: readonly (string | null)[]
+}
+
+/** A chart's part as it states the chart (0076): Word's own chart, of literal data. */
+export interface DocxChart {
+  readonly part: string
+  readonly kind: 'bar' | 'line' | 'pie'
+  readonly title?: DocxChartWord
+  readonly series: readonly DocxChartSeries[]
+  /** A bar chart's gaps, in hundredths of a bar's width: between two categories, and how far two bars of one overlap, negative where they stand apart. */
+  readonly bars?: { readonly gapWidth: number; readonly overlap: number }
+  readonly categoryAxis?: {
+    readonly title?: DocxChartWord
+    readonly face: DocxChartFace
+    /** Its line. */
+    readonly line: DocxBorder
+    /** Where on the value axis it stands: at zero, or at the axis's lowest value. */
+    readonly crosses: 'autoZero' | 'min'
+    /** Every how many categories one is labelled. */
+    readonly every: number
+  }
+  readonly valueAxis?: {
+    readonly title?: DocxChartWord
+    readonly face: DocxChartFace
+    /** Its lowest and highest value and the step between two gridlines, each as the part writes it. */
+    readonly min: string
+    readonly max: string
+    readonly step: string
+    /** The format Word prints its labels in. */
+    readonly format: string
+    readonly grid: DocxBorder
+  }
+  readonly legend?: { readonly position: string; readonly face: DocxChartFace }
+  /** What every word Word writes itself is set in, where nothing nearer says. */
+  readonly face: DocxChartFace
+}
+
+/** An inline chart: its extent on the page and the part it draws. */
+export interface DocxChartFrame {
+  readonly id: number
+  readonly name: string
+  /** Points. */
+  readonly width: number
+  readonly height: number
+  readonly chart: DocxChart
+}
+
 export type DocxRun =
   /** Text, a line break in it a line feed. */
   | { readonly kind: 'text'; readonly text: string; readonly props: DocxRunProps }
   /** A field Word works out, written without a result. */
   | { readonly kind: 'field'; readonly field: 'PAGE' | 'NUMPAGES'; readonly props: DocxRunProps }
   | { readonly kind: 'picture'; readonly picture: DocxPicture; readonly props: DocxRunProps }
+  | { readonly kind: 'chart'; readonly frame: DocxChartFrame; readonly props: DocxRunProps }
 
 /** A single line of a border: its weight in points and its colour, lower-case `#rrggbb`. */
 export interface DocxBorder {
@@ -87,6 +171,8 @@ export interface DocxCell {
   readonly shade?: string
   /** Which way its text reads where it is turned: from bottom to top, each line to the right of the last, as an EPC QR code's caption reads (0074). */
   readonly direction?: 'btLr'
+  /** Where its blocks stand in a cell taller than they are: in its middle, as an empty chart's words do (0076); absent, at its top. */
+  readonly align?: 'center'
   readonly blocks: readonly DocxBlock[]
 }
 

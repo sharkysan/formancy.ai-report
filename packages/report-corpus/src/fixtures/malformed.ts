@@ -1,6 +1,7 @@
 import { deflateSync } from 'node:zlib'
 import type { Block, EpcQrCode, Image, QrCode, ResolvedDocument, Table } from '../document.js'
 import { IMAGE_KINDS } from '../image-kinds.js'
+import { MALFORMED_CHARTS } from './malformed-charts.js'
 import { documentOf, paragraph } from './build.js'
 import { pngOf } from './png.js'
 import { SVG_AS_SAVED } from './svg.js'
@@ -11,7 +12,8 @@ import { SVG_AS_SAVED } from './svg.js'
  * none may stand, a width, a size, a colour, a field or a row the
  * document's types do not hold, bytes that are no picture, a PNG whose
  * image data is no whole zlib stream of its scanlines, a code no engine
- * draws -- and that an engine can refuse from the document alone, before
+ * draws, a chart no engine draws (`malformed-charts.ts`, 0076) -- and
+ * that an engine can refuse from the document alone, before
  * it measures anything.
  *
  * What an engine must refuse of a document is stated in each engine,
@@ -303,4 +305,6 @@ export const MALFORMED: readonly Malformed[] = [
     "An EPC QR code in Austria's frame whose payload needs a version with modules under 15 mil",
     epc({ ...CAPTIONED, payload: epcPayload(282) }),
   ),
+  // What a chart's block is refused by is stated in each engine, as every other block's is (0076).
+  ...MALFORMED_CHARTS,
 ]

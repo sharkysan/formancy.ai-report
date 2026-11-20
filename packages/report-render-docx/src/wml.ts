@@ -2,6 +2,7 @@ import {
   LINE_ENDING,
   type BlockNode,
   type CellNode,
+  type ChartNode,
   type Line,
   type ParagraphNode,
   type PictureNode,
@@ -106,6 +107,7 @@ export function writer(): Writer {
 
   const run = (node: RunNode): Xml => {
     if (node.kind === 'picture') return element('w:r', [], [TINY, drawing(node.picture)])
+    if (node.kind === 'chart') return element('w:r', [], [TINY, chartDrawing(node.chart)])
     const set = properties(node.style)
     if (node.kind === 'field') {
       // A field as its beginning, its instruction and its end, with no result: the writer knows no page, and writes no number it does not know.
@@ -173,6 +175,7 @@ export function writer(): Writer {
               ]),
             ]),
         ...(node.direction === undefined ? [] : [valued('w:textDirection', own(node.direction))]),
+        ...(node.align === undefined ? [] : [valued('w:vAlign', own(node.align))]),
       ],
     )
     return element('w:tc', [], [set, blocks(node.content)])
@@ -229,6 +232,52 @@ function line(side: Name, { weight, color }: Line): Xml {
     ['w:space', 0],
     ['w:color', hexColor(color)],
   ])
+}
+
+const CHART = own('http://schemas.openxmlformats.org/drawingml/2006/chart')
+
+/**
+ * An inline chart, exactly its box (0076): the reference to the part
+ * that states it, which Word draws. Its name is the writer's own, its
+ * number among the file's drawings.
+ */
+function chartDrawing(chart: ChartNode): Xml {
+  const inline = element(
+    'wp:inline',
+    [
+      ['distT', 0],
+      ['distB', 0],
+      ['distL', 0],
+      ['distR', 0],
+    ],
+    [
+      element('wp:extent', [
+        ['cx', emu(chart.width)],
+        ['cy', emu(chart.height)],
+      ]),
+      element('wp:docPr', [
+        ['id', chart.id],
+        ['name', own(`Chart ${chart.id}`)],
+      ]),
+      element(
+        'a:graphic',
+        [],
+        [
+          element(
+            'a:graphicData',
+            [['uri', CHART]],
+            [
+              element('c:chart', [
+                ['xmlns:c', CHART],
+                ['r:id', own(chart.part)],
+              ]),
+            ],
+          ),
+        ],
+      ),
+    ],
+  )
+  return element('w:drawing', [], [inline])
 }
 
 /**

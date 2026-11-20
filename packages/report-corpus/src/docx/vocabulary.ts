@@ -5,7 +5,8 @@ import type { ElementDef, Group } from './xml.js'
  * attribute `readDocx` reads, and each element's children in the order
  * ECMA-376 Part 1 gives them, transcribed from ISO/IEC 29500-4:2016's
  * transitional `wml.xsd`, `dml-main.xsd`, `dml-picture.xsd` and
- * `dml-wordprocessingDrawing.xsd` for these elements and no others. An
+ * `dml-wordprocessingDrawing.xsd` for these elements and no others; a
+ * chart's part is `chart-vocabulary.ts`'s, from `dml-chart.xsd` (0076). An
  * element that stands in two places with other contents -- `w:top` a
  * border in `w:tblBorders` and a width in `w:tblCellMar`, `a:ext` a size
  * in `a:xfrm` and an extension in `a:extLst` -- is a definition for each.
@@ -23,6 +24,7 @@ export const NS = {
   wp: 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing',
   a: 'http://schemas.openxmlformats.org/drawingml/2006/main',
   pic: 'http://schemas.openxmlformats.org/drawingml/2006/picture',
+  c: 'http://schemas.openxmlformats.org/drawingml/2006/chart',
   asvg: 'http://schemas.microsoft.com/office/drawing/2016/SVG/main',
   xml: 'http://www.w3.org/XML/1998/namespace',
   cp: 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties',
@@ -39,18 +41,18 @@ export const attr = (prefix: Prefix, local: string): string => `{${NS[prefix]}}$
 const W = (...locals: string[]): string[] => locals.map((local) => attr('w', local))
 
 /** One element at most. */
-const one = (def: ElementDef): Group => ({ of: [def] })
+export const one = (def: ElementDef): Group => ({ of: [def] })
 /** Any number of these, in any order. */
-const many = (...of: ElementDef[]): Group => ({ of, many: true })
+export const many = (...of: ElementDef[]): Group => ({ of, many: true })
 
-const element = (prefix: Prefix, local: string, attributes: readonly string[] = [], content: () => readonly Group[] = () => []): ElementDef => ({
+export const element = (prefix: Prefix, local: string, attributes: readonly string[] = [], content: () => readonly Group[] = () => []): ElementDef => ({
   uri: NS[prefix],
   local,
   attributes,
   content,
 })
 
-const text = (prefix: Prefix, local: string, attributes: readonly string[] = []): ElementDef => ({ ...element(prefix, local, attributes), text: true })
+export const text = (prefix: Prefix, local: string, attributes: readonly string[] = []): ElementDef => ({ ...element(prefix, local, attributes), text: true })
 
 /** An element that is on by standing there: the writer writes none off, and no `w:val`. */
 const flag = (local: string): ElementDef => element('w', local)
@@ -108,7 +110,8 @@ const drawing: ElementDef = element('w', 'drawing', [], () => [
     element('wp', 'inline', ['distT', 'distB', 'distL', 'distR'], () => [
       one(element('wp', 'extent', ['cx', 'cy'])),
       one(element('wp', 'docPr', ['id', 'name'])),
-      one(element('a', 'graphic', [], () => [one(element('a', 'graphicData', ['uri'], () => [one(picture)]))])),
+      // A picture, or the reference to a chart's part (0076): which of the two is `uri`'s to say, and the reader's to hold.
+      one(element('a', 'graphic', [], () => [one(element('a', 'graphicData', ['uri'], () => [one(picture), one(element('c', 'chart', [attr('r', 'id')]))]))])),
     ]),
   ),
 ])
@@ -136,6 +139,7 @@ const cell: ElementDef = element('w', 'tc', [], () => [
       one(element('w', 'tcBorders', [], () => sides(border, 'top', 'left', 'bottom', 'right'))),
       one(element('w', 'shd', W('val', 'color', 'fill'))),
       one(value('textDirection')),
+      one(value('vAlign')),
     ]),
   ),
   many(paragraph, table),

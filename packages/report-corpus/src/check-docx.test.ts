@@ -369,7 +369,6 @@ describe('wordRefusal derives', () => {
       { ...HAND_DOCUMENT, pageHeader: [{ kind: 'paragraph', runs: [{ text: E_INVOICE_PREVIEW_LABEL }] }] },
       { code: 'unsupported', subject: 'pageHeader' },
     ],
-    ['a chart', body(chart), { code: 'unsupported', subject: (chart as { id: string }).id }],
     [
       'a table in a framed section',
       body({ kind: 'section', padding: 4, blocks: [{ kind: 'table', id: 'boxed', columns: [], header: [], rows: [], emptyText: '' }] }),
@@ -383,8 +382,18 @@ describe('wordRefusal derives', () => {
     ['a JPEG its Exif block turns', body(image(kind('jpeg-turned'))), { code: 'unsupported', subject: 'jpeg-turned' }],
     ['a JPEG of four components', body(image(kind('jpeg-cmyk'))), { code: 'unsupported', subject: 'jpeg-cmyk' }],
     ['an SVG that covers a box of other proportions', body(image(svg, 'cover', 80, 40)), { code: 'unsupported', subject: 'mark' }],
-    // A picture's bytes are read once every block has been walked, as the PDF renderer reads them: the chart is met first, wherever the picture stands.
-    ['a chart after a JPEG its Exif block turns', body(image(kind('jpeg-turned')), chart), { code: 'unsupported', subject: (chart as { id: string }).id }],
+    // A picture's bytes are read once every block has been walked, as the PDF renderer reads them: a table in a frame is met first, wherever the picture stands.
+    [
+      'a table in a framed section after a JPEG its Exif block turns',
+      body(image(kind('jpeg-turned')), {
+        kind: 'section',
+        padding: 4,
+        blocks: [{ kind: 'table', id: 'boxed', columns: [], header: [], rows: [], emptyText: '' }],
+      }),
+      { code: 'unsupported', subject: 'boxed' },
+    ],
+    // A chart owes no refusal since 0076, so the picture after it is what the file is refused for.
+    ['a turned JPEG after a chart', body(chart, image(kind('jpeg-turned'))), { code: 'unsupported', subject: 'jpeg-turned' }],
     [
       'a turned JPEG in a column before one of four components',
       body({ kind: 'columns', columns: [{ width: 'fill', blocks: [image(kind('jpeg-turned'))] }] }, image(kind('jpeg-cmyk'))),
@@ -406,6 +415,9 @@ describe('wordRefusal derives', () => {
     // A code is the writer's to draw since 0074: what refuses one is the rules below both engines, and no reading of what a Word file holds.
     ['a QR code', body({ kind: 'qrCode', id: 'code', text: 'x', size: 60, errorCorrection: 'M' })],
     ['an EPC QR code in a column', body({ kind: 'columns', columns: [{ width: 'fill', blocks: [{ kind: 'epcQrCode', id: 'pay', payload: 'x', size: 60 }] }] })],
+    // A chart is Word's own since 0076: what refuses one is what any engine refuses of its block, and no reading of what a Word file holds.
+    ['a chart', body(chart)],
+    ['a chart in a framed section', body({ kind: 'section', padding: 4, blocks: [chart] })],
   ])('none for %s', (_name, document) => {
     expect(wordRefusal(document)).toBeUndefined()
   })

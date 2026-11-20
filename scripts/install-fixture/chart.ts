@@ -10,11 +10,12 @@
 import { CHART_KINDS, CHART_PALETTE } from '@formancy/report-spec'
 import type { ChartComponent } from '@formancy/report-spec'
 import { MAX_CHART_CATEGORIES, resolveReport } from '@formancy/report-runtime'
-import type { Chart, ImageResolver, Resolution } from '@formancy/report-runtime'
+import type { Chart, ImageResolver, Resolution, ResolvedDocument } from '@formancy/report-runtime'
 import { renderPdf } from '@formancy/report-render-pdf'
 import { quotation, quotationData } from './quotation.js'
 
-export async function chartDrawn(images: ImageResolver): Promise<void> {
+/** The quotation with the guide's chart, resolved and drawn as a PDF: the document, which docx.ts writes as a Word file too (0076). */
+export async function chartDrawn(images: ImageResolver): Promise<ResolvedDocument> {
   const amounts: ChartComponent = {
     id: 'amounts',
     kind: 'chart',
@@ -58,4 +59,5 @@ export async function chartDrawn(images: ImageResolver): Promise<void> {
     throw new Error('the quotation with a chart did not resolve to a bar of three categories whose last tick is 500')
   const chartPdf = await renderPdf(charted.document, { maxPages: 50 })
   if (new TextDecoder().decode(chartPdf.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation with a chart did not render to a PDF')
+  return charted.document
 }

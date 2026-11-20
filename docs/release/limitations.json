@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:cc6dfcbde9da2795a330d5f0aa9ed9fe8e4c6806ad17d1f107f27f4c6306f5ff",
+      "reviewed": "sha256:a47f2530f66d19324bc7a8284d5cb7927cda2bc0664ee51855ca6178eb36b98b",
       "limitations": [
         {
           "area": "testing",
@@ -3127,11 +3127,11 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:ab882286bde715fcf4d5cbef7e24b122029003ab1e8ec4fe29743c1eb7d5cbf4",
+      "reviewed": "sha256:1e4915e78ef29180f7e9acd623fb25c87adeb5086b610d9d5f993bc427c7e153",
       "limitations": [
         {
           "area": "rendering",
-          "says": "A report that is paid by a QR-bill, is an e-invoice of either kind or draws a chart is refused as a Word file, in a final render and in a preview, and so is any preview the runtime labels, so a host whose reports carry a QR-bill, an e-invoice or a chart cannot export them and prints them as PDFs; a QR code and an EPC QR code are written since 0074.",
+          "says": "A report that is paid by a QR-bill or is an e-invoice of either kind is refused as a Word file, in a final render and in a preview, and so is any preview the runtime labels, so a host whose reports carry a QR-bill or an e-invoice cannot export them and prints them as PDFs; a QR code and an EPC QR code are written since 0074, and a chart since 0076.",
           "heldBy": "packages/report-render-docx/src/starters.test.ts"
         },
         {
@@ -3212,7 +3212,7 @@
         },
         {
           "area": "release",
-          "says": "The getting-started guide writes no Word file, since its quotation draws a chart, which the writer refuses; the package’s README carries the example, held to the lines the install gate runs.",
+          "says": "The getting-started guide writes no Word file: its quotation draws a chart, which the writer refused when 0068 was written, and the guide was not given one when 0076 wrote charts; the package’s README carries the example, held to the lines the install gate runs.",
           "heldBy": "scripts/readme-example.test.mjs"
         }
       ]
@@ -3272,6 +3272,65 @@
           "area": "testing",
           "says": "The corpus’s `verifyDocx` returns a promise, since ZXing reads a code’s picture, so a caller that does not wait for it holds a file to nothing; a derived expectation takes no key from a row whose first cell the report’s own words print again, and holds that row by its table alone; it takes the caption of a framed EPC QR code in a page region for a line of that region, so a report that prints the caption in its page footer and in its body cannot be held by the corpus’s checks of a PDF, which tell a page’s regions by the text of their lines; and the corpus’s check walks a code’s nodes by its own reading of the record’s table, so a row both it and the writer misread passes.",
           "heldBy": "packages/report-corpus/src/check-docx-codes.test.ts"
+        }
+      ]
+    },
+    "0076": {
+      "reviewed": "sha256:d867a1e72b90e53128c1c3dfffac8ffd27859c7cdd853a0a8052f20714d75d5d",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A chart in a Word file holds its data in its own part, as literals, and the file holds no workbook: Word’s “Edit Data” has nothing to open, so a person restyles the chart and changes its title, and rebuilds it to change its numbers; what Word says when it is asked was not written down.",
+          "heldBy": "packages/report-render-docx/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The labels on a chart’s value axis in a Word file are Word’s, written from the numbers by a format read from the ticks’ text, at the places they print and with their thousands grouped where the runtime grouped them: they print in the reader’s own separators with no currency or unit, where the PDF prints the runtime’s text in the render’s locale, so one report’s axis may say 1.000,50 beside labels that say 1,000.50; the currency stands only in an axis’s title where the report gives one, and in the values’ labels where the chart labels them.",
+          "heldBy": "packages/report-render-docx/src/against-pdf.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A Word file states each of a chart’s values as the report’s digits, and Word reads them as doubles: a bar is drawn from the double nearest a number of many digits, and two ticks that share seventeen digits are one to Word, where the PDF stands each at its place.",
+          "heldBy": "packages/report-render-docx/src/charts.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The Word files with a chart were opened in Word once, by hand, on 20 November 2026, each beside its PDF where there is one, and found as its list says, the charts in their place, their values, colours and order as the PDF’s and the sales report’s value axis grouped, with nothing more of what Word did written down; no test opens one: that Word draws a chart whose data are literals and which has no workbook, that it draws it in its box with its bars, its line and its slices where the numbers put them, where it puts each word and whether two meet, whether it wraps or cuts a category’s label, that a bar below zero hangs from zero with its label under its end, what it writes on the value axis, and that the words of a chart with nothing to draw stand in the middle of its box, is held by nothing; the tests read the part back."
+        },
+        {
+          "area": "rendering",
+          "says": "Where a chart’s words stand in a Word file is Word’s layout: the PDF refuses a chart whose words would meet, whose labels are too wide for their slots or whose bars would be under 3.5 pt in ECharts’ layout, and the Word file of the same chart is written, with nothing saying whether Word prints one word over another; a bar chart’s category axis is drawn at zero in the file and at the plot’s foot in the PDF; and the gaps between bars are whole hundredths of a bar’s width, 56 where the PDF’s number is 56.25.",
+          "heldBy": "packages/report-render-docx/src/against-pdf.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart with nothing to draw is no chart in a Word file but its title and its empty text, together in the middle of a cell as wide as its box and at least as tall, where the PDF prints the title at the top of the box and the empty text in its middle; the cell grows where its words need more than the box’s height, and its row does not split, so it moves to the next page whole.",
+          "heldBy": "packages/report-render-docx/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A Word file holds at most 64 charts and 25,600 points between them, what sixteen of the largest chart the runtime resolves hold, and no number written in more than 330 characters: a report past one is refused as a Word file; the PDF bounds a render’s charts by what ECharts’ layouts cost, so three of the largest line chart are written as a Word file and refused as a PDF, and sixty-five small charts the other way round; a document of charts alone at the Word file’s bounds was written in up to 0.53 seconds, and in up to 1.10 with 3,840,000 characters in its categories, on an Intel i9-10900K under Node 24.21.0 on 19 November 2026.",
+          "heldBy": "packages/report-render-docx/src/charts.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A chart’s words are trimmed of the whitespace at their ends in a Word file and one with a line break or a tab is refused, as in the PDF; and a tick’s label that no report prints refuses the Word file too, though the file does not state it, so that both engines refuse the same documents for their words.",
+          "heldBy": "packages/report-render-docx/src/charts.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "What no engine prints of a chart’s block is stated twice, in the PDF renderer’s check and in the Word writer’s, each with its own arithmetic on a number’s digits: a list of malformed charts holds the two to the same code and subject, never to the same sentence, and a kind of wrong that list lacks could be refused by one engine and written by the other.",
+          "heldBy": "packages/report-render-docx/src/against-pdf.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The corpus’s reader takes one form of chart, the writer’s, by a vocabulary transcribed from ECMA-376’s chart schema a second time: a mistake made in both transcriptions passes, the chart parts of the fixtures and the sales report were validated against ECMA-376’s transitional schema once, by hand, on 19 November 2026, and by nothing in CI, and the corpus’s check holds what the document states and not the bars’ gaps, a line’s weight or the gridlines, which the writer’s own tests hold to its constants and nothing holds to a page.",
+          "heldBy": "packages/report-corpus/src/check-docx-charts.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The runtime exports one name more, report-spec’s `MAX_SCALE`, from which the Word writer derives the most characters a chart’s number may be written in; a host that reads the runtime’s exports sees it.",
+          "heldBy": "packages/report-render-docx/src/charts.test.ts"
         }
       ]
     }

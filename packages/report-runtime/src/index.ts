@@ -66,6 +66,8 @@ export { MAX_CHART_CATEGORIES, SHARE_PLACES } from './lower-chart.js'
 export { MAX_TICK_INTERVALS } from './chart-ticks.js'
 /** report-spec's bound on a chart's series, one colour each from its palette, handed on beside the runtime's own, so that a renderer holds a block to it rather than to a copy. */
 export { MAX_CHART_SERIES } from '@formancy/report-spec'
+/** report-spec's bound on a decimal's places, handed on beside `MAX_FORMATTED_DIGITS`, so that an engine holds the digits of a chart's number to the two rather than to a copy (0076). */
+export { MAX_SCALE } from '@formancy/report-spec'
 export { CAPABILITIES, EVALUATION_ERROR_CODES, EXPRESSION_STEP_BUDGET, prepareExpressions, RENDER_STEP_BUDGET } from './evaluate.js'
 export type { ConditionEvaluation, Evaluation, EvaluationError, EvaluationErrorCode, ExpressionsPreparation, ReportExpressions } from './evaluate.js'
 

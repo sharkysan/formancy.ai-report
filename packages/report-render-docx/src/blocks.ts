@@ -1,5 +1,6 @@
-import type { Block, Columns, Image, ImageAsset, Paragraph, QrSymbol, Rectangle, Section } from '@formancy/report-runtime'
+import type { Block, Chart, Columns, Image, ImageAsset, Paragraph, QrSymbol, Rectangle, Section } from '@formancy/report-runtime'
 import { drawnSize, type Picture } from './assets.js'
+import { chartNodes } from './charts.js'
 import { framed } from './check.js'
 import { codeNodes, type Code } from './codes.js'
 import type { DocxFonts } from './fonts.js'
@@ -45,7 +46,9 @@ export interface Build {
   /** Every code's symbol as the checks were handed it, and the relationship of the part its picture is, drawn at so many pixels a module. */
   readonly codes: ReadonlyMap<Code, QrSymbol>
   readonly code: (code: Code, symbol: QrSymbol, pixels: number) => RelationshipId
-  /** The file's pictures so far: each takes the next number. */
+  /** The relationship of the part a chart with something to draw becomes (0076). */
+  readonly chart: (chart: Chart) => RelationshipId
+  /** The file's pictures and charts so far: each drawing takes the next number. */
   readonly drawn: { pictures: number }
 }
 
@@ -100,6 +103,7 @@ function prints(block: Block): boolean {
     case 'image':
     case 'qrCode':
     case 'epcQrCode':
+    case 'chart':
       return true
     case 'keepTogether':
     case 'section':
@@ -154,6 +158,9 @@ function blockNodes(block: Block, out: Out, build: Build, width: number): void {
       // check.ts asks for every code's symbol before anything is built.
       for (const node of codeNodes(block, build.codes.get(block)!, { embed: build.code, next: () => (build.drawn.pictures += 1) })) push(out, node)
       return
+    case 'chart':
+      for (const node of chartNodes(block, build.fonts, { part: build.chart, next: () => (build.drawn.pictures += 1) })) push(out, node)
+      return
     case 'rule':
       // Its line under an exact line as tall as the space above it, and the space below it after: the PDF's rule, gap for gap.
       return push(out, { ...emptyLine(RULE_GAP), after: RULE_GAP, rule: { weight: block.thickness, color: block.color ?? BLACK } })
@@ -185,8 +192,8 @@ function blockNodes(block: Block, out: Out, build: Build, width: number): void {
       // One without a frame was replaced by its blocks before this.
       return push(out, sectionNode(block, build, width))
     default:
-      // A chart: check.ts refuses one before anything is built.
-      throw new Error(`a ${block.kind} block reached the writer`)
+      // Every kind the document's types hold is written above, and check.ts refuses any other before anything is built.
+      throw new Error(`a ${String((block as { readonly kind?: unknown }).kind)} block reached the writer`)
   }
 }
 

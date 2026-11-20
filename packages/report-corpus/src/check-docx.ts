@@ -24,7 +24,9 @@ import { normalise, type ExpectedImage, type ExpectedRefusal, type ExpectedShift
  * A code is held on its picture (0074): the pixels the file embeds, read
  * back by the corpus's own PNG reader, and what ZXing reads in them, as a
  * scanner would (`check-docx-codes.ts`). That reading is not at hand at
- * once, so the check is waited for.
+ * once, so the check is waited for. A chart is held on its part (0076):
+ * Word's own chart as the file states it, its words, its values' digits
+ * and its axis (`check-docx-charts.ts`).
  *
  * What this cannot show is that Word opens the file, or prints it so.
  */
@@ -95,6 +97,12 @@ function fontProblems(docx: Docx): string[] {
     for (const props of [paragraph.mark, ...paragraph.runs.map((run) => run.props)]) if (props.family !== undefined) named.add(props.family)
   if (docx.defaults.run.family !== undefined) named.add(docx.defaults.run.family)
   return [...named].filter((family) => !listed.has(family)).map((family) => `the family ${family} is named by a run and missing from the font table`)
+}
+
+/** The title of the chart `paragraph` draws, as a line of extracted text has it; undefined where it draws none, or one with no title. */
+function titleOf(paragraph: DocxParagraph): string | undefined {
+  const [run] = paragraph.runs
+  return run?.kind === 'chart' && run.frame.chart.title !== undefined ? normalise(run.frame.chart.title.text) : undefined
 }
 
 /** A paragraph's words as a line of extracted text has them; a field as nothing. */
@@ -170,9 +178,20 @@ function expectedProblems(expect: Fixture['expect'], docx: Docx, coded: Readonly
   // its block, which is kept with nothing after it, and what it is kept with is the block walk's to say (`check-docx-blocks.ts`).
   const standsAlone = new Set<DocxBlock>(docx.body)
   for (const group of expect.keptTogether) {
-    const kept = group.map((line) => body.find((paragraph) => lineOf(paragraph) === line))
+    // A group's lines are sought in their order, each after the one before it. A chart's title is a word of its part and no paragraph of
+    // the body: it is found at the chart's own paragraph, there and nowhere else, whatever a paragraph elsewhere says.
+    let from = 0
+    const kept = group.map((line) => {
+      const at = body.findIndex((paragraph, index) => index >= from && (lineOf(paragraph) === line || titleOf(paragraph) === line))
+      if (at >= 0) from = at + 1
+      return body[at]
+    })
+    const charted = kept.map((paragraph) => paragraph !== undefined && titleOf(paragraph) !== undefined)
+    // A heading kept with the chart under it is one paragraph kept with the next, and neither keeps its lines: only a keep-together
+    // block's do. So a chart's line, and the line before it, are held by what each is kept with, and their lines by the block walk.
     const loose = (paragraph: DocxParagraph, index: number): boolean =>
-      !paragraph.keepLines || (index < kept.length - 1 && standsAlone.has(paragraph) && !paragraph.keepNext)
+      (!paragraph.keepLines && charted[index] !== true && charted[index + 1] !== true) ||
+      (index < kept.length - 1 && standsAlone.has(paragraph) && !paragraph.keepNext)
     if (kept.some((paragraph, index) => paragraph === undefined || loose(paragraph, index)))
       problems.push(`the kept lines from '${group[0] ?? ''}' are not all marked to stay on one page`)
   }
@@ -272,7 +291,9 @@ function shiftedProblems(where: string, expected: readonly ExpectedShiftedRun[],
  * to the PDF and what nobody has seen Word print as the PDF does; what any
  * engine refuses of a malformed document, a code the rules below both
  * engines refuse among it (0074), and what the PDF renderer refuses of
- * what it measured, are a fixture's own to state.
+ * what it measured, are a fixture's own to state. A chart was refused
+ * here until 0076: Word draws one of its own, and a chart is refused
+ * only as any engine refuses it.
  */
 export function wordRefusal(document: ResolvedDocument): ExpectedRefusal | undefined {
   if (document.paymentPart !== undefined) return { code: 'unsupported', subject: 'paymentPart' }
@@ -314,7 +335,6 @@ function refusalAmong(blocks: readonly Block[], path: string, inFrame: boolean):
   for (const [index, block] of blocks.entries()) {
     const at = `${path}[${index}]`
     const unsupported = (subject: string): ExpectedRefusal => ({ code: 'unsupported', subject })
-    if (block.kind === 'chart') return unsupported(block.id)
     if (block.kind === 'table' && inFrame) return unsupported(block.id)
     if (block.kind === 'pageBreak' && inFrame) return unsupported(at)
     const inner =

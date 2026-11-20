@@ -8,13 +8,14 @@ import type { TableRow } from '@formancy/report-runtime'
  * gap between a page region and the body, and the face the sans token
  * prints in where the report maps none. Each is report-render-pdf's own
  * constant, named beside it; nothing imports the renderer here, since a
- * writer that did would carry pdfmake and ECharts for nine numbers.
+ * writer that did would carry pdfmake and ECharts for a few numbers.
  *
  * Stated twice, so held together by a test, not by an import:
  * `against-pdf.test.ts` reads the sizes, the weights and the slant from
- * the PDF the renderer draws of the same document. The rules, the
- * padding and the gaps print nothing a reader of the PDF's text sees, and
- * are held by review.
+ * the PDF the renderer draws of the same document, a chart's words among
+ * them. The rules, the padding and the gaps print nothing a reader of the
+ * PDF's text sees, and are held by review; so are a chart's marks, which
+ * Word draws from what the file states and nothing here sees drawn.
  */
 
 /** Text when a paragraph names no size: report-render-pdf's `DEFAULT_SIZE` (`style.ts`). */
@@ -52,3 +53,23 @@ export const ROBOTO = 'Roboto'
 
 /** What prints where a style names no colour: black, as pdfmake draws text. */
 export const BLACK = '#000000'
+
+/** A chart's words where its style names no size: its `CHART_TEXT_SIZE` (`chart-faces.ts`). */
+export const CHART_TEXT_SIZE = 8
+
+/**
+ * A chart's marks, as the PDF renderer's option states them
+ * (`chart-option.ts`): of a category's slot, the room between one
+ * category's bars and the next's, and of a bar's width, the room between
+ * two bars of one category, its `BAR_CATEGORY_GAP` and `BAR_GAP`; a
+ * line's width and its marker's radius, its `LINE_WIDTH` and
+ * `POINT_RADIUS`; and the gridlines and the category axis's line, its
+ * `GRID` and `AXIS`. A Word file states the first two as Word states
+ * them, in whole hundredths of a bar's width (`chart-xml.ts`).
+ */
+export const BAR_CATEGORY_GAP = 0.2
+export const BAR_GAP = 0.25
+export const LINE_WIDTH = 1.5
+export const POINT_RADIUS = 2
+export const GRID = { color: '#d9d9d9', weight: 0.5 } as const
+export const AXIS = { color: '#000000', weight: 0.75 } as const

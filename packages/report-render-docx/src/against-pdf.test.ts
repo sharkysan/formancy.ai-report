@@ -1,6 +1,8 @@
 import {
   ALL_FIXTURES,
+  CHART_FIXTURES,
   CODE_FIXTURES,
+  docxCharts,
   EURO_INVOICE_AT,
   FIRST_PAGE_FIXTURES,
   IMAGE_KINDS,
@@ -12,17 +14,20 @@ import {
   SHIFTED_FIXTURES,
   STARTERS,
   SVG_FIXTURES,
+  verify,
+  verifyDocx,
   wordRefusal,
   type DocxBlock,
+  type DocxChartFrame,
   type Fixture,
 } from '@formancy/report-corpus'
 import { renderPdf } from '@formancy/report-render-pdf'
 import { MAX_ASSET_BYTES, MAX_ASSET_SIDE, RenderRefusal, SHIFTED_SIZE } from '@formancy/report-runtime'
-import type { Block, EpcQrCode, ImageAsset, QrCode, ResolvedDocument } from '@formancy/report-runtime'
+import type { AxisChart, Block, Chart, EpcQrCode, ImageAsset, QrCode, ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
-import { MAX_DOCX_IMAGE_DATA } from './limits.js'
-import { DEFAULT_SIZE, KIND_BOLD, TABLE_SIZE } from './look.js'
-import { blank, documentOf, padded, paragraph, refusalOf, resolved, written } from './testing/support.js'
+import { MAX_DOCX_CHARTS, MAX_DOCX_IMAGE_DATA } from './limits.js'
+import { CHART_TEXT_SIZE, DEFAULT_SIZE, KIND_BOLD, TABLE_SIZE } from './look.js'
+import { blank, documentOf, fixtureOf, padded, paragraph, refusalOf, resolved, written } from './testing/support.js'
 
 /**
  * The writer held to the PDF renderer (0068). Two things a resolved
@@ -68,6 +73,18 @@ import { blank, documentOf, padded, paragraph, refusalOf, resolved, written } fr
  * decoded from its page -- its text, its bytes, its level and its version
  * -- in a square of the PDF's size, at the PDF's module; and a code that
  * is refused is refused by both in the same words.
+ *
+ * **A chart** is drawn by each engine its own way, ECharts' layout in the
+ * PDF and Word's own chart in the file (0076), from one block. So every
+ * word a chart's part states is a word the PDF draws, at that size in a
+ * face of that weight and slant, and every word the PDF draws of a chart
+ * is one the part states -- but the value axis's labels, which a Word
+ * file does not state: the PDF's are the block's ticks' texts, and the
+ * file's axis runs from the lowest tick to the highest in their step.
+ * Each engine's file is held to the one expectation the corpus derives
+ * of the document. And what the two refuse otherwise is said: what the
+ * PDF refuses of a layout Word makes itself, and each engine's own bound
+ * on a document's charts.
  */
 
 const TIMEOUT = 240_000
@@ -93,6 +110,7 @@ function wordsOfFile(blocks: readonly DocxBlock[]): Set<string> {
           text = ''
         }
         for (const run of block.runs) {
+          if (run.kind === 'chart') for (const word of wordsOfChart(run.frame)) words.add(word)
           if (run.kind !== 'text') continue
           const size = (run.props.size ?? Number.NaN) * (run.props.shift === undefined ? 1 : SHIFTED_SIZE)
           // A run set below the line and one set above it are of one size, and two runs: each is moved its own way.
@@ -106,6 +124,58 @@ function wordsOfFile(blocks: readonly DocxBlock[]): Set<string> {
   }
   walk(blocks)
   return words
+}
+
+/**
+ * Every word a chart's part states, as it prints: its title, its axes'
+ * titles and each value's label in the face each states, each category's
+ * label in the category axis's, and each series' name, or a pie's
+ * slice's, in the legend's. The value axis's labels are none of them:
+ * Word writes those from the numbers.
+ */
+function wordsOfChart({ chart }: DocxChartFrame): string[] {
+  const { categoryAxis, valueAxis, legend } = chart
+  const stated = [chart.title, categoryAxis?.title, valueAxis?.title, ...chart.series.flatMap((series) => series.labels)]
+  const named = chart.series.flatMap((series) => [
+    ...(chart.kind === 'pie' || series.name === undefined ? [] : [{ text: series.name, face: legend?.face }]),
+    ...series.categories.map((text) => ({ text: text ?? '', face: chart.kind === 'pie' ? legend?.face : categoryAxis?.face })),
+  ])
+  return [...stated, ...named].flatMap((word) => {
+    if (word?.face === undefined) return []
+    const { size, bold, italic } = word.face
+    return word.text.split(/\s+/).flatMap((each) => (each === '' ? [] : [printed(each, size, bold, italic)]))
+  })
+}
+
+/** Every chart of `blocks`, however deep. */
+function chartsOf(blocks: readonly Block[]): Chart[] {
+  return blocks.flatMap((block) =>
+    block.kind === 'chart'
+      ? [block]
+      : block.kind === 'columns'
+        ? block.columns.flatMap((slot) => chartsOf(slot.blocks))
+        : block.kind === 'section' || block.kind === 'keepTogether'
+          ? chartsOf(block.blocks)
+          : [],
+  )
+}
+
+/** A chart's word as its PDF prints it: in the chart's words' face, at their size. */
+function chartPrinted(chart: Chart, text: string): string[] {
+  const style = chart.style ?? {}
+  return text
+    .trim()
+    .split(/\s+/)
+    .flatMap((word) => (word === '' ? [] : [printed(word, style.size ?? CHART_TEXT_SIZE, style.bold ?? false, style.italic ?? false)]))
+}
+
+/**
+ * The words of the value axes' labels of `document`'s charts, as the PDF
+ * prints them: each tick's text. They are the one thing of a chart the
+ * PDF prints and a Word file does not state.
+ */
+function tickWords(document: ResolvedDocument): Set<string> {
+  return new Set(chartsOf(document.body).flatMap((chart) => (chart.chart === 'pie' ? [] : chart.ticks.flatMap(({ text }) => chartPrinted(chart, text)))))
 }
 
 /** Every word a PDF draws as it prints: its box's height, which is its size, and its face's weight and slant by its PostScript name. */
@@ -134,6 +204,7 @@ const FIXTURES: readonly Fixture[] = [
   ...FIRST_PAGE_FIXTURES,
   ...SHIFTED_FIXTURES,
   ...CODE_FIXTURES,
+  ...CHART_FIXTURES,
 ].filter((fixture) => fixture.expect.outcome === 'render' && wordRefusal(fixture.document) === undefined)
 
 const BOTH: readonly (readonly [string, ResolvedDocument])[] = [
@@ -145,8 +216,8 @@ describe('what a document leaves to an engine', () => {
   // A suite that compared nothing would hold nothing: the starters that export and the fixtures both write are all here.
   test('is compared on every starter and fixture both engines write', () => {
     expect(BOTH.length).toBeGreaterThan(20)
-    // The six of record 0068 and the euro invoice, which is paid by a code (0074).
-    expect(BOTH.filter(([name]) => name.endsWith('starter'))).toHaveLength(7)
+    // The six of record 0068, the euro invoice, which is paid by a code (0074), and the sales report, which draws two charts (0076).
+    expect(BOTH.filter(([name]) => name.endsWith('starter'))).toHaveLength(8)
   })
 
   // The sizes and the bold no style states are the renderer's constants, typed again in look.ts: one changed alone would print a report's
@@ -164,7 +235,9 @@ describe('what a document leaves to an engine', () => {
         return long.some((whole) => whole.endsWith(` @ ${how}`) && whole.includes(text))
       }
       expect([...file].filter((word) => !pdf.has(word) && !long.includes(word)).sort()).toEqual([])
-      expect([...pdf].filter((word) => !file.has(word) && !piece(word)).sort()).toEqual([])
+      // A chart's value axis is labelled by Word, from the numbers (0076): the PDF's labels are the block's ticks' texts, and no word of the file.
+      const ticks = tickWords(body)
+      expect([...pdf].filter((word) => !file.has(word) && !piece(word) && !ticks.has(word)).sort()).toEqual([])
     },
     TIMEOUT,
   )
@@ -328,6 +401,117 @@ describe('a code in both engines', () => {
     const word = refusalOf(landscape)
     expect({ code: word.code, subject: word.subject }).toEqual(pdf)
   })
+})
+
+describe('a chart in both engines', () => {
+  const DRAWN = CHART_FIXTURES.filter((fixture) => fixture.expect.outcome === 'render')
+  const sales = resolved(STARTERS.find((starter) => starter.id === 'sales-report')!)
+  const CHARTED: readonly Fixture[] = [...DRAWN, fixtureOf('sales-report', sales)]
+
+  // A suite that compared no chart would hold none: every chart fixture the PDF draws, and the starter that draws two.
+  test('is compared on every chart fixture the PDF draws and on the sales report', () => {
+    expect(DRAWN.length).toBeGreaterThan(8)
+    expect(chartsOf(sales.body).map((chart) => chart.chart)).toEqual(['bar', 'pie'])
+  })
+
+  // One expectation, derived of the document alone, and two files: a chart whose words, values or box one engine got otherwise fails here in that engine.
+  test.each(DRAWN.map((fixture) => [fixture.id, fixture] as const))(
+    '%s: the PDF and the Word file are each the chart the document says',
+    async (_id, fixture) => {
+      expect(verify(fixture, await readPdf(await renderPdf(fixture.document, { maxPages: 400 })))).toEqual([])
+      expect(await verifyDocx(fixture, written(fixture.document))).toEqual([])
+    },
+    TIMEOUT,
+  )
+
+  // The PDF prints every k-th tick's text; Word prints a number at each gridline. Both are the block's ticks: the PDF's words theirs, the file's axis theirs.
+  test.each(CHARTED.map((fixture) => [fixture.id, fixture] as const))(
+    '%s: the value axis the PDF labels is the axis the Word file states',
+    async (_id, { document }) => {
+      const body = bodyAlone(document)
+      const axes = chartsOf(body.body).filter((chart): chart is AxisChart => chart.chart !== 'pie' && chart.empty === undefined)
+      const stated = docxCharts(written(body)).flatMap(({ chart }) => (chart.valueAxis === undefined ? [] : [chart.valueAxis]))
+      expect(stated.map((axis) => [axis.min, axis.max])).toEqual(axes.map((chart) => [chart.ticks[0]!.exact, chart.ticks.at(-1)!.exact]))
+      // As many gridlines as the block has ticks: the highest less the lowest is the step that many times less one. Small numbers, read as numbers.
+      expect(stated.map((axis) => Math.round((Number(axis.max) - Number(axis.min)) / Number(axis.step)) + 1)).toEqual(axes.map((chart) => chart.ticks.length))
+      // And the lowest tick's label is on the PDF's page, in the words' face: the axis is labelled from its foot.
+      const pdf = await wordsOfPdf(body)
+      for (const chart of axes) for (const word of chartPrinted(chart, chart.ticks[0]!.text)) expect(pdf.has(word), `${chart.id}: ${word}`).toBe(true)
+    },
+    TIMEOUT,
+  )
+
+  /** What the PDF renderer refuses `document` as, or undefined where it draws it. */
+  async function pdfRefusal(document: ResolvedDocument): Promise<{ readonly code: string; readonly subject: string | undefined } | undefined> {
+    try {
+      await renderPdf(document, { maxPages: 400 })
+      return undefined
+    } catch (error) {
+      if (error instanceof RenderRefusal) return { code: error.code, subject: error.subject }
+      throw error
+    }
+  }
+
+  const UNFIT = CHART_FIXTURES.filter((fixture) => fixture.expect.outcome === 'refuse' && fixture.expect.refusal?.code === 'content-too-large')
+
+  // The record says the two differ here: what does not fit a chart's box is refused by the engine that lays it out, and Word lays its own chart out.
+  test.each(UNFIT.map((fixture) => [fixture.id, fixture] as const))(
+    '%s: refused by the PDF for what ECharts laid out, and written as a Word file',
+    async (_id, fixture) => {
+      expect(await pdfRefusal(fixture.document)).toEqual(fixture.expect.refusal)
+      expect(await verifyDocx(fixtureOf(fixture.id, fixture.document), written(fixture.document))).toEqual([])
+    },
+    TIMEOUT,
+  )
+
+  // A word no report prints is refused by both, as a paragraph's is: by the same code, naming the chart.
+  test('refuses a word of a chart in a script no report prints as the PDF does', async () => {
+    const { document } = CHART_FIXTURES.find((fixture) => fixture.id === 'chart-unprintable-label')!
+    const word = refusalOf(document)
+    expect({ code: word.code, subject: word.subject }).toEqual(await pdfRefusal(document))
+  })
+
+  // Neither engine's page holds a box taller than it: each says so its own way, by the same code and the chart's id.
+  test('refuses a chart taller than a page as the PDF does, by its code and its id', async () => {
+    const chart = { ...(DRAWN[0]!.document.body.find((block) => block.kind === 'chart') as Chart), height: 5000 }
+    const document = documentOf([chart])
+    expect(await pdfRefusal(document)).toEqual({ code: 'content-too-large', subject: chart.id })
+    expect(refusalOf(document)).toMatchObject({ code: 'content-too-large', subject: chart.id })
+  })
+
+  // Each engine bounds a document's charts by what they cost it, and the two costs are not one: the record says which engine refuses what.
+  test(
+    'each engine holds the charts of a document to a bound of its own',
+    async () => {
+      const line = (id: string, series: number, categories: number): Chart => ({
+        kind: 'chart',
+        chart: 'line',
+        id,
+        width: 495,
+        height: 200,
+        categories: Array.from({ length: categories }, () => ''),
+        series: Array.from({ length: series }, (_, index) => ({
+          color: `#${String(index + 1).repeat(6)}`,
+          values: Array.from({ length: categories }, () => ({ exact: '1', text: '1' })),
+        })),
+        ticks: [
+          { exact: '0', text: '0' },
+          { exact: '1', text: '1' },
+        ],
+        valueLabels: false,
+        legend: [],
+      })
+      // Three lines of eight series over two hundred categories cost the PDF's layout more than a render may; a Word file holds sixteen.
+      const heavy = documentOf([0, 1, 2].map((index) => ({ ...line(`heavy${index}`, 8, 200), title: 'Heavy' })))
+      expect(await pdfRefusal(heavy)).toEqual({ code: 'content-too-large', subject: 'heavy2' })
+      expect(docxCharts(written(heavy))).toHaveLength(3)
+      // One more small chart than a Word file holds is a part too many for it, and little for the PDF to lay out.
+      const many = documentOf(Array.from({ length: MAX_DOCX_CHARTS + 1 }, (_, index) => line(`small${index}`, 1, 2)))
+      expect(refusalOf(many)).toMatchObject({ code: 'content-too-large', subject: `small${MAX_DOCX_CHARTS}` })
+      expect(await pdfRefusal(many)).toBeUndefined()
+    },
+    TIMEOUT,
+  )
 })
 
 describe('the lines a text with line endings prints', () => {

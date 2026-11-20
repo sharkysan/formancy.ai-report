@@ -1,7 +1,8 @@
 import { strToU8, zipSync, type Zippable } from 'fflate'
-import type { Block, ImageAsset, QrSymbol, ResolvedDocument } from '@formancy/report-runtime'
+import type { Block, Chart, ImageAsset, QrSymbol, ResolvedDocument } from '@formancy/report-runtime'
 import { SVG_FALLBACK, type Picture } from './assets.js'
 import { nodesOf, type Build } from './blocks.js'
+import { chartXml } from './chart-xml.js'
 import type { Checked, Page } from './check.js'
 import { codePng } from './code-png.js'
 import { CAPTION_FAMILY, captioned, type Code } from './codes.js'
@@ -28,7 +29,10 @@ import { attribute, element, own, part, text, type AttributeValue, type Name, ty
  * code, which is the same in every host -- or stored as it is, where it
  * is a PNG or a JPEG, which are compressed already. A code's picture is
  * a PNG the writer makes of its symbol (`code-png.ts`), whose data
- * fflate deflated already, and is stored as one.
+ * fflate deflated already, and is stored as one. A chart is a part of its
+ * own, `word/charts/chart1.xml`, numbered as the body meets it, which
+ * the body's part alone leads to and which leads nowhere: it has no
+ * relationships part, so no workbook and no address (0076).
  */
 
 /**
@@ -50,7 +54,9 @@ export function zipEpoch(): Date {
 const RELATIONSHIPS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 const MAIN = 'application/vnd.openxmlformats-officedocument.wordprocessingml'
 
-type RelationshipKind = 'styles' | 'settings' | 'fontTable' | 'header' | 'footer' | 'image'
+type RelationshipKind = 'styles' | 'settings' | 'fontTable' | 'header' | 'footer' | 'image' | 'chart'
+
+const CHART_TYPE = 'application/vnd.openxmlformats-officedocument.drawingml.chart+xml'
 
 /** One part's relationships, each named by its order; a target named twice is one relationship. */
 interface Relationships {
@@ -251,10 +257,20 @@ export function writePackage(document: ResolvedDocument, checked: Checked, fonts
     fallback: () => links.to('image', pictures.fallback()),
     codes: checked.codes,
     code: (code, symbol, pixels) => links.to('image', pictures.code(code, symbol, pixels)),
+    chart: (chart) => links.to('chart', chartPart(chart)),
     drawn,
   })
   const files: [string, string][] = []
   const overrides: [string, string][] = []
+  /** A chart's part, its name under `word/`: one for each chart the body draws, numbered as the body meets it. */
+  let charts = 0
+  const chartPart = (chart: Chart): string => {
+    charts += 1
+    const name = `charts/chart${charts}.xml`
+    files.push([`word/${name}`, chartXml(chart, fonts)])
+    overrides.push([`word/${name}`, CHART_TYPE])
+    return name
+  }
   /** A header's or a footer's part, where the region holds blocks: its name under `word/`. A header ends, and a footer begins, with the gap to the body. */
   const region = (blocks: readonly Block[], kind: 'header' | 'footer', name: string): string | undefined => {
     if (blocks.length === 0) return undefined

@@ -64,11 +64,17 @@ pnpm test:e2e:install
 #    on its second page, and that the firm's mark, page 1's own header, the
 #    footer's page number and count and the report's words are there; and,
 #    at the euro invoice, that its code's picture is as large as its PDF's,
-#    and that a phone reads the page Word prints of it (0074). Say
+#    and that a phone reads the page Word prints of it (0074); and, at
+#    the sales report, that each chart is drawn in its box, its bars and
+#    its slices where its numbers put them, with its title, its labels
+#    and its legend, what its value axis says, and that no word lies over
+#    another (0076). Say
 #    what was seen, in which Word and on which day, in record 0068's "Seen,
-#    once, by hand", and of a code in record 0074's, then
+#    once, by hand", of a code in record 0074's and of a chart in record
+#    0076's, then
 #    node scripts/release-report/limitations.mjs --stamp 0068
 #    node scripts/release-report/limitations.mjs --stamp 0074
+#    node scripts/release-report/limitations.mjs --stamp 0076
 
 # 4. Get the release commit onto main, through a pull request like any other.
 #    From the merge on, the pages at formancy.ai/report/ name the release,

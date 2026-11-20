@@ -326,8 +326,8 @@ as zlib does, alone. `check.ts` refuses before a byte is written, once
 date and the title, what belongs to the PDF of the document itself, the
 page, then each region's blocks in document order, and the pictures'
 bytes last. It refuses what belongs to the PDF (`pdf-only.ts`:
-a payment part, an e-invoice, a preview the runtime labelled and a
-chart); what nobody has seen Word print as the PDF
+a payment part, an e-invoice and a preview the runtime labelled);
+what nobody has seen Word print as the PDF
 does (a JPEG its Exif block turns, by report-spec's
 `JpegHeader.orientation`, or of four components, in `assets.ts`, which
 reads every picture's bytes as the renderer does, a PNG's image data
@@ -341,7 +341,9 @@ one of them, `MAX_DOCX_PICTURES`, `MAX_DOCX_MEDIA_BYTES` and
 `MAX_DOCX_IMAGE_DATA`, the renderer's `MAX_IMAGE_DATA` stated again and
 counted from a picture's header before a PNG is inflated, and
 `MAX_DOCX_CODES` and `MAX_DOCX_CODE_MODULES`, a file's codes and the
-modules of their symbols.
+modules of their symbols, and `MAX_DOCX_CHARTS`, `MAX_DOCX_CHART_POINTS`
+and `MAX_DOCX_CHART_DIGITS`, a file's charts, their points and a
+number's digits.
 `xml.ts` is the one place a string becomes markup, a type of its own, and
 `check-text.ts` holds every string to what a report prints and XML
 holds; `fonts.ts` names a mapped token by its normal face's name ID 1,
@@ -389,6 +391,32 @@ code to its document, and the picture's version to ZXing's, which is why
 test, `CODE_FIXTURES` are the documents both engines draw, and each way
 a code is refused is a document of `MALFORMED`
 ([0074](docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
+A chart is in the file as Word's own chart, from the runtime's block
+alone, with no ECharts: `charts.ts` holds which of a chart's words
+print, trimmed, and the face they are set in, maps a chart with
+something to draw to a paragraph of one inline chart exactly its box and
+one with nothing to draw to a cell at least as tall, its title and its
+empty text in its middle, and counts it; `chart-xml.ts` writes the part,
+`word/charts/chartN.xml`, DrawingML's `c:chartSpace` -- literal data
+(`c:strLit`, `c:numLit`), so no workbook, no formula and no
+relationship, each value the block's digits through `xml.ts`'s
+`decimal`, the value axis the lowest and the highest tick and their
+step, a value's label a point's own text, and what DrawingML leaves to
+Word unless it is said, said; the value axis's labels alone are Word's;
+`chart-exact.ts` reads a number's digits into BigInt; and
+`chart-check.ts` states again what no engine prints of a chart's block,
+the renderer's `check-chart.ts`, by its codes, and holds a file's
+charts to their bounds, each before the work it bounds. What the
+renderer refuses of ECharts' layout the writer writes: the layout is
+Word's. The corpus proves a chart on its part: `docx/chart-vocabulary.ts`
+is the closed vocabulary of a `c:chartSpace`, `docx/chart.ts`'s
+`readChart`, over `docx/chart-parts.ts`, `docx/chart-series.ts` and
+`docx/chart-axes.ts`, holds a part to the one form a report's chart is written in
+and to leading nowhere, `check-docx-charts.ts` holds each chart to its
+block, `docxCharts` reads a file's charts for a test,
+`docx/testing/hand-charts.ts` is the file typed out by hand those are
+proved on, and `fixtures/malformed-charts.ts` the charts of `MALFORMED`
+([0076](docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
 `@formancy/report-documents` is the one reader of PDFs, beside report-spec,
 which holds no PDF engine, and nothing calls it yet: `readDocument`, in
 `read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
@@ -724,8 +752,14 @@ checks (`packages/report-corpus/src/checks.ts`) are the tools for it.
   weights and slant are held to the PDF itself, in report-render-docx's
   `against-pdf.test.ts`
   ([0068](docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md), extending 0003).
-  That is what the file says, never what Word does with it: lines, pages
-  and whether a marked row repeats are Word's, no schema judges the file
+  A chart in one is proved on its part, Word's own chart as the file
+  states it, read by a closed vocabulary that takes no workbook and no
+  reference: its words, each value's digits as a string and its axis,
+  held to the block (`packages/report-corpus/src/check-docx-charts.ts`,
+  [0076](docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
+  That is what the file says, never what Word does with it: lines, pages,
+  whether a marked row repeats, and where a chart's words stand and what
+  its value axis says are Word's, no schema judges the file
   in CI, and no gate opens one in Word. A claim says which it rests on.
 - Never silently drop, clip or truncate content. A report that cannot fit says
   so in a diagnostic; a production render with incomplete data refuses.
@@ -1171,7 +1205,9 @@ Locally, run the same commands for what you changed.
   Node alone (0031), a PDF/A-2b, in `pdfa.ts` (0057), and the guide's
   quotation with its chart, in `chart.ts` (0058), and writes the
   quotation as a Word file, in `docx.ts`, its parts read with Node alone
-  and the quotation with a QR-bill refused (0068);
+  and the quotation with a QR-bill refused (0068), and the quotation
+  with its chart, its chart a part of the runtime's digits and no
+  workbook beside it (0076);
   `server.ts`, the server made in its host's process and asked over a
   socket, a draft saved through the packed client, read back and a stale
   save refused `draft-changed`;

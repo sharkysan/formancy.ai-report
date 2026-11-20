@@ -2,6 +2,7 @@ export { verify, verifyRefusal } from './checks.js'
 export { verifyDocx, wordRefusal } from './check-docx.js'
 export { readDocxCodes } from './docx-codes.js'
 export type { DocxCode } from './docx-codes.js'
+export { docxCharts } from './docx-charts.js'
 export type { CodeGrid } from './code-picture.js'
 export { readDocx } from './docx/read.js'
 export type {
@@ -17,6 +18,11 @@ export type {
   DocxRun,
   DocxRunProps,
   DocxTable,
+  DocxChart,
+  DocxChartFace,
+  DocxChartFrame,
+  DocxChartSeries,
+  DocxChartWord,
 } from './docx/model.js'
 export { readPackage } from './docx/package.js'
 export type { OpcPackage, Part, Relationship } from './docx/package.js'
