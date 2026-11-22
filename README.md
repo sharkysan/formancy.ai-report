@@ -54,7 +54,7 @@ barcodes, nested groups, more datasets, running totals, crosstabs,
 accessible PDFs, Excel, copy and paste in the editor, among the rest --
 and what is not planned at all.
 
-> **Status, 18 November 2026: 0.2.0, a developer preview, is released.**
+> **Status, 22 November 2026: 0.2.0, a developer preview, is released.**
 > Its eight packages are on npm, with provenance, and
 > [the GitHub release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.2.0)
 > carries the signed SBOM and release report of the run that published
