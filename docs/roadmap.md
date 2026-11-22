@@ -24,19 +24,6 @@ that lands it.
   a page is drawn. First the one reader of PDFs that the runtime, the
   renderer and the server share, then the component, the builders, the
   server and a formancy form's uploads.
-- **The rest of a report in its Word file** is written, each a record
-  and a pull request of its own, as
-  [0074](decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)
-  named them, and what is left is that nobody has opened the files in
-  Word. An e-invoice is written as a copy a person may edit, labelled on
-  every page as not the invoice
-  ([0077](decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)). A chart is written, as Word's own
-  chart, from the runtime's block
-  ([0076](decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)), and a QR-bill's slip, on a page of its own at the end of the file
-  ([0075](decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)). The writer still
-  refuses an e-invoice's own document and a labelled preview, as
-  [0068](decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)
-  has it.
 
 ## What a report can hold
 

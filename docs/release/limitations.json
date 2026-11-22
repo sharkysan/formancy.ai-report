@@ -3384,7 +3384,7 @@
       ]
     },
     "0077": {
-      "reviewed": "sha256:7cc741a68b92094d4bd4708e5138abe34be4c8dbba6eb97deb43db6f1f7b130d",
+      "reviewed": "sha256:a8e7800bbed2ea06c06539dff72fa6639037ec146197e27db341a375e3a26a55",
       "limitations": [
         {
           "area": "rendering",
@@ -3413,7 +3413,7 @@
         },
         {
           "area": "testing",
-          "says": "Nobody had opened the Word file of a copy of an e-invoice in Word when 0077 was written, and no test opens one: that Word prints the label on every page, page 1 and a QR-bill’s slip’s page among them, that it stands above the body and wraps cleanly, and that Word says nothing of links or embedded content, is held by nothing; the tests read the headers back."
+          "says": "The Word files of a copy of an e-invoice were opened in Word once, by hand, on 20 November 2026, each beside the PDF of the same copy where the PDF draws one, and found as their list says, the red label at the top of every page, page 1 and a QR-bill’s slip’s page among them, with nothing more of what Word did written down; no test opens one: that Word prints the label on every page, that it stands above the body and wraps cleanly, and that Word says nothing of links or embedded content, is held by nothing; the tests read the headers back."
         },
         {
           "area": "testing",

@@ -320,8 +320,11 @@ e-invoice. A preview's label and an XRechnung's PDF's are still English.
 The file says what it is only of a document the runtime resolved as a
 copy: a Factur-X's final render whose XML a host takes off carries no
 label and is written as any report, and the copy's file is titled as
-the invoice, which is what Word's File > Info names it.
-And nobody has seen Word print the label on every page
+the invoice, which is what Word's File > Info names it. That Word
+prints the label at the top of every page is held by nothing here, and
+was looked at once, by hand, on 20 November 2026, the red label found
+there on every page, page 1 and a slip's page among them; what was
+looked at beyond the list each file came with was not written down
 ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
 
 ### An SVG logo costs every reader, and some files are refused

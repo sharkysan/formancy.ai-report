@@ -35,10 +35,10 @@ value axis says -- is held by no test. The files with a QR-bill's
 slip, which it writes since 0075 on a page of its own, were opened in
 Word once, by hand, the same day, and 0075 says what was seen;
 everything Word prints of the page -- where the slip stands, its lines,
-its code -- is held by no test.
-A copy of an e-invoice, which it writes since 0077, nobody had
-opened in Word when that record was written, and it says so; that
-Word prints the label on every page is unseen.
+its code -- is held by no test. The copies of an e-invoice, which it
+writes since 0077, were opened in Word once, by hand, the same day, and
+0077 says what was seen; that Word prints the label at the top of every
+page, page 1 and a slip's page among them, is held by no test.
 
 ## Write a report as a Word file
 

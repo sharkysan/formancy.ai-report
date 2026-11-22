@@ -62,8 +62,16 @@ nothing depends on anything new.
   for as a PDF/A-2b, as it refuses a preview, whichever header carries
   its label. A new runtime
   error code, `no-e-invoice-copy`, and a manifest that says
-  `eInvoice: 'copy'` of a copy. Nobody had opened a copy in Word when
-  this merged.
+  `eInvoice: 'copy'` of a copy.
+- **Opened in Word once, by hand.** The files are read back by a reader
+  that is not their writer and held to the runtime's label. On 20
+  November 2026 every copy the writer writes of the e-invoice samples,
+  both starters among them, and of the e-invoice starter labelled in
+  the other five languages and given a QR-bill's slip, was opened in
+  Word, beside the PDF of the same copy where the PDF draws one and a
+  list of what it should show, and found fine: the red label at the
+  top of every page, page 1 and a slip's page among them. Nothing more
+  of what Word did was written down, and no test opens one.
 
 **A QR-bill's slip is written into a Word file, on a page of its own**
 ([0075](docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).

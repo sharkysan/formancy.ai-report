@@ -112,22 +112,30 @@
     label opening its page header, bold, red and at 8 pt, the invoice's
     number, and no part that holds the XML or leads outside the package;
     and refuses the invoice itself.
-  - **Not yet opened in Word.** The files this change writes -- the copy
-    of both e-invoice starters and of every e-invoice sample, in each
-    language each declares, each beside the PDF of the same copy and the
-    PDF of its invoice, the e-invoice starter's copy with the label in
-    each of the other five languages, and a copy with a slip's page, with
-    a list of what each should show -- were written for the person who
-    decides to open in Word before this change merges, as 0068 asks of a
-    change to what the writer writes. When this record was written nobody
-    had opened one. That Word prints the header on every page, page 1
-    included; that the label is its first line, red and bold, and wraps
-    cleanly where it is wider than the page; that the body starts under
-    the header and not behind it; that Word opens the file with no prompt
-    about links or embedded content; and that on a slip's page the label
+  - **Seen in Word, on 20 November 2026**, by the person who decides,
+    by hand and by no gate, as 0068 asks of a change to what the writer
+    writes: every file this change writes -- the copy of every e-invoice
+    sample, both e-invoice starters among them, in each language each
+    declares, each beside the PDF of the same copy and the PDF of its
+    invoice, the e-invoice starter's copy with the label in each of the
+    other five languages, beside the PDF of the same copy, and the
+    starter's copy with a slip's page, 11 Word files -- with a list of
+    what each should show. They were found fine ("Beide ok") against the list: the red
+    label at the top of every page, page 1 and a slip's page among them.
+    On 22 November 2026, once 0074, 0076 and 0075 as they merged and the
+    fix to a heading kept with a table (0011) were taken into this
+    change, the writer wrote each of those Word files again, and the
+    renderer each of the 15 PDFs beside them, and every one is the same
+    bytes as the file opened, compared once, outside any test.
+    Nothing more of what Word did was written down -- not how the label
+    wrapped where it is wider than the page, nor what Word said as it
+    opened a file -- and nothing of it is held by a test: that Word
+    prints the header on every page, page 1 included; that the label is
+    its first line, red and bold; that the body starts under the header
+    and not behind it; that Word opens the file with no prompt about
+    links or embedded content; and that on a slip's page the label
     stands 5 mm from the top and the sides and the slip where 0075 puts
-    it, pushed by nothing: all of it is held by no test and was seen by
-    nobody.
+    it, pushed by nothing, rest on that look.
 
 ## Context
 
@@ -318,11 +326,17 @@ What it costs:
   reads other words; the code and the subject are as they were.
 - **A slip's page of a copy is not the slip's page of a report.** Its
   header stands 5 mm down and holds a line, where 0075's holds nothing
-  at the edge: one more thing nobody has seen Word print.
+  at the edge: one more thing Word prints, which was seen once, by hand,
+  and is held by no test.
 - **`against-pdf.test.ts` holds a word the PDF broke after a hyphen by
   its parts.** The e-invoice starter's body was compared with its PDF
   for the first time here, and pdfmake breaks "Gas-Brennwertkessel" in a
   narrow column where the file has one word.
+- **These files were opened in Word once, by hand.** Each of them on
+  20 November 2026, against the list it came with. What Word prints of
+  a copy -- its header on every page, the label as its first line, the
+  body under it, a slip's page's label -- rests on that look, and no
+  test holds it; see *Verified by*.
 
 It forecloses nothing: a mark on the document, a label in more
 languages, and a Word file that embeds the XML could each be added.
@@ -370,9 +384,9 @@ languages, and a Word file that embeds the XML could each be added.
 
 ## What follows
 
-- The person who decides opens the files this change wrote in Word, and
-  what Word does otherwise than this record says is a change to the
-  writer or a cost here.
+- What Word was seen to print is written under this record's *Seen in
+  Word*; whatever a Word is seen to print otherwise than this record
+  says is a change to the writer or a cost here.
 - A native speaker's reading of the French, Italian, Spanish and Dutch
   labels.
 - The same six languages for a preview's label and the XRechnung's

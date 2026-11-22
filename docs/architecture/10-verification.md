@@ -587,8 +587,12 @@ as any report: the proof is of a document the runtime resolved. `against-pdf.tes
 to the PDF drawn of the same copy. What none of it shows is that Word
 prints a header on every page, or what a person does to the file
 afterwards: a copy whose label was deleted, or whose total was typed
-over, is a Word file like any other. Nobody had opened a copy in Word
-when 0077 was written.
+over, is a Word file like any other. Every copy the writer writes of
+the e-invoice samples, both starters among them, and of the e-invoice
+starter labelled in the other five languages and given a QR-bill's slip
+was opened in Word once, by hand, on 20 November 2026, and found fine:
+the red label at the top of every page, page 1 and a slip's page among
+them; nothing more of what Word did was written down.
 
 What it does not show is Word. That Word opens the file, repeats the
 marked row, keeps the marked ones, draws the SVG, puts page 1's header
@@ -738,9 +742,8 @@ later releases and say why, and the legal gate waits for a lawyer
   the starters' and the fixtures' files opened in Word once, by hand,
   those with a code once too, on 20 November 2026, the euro invoice from
   Austria after its frame was written as the variant approved in Word
-  (0074), and those with a chart (0076) and those with a QR-bill's
-  slip (0075) on the same day; those with a copy's label (0077) not
-  yet.
+  (0074), and those with a chart (0076), those with a QR-bill's slip
+  (0075) and those with a copy's label (0077) on the same day.
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **No phone, no bank, no paper.** ZXing decodes every code a test prints,

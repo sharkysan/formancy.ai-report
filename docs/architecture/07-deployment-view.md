@@ -222,7 +222,10 @@ hand, the same day
 ([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)),
 and those of a report paid by a QR-bill since 0075, opened in Word once,
 by hand, the same day
-([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
+([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)),
+and those of a report that carries an e-invoice since 0077, each written
+of its copy, opened in Word once, by hand, the same day
+([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
 
 Every file the Worker serves carries the headers `scripts/demo-headers.mjs`
 states for the demo's address, written by the deploy as one `_headers` rule:
@@ -356,9 +359,9 @@ serve the Studio under the same function of their own address
   hands on what the renderer would have refused. The file names the
   report's fonts and embeds none, so a reader without the family sees the
   face Word chooses. The starters' files were opened in Word once, by
-  hand, those with a code, a chart or a slip too, on 20 November 2026,
-  the euro invoice from Austria after its frame was written again, and
-  no test opens one
+  hand, those with a code, a chart, a slip or a copy's label too, on 20
+  November 2026, the euro invoice from Austria after its frame was
+  written again, and no test opens one
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **What it has authorised, and what it fixes:** the data, the parameters
   and an image lookup by id and digest; a time zone for instants; and the
