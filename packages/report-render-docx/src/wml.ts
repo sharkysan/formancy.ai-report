@@ -9,6 +9,7 @@ import {
   type RowNode,
   type RunNode,
   type RunStyle,
+  type SectionNode,
   type TableNode,
 } from './nodes.js'
 import { cropUnits, eighths, emu, halfPoints, twips } from './units.js'
@@ -128,6 +129,10 @@ export function writer(): Writer {
       ...(node.after === undefined || twips(node.after) === 0 ? [] : [['w:after', twips(node.after)] as const]),
       ...(node.line === undefined ? [] : [['w:line', twips(node.line)] as const, ['w:lineRule', own('exact')] as const]),
     ]
+    const indent: (readonly [Name, AttributeValue])[] = [
+      ...(node.indent === undefined || twips(node.indent) === 0 ? [] : [['w:left', twips(node.indent)] as const]),
+      ...(node.indentRight === undefined || twips(node.indentRight) === 0 ? [] : [['w:right', twips(node.indentRight)] as const]),
+    ]
     // In `CT_PPr`'s order.
     const set = element(
       'w:pPr',
@@ -139,9 +144,11 @@ export function writer(): Writer {
         // Between two paragraphs of the same borders Word draws the line between them alone (ECMA-376 Part 1, 17.3.1.7): a rule states both, or two equal rules would print one.
         ...(node.rule === undefined ? [] : [element('w:pBdr', [], [line('w:bottom', node.rule), line('w:between', node.rule)])]),
         ...(spacing.length === 0 ? [] : [element('w:spacing', spacing)]),
-        ...(node.indent === undefined || twips(node.indent) === 0 ? [] : [element('w:ind', [['w:left', twips(node.indent)]])]),
+        ...(indent.length === 0 ? [] : [element('w:ind', indent)]),
         ...(node.align === undefined ? [] : [valued('w:jc', own(node.align))]),
         mark(node.mark),
+        // The section a paragraph ends is the last of its properties (`CT_PPr`).
+        ...(node.section === undefined ? [] : [sectionProperties(node.section)]),
       ],
     )
     return element('w:p', [], [set, ...node.runs.map(run)])
@@ -232,6 +239,43 @@ function line(side: Name, { weight, color }: Line): Xml {
     ['w:space', 0],
     ['w:color', hexColor(color)],
   ])
+}
+
+/**
+ * A section as `w:sectPr` states it, in `CT_SectPr`'s order: the parts it
+ * prints as its header and footer, the paper, turned where the section's
+ * is, its margins, the header's and the footer's distance from the
+ * paper's edge, and `w:titlePg` where page 1 has a header of its own.
+ */
+export function sectionProperties(node: SectionNode): Xml {
+  const { margins } = node
+  return element(
+    'w:sectPr',
+    [],
+    [
+      ...node.references.map(({ kind, type, id }) =>
+        element(`w:${kind}Reference`, [
+          ['w:type', own(type)],
+          ['r:id', own(id)],
+        ]),
+      ),
+      element('w:pgSz', [
+        ['w:w', twips(node.paperWidth)],
+        ['w:h', twips(node.paperHeight)],
+        ...(node.landscape ? [['w:orient', own('landscape')] as const] : []),
+      ]),
+      element('w:pgMar', [
+        ['w:top', twips(margins.top)],
+        ['w:right', twips(margins.right)],
+        ['w:bottom', twips(margins.bottom)],
+        ['w:left', twips(margins.left)],
+        ['w:header', twips(node.header)],
+        ['w:footer', twips(node.footer)],
+        ['w:gutter', 0],
+      ]),
+      ...(node.firstPage ? [element('w:titlePg')] : []),
+    ],
+  )
 }
 
 const CHART = own('http://schemas.openxmlformats.org/drawingml/2006/chart')

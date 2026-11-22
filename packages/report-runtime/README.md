@@ -319,6 +319,40 @@ its body, and the Word writer its printable area. Resolving a report
 calls none of these: a report whose code is too long for its square
 resolves, and is refused where it is drawn or written.
 
+## A QR-bill's slip
+
+What refuses a QR-bill before an engine lays its slip out, and where SIX
+puts each part of the slip, stand here too, below every engine
+([0075](../../docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)):
+the PDF renderer draws the slip at the foot of the last page and the
+Word writer on a page of the file's own, from one set of numbers, and
+both refuse the same bills in the same words.
+
+`checkQrBill(bill, page, undrawn)` returns the bill with its Swiss QR
+Code's symbol, encoded once, or throws the `RenderRefusal` an engine
+refuses the document with, naming `paymentPart` and the field and never
+quoting a value: a kind nobody knows, a page that is not A4 upright or
+whose top margin reaches into the slip (`refuseBillPage`, report-spec's
+`qrBillPageBreak`), text that is not text, a value longer than any SIX
+allows, an address of other than two or three lines, more than two lines
+of additional information, a currency that is none of
+`QR_BILL_CURRENCIES`, and an amount not written as a slip prints one or
+past SIX's range. `undrawn` is the one thing an engine says itself, since
+only it knows the face it draws in: for a text and the face it prints in
+(`BillFace`, each heading's in `BILL_HEADING_FACES`), the rest of the
+sentence that says what its face does not draw, or nothing.
+
+`SLIP_RECEIPT` and `SLIP_PAYMENT_PART` are the two parts as SIX's style
+guide lays them out, in points from the slip's top left: where the
+title, the information and the amount section stand, the sizes of
+headings and values and the pitch of their lines, and the blank fields.
+`slipBlocks(bill, part)` is a part's information in SIX's order, each
+heading over its values or over a blank field. Beside them stand
+`SLIP_RECEIPT_WIDTH`, `SLIP_CODE`, `SLIP_ACCEPTANCE`, `SLIP_INSTRUCTION`,
+`SLIP_SEPARATION`, `SLIP_CORNER`, `SLIP_FIELD_GAP` and `SLIP_TITLE`, and
+the code's `SWISS_CODE_SIZE`, 46 mm, and `SWISS_CROSS`. Resolving a
+report calls none of these.
+
 ## An e-invoice
 
 A report's `eInvoice` (report-spec's, [0027](../../docs/decisions/0027-a-report-carries-one-en-16931-invoice-written-from-the-values-its-page-prints.md)) resolves, in a final render, to the

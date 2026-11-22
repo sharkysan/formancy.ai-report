@@ -352,12 +352,11 @@ describe('wordRefusal derives', () => {
 
   // Each is a block or a part record 0068 gives to the PDF, or that nobody has seen Word print: named, so that a refusal for another reason is not taken for it.
   test.each<[string, ResolvedDocument, { code: string; subject: string }]>([
-    ['a payment part', { ...HAND_DOCUMENT, paymentPart: {} as NonNullable<ResolvedDocument['paymentPart']> }, { code: 'unsupported', subject: 'paymentPart' }],
     ['an e-invoice', { ...HAND_DOCUMENT, eInvoice: {} as NonNullable<ResolvedDocument['eInvoice']> }, { code: 'unsupported', subject: 'eInvoice' }],
     [
-      'the payment part before a chart in the body',
-      { ...body(chart), paymentPart: {} as NonNullable<ResolvedDocument['paymentPart']> },
-      { code: 'unsupported', subject: 'paymentPart' },
+      'an e-invoice before its payment part, whose slip a Word file holds since 0075',
+      { ...HAND_DOCUMENT, eInvoice: {} as NonNullable<ResolvedDocument['eInvoice']>, paymentPart: {} as NonNullable<ResolvedDocument['paymentPart']> },
+      { code: 'unsupported', subject: 'eInvoice' },
     ],
     [
       'a preview labelled as lacking data',

@@ -20,7 +20,7 @@
  * Roboto 3.014 maps the Basic Multilingual Plane only, in a format 4
  * subtable; a character past it, an emoji among them, has no glyph here.
  */
-import { characterMap as readCharacterMap } from '@formancy/report-runtime'
+import { characterMap as readCharacterMap, type BillFace } from '@formancy/report-runtime'
 
 /** pdfmake's names for a family's four faces. */
 export type Face = 'normal' | 'bold' | 'italics' | 'bolditalics'
@@ -28,8 +28,8 @@ export type Face = 'normal' | 'bold' | 'italics' | 'bolditalics'
 /** The characters each face has a glyph for, by code point. */
 export type Glyphs = Readonly<Record<Face, ReadonlySet<number>>>
 
-/** The two faces of Liberation Sans a QR-bill's slip prints in (`style.ts`): its values, and its titles and headings. */
-export type BillFace = 'normal' | 'bold'
+/** The two faces of Liberation Sans a QR-bill's slip prints in (`style.ts`), its values, and its titles and headings: the runtime's, which names them for every engine. */
+export type { BillFace }
 
 /** The characters each of them has a glyph for. */
 export type BillGlyphs = Readonly<Record<BillFace, ReadonlySet<number>>>

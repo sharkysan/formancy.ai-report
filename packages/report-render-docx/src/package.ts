@@ -1,16 +1,19 @@
 import { strToU8, zipSync, type Zippable } from 'fflate'
-import type { Block, Chart, ImageAsset, QrSymbol, ResolvedDocument } from '@formancy/report-runtime'
+import { SWISS_CODE_SIZE, type Block, type Chart, type ImageAsset, type QrSymbol, type ResolvedDocument } from '@formancy/report-runtime'
 import { SVG_FALLBACK, type Picture } from './assets.js'
 import { nodesOf, type Build } from './blocks.js'
 import { chartXml } from './chart-xml.js'
-import type { Checked, Page } from './check.js'
+import type { Checked } from './check.js'
 import { codePng } from './code-png.js'
 import { CAPTION_FAMILY, captioned, type Code } from './codes.js'
 import type { DocxFonts, FontEntry } from './fonts.js'
 import { DEFAULT_SIZE, REGION_GAP } from './look.js'
-import { emptyLine, SEPARATOR, type BlockNode, type RelationshipId } from './nodes.js'
-import { halfPoints, twips } from './units.js'
-import { fontSlots, NAMESPACES, writer } from './wml.js'
+import { emptyLine, SEPARATOR, type BlockNode, type RelationshipId, type SectionNode } from './nodes.js'
+import { slipNodes, slipPage } from './slip.js'
+import { swissPixels, swissPng } from './slip-code.js'
+import { SLIP_FAMILY, SLIP_OTHER_FAMILY } from './slip-widths.js'
+import { halfPoints } from './units.js'
+import { fontSlots, NAMESPACES, sectionProperties, writer } from './wml.js'
 import { attribute, element, own, part, text, type AttributeValue, type Name, type Xml } from './xml.js'
 
 /**
@@ -33,6 +36,15 @@ import { attribute, element, own, part, text, type AttributeValue, type Name, ty
  * own, `word/charts/chart1.xml`, numbered as the body meets it, which
  * the body's part alone leads to and which leads nowhere: it has no
  * relationships part, so no workbook and no address (0076).
+ *
+ * A report paid by a QR-bill is two sections (0075): the report's, which
+ * its body's last paragraph ends, and the slip's page, the file's last,
+ * which the body's end states. A section with no header or footer of its
+ * own prints the one before it, so where the report prints a page header
+ * or a page footer the slip's section names an empty one in its place,
+ * `word/header3.xml` and `word/footer2.xml`: a header of unknown height
+ * above the slip would push it down the page, and a footer would print
+ * into it.
  */
 
 /**
@@ -110,14 +122,16 @@ interface Media {
   readonly fallback: () => string
   /** The part of `code`'s picture: its symbol drawn at `pixels` a module. */
   readonly code: (code: Code, symbol: QrSymbol, pixels: number) => string
+  /** The part of a slip's Swiss QR Code: its symbol with the Swiss cross over it. */
+  readonly swiss: (symbol: QrSymbol) => string
   /** Each part's name under `word/`, its bytes, and whether it is deflated. */
   readonly parts: Map<string, { readonly bytes: Uint8Array; readonly kind: Picture['kind'] }>
 }
 
 function media(): Media {
   const parts: Media['parts'] = new Map()
-  const names = new Map<ImageAsset | Code | 'fallback', string>()
-  const named = (key: ImageAsset | Code | 'fallback', bytes: () => Uint8Array, kind: Picture['kind']): string => {
+  const names = new Map<ImageAsset | Code | 'fallback' | 'swiss', string>()
+  const named = (key: ImageAsset | Code | 'fallback' | 'swiss', bytes: () => Uint8Array, kind: Picture['kind']): string => {
     const known = names.get(key)
     if (known !== undefined) return known
     const name = `media/image${names.size + 1}.${EXTENSIONS[kind].extension}`
@@ -129,45 +143,13 @@ function media(): Media {
     of: (asset, picture) => named(asset, () => asset.bytes, picture.kind),
     fallback: () => named('fallback', () => SVG_FALLBACK, 'png'),
     code: (code, symbol, pixels) => named(code, () => codePng(symbol, pixels), 'png'),
+    swiss: (symbol) => named('swiss', () => swissPng(symbol, swissPixels(symbol)), 'png'),
     parts,
   }
 }
 
 /** An element whose one attribute is `w:val`. */
 const valued = (name: Name, value: AttributeValue): Xml => element(name, [['w:val', value]])
-
-/**
- * The page as the section states it: the paper, turned where the
- * document's is, its margins, and the header's and the footer's
- * distance from the paper's edge the top and bottom margins, so that
- * both stand inside the printable area with the body between them, as
- * the document says; Word moves the body down past a header taller than
- * nothing. Page 1's own header (0060) is `w:titlePg` and a header of the
- * first page's own -- none where the document's list is empty, which
- * ECMA-376 has Word print as a blank one (Part 1, 17.10.5) -- with the
- * page footer referenced for the first page and for the rest.
- */
-function section(page: Page, landscape: boolean, references: readonly Xml[], firstPage: boolean): Xml {
-  const { margins } = page
-  return element(
-    'w:sectPr',
-    [],
-    [
-      ...references,
-      element('w:pgSz', [['w:w', twips(page.paperWidth)], ['w:h', twips(page.paperHeight)], ...(landscape ? [['w:orient', own('landscape')] as const] : [])]),
-      element('w:pgMar', [
-        ['w:top', twips(margins.top)],
-        ['w:right', twips(margins.right)],
-        ['w:bottom', twips(margins.bottom)],
-        ['w:left', twips(margins.left)],
-        ['w:header', twips(margins.top)],
-        ['w:footer', twips(margins.bottom)],
-        ['w:gutter', 0],
-      ]),
-      ...(firstPage ? [element('w:titlePg')] : []),
-    ],
-  )
-}
 
 /** The styles part: what Word would otherwise add to every paragraph -- space after it, a line taller than single -- taken away, and the default face and size. */
 function styles(fonts: DocxFonts): string {
@@ -193,10 +175,18 @@ function settings(): string {
   return part(element('w:settings', [NAMESPACES[0]!], [element('w:compat', [], [mode])]))
 }
 
-/** The font table: each family the file may name, and the kind a reader without it chooses another by; a modern face is of fixed pitch. */
+/** The font table: each family the file may name, another name a reader may find it by where it has one, and the kind a reader without it chooses another by; a modern face is of fixed pitch. */
 function fontTable(families: readonly FontEntry[]): string {
-  const entries = families.map(({ name, kind }) =>
-    element('w:font', [['w:name', attribute(name)]], [valued('w:family', own(kind)), valued('w:pitch', own(kind === 'modern' ? 'fixed' : 'variable'))]),
+  const entries = families.map(({ name, kind, other }) =>
+    element(
+      'w:font',
+      [['w:name', attribute(name)]],
+      [
+        ...(other === undefined ? [] : [valued('w:altName', attribute(other))]),
+        valued('w:family', own(kind)),
+        valued('w:pitch', own(kind === 'modern' ? 'fixed' : 'variable')),
+      ],
+    ),
   )
   return part(element('w:fonts', [NAMESPACES[0]!], entries))
 }
@@ -290,25 +280,56 @@ export function writePackage(document: ResolvedDocument, checked: Checked, fonts
   const links = relationships()
   for (const kind of ['styles', 'settings', 'fontTable'] as const) links.to(kind, `${kind}.xml`)
   const firstPage = document.firstPageHeader !== undefined
-  const reference = (kind: 'header' | 'footer', type: 'default' | 'first', target: string | undefined): Xml[] =>
-    target === undefined
-      ? []
-      : [
-          element(`w:${kind}Reference`, [
-            ['w:type', own(type)],
-            ['r:id', own(links.to(kind, target))],
-          ]),
-        ]
+  const reference = (kind: 'header' | 'footer', type: 'default' | 'first', target: string | undefined): SectionNode['references'] =>
+    target === undefined ? [] : [{ kind, type, id: links.to(kind, target) }]
   const references = [
     ...reference('header', 'default', header),
     ...reference('header', 'first', first),
     ...reference('footer', 'default', footer),
     ...(firstPage ? reference('footer', 'first', footer) : []),
   ]
+  /**
+   * The report's section: the paper, turned where the document's is, its
+   * margins, and the header's and the footer's distance from the paper's
+   * edge the top and bottom margins, so that both stand inside the
+   * printable area with the body between them, as the document says; Word
+   * moves the body down past a header taller than nothing. Page 1's own
+   * header (0060) is `w:titlePg` and a header of the first page's own --
+   * none where the document's list is empty, which ECMA-376 has Word
+   * print as a blank one (Part 1, 17.10.5) -- with the page footer
+   * referenced for the first page and for the rest.
+   */
+  const report: SectionNode = {
+    paperWidth: page.paperWidth,
+    paperHeight: page.paperHeight,
+    landscape: document.page.orientation === 'landscape',
+    margins: page.margins,
+    header: page.margins.top,
+    footer: page.margins.bottom,
+    references,
+    firstPage,
+  }
   const body = closed(nodesOf(document.body, building(links), page.width))
-  const main = element('w:document', NAMESPACES, [
-    element('w:body', [], [write.blocks(body), section(page, document.page.orientation === 'landscape', references, firstPage)]),
-  ])
+  const { slip } = checked
+  let last = report
+  if (slip !== undefined) {
+    // The report's section is ended by the last paragraph its body holds -- after a table, the one that follows it -- and a body of
+    // nothing is given an empty line for it. Never a paragraph more: on a last page full to within a point it would start another.
+    const end = body.pop() ?? emptyLine(SEPARATOR)
+    body.push(end.kind === 'paragraph' ? { ...end, section: report } : end)
+    /** An empty header or footer of the slip's page, where the report prints one that the page would otherwise print too. */
+    const none = (kind: 'header' | 'footer', printed: string | undefined, name: string): SectionNode['references'] => {
+      if (printed === undefined) return []
+      files.push([`word/${name}`, part(element(kind === 'header' ? 'w:hdr' : 'w:ftr', NAMESPACES, [write.blocks([emptyLine(SEPARATOR)])]))])
+      overrides.push([`word/${name}`, `${MAIN}.${kind}+xml`])
+      return reference(kind, 'default', name)
+    }
+    last = { ...slipPage(), references: [...none('header', header, 'header3.xml'), ...none('footer', footer, 'footer2.xml')] }
+    drawn.pictures += 1
+    const picture = { id: drawn.pictures, width: SWISS_CODE_SIZE, height: SWISS_CODE_SIZE, embed: links.to('image', pictures.swiss(slip.symbol)) }
+    body.push(...slipNodes(slip, picture))
+  }
+  const main = element('w:document', NAMESPACES, [element('w:body', [], [write.blocks(body), sectionProperties(last)])])
   const kinds = new Set([...pictures.parts.values()].map(({ kind }) => kind))
   const parts: Zippable = {}
   const add = (name: string, content: string): void => void (parts[name] = strToU8(content))
@@ -338,9 +359,13 @@ export function writePackage(document: ResolvedDocument, checked: Checked, fonts
   add('word/_rels/document.xml.rels', links.part()!)
   add('word/styles.xml', styles(fonts))
   add('word/settings.xml', settings())
-  // The family an EPC QR code's caption is named in is the one a file names that no report maps (`codes.ts`): listed where one is written.
-  const caption = [...checked.codes.keys()].some(captioned) && !fonts.table.some((entry) => entry.name === CAPTION_FAMILY)
-  add('word/fontTable.xml', fontTable(caption ? [...fonts.table, { name: CAPTION_FAMILY, kind: 'swiss' }] : fonts.table))
+  // The family an EPC QR code's caption and a slip are named in is the one a file names that no report maps (`codes.ts`, `slip-widths.ts`): listed
+  // where one is written, with the face of its widths as its other name.
+  const named = new Set([...([...checked.codes.keys()].some(captioned) ? [CAPTION_FAMILY] : []), ...(slip === undefined ? [] : [SLIP_FAMILY])])
+  // A report that maps a font of that very name lists it already: its entry is given the other name, as one added here has it.
+  const listed = fonts.table.map((entry): FontEntry => (named.has(entry.name) ? { ...entry, other: SLIP_OTHER_FAMILY } : entry))
+  const more = [...named].filter((family) => !fonts.table.some((entry) => entry.name === family))
+  add('word/fontTable.xml', fontTable([...listed, ...more.map((name): FontEntry => ({ name, kind: 'swiss', other: SLIP_OTHER_FAMILY }))]))
   for (const [name, content] of files) add(name, content)
   // A PNG and a JPEG are compressed already, and are stored as they are; an SVG is text, and is deflated.
   for (const [name, { bytes, kind }] of pictures.parts) parts[`word/${name}`] = kind === 'svg' ? bytes : [bytes, { level: 0 }]

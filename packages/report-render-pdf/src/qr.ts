@@ -1,5 +1,7 @@
 import type { ContentSvg } from 'pdfmake/interfaces.js'
-import { QR_QUIET_ZONE, type QrSymbol } from '@formancy/report-runtime'
+import { QR_QUIET_ZONE, SWISS_CODE_SIZE, SWISS_CROSS as CROSS, type QrSymbol } from '@formancy/report-runtime'
+
+export { SWISS_CODE_SIZE }
 
 /**
  * A QR code (ISO/IEC 18004), drawn as vectors.
@@ -53,21 +55,6 @@ export function darkRuns(symbol: QrSymbol, offset: number): string {
   })
   return runs.join('')
 }
-
-/** Millimetres in points. */
-const mm = (value: number): number => (value * 72) / 25.4
-
-/** A Swiss QR Code's side, without a quiet zone, whatever its version (IG 6.4): its modules are this over theirs. */
-export const SWISS_CODE_SIZE = mm(46)
-
-/**
- * The Swiss cross over the code's centre (IG 6.4.2), in millimetres: SIX's
- * logo, as schoero's generator draws it, is a white square of 7 mm, a black
- * square of 6 mm on it, and a white cross on that, its arms 7/6 mm wide and
- * 35/9 mm from end to end. manuelbl's draws the same black square and cross
- * on modules it clears, rather than on a white square.
- */
-const CROSS = { white: 7, black: 6, arm: 7 / 6, span: 35 / 9 } as const
 
 /**
  * The Swiss QR Code's square, 46 mm a side, without a quiet zone of its own:

@@ -27,11 +27,11 @@ that lands it.
 - **The rest of a report in its Word file**, before any other item on
   this page, each a record and a pull request of its own, as
   [0074](decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)
-  names them: a QR-bill's slip, on a page of its own at the end of the file (0075),
-  and an e-invoice as a copy a person may edit, labelled on every
+  names them: an e-invoice as a copy a person may edit, labelled on every
   page as not the invoice (0077). A chart is written, as Word's own
   chart, from the runtime's block
-  ([0076](decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)). Until each of the other two is written the writer
+  ([0076](decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)), and a QR-bill's slip, on a page of its own at the end of the file
+  ([0075](decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)). Until the e-invoice is written the writer
   refuses it, as
   [0068](decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)
   has it.
@@ -104,8 +104,8 @@ that lands it.
    [0068](decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)
    rather than argue them again.
 3. **More of a report in its Word file**, each of which 0068 refuses
-   until a record lifts it, after the slip and the e-invoice
-   that are in progress above: a JPEG its Exif block turns, a CMYK JPEG,
+   until a record lifts it, after the e-invoice
+   that is in progress above: a JPEG its Exif block turns, a CMYK JPEG,
    an SVG that covers a box of other proportions than its own, and a
    table or a page break in a framed section, once somebody has seen what
    Word does with each; the report's own faces embedded in the file,
@@ -115,7 +115,10 @@ that lands it.
    which a table's borders do not turn (0074); and, of a chart, the
    runtime's own text on its value axis, which Word labels from the
    numbers, and its data in a workbook a person can edit, once a
-   workbook's export exists (0076).
+   workbook's export exists (0076); and, of a QR-bill's slip, the
+   scissors on the line between its two parts, which a cell's border
+   does not bear, and a page count of the report's pages alone, once
+   somebody has seen Word work such a field out (0075).
 4. **A Word file judged by ECMA-376's schemas** in a gate of its own, the
    schemas admitted by digest as the e-invoice gate's tools are: until
    then a file is read back by the corpus's own reader, and by no

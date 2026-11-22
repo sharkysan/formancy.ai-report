@@ -21,7 +21,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 
 - **Design a report** in a native React or Angular builder, with undo, and see what is wrong before anything renders ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md), [0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).
 - **Print it as a paginated PDF**, in Node or in a browser, from your application's JSON. Totals are exact, values are formatted for the report's locale, and a report that cannot be drawn whole is refused, never truncated ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md), [0011](./docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
-- **Write it as a Word file**, a `.docx` a person can go on writing in, from the same resolved document, in Node or in a browser: its tables Word's tables with their header rows marked to repeat, its header and footer Word's, its page numbers fields, the same bytes for the same document. Lines, pages and their count are Word's, and fonts are named, not embedded. A QR code and an EPC QR code are pictures of the symbol the PDF draws, exactly its size, an EPC QR code in Austria's frame a table of its picture, the frame's line around its cell, and its caption beside the line; what refuses a code is decided once, for both, and the code a Word file's picture shows is read back by ZXing as the PDF's is ([0074](./docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)). A chart is Word's own chart, written from the runtime's block with its data in the file's own part and no workbook: each value the report's digits, the axis the report's ticks, every word the runtime's but the value axis's labels, which Word writes from the numbers, and where each word stands Word's to say; so "Edit Data" has nothing to open ([0076](./docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)). What belongs to the PDF -- a QR-bill's slip, an e-invoice, a labelled preview -- is refused whole, never left out. What the writer writes is read back in the tests by readers that are not the writer; its files were opened in Word once, by hand, and by no test, those with a code too, the euro invoice from Austria with its frame written as the variant of it approved in Word, and those with a chart too ([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+- **Write it as a Word file**, a `.docx` a person can go on writing in, from the same resolved document, in Node or in a browser: its tables Word's tables with their header rows marked to repeat, its header and footer Word's, its page numbers fields, the same bytes for the same document. Lines, pages and their count are Word's, and fonts are named, not embedded. A QR code and an EPC QR code are pictures of the symbol the PDF draws, exactly its size, an EPC QR code in Austria's frame a table of its picture, the frame's line around its cell, and its caption beside the line; what refuses a code is decided once, for both, and the code a Word file's picture shows is read back by ZXing as the PDF's is ([0074](./docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)). A chart is Word's own chart, written from the runtime's block with its data in the file's own part and no workbook: each value the report's digits, the axis the report's ticks, every word the runtime's but the value axis's labels, which Word writes from the numbers, and where each word stands Word's to say; so "Edit Data" has nothing to open ([0076](./docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)). A QR-bill's slip is a page of its own at the end of the file, laid out to SIX's millimetres with every line shown to fit by the widths of its face, or the bill is refused; it is named in Arial, with Liberation Sans as its other name, and its Swiss QR Code is a picture with the Swiss cross in it ([0075](./docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)). What belongs to the PDF -- an e-invoice, a labelled preview -- is refused whole, never left out. What the writer writes is read back in the tests by readers that are not the writer; its files were opened in Word once, by hand, and by no test, those with a code too, the euro invoice from Austria with its frame written as the variant of it approved in Word, and those with a chart or a slip too ([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **Groups that start with their rows**: a table's group header is kept on its page with its group's first row, or with as many of its first rows as the report states, as many as fit where they do not, and both builders edit that number ([0059](./docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
 - **Several tables over the detail rows**, each printing the rows its own condition selects -- an order's goods apart from its services, open items apart from settled ones -- with its own columns, order, group and totals: a table's total is of the rows it prints, and `totals` stays every row's. A report holds up to `MAX_TABLES`, and one that is an e-invoice one, of every row. Both builders add a further table and give it its condition; its order, group and totals are written in the report's JSON for now ([0062](./docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md)).
 - **One template in several languages**: a report's own words -- its title, its texts, its tables' headers, cells and empty texts, a chart's words and a QR-bill's message -- written in each language it declares, and a render that names one prints in it: its words, its numbers and dates, the order of its rows, a formancy form's labels and the QR-bill slip's headings. A word missing in that language refuses the render, never printed in another, and no language falls back to another. The builders edit one language at a time and show what each still lacks, and the Studio's Preview prints the one the builder shows. A report without translations prints as it did ([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
@@ -79,11 +79,11 @@ and what is not planned at all.
 > render names the one it prints in; and a report is written as a Word
 > file by `@formancy/report-render-docx`, which the Studio offers beside
 > the PDF, which draws a QR code and an EPC QR code as pictures of the
-> symbol the PDF draws, writes a chart as Word's own chart and refuses a
-> report that is paid by a QR-bill or is an e-invoice, and whose files
-> were opened in Word once, by hand, and by no test, those with a code
-> or a chart too, the euro invoice from Austria after its frame was
-> written again for it. The
+> symbol the PDF draws, writes a chart as Word's own chart and a
+> QR-bill's slip on a page of its own, and refuses a report that is an
+> e-invoice, and whose files were opened in Word once, by hand, and by
+> no test, those with a code, a chart or a slip too, the euro invoice
+> from Austria after its frame was written again for it. The
 > report format is still version
 > "0", the draft: a report written now is not promised to be read by a
 > later release
@@ -152,16 +152,20 @@ XML, and offers none
 Download Word, after Download PDF, gives the Word file of the render on
 the paper, written from the document the PDF was drawn from. A report the
 writer refuses has no link, and a note in its place says why, in the
-writer's own sentence: the invoice and the payment reminder, which are
-paid by a QR-bill, the e-invoices, and any preview the runtime labels.
+writer's own sentence: the e-invoices, and any preview the runtime
+labels. The invoice and the payment reminder, which are paid by a
+QR-bill, have their link: the slip is the last page of the file, which
+was opened in Word once, by hand, on 20 November 2026
+([0075](./docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
 The euro invoice has its link: its EPC QR code is a picture in its file
 ([0074](./docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
 So has the sales report: its bar chart and its pie are each Word's own
 chart in its file
 ([0076](./docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
 Lines and pages in the file are Word's; the starters' files were opened
-in Word once, by hand, the euro invoice's and the sales report's on 20
-November 2026, and no test opens one
+in Word once, by hand, the euro invoice's, the sales report's, the
+invoice's and the payment reminder's on 20 November 2026, and no test
+opens one
 ([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 
 <!-- generated by scripts/pictures/readme.mjs from scripts/pictures/scenes.json: studio; do not edit -->

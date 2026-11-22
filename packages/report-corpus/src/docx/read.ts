@@ -12,6 +12,7 @@ import type {
   DocxRow,
   DocxRun,
   DocxRunProps,
+  DocxSlipPage,
   DocxTable,
   Sides,
 } from './model.js'
@@ -40,7 +41,9 @@ import { child, childrenNamed, type XmlNode } from './xml.js'
  * footer that does not end with a paragraph, a chart in a header or a
  * footer, a chart's part that two drawings draw, and a chart's part in any form but the one a report's chart is
  * written in, a part that leads to a workbook or an address among them
- * (`chart.ts`, 0076).
+ * (`chart.ts`, 0076), a section ended anywhere but by a paragraph of the
+ * body itself, more than two sections, and a second with a header or a
+ * footer of its first page's own (0075).
  *
  * What this cannot show is that Word opens the file, or what it then
  * prints: no reader here lays out a line.
@@ -261,8 +264,10 @@ function paragraph(reading: Reading, node: XmlNode): DocxParagraph {
     pageBreakBefore: has('pageBreakBefore') !== undefined,
     ...spaced(reading, spacing),
     indent: indent === undefined ? 0 : (measure(reading, indent, w('left'), TWIPS) ?? 0),
+    indentRight: indent === undefined ? 0 : (measure(reading, indent, w('right'), TWIPS) ?? 0),
     ...lines(reading, borders),
     mark: runProps(reading, has('rPr')),
+    ...(has('sectPr') === undefined ? {} : { endsSection: true as const }),
   }
 }
 
@@ -361,9 +366,16 @@ function region(opc: OpcPackage, part: Part, kind: 'header' | 'footer'): DocxReg
   const reading: Reading = { name: part.name, opc, used: new Set() }
   if (part.contentType !== `${MAIN}.${kind}+xml`) fail(reading, `the part is referenced as a ${kind} and is of another content type`)
   const root = readPart(part.bytes, part.name, kind === 'header' ? HEADER : FOOTER)
+  if (sectionEnds(root).length > 0) fail(reading, `a ${kind} that ends a section`)
   const read = { part: part.name, blocks: blocks(reading, root, `a ${kind}`) }
   unused(reading, [])
   return read
+}
+
+/** Every paragraph under `node`, however deep, that ends a section: whose properties hold one. */
+function sectionEnds(node: XmlNode): XmlNode[] {
+  const own = node.local === 'p' && child(child(node, NS.w, 'pPr') ?? { ...node, children: [] }, NS.w, 'sectPr') !== undefined
+  return [...(own ? [node] : []), ...node.children.flatMap(sectionEnds)]
 }
 
 /** Refuses a relationship of the part read that nothing in it used, and one of a type the part may not have. */
@@ -386,10 +398,15 @@ export function readDocx(bytes: Uint8Array): Docx {
   const reading: Reading = { name: part.name, opc, used: new Set() }
   if (part.contentType !== `${MAIN}.document.main+xml`) fail(reading, 'the main document is of another content type')
   const body = only(readPart(part.bytes, part.name, DOCUMENT), NS.w, 'body', part.name)
-  const section = only(body, NS.w, 'sectPr', part.name)
+  // A file is one section, or two (0075): the report's, which the last paragraph of it ends, and after it a slip's page, which the body's end states.
+  const ends = sectionEnds(body)
+  const ended = body.children.findIndex((each) => each === ends[0])
+  if (ends.length > 1 || (ends.length === 1 && ended < 0)) fail(reading, 'a section ended inside a cell, or more than one before the last')
+  const final = only(body, NS.w, 'sectPr', part.name)
+  const section = ends[0] === undefined ? final : only(only(ends[0], NS.w, 'pPr', part.name), NS.w, 'sectPr', part.name)
   const regions = new Map<string, DocxRegion>()
-  const referenced = (kind: 'header' | 'footer', type: 'default' | 'first'): DocxRegion | undefined => {
-    const references = childrenNamed(section, NS.w, `${kind}Reference`)
+  const referenced = (of: XmlNode, kind: 'header' | 'footer', type: 'default' | 'first'): DocxRegion | undefined => {
+    const references = childrenNamed(of, NS.w, `${kind}Reference`)
     if (references.some((each) => each.attributes.get(w('type')) !== 'default' && each.attributes.get(w('type')) !== 'first'))
       fail(reading, `a ${kind} for pages other than the first and the rest`)
     const named = references.filter((each) => each.attributes.get(w('type')) === type)
@@ -401,12 +418,14 @@ export function readDocx(bytes: Uint8Array): Docx {
     return known
   }
   const [header, firstHeader, footer, firstFooter] = [
-    referenced('header', 'default'),
-    referenced('header', 'first'),
-    referenced('footer', 'default'),
-    referenced('footer', 'first'),
+    referenced(section, 'header', 'default'),
+    referenced(section, 'header', 'first'),
+    referenced(section, 'footer', 'default'),
+    referenced(section, 'footer', 'first'),
   ]
-  const read = blocks(reading, body)
+  const slip =
+    ends[0] === undefined ? undefined : slipPage({ ...reading, name: part.name }, final, referenced, { ...body, children: body.children.slice(ended + 1) })
+  const read = blocks(reading, ends[0] === undefined ? body : { ...body, children: body.children.slice(0, ended + 1) })
   const single = (kind: string, suffix: string): Part => {
     const found = opc.relationships(part.name).filter((each) => each.type === `${TYPE}/${kind}`)
     if (found.length !== 1) fail(reading, `the document has not one ${kind} part`)
@@ -426,12 +445,14 @@ export function readDocx(bytes: Uint8Array): Docx {
   return {
     page: page({ ...reading, name: part.name }, section),
     body: read,
+    ...(slip === undefined ? {} : { slip }),
     ...(header === undefined ? {} : { header }),
     ...(firstHeader === undefined ? {} : { firstHeader }),
     ...(footer === undefined ? {} : { footer }),
     ...(firstFooter === undefined ? {} : { firstFooter }),
     fonts: childrenNamed(readPart(fonts.bytes, fonts.name, FONTS), NS.w, 'font').map((font) => ({
       name: font.attributes.get(w('name')) ?? fail({ name: fonts.name }, 'a font with no name'),
+      ...(child(font, NS.w, 'altName') === undefined ? {} : { altName: child(font, NS.w, 'altName')!.attributes.get(w('val')) ?? '' }),
       family: child(font, NS.w, 'family')?.attributes.get(w('val')) ?? fail({ name: fonts.name }, 'a font with no family'),
       pitch: child(font, NS.w, 'pitch')?.attributes.get(w('val')) ?? fail({ name: fonts.name }, 'a font with no pitch'),
     })),
@@ -441,6 +462,24 @@ export function readDocx(bytes: Uint8Array): Docx {
     ...(created === undefined ? {} : { created }),
     parts: opc.parts,
     relationships: opc.relationships,
+  }
+}
+
+/** The section after the report's: its page, the header and the footer every page of it prints, and what it holds. Page 1 of it has none of its own. */
+function slipPage(
+  reading: Reading,
+  section: XmlNode,
+  referenced: (of: XmlNode, kind: 'header' | 'footer', type: 'default' | 'first') => DocxRegion | undefined,
+  held: XmlNode,
+): DocxSlipPage {
+  if (referenced(section, 'header', 'first') !== undefined || referenced(section, 'footer', 'first') !== undefined)
+    fail(reading, "a second section with a header or a footer of its first page's own")
+  const [header, footer] = [referenced(section, 'header', 'default'), referenced(section, 'footer', 'default')]
+  return {
+    page: page(reading, section),
+    ...(header === undefined ? {} : { header }),
+    ...(footer === undefined ? {} : { footer }),
+    blocks: blocks(reading, held),
   }
 }
 

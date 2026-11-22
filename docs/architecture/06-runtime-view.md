@@ -297,10 +297,11 @@ thread. The viewer keeps it with the PDF it was written beside, as the
 XML, so that Download Word gives the file of the render on the paper,
 under the starter's id. Where the writer refused, the link is not drawn
 and a note says why in the writer's own sentence, which is how a person
-learns that an invoice, a report paid by a QR-bill and
-a labelled preview have no Word file; a report with a QR code or an EPC
-QR code has one, the euro invoice among them (0074), and so has one with
-a chart, the sales report among them (0076). A fault of the writer's, or a chunk
+learns that an e-invoice and a labelled preview have no Word file; a
+report with a QR code or an EPC QR code has one, the euro invoice among
+them (0074), and so has one with a chart, the sales report among them
+(0076), and one paid by a QR-bill, the invoice and the payment reminder
+among them, its slip the file's last page (0075). A fault of the writer's, or a chunk
 that did not load, is the Word file's alone and leaves the PDF as it
 printed, which `word-fault.test.ts` and `word-chunk.test.ts` hold, a
 suite each; and the writer, with the two libraries it zips and inflates
@@ -1271,7 +1272,7 @@ checkDocument: before a byte is written, in this order                          
    ├─ a creation date that is no date, states no instant, a day no
    │  calendar has or a year no core property has; a title XML cannot
    │  hold ────────────────────────────────────────────────────────────▶ unsupported
-   ├─ a payment part, an e-invoice, a preview's label ─────────────────▶ unsupported
+   ├─ an e-invoice, a preview's label ─────────────────────────────────▶ unsupported
    ├─ a page of no known size or turn; margins that leave nothing ─────▶ unsupported,
    │                                                                     content-too-large
    │  then one walk: the page header, page 1's own, the page footer and
@@ -1310,6 +1311,12 @@ checkDocument: before a byte is written, in this order                          
    ├─ a JPEG its Exif block turns or of four components ───────────────▶ unsupported
    ├─ an SVG that covers a box of other proportions, a picture drawn
    │  at under an English Metric Unit ─────────────────────────────────▶ unsupported
+   ├─ a QR-bill's payment part, last, where the PDF renderer checks its
+   │  bill: what the runtime's checkQrBill refuses, in its words, and a
+   │  character SIX does not allow a bill, which has no width here ────▶ unsupported,
+   │                                                                     content-too-large
+   │  a line wider than its place, a part's information taller than its
+   │  section; past the file's bounds with the slip's paragraphs ──────▶ content-too-large
    ▼
 each region's blocks as paragraphs and tables, in points          nodes.ts, blocks.ts, table.ts
    │  a text without the line ending that ends it; the keep rules mark
@@ -1326,6 +1333,7 @@ string through text or attribute, markup a type of its own               wml.ts,
    ▼
 the parts, their content types and relationships, named by the writer alone;
 a code's picture a PNG made of its symbol, whole pixels a module          code-png.ts
+a QR-bill's slip the file's last section, a page of its own            slip.ts
 zipped by fflate, every entry dated 1 January 1980                          package.ts
    ▼
 Uint8Array ── the same bytes for the same document
@@ -1339,7 +1347,8 @@ are read, the creation date and the title, what
 belongs to the PDF of the document itself, the page, then each region's
 blocks in document order -- a chart no engine draws, or a code the rules
 refuse, where the walk meets it, after a block no engine prints that
-stands before it -- and the pictures' bytes last. A code's symbol is the runtime's, asked
+stands before it -- then the pictures' bytes, and a QR-bill's payment
+part last, where the PDF renderer checks its bill. A code's symbol is the runtime's, asked
 for once where the walk meets the code, and the picture written is of
 that symbol: what is refused and what is written are one decision, and
 the PDF's ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)). A chart is held where the walk meets it too: to
@@ -1348,7 +1357,16 @@ any engine refuses of its block, to the bound on its points before a
 word or a number of it is read, and counted with the paragraphs and the
 characters; it is written as a part of its own as the body is built,
 from the block alone, and nothing of it is laid out
-([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)). The writer's `refusals.test.ts` holds that order on a
+([0076](../decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)). A QR-bill's slip is the one thing the writer
+lays out, on a page that holds nothing else: the runtime's rule refuses
+a bill no engine draws, in the PDF renderer's words; each value is
+broken into lines by the widths of the slip's face, and a line wider
+than its place or information taller than its section refuses the
+bill; and the slip is written as the file's last section, each line and
+each white of an exact height, so that each section stands where SIX
+puts it, no line shorter than its face's own, and no row of an exact
+height, since either would cut what does not fit it
+([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)). The writer's `refusals.test.ts` holds that order on a
 document wrong in every one of those places, put right a place at a time,
 and the corpus's `wordRefusal` derives from a document on its own what
 the writer must refuse of what belongs to the PDF. What belongs to the

@@ -11,14 +11,17 @@
 // held by `verifyDocx` to the document the gate resolves under Node from
 // the corpus's starter, at the instant the file says it was made; and
 // byte for byte the file report-render-docx writes of that document under
-// Node. Where the writer refuses the report -- a QR-bill, an e-invoice,
-// a preview's label -- no link, and a note in its place named
+// Node. Where the writer refuses the report -- an e-invoice, a preview's
+// label -- no link, and a note in its place named
 // "No Word file: " and the sentence the writer refuses that document
 // with under Node. A code in a file that is written -- the euro
 // invoice's EPC QR code -- is read by `verifyDocx` from its picture's
 // pixels, by ZXing, which is why the check is waited for (0074); a chart
 // in one -- the sales report's bar chart and its pie -- from its part,
-// Word's own chart, its words, its values' digits and its axis (0076). Which
+// Word's own chart, its words, its values' digits and its axis (0076);
+// and a QR-bill's slip in one -- the invoice's and the payment
+// reminder's -- from its page, the file's last section, its Swiss QR
+// Code from its picture's pixels (0075). Which
 // starters are which is the writer's to say, here under Node: the
 // Studio's suite names them (pipeline.test.ts), and the journey fails a
 // pass that read no file, or no refusal.

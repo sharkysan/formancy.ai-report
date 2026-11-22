@@ -324,9 +324,9 @@ the file, and `pako` at exactly 3.0.2, which inflates a PNG's image data
 as zlib does, alone. `check.ts` refuses before a byte is written, once
 `fonts.ts` has read the faces, by where a thing stands: the creation
 date and the title, what belongs to the PDF of the document itself, the
-page, then each region's blocks in document order, and the pictures'
-bytes last. It refuses what belongs to the PDF (`pdf-only.ts`:
-a payment part, an e-invoice and a preview the runtime labelled);
+page, then each region's blocks in document order, the pictures'
+bytes, and a QR-bill's payment part last. It refuses what belongs to the PDF (`pdf-only.ts`:
+an e-invoice and a preview the runtime labelled);
 what nobody has seen Word print as the PDF
 does (a JPEG its Exif block turns, by report-spec's
 `JpegHeader.orientation`, or of four components, in `assets.ts`, which
@@ -417,6 +417,44 @@ block, `docxCharts` reads a file's charts for a test,
 `docx/testing/hand-charts.ts` is the file typed out by hand those are
 proved on, and `fixtures/malformed-charts.ts` the charts of `MALFORMED`
 ([0076](docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
+A QR-bill's slip is in the file on a page of its own, its last section.
+What refuses a bill and where each part of its slip stands are
+report-runtime's, below both engines: `checkQrBill` in `bill-check.ts`,
+which asks an engine one thing, whether its face draws a text
+(`BillUndrawn`), and `slip-print.ts`'s `SLIP_RECEIPT`,
+`SLIP_PAYMENT_PART`, `slipBlocks` and the constants beside them, with
+the code's `SWISS_CODE_SIZE` and `SWISS_CROSS`; the renderer's `bill.ts`
+is its glyphs' answer and its `slip.ts` the drawing, scissors and all.
+The writer's `slip-plan.ts` plans a slip before a byte is written: the
+runtime's rule, each value broken into lines (`broken`: at a space,
+after a hyphen that no digit follows, inside a word only where it is
+wider than a line), every other text held to its place on one line, and
+each part's information to its section's height, in the renderer's
+words, by the widths `slip-widths.ts` states -- Liberation Sans 2.1.5's
+advances for the characters SIX allows a bill, which
+`slip-widths.test.ts` holds to the renderer's font files -- in the face
+it names, Arial (`SLIP_FAMILY`), with Liberation Sans as its other name
+in the font table. `slip.ts` maps the plan to the page: the instruction
+to separate and a table of one row and three cells, every paragraph a
+line or white of an exact height, in twentieths of a point summed once,
+its amounts tables of their own, a blank field a table of four corner
+marks, its lines borders with no scissors, no line shorter than its
+face's own at its size (`faceLine`: the payment part's 10 pt on 11.2 pt,
+where SIX's pitch is 11), which would cut ink, and no row that holds
+text of an exact height, which would cut a line; `slip-code.ts` draws the
+Swiss QR Code, a PNG of whole pixels a module with no quiet zone and
+the Swiss cross in its pixels; `package.ts` ends the report's section
+with the last paragraph its body holds and gives the slip's an empty header and
+footer where the report prints one; and `page.ts` is the report's paper.
+The corpus proves a slip on its page: `docx/read.ts` reads the two
+sections apart (`Docx.slip`), `check-docx-slip.ts` holds every line to
+where the exact heights the file states put it, by SIX's millimetres
+written out there, and the code's pixels to a symbol with the cross
+(`swissVersion`), which ZXing reads with the white the slip leaves
+around it, `readSlipCode` reads a file's slip's code for a test,
+`docx/testing/hand-slip.ts` is the file typed out by hand those are
+proved on, and `fixtures/bills.ts` the bills both engines' tests draw
+([0075](docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
 `@formancy/report-documents` is the one reader of PDFs, beside report-spec,
 which holds no PDF engine, and nothing calls it yet: `readDocument`, in
 `read.ts`, reads a PDF's bytes whole, synchronously, into a neutral model
@@ -1205,7 +1243,8 @@ Locally, run the same commands for what you changed.
   Node alone (0031), a PDF/A-2b, in `pdfa.ts` (0057), and the guide's
   quotation with its chart, in `chart.ts` (0058), and writes the
   quotation as a Word file, in `docx.ts`, its parts read with Node alone
-  and the quotation with a QR-bill refused (0068), and the quotation
+  (0068), the quotation with a QR-bill, its slip the file's last
+  section, and refused in a currency SIX does not allow (0075), and the quotation
   with its chart, its chart a part of the runtime's digits and no
   workbook beside it (0076);
   `server.ts`, the server made in its host's process and asked over a

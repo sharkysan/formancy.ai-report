@@ -8,7 +8,8 @@ import { fixtureOf, refusalOf, resolved, written } from './testing/support.js'
  * final render and as a preview, and its Word file written and proved on
  * the file -- or refused, by the code and the subject this suite names
  * for it. The table below is record 0068's, starter by starter, as record
- * 0074 changed it for the euro invoice and 0076 for the sales report: a
+ * 0074 changed it for the euro invoice, 0076 for the sales report and
+ * 0075 for the invoice and the payment reminder: a
  * starter
  * that is written where the record says refused, or the other way round,
  * fails here, and so does one the table does not name.
@@ -22,8 +23,10 @@ interface Refused {
 /** What a starter's Word file is: written, or refused -- a final render and a preview for the same thing, or each for its own. */
 type Outcome = 'written' | { readonly final: Refused; readonly preview: Refused }
 
+/** The starters a QR-bill pays, whose file ends with its slip's page (0075). */
+const PAID_BY_A_BILL = ['invoice', 'payment-reminder']
+
 const refused = (subject: string): Refused => ({ code: 'unsupported', subject })
-const both = (subject: string): Outcome => ({ final: refused(subject), preview: refused(subject) })
 
 const STARTER_FILES: Readonly<Record<string, Outcome>> = {
   'service-inspection': 'written',
@@ -34,9 +37,9 @@ const STARTER_FILES: Readonly<Record<string, Outcome>> = {
   'product-data-sheet': 'written',
   // Paid by an EPC QR code, which the writer draws since 0074: what refuses one is decided below both engines.
   'euro-invoice': 'written',
-  // Paid by a QR-bill, whose slip belongs to the last page of its PDF.
-  invoice: both('paymentPart'),
-  'payment-reminder': both('paymentPart'),
+  // Paid by a QR-bill, whose slip the writer writes on a page of its own since 0075, in the language each render names.
+  invoice: 'written',
+  'payment-reminder': 'written',
   // An invoice in law: its final render is its PDF/A-3b or the copy of its XML, and its preview is labelled as not the invoice, a label a Word file would hold as a paragraph.
   'e-invoice': { final: refused('eInvoice'), preview: refused('pageHeader') },
   'e-invoice-xrechnung': { final: refused('eInvoice'), preview: refused('pageHeader') },
@@ -44,7 +47,7 @@ const STARTER_FILES: Readonly<Record<string, Outcome>> = {
   'sales-report': 'written',
 }
 
-// A starter added to the corpus is read before it is said to export: one paid by a QR-bill is refused, and must say so here.
+// A starter added to the corpus is read before it is said to export: an e-invoice is refused, and must say so here.
 test('every starter is named as written or as refused, and no other', () => {
   expect(STARTERS.map((starter) => starter.id).sort()).toEqual(Object.keys(STARTER_FILES).sort())
 })
@@ -59,7 +62,11 @@ describe.each(STARTERS.map((starter) => [starter.id, starter] as const))('%s', (
     if (outcome === undefined || outcome === 'written') {
       // Every word, cell, mark, picture and code the report prints, on the file; and nothing the corpus says a Word file may not hold.
       expect(wordRefusal(document)).toBeUndefined()
-      expect(await verifyDocx(fixtureOf(id, document), written(document))).toEqual([])
+      const file = written(document)
+      expect(await verifyDocx(fixtureOf(id, document), file)).toEqual([])
+      // A starter a bill pays that was written without its slip would be the report with nothing to pay it by, and nothing saying so.
+      expect(file.slip !== undefined).toBe(PAID_BY_A_BILL.includes(id))
+      expect(document.paymentPart !== undefined).toBe(PAID_BY_A_BILL.includes(id))
     } else {
       // Refused whole, for the first thing a Word file cannot hold, as the corpus derives it from the document too.
       expect(refusalOf(document)).toMatchObject(outcome[mode])

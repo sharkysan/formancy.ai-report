@@ -109,8 +109,29 @@ export interface ParagraphNode {
   readonly line?: number
   /** Points from the left. */
   readonly indent?: number
+  /** Points from the right, which a line set to the right ends at. */
+  readonly indentRight?: number
   /** A rule: the line under it, and between it and a rule like it. */
   readonly rule?: Line
+  /** The section it ends, where it is the last paragraph of one that another follows: the report's, before the page of a QR-bill's slip (0075). */
+  readonly section?: SectionNode
+}
+
+/**
+ * A section of the file, as its last paragraph or the body's end states
+ * it: its paper and margins in points, the header's and the footer's
+ * distance from the paper's edge, the parts it prints as its header and
+ * footer, and whether page 1 has a header of its own.
+ */
+export interface SectionNode {
+  readonly paperWidth: number
+  readonly paperHeight: number
+  readonly landscape: boolean
+  readonly margins: { readonly top: number; readonly right: number; readonly bottom: number; readonly left: number }
+  readonly header: number
+  readonly footer: number
+  readonly references: readonly { readonly kind: 'header' | 'footer'; readonly type: 'default' | 'first'; readonly id: RelationshipId }[]
+  readonly firstPage: boolean
 }
 
 export interface CellNode {
@@ -133,7 +154,7 @@ export interface RowNode {
   readonly header?: true
   /** Exactly so many points tall, or at least so many where `atLeast`. */
   readonly height?: number
-  /** Its height the least it is, which Word grows the row past to hold what its cells hold: Austria's frame's (0074) and a chart's with nothing to draw (0076), and no other row. */
+  /** Its height the least it is, which Word grows the row past to hold what its cells hold: Austria's frame's (0074), a chart's with nothing to draw (0076), and a QR-bill's slip's and its amounts' (0075), and no other row. */
   readonly atLeast?: true
   readonly cells: readonly CellNode[]
 }

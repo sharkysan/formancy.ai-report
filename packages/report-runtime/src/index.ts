@@ -42,6 +42,24 @@ export type { AxisChart, Chart, ChartLegendEntry, ChartSeriesValues, ChartValue,
  * symbol is. An engine encodes nothing itself, and draws the symbol it is
  * handed here.
  */
+export { BILL_HEADING_FACES, checkQrBill, refuseBillPage } from './bill-check.js'
+export type { BillFace, BillUndrawn, CheckedBill } from './bill-check.js'
+export {
+  SLIP_ACCEPTANCE,
+  SLIP_CODE,
+  SLIP_CORNER,
+  SLIP_FIELD_GAP,
+  SLIP_INSTRUCTION,
+  SLIP_PAYMENT_PART,
+  SLIP_RECEIPT,
+  SLIP_RECEIPT_WIDTH,
+  SLIP_SEPARATION,
+  SLIP_TITLE,
+  slipBlocks,
+  SWISS_CODE_SIZE,
+  SWISS_CROSS,
+} from './slip-print.js'
+export type { SlipBlock, SlipLettering, SlipPart } from './slip-print.js'
 export { QR_MAX_CHARACTERS, QR_MIN_MODULE, QR_QUIET_ZONE, qrSymbol, qrSymbolVersion, SWISS_QR_MAX_CHARACTERS, swissSymbol } from './qr-symbol.js'
 export type { QrSymbol } from './qr-symbol.js'
 export { epcSymbol } from './epc-symbol.js'

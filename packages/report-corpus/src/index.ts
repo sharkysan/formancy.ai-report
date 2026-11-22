@@ -1,5 +1,7 @@
 export { verify, verifyRefusal } from './checks.js'
 export { verifyDocx, wordRefusal } from './check-docx.js'
+export { readSlipCode, swissVersion } from './check-docx-slip.js'
+export type { DocxSlipCode } from './check-docx-slip.js'
 export { readDocxCodes } from './docx-codes.js'
 export type { DocxCode } from './docx-codes.js'
 export { docxCharts } from './docx-charts.js'
@@ -17,6 +19,7 @@ export type {
   DocxRow,
   DocxRun,
   DocxRunProps,
+  DocxSlipPage,
   DocxTable,
   DocxChart,
   DocxChartFace,
@@ -96,6 +99,8 @@ export { IMAGE_KINDS, UNSEEN_JPEGS } from './image-kinds.js'
 export { encodePng, pngOf } from './fixtures/png.js'
 export { SVG_BOUND, SVG_BOUND_SIDE, SVG_FIXTURES, SVG_MARK, SVG_WINDOW } from './fixtures/svg.js'
 export { CHART_FIXTURES } from './fixtures/charts.js'
+export { BILL_EXAMPLES, billReport, GERMAN_BILL, LONG_BILL, resolvedBill } from './fixtures/bills.js'
+export type { SwissQrBill } from './fixtures/bills.js'
 export { CODE_FIXTURES } from './fixtures/codes.js'
 export { FIRST_PAGE_FIXTURES } from './fixtures/first-page-header.js'
 export { SHIFTED_FIXTURES } from './fixtures/shifted.js'

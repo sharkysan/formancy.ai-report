@@ -10,6 +10,78 @@ later.
 
 ## Unreleased
 
+**A QR-bill's slip is written into a Word file, on a page of its own**
+([0075](docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
+The Word writer refused every report paid by a QR-bill, since SIX fixes
+the slip to the foot of the last page and a Word file's pages are Word's.
+It was asked that a Word file hold the slip, and, asked where, the person
+who decides chose a page of its own at the end of the file; this is the
+third of four changes. No PDF changed, and the writer depends on nothing
+new.
+- **What a host notices.** `renderDocx` writes a report with a payment
+  part where it threw `unsupported` naming it: the invoice, its samples
+  and the payment reminder have a Word file, in each language, and the
+  Studio's Preview offers it. The file is a page longer than the PDF
+  wherever the PDF's slip shares the last page, and a page count the
+  report prints counts the slip's page.
+- **The slip's page.** The file's last section: A4 upright, with no
+  margin at its sides and foot, the slip 192 mm down, where SIX puts it,
+  and above its top line the instruction to separate, in the render's
+  language. It prints neither the report's page header nor its footer.
+  The lines it is cut along are borders, and the line between the receipt
+  and the payment part bears no scissors, which the PDF draws.
+- **No line Word may cut.** The slip is a table whose every line is of an
+  exact height, so that each section stands where SIX puts it, and whose
+  rows are of a least height, never an exact one, which would cut what
+  does not fit. No line is shorter than its face's own, which would cut
+  ink: the payment part's values stand 11.2 pt apart, where SIX's pitch
+  and the PDF's is 11, so a value stands 0.2 pt lower than the PDF's for
+  every value line above it, 2.6 pt at the foot of the longest bill. The writer breaks every value into its lines itself and
+  holds each to the width of its place, by the widths of the slip's
+  face, and each part's information to the height of its section. A bill
+  whose lines do not fit is refused, as `content-too-large`, never cut
+  and never set smaller.
+- **Arial, with Liberation Sans as its other name.** The slip names
+  Arial, one of the faces SIX admits, and the font table gives Liberation
+  Sans, the face the PDF prints the slip in and of the same widths, as
+  its other name. The file embeds no face: a reader with neither sets the
+  slip in a face of its own choosing, in which a line may break and move
+  what stands under it. An EPC QR code's caption (0074) is listed the
+  same way.
+- **The Swiss QR Code is a picture**, 46 mm a side, in whole pixels a
+  module at 600 to the inch or more, with the Swiss cross in its pixels;
+  what ZXing reads in it is the payload the PDF's code says, byte for
+  byte.
+- **What is refused.** A bill no engine draws, in the words the PDF
+  renderer refuses it in, a report on another paper than A4 upright among
+  them: the rule now stands in `@formancy/report-runtime`
+  (`checkQrBill`), below both engines, with where each part of the slip
+  stands (`SLIP_RECEIPT`, `SLIP_PAYMENT_PART` and the constants beside
+  them), moved from the renderer line for line. And by the writer alone:
+  a character SIX does not allow a bill, as `unsupported`, since it has
+  no width to show a line to fit by, and a heading or an amount wider
+  than its place. An e-invoice and a labelled preview are refused as
+  before, an e-invoice paid by a QR-bill as the e-invoice it is. One
+  sentence changed: a payment part of a kind nobody knows is one "a
+  report does not know", where the PDF renderer said "the renderer".
+- **A value may break elsewhere than in the PDF** where it has a place
+  to break that is neither a space nor a hyphen, and billing information
+  wider than its line is filled line by line, where the PDF prints `//`
+  on a line of its own.
+- **The test support reads a file of two sections.** The corpus's
+  `readDocx` gives the slip's page apart (`Docx.slip`), a paragraph's
+  distance from the right and a family's other name; `verifyDocx` holds a
+  slip to SIX's numbers, and `readSlipCode` reads its code. The bills the
+  renderer's tests drew are the corpus's now (`BILL_EXAMPLES`), with one
+  whose every value is as long as SIX allows.
+- **Opened in Word once, by hand.** The files are read back by a reader
+  that is not their writer and held to SIX's numbers. On 20 November
+  2026 every file with a slip the writer writes of the starters, the
+  samples and the tests' bills was opened in Word, each beside its PDF
+  and a list of what it should show, and found fine: the slip alone on
+  the last page, at its foot, and its Swiss QR Code readable. Nothing
+  more of what Word did was written down, and no test opens one.
+
 **A chart is written into a Word file, as Word's own chart**
 ([0076](docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md)).
 The Word writer refused every report with a chart, since ECharts lays a

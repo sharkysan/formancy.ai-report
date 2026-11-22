@@ -11,8 +11,10 @@ decision
 [0068](../../docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md),
 how it writes a QR code and an EPC QR code
 [0074](../../docs/decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md),
-and how it writes a chart
-[0076](../../docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md).
+how it writes a chart
+[0076](../../docs/decisions/0076-a-chart-is-written-into-a-word-file-as-words-own-chart-from-the-runtimes-block-and-no-workbook.md),
+and how it writes a QR-bill's slip
+[0075](../../docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md).
 No framework, no Node, no DOM and no network: ES2023's library and no
 `@types/node`.
 
@@ -27,7 +29,11 @@ in Word once, by hand, on 20 November 2026, and 0074 says what was seen.
 The files with a chart, which it writes since 0076 as Word's own chart,
 were opened in Word once, by hand, the same day, and 0076 says what was
 seen; everything Word lays out of one -- where a word stands, what the
-value axis says -- is held by no test.
+value axis says -- is held by no test. The files with a QR-bill's
+slip, which it writes since 0075 on a page of its own, were opened in
+Word once, by hand, the same day, and 0075 says what was seen;
+everything Word prints of the page -- where the slip stands, its lines,
+its code -- is held by no test.
 
 ## Write a report as a Word file
 
@@ -41,7 +47,7 @@ const file: Uint8Array = renderDocx(resolution.document)
 
 let refusal: unknown
 try {
-  renderDocx(billed)
+  renderDocx(unpayable)
 } catch (error) {
   refusal = error
 }
@@ -49,9 +55,11 @@ try {
 
 Here `quotation` is a report, `quotationData` its data, `images` the
 lookup that hands over its assets' bytes, `CREATED` the instant the host
-fixes for the render, and `billed` the same quotation resolved with a
-QR-bill. The install gate runs these lines from the packed package
-(`scripts/install-fixture/docx.ts`).
+fixes for the render, and `unpayable` the same quotation resolved with a
+QR-bill and then given a currency SIX does not allow, which no runtime
+resolves. The install gate runs these lines from the packed package
+(`scripts/install-fixture/docx.ts`), and writes the quotation with its
+QR-bill too, its slip the file's last page.
 
 `renderDocx` returns the file's bytes, or throws a `RenderRefusal` and
 returns nothing: `refusal` above is one, its `code` `unsupported` and its
@@ -133,6 +141,27 @@ test claims it prints as the PDF does.
   chart was seen once, by hand, on 20 November 2026: each chart in its
   place, its values, colours and order as the PDF's, and the sales
   report's value axis grouped, `20’000.00` on Swiss settings.
+- **A QR-bill's slip is a page of its own**, the file's last, in a
+  section of its own: A4 upright with no margin at its sides and foot,
+  the slip 192 mm down, the instruction to separate above its top line,
+  and neither the report's page header nor its footer, so the file is a
+  page longer than the PDF wherever the PDF's slip shares the last page,
+  and a page count counts it. The slip is a table of one row and three
+  cells, its lines borders -- the line between the receipt and the
+  payment part bears no scissors -- in which every line is of an exact
+  height, so that each section stands where SIX puts it, none shorter
+  than its face's own, which would cut ink -- the payment part's values
+  stand 11.2 pt apart, where SIX's pitch and the PDF's is 11 -- and no
+  row that holds text is exact: the writer breaks each value into its lines and holds
+  every line to the width of its place by Liberation Sans's widths,
+  which Arial's are, and refuses a bill whose lines do not fit. It is
+  named in Arial, with Liberation Sans as its other name in the font
+  table; a reader with neither sets it in a face of other widths, where
+  a line may break and move what is under it. The Swiss QR Code is a
+  picture of 46 mm, whole pixels a module, the Swiss cross in its
+  pixels. What Word prints of the page was seen once, by hand, on 20
+  November 2026: the slip alone on the last page, at its foot, and its
+  code readable.
 - **A length is rounded to Word's unit**: a size to the half point, a
   rule's weight to the eighth, a length to the twentieth.
 - **The file states no language**, since the resolved document carries no
@@ -144,7 +173,9 @@ Each as a `RenderRefusal`, whole, naming what it is about:
 
 | What | Code |
 |---|---|
-| A payment part, an e-invoice of either kind and a preview the runtime labelled: each belongs to the report's PDF | `unsupported` |
+| An e-invoice of either kind and a preview the runtime labelled: each belongs to the report's PDF | `unsupported` |
+| A QR-bill no engine draws, in the words the PDF renderer refuses it in: a kind nobody knows, a page that is not A4 upright, text that is not text, an amount or a currency SIX does not print, more lines than a slip prints; and a character SIX does not allow a bill, which has no width to show its line to fit by | `unsupported` |
+| And of a QR-bill: information taller than its section, in the PDF renderer's words, a heading, a currency or an amount wider than its place on one line, a payload past SIX's 997 characters, and a top margin that reaches into the slip | `content-too-large` |
 | A chart no engine prints, by the PDF renderer's code, naming the chart: in a page region, of a kind or a size no report knows, past the runtime's bounds, with parts that do not match, a word that is no text a chart prints, a tick's among them, or numbers that are no axis and no shares | `unsupported`, and `content-too-large` past `MAX_CHART_CATEGORIES` |
 | A JPEG its Exif block turns or one of four components, an SVG that covers a box of other proportions than its own, and a table or a page break in a section with a border, a fill or padding: nobody has seen Word print them as the PDF does | `unsupported` |
 | What no engine prints, by the PDF renderer's code and subject: a table in a columns block, a page break in a page region, a page field outside the page header and footer, a block or a style the document's types do not hold | `unsupported` |
@@ -156,9 +187,9 @@ Each as a `RenderRefusal`, whole, naming what it is about:
 | A picture, a chart, a rectangle or fixed columns wider than where they stand; a picture, a code, a chart, a rectangle or a spacer taller than the printable area; more than `MAX_DOCX_CODES` codes, 64, or codes whose symbols hold more than `MAX_DOCX_CODE_MODULES` modules between them, what sixteen of the largest symbol hold; more than `MAX_DOCX_CHARTS` charts, 64, charts of more than `MAX_DOCX_CHART_POINTS` points between them, 25,600, what sixteen of the largest chart hold, or a chart's number written in more than `MAX_DOCX_CHART_DIGITS` characters, 330; more than `MAX_DOCX_PARAGRAPHS` paragraphs, a table's cell being one and a rectangle or a section's frame two; `MAX_DOCX_CHARACTERS` characters of text, with what a font's family is written longer than `MAX_DOCX_FAMILY_LENGTH` characters in every run and paragraph; `MAX_DOCX_RUNS` runs, a page field being three, a cell one and each line ending in a text one more; `MAX_DOCX_PICTURES` pictures, each asset counted once, `MAX_DOCX_MEDIA_BYTES` of them as they are stored, or `MAX_DOCX_IMAGE_DATA` of image data, a PNG's scanlines as its header promises them and a JPEG's bytes, which is what the PDF renderer holds a render to | `content-too-large` |
 | Bytes that are not the picture or the font they are declared as: a PNG whose image data is not one whole zlib stream of the scanlines its header promises, as zlib reads one, among them; an SVG that is not the drawing report-spec's `cleanSvg` writes; and a font whose family is more than `MAX_DOCX_FAMILY_LENGTH` characters, 31, which is what Word reads of a font's name | `invalid-asset` |
 
-So a report that is paid by a QR-bill or is an invoice in law has no
-Word file, and neither has a preview of incomplete data: print those as
-PDFs. A chart is in the file, as Word's own chart: its data in the
+So a report that is an invoice in law has no Word file, and neither has
+a preview of incomplete data: print those as PDFs. A report paid by a
+QR-bill has one, its slip on a page of its own at the end. A chart is in the file, as Word's own chart: its data in the
 file's own part and no workbook, so "Edit Data" has nothing to open; its
 values the report's digits and its words the runtime's, but the value
 axis's labels, which Word writes from the numbers; and its layout

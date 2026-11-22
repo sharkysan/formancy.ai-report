@@ -89,7 +89,7 @@ function chunk(type: string, data: Uint8Array): Uint8Array {
 const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 
 /** PNG's filter for a scanline that is the one above it, byte for byte: what is left of such a line is nothing. */
-const UP = 2
+export const UP = 2
 
 /**
  * `symbol` as a PNG, `pixels` a module: its quiet zone of four modules
@@ -110,6 +110,15 @@ export function codePng(symbol: QrSymbol, pixels: number): Uint8Array {
     }
     for (let repeat = 1; repeat < pixels; repeat++) lines[first + repeat * stride] = UP
   }
+  return pngOf(side, lines)
+}
+
+/**
+ * A PNG of one bit of grey a pixel, `side` pixels a side, of `lines`:
+ * its scanlines as PNG filters them, each a filter's byte and the bytes
+ * of its pixels, a set bit a white one.
+ */
+export function pngOf(side: number, lines: Uint8Array): Uint8Array {
   const header = new Uint8Array(13)
   const view = new DataView(header.buffer)
   view.setUint32(0, side)
