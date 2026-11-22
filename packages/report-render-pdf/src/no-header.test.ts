@@ -1,5 +1,5 @@
-import { readPdf, verify, type ReadPdf } from '@formancy/report-corpus'
-import { RenderRefusal, type ResolvedDocument, type Table, type TableRow } from '@formancy/report-runtime'
+import { readPdf, TITLES_FROM_GROUPS_DATA, TITLES_FROM_GROUPS_REPORT, verify, type ReadPdf } from '@formancy/report-corpus'
+import { RenderRefusal, resolveReport, type ResolvedDocument, type Table, type TableRow } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf } from './node.js'
 import { bareDocument, details, documentOf, fixtureOf, ledger, PAGE, paragraph, TIMEOUT, totalRow } from './testing/documents.js'
@@ -135,6 +135,31 @@ describe('a table without a header row', () => {
       }
       const pdf = await readPdf(await renderPdf(document, { maxPages: 2 }))
       expect(verify(fixtureOf('kept', document, { maxPagesExpected: 1 }), pdf)).toEqual([])
+      expect(blackRules(pdf)).toBe(0)
+    },
+    TIMEOUT,
+  )
+})
+
+describe('a report whose column titles are empty, from its definition to its PDF', () => {
+  // The case 0078 is for, as a person writes it: every column titled with
+  // nothing or a space, a group header that names the columns across the
+  // table. The runtime resolves no header row, and the PDF prints no band
+  // over the rows on any page, held by the corpus's checks; a runtime that
+  // wrote the blank titles as a header row gave the renderer the band.
+  test(
+    'resolves no header row, and prints none over its rows on any page',
+    async () => {
+      const outcome = resolveReport(TITLES_FROM_GROUPS_REPORT, TITLES_FROM_GROUPS_DATA, { mode: 'final', creationDate: '2026-11-22T08:00:00Z' })
+      if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
+      const { document } = outcome
+      const table = document.body.find((block): block is Table => block.kind === 'table')
+      expect(table).toBeDefined()
+      expect(table).not.toHaveProperty('header')
+      expect(table?.rows[0]).toMatchObject({ kind: 'groupHeader', cells: ['Labour: number, item and amount'], across: true })
+      const pdf = await readPdf(await renderPdf(document, { maxPages: 10 }))
+      expect(pdf.pages.length).toBeGreaterThan(2)
+      expect(verify(fixtureOf('titles-from-groups-report', document, { minPagesExpected: 3, maxPagesExpected: 4 }), pdf)).toEqual([])
       expect(blackRules(pdf)).toBe(0)
     },
     TIMEOUT,

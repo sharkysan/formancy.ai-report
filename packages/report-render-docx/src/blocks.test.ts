@@ -1,8 +1,16 @@
-import { verifyDocx, type Docx, type DocxBlock, type DocxParagraph, type DocxTable } from '@formancy/report-corpus'
-import type { Block, ResolvedDocument, Table } from '@formancy/report-runtime'
+import {
+  TITLES_FROM_GROUPS_DATA,
+  TITLES_FROM_GROUPS_REPORT,
+  verifyDocx,
+  type Docx,
+  type DocxBlock,
+  type DocxParagraph,
+  type DocxTable,
+} from '@formancy/report-corpus'
+import { resolveReport, type Block, type ResolvedDocument, type Table } from '@formancy/report-runtime'
 import { afterEach, describe, expect, test } from 'vitest'
 import { HEADER_RULE, OUTLINE, PADDING_X, PADDING_Y, REGION_GAP, ROW_RULE, RULE, RULE_GAP } from './look.js'
-import { documentOf, fixtureOf, paragraph, written } from './testing/support.js'
+import { CREATED, documentOf, fixtureOf, paragraph, written } from './testing/support.js'
 
 /**
  * Each block of a resolved document as the Word file states it (0068),
@@ -429,6 +437,36 @@ describe('a table', () => {
       [false, 'Total'],
     ])
     expect(keptRows(empty!)).toEqual([true, false])
+  })
+
+  // The corpus's check finds the row of nothing a table without a header row must not have (0078), held to that table's expectation: written
+  // as the header row Word repeats, or as a plain row over the table. A check that passed either would pass the band this record took away.
+  test('is held by the corpus to no header row: a blank one, marked to repeat or not, is found', async () => {
+    const { header: _none, ...headerless } = table()
+    const expected = fixtureOf('headerless', documentOf([headerless]))
+    const marked = await verifyDocx(expected, written(documentOf([{ ...headerless, header: ['', ''] }])))
+    expect(marked).toEqual(expect.arrayContaining(['table lines marks 1 of its rows as the row to repeat on every page, and has no header row']))
+    const unmarked = await verifyDocx(expected, written(documentOf([{ ...headerless, rows: [{ kind: 'detail', cells: ['', ''] }, ...headerless.rows] }])))
+    expect(unmarked).toEqual(expect.arrayContaining(['table lines holds 3 rows where the document has 2']))
+  })
+
+  // The case 0078 is for, as a person writes it, through the runtime: every column titled with nothing or a space and a group header that names
+  // the columns. The file holds no header row, no row marked to repeat, and every row the document has, held by the corpus's check.
+  test('writes a report whose column titles are empty, resolved by the runtime, with no header row', () => {
+    const outcome = resolveReport(TITLES_FROM_GROUPS_REPORT, TITLES_FROM_GROUPS_DATA, { mode: 'final', creationDate: CREATED })
+    if (!outcome.ok) throw new Error(outcome.errors.map((error) => `${error.code} ${error.path}`).join('; '))
+    const read = body(...outcome.document.body).find((block): block is DocxTable => block.kind === 'table')
+    expect(read?.rows.some((row) => row.header)).toBe(false)
+    expect(words(read?.rows[0]?.cells[0]?.blocks[0])).toBe('Labour: number, item and amount')
+  })
+
+  // A table without a header row whose first rows are plain rows keeps none of them with the next: what a header is kept with is a header's,
+  // and a first row marked so would drag every table's second row with it onto the next page.
+  test('keeps no first row of a table without a header row for a header it does not have', () => {
+    const { header: _none, ...headerless } = table()
+    const [read] = body(headerless) as DocxTable[]
+    expect(read!.rows.map((row) => row.header)).toEqual([false, false])
+    expect(keptRows(read!)).toEqual([false, false])
   })
 
   // Two tables with nothing between them are one table to Word, and a body that ends in a table is one WordprocessingML's readers do not expect.

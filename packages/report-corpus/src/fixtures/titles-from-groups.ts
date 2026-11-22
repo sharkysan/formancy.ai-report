@@ -5,13 +5,17 @@ import { HEADERLESS_ROWS_PER_PAGE_RANGE } from './geometry.js'
 import { groupStarts } from './group-boundary.js'
 
 /**
- * A table whose column titles come from its groups (0078): one table over
+ * A table whose group headers name its columns (0078): one table over
  * sections of different kinds, each group header naming its section over
- * the first column and the columns' titles over the others, so the table's
- * own titles are empty and the runtime writes it no header row. Drawn with one, it printed a band of nothing
- * over its rows, repeated on every page; the checks hold its first line
- * under its top rule on every page it reaches, where a header's would
- * stand, and its Word file to no header row and no row marked to repeat.
+ * the first column and the columns' titles over the others, so the
+ * table's own titles are empty and the runtime writes it no header row.
+ * Drawn with one, it printed a band of nothing over its rows, repeated on
+ * every page; the checks hold its first line under its top rule on every
+ * page it reaches, where a header's would stand, and its Word file to no
+ * header row and no row marked to repeat. The runtime writes a group
+ * header as one cell across the table, never three: the report it would
+ * be the document of is `titles-from-groups-report.ts`'s, whose resolved
+ * document both engines' tests draw too.
  *
  * Its groups are placed as group-boundary's are (`groupStarts`), for the
  * rows a page holds of a table that repeats nothing over them, one more
