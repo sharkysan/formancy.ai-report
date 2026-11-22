@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:f74a211d8bc79210397858ad92648f081f264d3224120c8a4ba60ee4fcbe893c",
+      "reviewed": "sha256:ad669e1d86fea4463bc02d4f9f7f7eca76fc2cede5333fe1fb9832d3576ef01c",
       "limitations": [
         {
           "area": "testing",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:d8a6f7b169a86e153cdcc429ecd766e22db0b2b338d310a797e1215ca622c20f",
+      "reviewed": "sha256:3e5a04921c848d6ab0795dc3ff846208eb4e7443e0e637c109637aec38e24c73",
       "limitations": [
         {
           "area": "runtime",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:5539c15977f5dd7487c939e390800c6db87070fb979243d4f455e0bbdbe1cdcc",
+      "reviewed": "sha256:fadf5dbe644ea7600f64cf36f7c068bd99fbf0b135f8d1ccc924a3564fe85eea",
       "limitations": [
         {
           "area": "rendering",
@@ -3127,7 +3127,7 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:738ab46d058f7d7517af772eb4d22bb4117d92f7ce8de1861b418693984949d8",
+      "reviewed": "sha256:48ee46e5efb948580cec67f3560754f2459fd2bae9975ba0630dab8359d25a26",
       "limitations": [
         {
           "area": "rendering",
@@ -3380,6 +3380,44 @@
           "area": "release",
           "says": "The runtime exports one name more, report-spec’s `MAX_SCALE`, from which the Word writer derives the most characters a chart’s number may be written in; a host that reads the runtime’s exports sees it.",
           "heldBy": "packages/report-render-docx/src/charts.test.ts"
+        }
+      ]
+    },
+    "0078": {
+      "reviewed": "sha256:7070dbcf54ac1a4d37c16992ea64dcf6df3de9a7434ad9fa2331c770a853e03d",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A table every column of which a render shows is titled with nothing, or with white space alone, prints no header row in the PDF or in the Word file: a band of nothing over a table's rows on every page can no longer be asked for, a title of a no-break space being white space too.",
+          "heldBy": "packages/report-runtime/src/lower-table.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Whether a title prints is read from its characters, never its ink: a title of a character that draws nothing and is no white space, a zero-width space where a face has one, keeps the header row and its band."
+        },
+        {
+          "area": "format",
+          "says": "A report's header style on a table whose titles print nothing prints nowhere, and nothing refuses or warns of it; nor does anything say that a table whose groups name no column prints its rows under no title at all.",
+          "heldBy": "packages/report-runtime/src/lower-table.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The resolved document's `Table.header` is optional: a host that reads the resolved document, or an engine of its own over it, must take a table without one, and 0.2.0's renderer handed this release's document of such a table fails with a TypeError rather than refusing it.",
+          "heldBy": "packages/report-runtime/src/lower-table.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The PDF renderer hands pdfmake a table without a header row under a header row of no height, which pdfmake 0.3.11 lays out in no room: a pdfmake that gave it room would print a band again, which the renderer's pin of pdfmake sees first.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Nothing in either builder says a table will print no header row: a person empties each column's Heading, the Preview prints none, and the design view names each column without a heading by its kind, as before."
+        },
+        {
+          "area": "testing",
+          "says": "The corpus holds a table without a header row to its PDF by its rules, the paths of no height a page strokes, and by how far its first line and its rows' lines each stand under the rule above, alike only in one size: a page on which no other row of the table begins is held to the band alone, and a rule drawn right over the table's top rule, nearer than its first row is tall with nothing between them, would read as a band; no fixture draws one.",
+          "heldBy": "packages/report-corpus/src/check-headerless.test.ts"
         }
       ]
     }
