@@ -317,8 +317,10 @@ jobs:
           NPM_CONFIG_PROVENANCE: 'true'
         run: node scripts/release/publish.mjs --tarballs release-tarballs --report release-report
 
-      # The body is this version's changelog section and the report's summary,
-      # built and measured by the report job before anything was published.
+      # The body is this version's changelog section, or its summary and a link
+      # to the whole section where it folds its detail (0080), and the
+      # report's summary, built and measured by the report job before
+      # anything was published.
       - name: Create the GitHub release
         id: github-release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2

@@ -18,7 +18,10 @@
   ([0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md));
   and extended by
   [0057](0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md),
-  whose PDF/A-2b format veraPDF alone judges.
+  whose PDF/A-2b format veraPDF alone judges, and by
+  [0080](0080-a-release-body-carries-its-sections-summary-and-links-the-whole-section-where-the-section-folds-its-detail.md),
+  under which a section that folds its detail is released as its summary
+  and a link to the whole section in CHANGELOG.md at the tag.
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:** the `report` job in `.github/workflows/gates.yml`, which

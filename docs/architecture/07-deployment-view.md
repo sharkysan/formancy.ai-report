@@ -132,6 +132,11 @@ publish            only on a tag, the one job that can write: refuses anything n
 A release passes exactly what CI passes, because both call `gates.yml`; it
 restores no cache, and nothing published is other than what `check` pinned
 ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)).
+The GitHub release's body is the version's changelog section and the
+report's summary; a section that folds its detail into a `<details>`
+block, as 0.3.0's does, is carried as its summary and one line linking
+the whole section in `CHANGELOG.md` at the tag
+([0080](../decisions/0080-a-release-body-carries-its-sections-summary-and-links-the-whole-section-where-the-section-folds-its-detail.md)).
 The npm token is a secret of an environment that admits only `v*` tags. That
 the environment's policy is set is a repository setting nothing here can
 read ([`RELEASING.md`](../../RELEASING.md)).

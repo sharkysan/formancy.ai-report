@@ -347,7 +347,7 @@
       ]
     },
     "0014": {
-      "reviewed": "sha256:28c1efdab03ae332a6680afb0010adad1e9c2460eaab507b3f000f7507982079",
+      "reviewed": "sha256:b50c7f808acde23c840e5c31b3d1753c11a4f835f486005903cb891964c5e030",
       "limitations": [
         {
           "area": "release",
@@ -3500,6 +3500,26 @@
           "area": "release",
           "says": "The README’s sketch of the packages is drawn by hand: its guard holds which packages and apps it names, which it draws as private, that each is drawn below the packages that depend on it and can be seen, that its colours are the room’s by name and that it paints its own ground, and not the column a box stands in, the line under each name or that no word leaves its box; a package added fails it until its box is drawn by hand, and an image loads no web face, so its words are set in the reader’s own monospace and sans, which nothing measures.",
           "heldBy": "scripts/architecture.test.mjs"
+        }
+      ]
+    },
+    "0080": {
+      "reviewed": "sha256:3c21263b65e80770d0b71394484c80216e45848e3cfb1efe63ba48ca2c048472",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "A release whose changelog section folds its detail, 0.3.0 the first, carries that section’s summary alone on its GitHub release page, with one link to the whole section in CHANGELOG.md at the tag: a reader of the release, its feed or the API meets every reason only by following it, and a rehearsal’s body links a tag that lands nowhere until it is pushed.",
+          "heldBy": "scripts/release-notes.test.mjs"
+        },
+        {
+          "area": "release",
+          "says": "Where a release body ends is the section’s first unindented line that is `<details>` alone: one written too early cuts the release’s notes there, and nothing but review judges whether a summary says what its detail holds.",
+          "heldBy": "scripts/release-notes.test.mjs"
+        },
+        {
+          "area": "release",
+          "says": "CI only measures the body of Unreleased, so a long Unreleased with no summary passes every pull request; the release commit that names it a version fails `pnpm test:repo` until its section folds its detail or fits.",
+          "heldBy": "scripts/release-notes.test.mjs"
         }
       ]
     }

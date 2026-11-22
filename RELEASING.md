@@ -23,6 +23,11 @@ node scripts/bump.mjs 0.1.0
 # 2. Rename "## Unreleased" in CHANGELOG.md to the version's heading, and say
 #    what is knowingly missing. What the release was tested with is the
 #    release report's, from the run that gates it; the body carries it.
+#    A section too long for the 125,000 characters a GitHub release body
+#    may hold opens with a short summary and folds its detail into a
+#    block opened by an unindented line `<details>` alone: the body
+#    carries the summary and links the whole section at the tag, and
+#    `pnpm test:repo` fails until the newest release's body fits (0080).
 #    Each page with a status says where it stands, and the pages refuse
 #    to render until each one's status names the new version, naming every
 #    such page in one error; no test names a version, so the pages' suite
@@ -116,8 +121,10 @@ anything that cannot be taken back:
    suite on a runner of its own; and the install gate, which packs, installs
    and runs the tarballs and keeps them. Every job collects what it found,
    and the last, `report`, builds the release report of this run and the
-   release body -- the version's changelog section and the report's
-   summary -- and fails the run on the report's problems, on a tag that is
+   release body -- the version's changelog section, or its summary and a
+   link to the whole section where it folds its detail
+   ([0080](docs/decisions/0080-a-release-body-carries-its-sections-summary-and-links-the-whole-section-where-the-section-folds-its-detail.md)),
+   and the report's summary -- and fails the run on the report's problems, on a tag that is
    not the manifests' version, on a version with no section, and on a body
    over the 125,000 characters GitHub accepts
    ([`docs/release/`](docs/release/README.md)). Unlike CI, a
