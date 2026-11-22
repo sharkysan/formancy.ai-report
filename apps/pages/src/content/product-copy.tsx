@@ -143,8 +143,9 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     lead: 'Formancy Report ist ein Berichtsdesigner, den Sie selbst betreiben. Wer einen Bericht gestaltet, legt ihn in einem visuellen Editor an, den es nativ für Angular und nativ für React gibt; Ihre Anwendung übergibt die Daten, und der Renderer erzeugt das PDF, auf Ihrem Server oder im Browser. Die Summen sind exakt, und eine QR-Rechnung wird nach den Regeln von SIX geprüft, ein EPC-QR-Code nach denen des EPC.',
     standing: (version, unreleased) => (
       <>
-        Das neueste Release, {version}, enthält den React- und den Angular-Builder, den PDF-Renderer, exakte Summen, die QR-Rechnung und den EPC-QR-Code. Was
-        seither im Quellcode auf GitHub hinzugekommen ist, steht unter {unreleased}.
+        Das neueste Release, {version}, enthält den React- und den Angular-Builder, den PDF-Renderer und die Ausgabe als Word-Datei, exakte Summen, Diagramme,
+        die QR-Rechnung, den EPC-QR-Code und E-Rechnungen als Factur-X und XRechnung. Was seither im Quellcode auf GitHub hinzugekommen ist, steht unter{' '}
+        {unreleased}.
       </>
     ),
     actions: { studio: 'Im Studio ausprobieren', guide: 'Die Einführung lesen (Englisch)', source: 'Quellcode auf GitHub' },
@@ -246,8 +247,9 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     lead: "Formancy Report est un concepteur de rapports que vous hébergez vous-même. La personne qui conçoit le rapport le met en page dans un éditeur visuel qui existe en version native pour Angular et pour React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur. Les totaux sont exacts, et une facture QR est vérifiée selon les règles de SIX, un QR code SEPA selon celles de l'EPC.",
     standing: (version, unreleased) => (
       <>
-        La version la plus récente, {version}, contient le builder React et le builder Angular, le moteur de rendu PDF, les totaux exacts, la facture QR et le
-        QR code SEPA. Ce qui s'est ajouté depuis au code source sur GitHub figure sous {unreleased}.
+        La version la plus récente, {version}, contient le builder React et le builder Angular, le moteur de rendu PDF et l'export en fichier Word, les totaux
+        exacts, les graphiques, la facture QR, le QR code SEPA et la facture électronique en Factur-X et en XRechnung. Ce qui s'est ajouté depuis au code source
+        sur GitHub figure sous {unreleased}.
       </>
     ),
     topics: { heading: 'Les sujets en détail' },
@@ -349,8 +351,9 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     lead: "Formancy Report è un designer di report che ospitate voi stessi. Chi progetta un report lo impagina in un editor visuale che esiste in versione nativa per Angular e per React; la vostra applicazione fornisce i dati, e il renderer genera il PDF, sul vostro server o nel browser. I totali sono esatti, e una fattura QR viene verificata secondo le regole di SIX, un QR code SEPA secondo quelle dell'EPC.",
     standing: (version, unreleased) => (
       <>
-        La versione più recente, {version}, contiene il builder React e il builder Angular, il renderer PDF, i totali esatti, la fattura QR e il QR code SEPA.
-        Ciò che si è aggiunto da allora al codice sorgente su GitHub è elencato sotto {unreleased}.
+        La versione più recente, {version}, contiene il builder React e il builder Angular, il renderer PDF e l'esportazione in file Word, i totali esatti, i
+        grafici, la fattura QR, il QR code SEPA e la fattura elettronica in Factur-X e XRechnung. Ciò che si è aggiunto da allora al codice sorgente su GitHub è
+        elencato sotto {unreleased}.
       </>
     ),
     actions: { studio: 'Provarlo nello Studio', guide: 'Leggere la guida introduttiva (in inglese)', source: 'Il codice sorgente su GitHub' },
@@ -451,8 +454,8 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
     lead: "Formancy Report is a report designer you host yourself. An author lays out a report in a visual editor built natively for Angular and again for React; your application hands over the data, and the renderer prints the PDF, on your server or in the browser. Totals are exact, and a QR-bill is checked against SIX's rules and an EPC QR code against the EPC's.",
     standing: (version, unreleased) => (
       <>
-        The newest release, {version}, holds the React builder and the Angular builder, the PDF renderer, exact totals, the QR-bill and the EPC QR code.
-        Anything the source on GitHub has gained since is listed under {unreleased}.
+        The newest release, {version}, holds the React builder and the Angular builder, the PDF renderer and a writer of Word files, exact totals, charts, the
+        QR-bill, the EPC QR code and e-invoices as Factur-X and XRechnung. Anything the source on GitHub has gained since is listed under {unreleased}.
       </>
     ),
     actions: { studio: 'Try it in the Studio', guide: 'Read the getting-started guide', source: 'Source code on GitHub' },

@@ -218,7 +218,7 @@ settings live in Cloudflare's dashboard, recorded by hand in
 `.github/REPO-METADATA.md`; and nothing in this repository checks that a
 deploy happened or what the address serves. So what the Studio offers
 reaches the public at a merge and not at a release: its Download Word
-gives files of a writer no release holds
+gave files of a writer no release held until 0.3.0
 ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)),
 those of a report with a code since 0074, opened in Word once, by hand,
 on 20 November 2026

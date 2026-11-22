@@ -181,8 +181,8 @@ gate's image, never a published one. The record that publishes it decides
 the registry, the tags, the signature by digest and the attestation here,
 as Formancy Data's are
 ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)).
-The server's packages are published with the next release like every
-package not marked private.
+The server's packages are published from 0.3.0 on, like every package
+not marked private.
 
 ## The release report
 

@@ -107,7 +107,8 @@ one line linking the whole section.**
 0.3.0's section opens with *In short*, a list of what an integrator can
 do with the release in plain words, then folds every entry under
 "Everything that changed in 0.3.0, with the reasons". Its body's notes are
-7,112 characters, before the report's summary.
+7,161 characters, before the report's summary; the whole section is
+178,727.
 
 ## Consequences
 
