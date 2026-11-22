@@ -14,6 +14,7 @@ a service by this repository.
 | A CycloneDX SBOM, signed with cosign | The GitHub release | `release.yml`'s `check` job, from the tarballs it pinned ([0017](../decisions/0017-the-sbom-describes-what-a-consumer-installs.md)) |
 | The release report, Markdown and JSON, signed | The GitHub release; on every pull request, the CI run's artefact and summary | The gates' `report` job ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)) |
 | The Studio and the product's pages | https://formancy.ai/report/, from `main` | Cloudflare Workers Builds, on every push to `main` ([0018](../decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md), [0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)) |
+| Every starter's PDF and Word file, and each e-invoice's XML, with an index | [`samples/`](../../samples/README.md) in the repository, which GitHub serves from `main` like any file, and every clone carries | `node scripts/samples.mjs --write`, by hand, after `pnpm build`, committed; held to the build by `pnpm test:repo` ([0079](../decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)) |
 
 No container image is published. The container gate builds the server's
 image from each checkout and runs it, and what the release report says of

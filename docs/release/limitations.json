@@ -1316,7 +1316,7 @@
       ]
     },
     "0034": {
-      "reviewed": "sha256:9f566cf6b11fb9e88c3bcec6a7ddd830c70273ff1d8adda4c564fbccb76f5a56",
+      "reviewed": "sha256:464c1c05fcba95202781c22073f93e63c93439503a134e320681e77a93b00262",
       "limitations": [
         {
           "area": "data",
@@ -3475,6 +3475,31 @@
         {
           "area": "testing",
           "says": "The Word files of a table without a header row are read back by the corpus's reader and by no Word: whether Word prints them with no row of nothing over the table, and what it draws at the top of a page the table continues on, is not known until a person opens them."
+        }
+      ]
+    },
+    "0079": {
+      "reviewed": "sha256:9beac9a56660428f4d3b1fa4f7118d4620227a89f9ea4b123bc4f1d4271d26ff",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "The repository carries every starter’s PDF and Word file, and each e-invoice’s XML, in samples/, 27 files of 618,212 bytes written on 22 November 2026, which every clone and git’s history keep, again for each change that moves them; they are main’s, as the online Studio is, so they can be ahead of the latest release, and their data is the corpus’s synthetic data, the invoices among them samples and never invoices.",
+          "heldBy": "scripts/samples.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "A sample PDF is held to the build by its objects with every stream inflated, never by its bytes: the bytes committed are those the zlib of the Node that wrote them deflated, Node 24.21.0 on Windows 11, and a PDF drawn of the same document on another Node may differ from them in its streams’ compressed bytes; that one on Linux draws the same bytes was never measured.",
+          "heldBy": "scripts/samples.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "pnpm test:repo renders every starter as a PDF and a Word file twice over, and the quotation three times more, which took its file 16.9 seconds under Node 24.21.0 on 22 November 2026; a pull request that changes what a starter prints fails it until node scripts/samples.mjs --write has written the samples again after pnpm build.",
+          "heldBy": "scripts/samples.test.mjs"
+        },
+        {
+          "area": "release",
+          "says": "The README’s sketch of the packages is drawn by hand: its guard holds which packages and apps it names, which it draws as private, that its colours are the room’s by name and that it paints its own ground, and not the layer each box stands in, the line under each name or that no word leaves its box; an image loads no web face, so its words are set in the reader’s own monospace and sans, which nothing measures.",
+          "heldBy": "scripts/architecture.test.mjs"
         }
       ]
     }

@@ -775,6 +775,18 @@ build leaves the last deployment serving, its log in Cloudflare's
 dashboard; nothing here reads what the address serves
 ([0018](../decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md)).
 
+### Samples in every clone, their PDFs held to their documents
+
+Every starter's PDF and Word file, and each e-invoice's XML, are
+committed in `samples/` for a reader to download: 618,212 bytes on 22
+November 2026, which every clone carries and git's history keeps again
+for each change that moves them. `pnpm test:repo` holds a Word file and
+an XML to their bytes and a PDF to its objects with every stream
+inflated, so the PDF a reader downloads is the bytes the Node of the
+machine that wrote it deflated, and no test compares them with what
+Linux's would deflate; they are `main`'s, and can be ahead of a release
+([0079](../decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)).
+
 ### No check is required to merge
 
 What stops a red gate from merging is a maintainer reading it
