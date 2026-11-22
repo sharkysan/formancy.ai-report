@@ -10,45 +10,12 @@ later.
 
 ## Unreleased
 
-**Every starter's PDF and Word file can be downloaded from the
-repository, and the README is shorter, with new pictures and a sketch of
-the packages**
+**Download every starter as a PDF and a Word file, and a shorter README**
 ([0079](docs/decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)).
-The README sent a reader to the Studio to see what Formancy Report
-prints, and a reader who wanted the file itself had to build the
-repository or click through the online Studio starter by starter. No
-package changed.
-- **What a reader notices.** [`samples/`](samples/README.md) holds every
-  starter's PDF and Word file, and the XML of each e-invoice's final
-  render, with an index that says which file of an e-invoice is the
-  invoice and which a copy; the README links each from a table of the
-  starters. They are a final render of each starter's synthetic data at
-  one instant, the e-invoice gate's, so that the Factur-X's PDF and both
-  XMLs are the files Mustang, KoSIT's validator and veraPDF judged.
-- **What holds them.** `node scripts/samples.mjs --write` writes them from
-  the packages as built, and `pnpm test:repo` fails when one is not what
-  the current build writes: a Word file, an XML and the index byte for
-  byte, a PDF by its objects with every stream inflated, since PDFKit
-  deflates with the zlib of the Node it runs on. A pull request that
-  changes what a starter prints now writes them again after `pnpm build`.
-- **The README.** It leads with what Formancy Report does, in a bullet
-  each, where to try it and what it prints. Six new pictures, taken by
-  the Studio's pictures script and held as every README picture is: the
-  sales report's charts, the product data sheet in French, the XRechnung
-  with Final on and its Download XML, the invoice's Download Word, the
-  order confirmation's services table and the payment reminder's QR-bill;
-  the pictures of the editing fold under *More*.
-- **The sketch.** A drawn SVG of every package and app in its layer, on
-  the room's ground in its colours, shown by the README and the building
-  blocks; `scripts/architecture.test.mjs` fails when a package or an app
-  is missing from it, is drawn as published or private otherwise than its
-  manifest says, or a colour of it is not the installed room's of its
-  name.
-- **What it costs.** 27 files of 618,212 bytes in every clone, which git's
-  history keeps again whenever they change, and `pnpm test:repo` renders
-  every starter: its new guard took 16.9 seconds on 22 November 2026. The
-  PDFs' bytes are the deflate of the machine that wrote them, which the
-  guard does not hold.
+[`samples/`](samples/README.md) holds each starter's PDF and Word file, and the XML of
+both e-invoices, as the current build writes them. The README is shorter,
+with new pictures of the Studio and a drawn sketch of the packages, and
+every starter's page moved to [`docs/starters.md`](docs/starters.md).
 
 **A table whose every column title prints nothing has no header row**
 ([0078](docs/decisions/0078-a-table-whose-every-column-title-prints-nothing-has-no-header-row.md)).

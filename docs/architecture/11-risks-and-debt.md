@@ -778,7 +778,7 @@ dashboard; nothing here reads what the address serves
 ### Samples in every clone, their PDFs held to their documents
 
 Every starter's PDF and Word file, and each e-invoice's XML, are
-committed in `samples/` for a reader to download: 618,212 bytes on 22
+committed in `samples/` for a reader to download: 616,698 bytes on 22
 November 2026, which every clone carries and git's history keeps again
 for each change that moves them. `pnpm test:repo` holds a Word file and
 an XML to their bytes and a PDF to its objects with every stream
