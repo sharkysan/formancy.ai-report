@@ -30,7 +30,7 @@ export const TABLE_SIZE = 9
 export const RULE = 0.5
 export const PADDING_X = 4
 export const PADDING_Y = 2
-const TABLE_LAYOUT: CustomTableLayout = {
+export const TABLE_LAYOUT: CustomTableLayout = {
   hLineWidth: () => RULE,
   vLineWidth: () => 0,
   hLineColor: (index) => (index === 1 ? '#000000' : '#bfbfbf'),
@@ -41,7 +41,7 @@ const TABLE_LAYOUT: CustomTableLayout = {
 }
 
 /** The layout of a table under a header of no height: the header row has no padding and no rule under it, which is the one rule drawn black. */
-const UNSEEN_LAYOUT: CustomTableLayout = {
+export const UNSEEN_LAYOUT: CustomTableLayout = {
   ...TABLE_LAYOUT,
   hLineWidth: (index) => (index === 1 ? 0 : RULE),
   paddingTop: (index) => (index === 0 ? 0 : PADDING_Y),

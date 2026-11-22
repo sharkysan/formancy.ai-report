@@ -15,6 +15,7 @@ import { renderPdf } from './node.js'
 import type { RenderOptions } from './options.js'
 import { PDF_A_3B, type PdfKitDocument, type PdfKitFileOptions } from './pdfa.js'
 import { converterOptions } from './svg-content.js'
+import { TABLE_LAYOUT, UNSEEN_LAYOUT } from './table.js'
 import { fixture } from './testing/documents.js'
 import { readDrawing, type DrawnPage } from './testing/drawing.js'
 import { dataUrl, DECODED, imageOrder, SIDE } from './testing/decoding.js'
@@ -323,7 +324,8 @@ describe("pdfmake's positions, which the table rules read", () => {
   })
 
   // A table without a header row (0078) is handed to pdfmake under a
-  // header of no height -- empty stacks, no padding, no rule under it --
+  // header of no height -- empty stacks, no padding, no rule under it, the
+  // renderer's `UNSEEN_LAYOUT` --
   // so that its first rows move with it and its top rule repeats with it
   // (table.ts). An empty text is no such cell: pdfmake lays it out a line
   // tall, which is the band a header of nothing printed. This fails first
@@ -334,12 +336,8 @@ describe("pdfmake's positions, which the table rules read", () => {
   test('lays a header row of empty stacks, with no padding and no rule under it, out in no room, as a table of no header row', async () => {
     await renderPdf(fixture('one-row').document, { maxPages: 5 })
     const rows = Array.from({ length: 150 }, (_, index) => [{ text: `Row ${index}` }, { text: 'x' }])
-    const layout = (unseen: boolean): CustomTableLayout => ({
-      hLineWidth: (index: number) => (unseen && index === 1 ? 0 : 0.5),
-      vLineWidth: () => 0,
-      paddingTop: (index: number) => (unseen && index === 0 ? 0 : 2),
-      paddingBottom: (index: number) => (unseen && index === 0 ? 0 : 2),
-    })
+    // The renderer's own layouts: a table's, and a table's under a header of no height.
+    const layout = (unseen: boolean): CustomTableLayout => (unseen ? UNSEEN_LAYOUT : TABLE_LAYOUT)
     const drawn = async (header: Content[][]): Promise<{ readonly rows: string[]; readonly paths: string[] }> => {
       const pdf = await readPdf(
         new Uint8Array(
