@@ -65,8 +65,8 @@ export function releaseNotes(changelog, version) {
 /**
  * The anchor GitHub gives `section`'s heading in CHANGELOG.md: its text
  * lowercased, everything but letters, digits, marks, spaces, hyphens and
- * underscores dropped, each space a hyphen -- `## 0.3.0 — 2026-11-22` is
- * `030--2026-11-22`. Not the rule for any heading, which reads Markdown
+ * underscores dropped, each space a hyphen -- `## 0.3.0 — 2026-11-23` is
+ * `030--2026-11-23`. Not the rule for any heading, which reads Markdown
  * (heading-anchors.mjs) and would bring marked into a job that installs
  * nothing; a release heading is plain text, and the test holds what this
  * gives the changelog's to that rule.

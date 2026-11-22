@@ -92,8 +92,8 @@ one line linking the whole section.**
   which no tag names, it is the run's commit. A section that folds its
   detail with no repository or ref to link is refused.
 - **The anchor.** GitHub's rule for a heading of plain text, computed in
-  `release-notes.mjs` itself: `## 0.3.0 — 2026-11-22` is
-  `030--2026-11-22`. `heading-anchors.mjs`, the one rule the link checks
+  `release-notes.mjs` itself: `## 0.3.0 — 2026-11-23` is
+  `030--2026-11-23`. `heading-anchors.mjs`, the one rule the link checks
   share, reads Markdown with marked, and the release's `check` job, which
   imports `BODY_LIMIT` from the same module, runs Node with nothing
   installed. The test holds this reading to that rule.

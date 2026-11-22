@@ -10,7 +10,7 @@ later.
 
 ## Unreleased
 
-## 0.3.0 — 2026-11-22
+## 0.3.0 — 2026-11-23
 
 **In short.** The third release, still a developer preview: for evaluating
 Formancy Report and building against it. The report format is still version
