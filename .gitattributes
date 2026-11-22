@@ -6,3 +6,5 @@
 *.woff2 binary
 *.ttf binary
 pnpm-lock.yaml -diff
+*.pdf binary
+*.docx binary
