@@ -41,6 +41,7 @@
     it, page by page, with the same paths; and a header row of empty text
     is laid out a line tall, the band. `src/corpus.test.ts`
     and `src/browser.test.ts` render the corpus's `titles-from-groups`.
+
   - **The writer, on the Word file.** report-render-docx's
     `src/blocks.test.ts`: such a table is written with no header row, no
     row marked to repeat and no darker rule, its first group header kept
@@ -125,12 +126,16 @@
     `pdfmake.test.ts`'s pin was not seen failing: it holds pdfmake
     0.3.11's behaviour, not this change's, and its last expectation shows
     the same comparison telling a header row of empty text apart.
-  - **Not yet opened in Word.** The Word files of `titles-from-groups`
-    and of `titles-from-groups-report` are read back by the corpus's
-    reader and by no Word: that Word prints them with no row of nothing
-    over the table, and what it draws at the top of a page the table
-    continues on, is not known until a person opens them, as every Word
-    writer change is opened before it merges.
+
+  - **Seen in Word, on 22 November 2026**, by the person who decides,
+    by hand and by no gate, as 0068 asks of a change to what the writer
+    writes. The files were the Word files of `titles-from-groups`, of
+    `titles-from-groups-report` and of a table of ninety plain rows and
+    a total under no title, each beside its PDF. Each opened with no row
+    of nothing over its table and no row repeated at the top of a page
+    the table continues on. Which Word was used, and on what screen, was
+    not recorded, and nothing here holds that a later Word prints them
+    so.
 
 ## Context
 
@@ -239,6 +244,7 @@ stand. No member of the format changes.**
 ## Consequences
 
 **What it buys.**
+
 - **A table whose group headers name its columns prints them alone**, under
   its top rule, on every page, in the PDF and in the Word file.
 - **One decision, one place.** The runtime decides, from the columns a
@@ -266,6 +272,7 @@ stand. No member of the format changes.**
   `titles-from-groups`'s two.
 
 **What it costs.**
+
 - **A band of nothing can no longer be asked for.** A table that wanted
   an empty row over its rows on every page, a spacer of its own, gets
   none; a title of a no-break space is white space too. A spacer block
