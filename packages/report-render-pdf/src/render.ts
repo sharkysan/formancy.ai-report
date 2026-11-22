@@ -23,6 +23,7 @@ import { FIT_SLACK, measure, refuseLineUnderHeader, rowPitches, SENTINEL_LINE, S
 import type { RenderOptions } from './options.js'
 import { embedEInvoice } from './pdfa.js'
 import { ABOVE_SLIP, informationContent, PAYMENT_PART, RECEIPT } from './slip.js'
+import { UNSEEN_HEADER } from './table.js'
 
 /**
  * A resolved document rendered with pdfmake, refused rather than truncated,
@@ -263,14 +264,11 @@ async function measureBody(
         top,
         ends[index]!,
       )
-      refuseLineUnderHeader(block, under!, pitches[0]!, room)
-      plans.set(
-        block,
-        tablePlan(
-          rows.map((row, at) => ({ kind: row.kind, pitch: pitches[at]!, keep: row.keep, prints: row.prints })),
-          room,
-        ),
-      )
+      const planned = rows.map((row, at) => ({ kind: row.kind, pitch: pitches[at]!, keep: row.keep, prints: row.prints }))
+      // A table without a header row is laid out here without the header of no height pdfmake is handed, which the plan reads first.
+      const headed = block.header !== undefined
+      refuseLineUnderHeader(block, under!, headed ? pitches[0]! : 0, room)
+      plans.set(block, tablePlan(headed ? planned : [UNSEEN_HEADER, ...planned], room))
     }
   })
   return plans

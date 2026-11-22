@@ -1,5 +1,6 @@
 import type { Content, CustomTableLayout, TableCell } from 'pdfmake/interfaces.js'
 import type { Table, TableColumn, TextStyle } from '@formancy/report-runtime'
+import type { PlannedRow } from './breaks.js'
 import { mark, UNPLANNED, type Build, type RowKind } from './build.js'
 import type { FaceWanted } from './host-fonts.js'
 import { textProperties } from './style.js'
@@ -10,6 +11,16 @@ import { columnWidths } from './widths.js'
  * A table as pdfmake content: its header row repeated on every page it
  * spans, its rows styled, a row across the table as one cell spanning every
  * column, and the rules that keep a group header with the rows it heads.
+ *
+ * A table the runtime writes without a header row (0078) is handed to
+ * pdfmake under a header of no height: each of its cells an empty stack,
+ * with no padding and no rule under it. pdfmake keeps a table's first rows
+ * on a page with its header row alone (`keepWithHeaderRows` counts from
+ * `headerRows`), and repeats with it the table's top rule on every page the
+ * table continues on, so the table keeps its first group header with the
+ * rows it heads, and breaks, as a table with a header does, and prints
+ * nothing where a header would stand: its first row stands under its top
+ * rule where it would in a table of no header row (`pdfmake.test.ts`).
  */
 
 /** A table's cells, whose size the document does not set: the body size the corpus's geometry assumes. */
@@ -28,6 +39,25 @@ const TABLE_LAYOUT: CustomTableLayout = {
   paddingTop: () => PADDING_Y,
   paddingBottom: () => PADDING_Y,
 }
+
+/** The layout of a table under a header of no height: the header row has no padding and no rule under it, which is the one rule drawn black. */
+const UNSEEN_LAYOUT: CustomTableLayout = {
+  ...TABLE_LAYOUT,
+  hLineWidth: (index) => (index === 1 ? 0 : RULE),
+  paddingTop: (index) => (index === 0 ? 0 : PADDING_Y),
+  paddingBottom: (index) => (index === 0 ? 0 : PADDING_Y),
+}
+
+/**
+ * The header of no height pdfmake is handed for a table without one, as
+ * the plan reads it: of no pitch, keeping nothing and printing nothing.
+ * The body pass, in which pdfmake repeats no header, lays the table out
+ * without it, since it takes no room; the plan reads it first all the same.
+ */
+export const UNSEEN_HEADER: PlannedRow = { kind: 'header', pitch: 0, keep: 1, prints: false }
+
+/** That header as the rules read it: a row of no cell that prints. */
+const UNSEEN_ROW: Row = { kind: 'header', cells: [] }
 
 /** Laid out as one line of text, as wide as a space, that no line break can fall in. */
 const NO_BREAK_SPACE = String.fromCodePoint(0xa0)
@@ -62,19 +92,21 @@ const EMPTY_TEXT: TextStyle = { italic: true }
 
 /**
  * Every row of `table` as `tableContent` lays it out, each cell in the
- * style it prints in: the header in the header's style; the empty text,
- * in italic and across the table, where the table prints it; and each of
- * its rows, a cell in its own style where it has one, else its row's -- a
- * null cell style is the runtime's for a column with no style of its own
- * -- else none. The one walk of a table's cells: `tableContent` builds its
+ * style it prints in: the header in the header's style, where the table
+ * has one (0078); the empty text, in italic and across the table, where
+ * the table prints it; and each of its rows, a cell in its own style
+ * where it has one, else its row's -- a null cell style is the runtime's
+ * for a column with no style of its own -- else none. The one walk of a
+ * table's cells: `tableContent` builds its
  * rows from it, check.ts holds every cell's text and line to it, and
  * bound.ts counts every row's least line by it, so that no two of them can
  * take a cell's style, its size or its face from different places. Each
  * row's cell count is check.ts's to have held to its columns first.
  */
 export function styledRows(table: Table): StyledRow[] {
-  const header = table.headerStyle ?? UNSTYLED
-  const rows: StyledRow[] = [{ kind: 'header', index: undefined, cells: table.header, styles: table.header.map(() => header), across: false }]
+  const style = table.headerStyle ?? UNSTYLED
+  const { header } = table
+  const rows: StyledRow[] = header === undefined ? [] : [{ kind: 'header', index: undefined, cells: header, styles: header.map(() => style), across: false }]
   if (printsEmptyText(table)) rows.push({ kind: 'empty', index: undefined, cells: [table.emptyText], styles: [EMPTY_TEXT], across: true })
   table.rows.forEach((row, index) => {
     rows.push({
@@ -157,6 +189,8 @@ export function tableContent(
     return { kind, cells: cells.map((text, column) => cell(text, column, kind, styles[column]!)) }
   })
   if (place.record) recordWords(table, rows, widths, across, build)
+  // Under a header of no height where the table has none, and pdfmake repeats a header: in the PDF's passes, never the body pass.
+  const unseen = table.header === undefined && !measuring
   const plan = build.plans.get(table) ?? UNPLANNED
   if (measuring) {
     // A no-break space is no text to `printing`, as the empty cell it stands for prints none: the plan reads the rows the rules will.
@@ -173,18 +207,19 @@ export function tableContent(
       }),
     )
   } else if (!kept) {
-    // In the body outside any frame, a page the table continues on starts under its top rule and repeated header.
-    tableRules(rows, plan, build, place.top === build.bodyTop ? build.bodyTop + RULE + (plan.pitches[0] ?? 0) : undefined)
+    // In the body outside any frame, a page the table continues on starts under its top rule and repeated header, of no pitch where it has none.
+    tableRules(unseen ? [UNSEEN_ROW, ...rows] : rows, plan, build, place.top === build.bodyTop ? build.bodyTop + RULE + (plan.pitches[0] ?? 0) : undefined)
   }
+  const cells = rows.map((row): TableCell[] => [...row.cells])
   return {
     table: {
       headerRows: measuring ? 0 : 1,
       ...(measuring || plan.keepWithHeaderRows === 0 ? {} : { keepWithHeaderRows: plan.keepWithHeaderRows }),
       ...(measuring ? {} : { dontBreakRows: plan.dontBreakRows }),
       widths,
-      body: rows.map((row): TableCell[] => [...row.cells]),
+      body: unseen ? [table.columns.map((): TableCell => ({ stack: [] })), ...cells] : cells,
     },
-    layout: TABLE_LAYOUT,
+    layout: unseen ? UNSEEN_LAYOUT : TABLE_LAYOUT,
     fontSize: TABLE_SIZE,
   }
 }

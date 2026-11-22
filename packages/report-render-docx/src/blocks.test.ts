@@ -401,6 +401,36 @@ describe('a table', () => {
     expect(read!.rows[1]!.cells[0]!.blocks).toMatchObject([{ runs: [], mark: { size: 7 } }])
   })
 
+  // A table whose column titles come from its groups has no header row (0078): written as one, it is a row of nothing Word repeats on every
+  // page, under the darker rule, as the PDF's band was. Its first row is its first, kept as a row is and not as a header, which is kept always.
+  test('writes no header row for a table without one, marks no row to repeat, and keeps its first rows as rows', () => {
+    const { header: _none, ...headerless } = table({
+      rows: [
+        { kind: 'groupHeader', cells: ['Parts: key and amount'], across: true },
+        { kind: 'detail', cells: ['ROW-1', '1.00'] },
+        { kind: 'detail', cells: ['ROW-2', '2.00'] },
+        { kind: 'total', cells: ['Total', '3.00'] },
+      ],
+    })
+    const [read] = body(headerless) as DocxTable[]
+    expect(read!.rows.map((row) => [row.header, row.cantSplit, row.cells.map((cell) => words(cell.blocks[0])).join(' | ')])).toEqual([
+      [false, true, 'Parts: key and amount'],
+      [false, true, 'ROW-1 | 1.00'],
+      [false, true, 'ROW-2 | 2.00'],
+      [false, true, 'Total | 3.00'],
+    ])
+    expect(read!.rows.flatMap((row) => row.cells.map((cell) => cell.borders))).toEqual(read!.rows.flatMap((row) => row.cells.map(() => ({}))))
+    expect(read).toMatchObject({ borders: { top: { weight: RULE, color: ROW_RULE }, insideH: { weight: RULE, color: ROW_RULE } } })
+    expect(keptRows(read!)).toEqual([true, false, true, false])
+    // With no detail row, its empty text is its first row, and the totals that close it stand with it.
+    const [empty] = body({ ...headerless, rows: [{ kind: 'total', cells: ['Total', '0.00'] }] }) as DocxTable[]
+    expect(empty!.rows.map((row) => [row.header, words(row.cells[0]!.blocks[0])])).toEqual([
+      [false, 'No records'],
+      [false, 'Total'],
+    ])
+    expect(keptRows(empty!)).toEqual([true, false])
+  })
+
   // Two tables with nothing between them are one table to Word, and a body that ends in a table is one WordprocessingML's readers do not expect.
   test('after a table that ends the body stands a paragraph a point tall, and between two tables one', () => {
     expect(body(table(), table({ id: 'more', rows: [] })).map((block) => (block.kind === 'table' ? 'table' : block.line?.height))).toEqual([

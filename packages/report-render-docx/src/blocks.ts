@@ -99,7 +99,7 @@ function prints(block: Block): boolean {
     case 'paragraph':
       return block.runs.length > 0
     case 'table':
-      return block.header.some(inked) || block.rows.some((row) => row.cells.some(inked)) || (printsEmptyText(block) && inked(block.emptyText))
+      return (block.header ?? []).some(inked) || block.rows.some((row) => row.cells.some(inked)) || (printsEmptyText(block) && inked(block.emptyText))
     case 'image':
     case 'qrCode':
     case 'epcQrCode':

@@ -136,7 +136,8 @@ export const FIT_SLACK = 1
  * table reaches (`headerRows: 1`, `table.ts`) as the block it laid the
  * header out in: the table's top rule, the header row and the rule under
  * it (`TableProcessor.beginTable` and `endRow`, `currentBlockToRepeatable`),
- * `RULE` and the header's pitch. Less `FIT_SLACK`. pdfmake repeats the
+ * `RULE` and the header's pitch, which is 0 for the header of no height a
+ * table without one is handed (0078). Less `FIT_SLACK`. pdfmake repeats the
  * column header alone, never a group header, and has no footer rows of its
  * own: a group's footer and a total are rows under the header like any other.
  */
@@ -166,16 +167,18 @@ export function refuseLineUnderHeader(table: Table, under: RowLine, headerPitch:
   const row = PADDING_Y + under.line + PADDING_Y + RULE
   if (row <= underHeader(headerPitch, bodyHeight)) return
   const needs = RULE + headerPitch + row
+  const above = table.header === undefined ? "the table's top rule" : "the table's repeated header"
   throw new RenderRefusal(
     'content-too-large',
-    `${under.what} has a line that needs ${needs.toFixed(2)} pt of a page under the table's repeated header, and a point more for rounding; a page's body is ${bodyHeight.toFixed(2)} pt where it stands`,
+    `${under.what} has a line that needs ${needs.toFixed(2)} pt of a page under ${above}, and a point more for rounding; a page's body is ${bodyHeight.toFixed(2)} pt where it stands`,
     table.id,
   )
 }
 
 /**
  * How a table breaks across pages of a body `bodyHeight` tall, from its
- * measured rows, the header row first:
+ * measured rows, the header row first -- the header of no height pdfmake
+ * is handed for a table without one among them (`UNSEEN_HEADER`):
  *
  * - rows are kept whole (`dontBreakRows`) only when every one fits on a
  *   page under the repeated header, and the first row of each group under

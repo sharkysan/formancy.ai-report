@@ -1,4 +1,4 @@
-import { OVERLAP, pictures, quoted, type Page } from './check-page.js'
+import { OVERLAP, pictures, points, quoted, type Page } from './check-page.js'
 import type { ExpectedCell, ExpectedRow, ExpectedTable } from './fixture.js'
 import { lineHas, type Line } from './lines.js'
 
@@ -95,16 +95,16 @@ function readRow(pages: readonly Page[], start: At, marker: Marker, starts: (lin
   const reading = new Reading(row.cells)
   const opening = reading.take(first.words, true)
   if (opening !== undefined) return { lines, problem: `page ${start.page + 1}: the row ${row.key} ${opening}; it reads ${quoted(first.text, 80)}` }
-  const headerLine = table.header.join(' ')
+  const headerLine = (table.header ?? []).join(' ')
   let at: At = { page: start.page, line: start.line + 1 }
   let unread: Line | undefined
   while (!reading.done()) {
     const page = pages[at.page]
     if (page === undefined) break
     const line = page.body[at.line]
-    // Off the foot of the page, the row continues on the next, under its table's header.
+    // Off the foot of the page, the row continues on the next, under its table's header where it has one.
     if (line === undefined) at = { page: at.page + 1, line: 0 }
-    else if (line.text === headerLine) at = { ...at, line: at.line + 1 }
+    else if (headerLine !== '' && line.text === headerLine) at = { ...at, line: at.line + 1 }
     else if (starts(line) !== undefined) break
     else if (reading.take(line.words, false) !== undefined) {
       unread = line
@@ -190,15 +190,20 @@ export function rowProblems(read: ReadTables): string[] {
   return [...read.rows.flatMap((placed) => (placed.problem === undefined ? [] : [placed.problem])), ...read.displaced]
 }
 
+/** The line of `lines` that stands highest on its page, or undefined where there is none. */
+const topmost = (lines: readonly Line[]): Line | undefined =>
+  lines.reduce<Line | undefined>((top, line) => (top === undefined || line.top < top.top ? line : top), undefined)
+
 /** On every page a table reaches, each of its header cells above the first of its lines there. */
 export function headers(pages: readonly Page[], read: ReadTables, tables: readonly ExpectedTable[]): string[] {
   return tables.flatMap((table) => {
-    if (table.header.length === 0) return []
+    const { header } = table
+    if (header === undefined || header.length === 0) return []
     return tableLines(pages, read, table).flatMap((lines, index) => {
-      const first = lines.reduce<Line | undefined>((top, line) => (top === undefined || line.top < top.top ? line : top), undefined)
+      const first = topmost(lines)
       if (first === undefined) return []
       const { body } = pages[index]!
-      const absent = table.header.filter((cell) => !body.some((line) => line.bottom <= first.top + OVERLAP && lineHas(line, cell)))
+      const absent = header.filter((cell) => !body.some((line) => line.bottom <= first.top + OVERLAP && lineHas(line, cell)))
       if (absent.length === 0) return []
       const cells = absent.map((cell) => quoted(cell)).join(', ')
       return [
@@ -239,7 +244,7 @@ export function orphans(pages: readonly Page[], read: ReadTables, tables: readon
     return [`page ${start.page + 1}: the last table row is the group header '${row.key}'`]
   })
   const columnHeaders = tables.flatMap((table) => {
-    const headerLine = table.header.join(' ')
+    const headerLine = (table.header ?? []).join(' ')
     if (headerLine === '') return []
     return pages.flatMap(({ body }, index) =>
       body
@@ -257,4 +262,74 @@ function keptRows(read: ReadTables, placed: PlacedRow, count: number, page: numb
   const found = table.rows.slice(at + 1, at + 1 + count).flatMap((each) => read.rows.find((other) => other.row === each) ?? [])
   const under = found.filter(({ lines: [start] }) => start?.page === page).length
   return under === found.length ? [] : [`page ${page + 1}: the group header '${row.key}' has ${under} of its first ${count} rows under it`]
+}
+
+/**
+ * How far apart two lines may stand under the rules above them and still
+ * stand alike, in points: the first line of a table without a header row
+ * and its rows' lines on one page, each under the rule above it.
+ */
+export const UNDER_RULE = 0.05
+
+/** The rules `page` draws, top to bottom, by where each stands down the page: the paths it strokes that have no height, as a table's borders are drawn. */
+function rulesOn(page: Page): number[] {
+  return page.page.paths
+    .filter((path) => path.stroke !== undefined && path.height < 0.01 && path.width > 0)
+    .map((path) => path.top)
+    .sort((a, b) => a - b)
+}
+
+/** Whether a line or a picture of `page` stands between the rules at `over` and `under`, by its middle. */
+function between(page: Page, over: number, under: number): boolean {
+  const inside = ({ top, bottom }: { readonly top: number; readonly bottom: number }): boolean => (top + bottom) / 2 > over && (top + bottom) / 2 < under
+  return page.lines.some(inside) || pictures(page).some(({ box }) => inside(box))
+}
+
+/**
+ * On every page a table without a header row reaches (0078), its first
+ * line stands right under the table's top rule, where a header row's line
+ * would stand: as far under the rule above it as a row of the table that
+ * begins on that page stands under the rule above that one, and with no
+ * other rule over that rule, as near as the first row is tall, and nothing
+ * between the two -- the band a header row of nothing prints, on every
+ * page it repeats on. A rule is a path stroked across the page with no
+ * height, as an engine draws a table's borders.
+ *
+ * What it rests on: a line's box is computed from its baseline, so the
+ * first line is held to the rows' lines by how far each stands under its
+ * rule, alike only for lines of one size, the rows' own in every fixture
+ * of a table without a header. A page on which no other row of the table
+ * begins has no line to hold its first one to, and is held to the band
+ * alone. And a rule drawn over the table's top rule, nearer than its first
+ * row is tall and with nothing between them -- a rule block or another
+ * table standing right on it -- would read as a band: no fixture draws one.
+ */
+export function headerless(pages: readonly Page[], read: ReadTables, tables: readonly ExpectedTable[]): string[] {
+  return tables.flatMap((table) => {
+    if (table.header !== undefined) return []
+    return tableLines(pages, read, table).flatMap((lines, index) => {
+      const first = topmost(lines)
+      if (first === undefined) return []
+      const page = pages[index]!
+      const rules = rulesOn(page)
+      const above = (line: Line): number | undefined => rules.findLast((rule) => rule < line.top)
+      const top = above(first)
+      const where = `page ${index + 1}: the first line of table ${table.id}, ${quoted(first.text)},`
+      if (top === undefined) return [`${where} stands under no rule`]
+      const problems: string[] = []
+      const over = rules.findLast((rule) => rule < top - 0.01)
+      const row = (rules.find((rule) => rule > first.bottom) ?? Number.POSITIVE_INFINITY) - top
+      if (over !== undefined && top - over <= row + UNDER_RULE && !between(page, over, top))
+        problems.push(`${where} stands under a band of ${points(top - over)} pt between two rules that prints nothing`)
+      const offset = first.top - top
+      const rows = read.rows.flatMap(({ table: of, lines: [start] }) => {
+        const line = of === table && start?.page === index ? page.body[start.line] : undefined
+        const rule = line === undefined || line === first ? undefined : above(line)
+        return line === undefined || rule === undefined ? [] : [line.top - rule]
+      })
+      if (rows.length > 0 && !rows.some((each) => Math.abs(each - offset) <= UNDER_RULE))
+        problems.push(`${where} stands ${points(offset)} pt under the rule above it, and its rows ${[...new Set(rows.map(points))].join(', ')} pt under theirs`)
+      return problems
+    })
+  })
 }

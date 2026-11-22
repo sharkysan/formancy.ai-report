@@ -516,7 +516,7 @@ function checkTable(table: Table, width: number, walk: Walk): void {
   if (columns === 0) throw new RenderRefusal('unsupported', `table ${id} has no columns`, id)
   if (table.columns.some((column) => column.align !== 'left' && column.align !== 'center' && column.align !== 'right'))
     throw new RenderRefusal('unsupported', `table ${id} aligns a column in a way a report does not know`, id)
-  if (table.header.length !== columns)
+  if (table.header !== undefined && table.header.length !== columns)
     throw new RenderRefusal('unsupported', `the header of table ${id} has ${table.header.length} cells for ${columns} columns`, id)
   table.rows.forEach((row, index) => {
     const cells = row.across === true ? 1 : columns

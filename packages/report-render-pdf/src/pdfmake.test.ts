@@ -6,7 +6,7 @@ import path from 'node:path'
 import { PassThrough } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 import pdfmake from 'pdfmake'
-import type { Content, ContentSvg, TDocumentDefinitions } from 'pdfmake/interfaces.js'
+import type { Content, ContentSvg, CustomTableLayout, TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { rasterPixels, readAnnotations, readPdf, readPdfObjects, readXmp, type PdfTextItem } from '@formancy/report-corpus'
 import { RenderRefusal } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
@@ -320,6 +320,51 @@ describe("pdfmake's positions, which the table rules read", () => {
     expect(pdf.pages.length).toBeGreaterThan(2)
     expect(pdf.pages.map((page) => page.items.filter((item) => item.text === 'Header').length)).toEqual(pdf.pages.map(() => 1))
     expect(Object.fromEntries(seen)).toEqual({ header: pdf.pages.length, first: 1 })
+  })
+
+  // A table without a header row (0078) is handed to pdfmake under a
+  // header of no height -- empty stacks, no padding, no rule under it --
+  // so that its first rows move with it and its top rule repeats with it
+  // (table.ts). An empty text is no such cell: pdfmake lays it out a line
+  // tall, which is the band a header of nothing printed. This fails first
+  // if pdfmake gives the header room, or draws anything for it: every row,
+  // on each page, stands where it does in a table pdfmake is handed with no
+  // header row, its rows kept whole, and the PDF holds the same text and
+  // the same paths.
+  test('lays a header row of empty stacks, with no padding and no rule under it, out in no room, as a table of no header row', async () => {
+    await renderPdf(fixture('one-row').document, { maxPages: 5 })
+    const rows = Array.from({ length: 150 }, (_, index) => [{ text: `Row ${index}` }, { text: 'x' }])
+    const layout = (unseen: boolean): CustomTableLayout => ({
+      hLineWidth: (index: number) => (unseen && index === 1 ? 0 : 0.5),
+      vLineWidth: () => 0,
+      paddingTop: (index: number) => (unseen && index === 0 ? 0 : 2),
+      paddingBottom: (index: number) => (unseen && index === 0 ? 0 : 2),
+    })
+    const drawn = async (header: Content[][]): Promise<{ readonly rows: string[]; readonly paths: string[] }> => {
+      const pdf = await readPdf(
+        new Uint8Array(
+          await pdfmake
+            .createPdf({
+              content: [
+                {
+                  table: { headerRows: header.length, keepWithHeaderRows: 1, dontBreakRows: true, body: [...header, ...rows] },
+                  layout: layout(header.length > 0),
+                },
+              ],
+              defaultStyle: { font: 'Roboto', fontSize: 9 },
+            })
+            .getBuffer(),
+        ),
+      )
+      return {
+        rows: pdf.pages.flatMap((page) => page.items.map((item) => `${page.number} ${item.text} ${item.top.toFixed(3)}`)),
+        paths: pdf.pages.flatMap((page) => page.paths.map((path) => `${page.number} ${path.top.toFixed(3)} ${path.width.toFixed(3)}`)),
+      }
+    }
+    const none = await drawn([])
+    expect(new Set(none.rows.map((row) => row.split(' ')[0])).size).toBeGreaterThan(2)
+    expect(await drawn([[{ stack: [] }, { stack: [] }]])).toEqual(none)
+    expect((await drawn([[{ text: '' }, { text: '' }]])).rows).not.toEqual(none.rows)
   })
 })
 

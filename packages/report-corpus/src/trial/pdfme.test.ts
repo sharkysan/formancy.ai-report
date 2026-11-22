@@ -198,6 +198,16 @@ describe('the pdfme adapter', () => {
     expect(refused.subject).toBe('short-row')
   })
 
+  // The trial drew every table under its header row (0005); a table
+  // without one (0078) would have been drawn under a head of nothing. It is
+  // refused, naming the table.
+  test('refuses a table without a header row, which the trial never drew', async () => {
+    const { header: _none, ...headerless } = ledger('headerless', [{ kind: 'detail', cells: ['ROW-0001', 'Line item 1', '1.00'] }])
+    const refused = await refusal(render([headerless]))
+    expect(refused.code).toBe('unsupported')
+    expect(refused.subject).toBe('headerless')
+  })
+
   // A creation date that is not an instant would reach the PDF's metadata as
   // whatever an invalid Date formats to, and the document would no longer
   // say when it was made.

@@ -35,7 +35,7 @@ function bodyWords(blocks: readonly Block[]): string[] {
     if (block.kind === 'paragraph') return words(block.runs.map((run) => ('text' in run ? run.text : '1')).join(''))
     if (block.kind !== 'table') return []
     const empty = block.rows.some((row) => row.kind === 'detail') ? [] : [block.emptyText]
-    return [...block.header, ...empty, ...block.rows.flatMap((row) => row.cells)].flatMap(words)
+    return [...(block.header ?? []), ...empty, ...block.rows.flatMap((row) => row.cells)].flatMap(words)
   })
 }
 
@@ -60,7 +60,7 @@ function documentLines(document: ResolvedDocument): string[] {
   return [...blocks, ...blocks.flatMap((block) => (block.kind === 'columns' ? block.columns.flatMap((column) => flatten(column.blocks)) : []))].flatMap(
     (block) => {
       if (block.kind === 'paragraph') return [plainText(block.runs) ?? '']
-      if (block.kind === 'table') return [...block.header, block.emptyText, ...block.rows.flatMap((row) => row.cells)].map(normalise)
+      if (block.kind === 'table') return [...(block.header ?? []), block.emptyText, ...block.rows.flatMap((row) => row.cells)].map(normalise)
       return []
     },
   )

@@ -354,6 +354,17 @@ describe('keeping content together', () => {
   // pdfmake 0.3.11 draws an unbreakable block taller than the page nowhere
   // at all, and says nothing. A keep-together block that cannot fit on any
   // page is refused instead.
+  // The trial drew every table under its header row (0005); a table
+  // without one (0078) would have been drawn under a band of nothing, or
+  // its first row taken for the header. It is refused, naming the table.
+  test('refuses a table without a header row, which the trial never drew', async () => {
+    const { header: _none, ...headerless } = ledger('headerless', details(1, 2))
+    await expect(pdfmakeAdapter.render(documentOf('No header', [headerless]), { maxPages: 5 })).rejects.toMatchObject({
+      code: 'unsupported',
+      subject: 'headerless',
+    })
+  })
+
   test('refuses a keep-together block taller than a page', async () => {
     const tall: KeepTogether = { kind: 'keepTogether', blocks: Array.from({ length: 120 }, (_, index) => paragraph(`Kept line ${index + 1}`)) }
     await expect(pdfmakeAdapter.render(documentOf('Tall block', [tall]), { maxPages: 10 })).rejects.toMatchObject({

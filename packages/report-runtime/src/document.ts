@@ -161,9 +161,14 @@ export interface Table {
   readonly kind: 'table'
   readonly id: string
   readonly columns: readonly TableColumn[]
-  /** The one header row, repeated at the top of every page the table spans. */
-  readonly header: readonly string[]
-  /** The header row's style; absent, the renderer's. */
+  /**
+   * The one header row, repeated at the top of every page the table spans;
+   * absent where every column the table shows is titled with nothing, or
+   * with white space alone: the table then has no header row, and prints
+   * no band of nothing above its rows on any page (0078).
+   */
+  readonly header?: readonly string[]
+  /** The header row's style; absent, the renderer's, and absent with the header. */
   readonly headerStyle?: TextStyle
   readonly rows: readonly TableRow[]
   /** Printed under the header, in place of detail rows, when there are none. Group and total rows still print. */

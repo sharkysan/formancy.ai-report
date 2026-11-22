@@ -167,15 +167,19 @@ function expectedProblems(expect: Fixture['expect'], docx: Docx, coded: Readonly
     else if (found[0]! < from) problems.push(`the key '${key}' is printed before the key it follows`)
     else from = found[0]!
   }
-  const tables = docx.body.filter((node): node is DocxTable => node.kind === 'table' && node.rows[0]?.header === true)
+  // A table with a header row is sought among the file's tables whose first row Word repeats; one without (0078), among every one, so that a
+  // header row written for it is found and said.
+  const tables = docx.body.filter((node): node is DocxTable => node.kind === 'table')
   let next = 0
   for (const table of expect.tables) {
-    const at = tables.findIndex((each, index) => index >= next && tableProblems(table, each, expect.noOrphanedHeaders).length === 0)
-    if (at >= 0) next = at + 1
-    else
-      problems.push(
-        ...(tables[next] === undefined ? [`table ${table.id} is not in the file`] : tableProblems(table, tables[next++]!, expect.noOrphanedHeaders)),
-      )
+    const candidates = tables.flatMap((each, index) => (index >= next && (table.header === undefined || each.rows[0]?.header === true) ? [index] : []))
+    const at = candidates.find((index) => tableProblems(table, tables[index]!, expect.noOrphanedHeaders).length === 0)
+    const held = at ?? candidates[0]
+    if (held === undefined) problems.push(`table ${table.id} is not in the file`)
+    else {
+      if (at === undefined) problems.push(...tableProblems(table, tables[held]!, expect.noOrphanedHeaders))
+      next = held + 1
+    }
   }
   const missing = (where: string, read: readonly DocxBlock[], stated: readonly string[]): void => {
     const lost = inOrder(plainLines(read), stated)
@@ -236,20 +240,35 @@ const cellText = (cell: DocxTable['rows'][number]['cells'][number]): string => n
 const rowKept = (row: DocxTable['rows'][number] | undefined): boolean =>
   row !== undefined && row.cells.every((cell) => paragraphsOf(cell.blocks).every((paragraph) => paragraph.keepNext))
 
+/**
+ * The problems with `table` as the file's writing of `expected`: its
+ * header row, where the document gives it one, printing its cells and
+ * marked as the row Word repeats, and no other row marked so -- none at
+ * all of a table without a header row (0078), whose first row is its
+ * first; its empty text and its rows, cell for cell; and what each row is
+ * kept with.
+ */
 function tableProblems(expected: ExpectedTable, table: DocxTable, noOrphans: boolean): string[] {
   const at = `table ${expected.id}`
-  const [header, ...rows] = table.rows
+  const stated = expected.header
+  const header = stated === undefined ? undefined : table.rows[0]
+  const rows = table.rows.slice(stated === undefined ? 0 : 1)
   const printed = (row: DocxTable['rows'][number]): string[] => row.cells.map(cellText).filter((text) => text !== '')
-  if (header === undefined || printed(header).join('\u0000') !== expected.header.join('\u0000'))
-    return [`${at}'s header does not print ${expected.header.join(', ')}`]
+  if (stated !== undefined && (header === undefined || printed(header).join('\u0000') !== stated.join('\u0000')))
+    return [`${at}'s header does not print ${stated.join(', ')}`]
   const problems: string[] = []
-  if (!header.header) problems.push(`${at}'s header is not marked as the row to repeat on every page`)
+  if (header !== undefined && !header.header) problems.push(`${at}'s header is not marked as the row to repeat on every page`)
+  const marked = rows.filter((row) => row.header).length
+  if (marked > 0)
+    problems.push(
+      `${at} marks ${marked} of its rows as the row to repeat on every page, ${header === undefined ? 'and has no header row' : 'under its header row'}`,
+    )
   const empty = expected.emptyText === '' ? [] : rows.splice(0, 1)
   if (expected.emptyText !== '' && (empty[0] === undefined || empty[0].cells.length !== 1 || cellText(empty[0].cells[0]!) !== expected.emptyText))
     problems.push(`${at} does not print '${expected.emptyText}' across it in place of its detail rows`)
   if (rows.length !== expected.rows.length)
     return [...problems, `${at} holds ${rows.length} rows under its header where the document has ${expected.rows.length}`]
-  if (noOrphans && rows.length > 0 && !rowKept(header)) problems.push(`${at}'s header is not kept with the row under it`)
+  if (noOrphans && header !== undefined && rows.length > 0 && !rowKept(header)) problems.push(`${at}'s header is not kept with the row under it`)
   expected.rows.forEach((row, index) => {
     const read = rows[index]!
     const cells = read.cells.map(cellText)

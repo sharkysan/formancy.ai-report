@@ -311,6 +311,9 @@ function checkBlocks(blocks: readonly Block[], path: string, where: Where, width
 function checkTable(table: Table, width: number): void {
   const columns = table.columns.length
   if (columns === 0) throw new RenderRefusal('unsupported', `table ${table.id} has no columns`, table.id)
+  // The trial drew every table under its header row, and was run on the corpus as it stood (0005): a table without one came later (0078).
+  if (table.header === undefined)
+    throw new RenderRefusal('unsupported', `table ${table.id} has no header row, which the trial never drew a table without`, table.id)
   const rows = [table.header, ...table.rows.map((row) => row.cells)]
   const short = rows.findIndex((cells) => cells.length !== columns)
   if (short >= 0) {

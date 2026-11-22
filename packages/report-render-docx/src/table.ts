@@ -9,7 +9,8 @@ import { columnWidths } from './widths.js'
 /**
  * A table as a Word table of fixed layout, standing `width` wide (0068):
  * its grid the columns' widths, a fill column its share; its header row
- * marked as the one Word repeats on every page the table reaches; every
+ * marked as the one Word repeats on every page the table reaches, and no
+ * header row and no row marked where the table has none (0078); every
  * row marked not to split, since a row is kept whole wherever the PDF
  * can keep it; a row across the table one cell spanning every column;
  * the empty text in place of detail rows where the table has none; and

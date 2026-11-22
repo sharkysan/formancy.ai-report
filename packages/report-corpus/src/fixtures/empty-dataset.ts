@@ -17,6 +17,6 @@ export const emptyDataset: Fixture = {
   maxPages: 5,
   expect: expectation(document, {
     maxPagesExpected: 1,
-    exactText: [...table.header, table.emptyText, ...total.cells.filter((cell) => cell !== '')],
+    exactText: [...(table.header ?? []), table.emptyText, ...total.cells.filter((cell) => cell !== '')],
   }),
 }
