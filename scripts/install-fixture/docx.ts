@@ -23,7 +23,14 @@
  * of the file that is a bar chart of Word's own, holding the three
  * amounts digit for digit as the runtime totalled them and the axis's
  * highest tick, with no workbook in the file and no relationships part
- * beside the chart. consume.ts runs it and prints what it returns.
+ * beside the chart. consume.ts runs it and prints what it returns. And
+ * an e-invoice (0077), which e-invoice.ts resolved twice, as the invoice
+ * and as its copy: the invoice refused whole, naming its e-invoice and
+ * the option that asks for the copy, and the copy written, its page
+ * header opening with the label the packed runtime gives for its kind
+ * and language, bold and in the label's red, the invoice's number among
+ * the document's text, and no part of the file holding the invoice's
+ * XML or leading outside the package.
  *
  * What only this gate sees is the fflate and the pako a clean npm
  * install gives the writer, the uqr it gives the runtime, and the
@@ -32,7 +39,7 @@
  * picture: no decoder is in this host.
  */
 import { resolveReport } from '@formancy/report-runtime'
-import { epcSymbol, QR_QUIET_ZONE, swissSymbol } from '@formancy/report-runtime'
+import { E_INVOICE_COPY_LABELS, eInvoiceCopyParagraph, epcSymbol, QR_QUIET_ZONE, readCopyLabel, swissSymbol } from '@formancy/report-runtime'
 import type { EpcQrCode, ImageResolver, QrSymbol, ResolvedDocument } from '@formancy/report-runtime'
 import { renderDocx, RenderRefusal } from '@formancy/report-render-docx'
 import {
@@ -172,6 +179,47 @@ function chartWritten(charted: ResolvedDocument): number {
   const missed = Object.keys(held).filter((check) => held[check] !== true)
   if (missed.length > 0) throw new Error(`the Word file of the quotation with a chart lacks ${missed.join('; ')}: its parts are ${names.join(', ')}`)
   return xml.length
+}
+
+/**
+ * An e-invoice's Word file (0077): `invoice`, the final render that
+ * carries the XML, refused whole for it, and `copy`, the same report
+ * resolved with `eInvoice: 'copy'`, written -- its page header opening
+ * with the runtime's label of a copy of its kind in German, `number`
+ * among its text, and nothing of the invoice's XML in any part.
+ */
+export function copyWritten(invoice: ResolvedDocument, copy: ResolvedDocument, number: string): string {
+  let refusal: unknown
+  try {
+    renderDocx(invoice)
+  } catch (error) {
+    refusal = error
+  }
+  if (!(refusal instanceof RenderRefusal) || refusal.code !== UNSUPPORTED || refusal.subject !== 'eInvoice' || !refusal.message.includes("eInvoice: 'copy'"))
+    throw new Error(`the e-invoice itself was not refused as a Word file for its e-invoice, naming the copy to ask for: ${String(refusal)}`)
+  const kind = invoice.eInvoice?.kind
+  if (kind === undefined || copy.eInvoice !== undefined) throw new Error('the copy of the e-invoice carries an e-invoice, or the invoice none')
+  const words = E_INVOICE_COPY_LABELS[kind].de
+  const label = readCopyLabel(copy.pageHeader)
+  if (label?.asWritten !== true || label.kind !== kind || label.paragraph !== eInvoiceCopyParagraph(kind, 'de-DE'))
+    throw new Error("the copy of the e-invoice is not headed with the runtime's label of a copy of its kind in German")
+  const file = renderDocx(copy)
+  const parts = entriesOf(file)
+  const header = parts.get('word/header1.xml')?.toString('utf8') ?? ''
+  const held: Readonly<Record<string, boolean>> = {
+    'a page header that opens with the label':
+      header.indexOf(`>${words}</w:t>`) > 0 && header.indexOf('<w:t') === header.indexOf(`>${words}</w:t>`) - '<w:t xml:space="preserve"'.length,
+    'the label bold, in its red, at 8 pt': /<w:b\/>.*<w:color w:val="B00020"\/>.*<w:sz w:val="16"\/>/i.test(header.slice(0, header.indexOf(words))),
+    "the invoice's number as text": (parts.get('word/document.xml')?.toString('utf8') ?? '').includes(number),
+    'no part that holds an invoice': ![...parts.values()].some((part) => part.includes('CrossIndustryInvoice')),
+    'no relationship that leads outside the package': ![...parts].some(([name, part]) => name.endsWith('.rels') && part.includes('TargetMode')),
+    "no part but a report's": [...parts.keys()].every(
+      (name) => /^(\[Content_Types\]\.xml|_rels\/\.rels|docProps\/core\.xml|word\/[A-Za-z0-9_/.]+)$/.test(name) && !/factur|xrechnung|invoice/i.test(name),
+    ),
+  }
+  const missed = Object.keys(held).filter((check) => held[check] !== true)
+  if (missed.length > 0) throw new Error(`the Word file of the e-invoice's copy lacks ${missed.join('; ')}: its parts are ${[...parts.keys()].join(', ')}`)
+  return `its copy written as a ${file.length}-byte Word file whose page header opens with the runtime's label of a copy and which holds nothing of the XML, the invoice itself refused as a Word file for its e-invoice`
 }
 
 export function wordWritten(billed: ResolvedDocument, paid: ResolvedDocument, charted: ResolvedDocument): string {

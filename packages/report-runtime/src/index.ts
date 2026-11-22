@@ -89,6 +89,8 @@ export { MAX_SCALE } from '@formancy/report-spec'
 export { CAPABILITIES, EVALUATION_ERROR_CODES, EXPRESSION_STEP_BUDGET, prepareExpressions, RENDER_STEP_BUDGET } from './evaluate.js'
 export type { ConditionEvaluation, Evaluation, EvaluationError, EvaluationErrorCode, ExpressionsPreparation, ReportExpressions } from './evaluate.js'
 
+export { E_INVOICE_COPY_LABELS, E_INVOICE_COPY_LANGUAGES, eInvoiceCopyParagraph, readCopyLabel } from './e-invoice-copy.js'
+export type { CopyLabel, EInvoiceCopyLanguage } from './e-invoice-copy.js'
 export { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, resolveReport, XRECHNUNG_COPY_LABEL, XRECHNUNG_COPY_PARAGRAPH } from './resolve.js'
 export type { RenderManifest, Resolution, ResolveOptions } from './resolve.js'
 export { checkReport } from './report-check.js'

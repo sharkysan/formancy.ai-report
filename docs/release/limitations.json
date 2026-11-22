@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:ad669e1d86fea4463bc02d4f9f7f7eca76fc2cede5333fe1fb9832d3576ef01c",
+      "reviewed": "sha256:d167ba8fe1c0ca9a39536739761c4b5cf486d721244d3865814f38ee01e9ff0d",
       "limitations": [
         {
           "area": "testing",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:3e5a04921c848d6ab0795dc3ff846208eb4e7443e0e637c109637aec38e24c73",
+      "reviewed": "sha256:8cdda8c8b9c6d21faa0c8cc7c4128cb3f957f557c33708c0321b9a1a24b9eaa0",
       "limitations": [
         {
           "area": "runtime",
@@ -1406,7 +1406,7 @@
       ]
     },
     "0038": {
-      "reviewed": "sha256:4e826faa7f108d02469af671b616ce8e6a50eac39ee08ca5c28ae9dadc6b7996",
+      "reviewed": "sha256:db060e83beaed6069f134c6413ee2b7df184ca75339abe38ee216a6a6ed1697d",
       "limitations": [
         {
           "area": "format",
@@ -2475,7 +2475,7 @@
       ]
     },
     "0057": {
-      "reviewed": "sha256:9e5492d7d7b68b0f19be4f85fe6cc5a20a6ba5bfdd8c671845780651e483f684",
+      "reviewed": "sha256:9e940bd209d2919b67c3e311d8f7b0f3d4132258ee0b8d5de125b830681f736d",
       "limitations": [
         {
           "area": "rendering",
@@ -2881,7 +2881,7 @@
       ]
     },
     "0063": {
-      "reviewed": "sha256:266e3aa7087ccb8159c1b883dbf7cad469193f73f1999324bd8327a208b74e06",
+      "reviewed": "sha256:e52f40528a8658c0c6da74c39be9191e5230f3d8f0aabf3526fb1765e14755d5",
       "limitations": [
         {
           "area": "format",
@@ -3030,7 +3030,7 @@
       ]
     },
     "0065": {
-      "reviewed": "sha256:7ef9c8f3ae1fd7f469b394238b27567074fb6a6615bbb40ace433f7201493345",
+      "reviewed": "sha256:0e0bda61713ea8e39bffda8419f3622ce6dba8e228f2ab2465e19e7601c9d984",
       "limitations": [
         {
           "area": "builders",
@@ -3127,11 +3127,11 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:48ee46e5efb948580cec67f3560754f2459fd2bae9975ba0630dab8359d25a26",
+      "reviewed": "sha256:a4315a445eb193c7437ab5e2ac7f08e5e059765ea7f24498e1a9aec31d9fdb59",
       "limitations": [
         {
           "area": "rendering",
-          "says": "A report that is an e-invoice of either kind is refused as a Word file, in a final render and in a preview, and so is any preview the runtime labels, so a host whose reports are e-invoices cannot export them and prints them as PDFs; a QR code and an EPC QR code are written since 0074, a chart since 0076 and a QR-bill’s slip since 0075.",
+          "says": "The document that is an e-invoice, of either kind, is refused as a Word file, and so is any preview the runtime labels, an e-invoice’s among them; since 0077 a report that carries an e-invoice has a Word file all the same, written of the copy its host resolves for it; a QR code and an EPC QR code are written since 0074, a chart since 0076 and a QR-bill’s slip since 0075.",
           "heldBy": "packages/report-render-docx/src/starters.test.ts"
         },
         {
@@ -3276,7 +3276,7 @@
       ]
     },
     "0075": {
-      "reviewed": "sha256:f7a802a143c88a73237a4bd1d2494ec7c810c5995af549e3de35b8b851fdcf90",
+      "reviewed": "sha256:6f02064c209f979e19a56497d7b99a7be8bd572681985984a45a068a0fe52a20",
       "limitations": [
         {
           "area": "rendering",
@@ -3383,8 +3383,56 @@
         }
       ]
     },
+    "0077": {
+      "reviewed": "sha256:a8e7800bbed2ea06c06539dff72fa6639037ec146197e27db341a375e3a26a55",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A Word file of a report that carries an e-invoice is a copy and never the invoice: it embeds no XML, a person may change its label and its totals in Word, and nothing ties it to the XML afterwards; the invoice is the Factur-X PDF or the XRechnung’s XML from the render that was not asked for as a copy.",
+          "heldBy": "packages/report-render-docx/src/copy.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A host resolves an e-invoice twice to have its Word file, once as the invoice and once with eInvoice: 'copy', since the invoice’s own document is refused by the Word writer; the Studio’s Preview does so for every final render of an e-invoice.",
+          "heldBy": "packages/report-runtime/src/e-invoice-copy.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A copy of an e-invoice is labelled in German, English, Spanish, French, Italian or Dutch, by the language of the locale the render prints in; a report in any other language has no copy, and so no Word file, while it carries an e-invoice, and no native speaker has read the French, Italian, Spanish and Dutch labels.",
+          "heldBy": "packages/report-runtime/src/e-invoice-copy.test.ts"
+        },
+        {
+          "area": "runtime",
+          "says": "A preview of an e-invoice has no copy and no Word file, and a preview’s label and the label of an XRechnung’s PDF are still English in every language, so one report’s PDF copy and its Word copy may be labelled in two languages.",
+          "heldBy": "packages/report-runtime/src/e-invoice-copy.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A copy of an e-invoice is known to the Word writer and the PDF renderer by the paragraph a header opens with: the renderer refuses it as a PDF/A-2b where the page header or page 1’s own opens with a copy’s label, and the writer’s sentences for a report that carries an e-invoice changed, their code and subject as they were.",
+          "heldBy": "packages/report-render-pdf/src/pdfa-check.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The Word files of a copy of an e-invoice were opened in Word once, by hand, on 20 November 2026, each beside the PDF of the same copy where the PDF draws one, and found as their list says, the red label at the top of every page, page 1 and a QR-bill’s slip’s page among them, with nothing more of what Word did written down; no test opens one: that Word prints the label on every page, that it stands above the body and wraps cleanly, and that Word says nothing of links or embedded content, is held by nothing; the tests read the headers back."
+        },
+        {
+          "area": "testing",
+          "says": "No starter or sample is an e-invoice paid by a QR-bill, so the label on a slip’s page is proved on the Factur-X sample given the invoice starter’s bill and a Swiss account in the test, on copies with a bill put on their document by hand, and on a file typed out by hand.",
+          "heldBy": "packages/report-render-docx/src/copy.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A Word file says it is a copy only of a document the runtime resolved as one: a Factur-X’s final render whose XML a host takes off is written as a report with no label, which nothing tells from one that is no invoice; an XRechnung’s, whose every page names its PDF, is refused, where 0068 wrote it.",
+          "heldBy": "packages/report-render-docx/src/copy.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The Word file of a copy carries the report’s title as the invoice’s PDF does, Rechnung (ZUGFeRD) of the e-invoice starter, so Word’s File > Info and a list of files name the copy as the invoice; the runtime has no title of a copy’s own in any language."
+        }
+      ]
+    },
     "0078": {
-      "reviewed": "sha256:24ab55d6e974877b1e9783ed1d09deb627e1e4142d4dbe652587c7a9e52f9997",
+      "reviewed": "sha256:4c6d56c8e891678ddbb00471776d9645d48ccac2ce281c6d0995f2097c7e4242",
       "limitations": [
         {
           "area": "rendering",

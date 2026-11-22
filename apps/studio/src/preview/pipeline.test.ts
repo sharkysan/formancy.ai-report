@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { INVOICE_EDITIONS, INVOICE_LANGUAGES, invoiceLanguagesData, STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
 import { drawingsOn, epcCodes, readCii, readCodes, readPdf, readPdfObjects, textAt } from '@formancy/report-corpus'
 import { expectation, readDocx, verifyDocx, wordRefusal } from '@formancy/report-corpus'
-import { resolveReport } from '@formancy/report-runtime'
+import { readCopyLabel, resolveReport } from '@formancy/report-runtime'
 import { afterAll, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import { studioImages } from '../images/image-store.js'
 import { decodeStarters, encodeStarters } from '../starters/codec.js'
@@ -42,13 +42,15 @@ function request(id: string, overrides: Partial<PreviewRequest> = {}): PreviewRe
  * records 0074, 0075 and 0076 changed it: written, or refused by the
  * writer, a preview and a final render each for the part of the document
  * it names. An e-invoice's final render is its PDF/A-3b or the copy of
- * its XML, and its preview is labelled in its page header as no invoice.
+ * its XML, and its Word file is written of the copy the runtime resolves
+ * of that render, labelled on every page (0077); its preview is labelled
+ * in its page header as no invoice, and refused.
  * The euro invoice, which an EPC QR code pays, is written since 0074,
  * the sales report, whose bar chart and pie are each Word's own chart in
  * the file, since 0076, and the invoice and the payment reminder, whose
  * QR-bill's slip is a page of the file's own, since 0075.
  */
-const WORD: Readonly<Record<string, 'written' | { readonly preview: string; readonly final: string }>> = {
+const WORD: Readonly<Record<string, 'written' | { readonly preview: string; readonly final: 'copy' }>> = {
   'service-inspection': 'written',
   quotation: 'written',
   'grouped-equipment': 'written',
@@ -60,8 +62,8 @@ const WORD: Readonly<Record<string, 'written' | { readonly preview: string; read
   blank: 'written',
   invoice: 'written',
   'payment-reminder': 'written',
-  'e-invoice': { preview: 'pageHeader', final: 'eInvoice' },
-  'e-invoice-xrechnung': { preview: 'pageHeader', final: 'eInvoice' },
+  'e-invoice': { preview: 'pageHeader', final: 'copy' },
+  'e-invoice-xrechnung': { preview: 'pageHeader', final: 'copy' },
 }
 
 // pdfmake's browser build warns, outside a browser, that it has no local
@@ -296,19 +298,63 @@ describe('the preview pipeline', () => {
       if (!resolved.ok) throw new Error(`${id} was refused`)
       const { document } = resolved
       const expected = WORD[id]
-      if (expected === undefined || expected === 'written') {
+      if (expected !== undefined && expected !== 'written' && mode === 'final') {
+        // The Word file of an e-invoice's final render is its copy's (0077): held to the copy this case resolves for itself, which
+        // every header of the file opens with the label of, and never to the document the PDF was drawn from, which is the invoice.
+        const copy = resolveReport(asked.report, asked.starter.data, {
+          mode,
+          eInvoice: 'copy',
+          parameters: asked.starter.parameters,
+          images: asked.images,
+          creationDate: CREATED,
+        })
+        if (!copy.ok) throw new Error(`the copy of ${id} was refused`)
+        if (outcome.word.kind !== 'written') throw new Error(`${id} has no Word file: ${JSON.stringify(outcome.word)}`)
+        expect(wordRefusal(document)).toEqual({ code: 'unsupported', subject: 'eInvoice' })
+        expect(readCopyLabel(copy.document.pageHeader)).toMatchObject({ kind: asked.report.eInvoice?.kind, asWritten: true })
+        const fixture = {
+          id,
+          title: id,
+          document: copy.document,
+          maxPages: PREVIEW_PAGE_LIMIT,
+          expect: expectation(copy.document, { maxPagesExpected: PREVIEW_PAGE_LIMIT }),
+        }
+        expect(await verifyDocx(fixture, readDocx(outcome.word.docx))).toEqual([])
+        // The PDF beside it is the invoice, and the XML the invoice's: the copy changes neither.
+        expect(outcome.xml).toBe(document.eInvoice?.xml)
+      } else if (expected === undefined || expected === 'written') {
         if (outcome.word.kind !== 'written') throw new Error(`${id} has no Word file: ${JSON.stringify(outcome.word)}`)
         expect(wordRefusal(document)).toBeUndefined()
         // Its pages are Word's: the page counts a fixture states are read by no check of a Word file.
         const fixture = { id, title: id, document, maxPages: PREVIEW_PAGE_LIMIT, expect: expectation(document, { maxPagesExpected: PREVIEW_PAGE_LIMIT }) }
         expect(await verifyDocx(fixture, readDocx(outcome.word.docx))).toEqual([])
       } else {
-        const refusal = { code: 'unsupported', subject: expected[mode] }
+        const refusal = { code: 'unsupported', subject: expected.preview }
         expect(outcome.word).toEqual({ kind: 'refused', refusal: { ...refusal, message: expect.stringMatching(/print (the report|the preview) as a PDF$/) } })
         expect(wordRefusal(document)).toEqual(refusal)
       }
     },
   )
+
+  // A copy is labelled in the language the report prints in, and the
+  // runtime refuses one in a language it has no label in (0077). The
+  // invoice is printed all the same, with its XML; a pipeline that took
+  // the copy's refusal for the render's would show no invoice, and one
+  // that dropped it would offer no Word file and no reason.
+  test('prints an e-invoice in a language no copy is labelled in, and says why it has no Word file', async () => {
+    const invoice = request('e-invoice', { mode: 'final' })
+    const outcome = await preview({ ...invoice, report: { ...invoice.report, locale: 'pl-PL' } }, new AbortController().signal)
+    if (outcome.kind !== 'printed') throw new Error(`the invoice was not printed: ${JSON.stringify(outcome)}`)
+    expect(outcome.xml).toContain('CrossIndustryInvoice')
+    expect(outcome.word).toEqual({
+      kind: 'refused',
+      refusal: {
+        code: 'unsupported',
+        subject: 'eInvoice',
+        message: expect.stringMatching(/^a copy of an e-invoice is labelled in the language it prints in.*pl-PL/),
+      },
+    })
+  })
 
   // A preview of data that lacks something is labelled on every page as
   // no final report (0010), and the writer refuses a labelled preview: in

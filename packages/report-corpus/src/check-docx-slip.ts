@@ -1,3 +1,4 @@
+import { COPY_LABEL_INSET, copyWords } from './check-docx-copy.js'
 import { readPictureCode } from './code-picture.js'
 import type { PixelCode } from './codes.js'
 import type { ResolvedDocument } from './document.js'
@@ -8,7 +9,8 @@ import { readPng, type GreyPixels } from './docx/png.js'
  * A QR-bill's slip held to what a Word file states for it (0075,
  * extending 0068 and 0003), by the corpus's own reading of that record
  * and of SIX's documents, never the writer's code: the slip's page, the
- * file's last section; its instruction, its lines and its three cells;
+ * file's last section, whose header is empty, or the label alone where
+ * the document is a copy of an e-invoice (0077); its instruction, its lines and its three cells;
  * every heading and value where SIX puts it, at its size and weight; the
  * blank fields' corner marks; and the Swiss QR Code's picture, on its own
  * pixels and on what ZXing reads in them.
@@ -253,12 +255,19 @@ export function verifySlip(
   if (!near(page.width, PAPER.width) || !near(page.height, PAPER.height) || page.orientation !== 'portrait') say('its page is not A4 upright')
   if (page.margins.left !== 0 || page.margins.right !== 0 || page.margins.bottom !== 0)
     say('its page has a margin at a side or at its foot, where the slip spans the paper and ends at its foot')
-  if (page.titlePage || page.header !== 0 || page.footer !== 0)
-    say("its page has a header of its first page's own, or one that stands in from the paper's edge")
+  // A copy of an e-invoice says so on this page too (0077): its header is the label alone, 5 mm down, which `check-docx-copy.ts` holds.
+  const labelled = copyWords(document) !== undefined
+  if (page.titlePage || page.footer !== 0 || (labelled ? !near(page.header, COPY_LABEL_INSET) : page.header !== 0))
+    say(
+      labelled
+        ? "its page has a header of its first page's own, or one that does not stand 5 mm down, where a copy's label stands"
+        : "its page has a header of its first page's own, or one that stands in from the paper's edge",
+    )
   for (const [kind, own, report] of [
     ['header', slip.header, docx.header],
     ['footer', slip.footer, docx.footer],
   ] as const) {
+    if (kind === 'header' && labelled) continue
     const empty = own !== undefined && own.blocks.length === 1 && isEmpty(own.blocks[0]!)
     if (report !== undefined && (!empty || own.part === report.part)) say(`its page prints the report's page ${kind}, or one that is not empty`)
     if (report === undefined && own !== undefined) say(`its page names a ${kind} where the report prints none`)

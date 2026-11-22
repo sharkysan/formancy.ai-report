@@ -1,4 +1,4 @@
-import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL } from '@formancy/report-runtime'
+import { E_INVOICE_PREVIEW_LABEL, PREVIEW_LABEL, XRECHNUNG_COPY_LABEL } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { verifyDocx, wordRefusal } from './check-docx.js'
 import type { Block, Image, ResolvedDocument } from './document.js'
@@ -367,6 +367,16 @@ describe('wordRefusal derives', () => {
       "an e-invoice's preview",
       { ...HAND_DOCUMENT, pageHeader: [{ kind: 'paragraph', runs: [{ text: E_INVOICE_PREVIEW_LABEL }] }] },
       { code: 'unsupported', subject: 'pageHeader' },
+    ],
+    [
+      "an XRechnung's PDF copy, its XML taken off (0077)",
+      { ...HAND_DOCUMENT, pageHeader: [{ kind: 'paragraph', runs: [{ text: XRECHNUNG_COPY_LABEL }] }] },
+      { code: 'unsupported', subject: 'pageHeader' },
+    ],
+    [
+      "an XRechnung's PDF copy labelled on page 1's own header alone",
+      { ...HAND_DOCUMENT, firstPageHeader: [{ kind: 'paragraph', runs: [{ text: XRECHNUNG_COPY_LABEL }] }] },
+      { code: 'unsupported', subject: 'firstPageHeader' },
     ],
     [
       'a table in a framed section',

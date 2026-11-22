@@ -12,6 +12,7 @@ import {
   readCodes,
   readDocxCodes,
   readPdf,
+  readPdfObjects,
   SHIFTED_FIXTURES,
   STARTERS,
   SVG_FIXTURES,
@@ -23,7 +24,7 @@ import {
   type Fixture,
 } from '@formancy/report-corpus'
 import { renderPdf } from '@formancy/report-render-pdf'
-import { MAX_ASSET_BYTES, MAX_ASSET_SIDE, RenderRefusal, SHIFTED_SIZE } from '@formancy/report-runtime'
+import { MAX_ASSET_BYTES, MAX_ASSET_SIDE, readCopyLabel, RenderRefusal, SHIFTED_SIZE } from '@formancy/report-runtime'
 import type { AxisChart, Block, Chart, EpcQrCode, ImageAsset, QrCode, ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { MAX_DOCX_CHARTS, MAX_DOCX_IMAGE_DATA } from './limits.js'
@@ -209,8 +210,14 @@ const FIXTURES: readonly Fixture[] = [
   ...HEADERLESS_FIXTURES,
 ].filter((fixture) => fixture.expect.outcome === 'render' && wordRefusal(fixture.document) === undefined)
 
+/** The starters that are e-invoices, each as the copy of its final render, the one document of it both engines write (0077). */
+const COPIES: readonly (readonly [string, ResolvedDocument])[] = STARTERS.filter((starter) => starter.report.eInvoice !== undefined).map(
+  (starter) => [`the copy of the ${starter.id} starter`, resolved(starter, { eInvoice: 'copy' })] as const,
+)
+
 const BOTH: readonly (readonly [string, ResolvedDocument])[] = [
   ...STARTERS.map((starter) => [`the ${starter.id} starter`, resolved(starter)] as const).filter(([, document]) => wordRefusal(document) === undefined),
+  ...COPIES,
   ...FIXTURES.map((fixture) => [`the ${fixture.id} fixture`, fixture.document] as const),
 ]
 
@@ -219,8 +226,9 @@ describe('what a document leaves to an engine', () => {
   test('is compared on every starter and fixture both engines write', () => {
     expect(BOTH.length).toBeGreaterThan(20)
     // The six of record 0068, the euro invoice, which is paid by a code (0074), the sales report, which draws two charts (0076), and the
-    // invoice and the payment reminder, which a QR-bill pays (0075).
-    expect(BOTH.filter(([name]) => name.endsWith('starter'))).toHaveLength(10)
+    // invoice and the payment reminder, which a QR-bill pays (0075); and the two that are e-invoices, each as its copy (0077).
+    expect(BOTH.filter(([name]) => name.endsWith('starter'))).toHaveLength(12)
+    expect(COPIES).toHaveLength(2)
   })
 
   // The sizes and the bold no style states are the renderer's constants, typed again in look.ts: one changed alone would print a report's
@@ -239,10 +247,18 @@ describe('what a document leaves to an engine', () => {
         const [text, how] = word.split(' @ ') as [string, string]
         return long.some((whole) => whole.endsWith(` @ ${how}`) && whole.includes(text))
       }
-      expect([...file].filter((word) => !pdf.has(word) && !long.includes(word)).sort()).toEqual([])
+      // A word pdfmake broke after a hyphen, in a column too narrow for it, is its parts to PDF.js and one word to the file: the e-invoice's
+      // 'Gas-Brennwertkessel' (0077). Such a word is held by its parts, each printed as the word prints, and each part by the word.
+      const parts = (word: string): string[] => {
+        const [text, how] = word.split(' @ ') as [string, string]
+        return text.split(/(?<=-)(?=.)/).map((each) => `${each} @ ${how}`)
+      }
+      const hyphened = [...file].filter((word) => !pdf.has(word) && parts(word).length > 1 && parts(word).every((each) => pdf.has(each)))
+      const part = new Set(hyphened.flatMap(parts))
+      expect([...file].filter((word) => !pdf.has(word) && !long.includes(word) && !hyphened.includes(word)).sort()).toEqual([])
       // A chart's value axis is labelled by Word, from the numbers (0076): the PDF's labels are the block's ticks' texts, and no word of the file.
       const ticks = tickWords(body)
-      expect([...pdf].filter((word) => !file.has(word) && !piece(word) && !ticks.has(word)).sort()).toEqual([])
+      expect([...pdf].filter((word) => !file.has(word) && !piece(word) && !ticks.has(word) && !part.has(word)).sort()).toEqual([])
     },
     TIMEOUT,
   )
@@ -277,6 +293,37 @@ describe('what a document leaves to an engine', () => {
   )
 })
 
+describe('a copy of an e-invoice in both engines', () => {
+  // The label is the runtime's paragraph, which each engine prints as it prints any paragraph: a label one engine printed light, or at
+  // another size, would be a copy that says what it is in one file and whispers it in the other. Read on the header each prints.
+  test.each(COPIES)(
+    'prints the label of %s at the size and in the weight the PDF prints it, in the header of each',
+    async (_name, document) => {
+      const label = readCopyLabel(document.pageHeader)
+      const run = label?.paragraph.runs[0]
+      if (label?.asWritten !== true || run === undefined || !('text' in run)) throw new Error('the document is no copy')
+      const words = run.text.split(/\s+/).map((word) => printed(word, 8, true, false))
+      const file = wordsOfFile(written(document).header?.blocks ?? [])
+      const pdf = await wordsOfPdf(document)
+      expect(words.filter((word) => !file.has(word))).toEqual([])
+      expect(words.filter((word) => !pdf.has(word))).toEqual([])
+    },
+    TIMEOUT,
+  )
+
+  // The copy carries no XML, so neither engine can embed one: the PDF drawn of it is a plain PDF that embeds nothing, as the Word file
+  // written of it holds no part but a report's (`copy.test.ts`).
+  test.each(COPIES)(
+    'draws %s as a PDF that embeds nothing',
+    async (_name, document) => {
+      expect(document.eInvoice).toBeUndefined()
+      const objects = await readPdfObjects(await renderPdf(document, { maxPages: 40 }))
+      expect(objects.embeddedFiles).toEqual([])
+    },
+    TIMEOUT,
+  )
+})
+
 describe('a code in both engines', () => {
   /** Every code among `blocks`, inside every container, in document order. */
   const codesOf = (blocks: readonly Block[]): (QrCode | EpcQrCode)[] =>
@@ -305,6 +352,9 @@ describe('a code in both engines', () => {
   test('is compared on every code fixture and on the starters a code pays', () => {
     expect(CODED.map(([name]) => name)).toEqual([
       'the euro-invoice starter',
+      // An e-invoice's copy is paid by the EPC QR code its invoice prints (0077): the code of a copy is the invoice's.
+      'the copy of the e-invoice starter',
+      'the copy of the e-invoice-xrechnung starter',
       ...CODE_FIXTURES.filter((fixture) => codesOf(fixture.document.body).length > 0).map((fixture) => `the ${fixture.id} fixture`),
       'the euro invoice from Austria',
     ])

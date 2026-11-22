@@ -353,6 +353,9 @@ the image data and the end alone, deflated by fflate at a stated level
 A slip's Swiss QR Code is such a picture too, with the Swiss cross in
 its pixels, and the same bytes for the same bill
 ([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
+A copy of an e-invoice is the same bytes for the same copy, and holds no
+part but a report's: the copy carries no XML to embed
+([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
 A chart's part is text the writer makes of the block, each part named
 by the order the body meets its chart in, and the same text for the same
 block

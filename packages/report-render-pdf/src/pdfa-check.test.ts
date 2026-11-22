@@ -1,7 +1,7 @@
 import pdfmake from 'pdfmake'
 import type { TDocumentDefinitions } from 'pdfmake/interfaces.js'
-import { E_INVOICE, QUOTATION, starterImages, type Starter } from '@formancy/report-corpus'
-import { RenderRefusal, resolveReport, type ReportData, type ResolvedDocument } from '@formancy/report-runtime'
+import { E_INVOICE, QUOTATION, readPdfObjects, starterImages, XRECHNUNG_SAMPLE, type Starter } from '@formancy/report-corpus'
+import { eInvoiceCopyParagraph, RenderRefusal, resolveReport, type ReportData, type ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
 import { renderPdf } from './node.js'
 import type { RenderOptions } from './options.js'
@@ -25,6 +25,8 @@ const MSG_FACTUR_X = 'a Factur-X e-invoice is drawn as the PDF/A-3b that embeds 
 const MSG_XRECHNUNG = "an XRechnung's PDF is the plain copy of its XML, labelled so on every page, and never an archival PDF/A: render it without pdfa"
 const MSG_PREVIEW =
   'this document is a preview, labelled on every page as not a final report, and a PDF/A-2b of it would be kept as the report: draw the final render as PDF/A-2b, and the preview without pdfa'
+const MSG_COPY =
+  'this document is a copy of an e-invoice, labelled on every page as not the invoice, and a PDF/A-2b of it would be kept as the invoice: keep the invoice, and draw the copy without pdfa'
 const MSG_TITLE = "a PDF/A-2b's title is written into its XMP as it stands, where it may hold no &, < or > and no character XML 1.0 cannot write: this one does"
 
 const CREATED = '2026-11-11T08:00:00Z'
@@ -174,6 +176,53 @@ describe('a preview asked for as PDF/A-2b', () => {
       expect(document.pageHeader[0]).toMatchObject({ kind: 'paragraph', runs: [{ text: label }] })
       await expectRefused(document, { maxPages: 5, pdfa: '2b' }, { code: 'unsupported', subject: 'pageHeader', message: MSG_PREVIEW })
       await drawn(document, { maxPages: 5 })
+    },
+    TIMEOUT,
+  )
+})
+
+describe('a copy of an e-invoice (0077)', () => {
+  /** `starter` resolved as the copy of its final render, which carries the copy's label and no XML. */
+  const copy = (starter: Starter): ResolvedDocument => {
+    const outcome = resolveReport(starter.report, starter.data, {
+      mode: 'final',
+      eInvoice: 'copy',
+      parameters: starter.parameters,
+      images: starterImages,
+      creationDate: CREATED,
+    })
+    if (!outcome.ok) throw new Error(`refused: ${outcome.errors.map((error) => `${error.code} ${error.path}`).join('; ')}`)
+    return outcome.document
+  }
+
+  // The copy is what a Word file is written of, and a document like any other to this renderer: it carries no e-invoice, so it is drawn
+  // as a plain PDF that embeds nothing and says on every page what it is. Archived as a PDF/A it would be kept as the invoice.
+  test.each([
+    ['a Factur-X', E_INVOICE, 'Kopie einer E-Rechnung: Die Rechnung ist das PDF, das ihr XML einbettet, und dieses Dokument ist nicht die Rechnung'],
+    ['an XRechnung', XRECHNUNG_SAMPLE, 'Kopie einer XRechnung: Die Rechnung ist ihr XML, und dieses Dokument ist nicht die Rechnung'],
+  ] as const)(
+    'the copy of %s is drawn as a plain PDF that embeds nothing, and refused as PDF/A-2b, naming pageHeader',
+    async (_, starter, label) => {
+      const document = copy(starter)
+      expect(document.pageHeader[0]).toMatchObject({ kind: 'paragraph', runs: [{ text: label }] })
+      expect(document.eInvoice).toBeUndefined()
+      await expectRefused(document, { maxPages: 5, pdfa: '2b' }, { code: 'unsupported', subject: 'pageHeader', message: MSG_COPY })
+      const { outcome, definitions } = await attempt(document, { maxPages: 5 })
+      expect(outcome).toBeInstanceOf(Uint8Array)
+      expect(definitions.at(-1)).not.toHaveProperty('subset')
+      expect((await readPdfObjects(outcome as Uint8Array)).embeddedFiles).toEqual([])
+    },
+    TIMEOUT,
+  )
+
+  // A document labelled as a copy on page 1's own header alone (0060), which no runtime resolves, would be archived as the invoice by the
+  // page a reader opens first. Any header that opens with a copy's label refuses the 2b, naming the header.
+  test(
+    "a document labelled as a copy on page 1's own header alone is refused as PDF/A-2b, naming firstPageHeader",
+    async () => {
+      const label = { ...eInvoiceCopyParagraph('facturX', 'de-DE')! }
+      const document: ResolvedDocument = { ...bareDocument('Rechnung', [paragraph('Rechnung 4711')]), firstPageHeader: [label] }
+      await expectRefused(document, { maxPages: 1, pdfa: '2b' }, { code: 'unsupported', subject: 'firstPageHeader', message: MSG_COPY })
     },
     TIMEOUT,
   )
