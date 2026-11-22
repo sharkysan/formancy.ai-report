@@ -869,7 +869,10 @@ as Formancy Data's apps are, not a new one
   rule overridden for colour. The palette is formancy's, released as
   `@formancy/themes/room.css`, never copied: the Studio's `main.tsx`
   imports it after `workbench.css`, whose `--wb-*` it sets, and no
-  stylesheet here sets one of its variables or types one of its colours:
+  stylesheet here sets one of its variables or types one of its colours,
+  but for the architecture sketch, an image that can import no
+  stylesheet, which types each colour under the room's own name, held to
+  the installed `room.css` by `scripts/architecture.test.mjs` (0079):
   a tint is `color-mix()` of the variable
   ([0034](docs/decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md),
   formancy.ai 0178). The Studio's `styles/room.css` holds only its own: the
@@ -1264,6 +1267,11 @@ Locally, run the same commands for what you changed.
   includes a Status line naming a later record.
 - After a dependency, a peer or a tool of the published packages changes,
   run `node scripts/release-report/readme.mjs --write`.
+- After a change to what a starter prints, `pnpm build`, then run
+  `node scripts/samples.mjs --write`, which rewrites `samples/` and the
+  README's table of the starters (0079).
+- A new package or app needs its box in `docs/images/architecture.svg`,
+  drawn by hand below every package that depends on it (0079).
 
 `test:e2e:install` is the only gate that looks at the packages from outside:
 - it packs them;
