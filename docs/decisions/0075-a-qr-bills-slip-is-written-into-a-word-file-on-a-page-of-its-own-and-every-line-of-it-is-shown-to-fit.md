@@ -25,7 +25,10 @@
     holds the digest of the inflated objects of the invoice's and the
     payment reminder's PDF/A-2b, which `staleRecorded` fails a run for
     drawing otherwise; that gate needs Java and was not run for this
-    change.
+    change. On 20 November 2026, once `main` was taken in, every PDF that
+    gate draws was drawn by its own code without the tools, and each
+    one's digest was the one `main`'s recording of that day holds,
+    compared once, outside any test.
   - **The widths.** report-render-docx's `src/slip-widths.test.ts` reads
     the advances of both faces of the Liberation Sans 2.1.5 the PDF
     renderer ships, by a walk of the font's own tables that is the
@@ -110,7 +113,7 @@
     2026**, and by no gate, as 0068 and 0076 validated their files:
     against ISO/IEC 29500-4:2016's transitional schemas, as Ecma
     publishes them with ECMA-376's fifth edition, Part 4, with libxml2
-    2.13.9. Of every file named under *Not yet opened in Word*, 29, the
+    2.13.9. Of every file named under *Seen in Word*, 29, the
     `document.xml`, the `fontTable.xml` and each header's part, and of
     one more with a page header, a page footer and a body that ends in
     a table, those and both footers', 76 parts: none invalid. As
@@ -151,29 +154,34 @@
     and the instruction as text, Arial's other name and a picture whose
     side is whole pixels a module of the packed runtime's `swissSymbol`;
     and refuses it in a currency SIX does not allow.
-  - **Not yet opened in Word.** The files this change writes -- every
-    starter and sample a bill pays, in each language it declares, and
-    the bills of the tests, each beside its PDF, with a list of what each
-    slip should show -- were written for the person who decides to open
-    in Word before this change merges, as 0068 asks of a change to what
-    the writer writes. When this record was written nobody had opened
-    one. That Word prints the slip at the page's foot at its size, 210 by
-    105 mm, its top 192 mm down; that it honours a top margin of 188 mm
-    and none at the sides and foot, and what it says of them when it
-    prints; that a line of an exact height and a row of a least height
-    stand where the sum of the heights above them puts them, with a
-    cell's top border taking no room; where in its line Word sets a
-    baseline, and so whether a line exactly as tall as its face's own
-    shows all of its ink; that a picture's line is as tall as the
-    picture, where at single spacing Word may add the descent of the
-    paragraph's mark, a point of the default face, some 0.2 to 0.3 pt,
-    by which the amount under the code would stand 0.1 mm low; that no
-    line is broken, in Arial and in Liberation Sans; that the empty
-    paragraph after the slip and the empty footer start no second page,
-    and the line a body of nothing is given none before it; that the corner marks of a blank field are drawn as marks; that
-    the picture is drawn unsmoothed at 46 mm and a Swiss banking app
-    reads it from the paper; and what the page count says: all of it is
-    held by no test and was seen by nobody.
+  - **Seen in Word, on 20 November 2026**, by the person who decides,
+    by hand and by no gate, as 0068 asks of a change to what the writer
+    writes: every file this change writes -- every starter and sample a
+    bill pays, in each language it declares, and the bills of the
+    tests, 29 Word files -- each with its PDF beside it and a list of
+    what each slip should show. They were found fine ("Beide ok")
+    against the list: the slip alone on the last page, at its foot, and
+    its Swiss QR Code readable. The same day, once 0074 and 0076 as they
+    merged and the fix to a heading kept with a table (0011) were taken
+    into this change, the writer wrote each of those Word files again
+    byte for byte, compared once, outside any test; of the PDFs beside
+    them, the payment reminder's four differ in where the named
+    destination of its heading kept with a table stands, which 0011's
+    fix moved to the table's first row, and in nothing else but the
+    offsets that follow it, and the rest are the same bytes.
+    Nothing more of what Word did was written down -- not what it says
+    of a page with no margin at its sides and foot, nor how the code was
+    read -- and nothing of it is held by a test: that Word prints the
+    slip at the page's foot at its size, 210 by 105 mm, its top 192 mm
+    down; that a line of an exact height and a row of a least height
+    stand where the sum of the heights above them puts them; where in
+    its line Word sets a baseline, and so whether a line exactly as tall
+    as its face's own shows all of its ink; how tall a picture's line
+    is; that no line is broken, in Arial and in Liberation Sans; that no
+    page follows the slip and none stands empty before it; that the
+    corner marks of a blank field are drawn as marks; that the picture
+    is drawn unsmoothed and a Swiss banking app reads it from the paper;
+    and what the page count says, rest on that look.
 
 ## Context
 
@@ -344,7 +352,8 @@ The costs.
   ends 1.4 mm above the edge. A border's own weight is in no sum here.
 - **Zero margins.** The slip's page has none at its sides and foot.
   Word tells a person who prints it that margins lie outside the
-  printable area; nobody here has seen what it then does.
+  printable area; what it then does was not written down when the
+  files were opened (*Seen in Word*).
 - **The payment part's values are 11.2 pt apart, not SIX's 11.** A
   line of 11 pt would cut a hair of a tall accent over a descender, so
   each value of the payment part's information stands 0.2 pt lower than
@@ -421,7 +430,10 @@ The costs.
   name, as one the writer adds has it.
 - **An encode each.** Each engine asks the runtime for the bill's
   symbol, as 0074 says of a code.
-- **Not opened in Word.** See *Verified by*.
+- **These files were opened in Word once, by hand.** Each of them on
+  20 November 2026, against the list it came with. What Word prints of
+  the slip -- where it stands on its page, its lines, its code -- rests
+  on that look, and no test holds it; see *Verified by*.
 
 ## Alternatives considered
 
@@ -465,7 +477,7 @@ The costs.
 
 ## What follows
 
-- The person who decides opens the files this change wrote in Word, and
-  what Word does otherwise than this record says is a change to the
-  writer or a cost here.
+- What Word was seen to print is written under this record's *Seen in
+  Word*; whatever a Word is seen to print otherwise than this record
+  says is a change to the writer or a cost here.
 - The e-invoice as a labelled copy, 0077.

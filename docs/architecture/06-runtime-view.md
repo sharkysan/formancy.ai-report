@@ -297,10 +297,11 @@ thread. The viewer keeps it with the PDF it was written beside, as the
 XML, so that Download Word gives the file of the render on the paper,
 under the starter's id. Where the writer refused, the link is not drawn
 and a note says why in the writer's own sentence, which is how a person
-learns that an invoice, a report paid by a QR-bill and
-a labelled preview have no Word file; a report with a QR code or an EPC
-QR code has one, the euro invoice among them (0074), and so has one with
-a chart, the sales report among them (0076). A fault of the writer's, or a chunk
+learns that an e-invoice and a labelled preview have no Word file; a
+report with a QR code or an EPC QR code has one, the euro invoice among
+them (0074), and so has one with a chart, the sales report among them
+(0076), and one paid by a QR-bill, the invoice and the payment reminder
+among them, its slip the file's last page (0075). A fault of the writer's, or a chunk
 that did not load, is the Word file's alone and leaves the PDF as it
 printed, which `word-fault.test.ts` and `word-chunk.test.ts` hold, a
 suite each; and the writer, with the two libraries it zips and inflates
@@ -1271,7 +1272,7 @@ checkDocument: before a byte is written, in this order                          
    ├─ a creation date that is no date, states no instant, a day no
    │  calendar has or a year no core property has; a title XML cannot
    │  hold ────────────────────────────────────────────────────────────▶ unsupported
-   ├─ a payment part, an e-invoice, a preview's label ─────────────────▶ unsupported
+   ├─ an e-invoice, a preview's label ─────────────────────────────────▶ unsupported
    ├─ a page of no known size or turn; margins that leave nothing ─────▶ unsupported,
    │                                                                     content-too-large
    │  then one walk: the page header, page 1's own, the page footer and
@@ -1310,6 +1311,12 @@ checkDocument: before a byte is written, in this order                          
    ├─ a JPEG its Exif block turns or of four components ───────────────▶ unsupported
    ├─ an SVG that covers a box of other proportions, a picture drawn
    │  at under an English Metric Unit ─────────────────────────────────▶ unsupported
+   ├─ a QR-bill's payment part, last, where the PDF renderer checks its
+   │  bill: what the runtime's checkQrBill refuses, in its words, and a
+   │  character SIX does not allow a bill, which has no width here ────▶ unsupported,
+   │                                                                     content-too-large
+   │  a line wider than its place, a part's information taller than its
+   │  section; past the file's bounds with the slip's paragraphs ──────▶ content-too-large
    ▼
 each region's blocks as paragraphs and tables, in points          nodes.ts, blocks.ts, table.ts
    │  a text without the line ending that ends it; the keep rules mark
@@ -1317,8 +1324,9 @@ each region's blocks as paragraphs and tables, in points          nodes.ts, bloc
    │  block but what ends it, the header row, a group header's kept
    │  rows, the row before a closing row
    │  a code a picture's paragraph exactly its size; in Austria's frame
-   │  an empty line kept with a table of its picture and its caption,
-   │  bordered around, and an empty line under it                             codes.ts
+   │  an empty line kept with a table of its picture, its cell bordered
+   │  around, and its caption beside it, the row at least the frame's
+   │  height, and an empty line under it                                      codes.ts
    ▼
 WordprocessingML, every element's children in ECMA-376's order; every
 string through text or attribute, markup a type of its own               wml.ts, xml.ts

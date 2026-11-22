@@ -280,6 +280,20 @@ corpus's fixture is built of rows that fit
 | The orphan check holding a header to its count, and every other header as before; the fixture placed for every plausible number of rows a page | `report-corpus/src/checks.test.ts`, `report-corpus/src/fixtures/fixtures.test.ts`, rendered by `report-render-pdf/src/corpus.test.ts` and `browser.test.ts` |
 | The field in both builders, typed, refused, written as none and undone; given back as it reads, no edit; shown on a group whose header has no text, absent without a group | `report-builder-core/src/scenarios.test.ts` and `properties.test.ts`, React's `scenarios.test.tsx`, Angular's `scenarios.test.ts`, and the Studio's `parity.test.tsx` |
 
+**A heading kept with a table whose header repeats.** A heading kept with
+the next block is kept with a table's first body row, never the header
+pdfmake repeats, whose page pdfmake writes over each time; the case is
+held where it rests on pdfmake, on the PDF, and by a fixture any engine
+answers to
+([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)):
+
+| Where | What holds it |
+|---|---|
+| What it rests on in pdfmake 0.3.11: a repeated header's cell with an id reading the last page its table reaches, a body row's cell the page it starts on | `report-render-pdf/src/pdfmake.test.ts`, "pdfmake's positions" |
+| On the PDF: a heading over a 120-row table alone, as a run of two, in a framed section and over a group header that keeps three rows, each on page 1 with the line above it and the table's first row, the header on every page; one at a page's foot moving with such a table, with an empty table and with a keep-together block opening with a table; a table whose rows print nothing kept with by its header, and its heading, held as it stands, moved where such a table runs past its page | `report-render-pdf/src/flow.test.ts` |
+| The fixture: a heading under the body's first line and a run of two, each on one page with its table's first row, the header over each table on every page, in both entries | `report-corpus/src/fixtures/kept-heading.ts`, rendered by `report-render-pdf/src/corpus.test.ts` and `browser.test.ts` |
+| The check and the fixture's arithmetic: lines placed on one page found split across pages, or one not printed, each on a real PDF watched failing; none derived; every table of the fixture past every plausible page, its first heading under the body's first line, every line it places printed once | `report-corpus/src/checks.test.ts`, `fixture.test.ts`, `fixtures/fixtures.test.ts` |
+
 **A first page's own header, at every layer that reads it.** Which header
 a page prints is decided once, by the renderer, and every layer that reads
 the region is held where it reads it; a report without it is held to
@@ -488,8 +502,8 @@ decoded from the PDF of the same document, in squares of the PDF's size,
 and both engines to refusing a code in the same words. Decoding is not
 a comparison of pictures, here as for a PDF. What it does not show is
 what Word draws of the picture, or what a phone reads of what Word
-prints: nobody had opened a file with a code in Word when 0074 was
-written.
+prints: the files with a code were opened in Word once, by hand, on 20
+November 2026, and no test opens one.
 
 **A chart in a Word file, on its part.** A chart with something to draw
 is a part of the file, Word's own chart, and is proved on that part by
@@ -512,8 +526,8 @@ slant, and every word the PDF draws of a chart to one the part states or
 a tick's text; and both engines to refusing each malformed chart by the
 same code and subject. What none of it shows is anything Word draws:
 where it puts a word, whether two meet, how long a bar is, and what it
-writes on the value axis. Nobody had opened a file with a chart in Word
-when 0076 was written.
+writes on the value axis. The files with a chart were opened in Word
+once, by hand, on 20 November 2026, and no test opens one.
 
 **A QR-bill's slip in a Word file, on its page.** The slip is the file's
 last section, and is proved on what the file states of that page
@@ -542,8 +556,11 @@ on the PDF's page, and a list of bills no engine draws to the same
 refusal from both. What none of it shows is anything Word prints: that
 the slip stands at the page's foot at its size, that no line is broken,
 where a baseline stands, or that a banking app reads the code from the
-paper. Nobody had opened a file with a slip in Word when 0075 was
-written.
+paper. Every file with a slip the writer writes of the starters, the
+samples and the tests' bills was opened in Word once, by hand, on 20
+November 2026, and found fine: the slip alone on the last page, at its
+foot, and its code readable; nothing more of what Word did was written
+down.
 
 **A copy of an e-invoice in a Word file, on every header.** A report
 that carries an e-invoice is written from its copy, and the copy is
@@ -719,8 +736,11 @@ later releases and say why, and the legal gate waits for a lawyer
   reader of the format -- LibreOffice, a previewer, a converter -- was
   tried. The files were validated against the schema once, by hand, and
   the starters' and the fixtures' files opened in Word once, by hand,
-  those with a code (0074), a chart (0076), a QR-bill's slip (0075) or
-  a copy's label (0077) not yet.
+  those with a code once too, on 20 November 2026, the euro invoice from
+  Austria after its frame was written as the variant approved in Word
+  (0074), and those with a chart (0076) and those with a QR-bill's
+  slip (0075) on the same day; those with a copy's label (0077) not
+  yet.
   The demo is `main`'s, so the files reach the public at a merge
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
 - **No phone, no bank, no paper.** ZXing decodes every code a test prints,

@@ -119,12 +119,17 @@ function placed(pages: readonly Page[], group: readonly string[]): { page: Page;
   return page === undefined || first === undefined ? undefined : { page, first }
 }
 
-export function keptTogether(pages: readonly Page[], group: readonly string[]): string[] {
+/**
+ * What is wrong with `group`, whose lines must all be on one page: a
+ * kept-together group's, `held` there by its block, or one a fixture
+ * placed `on one page` (`Expectation.onOnePage`).
+ */
+export function keptTogether(pages: readonly Page[], group: readonly string[], held: 'kept together' | 'on one page' = 'kept together'): string[] {
   if (placed(pages, group) !== undefined) return []
   const where = group.map((text) => pages.filter(({ lines }) => lines.some((line) => lineHas(line, text))).map(({ page }) => page.number))
   const absent = group.filter((_, index) => where[index]!.length === 0)
   if (absent.length > 0)
-    return absent.map((text) => `${quoted(text)}, which must be kept together with ${plural(group.length - 1, 'other line')}, is not on any page`)
+    return absent.map((text) => `${quoted(text)}, which must be ${held} with ${plural(group.length - 1, 'other line')}, is not on any page`)
   return [`${group.map((text) => quoted(text)).join(', ')} are split across pages ${[...new Set(where.flat())].sort((a, b) => a - b).join(', ')}`]
 }
 

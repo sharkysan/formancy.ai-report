@@ -309,6 +309,10 @@ describe('keeping content together', () => {
     ],
     ['the keep-together block it heads, opening with an EPC QR code', keptUnder({ kind: 'epcQrCode', id: 'pay-code', payload: EPC_EXAMPLE, size: 85.04 })],
     ['the keep-together block it heads, opening with an SVG image', keptUnder({ kind: 'image', asset: svgAsset(MARK), width: 40, height: 40, fit: 'contain' })],
+    // A table with no rows prints its empty text under its header: kept with that, the heading moves with both.
+    ['the empty table it heads', ledger('lines', [])],
+    // A keep-together block is kept with by its first text wherever it stands in it, its table's header here: the block moves whole, the header with it.
+    ['the keep-together block it heads, opening with a table', keptUnder(ledger('kept', details(1, 3)))],
     // And for one the heading reaches through a framed section or a column, which are not kept together, and hold it.
     [
       'the framed section it heads, opening with such a keep-together block',
@@ -350,6 +354,100 @@ describe('keeping content together', () => {
       expect(verify(fixtureOf('heading-at-foot', document, { minPagesExpected: 2, maxPagesExpected: 2, noEmptyPages: false }), pdf)).toEqual([])
       expect(pageOf(pdf, 'Lines')).toBe(2)
       expect(pdf.pages[0]!.images.length + pageLines(pdf.pages[0]!).filter((line) => !/^(Formancy Report corpus|Page \d)/.test(line.text)).length).toBe(0)
+    },
+    TIMEOUT,
+  )
+
+  // A heading over a table that runs past its page, whose column header
+  // pdfmake repeats on every page the table continues on. pdfmake writes
+  // the page each repetition stands on into the header's cells
+  // (pdfmake.test.ts), so a heading kept with the header read the table as
+  // starting on the last page it reached, and moved to the next page with
+  // it: the page it stood on was left empty under the line before it, and
+  // a run of two headings was split, the first alone on a page. Kept with
+  // the table's first row, the heading stays under that line, and the
+  // header still repeats on every page. The same through a framed section,
+  // which holds the table, and over a group header that keeps its first
+  // three rows (0059), which is the table's first row. A column holds no
+  // table (check.ts).
+  test.each([
+    ['a table', [heading('Lines')], ledger('lines', details(1, 120)), 'ROW-0001'],
+    ['a table, as a run of headings', [heading('Lines'), heading('Ledger lines')], ledger('lines', details(1, 120)), 'ROW-0001'],
+    [
+      'a table in a framed section',
+      [heading('Lines')],
+      { kind: 'section', border: { thickness: 1, color: '#000000' }, blocks: [ledger('lines', details(1, 120))] },
+      'ROW-0001',
+    ],
+    [
+      'a table whose first row is a group header that keeps three rows',
+      [heading('Lines')],
+      ledger('lines', [{ kind: 'groupHeader', cells: ['Region A', '', ''], keepWithRows: 3 }, ...details(1, 120)]),
+      'Region A',
+    ],
+  ] as const)(
+    'keeps a heading on its page over %s that runs past it, under its repeated header',
+    async (_, headings, headed, first) => {
+      const document = documentOf('Heading over a long table', [paragraph('Opening line'), ...headings, headed])
+      const texts = headings.map(({ runs: [run] }) => (run !== undefined && 'text' in run ? run.text : ''))
+      const pdf = await rendered(document)
+      expect(verify(fixtureOf('heading-over-long-table', document, { maxPagesExpected: 4, onOnePage: [['Opening line', ...texts, first]] }), pdf)).toEqual([])
+      expect([...texts, first].map((text) => pageOf(pdf, text))).toEqual([...texts, first].map(() => 1))
+      // The header repeats on every page the table reaches: every page here.
+      expect(pdf.pages.length).toBeGreaterThan(1)
+      expect(pdf.pages.map((page) => pageLines(page).filter((line) => lineHas(line, 'Key Description Amount')).length)).toEqual(pdf.pages.map(() => 1))
+    },
+    TIMEOUT,
+  )
+
+  // The other side of the rule above: a heading at the foot of a page,
+  // with no room under it for the table's first row, still moves to the
+  // next page with it, though the table runs on past that page too.
+  test(
+    'moves a heading at the foot of a page to the next with a table that runs past it',
+    async () => {
+      const document = documentOf('Heading at the foot over a long table', [
+        { kind: 'spacer', height: BODY_HEIGHT - 20 },
+        heading('Lines'),
+        ledger('lines', details(1, 120)),
+      ])
+      const pdf = await rendered(document)
+      expect(verify(fixtureOf('heading-at-foot-long-table', document, { maxPagesExpected: 5, noEmptyPages: false }), pdf)).toEqual([])
+      expect([pageOf(pdf, 'Lines'), pageOf(pdf, 'ROW-0001')]).toEqual([2, 2])
+      expect(pageLines(pdf.pages[0]!).filter((line) => !/^(Formancy Report corpus|Page \d)/.test(line.text))).toEqual([])
+    },
+    TIMEOUT,
+  )
+
+  // A table whose rows print nothing is kept with by its header, the only
+  // text it prints: kept with nothing in it, the heading would reach past
+  // the table for the next block, and with none, stay at the foot of the
+  // page over a table on the next.
+  test(
+    'moves a heading to the next page with a table whose rows print nothing, by its header',
+    async () => {
+      const blank: TableRow = { kind: 'detail', cells: ['', '', ''] }
+      const pdf = await rendered(
+        documentOf('Heading over blank rows', [{ kind: 'spacer', height: BODY_HEIGHT - 20 }, heading('Lines'), ledger('lines', [blank])]),
+      )
+      expect([pageOf(pdf, 'Lines'), pageOf(pdf, 'Key Description Amount')]).toEqual([2, 2])
+    },
+    TIMEOUT,
+  )
+
+  // A limitation, held as it stands: kept with by its header, a table
+  // whose rows print nothing and run past its page reads, as every table
+  // did, as starting on the last page its header repeats on, and its
+  // heading moves to the next page with it, leaving the page it stood on
+  // empty under the line before it. Nothing is lost or misprinted; the
+  // page is shorter than it need be. A pdfmake that leaves a repeated
+  // header's page as it found it fails this, and the limitation goes.
+  test(
+    'moves a heading kept with a table whose rows print nothing to the next page when the table runs past its own',
+    async () => {
+      const blank: TableRow = { kind: 'detail', cells: ['', '', ''] }
+      const pdf = await rendered(documentOf('Heading over blank rows', [paragraph('Opening line'), heading('Lines'), ledger('lines', Array(120).fill(blank))]))
+      expect([pageOf(pdf, 'Opening line'), pageOf(pdf, 'Lines')]).toEqual([1, 2])
     },
     TIMEOUT,
   )

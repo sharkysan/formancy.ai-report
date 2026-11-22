@@ -246,7 +246,7 @@ describe('verifyDocx fails on a code whose picture', () => {
 })
 
 describe('verifyDocx fails on a captioned EPC QR code whose', () => {
-  const FRAME_ROW = '<w:trHeight w:val="1574" w:hRule="exact"/>'
+  const FRAME_ROW = '<w:trHeight w:val="1574" w:hRule="atLeast"/>'
   // Each a rule of the PSA's frame and caption (0025) as record 0074 writes them in a Word file, taken out or written otherwise.
   test.each<[string, () => Parts, RegExp]>([
     [
@@ -293,32 +293,39 @@ describe('verifyDocx fails on a captioned EPC QR code whose', () => {
           (parts.get(DOCUMENT) as string).replaceAll('w:sz="5" w:space="0" w:color="000000"', 'w:sz="16" w:space="0" w:color="000000"'),
         )
       },
-      /the EPC QR code pay's frame is not a line of 0\.67\d+ pt, half a module, around its symbol and its caption/,
+      /the EPC QR code pay's frame is not a line of 0\.67\d+ pt, half a module, on each side of its symbol's cell/,
     ],
     [
+      // The frame's right line is the symbol's cell's: without it, the frame is open where the caption stands beside it.
       'frame is open on the right',
       () =>
         written(
-          '<w:bottom w:val="single" w:sz="5" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="5" w:space="0" w:color="000000"/>',
-          '<w:bottom w:val="single" w:sz="5" w:space="0" w:color="000000"/>',
+          '<w:right w:val="single" w:sz="5" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:spacing w:before="14"/>',
+          '</w:tcBorders></w:tcPr><w:p><w:pPr><w:spacing w:before="14"/>',
         ),
-      /the EPC QR code pay's frame is not a line of/,
+      /the EPC QR code pay's frame is not a line of 0\.67\d+ pt, half a module, on each side of its symbol's cell/,
     ],
     [
-      'frame runs between its symbol and its caption',
+      // The frame as it was first written: a line around the caption's band too, its right side at the table's edge, which Word cut off.
+      'frame runs around its caption too',
       () =>
         written(
-          '<w:bottom w:val="single" w:sz="5" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:spacing w:before="14"/>',
-          '<w:bottom w:val="single" w:sz="5" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="5" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p><w:pPr><w:spacing w:before="14"/>',
+          '<w:tcW w:w="140" w:type="dxa"/><w:textDirection w:val="btLr"/>',
+          '<w:tcW w:w="140" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="5" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="5" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="5" w:space="0" w:color="000000"/></w:tcBorders><w:textDirection w:val="btLr"/>',
         ),
-      /the EPC QR code pay's frame is not a line of/,
+      /the EPC QR code pay's caption's band is bordered, where the caption stands outside the frame's line/,
     ],
     [
       'frame is another height',
-      () => written(FRAME_ROW, '<w:trHeight w:val="1701" w:hRule="exact"/>'),
-      /the EPC QR code pay's frame is not exactly 78\.7\d+ pt tall/,
+      () => written(FRAME_ROW, '<w:trHeight w:val="1701" w:hRule="atLeast"/>'),
+      /the EPC QR code pay's frame is a row of at least 85\.05 pt where the PSA's frame is 78\.7\d+ pt tall/,
     ],
-    ['frame may grow', () => written(FRAME_ROW, '<w:trHeight w:val="1574" w:hRule="atLeast"/>'), /the EPC QR code pay's frame is not exactly/],
+    [
+      // Of an exact height, the white under the symbol was cut when the sample from Austria was opened in Word on 20 November 2026.
+      'frame is exactly its height',
+      () => written(FRAME_ROW, '<w:trHeight w:val="1574" w:hRule="exact"/>'),
+      /the EPC QR code pay's frame is not a row at least its height, where an exact one cut the white under its symbol in Word/,
+    ],
     [
       'frame gives its caption another band',
       () => written('<w:gridCol w:w="1561"/><w:gridCol w:w="140"/>', '<w:gridCol w:w="1501"/><w:gridCol w:w="200"/>'),
@@ -342,8 +349,8 @@ describe('verifyDocx fails on a captioned EPC QR code whose', () => {
       'frame is filled',
       () =>
         written(
-          '</w:tcBorders><w:textDirection w:val="btLr"/>',
-          '</w:tcBorders><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/><w:textDirection w:val="btLr"/>',
+          '<w:tcW w:w="140" w:type="dxa"/><w:textDirection w:val="btLr"/>',
+          '<w:tcW w:w="140" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/><w:textDirection w:val="btLr"/>',
         ),
       /the EPC QR code pay's frame is filled, or turns its symbol's cell/,
     ],

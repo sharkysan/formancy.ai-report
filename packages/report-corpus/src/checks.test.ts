@@ -543,6 +543,24 @@ describe('verify checks what a fixture states about its text and pages', () => {
     expect(await problems(together, lost)).toEqual(["checks: 'Not printed anywhere', which must be kept together with 1 other line, is not on any page"])
   })
 
+  // A heading moved to the next page with the table it heads, away from
+  // the line it stood under with room to spare: no block keeps the three
+  // together, so only lines the fixture says share a page can show it.
+  test('lines placed on one page that are split across pages', async () => {
+    const stated = { ...fixture, expect: { ...fixture.expect, onOnePage: [['Opening line', 'A heading']], maxPagesExpected: 4 } }
+    const together = definition(ROWS, { extra: [{ text: 'Opening line' }, { text: 'A heading' }] })
+    expect(await problems(together, stated)).toEqual([])
+    const split = definition(ROWS, {
+      extra: [
+        { text: 'Opening line', pageBreak: 'before' },
+        { text: 'A heading', pageBreak: 'before' },
+      ],
+    })
+    expect(await problems(split, stated)).toEqual(["checks: 'Opening line', 'A heading' are split across pages 3, 4"])
+    const lost = { ...stated, expect: { ...stated.expect, onOnePage: [['Opening line', 'Not printed anywhere']] } }
+    expect(await problems(together, lost)).toEqual(["checks: 'Not printed anywhere', which must be on one page with 1 other line, is not on any page"])
+  })
+
   // A sweep across a page boundary: blocks given less room move to a page
   // of their own from some point on, and never one with more room while a
   // later one stays. A block moved needlessly, or a sweep that never reached

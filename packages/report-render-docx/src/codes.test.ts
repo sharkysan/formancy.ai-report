@@ -325,12 +325,16 @@ describe('an EPC QR code in a Word file', () => {
   })
 
   // The PSA's frame (0025), as a Word file states it: the symbol's picture
-  // and the caption's band in a table of one row, bordered around the two
-  // by a line half a module wide, between the white the frame leaves above
-  // and under it in its square. In a 30 mm square the EPC's example is
-  // drawn in version 8, the least whose modules are the PSA's, at 1.357
-  // points a module.
-  test("with Austria's caption is the PSA's frame around its symbol and the words, the code's size together", async () => {
+  // and the caption's band in a table of one row at least as tall as the
+  // frame, the symbol's cell bordered on each side by a line half a module
+  // wide and the band beside it, outside the line, between the white the
+  // frame leaves above and under it in its square. In a 30 mm square the
+  // EPC's example is drawn in version 8, the least whose modules are the
+  // PSA's, at 1.357 points a module. Bordered around both cells, its row
+  // of an exact height, the frame was opened in Word on 20 November 2026
+  // without its right line, at the table's edge, and with the white under
+  // the symbol cut.
+  test("with Austria's caption is the PSA's frame around its symbol, the words beside it, the code's size together", async () => {
     const size = 85.04
     const document = documentOf([epc(V1, size, 'zahlenMitCode')])
     const docx = written(document)
@@ -342,20 +346,14 @@ describe('an EPC QR code in a Word file', () => {
     // The picture: 49 modules and four of quiet zone a side, at that module.
     expect(code.picture.width).toBeCloseTo(57 * module, 3)
     expect(code.module).toBeCloseTo(module, 4)
-    // The frame: 58 modules tall, the square less the caption's band and the band across, a line of half a module, which Word holds in eighths of a point.
+    // The frame: at least 58 modules tall, the square less the caption's band and the band across, a line of half a module, which Word
+    // holds in eighths of a point, on each side of the symbol's cell and on none of the band's.
     const row = frame.rows[0]!
-    expect(row.height).toEqual({ rule: 'exact', value: Math.round(58 * module * 20) / 20 })
+    expect(row.height).toEqual({ rule: 'atLeast', value: Math.round(58 * module * 20) / 20 })
     expect(frame.grid).toEqual([Math.round((size - 7) * 20) / 20, 7])
-    expect(row.cells[0]!.borders).toEqual({
-      top: { weight: 0.625, color: '#000000' },
-      left: { weight: 0.625, color: '#000000' },
-      bottom: { weight: 0.625, color: '#000000' },
-    })
-    expect(row.cells[1]!.borders).toEqual({
-      top: { weight: 0.625, color: '#000000' },
-      bottom: { weight: 0.625, color: '#000000' },
-      right: { weight: 0.625, color: '#000000' },
-    })
+    const line = { weight: 0.625, color: '#000000' }
+    expect(row.cells[0]!.borders).toEqual({ top: line, left: line, bottom: line, right: line })
+    expect(row.cells[1]!.borders).toEqual({})
     // The caption: the PSA's words, 7 pt, turned to read from bottom to top beside the symbol.
     expect(row.cells[1]!.direction).toBe('btLr')
     const caption = row.cells[1]!.blocks[0] as DocxParagraph

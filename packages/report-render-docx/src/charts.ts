@@ -160,7 +160,7 @@ export function chartNodes(chart: Chart, fonts: DocxFonts, parts: ChartParts): B
   const width = twips(chart.width)
   // At least the chart's height, never exactly: a row of an exact height cuts what does not fit it, and the words' lines are Word's.
   // And whole: the PDF reserves the box on one page, and a row that may split would break it across two.
-  const row = { cantSplit: true, height: chart.height, grows: true as const }
+  const row = { cantSplit: true, height: chart.height, atLeast: true as const }
   return [
     {
       kind: 'table',
