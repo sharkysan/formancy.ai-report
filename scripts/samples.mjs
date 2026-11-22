@@ -14,10 +14,14 @@
 // instant, CREATED, where the gate reads the clock; its PDF drawn by the
 // renderer's Node entry; its Word file written of the same document, or,
 // of an e-invoice, of its copy, `eInvoice: 'copy'` (0077), or the writer's
-// refusal, which the index gives in place of a file.
+// refusal, which the index gives in place of a file. Each row of the index,
+// and of the README's table of the starters, which this writes too, says
+// what its file holds: its pages, counted by PDF.js, its language, and its
+// tables, charts, codes and slip, read from the document it is drawn from.
 //
-// scripts/samples.test.mjs holds the folder to what this writes, in
-// `pnpm test:repo`: each Word file, each XML and the index byte for byte,
+// scripts/samples.test.mjs holds the folder and the README's table to what
+// this writes, in `pnpm test:repo`: each Word file, each XML, the index and
+// the table byte for byte,
 // each PDF by its objects with every stream inflated (report-corpus's
 // `inflatedDigest`), since PDFKit deflates with the zlib of the Node it runs
 // on. So --write leaves a PDF whose document is unchanged as it was,
@@ -26,7 +30,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { block } from './generated-block.mjs'
+import { block, blocks, END, marker } from './generated-block.mjs'
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -70,12 +74,69 @@ export async function packagesBuilt(root = repo) {
 /** The runtime's errors, one line, as a refusal says them. */
 const reasons = (errors) => errors.map((error) => `${error.code} at ${error.path}`).join('; ')
 
+/** The builder's word for each kind of e-invoice, as the Studio's picker names an e-invoice starter by it. */
+const KINDS = { facturX: 'Factur-X', xrechnung: 'XRechnung' }
+
+/**
+ * A starter's name as the Studio's picker gives it (apps/studio's
+ * `starterLabel`): an e-invoice by its kind, any other from its id,
+ * 'grouped-equipment' as "Grouped equipment".
+ */
+export function nameOf({ id, report }) {
+  const kind = report.eInvoice?.kind
+  if (kind !== undefined) return `E-invoice (${KINDS[kind]})`
+  const words = id.split('-').join(' ')
+  return `${words.charAt(0).toUpperCase()}${words.slice(1)}`
+}
+
+/** Every object of `value`, a resolved document or a part of one, depth first: its blocks, by their `kind`, and its runs among them. */
+function* objectsIn(value) {
+  if (Array.isArray(value)) {
+    for (const each of value) yield* objectsIn(each)
+    return
+  }
+  if (value === null || typeof value !== 'object') return
+  yield value
+  for (const each of Object.values(value)) if (typeof each === 'object') yield* objectsIn(each)
+}
+
+/** `count` of a thing, as a reader says it: "a table", "2 tables". */
+const counted = (count, one, many) => (count === 1 ? one : `${String(count)} ${many}`)
+
+/**
+ * What `document`, a resolved document, holds that a reader looks for in
+ * its file: its tables, charts and pictures, a QR code, an EPC QR code, a
+ * Swiss QR-bill, a first page of its own and text set below or above the
+ * line. Read from the document the PDF is drawn from, never from what its
+ * starter was written to show; a picture of a region is counted once, though
+ * every page prints it.
+ */
+export function holdingsOf(document) {
+  const objects = [...objectsIn([document.firstPageHeader ?? [], document.pageHeader, document.body, document.pageFooter])]
+  const count = (kind) => objects.filter((each) => each.kind === kind).length
+  const some = (kind, one, many) => (count(kind) > 0 ? [counted(count(kind), one, many)] : [])
+  return [
+    ...some('table', 'a table', 'tables'),
+    ...some('chart', 'a chart', 'charts'),
+    ...some('image', 'a picture', 'pictures'),
+    ...some('qrCode', 'a QR code', 'QR codes'),
+    ...some('epcQrCode', 'an EPC QR code', 'EPC QR codes'),
+    ...(document.paymentPart === undefined ? [] : ['a Swiss QR-bill']),
+    ...((document.firstPageHeader?.length ?? 0) > 0 ? ['a first page of its own'] : []),
+    ...(objects.some((each) => typeof each.text === 'string' && typeof each.baseline === 'string') ? ['text set above or below the line'] : []),
+  ]
+}
+
 /**
  * Every starter of `corpus.STARTERS`, in its order, as a host prints it at
- * `created`: `{ id, title, proves, kind, pdf, word, xml }`, `kind` the
- * e-invoice's, `word` `{ bytes }` or `{ refused }`, the writer's sentence,
- * and `xml` the runtime's of an e-invoice's final render. A starter the
- * runtime or the renderer refuses is thrown: the Studio prints every one.
+ * `created`: `{ id, name, title, locale, pages, holds, kind, pdf, word, xml }`
+ * -- `pages` the PDF's, read back by the corpus's PDF.js reader, `holds`
+ * what its document holds (`holdingsOf`), `kind` the e-invoice's, `word`
+ * `{ bytes }` or `{ refused }`, the writer's sentence, and `xml` the
+ * runtime's of an e-invoice's final render. A starter the runtime or the
+ * renderer refuses is thrown, and so is an e-invoice whose copy the runtime
+ * refuses: the Studio prints every one, and only the writer's refusal is a
+ * sample's to report.
  */
 export async function samplesOf({ runtime, renderer, writer, corpus }, { created = CREATED } = {}) {
   const samples = []
@@ -87,20 +148,21 @@ export async function samplesOf({ runtime, renderer, writer, corpus }, { created
     const pdf = await renderer.renderPdf(document, { maxPages: MAX_PAGES })
     // An e-invoice's Word file is its copy's (0077), as the Studio's Download Word gives it.
     const copy = document.eInvoice === undefined ? resolved : runtime.resolveReport(starter.report, starter.data, { ...options, eInvoice: 'copy' })
+    if (!copy.ok) throw new Error(`the runtime refuses the copy of the starter ${starter.id}: ${reasons(copy.errors)}`)
     let word
-    if (!copy.ok) word = { refused: copy.errors.map((error) => error.message).join('; ') }
-    else {
-      try {
-        word = { bytes: writer.renderDocx(copy.document) }
-      } catch (error) {
-        if (!(error instanceof runtime.RenderRefusal)) throw error
-        word = { refused: error.message }
-      }
+    try {
+      word = { bytes: writer.renderDocx(copy.document) }
+    } catch (error) {
+      if (!(error instanceof runtime.RenderRefusal)) throw error
+      word = { refused: error.message }
     }
     samples.push({
       id: starter.id,
+      name: nameOf(starter),
       title: starter.title,
-      proves: starter.proves,
+      locale: starter.report.locale,
+      pages: (await corpus.readPdf(pdf)).pages.length,
+      holds: holdingsOf(document),
       kind: starter.report.eInvoice?.kind,
       pdf,
       word,
@@ -120,22 +182,67 @@ const COPY = 'a copy, labelled on every page as not the invoice'
 const PDF_IS = { facturX: 'the invoice, a PDF/A-3b that embeds its XML', xrechnung: COPY }
 const XML_IS = { facturX: 'the XML its PDF embeds', xrechnung: 'the invoice' }
 
+/** What a sample's row says it holds: the e-invoice it is, and what its document holds, or its text alone. */
+function holds(sample) {
+  const invoice = sample.kind === 'facturX' ? ['a Factur-X e-invoice'] : sample.kind === 'xrechnung' ? ["an XRechnung's copy"] : []
+  const all = [...invoice, ...sample.holds]
+  return all.length === 0 ? 'text' : all.join(', ')
+}
+
+/** The README's table of the starters: a row a starter, what its file holds, and its downloads, linked from the repository's root. */
+export function readmeTable(samples) {
+  const at = (name) => `./samples/${name}`
+  const rows = samples.map((sample) => {
+    const copy = sample.kind === undefined ? '' : ' copy'
+    const downloads = [
+      `[PDF${sample.kind === 'xrechnung' ? ' copy' : ''}](${at(`${sample.id}.pdf`)})`,
+      'bytes' in sample.word ? `[Word${copy}](${at(`${sample.id}.docx`)})` : `No Word file: ${sample.word.refused}`,
+      ...(sample.xml === undefined ? [] : [`[XML${sample.kind === 'xrechnung' ? ', the invoice' : ''}](${at(`${sample.id}.xml`)})`]),
+    ]
+    return `| ${cell(sample.name)} | ${String(sample.pages)} | ${cell(sample.locale)} | ${cell(holds(sample))} | ${cell(downloads.join(' · '))} |`
+  })
+  return ['| Starter | Pages | Language | Its PDF holds | Download |', '| --- | --- | --- | --- | --- |', ...rows].join('\n')
+}
+
+/** The name of the README's block the table stands in. */
+const TABLE = 'starters'
+
+/** What is wrong with `readme`'s table of the starters against `samples`: none, more than one, or one other than `readmeTable` writes. */
+export function readmeProblems(readme, samples) {
+  const tables = blocks(readme).filter((each) => each.generator === 'scripts/samples.mjs' && each.name === TABLE)
+  if (tables.length === 0) return [`README.md has no table of the starters, opened by ${marker('scripts/samples.mjs', { name: TABLE })}`]
+  if (tables.length > 1) return ['README.md holds the table of the starters twice']
+  return tables[0].body === readmeTable(samples)
+    ? []
+    : ["README.md's table of the starters is not what scripts/samples.mjs writes: run node scripts/samples.mjs --write"]
+}
+
+/** `readme` with its table of the starters written from `samples`; throws where it holds none. */
+export function withReadmeTable(readme, samples) {
+  const open = marker('scripts/samples.mjs', { name: TABLE })
+  const start = readme.indexOf(open)
+  const end = readme.indexOf(END, start)
+  if (start === -1 || end === -1) throw new Error(`README.md has no table of the starters, opened by ${open}`)
+  return `${readme.slice(0, start)}${block('scripts/samples.mjs', readmeTable(samples), { name: TABLE })}${readme.slice(end + END.length)}`
+}
+
 /** The index of `samples`: what they are, a row a starter linking its files, and what holds them. */
 export function indexOf(samples) {
   const rows = samples.map((sample) => {
     const pdf = `${link(`${sample.id}.pdf`)}${sample.kind === undefined ? '' : `: ${PDF_IS[sample.kind]}`}`
     const word = 'bytes' in sample.word ? `${link(`${sample.id}.docx`)}${sample.kind === undefined ? '' : `: ${COPY}`}` : `No Word file: ${sample.word.refused}`
     const xml = sample.xml === undefined ? '' : `${link(`${sample.id}.xml`)}: ${XML_IS[sample.kind]}`
-    return `| ${cell(sample.title)} (\`${sample.id}\`) | ${cell(sample.proves)} | ${cell(pdf)} | ${cell(word)} | ${cell(xml)} |`
+    return `| ${cell(sample.name)}, ${cell(sample.title)} | ${String(sample.pages)} | ${cell(sample.locale)} | ${cell(holds(sample))} | ${cell(pdf)} | ${cell(word)} | ${cell(xml)} |`
   })
   const body = [
     "Every starter of the Studio, printed as your application would print it: a final render of the starter's own synthetic data, which is no customer's,",
     `resolved by \`@formancy/report-runtime\` at ${CREATED}, drawn as a PDF by \`@formancy/report-render-pdf\` and written as a Word file by`,
     "`@formancy/report-render-docx`. A report that carries an e-invoice is written as a Word file from its copy, and its XML is the runtime's of the same render:",
-    "the file the e-invoice gate records and has Mustang and KoSIT's validator judge, as it has veraPDF and Mustang judge the Factur-X's PDF.",
+    "the file the e-invoice gate records and has Mustang and KoSIT's validator judge, as it has veraPDF and Mustang judge the Factur-X's PDF. A PDF's pages are",
+    "counted by PDF.js, and what it holds is read from the document it is drawn from; a Word file's pages are Word's to lay out.",
     '',
-    '| Starter | What it shows | PDF | Word | XML |',
-    '| --- | --- | --- | --- | --- |',
+    '| Starter | Pages | Language | Its PDF holds | PDF | Word | XML |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
     ...rows,
     '',
     '`node scripts/samples.mjs --write` writes this folder from the packages as built, after `pnpm build`. `pnpm test:repo` fails when a file here is not',
@@ -209,15 +316,23 @@ async function write(files, pdfDigest) {
   console.log(`samples: ${String(files.length)} files, ${String(size)} bytes${kept === 0 ? '' : `; ${String(kept)} PDFs kept, their documents unchanged`}`)
 }
 
+/** The repository's README, whose table of the starters this writes and checks. */
+const README = join(repo, 'README.md')
+
 async function main(argv) {
   const packages = await packagesBuilt()
-  const files = filesOf(await samplesOf(packages))
+  const samples = await samplesOf(packages)
+  const files = filesOf(samples)
   const pdfDigest = packages.corpus.inflatedDigest
-  if (argv.includes('--write')) return write(files, pdfDigest)
+  if (argv.includes('--write')) {
+    await write(files, pdfDigest)
+    writeFileSync(README, withReadmeTable(readFileSync(README, 'utf8').replaceAll('\r\n', '\n'), samples), 'utf8')
+    return console.log('README.md: the table of the starters written')
+  }
   const listing = existsSync(SAMPLES) ? readdirSync(SAMPLES) : []
   const read = (name) => (listing.includes(name) ? new Uint8Array(readFileSync(join(SAMPLES, name))) : undefined)
-  const problems = await problemsOf(files, { read, listing, pdfDigest })
-  if (problems.length === 0) return console.log(`samples: every one of ${String(files.length)} files is what the build writes`)
+  const problems = [...(await problemsOf(files, { read, listing, pdfDigest })), ...readmeProblems(readFileSync(README, 'utf8'), samples)]
+  if (problems.length === 0) return console.log(`samples: every one of ${String(files.length)} files, and the README's table, is what the build writes`)
   console.error(`samples:\n  ${problems.join('\n  ')}\n\`node scripts/samples.mjs --write\` writes them`)
   process.exitCode = 1
 }
