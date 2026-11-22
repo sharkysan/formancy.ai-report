@@ -5,6 +5,7 @@ import {
   docxCharts,
   EURO_INVOICE_AT,
   FIRST_PAGE_FIXTURES,
+  HEADERLESS_FIXTURES,
   IMAGE_KINDS,
   KEEP_WITH_FIXTURES,
   MALFORMED,
@@ -205,6 +206,7 @@ const FIXTURES: readonly Fixture[] = [
   ...SHIFTED_FIXTURES,
   ...CODE_FIXTURES,
   ...CHART_FIXTURES,
+  ...HEADERLESS_FIXTURES,
 ].filter((fixture) => fixture.expect.outcome === 'render' && wordRefusal(fixture.document) === undefined)
 
 const BOTH: readonly (readonly [string, ResolvedDocument])[] = [

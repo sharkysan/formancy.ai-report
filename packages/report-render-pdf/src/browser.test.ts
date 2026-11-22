@@ -13,6 +13,7 @@ import {
   E_INVOICE,
   FIRST_PAGE_FIXTURES,
   inflatedDigest,
+  HEADERLESS_FIXTURES,
   KEEP_WITH_FIXTURES,
   KEPT_HEADING_FIXTURES,
   QUOTATION,
@@ -95,6 +96,7 @@ const FIXTURES = [
   ...CHART_FIXTURES,
   ...SHIFTED_FIXTURES,
   ...KEPT_HEADING_FIXTURES,
+  ...HEADERLESS_FIXTURES,
 ]
 
 /** The SHA-256 of the ICC's sRGB2014.icc, which the licence guard reviewed in pdfkit's file (`e-invoice.test.ts`). */
