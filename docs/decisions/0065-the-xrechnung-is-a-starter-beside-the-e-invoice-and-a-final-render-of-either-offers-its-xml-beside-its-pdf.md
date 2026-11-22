@@ -1,6 +1,6 @@
 # 0065 — The XRechnung is a starter beside the e-invoice, and a final render of either offers its XML beside its PDF
 
-- **Status:** accepted; amends [0038](0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md), whose sample was no starter
+- **Status:** accepted; amends [0038](0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md), whose sample was no starter; extended by [0077](0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md), under which Download Word of a final render of an e-invoice gives the Word file of its copy, beside the PDF and the XML that are the invoice
 - **Date:** 2026-11-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

@@ -1,4 +1,5 @@
 import { STARTERS, verifyDocx, wordRefusal } from '@formancy/report-corpus'
+import { readCopyLabel } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { fixtureOf, refusalOf, resolved, written } from './testing/support.js'
 
@@ -12,7 +13,9 @@ import { fixtureOf, refusalOf, resolved, written } from './testing/support.js'
  * 0075 for the invoice and the payment reminder: a
  * starter
  * that is written where the record says refused, or the other way round,
- * fails here, and so does one the table does not name.
+ * fails here, and so does one the table does not name. An e-invoice's
+ * final render and its preview are refused as they were, and the copy of
+ * its final render is written, labelled on every header (0077).
  */
 
 interface Refused {
@@ -41,6 +44,7 @@ const STARTER_FILES: Readonly<Record<string, Outcome>> = {
   invoice: 'written',
   'payment-reminder': 'written',
   // An invoice in law: its final render is its PDF/A-3b or the copy of its XML, and its preview is labelled as not the invoice, a label a Word file would hold as a paragraph.
+  // What is written of each is its copy, which the runtime resolves where a host asks for one (0077): below.
   'e-invoice': { final: refused('eInvoice'), preview: refused('pageHeader') },
   'e-invoice-xrechnung': { final: refused('eInvoice'), preview: refused('pageHeader') },
   // Draws a bar chart and a pie, each Word's own chart since 0076, written from the runtime's block with no ECharts.
@@ -73,6 +77,29 @@ describe.each(STARTERS.map((starter) => [starter.id, starter] as const))('%s', (
       expect(wordRefusal(document)).toEqual(outcome[mode])
     }
   })
+})
+
+// The starters that are e-invoices, each as the copy of its final render (0077): the one Word file an e-invoice has.
+describe.each(STARTERS.filter((starter) => starter.report.eInvoice !== undefined).map((starter) => [starter.id, starter] as const))(
+  'the copy of %s',
+  (id, starter) => {
+    const locales = [starter.report.locale, ...(starter.report.translations ?? []).map((each) => each.locale)]
+
+    // Written whole, as any report, with the label of its kind on every header: a copy refused, or written without its label, fails here.
+    test.each(locales)('in %s is written, labelled on every header as the copy of its kind', async (locale) => {
+      const document = resolved(starter, { locale, eInvoice: 'copy' })
+      expect(readCopyLabel(document.pageHeader)).toMatchObject({ kind: starter.report.eInvoice?.kind, asWritten: true })
+      expect(document.eInvoice).toBeUndefined()
+      expect(wordRefusal(document)).toBeUndefined()
+      expect(await verifyDocx(fixtureOf(id, document), written(document))).toEqual([])
+    })
+  },
+)
+
+test('the starters that are e-invoices are the two the table names as refused', () => {
+  expect(STARTERS.filter((starter) => starter.report.eInvoice !== undefined).map((starter) => starter.id)).toEqual(
+    Object.entries(STARTER_FILES).flatMap(([id, outcome]) => (outcome === 'written' ? [] : [id])),
+  )
 })
 
 // A refusal a person reads says what to do: each sentence names what stopped the file, and none quotes the report's words.

@@ -45,8 +45,9 @@ const holds = ([, document, code, subject, sentence]: Case): void => {
 
 describe('what belongs to the PDF is refused, naming it', () => {
   const cases: readonly Case[] = [
-    ['a Factur-X e-invoice', documentOf([], { eInvoice: invoice('facturX') }), 'unsupported', 'eInvoice', /PDF\/A-3b that embeds its XML/],
-    ['an XRechnung', documentOf([], { eInvoice: invoice('xrechnung') }), 'unsupported', 'eInvoice', /XRechnung.*is no copy/],
+    ['a Factur-X e-invoice', documentOf([], { eInvoice: invoice('facturX') }), 'unsupported', 'eInvoice', /PDF\/A-3b that embeds its XML.*eInvoice: 'copy'/],
+    // Each says what a Word file is written of in its place (0077): the copy the runtime resolves, asked for by its option.
+    ['an XRechnung', documentOf([], { eInvoice: invoice('xrechnung') }), 'unsupported', 'eInvoice', /XRechnung.*labelled as the PDF copy.*eInvoice: 'copy'/],
     ['a preview labelled as lacking data', documentOf([], { pageHeader: [label(PREVIEW_LABEL)] }), 'unsupported', 'pageHeader', /a paragraph a person deletes/],
     [
       "an e-invoice's preview",

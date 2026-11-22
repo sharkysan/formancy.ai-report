@@ -10,6 +10,69 @@ later.
 
 ## Unreleased
 
+**A report that carries an e-invoice is written into a Word file, as a
+labelled copy**
+([0077](docs/decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
+The Word writer refused every report that is an e-invoice, since the
+invoice is the PDF/A-3b that embeds its XML or the XML a host sends, and
+a Word file is neither. It was asked that a Word file hold the
+e-invoice too, and, asked how, the person who decides chose a labelled
+copy; this is the last of four changes. No PDF and no XML changed, and
+nothing depends on anything new.
+- **What a host notices.** `resolveReport` takes one option more,
+  `eInvoice: 'copy'`. A final render resolved with it is the invoice's
+  page with a label at the top of every header and no `eInvoice`, and
+  `renderDocx` writes it. The render without the option is the invoice
+  as it was, and `renderDocx` still throws `unsupported` naming
+  `eInvoice` for it, in other words than before: they now say to ask
+  for the copy. So a host resolves an e-invoice twice, once for the
+  invoice it keeps and sends and once for the Word file. The option
+  says nothing of a report that carries no e-invoice. An XRechnung's
+  final render with its XML taken off, which says on every page that
+  "this PDF" is not the invoice and which the writer wrote until now, is
+  refused, naming the header that opens with that label.
+- **What the label says, and in which language.** That the page is a
+  copy, what the invoice is -- the PDF that embeds its XML, of a
+  Factur-X, or its XML, of an XRechnung -- and that this document is not
+  the invoice. In the language the render prints in, which is new for a
+  label of the runtime's: German, English, Spanish, French, Italian and
+  Dutch are written, the last four read by no native speaker. A copy in
+  any other language is refused, `no-e-invoice-copy`, never labelled in
+  English: the label is the one thing that says what the file is.
+- **Every page.** The label opens the page header and page 1's own
+  header, and the writer writes it once more as the header of a
+  QR-bill's slip's page, which 0075 leaves empty for every other report.
+  A document labelled on some headers only, or in white or at one
+  point, is refused.
+- **No XML in the file.** The copy carries none, so the writer has none
+  to embed: the e-invoice is still the Factur-X PDF, or the XRechnung's
+  XML, from the render without the option. In the Studio, with Final on,
+  Download Word of an e-invoice gives the copy, and Download PDF and
+  Download XML beside it the invoice, as before.
+- **A preview is still refused**, by the runtime as a copy and by the
+  writer for its label: it writes no XML to be a copy of, and without
+  its label it is a sample that passes for the report.
+- **What it costs.** A person may change a copy in Word, its label and
+  its totals among it, and nothing ties the file to the XML afterwards;
+  that is why it says on every page what it is. The file says it only
+  of a document the runtime resolved as a copy: a Factur-X's final
+  render whose XML a host takes off has no label and is written as any
+  report. The file's title is the invoice's, so Word's File > Info
+  names the copy as the invoice. The PDF renderer refuses a copy asked
+  for as a PDF/A-2b, as it refuses a preview, whichever header carries
+  its label. A new runtime
+  error code, `no-e-invoice-copy`, and a manifest that says
+  `eInvoice: 'copy'` of a copy.
+- **Opened in Word once, by hand.** The files are read back by a reader
+  that is not their writer and held to the runtime's label. On 20
+  November 2026 every copy the writer writes of the e-invoice samples,
+  both starters among them, and of the e-invoice starter labelled in
+  the other five languages and given a QR-bill's slip, was opened in
+  Word, beside the PDF of the same copy where the PDF draws one and a
+  list of what it should show, and found fine: the red label at the
+  top of every page, page 1 and a slip's page among them. Nothing more
+  of what Word did was written down, and no test opens one.
+
 **A QR-bill's slip is written into a Word file, on a page of its own**
 ([0075](docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
 The Word writer refused every report paid by a QR-bill, since SIX fixes

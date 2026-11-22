@@ -32,7 +32,7 @@
   whose chart's words are words, and
   [0055](0055-the-runtime-resolves-a-chart-exactly-its-totals-as-every-total-and-every-word-it-prints.md),
   whose chart prints its words, orders its categories and writes its
-  shares in the render's locale
+  shares in the render's locale; extended by [0077](0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md), under which the label of a copy of an e-invoice is the first of the runtime's own words written in the render's language, or refused
 - **Date:** 2026-11-15
 - **Deciders:** Daniel Bacher
 - **Verified by:**

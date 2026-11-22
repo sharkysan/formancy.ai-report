@@ -170,6 +170,15 @@ place is shown by the widths of the slip's face, stated in the writer
 and held to the renderer's font by a test, since the writer embeds no
 face and measures with none
 ([0075](../decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)).
+An e-invoice is its XML, and a file a person may change is no invoice:
+so a Word file is written of a copy, a document of its own that the
+runtime resolves where a host asks for one, labels at the top of every
+header in the render's language, and hands on without the XML. The
+runtime decides the label and the writer only reads it, as the renderer
+reads an XRechnung's; the one place the writer writes it itself is the
+header of a slip's page, which no document has. The copy is proved on
+every header the file states
+([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
 
 ## 6. Depend, never copy, and let the licence choose the dependencies
 
