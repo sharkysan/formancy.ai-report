@@ -307,6 +307,20 @@
     that a bar below zero hangs from zero, what it writes on the value
     axis, what "Edit Data" says, and where the words of a chart with
     nothing to draw stand rest on that look.
+  - **Seen in Word, on 22 November 2026**, for 0.3.0 (`RELEASING.md`,
+    step 3), by the person who decides, by hand and by no gate: the sales
+    report's Word file as built at `69385a8`, the committed
+    `samples/sales-report.docx`, with every other starter's, against a
+    checklist: each chart as Word's own, the bar chart titled "Umsatz
+    nach Sparte" with each of its four bars labelled with its total,
+    Heizung's `63'482.00` the total the table closes that group with,
+    and its value axis titled CHF, and the pie titled "Umsatz nach
+    Region" with its legend, each entry a region's total and share. The
+    person reported it in one answer for all the files, "alle word ok".
+    Which Word, its build and the operating system were not recorded,
+    nor whether Word asked for a workbook when a chart was clicked, which
+    the checklist asked; it did not ask whether a chart keeps to its box
+    or a word stands over another.
 
 ## Context
 
@@ -515,10 +529,11 @@ since Word lays them out. The writer depends on nothing new.
 
 **What it costs.**
 
-- **These files were opened in Word once, by hand.** Each of them on
-  20 November 2026, against the list it came with. What Word draws of a
-  chart -- where its words stand, its bars, lines and slices, the value
-  axis's labels -- rests on that look, and no test holds it.
+- **These files were opened in Word by hand.** Each of them on
+  20 November 2026, against the list it came with, and the sales
+  report's again, with every starter's, on 22 November 2026. What Word
+  draws of a chart -- where its words stand, its bars, lines and slices,
+  the value axis's labels -- rests on those looks, and no test holds it.
 - **"Edit Data" does not work.** The file has no workbook, so Word has
   nothing to open. A person who wants to change a chart's numbers
   rebuilds it. What Word says when it is asked was not written down.

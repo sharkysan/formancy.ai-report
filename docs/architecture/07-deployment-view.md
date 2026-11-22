@@ -232,6 +232,8 @@ by hand, the same day
 and those of a report that carries an e-invoice since 0077, each written
 of its copy, opened in Word once, by hand, the same day
 ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
+Every starter's Word file was opened in Word again, by hand, on
+22 November 2026, for 0.3.0 (`RELEASING.md`, step 3).
 
 Every file the Worker serves carries the headers `scripts/demo-headers.mjs`
 states for the demo's address, written by the deploy as one `_headers` rule:

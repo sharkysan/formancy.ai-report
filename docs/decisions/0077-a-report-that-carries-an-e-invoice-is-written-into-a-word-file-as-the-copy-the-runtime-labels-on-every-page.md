@@ -136,6 +136,16 @@
     links or embedded content; and that on a slip's page the label
     stands 5 mm from the top and the sides and the slip where 0075 puts
     it, pushed by nothing, rest on that look.
+  - **Seen in Word, on 22 November 2026**, for 0.3.0 (`RELEASING.md`,
+    step 3), by the person who decides, by hand and by no gate: both
+    e-invoice starters' copies as built at `69385a8`, the committed
+    `samples/e-invoice.docx` and `samples/e-invoice-xrechnung.docx`,
+    with every other starter's file, against a checklist: each copy's
+    label at the top of every page, page 1 included, red and bold, and
+    Word saying nothing about links or embedded content as it opened the
+    file. Neither copy has a slip's page. The person reported them in
+    one answer for all the files, "alle word ok". Which Word, its build
+    and the operating system were not recorded.
 
 ## Context
 
@@ -332,11 +342,12 @@ What it costs:
   its parts.** The e-invoice starter's body was compared with its PDF
   for the first time here, and pdfmake breaks "Gas-Brennwertkessel" in a
   narrow column where the file has one word.
-- **These files were opened in Word once, by hand.** Each of them on
-  20 November 2026, against the list it came with. What Word prints of
-  a copy -- its header on every page, the label as its first line, the
-  body under it, a slip's page's label -- rests on that look, and no
-  test holds it; see *Verified by*.
+- **These files were opened in Word by hand.** Each of them on
+  20 November 2026, against the list it came with, and both e-invoice
+  starters' copies again, with every starter's file, on 22 November
+  2026. What Word prints of a copy -- its header on every page, the
+  label as its first line, the body under it, a slip's page's label --
+  rests on those looks, and no test holds it; see *Verified by*.
 
 It forecloses nothing: a mark on the document, a label in more
 languages, and a Word file that embeds the XML could each be added.

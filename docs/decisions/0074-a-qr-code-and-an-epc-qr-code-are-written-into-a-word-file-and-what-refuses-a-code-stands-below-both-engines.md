@@ -290,6 +290,15 @@
     Word draws a code's picture at its size and unsmoothed, that a phone
     reads it from the page Word prints, and that the frame stands as the
     file states it rest on that look.
+  - **Seen in Word, on 22 November 2026**, for 0.3.0 (`RELEASING.md`,
+    step 3), by the person who decides, by hand and by no gate: the euro
+    invoice's Word file as built at `69385a8`, the committed
+    `samples/euro-invoice.docx`, with every other starter's, against a
+    checklist: its code's picture as large as its PDF's, 3.2 cm a side,
+    and a phone reading the code from the page Word shows or prints. The
+    person reported it in one answer for all the files, "alle word ok".
+    Which Word, its build, the operating system, the phone and the app
+    were not recorded.
 
 ## Context
 
@@ -604,11 +613,12 @@ sentence says that the report prints as a PDF.
   third engine asks the same rule.
 
 **What it costs.**
-- **These files were opened in Word once, by hand.** Each of them on
+- **These files were opened in Word by hand.** Each of them on
   20 November 2026, the euro invoice from Austria after its frame, which
-  Word cut, was written as the variant approved there. What Word draws
-  of a code's picture, its frame and its turned caption rests on that
-  look, and no test holds it.
+  Word cut, was written as the variant approved there, and the euro
+  invoice's again, with every starter's, on 22 November 2026. What Word
+  draws of a code's picture, its frame and its turned caption rests on
+  those looks, and no test holds it.
 - **A raster, where the PDF draws vectors.** Enlarged on a screen, a
   Word file's code shows its pixels sooner than its PDF's would. A
   picture of 600 to the inch is finer than most printers resolve a

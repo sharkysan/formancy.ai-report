@@ -231,10 +231,12 @@ the PDF for its sizes, weights and slant. That Word opens the file,
 repeats the header row, keeps the rows marked as kept, draws an SVG from
 its `svgBlip`, draws two equal rules as two lines, puts page 1's own
 header and both footers where the file says and works the page's number
-and count out, rests on the standard's text and on one look: the files
-of the starters and the corpus's fixtures were opened in Word once, by
-hand, on 18 November 2026, before the change merged, and found fine, and
-nothing more of what Word did was written down. The files of the
+and count out, rests on the standard's text and on two looks: the files
+of the starters and the corpus's fixtures were opened in Word by hand on
+18 November 2026, before the change merged, and found fine, and the
+starters' files again for 0.3.0 on 22 November 2026, against a
+checklist, reported in one answer for all of them; nothing more of what
+Word did was written down. The files of the
 starters were validated against ISO/IEC 29500-4:2016's transitional
 schema once, by hand, with a schema that is not in the repository; no
 gate repeats either. The Studio's demo is served from `main`
@@ -266,16 +268,18 @@ line is whole, the caption beside it, outside the frame, where the PSA's
 figure rounds the corners and the PDF breaks the line around the
 caption; its row is at least the frame's height, so that Word grows it
 to what its cells hold; and the caption is in whatever face the
-reader's machine gives Arial. These files were opened in Word once, by
-hand, on 20 November 2026, the euro invoice from Austria after its
-frame, which Word cut, was written as the variant approved there; what
-was looked at beyond the list each came with was not written down, and
-no test opens one
+reader's machine gives Arial. These files were opened in Word by hand
+on 20 November 2026, the euro invoice from Austria after its frame,
+which Word cut, was written as the variant approved there, and the euro
+invoice's again on 22 November 2026, its code's picture at its PDF's
+size and read by a phone; what was looked at beyond the list each came
+with was not written down, and no test opens one
 ([0074](../decisions/0074-a-qr-code-and-an-epc-qr-code-are-written-into-a-word-file-and-what-refuses-a-code-stands-below-both-engines.md)).
 
 A chart in a Word file is Word's own chart, and everything Word decides
-of one is held by nothing here, and was looked at once, by hand, on 20
-November 2026: where each word stands and whether two meet, whether a
+of one is held by nothing here, and was looked at by hand on 20
+November 2026, and the sales report's charts again on 22 November 2026:
+where each word stands and whether two meet, whether a
 category's label that does not fit is wrapped or cut, what the value
 axis says -- Word writes its labels from the numbers, grouped as the
 PDF's are, in the reader's own separators, without the currency the
@@ -330,9 +334,11 @@ copy: a Factur-X's final render whose XML a host takes off carries no
 label and is written as any report, and the copy's file is titled as
 the invoice, which is what Word's File > Info names it. That Word
 prints the label at the top of every page is held by nothing here, and
-was looked at once, by hand, on 20 November 2026, the red label found
-there on every page, page 1 and a slip's page among them; what was
-looked at beyond the list each file came with was not written down
+was looked at by hand on 20 November 2026, the red label found there
+on every page, page 1 and a slip's page among them, and again on both
+e-invoice starters' copies on 22 November 2026, with nothing said of
+links or embedded content as Word opened them; what was looked at
+beyond the list each file came with was not written down
 ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
 
 ### An SVG logo costs every reader, and some files are refused
