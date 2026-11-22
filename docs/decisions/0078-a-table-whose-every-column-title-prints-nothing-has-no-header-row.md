@@ -25,44 +25,63 @@
       to fourteen rows to the bytes the rules alone make;
     - a table in a keep-together block under no band, and one in the
       page footer with no rule in black;
-    - and a row of a 40 pt line refused in a body of 52.87 pt as needing
+    - a row of a 40 pt line refused in a body of 52.87 pt as needing
       51.88 of a page under the table's top rule, and printed in one of
-      52.88, where under a header of its size it needs 103.25.
+      52.88, where under a header of its size it needs 103.25;
+    - and the corpus's `titles-from-groups-report`, a report as a person
+      writes it -- every column titled with nothing or a space, a group
+      header naming the columns across the table -- resolved with no
+      header row and drawn over three pages with no band and no rule in
+      black.
 
     `src/pdfmake.test.ts` pins what the renderer hands pdfmake for such a
-    table: a header row of empty stacks, with no padding and no rule under
-    it, lays every row out where a table pdfmake is handed with no header
-    row lays it, page by page, with the same paths; and a header row of
-    empty text is laid out a line tall, the band. `src/corpus.test.ts`
+    table, in the renderer's own `UNSEEN_LAYOUT` and `TABLE_LAYOUT`: a
+    header row of empty stacks, with no padding and no rule under it, lays
+    every row out where a table pdfmake is handed with no header row lays
+    it, page by page, with the same paths; and a header row of empty text
+    is laid out a line tall, the band. `src/corpus.test.ts`
     and `src/browser.test.ts` render the corpus's `titles-from-groups`.
   - **The writer, on the Word file.** report-render-docx's
     `src/blocks.test.ts`: such a table is written with no header row, no
     row marked to repeat and no darker rule, its first group header kept
     with its first row and its last row before its total with the total,
-    and, with no detail row, its empty text its first row; read back by
-    the corpus's `readDocx` and held by `verifyDocx`.
-    `src/corpus.test.ts` writes `titles-from-groups` and holds it, and
-    `src/against-pdf.test.ts` holds its sizes and weights to the PDF.
+    and, with no detail row, its empty text its first row; one whose first
+    rows are plain rows keeping none of them for a header it does not
+    have; and `titles-from-groups-report`, resolved by the runtime, written
+    with no header row and no row marked; each read back by the corpus's
+    `readDocx` and held by `verifyDocx`. `src/refusals.test.ts` refuses
+    such a table in a framed section for what is not known of it, not for
+    a header it does not have. `src/corpus.test.ts` writes
+    `titles-from-groups` and holds it, and `src/against-pdf.test.ts` holds
+    its sizes and weights to the PDF.
   - **The corpus.** report-corpus's `src/check-headerless.test.ts`, on
     PDFs pdfmake makes with the renderer's look: the right one passes,
     and the check names, on both pages, the band of an empty header row
-    and the rule under it, the band of a header of white space, and a
-    first line 17.95 pt under the top rule where the rows stand 3.4 under
-    theirs. `verifyDocx` names a row marked to repeat in a table that has
-    no header row (`check-docx.ts`), and every row's mark is held to the
-    document's (`check-docx-blocks.ts`). `src/fixtures/fixtures.test.ts`
+    and the rule under it, the band of a header of white space, bands
+    taller than the first row -- a blank header at 14 pt and one of a
+    no-break space at 12 over rows of 9, a blank one at 9 over rows of
+    7 -- and a first line 17.95 pt under the top rule where the rows stand
+    3.4 under theirs; and it names no band where a table without a header
+    row stands right on another's foot, two rules half a point apart.
+    report-render-docx's `src/blocks.test.ts` holds `verifyDocx` to naming
+    a blank header row written for a table that has none, as "table lines
+    marks 1 of its rows as the row to repeat on every page, and has no
+    header row" where it is marked and as one row too many where it is
+    not. `src/fixtures/fixtures.test.ts`
     holds `HEADERLESS_FIXTURES` to `titles-from-groups`, its table to no
     header row in its document and its expectation, and its groups placed
     so that, for every plausible number of rows a page holds with none
     repeating over them, a group header would end a page if an engine let
     it. The trial's adapters refuse a table without a header row as
-    `unsupported`, naming it (`src/trial/pdfmake.test.ts`,
+    `unsupported`, naming it, where they refuse everything the trial
+    never drew (`src/trial/undrawn.ts`; `src/trial/pdfmake.test.ts`,
     `src/trial/pdfme.test.ts`).
-  - **Nothing else prints otherwise.** Every corpus fixture, and every
-    starter and sample in each language it declares, final and preview,
-    written as a PDF and as a Word file with `main`'s build and with this
-    one, on 22 November 2026: a script's comparison, made once and kept
-    nowhere (Consequences). What holds it after that day: the cases of the
+  - **Nothing else prints otherwise.** Every corpus fixture, every
+    malformed document, a page of each image kind, and every starter and
+    sample in each language it declares, final, preview and an
+    e-invoice's copy, written as a PDF and as a Word file with `main`'s
+    build at e4256ff4 and with this one, on 22 November 2026: a script's
+    comparison, made once and kept nowhere (Consequences). What holds it after that day: the cases of the
     four suites that ran before, unchanged, and the `e-invoice` gate on its
     recorded corpus without `--record`.
   - **Seen failing, on 22 November 2026**, on Windows 11 and Node 24.21.0,
@@ -88,17 +107,36 @@
       rather than a refusal;
     - the fixture's: its groups placed for a page under a header, as
       `group-boundary`'s, its placement case failing at 61 rows a page,
-      which no group header would then end.
+      which no group header would then end;
+    - after a review, the corpus check's: the three bands taller than the
+      first row passed by the check as it was, which held a band to the
+      first row's height, and a band of 0.5 pt named between two tables
+      standing one on another; the writer's case of plain first rows,
+      with its rule as it was, which kept the first row of any table, and
+      again with the corpus's mirror of that rule as it was, the check
+      saying the first row was not kept; the check of a blank row written
+      for such a table, its unmarked half against the count's words as
+      they were and its marked half with the marking's check taken out;
+      the framed section's refusal, which named a header row; both
+      end-to-end cases against the runtime writing the blank titles as a
+      header row; and the trial's two cases with the refusal taken out of
+      `undrawn.ts`, each failing with a `TypeError`.
 
     `pdfmake.test.ts`'s pin was not seen failing: it holds pdfmake
     0.3.11's behaviour, not this change's, and its last expectation shows
     the same comparison telling a header row of empty text apart.
+  - **Not yet opened in Word.** The Word files of `titles-from-groups`
+    and of `titles-from-groups-report` are read back by the corpus's
+    reader and by no Word: that Word prints them with no row of nothing
+    over the table, and what it draws at the top of a page the table
+    continues on, is not known until a person opens them, as every Word
+    writer change is opened before it merges.
 
 ## Context
 
 A template may use one table for blocks of different kinds, each block
-under a group header that prints the block's own column titles. The
-table's own titles are then empty. The person who decides wants such a
+under a group header that names its columns. The table's own titles are
+then empty. The person who decides wants such a
 report to print as the reports it replaces do: the groups' titles, and
 nothing above them.
 
@@ -178,25 +216,30 @@ stand. No member of the format changes.**
   nothing kept with it for a header's sake. What Word draws at the top of a
   page the table continues on is Word's, as its pages are
   ([0068](0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
-- **In the builders**, nothing new. A person empties each column's Heading
-  in either builder, as any text, and the Preview prints no header row;
-  the design view, which is not the PDF, names a column without a heading
-  by its kind, as before.
+  Such a table in a framed section is refused, as every table there is,
+  for what is not known of it: whether Word breaks a table inside a cell
+  across pages, its rows kept together as the PDF keeps them. The refusal
+  said that what was unknown was whether Word repeats the header row, which
+  such a table does not have.
+- **In the builders**, nothing new, and nothing shown: a column's Heading
+  is a text field either builder writes as it is typed, and no test
+  empties every one of a table's and looks at what prints.
 - **In the corpus.** `check-tables.ts`'s `headerless` holds a table
   without a header row to its PDF: on every page it reaches, its first
   line stands under the rule above it as a row of the table that begins on
   that page stands under its own, and no second rule stands over that one,
-  as near as the first row is tall, with nothing between them. Its Word
+  however far above it, with nothing between them, two rules nearer than a
+  point being one table standing on another's foot. Its Word
   checks hold such a table to no row marked to repeat. Its fixture
   `titles-from-groups`, `HEADERLESS_FIXTURES`, is a table whose column
-  titles come from its groups, placed as `group-boundary`'s are for a page
+  titles come from its group headers, placed as `group-boundary`'s are for a page
   that holds a row more, kept apart from section 20's, which the renderer
   trial ran on, and whose adapters refuse a table without a header row.
 
 ## Consequences
 
 **What it buys.**
-- **A table whose titles come from its groups prints them alone**, under
+- **A table whose group headers name its columns prints them alone**, under
   its top rule, on every page, in the PDF and in the Word file.
 - **One decision, one place.** The runtime decides, from the columns a
   render shows and the titles in its language; the engines and any engine
@@ -205,19 +248,22 @@ stand. No member of the format changes.**
 - **No format change.** No member, no `reportSpecVersion`, no command, no
   builder field and no scenario: every report valid before is valid, and
   one whose header prints anything resolves to the document it did.
-- **Nothing else printed otherwise.** Of 117 documents -- the 57 corpus
-  fixtures of every list the engines run, and the 24 starters and samples
-  in each language each declares, final and preview, 60 renders -- 234
-  outputs were made with `main`'s build and with this one: the 29
-  refusals (14 PDFs and 15 Word files) the same in code, subject and words,
-  and the 205 PDFs and Word files the same, each PDF's objects with every
-  stream inflated (`inflatedDigest`) and each Word file byte for byte; and
-  the `e-invoice` gate's 46 PDFs and 16 XML files, drawn by the gate's own
-  code, each the one its recorded run holds, so nothing was recorded again.
-  None had a header that printed nothing: of every fixture's tables and
-  the 35 tables the starters and samples print in their languages, only
-  the malformed `table-no-columns`, which has no columns and is refused,
-  as before. The only outputs added are `titles-from-groups`'s two.
+- **Nothing else printed otherwise.** Of 267 documents -- the 57 corpus
+  fixtures of every list the engines run, the 130 malformed documents
+  (`MALFORMED`), a page of each of the 15 images of `IMAGE_KINDS` and
+  `UNSEEN_JPEGS`, and the 24 starters and samples in each language each
+  declares, final, preview and, of an e-invoice, its copy, 65 renders --
+  534 outputs were made with `main`'s build at e4256ff4 and with this
+  one: the 291 refusals (144 PDFs and 147 Word files) the same in code,
+  subject and words, and the 243 PDFs and Word files the same, each PDF's
+  objects with every stream inflated (`inflatedDigest`) and each Word file
+  byte for byte; and the `e-invoice` gate's 46 PDFs and 16 XML files,
+  drawn by the gate's own code, each the one its recorded run holds, so
+  nothing was recorded again. None had a header that printed nothing: of
+  every fixture's tables and the 35 tables the starters and samples print
+  in their languages, only the malformed `table-no-columns`, which has no
+  columns and is refused, as before. The only outputs added are
+  `titles-from-groups`'s two.
 
 **What it costs.**
 - **A band of nothing can no longer be asked for.** A table that wanted
@@ -234,13 +280,15 @@ stand. No member of the format changes.**
   diagnoses nothing: the titles are the author's to give.
 - **The resolved document changed shape.** `Table.header` is optional: a
   host that reads the resolved document, or an engine of its own over it,
-  must take a table without one, which TypeScript says at compile time:
+  must take a table without one, and code that reads `table.header` no
+  longer type-checks until it handles `undefined`:
   the install gate's own host had to, its `languages.ts` reading every
   table's header, and type-checked against the packed packages only once
   it took a table without one. 0.2.0's renderer, handed this release's
-  document of such a table, fails
-  with a `TypeError`, reading a header it does not find, rather than
-  refusing it; a document of headers that print resolves as before.
+  document of such a table, would fail with a `TypeError`, reading a
+  header it does not find, rather than refusing it -- read in its source,
+  `check-table.ts`'s `table.header.length`, and not run; a document of
+  headers that print resolves as before.
 - **An engine detail stands in the PDF.** A header row of no height is
   what pdfmake is handed: a pdfmake that gave an empty stack room, or a
   rule of no width a line, would print a band again, and
@@ -249,11 +297,12 @@ stand. No member of the format changes.**
   run on the corpus as it stood (0005).
 - **What the corpus's check rests on.** A rule is a path of no height, as
   pdfmake draws one; the first line is held to the rows' lines by how far
-  each stands under its rule, alike only in one size; a page on which no
-  other row of the table begins is held to the band alone; and a rule
-  drawn right over the table's top rule, nearer than its first row is
-  tall, with nothing between them -- a rule block, or another table
-  standing on it -- would read as a band. No fixture draws one.
+  each stands under its rule, alike only in one size, to `UNDER_RULE`,
+  0.05 pt, where 496 rows of the renderer's stood alike to 0.000004; a
+  page on which no other row of the table begins is held to the band
+  alone; and a rule drawn over the table's top rule with nothing but
+  white between them -- a rule block standing over it, or a page header
+  that ends in one -- reads as a band. No fixture draws one.
 - **The comparison is kept nowhere.** It was a script's, made once on the
   day the change was made, as 0059's was; what holds it afterwards is the
   suites and the gate above.

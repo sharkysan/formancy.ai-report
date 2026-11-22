@@ -490,10 +490,13 @@ check holds a header whose row carries a count to that many of its rows
 on its page, and every other header as it always has
 ([0059](../decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
 `fixtures/titles-from-groups.ts`, `HEADERLESS_FIXTURES`, is kept apart
-from it too: a table whose column titles come from its groups, with no
+from it too: a table whose group headers name its columns, with no
 header row, its groups placed as `group-boundary`'s for a page that holds
-a row more; `check-tables.ts`'s `headerless` holds such a table's first
-line under its top rule on every page, by the rules a page strokes, and
+a row more, and beside it `fixtures/titles-from-groups-report.ts`, the
+report as a person writes it, which both engines' tests resolve;
+`check-tables.ts`'s `headerless` holds such a table's first line under
+its top rule on every page, by the rules a page strokes, with no other
+rule over that one and nothing between them however far above, and
 `check-docx.ts` holds its Word file to no row marked to repeat
 ([0078](../decisions/0078-a-table-whose-every-column-title-prints-nothing-has-no-header-row.md)).
 `fixtures/first-page-header.ts` holds `FIRST_PAGE_FIXTURES` apart from

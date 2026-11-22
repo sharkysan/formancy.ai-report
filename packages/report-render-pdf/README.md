@@ -101,9 +101,13 @@ Every block of the resolved document:
 - **Paragraphs**, in their size, weight, slant, colour and alignment, and
   a run in bold inside a paragraph that is not, or set below or above the
   line (below).
-- **Tables**, their header row repeated on every page they span, each row
-  in its kind's style or its own, each cell in its own when it has one, each
-  column aligned as it says unless a cell says otherwise. A group header
+- **Tables**, their header row repeated on every page they span -- a
+  table the runtime resolves with no header row, every title it shows
+  printing nothing, prints none and no band where one would stand, on any
+  page
+  ([0078](../../docs/decisions/0078-a-table-whose-every-column-title-prints-nothing-has-no-header-row.md))
+  -- each row in its kind's style or its own, each cell in its own when it
+  has one, each column aligned as it says unless a cell says otherwise. A group header
   `across` the table is one cell over every column. A group header is never
   the last row on a page, and a row that fits on a page is never split. A
   group header row that keeps more of its group's first rows

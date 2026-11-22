@@ -81,6 +81,12 @@ counted once, and a report that states no count resolves to the document
 it did before
 ([0059](../../docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md)).
 
+A table every column of which a render shows is titled with nothing, or
+with white space alone, resolves with no `header` and no `headerStyle`,
+decided here once, so that no engine prints a band of nothing over its
+rows: code that reads a resolved table's `header` takes one without it
+([0078](../../docs/decisions/0078-a-table-whose-every-column-title-prints-nothing-has-no-header-row.md)).
+
 ## The data
 
 One header record and one detail list, with what the provider says about

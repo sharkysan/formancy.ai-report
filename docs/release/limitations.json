@@ -3432,7 +3432,7 @@
       ]
     },
     "0078": {
-      "reviewed": "sha256:4c6d56c8e891678ddbb00471776d9645d48ccac2ce281c6d0995f2097c7e4242",
+      "reviewed": "sha256:a958f537762ba70786dc9323e0fcad6e8d520fd009746d4ed6b6e424c773d5e0",
       "limitations": [
         {
           "area": "rendering",
@@ -3450,7 +3450,7 @@
         },
         {
           "area": "release",
-          "says": "The resolved document's `Table.header` is optional: a host that reads the resolved document, or an engine of its own over it, must take a table without one, and 0.2.0's renderer handed this release's document of such a table fails with a TypeError rather than refusing it.",
+          "says": "The resolved document's `Table.header` is optional: code that reads it no longer type-checks until it handles `undefined`, and 0.2.0's renderer handed this release's document of such a table would fail with a TypeError rather than refuse it, as read in its source and not run.",
           "heldBy": "packages/report-runtime/src/lower-table.test.ts"
         },
         {
@@ -3460,12 +3460,21 @@
         },
         {
           "area": "builders",
-          "says": "Nothing in either builder says a table will print no header row: a person empties each column's Heading, the Preview prints none, and the design view names each column without a heading by its kind, as before."
+          "says": "Nothing in either builder says a table will print no header row, and no test empties every column's Heading in a builder and looks at what prints."
         },
         {
           "area": "testing",
-          "says": "The corpus holds a table without a header row to its PDF by its rules, the paths of no height a page strokes, and by how far its first line and its rows' lines each stand under the rule above, alike only in one size: a page on which no other row of the table begins is held to the band alone, and a rule drawn right over the table's top rule, nearer than its first row is tall with nothing between them, would read as a band; no fixture draws one.",
+          "says": "The corpus holds a table without a header row to its PDF by its rules, the paths of no height a page strokes, and by how far its first line and its rows' lines each stand under the rule above, alike only in one size: a page on which no other row of the table begins is held to the band alone, and a rule drawn over the table's top rule with nothing but white between them, a rule block or a page header that ends in one, reads as a band; no fixture draws one.",
           "heldBy": "packages/report-corpus/src/check-headerless.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A table without a header row in a section with a border, a fill or padding is refused as a Word file, as every table there is, since whether Word breaks a table inside a cell across pages with its rows kept as the PDF keeps them is not known.",
+          "heldBy": "packages/report-render-docx/src/refusals.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The Word files of a table without a header row are read back by the corpus's reader and by no Word: whether Word prints them with no row of nothing over the table, and what it draws at the top of a page the table continues on, is not known until a person opens them."
         }
       ]
     }

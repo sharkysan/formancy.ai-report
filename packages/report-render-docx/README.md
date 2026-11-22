@@ -87,7 +87,9 @@ the bytes the writer gives under Node.
 The file says what the document says: every word in its order, every
 table's cells, each run's family, size, weight, slant and colour, each
 picture's very bytes, the paper, its margins and its regions. The header
-row is marked as the one to repeat and the rows the PDF keeps on a page
+row is marked as the one to repeat, and a table the runtime resolves with
+no header row is written with none and no row marked
+([0078](../../docs/decisions/0078-a-table-whose-every-column-title-prints-nothing-has-no-header-row.md)); the rows the PDF keeps on a page
 are marked as kept; a page's number and count are Word's `PAGE` and
 `NUMPAGES` fields, written without a stored result; page 1's own header
 is Word's different first page.

@@ -289,12 +289,12 @@ draws it under a header of no height and the Word writer writes none
 | Where | What holds it |
 |---|---|
 | No header and no header style where no shown title prints, white space among nothing, a hidden column's title read as none, and the header kept where one title prints | `report-runtime/src/lower-table.test.ts` |
-| On the PDF: no band and no black rule on any page, the first group header and a one-line table's totals kept across a page's foot, a long table planned in a few layouts to the bytes the rules alone make, a kept table and one in the page footer, and a row's line held to the page under the top rule alone | `report-render-pdf/src/no-header.test.ts` |
-| pdfmake laying a header row of empty stacks out in no room, and one of empty text a line tall | `report-render-pdf/src/pdfmake.test.ts` |
-| In the Word file: no header row, no row marked to repeat, no darker rule, the first rows kept as rows | `report-render-docx/src/blocks.test.ts` |
-| The check that reads the PDF's rules, on a right PDF and on a band of nothing, of white space and of padding alone; the Word checks' marks | `report-corpus/src/check-headerless.test.ts`, `report-corpus/src/check-docx.ts`, `report-corpus/src/check-docx-blocks.ts` |
+| On the PDF: no band and no black rule on any page, the first group header and a one-line table's totals kept across a page's foot, a long table planned in a few layouts to the bytes the rules alone make, a kept table and one in the page footer, a row's line held to the page under the top rule alone, and the corpus's report of empty titles resolved and drawn | `report-render-pdf/src/no-header.test.ts` |
+| pdfmake laying a header row of empty stacks out in no room in the renderer's own layouts, and one of empty text a line tall | `report-render-pdf/src/pdfmake.test.ts` |
+| In the Word file: no header row, no row marked to repeat, no darker rule, the first rows kept as rows and plain first rows kept with nothing, the corpus's report of empty titles resolved and written, and a blank header row written for such a table found by the corpus's check, marked or not; such a table in a framed section refused for what is not known of it | `report-render-docx/src/blocks.test.ts`, `report-render-docx/src/refusals.test.ts` |
+| The check that reads the PDF's rules, on a right PDF, on a band of nothing, of white space, of padding alone and taller than the first row, and on a table standing right on another, which is no band | `report-corpus/src/check-headerless.test.ts` |
 | The fixture, `titles-from-groups`, its groups placed for every plausible number of rows a page under no header, through both engines | `report-corpus/src/fixtures/fixtures.test.ts`, `report-render-pdf/src/corpus.test.ts` and `browser.test.ts`, `report-render-docx/src/corpus.test.ts` and `against-pdf.test.ts` |
-| The trial's adapters refusing such a table | `report-corpus/src/trial/pdfmake.test.ts`, `report-corpus/src/trial/pdfme.test.ts` |
+| The trial's adapters refusing such a table, where they refuse all the trial never drew (`undrawn.ts`) | `report-corpus/src/trial/pdfmake.test.ts`, `report-corpus/src/trial/pdfme.test.ts` |
 
 **A heading kept with a table whose header repeats.** A heading kept with
 the next block is kept with a table's first body row, never the header
