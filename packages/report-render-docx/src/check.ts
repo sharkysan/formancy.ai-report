@@ -227,12 +227,19 @@ function checkBlock(block: Block, at: string, place: Place, walk: Walk): void {
     case 'table':
       if (place.column) throw new RenderRefusal('unsupported', `table ${block.id} stands inside a columns block; a table is part of the flow`, block.id)
       checkTable(block, place.width, walk)
-      if (place.framed)
+      if (place.framed) {
+        // What is not known of a table inside a cell: of one with a header row, whether Word repeats it; of one without (0078), whether
+        // Word breaks the table across pages at all, its rows kept as the PDF keeps them. Either is refused, for its own reason.
+        const unknown =
+          block.header === undefined
+            ? 'whether Word breaks a table inside a cell across pages, its rows kept together as the PDF keeps them, is not known here'
+            : 'whether Word repeats the header row of a table inside a cell is not known here'
         throw new RenderRefusal(
           'unsupported',
-          `table ${block.id} stands in a section with a border, a fill or padding, which a Word file writes as a table's cell; whether Word repeats the header row of a table inside a cell is not known here: take the section's frame away, or print the report as a PDF`,
+          `table ${block.id} stands in a section with a border, a fill or padding, which a Word file writes as a table's cell; ${unknown}: take the section's frame away, or print the report as a PDF`,
           block.id,
         )
+      }
       return
     case 'image':
       checkImage(block, place, walk)

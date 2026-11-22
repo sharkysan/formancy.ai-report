@@ -271,7 +271,7 @@ function tableProblems(expected: ExpectedTable, table: DocxTable, noOrphans: boo
   if (expected.emptyText !== '' && (empty[0] === undefined || empty[0].cells.length !== 1 || cellText(empty[0].cells[0]!) !== expected.emptyText))
     problems.push(`${at} does not print '${expected.emptyText}' across it in place of its detail rows`)
   if (rows.length !== expected.rows.length)
-    return [...problems, `${at} holds ${rows.length} rows under its header where the document has ${expected.rows.length}`]
+    return [...problems, `${at} holds ${rows.length} rows${header === undefined ? '' : ' under its header'} where the document has ${expected.rows.length}`]
   if (noOrphans && header !== undefined && rows.length > 0 && !rowKept(header)) problems.push(`${at}'s header is not kept with the row under it`)
   expected.rows.forEach((row, index) => {
     const read = rows[index]!

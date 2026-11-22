@@ -19,6 +19,9 @@ const CHART_ID = (CHART as { readonly id: string }).id
 const [TURNED, CMYK] = UNSEEN_JPEGS as unknown as [Image['asset'], Image['asset']]
 const SVG: Image['asset'] = { id: 'mark', mediaType: 'image/svg+xml', bytes: SVG_MARK }
 const image = (asset: Image['asset'], more: Partial<Image> = {}): Image => ({ kind: 'image', asset, width: 40, height: 40, fit: 'contain', ...more })
+/** `table` with no header row, as the runtime resolves one whose titles print nothing (0078). */
+const headerless = ({ header: _none, ...rest }: Table): Table => rest
+
 const table = (id: string, more: Partial<Table> = {}): Table => ({
   kind: 'table',
   id,
@@ -146,6 +149,16 @@ describe('what nobody has seen Word print as the PDF does is refused, naming it'
       'unsupported',
       'boxed',
       /a table's cell.*header row/,
+    ],
+    // A table without a header row (0078) has no header for Word to repeat, and is refused all the same, for what is still not known: a
+    // table inside a cell broken across pages, its rows kept as the PDF keeps them. A reason it does not have would send a person looking
+    // for a header row.
+    [
+      'a table without a header row in a bordered section',
+      documentOf([{ kind: 'section', border: { thickness: 1, color: '#000000' }, blocks: [headerless(table('bare'))] }]),
+      'unsupported',
+      'bare',
+      /^table bare stands in a section with a border, a fill or padding, which a Word file writes as a table's cell; whether Word breaks a table inside a cell across pages, its rows kept together as the PDF keeps them, is not known here/,
     ],
     // Padding alone frames a section: it is a cell all the same.
     [
