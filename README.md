@@ -315,7 +315,7 @@ and every run ends in a release report
 | `@formancy/spec` | 0.12.0 | `0.12.0` |
 | `@formancy/spec` (transitive) | 0.5.0 |  |
 | `@formancy/themes` | 0.12.0 | `0.12.0` |
-| `tslib`, by `@formancy/report-builder-angular` | 2.8.1 | `^2.8.0` |
+| `tslib`, by `@formancy/report-builder-angular` | 2.9.1 | `^2.8.0` |
 | `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
 | `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |
 | `fflate`, by `@formancy/report-render-docx` | 0.8.3 | `0.8.3` |
