@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 860" width="1400" height="860" role="img" aria-labelledby="title description">
+  <title id="title">Formancy Report: the packages in their layers</title>
+  <desc id="description">A sketch of the packages of Formancy Report and its two apps, in the layers docs/architecture/05-building-blocks.md orders them in, each depending only on the layers below it: report-spec and report-documents at the foot; report-core; report-builder-core, report-runtime and report-server-core; the builders, the two renderers, the form bridge, the data provider, the server and its client; the Studio and the product pages above them; and report-corpus, the private test support, beside them.</desc>
+  <style>
+    /* The room's colours, each named as @formancy/themes/room.css names it (0034): an image cannot import
+       the room, so each is typed here, and scripts/architecture.test.mjs holds it to the installed room.css. */
+    .fill-ground { fill: #080a12; }
+    .fill-glass { fill: rgb(17 22 36 / 74%); }
+    .fill-text { fill: #eef1f8; }
+    .fill-muted { fill: #95a0b4; }
+    .fill-client { fill: #8b7bff; }
+    .fill-server { fill: #3fe0d5; }
+    .stroke-edge-strong { stroke: rgb(255 255 255 / 15%); }
+    .stroke-muted { stroke: #95a0b4; }
+    .stroke-client { stroke: #8b7bff; }
+    .stroke-server { stroke: #3fe0d5; }
+    .pen { fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+    .private { stroke-dasharray: 7 5; }
+    .name { font: 600 15px 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .says { font: 13px 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    .heading { font: 700 26px Archivo, 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; }
+    .column { font: 600 14px 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.12em; }
+    .layer { font: 13px 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.08em; }
+  </style>
+  <rect class="fill-ground" x="0" y="0" width="1400" height="860" rx="18"/>
+  <text class="heading fill-text" x="40" y="58">Formancy Report, in its layers</text>
+  <text class="says fill-muted" x="40" y="88">Each layer depends only on the layers below it, and the test support beside them on the runtime. Violet is what a person edits with, teal what decides and prints the document.</text>
+  <text class="column fill-client" x="174" y="126">EDIT</text>
+  <text class="column fill-server" x="474" y="126">PRINT</text>
+  <text class="column fill-muted" x="774" y="126">DATA IN</text>
+  <text class="column fill-muted" x="1074" y="126">SERVE</text>
+  <text class="layer fill-muted" x="40" y="171">apps</text>
+  <text class="layer fill-muted" x="40" y="253">L3</text>
+  <text class="layer fill-muted" x="40" y="403">L2</text>
+  <text class="layer fill-muted" x="40" y="483">L1</text>
+  <text class="layer fill-muted" x="40" y="563">L0</text>
+  <text class="layer fill-muted" x="40" y="653">beside</text>
+  <path class="pen stroke-muted" d="M150.3 167 Q151.5 372.6 149.9 581.5 M151 581.9 Q147.5 573.1 142.1 564.7 M149.3 583.1 Q153.8 574.7 158.9 564.7"/>
+  <text class="layer fill-muted" transform="translate(140 374) rotate(-90)" text-anchor="middle">depends on what is below</text>
+  <g id="report-studio">
+    <rect class="fill-glass" x="170" y="140" width="580" height="52" rx="6"/>
+    <path class="pen stroke-client private" d="M169.6 141.4 Q462.8 142.3 752.2 141.6 M751.3 136.5 Q752.1 168 748.8 195.3 M753.6 192.8 Q460.9 192.1 169.6 192.8 M171.5 192.9 Q169.3 168.1 168.8 139 M167.1 140.2 Q458.5 139.1 753.5 140 M749 137.4 Q750.5 166 748.4 192.9 M751.3 192.8 Q458.9 192.5 166.8 192.4 M171.6 192.5 Q172 167.5 169.9 139"/>
+    <text class="name fill-client" x="184" y="162">report-studio</text>
+    <text class="says fill-muted" x="184" y="181">apps/studio · both builders and the PDF they print</text>
+  </g>
+  <g id="report-pages">
+    <rect class="fill-glass" x="1070" y="140" width="280" height="52" rx="6"/>
+    <path class="pen stroke-muted private" d="M1067.2 138.6 Q1208.5 139 1350.8 138.7 M1348.4 137.3 Q1347.4 165 1351.2 192.8 M1351.7 192.8 Q1210.4 194.2 1068.5 192.2 M1070.4 193.3 Q1070.1 166.9 1070.4 137.1 M1068.5 139.7 Q1212.2 142.3 1351.2 141.1 M1350.1 138.2 Q1350.2 164.7 1351 195.3 M1352.7 192.2 Q1210.3 191.9 1067.6 192.2 M1069.5 193.3 Q1068.4 165.6 1068.7 138.8"/>
+    <text class="name fill-text" x="1084" y="162">report-pages</text>
+    <text class="says fill-muted" x="1084" y="181">apps/pages · the product's pages</text>
+  </g>
+  <g id="report-builder-react">
+    <rect class="fill-glass" x="170" y="222" width="280" height="52" rx="6"/>
+    <path class="pen stroke-client" d="M167.2 222.8 Q307.8 222.8 452.8 221.8 M449.1 220.5 Q447.8 249 450.5 276.4 M451 274.9 Q308.3 273.4 169.3 273.2 M170.4 274.7 Q168 247.4 170.2 219.3 M167.2 222.7 Q309.9 222.9 450.9 222 M449.1 221.4 Q448.5 247 451.3 274.6 M453.1 274.2 Q311.5 277 169 274.7 M169.2 276.5 Q169.7 251.1 171.1 220.9"/>
+    <text class="name fill-client" x="184" y="244">report-builder-react</text>
+    <text class="says fill-muted" x="184" y="263">the builder for React</text>
+  </g>
+  <g id="report-builder-angular">
+    <rect class="fill-glass" x="170" y="284" width="280" height="52" rx="6"/>
+    <path class="pen stroke-client" d="M169.3 284.9 Q310.5 285.6 451.5 282.8 M450.8 282 Q449.7 309.9 448.7 336.5 M450.4 334.9 Q310.5 337.6 168.2 337.3 M169.9 339.3 Q167.2 308.2 169.6 281.5 M166.9 285.4 Q308.9 283.5 450.4 282.4 M448.9 281 Q451 307.9 451.3 336.6 M453 335.5 Q311.4 333.3 168.1 334.3 M169.1 337.6 Q169.1 311.3 169.1 282.2"/>
+    <text class="name fill-client" x="184" y="306">report-builder-angular</text>
+    <text class="says fill-muted" x="184" y="325">the builder for Angular</text>
+  </g>
+  <g id="report-render-pdf">
+    <rect class="fill-glass" x="470" y="222" width="280" height="52" rx="6"/>
+    <path class="pen stroke-server" d="M467.6 220.3 Q611.1 222.1 752.9 222.6 M750.5 218.7 Q750.7 245.5 750.6 274.7 M750.9 275 Q609 274.6 466.4 273.5 M469.3 275.9 Q469.3 245.7 471.1 218.9 M468.8 223 Q610.2 222.2 753.3 221.2 M748.4 221.4 Q750.8 249.7 748.7 275.1 M750.7 272.5 Q608.2 273.3 467.6 272.6 M469.2 277.5 Q468 248 471.2 219.4"/>
+    <text class="name fill-server" x="484" y="244">report-render-pdf</text>
+    <text class="says fill-muted" x="484" y="263">pdfmake · ECharts: the PDF</text>
+  </g>
+  <g id="report-render-docx">
+    <rect class="fill-glass" x="470" y="284" width="280" height="52" rx="6"/>
+    <path class="pen stroke-server" d="M468.9 284 Q611.6 283 751.5 285.5 M750.8 281.1 Q751.6 307.9 748.6 338.4 M752.2 334.5 Q611.1 336.9 468.4 335.6 M469.1 336.8 Q470.7 310.4 468.4 282.3 M468.3 283.6 Q610.7 285.5 753.2 283.4 M749.3 281.1 Q747.4 311.7 749.3 337.2 M751.1 336.8 Q611 334.6 467.1 334.5 M471.7 338.7 Q470.5 312.7 470.2 283.3"/>
+    <text class="name fill-server" x="484" y="306">report-render-docx</text>
+    <text class="says fill-muted" x="484" y="325">fflate: the Word file</text>
+  </g>
+  <g id="report-forms">
+    <rect class="fill-glass" x="770" y="222" width="280" height="52" rx="6"/>
+    <path class="pen stroke-muted" d="M769 220.8 Q907.6 221.1 1050.4 223.2 M1050.8 219 Q1051.9 247.7 1050.1 274.9 M1051.8 273.4 Q910.4 276.3 767.1 274.9 M771.4 276.7 Q771.9 247.9 770.5 220.5 M768.3 220.8 Q911 220.8 1053.2 221.5 M1048.3 219.3 Q1047 247.3 1048.7 275.4 M1052.9 274.3 Q912.2 274.4 767.3 274.8 M771.3 275 Q769.7 250.1 770.4 221.2"/>
+    <text class="name fill-text" x="784" y="244">report-forms</text>
+    <text class="says fill-muted" x="784" y="263">a formancy form's submissions</text>
+  </g>
+  <g id="report-data-provider">
+    <rect class="fill-glass" x="770" y="284" width="280" height="52" rx="6"/>
+    <path class="pen stroke-muted" d="M768.5 284.4 Q912.8 282 1052.4 283.2 M1049.8 281.1 Q1049.4 308.4 1051 336.9 M1052.5 336.2 Q912.4 338.2 767.4 335.5 M768.9 337.4 Q766.7 311.1 769.1 282.4 M769.4 283.3 Q911.7 286.2 1051.8 285.2 M1049.9 280.7 Q1050 308.4 1049.5 336.4 M1052.2 334.5 Q911.8 333.4 769.5 337.5 M769.3 336.9 Q771.9 306.5 769.5 280.4"/>
+    <text class="name fill-text" x="784" y="306">report-data-provider</text>
+    <text class="says fill-muted" x="784" y="325">Formancy Data's records</text>
+  </g>
+  <g id="report-server">
+    <rect class="fill-glass" x="1070" y="222" width="280" height="52" rx="6"/>
+    <path class="pen stroke-muted" d="M1068.4 222 Q1212.5 223.4 1352.8 223.6 M1349 220.9 Q1347.6 246.2 1349.2 276.3 M1352.7 272.7 Q1210.8 274.7 1066.5 273.2 M1068.8 275.5 Q1070.6 245.6 1070.1 220.1 M1069.4 221.3 Q1210.7 221.9 1352.6 223.2 M1348.7 220 Q1351.1 250.3 1350.1 276.2 M1353.1 273.7 Q1208.1 275.5 1067.3 275.6 M1068.8 276 Q1068.8 248.5 1068.5 220.8"/>
+    <text class="name fill-text" x="1084" y="244">report-server</text>
+    <text class="says fill-muted" x="1084" y="263">Fastify · the host's token</text>
+  </g>
+  <g id="report-client">
+    <rect class="fill-glass" x="1070" y="284" width="280" height="52" rx="6"/>
+    <path class="pen stroke-muted" d="M1067.8 284.3 Q1211.9 285.9 1352.5 282.7 M1350.1 283.5 Q1351.2 309.9 1349 339.2 M1351.9 336.4 Q1208.4 335.7 1066.8 335.7 M1071.2 339.7 Q1072.4 312.1 1068.8 281.6 M1069.5 284.4 Q1210.4 281.9 1351.5 283.8 M1350.1 280.7 Q1348.8 310.8 1350.9 338.8 M1352.4 335.7 Q1209.1 337.2 1067.7 336 M1071.3 337.6 Q1072.4 312.1 1071.3 283.5"/>
+    <text class="name fill-text" x="1084" y="306">report-client</text>
+    <text class="says fill-muted" x="1084" y="325">the server, asked from a page</text>
+  </g>
+  <g id="report-builder-core">
+    <rect class="fill-glass" x="170" y="372" width="280" height="52" rx="6"/>
+    <path class="pen stroke-client" d="M166.9 372.7 Q307.4 373 451.8 372.8 M450.5 368.6 Q450.1 397.5 448.7 424.5 M451.9 423.5 Q309.6 423.1 166.4 424.3 M171.5 425.1 Q168.9 400.2 171.5 371 M167.4 372.8 Q309.9 374.4 453 373.3 M451.5 370.2 Q449.3 395.7 450.4 426.3 M452 422.6 Q311 423.5 166.5 423.3 M171.3 426.6 Q168.9 397.9 170.2 370.9"/>
+    <text class="name fill-client" x="184" y="394">report-builder-core</text>
+    <text class="says fill-muted" x="184" y="413">the editor model, no framework</text>
+  </g>
+  <g id="report-runtime">
+    <rect class="fill-glass" x="470" y="372" width="280" height="52" rx="6"/>
+    <path class="pen stroke-server" d="M468.3 370.4 Q612.7 370.8 752.3 370.3 M748.7 370.5 Q750.2 398.1 751.3 425.5 M752.2 423.1 Q608.5 423.6 469.3 425.1 M471.3 426.1 Q473.1 398.9 471.2 370.9 M469.7 373.1 Q612.5 374.6 750.9 371.2 M750.2 371.2 Q752.3 397 750.8 425.1 M752.1 423.2 Q611.7 422.5 466.9 423.9 M468.5 424.4 Q467.6 397.3 469.3 371.6"/>
+    <text class="name fill-server" x="484" y="394">report-runtime</text>
+    <text class="says fill-muted" x="484" y="413">every value decided once</text>
+  </g>
+  <g id="report-server-core">
+    <rect class="fill-glass" x="1070" y="372" width="280" height="52" rx="6"/>
+    <path class="pen stroke-muted" d="M1067.9 370.8 Q1208.4 369.9 1353.4 371.9 M1350.2 371.7 Q1349.7 395.8 1351.6 424.8 M1353.4 423.1 Q1212.7 425.7 1068.9 424.2 M1069.1 424.6 Q1068.7 396.2 1068.6 369.2 M1068.8 372.7 Q1209.2 374.8 1351.3 373.5 M1351.6 371.2 Q1349.6 395.7 1350.9 424.8 M1351.8 422.5 Q1212.1 426 1068.3 424.9 M1069.7 426.5 Q1071.6 400.9 1069.1 371.4"/>
+    <text class="name fill-text" x="1084" y="394">report-server-core</text>
+    <text class="says fill-muted" x="1084" y="413">who may do what · the wire</text>
+  </g>
+  <g id="report-core">
+    <rect class="fill-glass" x="170" y="452" width="880" height="52" rx="6"/>
+    <path class="pen stroke-muted" d="M167.9 453.5 Q608.5 450.9 1051.4 451.5 M1048.9 448.8 Q1052.1 478 1051.6 504.9 M1050.9 504.2 Q608.2 502.7 169.4 505.7 M169.2 505.7 Q171.4 477.5 171.2 448.4 M168.5 450.5 Q611.1 453.1 1053.4 453.1 M1051 448.9 Q1051.4 478.9 1050.4 505.9 M1052.1 504 Q608.1 504.2 167 503.9 M169.5 504.6 Q169.6 477.1 169.4 451.5"/>
+    <text class="name fill-text" x="184" y="474">report-core</text>
+    <text class="says fill-muted" x="184" y="493">commands · session with undo · one compilation of every expression</text>
+  </g>
+  <g id="report-spec">
+    <rect class="fill-glass" x="170" y="532" width="880" height="52" rx="6"/>
+    <path class="pen stroke-muted" d="M168 532.2 Q611.4 535.2 1053.7 533.5 M1051.6 528.8 Q1050.5 559.2 1050.6 585.9 M1050.5 584.2 Q608.5 583.8 166.8 582.7 M168.5 587.3 Q168.2 556.5 170 530.3 M169 531 Q609.3 533.1 1051.7 532.1 M1050.2 531.4 Q1051.8 558.9 1051 584.9 M1052.1 582.8 Q610.7 583.7 167.4 583.6 M171.1 585.8 Q169.7 558.9 169.7 531"/>
+    <text class="name fill-text" x="184" y="554">report-spec</text>
+    <text class="says fill-muted" x="184" y="573">the format · validation · hash · SIX's, the EPC's and EN 16931's rules</text>
+  </g>
+  <g id="report-documents">
+    <rect class="fill-glass" x="1070" y="532" width="280" height="52" rx="6"/>
+    <path class="pen stroke-muted" d="M1068.8 530.4 Q1212.5 533 1352.4 533 M1350.4 529.9 Q1348.5 554.9 1351.3 584.4 M1352 582.7 Q1210.3 581.3 1069.5 584 M1068.8 587.6 Q1070.8 557.9 1069.7 530.3 M1067.4 531.7 Q1209.3 533.4 1353.6 532.4 M1348.6 529 Q1348.6 557.8 1348.5 586.4 M1353.1 585.5 Q1208.8 586 1068.1 583 M1068.7 585.6 Q1068.5 557 1069.5 528.3"/>
+    <text class="name fill-text" x="1084" y="554">report-documents</text>
+    <text class="says fill-muted" x="1084" y="573">the one PDF reader</text>
+  </g>
+  <g id="report-corpus">
+    <rect class="fill-glass" x="170" y="622" width="1180" height="52" rx="6"/>
+    <path class="pen stroke-muted private" d="M169.7 621.9 Q762.8 624.3 1353 622.9 M1350.8 619.6 Q1352.2 649 1348.4 675.5 M1351.2 674.9 Q762.2 673.8 169.4 673.4 M170.9 674.7 Q173 647.2 170.4 620.9 M169.2 622.5 Q759.7 624.5 1352.8 621.8 M1350.6 621 Q1349.7 651.2 1350 677.6 M1352.9 674.1 Q761.1 674.4 168.3 672.9 M171.4 676.3 Q173.8 649.7 171.5 621.6"/>
+    <text class="name fill-text" x="184" y="644">report-corpus</text>
+    <text class="says fill-muted" x="184" y="663">private test support: the starters, and the readers that prove each PDF and Word file</text>
+  </g>
+  <path class="pen stroke-muted private" d="M166.5 740.3 Q190.8 742.2 216.5 739.8 M214.6 736.4 Q216.6 749.8 214.6 765 M216.5 763 Q191 764.3 166.8 761.3 M171.1 763.5 Q169.3 751.7 168.4 739.4 M167.5 741.5 Q194.1 741.3 219.5 739.9 M217.4 739.1 Q215 754.1 217.3 765 M216.6 761.4 Q193.1 763 169 761.5 M170.9 765.5 Q169 750.1 171 739"/>
+  <text class="says fill-muted" x="230" y="756">private: never published as a package</text>
+  <path class="pen stroke-muted" d="M168 781 Q194.1 781.4 217.3 780.6 M215.2 778.6 Q216.5 789.6 217.2 803.1 M219.5 802.3 Q194 804 169.1 801.6 M169 803.6 Q172.8 792.4 171.7 778 M168.1 778.8 Q191.4 779.3 217.2 781.2 M214.7 777.5 Q217 793.6 216.7 805.5 M216.4 802.5 Q192.2 802.1 167.1 800.9 M169.9 803.4 Q172.2 789.5 169.7 776.8"/>
+  <text class="says fill-muted" x="230" y="796">a package a release publishes to npm, as @formancy/ and the name in the box</text>
+</svg>

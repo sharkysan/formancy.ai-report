@@ -2,6 +2,17 @@
 
 ## Level 1 — the layers
 
+![A hand-drawn sketch on the room's dark ground: the Studio and the product pages above, the builders, the two renderers, the form bridge, the data provider, the server and its client below them, then report-builder-core, report-runtime and report-server-core, report-core, report-spec and report-documents at the foot, and report-corpus beside them, in four columns, Edit, Print, Data in and Serve, the editing column violet and the printing column teal, what is private dashed](../images/architecture.svg)
+
+The sketch, drawn by hand, shows each package and app where the drawing
+below places it, violet what a person edits with and teal what decides
+and prints a document, dashed what is never published;
+`scripts/architecture.test.mjs` fails when a workspace package or app is
+not in it, is drawn otherwise than its manifest publishes it, or a colour
+of it is not the installed room's of its name, and not when a box stands
+in another layer than the drawing below gives it, which review holds
+([0079](../decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)).
+
 Dependencies point downward only. The two packages at L2 do not know each
 other: one path prints a report, the other edits one.
 

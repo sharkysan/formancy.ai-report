@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { dirname, join, posix, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { lexer } from 'marked'
@@ -338,6 +339,98 @@ function buildingBlockProblems(markdown, packages) {
   return problems
 }
 
+/** The sketch of the packages in their layers, drawn by hand, which the README and the building blocks show (0079). */
+const SKETCH = join(DOCS, 'images', 'architecture.svg')
+
+/** A workspace member's name as the sketch draws it: without its scope. */
+const unscoped = (name) => name.replace(/^@[^/]+\//, '')
+
+/** The custom properties of the room the Studio installs, `@formancy/themes/room.css`, from its `:root`, by name, each value's whitespace collapsed. */
+function roomColours() {
+  const css = read(createRequire(join(repo, 'apps', 'studio', 'package.json')).resolve('@formancy/themes/room.css')).replaceAll(/\/\*[\s\S]*?\*\//g, '')
+  const root = /:root\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
+  return Object.fromEntries([...root.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map(([, name, value]) => [name, value.replaceAll(/\s+/g, ' ').trim()]))
+}
+
+/** An element's attributes, by name. */
+const attributesOf = (text) => Object.fromEntries([...text.matchAll(/([\w:-]+)="([^"]*)"/g)].map(([, name, value]) => [name, value]))
+
+/**
+ * What is wrong with `svg`, the sketch, against `packages`, the workspace's
+ * members as `workspacePackages` reads them, and `room`, the room's custom
+ * properties as `roomColours` reads them:
+ *
+ * - a member not drawn as one box, `<g id="…">` with its name without its
+ *   scope as the box's name, or a box or a name that is no member's;
+ * - a box drawn dashed, as the legend draws what is private, whose manifest
+ *   is not private, or one drawn solid whose manifest is;
+ * - a colour that is not the room's of the same name: the sketch paints in
+ *   rules of its style, `.fill-<name>` and `.stroke-<name>`, each holding
+ *   the value of the room's `--<name>`, and anything else that paints -- a
+ *   colour in another rule, an attribute, an inline style -- is refused;
+ * - a ground not its own: the first shape after the style is a rect of
+ *   `.fill-ground` covering the viewBox, so that the sketch reads the same
+ *   on a light page and a dark one.
+ */
+function sketchProblems(svg, packages, room) {
+  const problems = []
+  const members = new Map(packages.map((entry) => [unscoped(entry.name), entry]))
+  const boxes = new Map([...svg.matchAll(/<g id="([^"]+)">([\s\S]*?)<\/g>/g)].map(([, id, body]) => [id, body]))
+  const names = [...svg.matchAll(/<text class="name\b[^"]*"[^>]*>([^<]*)<\/text>/g)].map((match) => match[1])
+  for (const [name, entry] of members) {
+    const box = boxes.get(name)
+    if (box === undefined) problems.push(`${entry.name} (${entry.dir}) has no box in the sketch, <g id="${name}">`)
+    else if ([...box.matchAll(/<text class="name\b[^"]*"[^>]*>([^<]*)<\/text>/g)].map((match) => match[1]).join() !== name)
+      problems.push(`the box of ${entry.name} is not named ${name}`)
+    else if (/class="[^"]*\bprivate\b/.test(box) !== (entry.manifest.private === true))
+      problems.push(
+        `${entry.name} is drawn ${entry.manifest.private === true ? 'solid, as a published package' : 'dashed, as private'}, and its manifest says otherwise`,
+      )
+    if (names.filter((each) => each === name).length > 1) problems.push(`${name} is drawn more than once`)
+  }
+  for (const id of boxes.keys()) if (!members.has(id)) problems.push(`the sketch draws a box ${id}, which is no workspace package or app`)
+  for (const name of new Set(names)) if (!members.has(name)) problems.push(`the sketch names ${name}, which is no workspace package or app`)
+
+  const style = /<style>([\s\S]*?)<\/style>/.exec(svg)?.[1]
+  if (style === undefined) return [...problems, 'the sketch has no <style>, so no colour of it is named']
+  for (const [, rule, body] of style.replaceAll(/\/\*[\s\S]*?\*\//g, '').matchAll(/\.([\w-]+)\s*\{([^}]*)\}/g)) {
+    for (const [, property, written] of body.matchAll(/([\w-]+)\s*:\s*([^;]+)/g)) {
+      const value = written.replaceAll(/\s+/g, ' ').trim()
+      const paints = ['fill', 'stroke', 'color', 'stop-color', 'background', 'background-color'].includes(property) && value !== 'none'
+      if (!paints) continue
+      const named = new RegExp(`^${property}-([\\w-]+)$`).exec(rule)
+      if (named === null) problems.push(`.${rule} paints ${property} ${value}, where only a .fill-<name> or .stroke-<name> may, with the room's --<name>`)
+      else if (room[`--${named[1]}`] === undefined) problems.push(`.${rule} names --${named[1]}, which room.css does not declare`)
+      else if (room[`--${named[1]}`] !== value) problems.push(`.${rule} paints ${value}, and room.css's --${named[1]} is ${room[`--${named[1]}`]}`)
+    }
+  }
+  const outside = svg.replace(/<style>[\s\S]*?<\/style>/, '')
+  const stray = [
+    ...outside.matchAll(/#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(|\b(?:fill|stroke|stop-color|color)="(?!none")|\bstyle="/gi),
+  ]
+  if (stray.length > 0) problems.push(`the sketch paints outside its style's named colours: ${[...new Set(stray.map((match) => match[0]))].join(', ')}`)
+
+  const viewBox = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg)
+  const first = /<(rect|path|circle|ellipse|line|polyline|polygon|text|g|use|image)\b([^>]*)>/.exec(svg.slice(svg.indexOf('</style>')))
+  const ground = first === null ? {} : attributesOf(first[2])
+  const covers =
+    viewBox !== null &&
+    first?.[1] === 'rect' &&
+    (ground.class ?? '').split(' ').includes('fill-ground') &&
+    Number(ground.x ?? 0) === 0 &&
+    Number(ground.y ?? 0) === 0 &&
+    ground.width === viewBox[1] &&
+    ground.height === viewBox[2]
+  if (!covers)
+    problems.push(
+      'the sketch does not open with its own ground, a rect of .fill-ground covering its viewBox, so its words would stand on the colour of whatever page shows it',
+    )
+  return problems
+}
+
+/** Where `markdown` shows a picture: every image's address, wherever it stands. */
+const picturesIn = (markdown) => [...tokensOf(lexer(markdown))].filter((token) => token.type === 'image').map((token) => token.href)
+
 /** The checkout, as `linkProblems` reads it. */
 const disk = { isFile, text: read }
 
@@ -514,6 +607,114 @@ describe('the reading underneath the guard', () => {
     const files = checkoutFiles()
     expect(files).toContain('docs/architecture/05-building-blocks.md')
     expect(documents().flatMap(({ file, text }) => pathProblems(file, text, files).paths).length).toBeGreaterThan(SECTIONS.length)
+  })
+})
+
+describe('the reading of the sketch', () => {
+  const member = (name, isPrivate = false) => ({
+    dir: `packages/${name}`,
+    name: `@formancy/${name}`,
+    manifest: { name: `@formancy/${name}`, private: isPrivate },
+  })
+  const room = { '--ground': '#080a12', '--client': '#8b7bff', '--muted': '#95a0b4' }
+  const box = (name, isPrivate = false) =>
+    `<g id="${name}"><rect class="fill-muted" x="10" y="10" width="80" height="20"/><path class="pen stroke-client${isPrivate ? ' private' : ''}" d="M0 0"/><text class="name fill-client" x="1" y="1">${name}</text></g>`
+  const sketch = ({
+    ground = '<rect class="fill-ground" x="0" y="0" width="400" height="200" rx="18"/>',
+    style = '',
+    boxes = [box('report-spec'), box('report-corpus', true)],
+  } = {}) =>
+    [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">',
+      '<style>/* .fill-old { fill: red } */ .fill-ground { fill: #080a12; } .fill-muted { fill: #95a0b4; } .stroke-client { stroke: #8b7bff; } .fill-client { fill: #8b7bff; } .pen { fill: none; }',
+      style,
+      '</style>',
+      ground,
+      ...boxes,
+      '</svg>',
+    ].join('\n')
+  const members = [member('report-spec'), member('report-corpus', true)]
+
+  // A guard on the guard: a sketch drawn to every rule passes, comments in
+  // its style, a pen that paints no fill and a rounded ground among it.
+  test('passes a sketch drawn to the rules', () => {
+    expect(sketchProblems(sketch(), members, room)).toEqual([])
+  })
+
+  // A package added to the workspace and not drawn, one drawn twice, and a
+  // box left for one renamed away: the sketch would show a repository that
+  // is not this one, and the README would carry it.
+  test('refuses a member not drawn, drawn twice, or a box that is no member', () => {
+    expect(sketchProblems(sketch(), [...members, member('report-new')], room)).toEqual([
+      '@formancy/report-new (packages/report-new) has no box in the sketch, <g id="report-new">',
+    ])
+    expect(sketchProblems(sketch({ boxes: [box('report-spec'), box('report-spec'), box('report-corpus', true)] }), members, room)).toEqual([
+      'report-spec is drawn more than once',
+    ])
+    expect(sketchProblems(sketch({ boxes: [box('report-spec'), box('report-corpus', true), box('report-old')] }), members, room)).toEqual([
+      'the sketch draws a box report-old, which is no workspace package or app',
+      'the sketch names report-old, which is no workspace package or app',
+    ])
+  })
+
+  // The legend says a dashed box is private: a package made private, or
+  // published, with its box left as it was, would say the other.
+  test('refuses a box drawn otherwise than its manifest says it is published', () => {
+    expect(sketchProblems(sketch({ boxes: [box('report-spec', true), box('report-corpus')] }), members, room)).toEqual([
+      '@formancy/report-spec is drawn dashed, as private, and its manifest says otherwise',
+      '@formancy/report-corpus is drawn solid, as a published package, and its manifest says otherwise',
+    ])
+  })
+
+  // A colour of the room's moved upstream, a colour of the sketch's own,
+  // and one painted outside the style: the sketch would leave the room the
+  // Studio and the pages wear (0034), and nothing else would see it.
+  test("refuses a colour that is not the room's of its name", () => {
+    expect(sketchProblems(sketch(), members, { ...room, '--client': '#7a6aff' })).toEqual([
+      ".stroke-client paints #8b7bff, and room.css's --client is #7a6aff",
+      ".fill-client paints #8b7bff, and room.css's --client is #7a6aff",
+    ])
+    expect(sketchProblems(sketch({ style: '.title { fill: #ffffff; } .fill-brand { fill: #ff0000; }' }), members, room)).toEqual([
+      ".title paints fill #ffffff, where only a .fill-<name> or .stroke-<name> may, with the room's --<name>",
+      '.fill-brand names --brand, which room.css does not declare',
+    ])
+    expect(
+      sketchProblems(
+        sketch({ boxes: [box('report-spec'), box('report-corpus', true), '<path fill="#123456" d="M0 0"/>', '<text style="fill: red">x</text>'] }),
+        members,
+        room,
+      ),
+    ).toEqual(['the sketch paints outside its style\'s named colours: fill=", #123456, style="'])
+  })
+
+  // Without a ground of its own the sketch's light words would stand on
+  // GitHub's white page, and its dark ones on the dark page.
+  test('refuses a sketch that does not open on its own ground', () => {
+    const refused = [
+      'the sketch does not open with its own ground, a rect of .fill-ground covering its viewBox, so its words would stand on the colour of whatever page shows it',
+    ]
+    expect(sketchProblems(sketch({ ground: '' }), members, room)).toEqual(refused)
+    expect(sketchProblems(sketch({ ground: '<rect class="fill-ground" x="0" y="0" width="300" height="200"/>' }), members, room)).toEqual(refused)
+    expect(sketchProblems(sketch({ ground: '<rect class="fill-muted" x="0" y="0" width="400" height="200"/>' }), members, room)).toEqual(refused)
+  })
+})
+
+describe('the sketch', () => {
+  // Read from the workspace and from the room the Studio installs, never
+  // from a list here: a package added, renamed, published or made private,
+  // and a colour moved in a release of the room, each fail until the
+  // sketch is drawn again.
+  test("draws every workspace package and app, each as its manifest publishes it, in the room's colours, on its own ground", () => {
+    const members = workspacePackages()
+    expect(members.length).toBeGreaterThan(10)
+    expect(sketchProblems(read(SKETCH), members, roomColours())).toEqual([])
+  })
+
+  // A sketch nobody is shown is a drawing nobody keeps true by looking: the
+  // README opens its architecture with it, and the building blocks with it.
+  test('is shown by the README and by the building blocks', () => {
+    expect(picturesIn(read(join(repo, 'README.md')))).toContain('docs/images/architecture.svg')
+    expect(picturesIn(read(BUILDING_BLOCKS))).toContain('../images/architecture.svg')
   })
 })
 
