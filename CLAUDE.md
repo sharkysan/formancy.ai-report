@@ -696,8 +696,8 @@ A change is not done until the documents that describe it say so. Update them
 in the same pull request as the code, not in a follow-up:
 
 - **`README.md`** when behaviour, a package or a command changes — including
-  the _Status_ paragraph, which describes one point in time and no other.
-- **`CHANGELOG.md`** — a line under _Unreleased_ for anything a user or
+  the *Status* paragraph, which describes one point in time and no other.
+- **`CHANGELOG.md`** — a line under *Unreleased* for anything a user or
   integrator would notice, with the reason attached, not only the what. A bump
   of an upstream `@formancy/*` version is always noticed.
 - **Decision records** (`docs/decisions/`) — a new record for every decision
@@ -1140,12 +1140,12 @@ exactly what CI does:
   measure first, then the product pages' browser gate, `test:browser` for
   `@formancy/report-pages`, even when the steps before it failed (0053).
   Locally, `pnpm build`, `pnpm --filter
-@formancy/report-studio exec playwright install chromium` once, then
+  @formancy/report-studio exec playwright install chromium` once, then
   `pnpm --filter @formancy/report-studio test:browser` and `test:pictures`,
   and `pnpm --filter @formancy/report-pages test:browser`, which needs the
   Studio's install but not its build.
   A change to what a picture shows is retaken with `node
-scripts/pictures.mjs`, never by hand.
+  scripts/pictures.mjs`, never by hand.
 - **`install`** runs `pnpm test:e2e:install`.
 - **`container`** runs `node scripts/container.mjs`: the server's image
   built from the checkout on the runner's Docker and run -- unconfigured it
@@ -1230,7 +1230,6 @@ scripts/pictures.mjs`, never by hand.
   run in.
 
 `scripts/workflows.test.mjs` holds the workflows to their shape:
-
 - every third-party action is pinned to a commit;
 - no `${{ }}` appears inside a script;
 - a release restores no cache;
@@ -1250,7 +1249,6 @@ scripts/pictures.mjs`, never by hand.
 Locally, run the same commands for what you changed.
 
 `pnpm test:repo` also fails until these are done:
-
 - After `LICENSE.md` changes, run `node scripts/licence-status.mjs --write`.
 - After a package is added, run `node scripts/codecov-config.mjs --write`, and
   add the package to the `test` job's matrix.
@@ -1268,7 +1266,6 @@ Locally, run the same commands for what you changed.
   run `node scripts/release-report/readme.mjs --write`.
 
 `test:e2e:install` is the only gate that looks at the packages from outside:
-
 - it packs them;
 - installs the tarballs into plain npm projects, one per kind of host, each
   holding only what that host has, and each builder at the newest and the
@@ -1298,7 +1295,7 @@ Locally, run the same commands for what you changed.
   client bundled for a browser;
 - compiles and runs `docs/getting-started.md` (0015): every block of code in
   the guide names its host in its fence (`ts guide=node`, `tsx guide=react
-file=main.tsx`), and the gate writes the blocks into that host's project
+  file=main.tsx`), and the gate writes the blocks into that host's project
   -- `node`, the `react-app` hosts, `angular` -- type-checks them, runs the
   Node program against the output the guide shows, draws the pages on a
   server and bundles them for a browser. `scripts/getting-started.test.mjs`
