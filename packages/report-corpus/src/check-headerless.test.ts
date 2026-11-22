@@ -95,7 +95,13 @@ function definition(header?: Band, size = 9): TDocumentDefinitions {
   const titles =
     header === undefined
       ? []
-      : [[0, 1, 2].map((column): TableCell => ({ ...cell(header.cells, column), ...(header.size === undefined ? {} : { fontSize: header.size }) }))]
+      : [
+          [0, 1, 2].map((column): TableCell => ({
+            text: header.cells,
+            alignment: column === 2 ? 'right' : 'left',
+            ...(header.size === undefined ? {} : { fontSize: header.size }),
+          })),
+        ]
   return {
     pageSize: 'A4',
     pageMargins: [MARGIN, MARGIN + 20, MARGIN, MARGIN],
