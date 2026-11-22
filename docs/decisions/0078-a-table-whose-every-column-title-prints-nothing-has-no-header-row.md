@@ -90,6 +90,10 @@
       `group-boundary`'s, its placement case failing at 61 rows a page,
       which no group header would then end.
 
+    `pdfmake.test.ts`'s pin was not seen failing: it holds pdfmake
+    0.3.11's behaviour, not this change's, and its last expectation shows
+    the same comparison telling a header row of empty text apart.
+
 ## Context
 
 A template may use one table for blocks of different kinds, each block
@@ -230,8 +234,11 @@ stand. No member of the format changes.**
   diagnoses nothing: the titles are the author's to give.
 - **The resolved document changed shape.** `Table.header` is optional: a
   host that reads the resolved document, or an engine of its own over it,
-  must take a table without one, which TypeScript says at compile time.
-  0.2.0's renderer, handed this release's document of such a table, fails
+  must take a table without one, which TypeScript says at compile time:
+  the install gate's own host had to, its `languages.ts` reading every
+  table's header, and type-checked against the packed packages only once
+  it took a table without one. 0.2.0's renderer, handed this release's
+  document of such a table, fails
   with a `TypeError`, reading a header it does not find, rather than
   refusing it; a document of headers that print resolves as before.
 - **An engine detail stands in the PDF.** A header row of no height is
