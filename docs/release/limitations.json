@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:61b358e5da8eff7b73723d37b97efdda395f9024ffaafc97b58645731ffd5de4",
+      "reviewed": "sha256:d167ba8fe1c0ca9a39536739761c4b5cf486d721244d3865814f38ee01e9ff0d",
       "limitations": [
         {
           "area": "testing",
@@ -207,7 +207,7 @@
       ]
     },
     "0010": {
-      "reviewed": "sha256:eaa23ba7716434e2b3c4578b805c5dc981441143ab2d1fb877446825168e70e7",
+      "reviewed": "sha256:8cdda8c8b9c6d21faa0c8cc7c4128cb3f957f557c33708c0321b9a1a24b9eaa0",
       "limitations": [
         {
           "area": "runtime",
@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:5539c15977f5dd7487c939e390800c6db87070fb979243d4f455e0bbdbe1cdcc",
+      "reviewed": "sha256:fadf5dbe644ea7600f64cf36f7c068bd99fbf0b135f8d1ccc924a3564fe85eea",
       "limitations": [
         {
           "area": "rendering",
@@ -3127,7 +3127,7 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:869e7aab6e05312fab7d75b43cb3db34c91e569921239669cc6b64f5156e21ec",
+      "reviewed": "sha256:a4315a445eb193c7437ab5e2ac7f08e5e059765ea7f24498e1a9aec31d9fdb59",
       "limitations": [
         {
           "area": "rendering",
@@ -3428,6 +3428,53 @@
         {
           "area": "rendering",
           "says": "The Word file of a copy carries the report’s title as the invoice’s PDF does, Rechnung (ZUGFeRD) of the e-invoice starter, so Word’s File > Info and a list of files name the copy as the invoice; the runtime has no title of a copy’s own in any language."
+        }
+      ]
+    },
+    "0078": {
+      "reviewed": "sha256:9f31a46c340d1dd1446c68d558274a779962d48963879215035fccd868d1d9dd",
+      "limitations": [
+        {
+          "area": "rendering",
+          "says": "A table every column of which a render shows is titled with nothing, or with white space alone, prints no header row in the PDF or in the Word file: a band of nothing over a table's rows on every page can no longer be asked for, a title of a no-break space being white space too.",
+          "heldBy": "packages/report-runtime/src/lower-table.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "Whether a title prints is read from its characters, never its ink: a title of a character that draws nothing and is no white space, a zero-width space where a face has one, keeps the header row and its band."
+        },
+        {
+          "area": "format",
+          "says": "A report's header style on a table whose titles print nothing prints nowhere, and nothing refuses or warns of it; nor does anything say that a table whose groups name no column prints its rows under no title at all.",
+          "heldBy": "packages/report-runtime/src/lower-table.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "The resolved document's `Table.header` is optional: code that reads it no longer type-checks until it handles `undefined`, and 0.2.0's renderer handed this release's document of such a table would fail with a TypeError rather than refuse it, as read in its source and not run.",
+          "heldBy": "packages/report-runtime/src/lower-table.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "The PDF renderer hands pdfmake a table without a header row under a header row of no height, which pdfmake 0.3.11 lays out in no room: a pdfmake that gave it room would print a band again, which the renderer's pin of pdfmake sees first.",
+          "heldBy": "packages/report-render-pdf/src/pdfmake.test.ts"
+        },
+        {
+          "area": "builders",
+          "says": "Nothing in either builder says a table will print no header row, and no test empties every column's Heading in a builder and looks at what prints."
+        },
+        {
+          "area": "testing",
+          "says": "The corpus holds a table without a header row to its PDF by its rules, the paths of no height a page strokes, and by how far its first line and its rows' lines each stand under the rule above, alike only in one size: a page on which no other row of the table begins is held to the band alone, and a rule drawn over the table's top rule with nothing but white between them, a rule block or a page header that ends in one, reads as a band; no fixture draws one.",
+          "heldBy": "packages/report-corpus/src/check-headerless.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A table without a header row in a section with a border, a fill or padding is refused as a Word file, as every table there is, since whether Word breaks a table inside a cell across pages with its rows kept as the PDF keeps them is not known.",
+          "heldBy": "packages/report-render-docx/src/refusals.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The Word files of a table without a header row are read back by the corpus's reader and by no Word: whether Word prints them with no row of nothing over the table, and what it draws at the top of a page the table continues on, is not known until a person opens them."
         }
       ]
     }

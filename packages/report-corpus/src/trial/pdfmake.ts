@@ -311,7 +311,8 @@ function checkBlocks(blocks: readonly Block[], path: string, where: Where, width
 function checkTable(table: Table, width: number): void {
   const columns = table.columns.length
   if (columns === 0) throw new RenderRefusal('unsupported', `table ${table.id} has no columns`, table.id)
-  const rows = [table.header, ...table.rows.map((row) => row.cells)]
+  // A table without a header row was refused before anything was checked (`refuseUndrawn`, undrawn.ts).
+  const rows = [table.header!, ...table.rows.map((row) => row.cells)]
   const short = rows.findIndex((cells) => cells.length !== columns)
   if (short >= 0) {
     throw new RenderRefusal(

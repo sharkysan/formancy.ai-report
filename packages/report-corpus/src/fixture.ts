@@ -61,8 +61,13 @@ export interface ExpectedRow {
 
 export interface ExpectedTable {
   readonly id: string
-  /** The header row's cells, which stand above the table's first line on every page the table reaches. */
-  readonly header: readonly string[]
+  /**
+   * The header row's cells that print, which stand above the table's first
+   * line on every page the table reaches; absent where the document gives
+   * the table no header row (0078), whose first line then stands under its
+   * top rule on every page, as a header's would.
+   */
+  readonly header?: readonly string[]
   readonly rows: readonly ExpectedRow[]
   /** What prints under the header in place of detail rows when there are none; empty when there are some. */
   readonly emptyText: string
@@ -512,7 +517,7 @@ const emptyTextOf = (table: Table): string => (table.rows.some((row) => row.kind
 function printedLines(blocks: readonly Block[]): string[] {
   return blocks.flatMap((block): string[] => {
     if (block.kind === 'paragraph') return [normalise(block.runs.map((run) => ('text' in run ? run.text : '')).join(''))]
-    if (block.kind === 'table') return [...block.header, emptyTextOf(block), ...block.rows.flatMap((row) => row.cells)].map(normalise)
+    if (block.kind === 'table') return [...(block.header ?? []), emptyTextOf(block), ...block.rows.flatMap((row) => row.cells)].map(normalise)
     if (block.kind === 'columns') return block.columns.flatMap((column) => printedLines(column.blocks))
     return 'blocks' in block ? printedLines(block.blocks) : []
   })
@@ -546,7 +551,7 @@ function expectedTable(table: Table): ExpectedTable {
     cells.map((cell, column) => ({ column, text: normalise(cell) })).filter((cell) => cell.text !== '')
   return {
     id: table.id,
-    header: printed(table.header).map((cell) => cell.text),
+    ...(table.header === undefined ? {} : { header: printed(table.header).map((cell) => cell.text) }),
     rows: table.rows.map((row) => ({
       kind: row.kind,
       key: normalise(row.cells[0] ?? ''),

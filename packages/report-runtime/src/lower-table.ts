@@ -26,6 +26,10 @@
  * A column whose condition does not hold is left out, read once per report:
  * its header, every cell under it and its footer cells, and the fill columns
  * share its width. A table every column of which is hidden prints nothing.
+ * A table every shown column of which is titled with nothing, or with white
+ * space alone -- one whose column titles come from its groups -- has no
+ * header row, and no header style (0078): which columns show and what their
+ * titles print is known here, once, and no engine decides it again.
  * Each detail cell is read in its row's scope, its column's style rules too;
  * every other row has one style.
  */
@@ -158,14 +162,27 @@ export function tableBlock(render: Render, table: TableComponent, path: string, 
     }
   }
   rows.push(...footerRows(lowering, table.totals, `${path}/totals`, 'total', tableScope(render, totals)))
-  const headerStyle = layered(base, table.headerStyle === undefined ? undefined : render.styles.get(table.headerStyle))
   return {
     kind: 'table',
     id: table.id,
     columns: shown.map(({ column }) => ({ width: column.width, align: column.align })),
-    header: shown.map(({ column }) => column.header),
-    ...(headerStyle === undefined ? {} : { headerStyle }),
+    ...headerOf(render, table, shown, base),
     rows,
     emptyText: table.emptyText,
   }
+}
+
+/**
+ * The header row of the `shown` columns and its style, or neither where no
+ * title prints (0078): white space prints nothing, read as every engine
+ * reads a cell, by `trim`. A title is a literal, never a value, and a word
+ * of no letter is never translated (report-spec's `not-a-word`) nor one
+ * translated to white space (`blank-translation`), so a table has a header
+ * in every language it is written in, or in none.
+ */
+function headerOf(render: Render, table: TableComponent, shown: readonly Shown[], base: TextStyle | undefined): Pick<Table, 'header' | 'headerStyle'> {
+  const header = shown.map(({ column }) => column.header)
+  if (header.every((title) => title.trim() === '')) return {}
+  const headerStyle = layered(base, table.headerStyle === undefined ? undefined : render.styles.get(table.headerStyle))
+  return { header, ...(headerStyle === undefined ? {} : { headerStyle }) }
 }

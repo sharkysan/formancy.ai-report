@@ -303,6 +303,54 @@ describe('columns', () => {
   })
 })
 
+describe('a header that prints nothing (0078)', () => {
+  /** The table with each column's header replaced by `titles`, in order. */
+  const titled = (...titles: readonly string[]): ReportDefinition =>
+    report({ ...TABLE, columns: TABLE.columns.map((column, index) => ({ ...column, header: titles[index] ?? '' })) })
+
+  // A table whose column titles come from its groups leaves every column's
+  // header empty: written as a header row, it printed a band of nothing
+  // over the table, repeated on every page, and its style with it.
+  test('gives a table whose every column header is empty no header and no header style', () => {
+    const lowered = table(ROWS, {}, titled('', '', '', ''))
+    expect(lowered).not.toHaveProperty('header')
+    expect(lowered).not.toHaveProperty('headerStyle')
+    expect(cells(lowered?.rows)).toEqual(cells(table()?.rows))
+  })
+
+  // White space prints no more than nothing does: a space, a no-break
+  // space and a tab are a band of nothing too, read by the rule every
+  // engine reads a cell by, `trim`.
+  test('gives a table whose column headers are white space alone no header', () => {
+    expect(table(ROWS, {}, titled(' ', ' ', '  ', '\t'))).not.toHaveProperty('header')
+  })
+
+  // One title prints, so the header row is the table's, its blank cells
+  // with it, exactly as the report states them.
+  test('keeps the header of a table one of whose columns is titled', () => {
+    const lowered = table(ROWS, {}, titled('', 'Value', ' ', ''))
+    expect(lowered?.header).toEqual(['', 'Value', ' ', ''])
+    expect(lowered?.headerStyle).toEqual({ size: 8, bold: true })
+  })
+
+  // Whether the header prints is read of the columns a render shows: a
+  // hidden column's title prints nowhere, so a render that hides the only
+  // titled one has no header, and one that shows it has.
+  test('reads the header of the columns a render shows', () => {
+    const definition = titled('', '', '', 'Note')
+    expect(table(ROWS, { notes: false }, definition)).not.toHaveProperty('header')
+    expect(table(ROWS, { notes: true }, definition)?.header).toEqual(['', '', '', 'Note'])
+  })
+
+  // No rows: the empty text stands under no header, and the totals print.
+  test('prints the empty text and the totals of a table with no header and no rows', () => {
+    const lowered = table([], {}, titled('', '', '', ''))
+    expect(lowered).not.toHaveProperty('header')
+    expect(lowered?.emptyText).toBe('No equipment.')
+    expect(cells(lowered?.rows)).toEqual([['total', 'Total', CHF('0.00'), '0', '']])
+  })
+})
+
 describe('an empty table', () => {
   // No rows: the empty text stands in their place, no group is headed, and
   // the totals still print -- a count and a sum of nothing are 0 (0007).

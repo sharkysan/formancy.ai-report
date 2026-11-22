@@ -21,6 +21,7 @@ export interface SortKey {
 export interface TableColumn {
   /** Unique within its table. */
   readonly id: string
+  /** Its title in the header row, a literal; where every shown column's is empty or white space, the table has no header row (0078). */
   readonly header: string
   readonly width: Width
   readonly align: Alignment
@@ -67,7 +68,11 @@ export interface TableGroup {
   readonly footer: readonly TableFooterRow[]
 }
 
-/** A table over the report's one detail dataset. Its header repeats on every page; version 0 has no other choice. */
+/**
+ * A table over the report's one detail dataset. Its header repeats on every
+ * page it reaches; version 0 has no other choice. A table none of whose
+ * shown columns' titles prints anything has no header row (0078).
+ */
 export interface TableComponent extends ComponentBase {
   readonly kind: 'table'
   readonly dataset: 'detail'

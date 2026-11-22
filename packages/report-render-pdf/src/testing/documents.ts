@@ -229,7 +229,7 @@ function expectedTable(table: Table): ExpectedTable {
     cells.map((cell, column) => ({ column, text: normalise(cell) })).filter((cell) => cell.text !== '')
   return {
     id: table.id,
-    header: printed(table.header).map((cell) => cell.text),
+    ...(table.header === undefined ? {} : { header: printed(table.header).map((cell) => cell.text) }),
     rows: table.rows.map((row) => ({
       kind: row.kind,
       key: normalise(row.cells[0] ?? ''),

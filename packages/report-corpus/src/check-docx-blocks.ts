@@ -64,7 +64,7 @@ function prints(block: Block): boolean {
       return block.runs.length > 0
     case 'table':
       return (
-        block.header.some(inked) ||
+        (block.header ?? []).some(inked) ||
         block.rows.some((row) => row.cells.some(inked)) ||
         (!block.rows.some((row) => row.kind === 'detail') && inked(block.emptyText))
       )
@@ -381,16 +381,17 @@ const closes = (kind: string | undefined): boolean => kind === 'groupFooter' || 
 
 /**
  * The rows that stand on a page with the row after them, counted from the
- * column header at 0: the column header itself; a group header and as many
- * rows after it as it keeps, less one (0059); and what precedes each of a
+ * column header at 0, or from the table's first row where it has no header
+ * row (0078): the column header itself; a group header and as many rows
+ * after it as it keeps, less one (0059); and what precedes each of a
  * table's closing rows that follow a detail row or the empty text, so that
  * a total never opens a page alone under a repeated header.
  */
 function keptRows(table: Table, empty: boolean): Set<number> {
-  const kinds: string[] = ['header', ...(empty ? ['empty'] : []), ...table.rows.map((row) => row.kind)]
+  const kinds: string[] = [...(table.header === undefined ? [] : ['header']), ...(empty ? ['empty'] : []), ...table.rows.map((row) => row.kind)]
   const offset = kinds.length - table.rows.length
   const kept = new Set<number>()
-  if (kinds.length > 1) kept.add(0)
+  if (kinds[0] === 'header' && kinds.length > 1) kept.add(0)
   kinds.forEach((kind, index) => {
     if (kind === 'groupHeader' && index + 1 < kinds.length)
       for (let each = 0; each < (table.rows[index - offset]!.keepWithRows ?? 1); each++) kept.add(index + each)
@@ -410,8 +411,9 @@ function checkTable(table: Table, node: DocxTable, width: number, walk: Walk, sa
   if (node.grid.length !== widths.length || node.grid.some((each, index) => !near(each, widths[index]!)))
     say(`its grid is ${node.grid.join(', ')} pt where its columns are ${widths.join(', ')}`)
   const empty = !table.rows.some((row) => row.kind === 'detail')
+  const { header } = table
   const stated = [
-    { what: 'the header', cells: table.header, across: false, style: (): TextStyle | undefined => table.headerStyle },
+    ...(header === undefined ? [] : [{ what: 'the header', cells: header, across: false, style: (): TextStyle | undefined => table.headerStyle }]),
     ...(empty ? [{ what: 'the empty text', cells: [table.emptyText], across: true, style: (): TextStyle | undefined => undefined }] : []),
     ...table.rows.map((row, index) => ({
       what: `row ${index}`,
@@ -424,7 +426,8 @@ function checkTable(table: Table, node: DocxTable, width: number, walk: Walk, sa
   const kept = keptRows(table, empty)
   stated.forEach((row, index) => {
     const read = node.rows[index]!
-    if (read.header !== (index === 0)) say(`${row.what} is ${read.header ? '' : 'not '}marked as the row to repeat on every page`)
+    // The header row alone is the one Word repeats; a table without one (0078) has no row to repeat.
+    if (read.header !== (header !== undefined && index === 0)) say(`${row.what} is ${read.header ? '' : 'not '}marked as the row to repeat on every page`)
     if (!read.cantSplit) say(`${row.what} may split across pages`)
     if (read.cells.length !== row.cells.length) return say(`${row.what} has ${read.cells.length} cells where the table states ${row.cells.length}`)
     if (kept.has(index))

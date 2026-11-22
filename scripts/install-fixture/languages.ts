@@ -90,11 +90,11 @@ const DATA: ReportData = {
 
 const FINAL: ResolveOptions = { mode: 'final', creationDate: '2026-10-15T08:00:00Z' }
 
-/** Every text a document's body prints, its paragraphs' runs joined and its tables' headers and cells. */
+/** Every text a document's body prints, its paragraphs' runs joined and its tables' headers, where a table has one (0078), and cells. */
 function printed(blocks: readonly Block[]): string[] {
   return blocks.flatMap((block): string[] => {
     if (block.kind === 'paragraph') return [block.runs.map((run) => ('text' in run ? run.text : '')).join('')]
-    if (block.kind === 'table') return [...block.header, ...block.rows.flatMap((row) => row.cells), block.emptyText]
+    if (block.kind === 'table') return [...(block.header ?? []), ...block.rows.flatMap((row) => row.cells), block.emptyText]
     return []
   })
 }

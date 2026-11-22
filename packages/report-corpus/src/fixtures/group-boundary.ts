@@ -1,7 +1,7 @@
 import type { TableRow } from '../document.js'
 import { expectation, type Fixture } from '../fixture.js'
 import { amount, details, documentOf, ledger, totalRow } from './build.js'
-import { pagesOfRows, ROWS_PER_PAGE_RANGE } from './geometry.js'
+import { pagesOfRows, ROWS_PER_PAGE_RANGE, type RowsPerPage } from './geometry.js'
 
 /**
  * Groups of rows, each under a group header and over a subtotal, sized so
@@ -16,11 +16,12 @@ import { pagesOfRows, ROWS_PER_PAGE_RANGE } from './geometry.js'
  * Group headers are placed, one at a time, at the next position that is last
  * on a page for some `n` not yet covered, until every `n` in the range is.
  * An engine that does not keep a group header with its first row therefore
- * orphans one, whatever its row height; the fixture test recounts it.
+ * orphans one, whatever its row height; the fixture test recounts it. A
+ * table without a header row (0078) holds one row more a page, `range`.
  */
-function groupStarts(): number[] {
+export function groupStarts(range: RowsPerPage = ROWS_PER_PAGE_RANGE): number[] {
   const uncovered = new Set<number>()
-  for (let perPage = ROWS_PER_PAGE_RANGE.min; perPage <= ROWS_PER_PAGE_RANGE.max; perPage++) uncovered.add(perPage)
+  for (let perPage = range.min; perPage <= range.max; perPage++) uncovered.add(perPage)
   const starts = [0]
   while (uncovered.size > 0) {
     // A group is its header, at least one detail row and its subtotal.

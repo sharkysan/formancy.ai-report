@@ -489,6 +489,8 @@ function markdown(paragraph: Paragraph): string {
  * first column of the first row when there are no detail rows.
  */
 function tableBox(block: Table, y: number, columns: Columns, context: Context): TableSchema {
+  // A table without a header row was refused before anything was built (`refuseUndrawn`, undrawn.ts).
+  const header = block.header!
   const printable = columns.width * POINTS_PER_MM
   const fixed = block.columns.reduce((sum, column) => sum + (column.width === 'fill' ? 0 : column.width), 0)
   const fills = block.columns.filter((column) => column.width === 'fill').length
@@ -500,7 +502,7 @@ function tableBox(block: Table, y: number, columns: Columns, context: Context): 
       block.id,
     )
   }
-  const cells = [block.header, ...block.rows.map((row) => row.cells)]
+  const cells = [header, ...block.rows.map((row) => row.cells)]
   if (cells.some((row) => row.length !== block.columns.length)) {
     throw new RenderRefusal('unsupported', `the table '${block.id}' has a row whose cells do not match its ${block.columns.length} columns`, block.id)
   }
@@ -517,7 +519,7 @@ function tableBox(block: Table, y: number, columns: Columns, context: Context): 
     height: 0,
     showHead: true,
     repeatHead: true,
-    head: [...block.header],
+    head: [...header],
     headWidthPercentages: widths.map((columnWidth) => (columnWidth / width) * 100),
     tableStyles: { borderColor: '#000000', borderWidth: 0 },
     headStyles: cellStyle(ROBOTO.bold, RULE_WEIGHT),

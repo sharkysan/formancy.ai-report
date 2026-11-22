@@ -9,7 +9,17 @@ import { decimals } from './decimals.js'
 import { CODE_FIXTURES } from './codes.js'
 import { FIRST_PAGE_FIXTURES } from './first-page-header.js'
 import { fonts } from './fonts.js'
-import { BODY_HEIGHT, bodyHeight, BODY_SIZE, CHAR_EM_RANGE, LINE_FACTOR_RANGE, lineHeight, PRINTABLE_WIDTH, ROWS_PER_PAGE_RANGE } from './geometry.js'
+import {
+  BODY_HEIGHT,
+  bodyHeight,
+  BODY_SIZE,
+  CHAR_EM_RANGE,
+  HEADERLESS_ROWS_PER_PAGE_RANGE,
+  LINE_FACTOR_RANGE,
+  lineHeight,
+  PRINTABLE_WIDTH,
+  ROWS_PER_PAGE_RANGE,
+} from './geometry.js'
 import { groupBoundary } from './group-boundary.js'
 import { groupKeepWith, KEEP_WITH_FIXTURES, KEPT } from './group-keep-with.js'
 import { imageInvalid, images } from './images.js'
@@ -21,6 +31,7 @@ import { BOUNDARY, OVERFLOW, summaryFits, summaryOverflows, SWEEP, SWEEP_STEP } 
 import { SVG_AS_SAVED, SVG_BOUND, SVG_FIXTURES, SVG_MARK, SVG_WINDOW, svgAsSaved, svgMark, svgWindow } from './svg.js'
 import { SHIFTED_FIXTURES, shiftedFormulas } from './shifted.js'
 import { DESCRIPTION_WORDS, tallRow } from './tall-row.js'
+import { HEADERLESS_FIXTURES, titlesFromGroups } from './titles-from-groups.js'
 
 /**
  * The corpus checked against itself, before any engine sees it. A fixture
@@ -35,7 +46,7 @@ function bodyWords(blocks: readonly Block[]): string[] {
     if (block.kind === 'paragraph') return words(block.runs.map((run) => ('text' in run ? run.text : '1')).join(''))
     if (block.kind !== 'table') return []
     const empty = block.rows.some((row) => row.kind === 'detail') ? [] : [block.emptyText]
-    return [...block.header, ...empty, ...block.rows.flatMap((row) => row.cells)].flatMap(words)
+    return [...(block.header ?? []), ...empty, ...block.rows.flatMap((row) => row.cells)].flatMap(words)
   })
 }
 
@@ -60,7 +71,7 @@ function documentLines(document: ResolvedDocument): string[] {
   return [...blocks, ...blocks.flatMap((block) => (block.kind === 'columns' ? block.columns.flatMap((column) => flatten(column.blocks)) : []))].flatMap(
     (block) => {
       if (block.kind === 'paragraph') return [plainText(block.runs) ?? '']
-      if (block.kind === 'table') return [...block.header, block.emptyText, ...block.rows.flatMap((row) => row.cells)].map(normalise)
+      if (block.kind === 'table') return [...(block.header ?? []), block.emptyText, ...block.rows.flatMap((row) => row.cells)].map(normalise)
       return []
     },
   )
@@ -76,6 +87,7 @@ const EVERY = [
   ...SHIFTED_FIXTURES,
   ...CODE_FIXTURES,
   ...KEPT_HEADING_FIXTURES,
+  ...HEADERLESS_FIXTURES,
 ]
 
 describe('the corpus', () => {
@@ -191,6 +203,18 @@ describe('the corpus', () => {
     expect(KEPT_HEADING_FIXTURES.map((fixture) => fixture.id)).toEqual(['kept-heading'])
   })
 
+  // So does a table without a header row (0078): dropped, an engine that
+  // printed a band of nothing over a table whose column titles come from
+  // its groups would pass every fixture there is, each of which has a
+  // header row. Its document has none, and its expectation holds it to none.
+  test('has the fixture of a table without a header row beside them, each once, each holding its table to no header row', () => {
+    expect(HEADERLESS_FIXTURES.map((fixture) => fixture.id)).toEqual(['titles-from-groups'])
+    for (const fixture of HEADERLESS_FIXTURES) {
+      expect(tables(fixture.document.body).map((table) => table.header)).toEqual([undefined])
+      expect(fixture.expect.tables.map((table) => table.header)).toEqual([undefined])
+    }
+  })
+
   // A refusal without a code would accept any refusal, and a code on a
   // fixture that must render would be ignored and mislead whoever reads it.
   test('names a refusal exactly where one is allowed, and page bounds inside the page limit', () => {
@@ -253,7 +277,8 @@ describe('the corpus', () => {
   test('gives every table row a cell per column and a first cell to know it by', () => {
     for (const fixture of EVERY) {
       for (const table of tables(fixture.document.body)) {
-        expect(table.header, `${fixture.id}: ${table.id}`).toHaveLength(table.columns.length)
+        // A table without a header row has none to count (0078).
+        if (table.header !== undefined) expect(table.header, `${fixture.id}: ${table.id}`).toHaveLength(table.columns.length)
         for (const row of table.rows) {
           expect(row.cells, `${fixture.id}: ${row.cells[0]}`).toHaveLength(table.columns.length)
           expect(normalise(row.cells[0] ?? ''), fixture.id).not.toBe('')
@@ -379,6 +404,19 @@ describe('the boundary arithmetic', () => {
   test('group-boundary leaves a group header last on a page for every plausible number of rows a page', () => {
     const rows = tables(groupBoundary.document.body)[0]!.rows
     for (let perPage = ROWS_PER_PAGE_RANGE.min; perPage <= ROWS_PER_PAGE_RANGE.max; perPage++) {
+      const orphaned = rows.some((row, index) => row.kind === 'groupHeader' && index % perPage === perPage - 1)
+      expect(orphaned, `${perPage} rows a page`).toBe(true)
+    }
+  })
+
+  // The same for a table without a header row (0078), a page of which
+  // holds one row more: an engine that did not keep its first group header
+  // with its first row, which it has no header row to move with, or any
+  // other, would leave one at the foot of a page, whatever its row height.
+  test('titles-from-groups leaves a group header last on a page for every plausible number of rows a page under no header', () => {
+    const rows = tables(titlesFromGroups.document.body)[0]!.rows
+    expect(rows[0]?.kind).toBe('groupHeader')
+    for (let perPage = HEADERLESS_ROWS_PER_PAGE_RANGE.min; perPage <= HEADERLESS_ROWS_PER_PAGE_RANGE.max; perPage++) {
       const orphaned = rows.some((row, index) => row.kind === 'groupHeader' && index % perPage === perPage - 1)
       expect(orphaned, `${perPage} rows a page`).toBe(true)
     }

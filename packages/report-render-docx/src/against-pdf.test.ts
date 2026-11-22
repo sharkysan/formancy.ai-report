@@ -5,6 +5,7 @@ import {
   docxCharts,
   EURO_INVOICE_AT,
   FIRST_PAGE_FIXTURES,
+  HEADERLESS_FIXTURES,
   IMAGE_KINDS,
   KEEP_WITH_FIXTURES,
   MALFORMED,
@@ -206,6 +207,7 @@ const FIXTURES: readonly Fixture[] = [
   ...SHIFTED_FIXTURES,
   ...CODE_FIXTURES,
   ...CHART_FIXTURES,
+  ...HEADERLESS_FIXTURES,
 ].filter((fixture) => fixture.expect.outcome === 'render' && wordRefusal(fixture.document) === undefined)
 
 /** The starters that are e-invoices, each as the copy of its final render, the one document of it both engines write (0077). */

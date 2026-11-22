@@ -63,8 +63,17 @@ function rowsPerPage(rowHeight: number): number {
   return Math.floor(BODY_HEIGHT / rowHeight) - 1
 }
 
+/** The fewest and most single-line rows a page holds of a table. */
+export interface RowsPerPage {
+  readonly min: number
+  readonly max: number
+}
+
 /** 29 to 60 rows a page across `ROW_HEIGHT_RANGE`. */
 export const ROWS_PER_PAGE_RANGE = { min: rowsPerPage(ROW_HEIGHT_RANGE.max), max: rowsPerPage(ROW_HEIGHT_RANGE.min) } as const
+
+/** 30 to 61 rows a page of a table without a header row (0078), which a page holds one more of: none repeats over them. */
+export const HEADERLESS_ROWS_PER_PAGE_RANGE: RowsPerPage = { min: ROWS_PER_PAGE_RANGE.min + 1, max: ROWS_PER_PAGE_RANGE.max + 1 }
 
 /**
  * The fewest and most pages `characters` of running text take in a column

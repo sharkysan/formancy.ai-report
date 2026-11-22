@@ -3,6 +3,7 @@ import {
   CHART_FIXTURES,
   CODE_FIXTURES,
   FIRST_PAGE_FIXTURES,
+  HEADERLESS_FIXTURES,
   KEEP_WITH_FIXTURES,
   SHIFTED_FIXTURES,
   SVG_FIXTURES,
@@ -24,7 +25,7 @@ import { refusalOf, written } from './testing/support.js'
  * states it (0076).
  */
 
-/** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's, the chart ones, those of runs set below or above the line and the code ones (0074). */
+/** Section 20's fixtures, the SVG ones, the kept rows' one, page 1's own header's, the chart ones, those of runs set below or above the line, the code ones (0074) and the headerless table's (0078). */
 const CORPUS: readonly Fixture[] = [
   ...ALL_FIXTURES,
   ...SVG_FIXTURES,
@@ -33,6 +34,7 @@ const CORPUS: readonly Fixture[] = [
   ...CHART_FIXTURES,
   ...SHIFTED_FIXTURES,
   ...CODE_FIXTURES,
+  ...HEADERLESS_FIXTURES,
 ]
 
 /**

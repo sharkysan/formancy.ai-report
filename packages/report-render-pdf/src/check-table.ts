@@ -7,7 +7,7 @@ import { checkKeptRows } from './kept-rows.js'
 import { cellFace, PADDING_X, PADDING_Y, styledRows, type StyledRow } from './table.js'
 import { fillWidth, fixedWidth } from './widths.js'
 
-/** The tallest line of a table's rows under its header, and the row it is in: what every page the table reaches must hold under the repeated header (`refuseLineUnderHeader`). */
+/** The tallest line of a table's rows under its header, or under its top rule where it has none, and the row it is in: what every page the table reaches must hold under the repeated header (`refuseLineUnderHeader`). */
 export interface RowLine {
   readonly line: number
   /** "row 2 of table lines, a total row," or "the empty text of table lines": the row, for a refusal, never its text. */
@@ -76,7 +76,7 @@ export function checkTable(table: Table, width: number, fonts: RenderFonts): voi
   if (columns === 0) throw new RenderRefusal('unsupported', `table ${table.id} has no columns`, table.id)
   if (table.columns.some((column) => column.align !== 'left' && column.align !== 'center' && column.align !== 'right'))
     throw new RenderRefusal('unsupported', `table ${table.id} aligns a column in a way the renderer does not know`, table.id)
-  if (table.header.length !== columns)
+  if (table.header !== undefined && table.header.length !== columns)
     throw new RenderRefusal('unsupported', `the header of table ${table.id} has ${table.header.length} cells for ${columns} columns`, table.id)
   table.rows.forEach((row, index) => {
     const cells = row.across === true ? 1 : columns

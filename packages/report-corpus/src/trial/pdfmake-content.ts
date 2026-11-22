@@ -276,7 +276,8 @@ function tableContent(table: Table, build: Build, scope: Scope): Content {
     ),
   }
   const rows: Row[] = [
-    { kind: 'header', cells: table.header.map((text, column) => cell(text, column, true)) },
+    // A table without a header row was refused before anything was built (`refuseUndrawn`, undrawn.ts).
+    { kind: 'header', cells: table.header!.map((text, column) => cell(text, column, true)) },
     ...(empty ? [emptyRow] : []),
     ...table.rows.map((row) => ({ kind: row.kind, cells: row.cells.map((text, column) => cell(text, column, row.kind !== 'detail')) })),
   ]

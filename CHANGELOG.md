@@ -10,6 +10,40 @@ later.
 
 ## Unreleased
 
+**A table whose every column title prints nothing has no header row**
+([0078](docs/decisions/0078-a-table-whose-every-column-title-prints-nothing-has-no-header-row.md)).
+A template may use one table for blocks of different kinds, each under a
+group header that names its columns, and leave the table's own titles
+empty. Such a table printed a band of nothing above its rows, a line tall
+with the table's one black rule under it, repeated on every page, and its
+Word file marked a row of nothing as the one Word repeats. It was asked
+that the band go.
+- **What a host notices.** A table every column of which a render shows
+  is titled with nothing, or with white space alone, prints no header row
+  in the PDF and in the Word file: its first row stands under its top
+  rule, where a header's would, on every page it reaches, and its header
+  style prints nowhere. Nothing else printed otherwise: every corpus
+  fixture, malformed document and image kind, and every starter and
+  sample, in each language, final, preview and an e-invoice's copy, made
+  the same PDF and the same Word file, or the same refusal, as before, and
+  the e-invoice gate's PDFs and XML the ones it recorded.
+- **What an integrator notices.** The resolved document's `Table.header`
+  is optional, absent for such a table, and its `headerStyle` with it:
+  code that reads `table.header` no longer type-checks until it handles
+  `undefined`, and a host or an engine of its own reading the resolved
+  document must take a table without one. The format is unchanged; a
+  title is read as printing nothing where `trim` leaves nothing of it, as
+  every engine reads a cell, and the runtime decides it once, from the
+  columns a render shows.
+- **How the PDF keeps its rows.** pdfmake keeps a table's first rows on a
+  page only with a header row, so the renderer hands it such a table under
+  a header row of no height, which the renderer's pin of pdfmake holds to
+  taking no room: the table's first group header still moves to the next
+  page with its first rows, and its breaks are planned as every table's.
+- **In a framed section** such a table is still refused as a Word file,
+  now for what is not known of it, whether Word breaks a table inside a
+  cell across pages, and no longer for a header row it does not have.
+
 **A report that carries an e-invoice is written into a Word file, as a
 labelled copy**
 ([0077](docs/decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).

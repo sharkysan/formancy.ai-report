@@ -1,7 +1,7 @@
 import { chartProblems } from './check-charts.js'
 import { emptyPages, footers, images, keptByRoom, keptTogether, outsidePrintable, overlaps, pageCount, pageSizes, regions } from './check-layout.js'
 import { capped, pagesOf } from './check-page.js'
-import { headers, orphans, readTables, rowProblems } from './check-tables.js'
+import { headerless, headers, orphans, readTables, rowProblems } from './check-tables.js'
 import { exactText, fontNames, glyphs, keys, shiftedRuns, wrappedText } from './check-text.js'
 import { RenderRefusal } from './document.js'
 import { placeDrawings } from './drawings.js'
@@ -47,6 +47,7 @@ export function verify(fixture: Fixture, pdf: ReadPdf): string[] {
     ...capped(expected.footerEveryPage === undefined ? [] : footers(pages, expected.footerEveryPage)),
     ...capped(expected.noEmptyPages ? emptyPages(pages) : []),
     ...capped(headers(pages, tables, expected.tables)),
+    ...capped(headerless(pages, tables, expected.tables)),
     ...capped(expected.noOrphanedHeaders ? orphans(pages, tables, expected.tables) : []),
     ...capped(expected.allTextInsidePrintable ? outsidePrintable(pages, setup) : []),
     ...capped(expected.noOverlaps ? overlaps(pages, expected.charts) : []),
