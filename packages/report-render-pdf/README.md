@@ -1040,9 +1040,10 @@ seeded corruptions of the same two, each refused by the reader or mapped
 and named alike and embedded by PDFKit (0040). It holds glyphs.ts to the
 reader on a face whose maps disagree, too.
 
-`scripts/readme-pictures.ts` draws the repository README's pictures of the
-starters and of both invoices' samples with PDF.js, and `pictures.test.ts`
-holds each to the page it was drawn from: its lines and where each
+`scripts/readme-pictures.ts` draws the pictures of the starters and of
+both invoices' samples with PDF.js, which the repository's
+[`docs/starters.md`](../../docs/starters.md) shows and its README two of,
+and `pictures.test.ts` holds each to the page it was drawn from: its lines and where each
 starts, and its drawings, path by path:
 
 ```bash

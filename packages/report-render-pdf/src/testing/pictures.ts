@@ -32,14 +32,14 @@ import { renderPdf } from '../node.js'
 import { pageLines } from './lines.js'
 
 /**
- * The README's pictures: a page of each starter, and of each invoice
+ * The pictures of the starters' pages, which docs/starters.md shows and
+ * the README two of: a page of each starter, and of each invoice
  * sample, resolved by the runtime, rendered by this package and drawn by
  * PDF.js (`rasterPage`). `scripts/readme-pictures.ts` writes them to
  * `docs/images/` with a manifest for each list, `pictures.json` for the
  * starters' and `samples.json` for the samples'; `pictures.test.ts` holds
  * each picture to the lines of the page it was drawn from, with where each
- * starts, and to its drawings, and the README's caption of it to those
- * lines.
+ * starts, and to its drawings, and its caption to those lines.
  */
 
 export interface PictureSpec {
@@ -48,7 +48,7 @@ export interface PictureSpec {
   /** The starter, or the sample in a starter's shape, it is a page of. */
   readonly starter: Starter
   readonly page: number
-  /** The picture's caption, its alt text in the README. */
+  /** The picture's caption, its alt text in docs/starters.md and the README. */
   readonly caption: string
   /** Lines the caption quotes, each of which the page prints. */
   readonly shows: readonly string[]

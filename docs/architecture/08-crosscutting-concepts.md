@@ -630,6 +630,11 @@ on the built page
 [0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md),
 [0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md),
 [0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)).
+The one copy of the room's colours is an image's: the sketch of the
+packages, `docs/images/architecture.svg`, can import no stylesheet, so it
+types each colour it paints under the room's own name, and
+`scripts/architecture.test.mjs` holds each to the installed file
+([0079](../decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)).
 The Studio's own are the text's two font stacks, the page's rules and
 `builder.css`, admin.css's geometry for the workbench: admin.css's rules,
 still copied, with the colours they type that the room does not carry,

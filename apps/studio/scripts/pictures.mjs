@@ -8,13 +8,20 @@
 // build carries.
 //
 // One session: the acts run in their table's order, each starting where the
-// last one left the Studio, as a person would go: the quotation in React; an
-// edit in React and the switch to Angular; back in React, the equipment
-// register with a column's value changed; that undone and a condition the
-// runtime refuses, followed to its component by the Preview's button; and,
-// on a page opened afresh at a phone's width, the narrow layout. Elements are
-// found by role and accessible name; the starter is chosen by its option's
-// value, the corpus's id.
+// last one left the Studio, as a person would go: the quotation in React;
+// starters opened from the picker -- the sales report with its bar chart
+// selected, the product data sheet switched to French, the XRechnung with
+// its e-invoice selected and Final on, the invoice's Preview with its
+// Download Word, the order confirmation with its services table selected
+// and the payment reminder with its QR-bill selected; the quotation again,
+// an edit in React and the switch to
+// Angular; back in React, the equipment register with a column's value
+// changed; that undone and a condition the runtime refuses, followed to its
+// component by the Preview's button; and, on a page opened afresh at a
+// phone's width, the narrow layout. An act that needs Final on or off says
+// so itself, since the switch outlives the starter it was set for. Elements
+// are found by role and accessible name; the starter is chosen by its
+// option's value, the corpus's id.
 //
 // `pnpm --filter @formancy/report-studio pictures`, after its build; the
 // root's `node scripts/pictures.mjs` runs it and then writes README.md.
@@ -52,23 +59,40 @@ function panels(page) {
 }
 
 /**
- * The Preview's snapshot once it says it printed and every page it counts
- * holds its text: PDF.js fills a page's text layer after the status, a page
- * at a time. In the shape `untilSnapshot` asks of a pattern.
+ * The Preview's snapshot once its status says `status` and every page it
+ * counts holds its text: PDF.js fills a page's text layer after the status,
+ * a page at a time. In the shape `untilSnapshot` asks of a pattern.
  */
-const PRINTED = {
+const printedAs = (status) => ({
   test(said) {
-    if (!/^ *- status: "Preview: printed\."$/m.test(said)) return false
+    if (!said.split('\n').some((line) => line.trim() === `- status: "${status}"`)) return false
     const pages = [...said.matchAll(/group "Page \d+ of (\d+)": /g)]
     return pages.length > 0 && pages.length === Number(pages[0][1])
   },
-}
+})
 
-const untilPrinted = (preview) => untilSnapshot(preview, PRINTED, { within: WITHIN, what: 'the printed preview, with every page’s text' })
+const untilPrinted = (preview, status = 'Preview: printed.') =>
+  untilSnapshot(preview, printedAs(status), { within: WITHIN, what: `the preview printed as “${status}”, with every page’s text` })
+
+/** What the Preview's status says once Final is on and the render printed. */
+const FINAL = 'Final render: printed.'
 
 /** The starter whose corpus id is `id`, opened from the picker. */
 async function open(page, id) {
   await page.getByRole('combobox', { name: 'Starter', exact: true }).selectOption(id)
+}
+
+/** Final on or off, as an act needs it: the switch stays where the act before left it, whatever starter is opened. */
+async function final(page, on) {
+  const box = panels(page).Preview.getByRole('checkbox', { name: 'Final', exact: true })
+  if (on) await box.check()
+  else await box.uncheck()
+}
+
+/** The outline row named `name`, clicked, and waited for until it is selected: what the properties then show. */
+async function select(builder, name) {
+  await builder.getByRole('treeitem', { name, exact: true }).click()
+  await builder.getByRole('treeitem', { name, exact: true, selected: true }).waitFor()
 }
 
 /** The builder the switch names, once it is drawn: Angular's is bootstrapped after the click and says so until it has started. */
@@ -86,8 +110,81 @@ const acts = {
     return { parts }
   },
 
+  'studio-sales-report': async (page) => {
+    const { Builder, Preview } = panels(page)
+    await final(page, false)
+    await open(page, 'sales-report')
+    await untilPrinted(Preview)
+    // The caption: the bar chart's row selected, which the design view draws as a box.
+    await select(Builder, 'Chart (by-category)')
+    await untilPrinted(Preview)
+    return { parts: { Builder, Preview } }
+  },
+
+  'studio-product-data-sheet': async (page) => {
+    const { Builder, Preview } = panels(page)
+    await open(page, 'product-data-sheet')
+    await untilPrinted(Preview)
+    await Builder.getByRole('combobox', { name: 'Edited language', exact: true }).selectOption({ label: 'French (Switzerland)' })
+    // The caption: the builder says which language it shows, and the Preview prints in it.
+    await Builder.getByRole('status').filter({ hasText: 'Showing the words in French (Switzerland).' }).waitFor()
+    await untilSnapshot(Preview, /Caractéristiques techniques/, { within: WITHIN, what: 'the sheet printed in French' })
+    await untilPrinted(Preview)
+    return { parts: { Builder, Preview } }
+  },
+
+  'studio-xrechnung': async (page) => {
+    const parts = panels(page)
+    await open(page, 'e-invoice-xrechnung')
+    // A preview of an e-invoice prints with the runtime's warning that it writes no XML.
+    await untilPrinted(parts.Preview, 'Preview: printed, with 1 warning.')
+    await select(parts.Builder, 'E-invoice')
+    await final(page, true)
+    // The caption: a final render offers the XML beside the PDF, and the Word file after it.
+    await untilPrinted(parts.Preview, FINAL)
+    await parts.Preview.getByRole('link', { name: 'Download XML', exact: true }).waitFor()
+    await parts.Preview.getByRole('link', { name: 'Download Word', exact: true }).waitFor()
+    return { parts }
+  },
+
+  'studio-word': async (page) => {
+    const { Preview } = panels(page)
+    await final(page, false)
+    await open(page, 'invoice')
+    await untilPrinted(Preview)
+    // The caption: the invoice's preview offers its Word file after its PDF.
+    await Preview.getByRole('link', { name: 'Download Word', exact: true }).waitFor()
+    return { parts: { Preview } }
+  },
+
+  'studio-order-confirmation': async (page) => {
+    const { Builder, Preview } = panels(page)
+    await open(page, 'order-confirmation')
+    await untilPrinted(Preview)
+    // The caption: the services table selected, its condition in the properties.
+    await select(Builder, 'Table (services)')
+    await Builder.getByRole('textbox', { name: 'Show rows only when', exact: true }).waitFor()
+    await untilPrinted(Preview)
+    return { parts: { Builder, Preview } }
+  },
+
+  'studio-payment-reminder': async (page) => {
+    const { Builder, Preview } = panels(page)
+    await open(page, 'payment-reminder')
+    await untilPrinted(Preview)
+    // The caption: the QR-bill selected from its outline row, its fields in the properties.
+    await select(Builder, 'Payment part')
+    await Builder.getByRole('form', { name: 'QR-bill: Payment part', exact: true }).waitFor()
+    await untilPrinted(Preview)
+    return { parts: { Builder, Preview } }
+  },
+
   'studio-angular': async (page) => {
     const parts = panels(page)
+    // The quotation as it opens, in a preview: the acts before left other starters open, and Final as they needed it.
+    await final(page, false)
+    await open(page, 'quotation')
+    await untilPrinted(parts.Preview)
     await parts.Builder.getByRole('treeitem', { name: PAYMENT, exact: true }).click()
     const text = parts.Builder.getByRole('textbox', { name: 'Text', exact: true })
     await text.fill(EDITED)

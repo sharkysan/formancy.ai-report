@@ -7,7 +7,11 @@
   [0021](0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md);
   the product pages' room read in a browser by
   [0053](0053-the-product-pages-are-measured-in-chromium-by-a-browser-gate-of-their-own.md)'s
-  gate, where nothing opened the pages' built page
+  gate, where nothing opened the pages' built page; narrowed by
+  [0079](0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md),
+  under which the README's sketch of the packages, an image, which can
+  import no stylesheet, types the room's colours, each held to the
+  installed room.css by its name
 - **Date:** 2026-10-18
 - **Deciders:** Daniel Bacher
 - **Verified by:**

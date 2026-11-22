@@ -10,6 +10,13 @@ later.
 
 ## Unreleased
 
+**Download every starter as a PDF and a Word file, and a shorter README**
+([0079](docs/decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)).
+[`samples/`](samples/README.md) holds each starter's PDF and Word file, and the XML of
+both e-invoices, as the current build writes them. The README is shorter,
+with new pictures of the Studio and a drawn sketch of the packages, and
+every starter's page moved to [`docs/starters.md`](docs/starters.md).
+
 **A table whose every column title prints nothing has no header row**
 ([0078](docs/decisions/0078-a-table-whose-every-column-title-prints-nothing-has-no-header-row.md)).
 A template may use one table for blocks of different kinds, each under a

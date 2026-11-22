@@ -1316,7 +1316,7 @@
       ]
     },
     "0034": {
-      "reviewed": "sha256:9f566cf6b11fb9e88c3bcec6a7ddd830c70273ff1d8adda4c564fbccb76f5a56",
+      "reviewed": "sha256:464c1c05fcba95202781c22073f93e63c93439503a134e320681e77a93b00262",
       "limitations": [
         {
           "area": "data",
@@ -3475,6 +3475,31 @@
         {
           "area": "testing",
           "says": "The Word files of a table without a header row are read back by the corpus's reader and by no Word: whether Word prints them with no row of nothing over the table, and what it draws at the top of a page the table continues on, is not known until a person opens them."
+        }
+      ]
+    },
+    "0079": {
+      "reviewed": "sha256:0bf2d472f5c1913a75b1c970cfa4f2d8fcca3a7bca03005856fd55a1663ea9bf",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "The repository carries every starter’s PDF and Word file, and each e-invoice’s XML, in samples/, 27 files of 616,698 bytes on 22 November 2026, and six more README pictures of 1,549,498 bytes, which every clone and git’s history keep, again for each change that moves them; the samples are main’s, as the online Studio is, so they can be ahead of the latest release, and their data is the corpus’s synthetic data, the invoices among them samples and never invoices.",
+          "heldBy": "scripts/samples.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "A sample PDF is held to the build by its objects with every stream inflated, never by its bytes: the bytes committed are those the zlib of the Node that wrote them deflated, Node 24.21.0 on Windows 11, and a PDF drawn of the same document on another Node may differ from them in its streams’ compressed bytes; that one on Linux draws the same bytes was never measured.",
+          "heldBy": "scripts/samples.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "pnpm test:repo renders every starter as a PDF and a Word file, once, and the quotation twice more, in a group run after every other guard, and a full run took 34.8 to 40.0 seconds under Node 24.21.0 on 22 November 2026; a pull request that changes what a starter prints fails it until node scripts/samples.mjs --write has written the samples and the README’s table of them again after pnpm build.",
+          "heldBy": "scripts/samples.test.mjs"
+        },
+        {
+          "area": "release",
+          "says": "The README’s sketch of the packages is drawn by hand: its guard holds which packages and apps it names, which it draws as private, that each is drawn below the packages that depend on it and can be seen, that its colours are the room’s by name and that it paints its own ground, and not the column a box stands in, the line under each name or that no word leaves its box; a package added fails it until its box is drawn by hand, and an image loads no web face, so its words are set in the reader’s own monospace and sans, which nothing measures.",
+          "heldBy": "scripts/architecture.test.mjs"
         }
       ]
     }

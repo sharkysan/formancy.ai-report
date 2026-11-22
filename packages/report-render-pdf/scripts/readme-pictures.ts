@@ -1,5 +1,6 @@
 /**
- * Writes the README's pictures of the starters and of both invoices' samples
+ * Writes the pictures of the starters and of both invoices' samples, which
+ * docs/starters.md shows and the README two of,
  * to `docs/images/`, and the manifests `pictures.test.ts` holds them to,
  * `pictures.json` for the starters' and `samples.json` for the samples':
  * each picture's file, its SHA-256, its caption, and the lines of the page

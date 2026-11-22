@@ -2,6 +2,20 @@
 
 ## Level 1 — the layers
 
+![A hand-drawn sketch of Formancy Report's packages on a dark background, in four columns, Edit, Print, Data in and Serve: the Studio and the product pages at the top; the builders, the two renderers, the test support, the form bridge, the data provider, the server and its client below them; then report-builder-core, report-runtime and report-server-core; report-core; and report-spec and report-documents at the bottom. The editing column is violet, the printing column teal, and what is never published is dashed](../images/architecture.svg)
+
+The sketch, drawn by hand, shows each package and app in its layer, the
+test support above the runtime it reads rather than beside the layers as
+the drawing below sets it, violet what a person edits with, teal what
+decides and prints a document, and dashed what is never published.
+`scripts/architecture.test.mjs` fails when a workspace package or app is
+not in it or is drawn hidden, off its canvas or by reference, when a box
+is dashed otherwise than its manifest is private, when a package is drawn
+beside or below one its manifest depends on, and when a colour of it is
+not the installed room's of its name; not when a box stands in another
+column, or its words leave it in a reader's own face, which review holds
+([0079](../decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)).
+
 Dependencies point downward only. The two packages at L2 do not know each
 other: one path prints a report, the other edits one.
 
