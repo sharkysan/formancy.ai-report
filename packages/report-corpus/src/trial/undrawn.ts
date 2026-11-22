@@ -17,8 +17,8 @@ import {
  * adapter draws: columns, sections, rectangles, QR codes, EPC QR codes and
  * charts, a payment part, an e-invoice to embed, page 1's own header
  * (0060), an SVG image, fonts but the sans, colour, rules of another
- * weight or colour, and table rows and cells with styles of their own or
- * running across the table. Both
+ * weight or colour, table rows and cells with styles of their own or
+ * running across the table, and a table without a header row (0078). Both
  * adapters refuse it here, as `unsupported` and naming where it stands,
  * before they build anything: a block skipped or a style ignored would
  * print a report that is not the one asked for, with nothing to say so.
@@ -97,9 +97,10 @@ function styleProblem(style: TextStyle | undefined): string | undefined {
   return undefined
 }
 
-/** The trial's adapters set every cell of a table in their own fixed style, and every row in its columns. */
+/** The trial's adapters drew every table under its header row, set every cell of one in their own fixed style, and every row in its columns. */
 function tableProblem(table: Table): Problem | undefined {
   const subject = table.id
+  if (table.header === undefined) return { message: `table ${table.id} has no header row`, subject }
   if (table.headerStyle !== undefined) return { message: `table ${table.id} styles its header`, subject }
   const row = table.rows.findIndex((each) => each.style !== undefined || each.cellStyles !== undefined || each.across === true)
   if (row < 0) return undefined

@@ -489,10 +489,8 @@ function markdown(paragraph: Paragraph): string {
  * first column of the first row when there are no detail rows.
  */
 function tableBox(block: Table, y: number, columns: Columns, context: Context): TableSchema {
-  const { header } = block
-  // The trial drew every table under its header row, and was run on the corpus as it stood (0005): a table without one came later (0078).
-  if (header === undefined)
-    throw new RenderRefusal('unsupported', `the table '${block.id}' has no header row, which the trial never drew a table without`, block.id)
+  // A table without a header row was refused before anything was built (`refuseUndrawn`, undrawn.ts).
+  const header = block.header!
   const printable = columns.width * POINTS_PER_MM
   const fixed = block.columns.reduce((sum, column) => sum + (column.width === 'fill' ? 0 : column.width), 0)
   const fills = block.columns.filter((column) => column.width === 'fill').length
