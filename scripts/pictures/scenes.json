@@ -19,9 +19,128 @@
     }
   },
   {
-    "id": "studio-angular",
+    "id": "studio-sales-report",
     "app": "studio",
     "placement": "inline",
+    "title": "The sales report and its charts",
+    "caption": "The sales report starter, its bar chart selected in the outline as “Chart (by-category)” and drawn as a box in the design view, and the Preview printing both charts above the month's lines. Each bar's label is the total its product line closes with in the table, “63'482.00” over “Total Heizung CHF 63'482.00”, and each entry of the pie's legend a region's total and its share, as “Stadt Bern: 38'209.70 (30.6%)”: the runtime decides each of those numbers once, and the renderer lays the charts out with Apache ECharts. The builders do not edit a chart's own properties yet ([0067](./docs/decisions/0067-a-monthly-sales-report-is-a-starter-whose-bar-chart-and-pie-print-the-totals-its-table-prints.md), [0058](./docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)).",
+    "alt": "The builder with the sales report's bar chart selected in its outline and drawn as a box in its design view, beside the Preview printing the report's first page on white paper: a bar chart by product line, a pie by region with its legend, and the month's lines grouped under them.",
+    "quotes": {
+      "Chart (by-category)": [
+        "Builder"
+      ],
+      "63'482.00": [
+        "Preview"
+      ],
+      "Total Heizung CHF 63'482.00": [
+        "Preview"
+      ],
+      "Stadt Bern: 38'209.70 (30.6%)": [
+        "Preview"
+      ]
+    }
+  },
+  {
+    "id": "studio-product-data-sheet",
+    "app": "studio",
+    "placement": "inline",
+    "title": "The product data sheet in French",
+    "caption": "The product data sheet starter, written in Swiss German with its words in French, Italian and English, switched to French in the builder's bar: the builder shows every word in French, “Showing the words in French (Switzerland).”, and the Preview prints the sheet in French, from “Fiche technique” to “Caractéristiques techniques”, each value as French Switzerland writes it and each unit's power set above the line. A word missing in a language refuses that language's render, never printed in another ([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md), [0061](./docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md), [0064](./docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)).",
+    "alt": "The builder showing the product data sheet's words in French, its language switch on French (Switzerland), beside the Preview printing the sheet in French on white paper, its technical data and its ecological balance each value beside its label.",
+    "quotes": {
+      "Showing the words in French (Switzerland).": [
+        "Builder"
+      ],
+      "Fiche technique": [
+        "Builder",
+        "Preview"
+      ],
+      "Caractéristiques techniques": [
+        "Builder",
+        "Preview"
+      ]
+    }
+  },
+  {
+    "id": "studio-xrechnung",
+    "app": "studio",
+    "placement": "inline",
+    "title": "The XRechnung and its XML",
+    "caption": "The e-invoice's template as an XRechnung 3.0, picked as “E-invoice (XRechnung)”, with its e-invoice selected in the outline and edited term by term in the properties, “XRechnung: E-invoice”, and Final on. Its PDF is a copy that says so at the top of every page, “Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice”; “Download XML” gives the invoice, the XML the runtime wrote in that render, and “Download Word” the copy as a Word file ([0038](./docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md), [0065](./docs/decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md), [0077](./docs/decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).",
+    "alt": "The Studio with the starter picker on the XRechnung: the builder with the e-invoice selected at the foot of its outline and its XRechnung terms in the properties, beside the Preview with Final on, offering Download PDF, Download XML and Download Word, and printing the copy on white paper under a red line at its top.",
+    "quotes": {
+      "E-invoice (XRechnung)": [
+        "Bar"
+      ],
+      "XRechnung: E-invoice": [
+        "Builder"
+      ],
+      "Copy of an XRechnung: the invoice is its XML, and this PDF is not the invoice": [
+        "Preview"
+      ],
+      "Download XML": [
+        "Preview"
+      ],
+      "Download Word": [
+        "Preview"
+      ]
+    }
+  },
+  {
+    "id": "studio-word",
+    "app": "studio",
+    "placement": "inline",
+    "title": "Download Word",
+    "caption": "The invoice starter's Preview, its QR-bill across the foot of the page: “Download PDF” gives the PDF it prints, and “Download Word” a Word file written from the same document by report-render-docx, the slip a page of its own at the end of the file and its Swiss QR Code a picture with the Swiss cross in it. Lines and pages in the file are Word's to lay out; the invoice's was opened in Word once, by hand, and no test opens one ([0068](./docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md), [0075](./docs/decisions/0075-a-qr-bills-slip-is-written-into-a-word-file-on-a-page-of-its-own-and-every-line-of-it-is-shown-to-fit.md)). Every starter's PDF and Word file are in [samples](./samples/README.md).",
+    "alt": "The Preview of the invoice starter: its status, its pages and its zoom, Download PDF and Download Word, and the invoice printed on white paper with its QR-bill across the foot of the page.",
+    "quotes": {
+      "Download PDF": [
+        "Preview"
+      ],
+      "Download Word": [
+        "Preview"
+      ]
+    }
+  },
+  {
+    "id": "studio-order-confirmation",
+    "app": "studio",
+    "placement": "more",
+    "title": "The order confirmation's tables",
+    "caption": "The order confirmation starter, one list of order lines printed as three tables, each picking its lines by their kind: the services table selected, “Table (services)”, with its condition `row.kind == \"service\"` under Show rows only when, and the Preview printing the goods grouped by delivery, each delivery closed by its subtotal, as “Zwischensumme Lieferung CHF 15'965.75”; the services and the returns follow on page 2, each totalled by its own table ([0062](./docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), [0064](./docs/decisions/0064-an-order-confirmation-and-a-product-data-sheet-are-starters-that-print-what-0059-to-0063-added.md)).",
+    "alt": "The builder with the order confirmation's services table selected in its outline and its condition in its properties, beside the Preview printing the order's first page on white paper under the firm's letterhead.",
+    "quotes": {
+      "Table (services)": [
+        "Builder"
+      ],
+      "Zwischensumme Lieferung CHF 15'965.75": [
+        "Preview"
+      ]
+    }
+  },
+  {
+    "id": "studio-payment-reminder",
+    "app": "studio",
+    "placement": "more",
+    "title": "The payment reminder's QR-bill",
+    "caption": "The payment reminder starter with its QR-bill selected from its outline row, “QR-bill: Payment part”, edited field by field in the properties, its amount the report's balance; the builder warns that “the payment part's account is SIX's example (IG 2.4, Annex A), no one's: replace it before the bill is sent”, and the Preview prints the reminder down to “Zu bezahlen CHF 3'207.30” with the slip across the foot of the page ([0066](./docs/decisions/0066-a-payment-reminder-is-a-starter-that-pays-the-balance-of-a-customers-overdue-invoices-by-a-qr-bill-in-the-customers-language.md), [0039](./docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md)).",
+    "alt": "The builder with the payment reminder's payment part selected at the foot of its outline and its fields in the properties, beside the Preview printing the reminder on white paper with its QR-bill across the foot of the page.",
+    "quotes": {
+      "QR-bill: Payment part": [
+        "Builder"
+      ],
+      "Zu bezahlen CHF 3'207.30": [
+        "Preview"
+      ],
+      "the payment part's account is SIX's example (IG 2.4, Annex A), no one's: replace it before the bill is sent": [
+        "Builder"
+      ]
+    }
+  },
+  {
+    "id": "studio-angular",
+    "app": "studio",
+    "placement": "more",
     "title": "The same session in the Angular builder",
     "caption": "The quotation's payment line edited in React to “Zahlbar innert 10 Tagen netto.”, then the switch moved to Angular. The Angular builder draws the same editor over the same session, so the edit is there, still selected, and so is its Undo; the Preview prints the edited line. Switching frameworks keeps the document, its history, the selection and the zoom ([0012](./docs/decisions/0012-the-builders-are-native-and-share-one-session.md)).",
     "alt": "The Studio with the builder switch on Angular: the Angular builder with Undo offered and the edited line “Zahlbar innert 10 Tagen netto.” selected in its design view and open in its properties, and the Preview printing the same line on white paper.",
@@ -35,7 +154,7 @@
   {
     "id": "studio-diagnostic",
     "app": "studio",
-    "placement": "inline",
+    "placement": "more",
     "title": "A diagnostic",
     "caption": "The equipment register with its Category column set to show the description instead. The builder says what that leaves behind before anything is rendered: “field \"category\" of the detail dataset is neither printed, drawn, ordered by, totalled nor read, and would be fetched for nothing”. A warning renders as written, so the Preview still prints the register grouped by site, with “Basel (12 items)” heading its group ([0009](./docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)).",
     "alt": "The builder and the Preview: the outline of the equipment register with the Category column selected, its value set to Description, a warning in the builder's problems, and the register printed on white paper, grouped by site.",
@@ -51,8 +170,8 @@
   {
     "id": "studio-refusal",
     "app": "studio",
-    "placement": "inline",
-    "title": "A refusal, linked to its component",
+    "placement": "more",
+    "title": "A refusal linked to its component",
     "caption": "The Book value column given the condition `row.value > 1000`, which reads a row where a column's condition has none. The builder marks it as an error, and the runtime refuses to print the preview rather than guess: “Preview: refused by the runtime, 1 problem.”, with its reason, “row has a value only in a table's cells and what an aggregate reads from each row”. Its button, “Select Book value”, pressed with Enter, selected the column and put the keyboard on its outline row, with the condition in its properties ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).",
     "alt": "The builder with the Book value row of the outline selected and focused, its properties showing the condition and an error in the builder's problems, beside the Preview saying it was refused by the runtime, with the reason and a button “Select Book value”.",
     "quotes": {
