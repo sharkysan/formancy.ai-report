@@ -76,10 +76,12 @@ writes
 Every starter's page, the invoice in four languages and the euro invoice
 from six countries are in [What the starters print](./docs/starters.md).
 
-> **Status, 22 November 2026:** 0.2.0, a developer preview, is
-> [released](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.2.0)
-> on npm, and `main` holds 0.3.0's work, under *Unreleased* in
-> [the changelog](./CHANGELOG.md), which no release has published yet. The
+> **Status, 22 November 2026:** 0.3.0, a developer preview, is ready to
+> release and not yet published: until its tag publishes it, the newest on
+> npm is [0.2.0](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.2.0).
+> What 0.3.0 holds and leaves out is
+> [its section of the changelog](./CHANGELOG.md#030--2026-11-23), and
+> what `main` gains after it is under *Unreleased* there. The
 > report format is still version "0", the draft: a report written now is
 > not promised to be read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).

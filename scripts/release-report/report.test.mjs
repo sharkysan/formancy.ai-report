@@ -996,4 +996,36 @@ describe('a release', () => {
     expect(long('v0.1.0')).toEqual([expect.stringMatching(/^the release body is \d+ characters, over the 125000 GitHub accepts$/)])
     expect(long('')).toEqual([])
   })
+
+  // A section that folds its detail is released as its summary and a link
+  // to the whole section (0080): at the tag on a release and a rehearsal,
+  // where the tag will name the commit the section is read from, and at the
+  // run's own commit for Unreleased, which no tag names. A link anywhere
+  // else would send a reader to a changelog that says something else.
+  test('links a folded section at its tag, and Unreleased at the commit', () => {
+    const folded = (release, change = () => {}) => {
+      const inputs = copy(greenCiRun())
+      inputs.release = release
+      inputs.changelog = inputs.changelog
+        .replace('The first.', 'In short.\n\n<details>\n\nThe first.\n\n</details>')
+        .replace('Something changed.', 'Soon.\n\n<details>\n\nSomething changed.\n\n</details>')
+      change(inputs)
+      return buildReport(inputs)
+    }
+    const repository = 'https://github.com/sharkysan/formancy.ai-report'
+    for (const release of ['v0.1.0', 'dry-run']) {
+      const report = folded(release)
+      expect(report.problems).toEqual([])
+      expect(report.release.body).toContain(
+        `In short.\n\nEvery change, with its reason, is in [the whole section](${repository}/blob/v0.1.0/CHANGELOG.md#010) of CHANGELOG.md at \`v0.1.0\`.`,
+      )
+      expect(report.release.body).not.toContain('The first.')
+    }
+    // CI on a commit whose version has no section yet reads Unreleased.
+    const ci = folded('', (inputs) => (inputs.changelog = inputs.changelog.replace('## 0.1.0', '## 0.0.9')))
+    expect(ci.release.section).toBe('Unreleased')
+    expect(ci.release.body).toContain(
+      `Soon.\n\nEvery change, with its reason, is in [the whole section](${repository}/blob/c0ffee/CHANGELOG.md#unreleased) of CHANGELOG.md at \`c0ffee\`.`,
+    )
+  })
 })

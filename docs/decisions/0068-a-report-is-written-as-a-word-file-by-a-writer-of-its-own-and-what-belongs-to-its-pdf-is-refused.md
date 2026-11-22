@@ -349,6 +349,17 @@
     of the fixtures' files, and whether Word repeated a header row, kept
     the marked rows, drew an SVG, drew two equal rules as two lines or
     worked the page fields out, of any file.
+  - **Seen in Word, on 22 November 2026**, for 0.3.0 (`RELEASING.md`,
+    step 3), by the person who decides, by hand and by no gate: the Word
+    file of every starter as built at `69385a8`, the twelve committed
+    `samples/*.docx`, the two e-invoices' their copies, with a checklist
+    of what to look for in each. The person reported them in one answer
+    for all the files, "alle word ok": each opened with nothing
+    repaired; a table's header row repeats where Word breaks the table;
+    and the firm's mark, page 1's own header, the footer's page number
+    and count, and the report's words are there. Which Word, its build
+    and the operating system were not recorded, nor anything file by
+    file.
 
 ## Context
 
@@ -1039,10 +1050,11 @@ written twice.
   draws a chart is refused**, in a final render and in a preview. A host
   whose reports carry a QR code of any kind, or a chart, cannot export
   them.
-- **Word has opened the files once, by hand, and no test does.** The
+- **Word has opened the files by hand, and no test does.** The
   starters' and the fixtures' files were opened in Word before this
-  change merged and found fine, and nothing more was written down
-  (*Verified by*): that Word repeats the header row, keeps the rows,
+  change merged and found fine, and the starters' again for 0.3.0, on
+  22 November 2026, against a checklist, in one answer for all of them;
+  nothing more was written down (*Verified by*): that Word repeats the header row, keeps the rows,
   draws the SVG, draws two equal rules as two lines, puts the first
   page's header and both footers where the file says, works both fields
   out, and how any of it looks, is held by no test. The files were

@@ -18,7 +18,7 @@ import { TotalsSection } from './totals.js'
 
 /**
  * Where the start page stands: the day it was last said, and the newest
- * release then, 0.2.0. These sentences say it, each true of that release
+ * release then, 0.3.0. These sentences say it, each true of that release
  * and of the source on GitHub that day: product-copy.tsx's `standing`, in
  * the hero, of what the release holds and where what the source has
  * gained since is listed, and its `status.format`, that the report format
@@ -28,7 +28,7 @@ import { TotalsSection } from './totals.js'
  * format's sentence and every absence but `detail` to the code they rest
  * on as well, so a change there fails before any release; `detail`, the
  * standing and the totals' limits rest on this alone. A later release may
- * hold what 0.2.0 did not, and do what it said was not done yet, so the
+ * hold what 0.3.0 did not, and do what it said was not done yet, so the
  * site refuses to render once CHANGELOG.md names another release, until
  * somebody says what that one holds and lacks, in every one of them, and
  * changes this with them. The hero and the status section link the
@@ -36,8 +36,8 @@ import { TotalsSection } from './totals.js'
  * refuses the site until it has the heading again.
  */
 export const START_STATUS: PageStatus = {
-  asOf: '2026-11-11',
-  release: '0.2.0',
+  asOf: '2026-11-22',
+  release: '0.3.0',
   feature: 'start',
   ask: 'what that release holds and what Formancy Report does not do yet',
   copy: 'product-copy.tsx, limits-copy.tsx and totals-copy.tsx',

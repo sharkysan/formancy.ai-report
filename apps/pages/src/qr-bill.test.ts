@@ -19,8 +19,8 @@ const collapsed = (text: string | null | undefined): string => (text ?? '').repl
 
 describe('the QR-bill page (0024)', () => {
   // The page says the newest release has the bill, which is true while
-  // CHANGELOG.md's newest release is 0.2.0, the first to have it; until
-  // 0.2.0 it said no release had it. The release commit that adds a newer
+  // CHANGELOG.md's newest release is one that keeps it; 0.2.0 was the
+  // first to have it, and until 0.2.0 it said no release had it. The release commit that adds a newer
   // heading would leave the sentences standing, true or not; the site
   // refuses to render until somebody reads what the release holds and says
   // so, in every sentence that says it: one left behind would tell a reader

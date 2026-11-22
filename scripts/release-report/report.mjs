@@ -92,9 +92,12 @@ export const scenesOf = (scenes, apps) =>
  * version every package is at and the changelog must have its section; on a
  * rehearsal, that version's section or Unreleased; and the body must fit
  * GitHub's limit. In CI (no release) the body is built only to be measured,
- * and nothing about it fails the run.
+ * and nothing about it fails the run. A section that folds its detail is
+ * linked whole at its version's tag, the one a release names and a
+ * rehearsal's will, and Unreleased at the run's commit, which no tag names
+ * (0080).
  */
-function releaseOf(report, { release = '', version, changelog, run, repository }) {
+function releaseOf(report, { release = '', version, changelog, run, repository, commit }) {
   const problems = []
   const tag = release !== '' && release !== 'dry-run'
   if (tag && release !== `v${version}`) problems.push(`the release ${release} is not v${version}, the version every package is at`)
@@ -102,7 +105,7 @@ function releaseOf(report, { release = '', version, changelog, run, repository }
   const link = tag ? `${repository}/releases/download/${release}/formancy-report-${release}-release-report.md` : (run?.url ?? null)
   const summary = renderSummary(report, { section, link })
   try {
-    const body = releaseBody(changelog, section, summary)
+    const body = releaseBody(changelog, section, summary, { repository, ref: section === 'Unreleased' ? commit : `v${section}` })
     return { release: release === '' ? null : release, section, characters: body.length, body, problems }
   } catch (error) {
     if (release !== '') problems.push(error.message)

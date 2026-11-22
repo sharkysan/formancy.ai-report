@@ -572,7 +572,7 @@ export function renderSummary(report, { section = null, link = null } = {}) {
   const { install, eInvoice, container } = report.results
   return [
     ...(link === null ? [] : [`The full report of the run that gated this: ${link}`, '']),
-    ...(section === null ? [] : [`The notes above are CHANGELOG.md’s ${code(section)} section.`, '']),
+    ...(section === null ? [] : [`The notes above are from CHANGELOG.md’s ${code(section)} section.`, '']),
     `${String(passed)} of ${String(tests)} tests passed across ${String(packages.length)} packages; the install gate ${install === null ? 'left no results' : install.passed ? 'passed' : 'failed'}; the e-invoice gate ${eInvoice === null ? 'left no results' : eInvoice.passed ? 'passed' : 'failed'}; the container gate ${container === null ? 'left no results' : container.passed ? 'passed' : 'failed'}.`,
     '',
     ...derivedLimitations(report).map((sentence) => `- ${sentence}`),

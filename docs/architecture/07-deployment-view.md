@@ -132,6 +132,11 @@ publish            only on a tag, the one job that can write: refuses anything n
 A release passes exactly what CI passes, because both call `gates.yml`; it
 restores no cache, and nothing published is other than what `check` pinned
 ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)).
+The GitHub release's body is the version's changelog section and the
+report's summary; a section that folds its detail into a `<details>`
+block, as 0.3.0's does, is carried as its summary and one line linking
+the whole section in `CHANGELOG.md` at the tag
+([0080](../decisions/0080-a-release-body-carries-its-sections-summary-and-links-the-whole-section-where-the-section-folds-its-detail.md)).
 The npm token is a secret of an environment that admits only `v*` tags. That
 the environment's policy is set is a repository setting nothing here can
 read ([`RELEASING.md`](../../RELEASING.md)).
@@ -213,7 +218,7 @@ settings live in Cloudflare's dashboard, recorded by hand in
 `.github/REPO-METADATA.md`; and nothing in this repository checks that a
 deploy happened or what the address serves. So what the Studio offers
 reaches the public at a merge and not at a release: its Download Word
-gives files of a writer no release holds
+gave files of a writer no release held until 0.3.0
 ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)),
 those of a report with a code since 0074, opened in Word once, by hand,
 on 20 November 2026
@@ -227,6 +232,8 @@ by hand, the same day
 and those of a report that carries an e-invoice since 0077, each written
 of its copy, opened in Word once, by hand, the same day
 ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
+Every starter's Word file was opened in Word again, by hand, on
+22 November 2026, for 0.3.0 (`RELEASING.md`, step 3).
 
 Every file the Worker serves carries the headers `scripts/demo-headers.mjs`
 states for the demo's address, written by the deploy as one `_headers` rule:

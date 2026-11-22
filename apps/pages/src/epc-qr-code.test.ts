@@ -37,8 +37,8 @@ const OWN = { de: 'starter-euro-invoice.png', fr: 'euro-invoice-fr.png', it: 'eu
 
 describe('the EPC QR code page (0028)', () => {
   // The page says the newest release has the code, which is true while
-  // CHANGELOG.md's newest release is 0.2.0, the first to have it, as the
-  // QR-bill page says of its bill (0024). The release commit would leave
+  // CHANGELOG.md's newest release is one that keeps it -- 0.2.0 was the
+  // first to have it -- as the QR-bill page says of its bill (0024). The release commit would leave
   // the sentences standing, true or not; the site refuses to render until
   // somebody reads what the release holds and says so in each sentence
   // that says it.

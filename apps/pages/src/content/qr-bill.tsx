@@ -18,8 +18,8 @@ import { QR_BILL_COPY } from './qr-bill-copy.js'
 
 /**
  * Where the QR-bill stands, as the page says it: the day it was last said,
- * and the newest release then, 0.2.0, the first to print a report with a
- * payment part, which 0.1.0 refuses whole (0022). Three sentences of
+ * and the newest release then, 0.3.0; 0.2.0 was the first to print a
+ * report with a payment part, which 0.1.0 refuses whole (0022). Three sentences of
  * qr-bill-copy.tsx say it: `standing`, in the hero and after the product
  * page's teaser; `tryIt.text`, of the release the guide installs; and
  * `status.text`, dated. Each says the newest release holds the bill, which
@@ -28,8 +28,8 @@ import { QR_BILL_COPY } from './qr-bill-copy.js'
  * whether it does, in all three, and changes this with them (0028).
  */
 export const QR_BILL_STATUS: PageStatus = {
-  asOf: '2026-10-19',
-  release: '0.2.0',
+  asOf: '2026-11-22',
+  release: '0.3.0',
   feature: 'QR-bill',
   copy: 'qr-bill-copy.tsx',
   sentences: "`standing`, which the hero and the product page's teaser say, `tryIt.text` and `status.text`",

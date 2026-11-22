@@ -347,7 +347,7 @@
       ]
     },
     "0014": {
-      "reviewed": "sha256:28c1efdab03ae332a6680afb0010adad1e9c2460eaab507b3f000f7507982079",
+      "reviewed": "sha256:b50c7f808acde23c840e5c31b3d1753c11a4f835f486005903cb891964c5e030",
       "limitations": [
         {
           "area": "release",
@@ -3127,7 +3127,7 @@
       ]
     },
     "0068": {
-      "reviewed": "sha256:a4315a445eb193c7437ab5e2ac7f08e5e059765ea7f24498e1a9aec31d9fdb59",
+      "reviewed": "sha256:48b7f63ff86845bcc9203232ad26d5d27ac0319bf4897fb89e00e2405acf7d01",
       "limitations": [
         {
           "area": "rendering",
@@ -3136,7 +3136,7 @@
         },
         {
           "area": "testing",
-          "says": "No test opens a file the Word writer wrote in Word: the files of the starters and the corpus’s fixtures were opened in Word once, by hand, on 18 November 2026, and found fine, with nothing more written down; that Word repeats the header row, keeps the marked rows, draws the SVG and two equal rules as two lines, puts page 1’s own header and both footers where the file says and works the page fields out is held by no test; the files were validated against ISO/IEC 29500-4:2016’s schema once, by hand, on 17 November 2026; and the Studio’s demo offers from main what a later change writes with nobody opening it first."
+          "says": "No test opens a file the Word writer wrote in Word: the files of the starters and the corpus’s fixtures were opened in Word by hand on 18 November 2026, and found fine, and the starters’ again on 22 November 2026, reported in one answer for all of them, with nothing more written down; that Word repeats the header row, keeps the marked rows, draws the SVG and two equal rules as two lines, puts page 1’s own header and both footers where the file says and works the page fields out is held by no test; the files were validated against ISO/IEC 29500-4:2016’s schema once, by hand, on 17 November 2026; and the Studio’s demo offers from main what a later change writes with nobody opening it first."
         },
         {
           "area": "rendering",
@@ -3218,7 +3218,7 @@
       ]
     },
     "0074": {
-      "reviewed": "sha256:cd31d4fa423a3572cf4e9c0d267da7e86b33234d95673f6e72c740388793c5c5",
+      "reviewed": "sha256:acb7b511c946ba661d1fba8fe228732e773398c45965202df0cd58e032ef37d7",
       "limitations": [
         {
           "area": "rendering",
@@ -3227,7 +3227,7 @@
         },
         {
           "area": "testing",
-          "says": "The Word files with a code were opened in Word once, by hand, on 20 November 2026, the euro invoice from Austria after its frame was written as the variant approved there; no test opens one: that Word draws the picture at its size and unsmoothed, that it leaves the picture as it is when a person saves the file, Microsoft giving 220 pixels to the inch as its default picture resolution, and that a phone reads the code from the page Word prints, is held by nothing; ZXing reads the picture’s own pixels."
+          "says": "The Word files with a code were opened in Word by hand on 20 November 2026, the euro invoice from Austria after its frame was written as the variant approved there, and the euro invoice’s again on 22 November 2026, in one answer for every starter’s file; no test opens one: that Word draws the picture at its size and unsmoothed, that it leaves the picture as it is when a person saves the file, Microsoft giving 220 pixels to the inch as its default picture resolution, and that a phone reads the code from the page Word prints, is held by nothing; ZXing reads the picture’s own pixels."
         },
         {
           "area": "testing",
@@ -3325,7 +3325,7 @@
       ]
     },
     "0076": {
-      "reviewed": "sha256:d867a1e72b90e53128c1c3dfffac8ffd27859c7cdd853a0a8052f20714d75d5d",
+      "reviewed": "sha256:604c89a789e9a04dbb43e021b01a0369528cd0c99595d9eae1d94bb5623ae855",
       "limitations": [
         {
           "area": "rendering",
@@ -3344,7 +3344,7 @@
         },
         {
           "area": "testing",
-          "says": "The Word files with a chart were opened in Word once, by hand, on 20 November 2026, each beside its PDF where there is one, and found as its list says, the charts in their place, their values, colours and order as the PDF’s and the sales report’s value axis grouped, with nothing more of what Word did written down; no test opens one: that Word draws a chart whose data are literals and which has no workbook, that it draws it in its box with its bars, its line and its slices where the numbers put them, where it puts each word and whether two meet, whether it wraps or cuts a category’s label, that a bar below zero hangs from zero with its label under its end, what it writes on the value axis, and that the words of a chart with nothing to draw stand in the middle of its box, is held by nothing; the tests read the part back."
+          "says": "The Word files with a chart were opened in Word by hand on 20 November 2026, each beside its PDF where there is one, and found as its list says, the charts in their place, their values, colours and order as the PDF’s and the sales report’s value axis grouped, with nothing more of what Word did written down, and the sales report’s again on 22 November 2026, in one answer for every starter’s file; no test opens one: that Word draws a chart whose data are literals and which has no workbook, that it draws it in its box with its bars, its line and its slices where the numbers put them, where it puts each word and whether two meet, whether it wraps or cuts a category’s label, that a bar below zero hangs from zero with its label under its end, what it writes on the value axis, and that the words of a chart with nothing to draw stand in the middle of its box, is held by nothing; the tests read the part back."
         },
         {
           "area": "rendering",
@@ -3384,7 +3384,7 @@
       ]
     },
     "0077": {
-      "reviewed": "sha256:a8e7800bbed2ea06c06539dff72fa6639037ec146197e27db341a375e3a26a55",
+      "reviewed": "sha256:8142c2a3f974afee6980f731841e7576e180f49c43c94f2f6220b007e490ee9d",
       "limitations": [
         {
           "area": "rendering",
@@ -3413,7 +3413,7 @@
         },
         {
           "area": "testing",
-          "says": "The Word files of a copy of an e-invoice were opened in Word once, by hand, on 20 November 2026, each beside the PDF of the same copy where the PDF draws one, and found as their list says, the red label at the top of every page, page 1 and a QR-bill’s slip’s page among them, with nothing more of what Word did written down; no test opens one: that Word prints the label on every page, that it stands above the body and wraps cleanly, and that Word says nothing of links or embedded content, is held by nothing; the tests read the headers back."
+          "says": "The Word files of a copy of an e-invoice were opened in Word by hand on 20 November 2026, each beside the PDF of the same copy where the PDF draws one, and found as their list says, the red label at the top of every page, page 1 and a QR-bill’s slip’s page among them, with nothing more of what Word did written down, and both e-invoice starters’ copies again on 22 November 2026, in one answer for every starter’s file; no test opens one: that Word prints the label on every page, that it stands above the body and wraps cleanly, and that Word says nothing of links or embedded content, is held by nothing; the tests read the headers back."
         },
         {
           "area": "testing",
@@ -3500,6 +3500,26 @@
           "area": "release",
           "says": "The README’s sketch of the packages is drawn by hand: its guard holds which packages and apps it names, which it draws as private, that each is drawn below the packages that depend on it and can be seen, that its colours are the room’s by name and that it paints its own ground, and not the column a box stands in, the line under each name or that no word leaves its box; a package added fails it until its box is drawn by hand, and an image loads no web face, so its words are set in the reader’s own monospace and sans, which nothing measures.",
           "heldBy": "scripts/architecture.test.mjs"
+        }
+      ]
+    },
+    "0080": {
+      "reviewed": "sha256:f7cc490fc9f6cd59922c99655795d68e968e983473ea7156960bbc8f0765497f",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "A release whose changelog section folds its detail, 0.3.0 the first, carries that section’s summary alone on its GitHub release page, with one link to the whole section in CHANGELOG.md at the tag: a reader of the release, its feed or the API meets every reason only by following it, and a rehearsal’s body links a tag that lands nowhere until it is pushed.",
+          "heldBy": "scripts/release-notes.test.mjs"
+        },
+        {
+          "area": "release",
+          "says": "Where a release body ends is the section’s first unindented line that is `<details>` alone: one written too early cuts the release’s notes there, and nothing but review judges whether a summary says what its detail holds.",
+          "heldBy": "scripts/release-notes.test.mjs"
+        },
+        {
+          "area": "release",
+          "says": "CI only measures the body of Unreleased, so a long Unreleased with no summary passes every pull request; the release commit that names it a version fails `pnpm test:repo` until its section folds its detail or fits.",
+          "heldBy": "scripts/release-notes.test.mjs"
         }
       ]
     }

@@ -4,8 +4,7 @@ This guide takes an application developer from an empty npm project to a
 quotation printed as a PDF, in Node and in a browser, to an XRechnung's XML
 and its copy, and to the report editor in a React page that saves what the
 author changed and previews it as they work, and in an Angular page that
-saves. It is written for the 0.2.0 developer preview, but for the
-XRechnung, which needs the release after it (section 2): the packages are
+saves. It is written for the 0.3.0 developer preview: the packages are
 the ones
 [README.md](../README.md#packages) lists, the report format is version 0, a
 draft, and where a page needs a server -- to store a report, or to hand it
@@ -375,12 +374,6 @@ in a font a host supplies; a character of those scripts a font simply
 lacks is refused for that instead, naming the font ([0043](decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
 
 ### An XRechnung: take the XML
-
-**This needs the release after 0.2.0.** 0.2.0 refuses a report whose
-e-invoice is of the kind `xrechnung`, as `unknown-kind`, and has no
-`XRECHNUNG_COPY_LABEL`, so with the packages npm installs today this block
-does not compile. The install gate compiles and runs it against the
-packages this repository builds.
 
 A report may carry an e-invoice, which the runtime writes as EN 16931's CII
 XML from the very values its page prints. Of the kind `xrechnung` it is an

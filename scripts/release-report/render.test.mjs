@@ -351,11 +351,12 @@ describe('the subject and the summary', () => {
   })
 
   // The body says where the whole report is and which changelog section it
-  // opens with; a release reader otherwise cannot find either.
+  // opens with; a release reader otherwise cannot find either. "From": a
+  // section that folds its detail is carried as its summary alone (0080).
   test('carries the link to the full report, the section the notes are from, and the counts', () => {
     const summary = renderSummary(report(), { section: 'Unreleased', link: 'https://example.invalid/report.md' })
     expect(summary).toContain('The full report of the run that gated this: https://example.invalid/report.md')
-    expect(summary).toContain('The notes above are CHANGELOG.md’s `Unreleased` section.')
+    expect(summary).toContain('The notes above are from CHANGELOG.md’s `Unreleased` section.')
     expect(summary).toContain('6 of 6 tests passed across 4 packages; the install gate passed; the e-invoice gate passed; the container gate passed.')
   })
 })

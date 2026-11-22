@@ -11,7 +11,10 @@ find.
 - **On a release**, it is attached to the GitHub release as
   `formancy-report-<tag>-release-report.md` and `.json`, each with a
   `.sigstore` bundle signed by the workflow that ran the gates, beside the
-  SBOM; the release body carries its summary.
+  SBOM; the release body carries its summary, after the version's
+  changelog section, or that section's own summary and a link to the
+  whole section where it folds its detail
+  ([0080](../decisions/0080-a-release-body-carries-its-sections-summary-and-links-the-whole-section-where-the-section-folds-its-detail.md)).
 
 `.github/workflows/gates.yml` runs the gates for both, so a release's gate is
 CI's. Each job collects what it found into one results file

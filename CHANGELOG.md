@@ -10,6 +10,112 @@ later.
 
 ## Unreleased
 
+## 0.3.0 — 2026-11-23
+
+**In short.** The third release, still a developer preview: for evaluating
+Formancy Report and building against it. The report format is still version
+"0", the draft, so a report written now is not promised to be read by a
+later release
+([0004](docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
+What you can do now that you could not with 0.2.0:
+
+- **Write a report as a Word file.** The new
+  `@formancy/report-render-docx` writes the same report a PDF is drawn
+  from as a `.docx`: its tables, their header row marked to repeat on
+  every page, its header and footer, page numbers, pictures, QR codes,
+  charts and a QR-bill's slip. Word lays out the lines and pages, and no
+  automated test opens the file in Word
+  ([0068](docs/decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+- **Hand a person an e-invoice as a Word file.** It is written as a copy
+  that says on every page that it is not the invoice; the invoice stays
+  the PDF/A-3b or the XML
+  ([0077](docs/decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
+- **Send an XRechnung 3.0**, the e-invoice German public buyers ask for,
+  beside Factur-X: your application takes its XML and sends it, and its
+  PDF is a copy that says so
+  ([0038](docs/decisions/0038-a-reports-e-invoice-may-be-an-xrechnung-3-0-whose-xml-a-host-takes-and-whose-pdf-is-its-labelled-copy.md)).
+- **Draw bar, line and pie charts** of a report's rows, each total worked
+  out as a table's total is, in the PDF and in the Word file. The builders
+  do not offer a chart yet: you add one in the report's definition
+  ([0052](docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md)).
+- **Print one template in several languages.** Write its words once for
+  each language, and name the language when you render. A word missing in
+  that language stops the render rather than printing another language
+  ([0063](docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
+- **Use your own fonts** for a report's sans, serif and mono text:
+  TrueType fonts your application approves. Latin, Greek and Cyrillic
+  print; any other script is refused
+  ([0043](docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md)).
+- **Archive a report as PDF/A-2b**: the final render of any report that
+  is not an e-invoice
+  ([0057](docs/decisions/0057-a-report-that-is-no-e-invoice-is-drawn-as-a-pdf-a-2b-where-the-host-asks-for-one.md)).
+- **Lay out more:** several tables over the same rows, each printing and
+  totalling only the rows it selects; a group's heading kept on the page
+  with its first rows; a first page with a header of its own, or none;
+  subscript and superscript text; and no empty header row over a table
+  whose column titles are all blank
+  ([0062](docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md),
+  [0059](docs/decisions/0059-a-group-header-is-kept-on-its-page-with-as-many-of-its-groups-first-rows-as-the-report-states-or-as-fit.md),
+  [0060](docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md),
+  [0061](docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md),
+  [0078](docs/decisions/0078-a-table-whose-every-column-title-prints-nothing-has-no-header-row.md)).
+- **Edit a QR-bill and an e-invoice in the builders**, field by field, in
+  React and in Angular alike
+  ([0039](docs/decisions/0039-a-person-selects-a-reports-qr-bill-and-edits-it-field-by-field-in-either-builder.md),
+  [0044](docs/decisions/0044-a-person-edits-a-reports-e-invoice-in-either-builder-one-term-a-field-in-groups.md)).
+- **Print a formancy form's submissions.** The new `@formancy/report-forms`
+  reads each submission against the form version that collected it,
+  starts a report from a form, and, when the form changes, holds back the
+  submissions a report can no longer print until you decide how
+  ([0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md),
+  [0045](docs/decisions/0045-a-report-generated-from-a-formancy-form-is-a-deterministic-first-draft-and-what-it-left-out-is-listed.md),
+  [0048](docs/decisions/0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md)).
+- **Keep template drafts on a server.** The new `@formancy/report-server`,
+  with `@formancy/report-server-core` and `@formancy/report-client`,
+  checks your application's token itself and keeps each tenant's drafts
+  and images; a save from an outdated draft is refused, and nothing is
+  overwritten. It renders nothing yet, no server image is published, and
+  running it in production needs a Formancy Data licence too, for Data's
+  token checker it uses
+  ([0046](docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
+  [0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md),
+  [0049](docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
+- **Read a PDF within limits.** The new `@formancy/report-documents` reads
+  a PDF whole, or refuses it; nothing uses it yet
+  ([0054](docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
+- **Start from more examples.** Seven new starters, twelve in all: the
+  e-invoice as Factur-X and as XRechnung, a site visit made from a form,
+  an order confirmation, a product data sheet, a payment reminder and a
+  monthly sales report. [`samples/`](samples/README.md) holds every
+  starter's PDF and Word file
+  ([0079](docs/decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)).
+- **When you upgrade.** The upstream `@formancy/*` packages move from
+  0.6.0 to exactly 0.12.0. A resolved table may now have no header row, so
+  code that reads one must handle a table without it. The PDF renderer
+  now installs Apache ECharts and zrender 6.1.0, loaded only for a report
+  with a chart, and pins PDFKit at exactly 0.19.1.
+- **Not in this release:** render jobs on a server of Report's own, a
+  consistent read from Formancy Data, a published PDF viewer, changes
+  proposed by an AI, Excel, CSV or HTML, barcodes other than QR codes, and
+  scripts other than Latin, Greek and Cyrillic. The
+  [roadmap](docs/roadmap.md) says what comes next.
+
+<details>
+<summary>Everything that changed in 0.3.0, with the reasons</summary>
+
+**A release's notes on GitHub are its changelog section's summary, which
+links the whole section**
+([0080](docs/decisions/0080-a-release-body-carries-its-sections-summary-and-links-the-whole-section-where-the-section-folds-its-detail.md)).
+0.3.0's entries came to 170,841 characters, and a GitHub release body
+holds 125,000, so the release would have failed in its report job after
+every gate had passed, while CI, which only measures the body, stayed
+green. A section may now open with a short summary and fold its detail
+into a `<details>` block, as this one does: the release body carries the
+summary and one line linking the whole section in CHANGELOG.md at the
+tag. A section that folds nothing is released whole, as 0.1.0's and
+0.2.0's were, and `pnpm test:repo` fails while the newest release's body
+does not fit.
+
 **Download every starter as a PDF and a Word file, and a shorter README**
 ([0079](docs/decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)).
 [`samples/`](samples/README.md) holds each starter's PDF and Word file, and the XML of
@@ -2496,6 +2602,8 @@ samples of the two invoices in other languages and countries fold open in
 two blocks, one per invoice, and the hero's caption, shortened in
 `scripts/pictures/scenes.json`, is written by its script. Every other
 caption and generated block is as it was.
+
+</details>
 
 ## 0.2.0 — 2026-10-19
 
