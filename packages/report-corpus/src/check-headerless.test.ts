@@ -1,7 +1,7 @@
-import type { CustomTableLayout, TableCell, TDocumentDefinitions } from 'pdfmake/interfaces.js'
+import type { Content, CustomTableLayout, TableCell, TDocumentDefinitions } from 'pdfmake/interfaces.js'
 import { describe, expect, test } from 'vitest'
 import { verify } from './checks.js'
-import type { ResolvedDocument, TableRow } from './document.js'
+import type { ResolvedDocument, Table, TableRow } from './document.js'
 import { expectation, type Fixture } from './fixture.js'
 import { readPdf } from './read-pdf.js'
 import { pdfmakePdf } from './testing/pdfmake.js'
@@ -66,30 +66,45 @@ const layout = (header: { readonly padding: number; readonly rule: number } | un
   paddingBottom: (index) => (header !== undefined && index === 0 ? header.padding : 2),
 })
 
-/**
- * The table as pdfmake draws it, its rows kept whole, under `header` where
- * one is given: a row of cells that print nothing, its padding and the
- * width of the rule under it, repeated on every page.
- */
-function definition(header?: { readonly cells: string; readonly padding: number; readonly rule: number }): TDocumentDefinitions {
-  const cell = (text: string, column: number, span?: number): TableCell => ({
-    text,
-    alignment: column === 2 ? 'right' : 'left',
-    ...(span === undefined ? {} : { colSpan: span }),
-  })
-  const rows = ROWS.map((row): TableCell[] =>
+/** A header row drawn where the document has none: its cells' text and size, its padding and the width of the rule under it. */
+interface Band {
+  readonly cells: string
+  readonly padding: number
+  readonly rule: number
+  /** The header's size; absent, the rows'. */
+  readonly size?: number
+}
+
+const cell = (text: string, column: number, span?: number): TableCell => ({
+  text,
+  alignment: column === 2 ? 'right' : 'left',
+  ...(span === undefined ? {} : { colSpan: span }),
+})
+
+/** `rows` as pdfmake takes them, a row across the table one cell spanning its three columns. */
+const bodyOf = (rows: readonly TableRow[]): TableCell[][] =>
+  rows.map((row): TableCell[] =>
     row.across === true ? [cell(row.cells[0]!, 0, 3), cell('', 1), cell('', 2)] : row.cells.map((text, column) => cell(text, column)),
   )
-  const body = header === undefined ? rows : [[0, 1, 2].map((column) => cell(header.cells, column)), ...rows]
+
+/**
+ * The table as pdfmake draws it, its rows kept whole, at `size`, under
+ * `header` where one is given, repeated on every page.
+ */
+function definition(header?: Band, size = 9): TDocumentDefinitions {
+  const titles =
+    header === undefined
+      ? []
+      : [[0, 1, 2].map((column): TableCell => ({ ...cell(header.cells, column), ...(header.size === undefined ? {} : { fontSize: header.size }) }))]
   return {
     pageSize: 'A4',
     pageMargins: [MARGIN, MARGIN + 20, MARGIN, MARGIN],
     header: () => ({ text: 'Headerless report', margin: [MARGIN, MARGIN, MARGIN, 0] }),
     content: [
       {
-        table: { headerRows: header === undefined ? 0 : 1, dontBreakRows: true, widths: [100, '*', 80], body },
+        table: { headerRows: header === undefined ? 0 : 1, dontBreakRows: true, widths: [100, '*', 80], body: [...titles, ...bodyOf(ROWS)] },
         layout: layout(header),
-        fontSize: 9,
+        fontSize: size,
       },
     ],
   }
@@ -123,6 +138,22 @@ describe('verify, on a table without a header row', () => {
     expect(found.every((problem) => / stands under a band of [\d.]+ pt between two rules that prints nothing$/.test(problem))).toBe(true)
   })
 
+  // A band taller than the table's first row is a band all the same: a
+  // header larger than the rows, blank or of a no-break space, or rows
+  // smaller than the header, printed over the table on every page. A band
+  // no taller than the first row was the only one the check saw.
+  test.each<[string, Band, number]>([
+    ['a blank header at 14 pt over rows of 9', { cells: '', padding: 2, rule: 0.5, size: 14 }, 9],
+    ['a header of a no-break space at 12 pt over rows of 9', { cells: '\u00a0', padding: 2, rule: 0.5, size: 12 }, 9],
+    ['a blank header at 9 pt over rows of 7', { cells: '', padding: 2, rule: 0.5, size: 9 }, 7],
+  ])('finds the band of %s, taller than the first row, on every page', async (_, band, size) => {
+    const found = await problems(definition(band, size))
+    expect(found.map((problem) => problem.replace(/'[^']*'/, "'…'").replace(/[\d.]+ pt/, 'N pt'))).toEqual([
+      "headerless: page 1: the first line of table lines, '…', stands under a band of N pt between two rules that prints nothing",
+      "headerless: page 2: the first line of table lines, '…', stands under a band of N pt between two rules that prints nothing",
+    ])
+  })
+
   // A header row of nothing and no rule under it: no second rule, and the
   // first line stands the empty row's line and padding lower under the top
   // rule than a row stands under its own.
@@ -131,5 +162,41 @@ describe('verify, on a table without a header row', () => {
       "headerless: page 1: the first line of table lines, 'Parts: key, item and amount', stands 17.95 pt under the rule above it, and its rows 3.4 pt under theirs",
       "headerless: page 2: the first line of table lines, 'ROW-0047 Item 47 47.00', stands 17.95 pt under the rule above it, and its rows 3.4 pt under theirs",
     ])
+  })
+})
+
+describe('verify, on tables standing one on another', () => {
+  /** `count` detail rows keyed by `name`. */
+  const keyed = (name: string, count: number): TableRow[] =>
+    Array.from({ length: count }, (_, i): TableRow => ({ kind: 'detail', cells: [`${name}-${i + 1}`, `Item ${i + 1}`, `${i + 1}.00`] }))
+  const { columns } = DOCUMENT.body[0] as Table
+  const one: Table = { kind: 'table', id: 'one', columns, rows: keyed('ONE', 3), emptyText: 'No lines' }
+  const two: Table = { kind: 'table', id: 'two', columns, header: ['Key', 'Item', 'Amount'], rows: keyed('TWO', 3), emptyText: 'No lines' }
+  const three: Table = { kind: 'table', id: 'three', columns, rows: keyed('THREE', 3), emptyText: 'No lines' }
+  const document: ResolvedDocument = { ...DOCUMENT, body: [one, { kind: 'paragraph', runs: [{ text: 'Between the tables' }] }, two, three] }
+  const fixture: Fixture = { id: 'stacked', title: 'stacked', document, maxPages: 2, expect: expectation(document, { maxPagesExpected: 1 }) }
+  const drawn = (table: Table): Content => ({
+    table: {
+      headerRows: table.header === undefined ? 0 : 1,
+      dontBreakRows: true,
+      widths: [100, '*', 80],
+      body: [...(table.header === undefined ? [] : [table.header.map((title, column) => cell(title, column))]), ...bodyOf(table.rows)],
+    },
+    layout: layout(undefined),
+    fontSize: 9,
+  })
+
+  // A table without a header row standing right under another's foot has
+  // the other's closing rule half a point above its own top rule, with
+  // nothing between them: one rule drawn on another, which the check read
+  // as a band of half a point.
+  test('finds no band where a table without a header row stands right on another', async () => {
+    const made: TDocumentDefinitions = {
+      pageSize: 'A4',
+      pageMargins: [MARGIN, MARGIN + 20, MARGIN, MARGIN],
+      header: () => ({ text: 'Headerless report', margin: [MARGIN, MARGIN, MARGIN, 0] }),
+      content: [drawn(one), { text: 'Between the tables' }, drawn(two), drawn(three)],
+    }
+    expect(verify(fixture, await readPdf(await pdfmakePdf(made)))).toEqual([])
   })
 })

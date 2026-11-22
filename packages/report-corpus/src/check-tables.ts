@@ -267,9 +267,22 @@ function keptRows(read: ReadTables, placed: PlacedRow, count: number, page: numb
 /**
  * How far apart two lines may stand under the rules above them and still
  * stand alike, in points: the first line of a table without a header row
- * and its rows' lines on one page, each under the rule above it.
+ * and its rows' lines on one page, each under the rule above it. Measured
+ * on 22 November 2026, on the renderer's PDFs of `titles-from-groups`, of
+ * the report it is the document of and of `group-boundary`: 496 lines of
+ * Roboto at 9 pt, regular and bold, each 3.3996 pt under the rule above
+ * it, a spread of 0.000004 pt. A header row of nothing without a rule moves
+ * the first line down by its padding at least, 4 pt in the renderer's look.
  */
 export const UNDER_RULE = 0.05
+
+/**
+ * Two rules nearer than this, in points, are one drawn on another -- a
+ * table standing right under another's foot, its top rule half a point
+ * under the other's closing one -- and no band: a header row of nothing is
+ * its padding tall at the least, 4 pt in the renderer's look.
+ */
+export const ONE_RULE = 1
 
 /** The rules `page` draws, top to bottom, by where each stands down the page: the paths it strokes that have no height, as a table's borders are drawn. */
 function rulesOn(page: Page): number[] {
@@ -290,19 +303,20 @@ function between(page: Page, over: number, under: number): boolean {
  * line stands right under the table's top rule, where a header row's line
  * would stand: as far under the rule above it as a row of the table that
  * begins on that page stands under the rule above that one, and with no
- * other rule over that rule, as near as the first row is tall, and nothing
- * between the two -- the band a header row of nothing prints, on every
- * page it repeats on. A rule is a path stroked across the page with no
- * height, as an engine draws a table's borders.
+ * other rule over that rule, however far above it, with nothing between
+ * the two -- the band a header row of nothing prints, on every page it
+ * repeats on, whatever its size beside the rows'. A rule is a path stroked
+ * across the page with no height, as an engine draws a table's borders,
+ * and two nearer than `ONE_RULE` are one drawn on another.
  *
  * What it rests on: a line's box is computed from its baseline, so the
  * first line is held to the rows' lines by how far each stands under its
  * rule, alike only for lines of one size, the rows' own in every fixture
  * of a table without a header. A page on which no other row of the table
  * begins has no line to hold its first one to, and is held to the band
- * alone. And a rule drawn over the table's top rule, nearer than its first
- * row is tall and with nothing between them -- a rule block or another
- * table standing right on it -- would read as a band: no fixture draws one.
+ * alone. And a rule drawn over the table's top rule with nothing but white
+ * between them -- a rule block standing over the table, or a page header
+ * that ends in one -- reads as a band: no fixture draws one.
  */
 export function headerless(pages: readonly Page[], read: ReadTables, tables: readonly ExpectedTable[]): string[] {
   return tables.flatMap((table) => {
@@ -317,9 +331,8 @@ export function headerless(pages: readonly Page[], read: ReadTables, tables: rea
       const where = `page ${index + 1}: the first line of table ${table.id}, ${quoted(first.text)},`
       if (top === undefined) return [`${where} stands under no rule`]
       const problems: string[] = []
-      const over = rules.findLast((rule) => rule < top - 0.01)
-      const row = (rules.find((rule) => rule > first.bottom) ?? Number.POSITIVE_INFINITY) - top
-      if (over !== undefined && top - over <= row + UNDER_RULE && !between(page, over, top))
+      const over = rules.findLast((rule) => rule < top - ONE_RULE)
+      if (over !== undefined && !between(page, over, top))
         problems.push(`${where} stands under a band of ${points(top - over)} pt between two rules that prints nothing`)
       const offset = first.top - top
       const rows = read.rows.flatMap(({ table: of, lines: [start] }) => {
