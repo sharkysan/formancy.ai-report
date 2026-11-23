@@ -5,8 +5,8 @@ and nowhere else. A release built on a laptop cannot carry provenance — the
 attestation is a statement *by GitHub* about which workflow, at which commit,
 produced a tarball, and only the workflow can make it.
 
-The first release, 0.1.0, was cut on 16 October 2026, and 0.2.0 on
-19 October 2026. The workflow follows
+The first release, 0.1.0, was cut on 16 October 2026, 0.2.0 on
+19 October 2026, and 0.3.0 on 23 November 2026. The workflow follows
 Formancy Data's, release report included
 ([0014](docs/decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md),
 [`docs/release/`](docs/release/README.md)), without its server image: the
@@ -304,8 +304,8 @@ entries stay even when a release never happens.
 | `npm-publish` | each version number on npm, forever | the registry; any one of the packages | the signatures |
 | `github-release` | nothing: a release can be edited or deleted | the GitHub API | npm |
 
-The publish job has run twice, for 0.1.0 and 0.2.0, and every step of each
-succeeded.
+The publish job has run three times, for 0.1.0, 0.2.0 and 0.3.0, and every
+step of each succeeded.
 So the path above, a `publish` run again over versions npm already holds,
 has never run: `scripts/workflows.test.mjs` holds the job's shape, and
 `scripts/release/publish.test.mjs` what it decides about a version the
