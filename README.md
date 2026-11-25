@@ -108,7 +108,10 @@ the browser gate holds
 The online Studio is `main`'s, deployed on every push to `main`, so it can
 be ahead of the latest release
 ([RELEASING.md](./RELEASING.md#the-demo-on-formancyai)); the product's
-pages stand beside it, from https://formancy.ai/report/en/.
+pages stand beside it, from https://formancy.ai/report/en/, in German,
+French, Italian and English, with a page for each topic the start page
+introduces
+([0081](./docs/decisions/0081-the-start-page-names-pdf-and-word-pages-for-invoices-word-files-and-each-report-designer-join-it-and-every-package-names-keywords.md)).
 
 ## The Studio
 

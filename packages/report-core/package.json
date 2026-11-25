@@ -2,6 +2,14 @@
   "name": "@formancy/report-core",
   "version": "0.3.0",
   "description": "Formancy Report's editing core: pure document commands over a ReportDefinition, atomic validated history with exact undo and redo, diagnostics, and a framework-independent session. No framework, no PDF engine, no Node.",
+  "keywords": [
+    "formancy",
+    "report",
+    "report-designer",
+    "undo-redo",
+    "diagnostics",
+    "source-available"
+  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,
@@ -44,6 +52,6 @@
     "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
     "directory": "packages/report-core"
   },
-  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "homepage": "https://formancy.ai/report/en/",
   "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
 }

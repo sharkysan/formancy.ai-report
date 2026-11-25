@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { FIGURES, PICTURES, STUDIO } from './content/figures.js'
+import { FIGURES, PICTURES } from './content/figures.js'
 import { LANGUAGES } from './languages.js'
 import { renderSite } from './site.js'
 import { inputs, site } from './test-site.js'
@@ -35,7 +35,13 @@ describe('the pictures (0021, 0024)', () => {
           })
       }
     }
-    expect(FIGURES.filter((figure) => figure !== STUDIO).every((figure) => figure.quotes.length > 0)).toBe(true)
+    // A picture of the Studio, under readme/, is no document's page, and
+    // neither manifest records lines for it: the words it shows are the
+    // Studio's, which checks/studio-words.ts holds to its recorded scenes.
+    // Every other figure quotes the page its picture prints (0081).
+    const pages = FIGURES.filter((figure) => !figure.picture.startsWith('readme/'))
+    expect(pages.length).toBeGreaterThan(0)
+    expect(pages.filter((figure) => figure.quotes.length === 0).map((figure) => figure.picture)).toEqual([])
   })
 
   // The check above reads FIGURES: a picture a page shows that is not one

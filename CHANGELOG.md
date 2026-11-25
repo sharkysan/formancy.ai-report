@@ -10,6 +10,19 @@ later.
 
 ## Unreleased
 
+**The product pages name PDF and Word, and pages for invoices, Word
+files and each report designer join them; every published package names
+keywords and the start page as its homepage**
+([0081](docs/decisions/0081-the-start-page-names-pdf-and-word-pages-for-invoices-word-files-and-each-report-designer-join-it-and-every-package-names-keywords.md)).
+The start page said "PDF report designer" though 0.3.0 writes Word files
+too, and no page answered a reader looking for invoices, Word files or a
+report designer for Angular or React. Each new page, in four languages,
+names the tests behind its cards, says what it does not do, and carries a
+status a release commit must write again. On npm, each package's
+homepage is now https://formancy.ai/report/en/, where the terms are; its
+repository link is unchanged. The healthcare page says Formancy Health
+0.1.0, a developer preview, is released.
+
 ## 0.3.0 — 2026-11-23
 
 **In short.** The third release, still a developer preview: for evaluating

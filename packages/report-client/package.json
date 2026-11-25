@@ -2,6 +2,12 @@
   "name": "@formancy/report-client",
   "version": "0.3.0",
   "description": "Formancy Report's client for its server: lists a tenant's templates, reads and saves a template's draft from the version it was opened at, and keeps and reads the images a draft declares, over the fetch and the token a host gives it. No framework, no Node. Source-available, as every Formancy Report package.",
+  "keywords": [
+    "formancy",
+    "report",
+    "client",
+    "source-available"
+  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,
@@ -46,6 +52,6 @@
     "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
     "directory": "packages/report-client"
   },
-  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "homepage": "https://formancy.ai/report/en/",
   "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
 }

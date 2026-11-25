@@ -205,6 +205,18 @@ describe.runIf(built || process.env.CI === 'true')('the Angular builder as built
     for (const specifier of imported()) expect(declared, specifier).toContain(packageOf(specifier))
   })
 
+  // npm shows the manifest packed from dist, which ng-packagr writes as a
+  // copy of the source's: keywords or a homepage the copy dropped or
+  // changed would leave the package unfound on npm by what it does, or
+  // sending its readers elsewhere, while manifests.test.mjs, which reads
+  // the source manifests, passed (0081).
+  test('names the keywords and the homepage its source manifest names', () => {
+    const source = json(join(angular, 'package.json'))
+    const { keywords, homepage } = manifest()
+    expect(source.keywords?.length).toBeGreaterThan(0)
+    expect({ keywords, homepage }).toEqual({ keywords: source.keywords, homepage: source.homepage })
+  })
+
   // That it inlines nothing from node_modules is held with every other
   // published package's build, by dependency-licences.test.mjs (0006).
 

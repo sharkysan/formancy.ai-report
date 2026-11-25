@@ -181,24 +181,50 @@ function rootValue(css, name) {
   return value
 }
 
-/** Every package published from packages/, with the homepage they share: the repository. */
-function published(repo, read) {
-  const manifests = readdirSync(join(repo, 'packages'))
-    .sort()
-    .filter((name) => existsSync(join(repo, 'packages', name, 'package.json')))
-    .map((name) => {
-      read(join(repo, 'packages', name, 'package.json'))
-      return JSON.parse(readFileSync(join(repo, 'packages', name, 'package.json'), 'utf8'))
-    })
-    .filter((manifest) => manifest.private !== true)
-  const homepages = [...new Set(manifests.map((manifest) => manifest.homepage))]
+/** A manifest's `repository.url`, `git+https://github.com/…/….git`, as the address a reader opens: `https://github.com/…/…`. */
+const GIT_URL = /^git\+(https:\/\/github\.com\/[\w.-]+\/[\w.-]+?)\.git$/
+
+/**
+ * What `manifests`, every manifest under packages/, say the pages need: the
+ * names of those published, and the repository and the homepage they
+ * share -- the repository by its `repository.url`, which the pages link
+ * for the source, and the homepage, the pages' own English start page
+ * since 0081, which the pages' suite holds to the page it builds there.
+ * Each is refused when the published packages do not name one alone, or
+ * the repository is not one on GitHub.
+ */
+export function publishedOf(manifests) {
+  const published = manifests.filter((manifest) => manifest.private !== true)
+  const found = published.map((manifest) => GIT_URL.exec(String(manifest.repository?.url))?.[1])
+  const unnamed = published.filter((_, index) => found[index] === undefined).map((manifest) => String(manifest.name))
+  if (unnamed.length > 0) throw new Error(`${unnamed.join(', ')} names no repository on GitHub by its repository.url, where the pages link the source`)
+  const repositories = [...new Set(found)]
+  if (repositories.length !== 1 || typeof repositories[0] !== 'string')
+    throw new Error(`the published packages name the repositories ${JSON.stringify(repositories)}, and the pages link one`)
+  const homepages = [...new Set(published.map((manifest) => manifest.homepage))]
   if (homepages.length !== 1 || typeof homepages[0] !== 'string')
-    throw new Error(`the published packages name ${String(homepages.length)} homepages, and the pages link one repository`)
-  return { packages: manifests.map((manifest) => manifest.name), repository: homepages[0] }
+    throw new Error(`the published packages name the homepages ${JSON.stringify(homepages)}, and the pages hold one to their start page`)
+  return { packages: published.map((manifest) => manifest.name), repository: repositories[0], homepage: homepages[0] }
+}
+
+/** Every package published from packages/ at `repo`, as `publishedOf` reads their manifests, each heard by `read`. */
+function published(repo, read) {
+  return publishedOf(
+    readdirSync(join(repo, 'packages'))
+      .sort()
+      .filter((name) => existsSync(join(repo, 'packages', name, 'package.json')))
+      .map((name) => {
+        read(join(repo, 'packages', name, 'package.json'))
+        return JSON.parse(readFileSync(join(repo, 'packages', name, 'package.json'), 'utf8'))
+      }),
+  )
 }
 
 /** The manifests of the pictures under docs/images that report-render-pdf's scripts/readme-pictures.ts writes. */
 const PICTURE_MANIFESTS = ['docs/images/pictures.json', 'docs/images/samples.json']
+
+/** The manifest of the Studio's pictures under docs/images/readme, which scripts/pictures.mjs writes, with the text each scene's parts hold. */
+const CAPTURED = 'docs/images/readme/captured.json'
 
 /**
  * Everything the renderer needs from the repository at `repo`, with the
@@ -235,6 +261,13 @@ export function readInputs(repo, { pictures = [] } = {}) {
   // the invoice samples' in samples.json, which the Studio's browser gate
   // does not read, since the samples are not starters its picker offers.
   const recorded = PICTURE_MANIFESTS.flatMap((manifest) => JSON.parse(text(manifest)))
+  // A picture of the Studio's lines are the text captured.json records of
+  // its scene, every part the picture holds as the Studio's accessibility
+  // tree wrote it, which the README's pictures' test holds to the Studio
+  // (scripts/pictures/readme.test.mjs): what a description of it may quote
+  // (0081).
+  for (const scene of Object.values(JSON.parse(text(CAPTURED))))
+    recorded.push({ file: scene.file.slice('docs/images/'.length), lines: Object.values(scene.text ?? {}).flatMap((part) => part.split('\n')) })
   return {
     site,
     ...published(repo, note),

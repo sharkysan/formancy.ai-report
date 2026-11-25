@@ -483,7 +483,7 @@
       ]
     },
     "0021": {
-      "reviewed": "sha256:852ea6de826aea9284caff3bd56cff1696b427b600a93c1f4e9e49a7802da321",
+      "reviewed": "sha256:9b47f7a167987dafc8f16fbf8be81820135ee6701ec8f0457b39d4ec09b40892",
       "limitations": [
         {
           "area": "release",
@@ -602,7 +602,7 @@
       ]
     },
     "0024": {
-      "reviewed": "sha256:999b293306959499755457928aa826fa0603fa9076bd9218b8956ff8458a7b49",
+      "reviewed": "sha256:daaa89b9004d5cb88453a762e814dd6f582f02c744f836929e5d5a237e386c27",
       "limitations": [
         {
           "area": "release",
@@ -892,7 +892,7 @@
       ]
     },
     "0028": {
-      "reviewed": "sha256:56bc6a6ac2a3a24a6a194f372cc4d69f96e8598afc07cda5a133c713944ea50e",
+      "reviewed": "sha256:7a0dff06f3a1e80f02ab900c84ab4032c05bbbb38d27bf4abede6ed50c100875",
       "limitations": [
         {
           "area": "release",
@@ -2446,7 +2446,7 @@
       ]
     },
     "0056": {
-      "reviewed": "sha256:c8d5f685cb769fffbd03ddb5bd844cc16a9a3ed407f3dcdc22a04afb96e4c3ef",
+      "reviewed": "sha256:be41b3c41aff64058127465372ea4b33f879e164fcccfa4dc1a0304101d24a92",
       "limitations": [
         {
           "area": "release",
@@ -3520,6 +3520,40 @@
           "area": "release",
           "says": "CI only measures the body of Unreleased, so a long Unreleased with no summary passes every pull request; the release commit that names it a version fails `pnpm test:repo` until its section folds its detail or fits.",
           "heldBy": "scripts/release-notes.test.mjs"
+        }
+      ]
+    },
+    "0081": {
+      "reviewed": "sha256:67875ebf421ea707f7d0bce5c60e0a868a424c3d9731969a84d3c1e74c391e55",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "A release commit fails the pages' suite until the invoices page, the Word files page and each report designer's page say again, in four languages, whether the release holds what each describes, what it does not do and where it stands, beside the start page's and the payment code pages' statuses, each with its constant set.",
+          "heldBy": "apps/pages/src/site.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "Every published package's npm page links the product pages' English start page, https://formancy.ai/report/en/, as its homepage, and the repository only as its repository: a slug renamed or the default language changed fails the pages' suite until every manifest names the new address.",
+          "heldBy": "apps/pages/src/site.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "Every published manifest names keywords, \"formancy\" and \"source-available\" among them and none of the open-source spellings the guard lists, which `pnpm test:repo` holds by their form alone: whether a keyword names what its package does is review's.",
+          "heldBy": "scripts/manifests.test.mjs"
+        },
+        {
+          "area": "testing",
+          "says": "The invoices, Word files and report designer pages' cards each name the tests they rest on, and some say again in a card what a payment code page or the start page says at length; nothing compares the words of two cards that make one claim, and every sentence outside a card, the new pages' French and Italian among them, is held by review.",
+          "heldBy": "apps/pages/src/evidence.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "A picture of the Studio on a product page is described by review: only a quote in its description is held, to the text the scene records, and every page that names a picture for a shared link names an A4 page, taller than wide, which a large link preview crops.",
+          "heldBy": "apps/pages/src/figures.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "What the healthcare page says of Formancy Health, its 0.1.0 a developer preview released on 19 October 2026, was read from that repository by hand on 25 November 2026, is dated so, and goes stale without anything here failing; and the topic pages' sentence on what the licence makes free and what paid says again what LICENSE.md's table says, held to it by review."
         }
       ]
     }

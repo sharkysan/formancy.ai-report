@@ -20,7 +20,13 @@
   [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md),
   under which the corpus holds, beside these four samples, which stay
   four reports, the German starter's invoice once in four languages, its
-  PDF in each held to the same invoice written in that language alone
+  PDF in each held to the same invoice written in that language alone;
+  and extended by
+  [0081](0081-the-start-page-names-pdf-and-word-pages-for-invoices-word-files-and-each-report-designer-join-it-and-every-package-names-keywords.md),
+  under which four more pages carry a status as the QR-bill page's, each
+  naming what it does not do among its sentences, and the invoices page
+  shows a sample of this record in its own language beside the other
+  invoices
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

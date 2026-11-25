@@ -3,21 +3,29 @@
  * what works today for healthcare's documents, Formancy Report's PDFs, each
  * card naming the tests it rests on (`EVIDENCE`) -- formancy's forms have no
  * card, since no test of this checkout holds what formancy is -- and what
- * is in development, Formancy Health, said as in development and dated. It names HL7 and FHIR, so its footer
- * carries HL7's notice (shell.tsx), which the suite holds word for word.
+ * Formancy Health, a developer preview of its own repository, exports, said
+ * as its README says it and dated, since nothing here reads that
+ * repository, with links to it and to its demo on formancy.ai (0081). It
+ * names HL7 and FHIR, so its footer carries HL7's notice (shell.tsx),
+ * which the suite holds word for word.
  */
 import type { ReactElement } from 'react'
 import type { Language } from '../languages.js'
-import { FORMANCY_HEALTH } from '../links.js'
+import { FORMANCY_HEALTH, FORMANCY_HEALTH_DEMO } from '../links.js'
 import { isRoot } from '../pages.js'
 import type { Card, Evidence, PageContext, PageGroup, PageMeta, Teaser } from '../pages.js'
 
 /**
  * The day the healthcare page last said where Formancy Health stands. A
  * date, because a status goes stale and a reader should see how old it is;
- * change it with the sentence it dates.
+ * change it with the sentence it dates. Read from formancy.ai-health's
+ * README and CHANGELOG.md that day: its 0.1.0, a developer preview,
+ * released on `HEALTH_RELEASED`.
  */
-export const HEALTH_AS_OF = '2026-10-17'
+export const HEALTH_AS_OF = '2026-11-25'
+
+/** The day Formancy Health 0.1.0 was released, as its CHANGELOG.md's heading says, which nothing here reads: dated by `HEALTH_AS_OF`. */
+export const HEALTH_RELEASED = '2026-10-19'
 
 interface HealthcareCopy {
   readonly meta: PageMeta
@@ -27,7 +35,15 @@ interface HealthcareCopy {
   readonly lead: string
   readonly today: { readonly heading: string; readonly cards: readonly Card[]; readonly not: string }
   readonly actions: { readonly studio: string; readonly product: string }
-  readonly health: { readonly heading: string; readonly text: string; readonly status: (date: string) => string; readonly link: string }
+  readonly health: {
+    readonly heading: string
+    readonly text: string
+    /** Where Formancy Health stands: `released` the day its 0.1.0 was, `date` the day that was read. */
+    readonly status: (released: string, date: string) => string
+    readonly link: string
+    /** The link's words, to Formancy Health's demo on formancy.ai. */
+    readonly demo: string
+  }
 }
 
 /**
@@ -65,12 +81,12 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
     meta: {
       title: 'Gesundheitswesen: Formulare und PDFs – Formancy Report',
       description:
-        'Formulare mit formancy, dazu Zuweisungen, Arztberichte und Patientenrechnungen als paginierte PDFs aus Ihren Daten, selbst gehostet. FHIR-Export in Entwicklung.',
+        'Formulare mit formancy, dazu Zuweisungen, Arztberichte und Patientenrechnungen als PDFs aus Ihren Daten, selbst gehostet. FHIR-Export als Developer Preview.',
       name: 'Gesundheitswesen',
     },
     teaser: {
       heading: 'Für das Gesundheitswesen',
-      text: 'Zuweisungsschreiben, Arztberichte und Rechnungen an Patientinnen und Patienten, als paginierte PDFs aus den Daten gedruckt, die Ihre Anwendung übergibt, mit exakten Beträgen, nie abgeschnittenem Text und Dokumenten, die Ihnen gehören: was heute geht und was in Entwicklung ist.',
+      text: 'Zuweisungsschreiben, Arztberichte und Rechnungen an Patientinnen und Patienten, als paginierte PDFs aus den Daten gedruckt, die Ihre Anwendung übergibt, mit exakten Beträgen, nie abgeschnittenem Text und Dokumenten, die Ihnen gehören: was heute geht, und was Formancy Health als Developer Preview exportiert.',
       action: 'Formancy Report im Gesundheitswesen',
     },
     eyebrow: 'Formancy Report für das Gesundheitswesen',
@@ -99,22 +115,24 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
     },
     actions: { studio: 'Den Editor im Studio ausprobieren', product: 'Formancy Report: was es heute kann' },
     health: {
-      heading: 'In Entwicklung: Formancy Health',
-      text: 'Formancy Health wird formancy-Formulare und PDFs von Formancy Report nach HL7® FHIR® exportieren, in den Profilen des jeweiligen Landes: für die Schweiz zuerst CH Core und CH ORF. CH ORF ist der Implementierungsleitfaden von HL7 Schweiz für Aufträge und Zuweisungen per Formular.',
-      status: (date) => `In Entwicklung; noch nichts veröffentlicht (Stand ${date}).`,
+      heading: 'Daneben: Formancy Health',
+      text: 'Formancy Health exportiert ein formancy-Formular als SDC-Questionnaire, die Antworten einer Person als QuestionnaireResponse und ein PDF, etwa ein Zuweisungsschreiben von Formancy Report, in einer DocumentReference, als Ressourcen von HL7® FHIR® R4. Eine Zuweisung für die Schweiz schreibt es als CH ORF auf CH Core, nach den Implementierungsleitfäden von HL7 Schweiz. Es ist eine Bibliothek: Ihre Anwendung verschickt, was es schreibt.',
+      status: (released, date) =>
+        `Formancy Health 0.1.0, eine Developer Preview, ist seit dem ${released} veröffentlicht, noch nicht für den Export der Daten einer Person in Produktion (Stand ${date}).`,
       link: 'Formancy Health auf GitHub',
+      demo: 'Die Demo von Formancy Health',
     },
   },
   fr: {
     meta: {
       title: 'Santé : formulaires et documents PDF – Formancy Report',
       description:
-        "Formulaires avec formancy, et lettres d'adressage, rapports et factures aux patients en PDF paginés depuis vos données, chez vous. Export FHIR en cours.",
+        "Formulaires avec formancy, et lettres d'adressage, rapports et factures aux patients en PDF paginés depuis vos données, chez vous. Export FHIR en préversion.",
       name: 'Santé',
     },
     teaser: {
       heading: 'Pour le secteur de la santé',
-      text: "Des lettres d'adressage, rapports médicaux et factures aux patients, imprimés en PDF paginés à partir des données que fournit votre application, avec des montants exacts, sans aucun texte coupé, et des documents qui restent les vôtres : ce qui fonctionne aujourd'hui, et ce qui est en développement.",
+      text: "Des lettres d'adressage, rapports médicaux et factures aux patients, imprimés en PDF paginés à partir des données que fournit votre application, avec des montants exacts, sans aucun texte coupé, et des documents qui restent les vôtres : ce qui fonctionne aujourd'hui, et ce qu'exporte Formancy Health, une préversion pour développeurs.",
       action: 'Formancy Report dans le secteur de la santé',
     },
     eyebrow: 'Formancy Report pour le secteur de la santé',
@@ -143,22 +161,24 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
     },
     actions: { studio: "Essayer l'éditeur dans le Studio", product: "Formancy Report : ce qu'il fait aujourd'hui" },
     health: {
-      heading: 'En développement : Formancy Health',
-      text: "Formancy Health exportera les formulaires formancy et les PDF de Formancy Report vers le standard HL7® FHIR®, dans les profils de chaque pays : d'abord CH Core et CH ORF pour la Suisse. CH ORF est le guide d'implémentation de HL7 Suisse pour les demandes et les adressages par formulaire.",
-      status: (date) => `En développement ; rien n'est encore publié (état au ${date}).`,
+      heading: 'À côté : Formancy Health',
+      text: "Formancy Health exporte un formulaire formancy en Questionnaire SDC, les réponses d'une personne en QuestionnaireResponse et un PDF, comme une lettre d'adressage de Formancy Report, dans une DocumentReference, en ressources HL7® FHIR® R4. Pour la Suisse, il écrit un adressage en CH ORF sur CH Core, selon les guides d'implémentation de HL7 Suisse. C'est une bibliothèque : votre application envoie ce qu'il écrit.",
+      status: (released, date) =>
+        `Formancy Health 0.1.0, une préversion pour développeurs, est publié depuis le ${released}, pas encore pour l'export en production des données d'une personne (état au ${date}).`,
       link: 'Formancy Health sur GitHub',
+      demo: 'La démo de Formancy Health',
     },
   },
   it: {
     meta: {
       title: 'Sanità: moduli e documenti PDF – Formancy Report',
       description:
-        'Moduli con formancy, e lettere di invio, referti e fatture ai pazienti come PDF impaginati dai vostri dati, sui vostri server. Export FHIR in sviluppo.',
+        'Moduli con formancy, e lettere di invio, referti e fatture ai pazienti come PDF impaginati dai vostri dati, sui vostri server. Export FHIR in anteprima.',
       name: 'Sanità',
     },
     teaser: {
       heading: 'Per la sanità',
-      text: 'Lettere di invio, referti e fatture ai pazienti, stampati come PDF impaginati dai dati che la vostra applicazione fornisce, con importi esatti, senza testo tagliato e con documenti che restano vostri: che cosa funziona oggi e che cosa è in sviluppo.',
+      text: 'Lettere di invio, referti e fatture ai pazienti, stampati come PDF impaginati dai dati che la vostra applicazione fornisce, con importi esatti, senza testo tagliato e con documenti che restano vostri: che cosa funziona oggi, e che cosa esporta Formancy Health, in anteprima per sviluppatori.',
       action: 'Formancy Report nella sanità',
     },
     eyebrow: 'Formancy Report per la sanità',
@@ -187,22 +207,24 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
     },
     actions: { studio: "Provare l'editor nello Studio", product: 'Formancy Report: che cosa fa oggi' },
     health: {
-      heading: 'In sviluppo: Formancy Health',
-      text: 'Formancy Health esporterà i moduli formancy e i PDF di Formancy Report nello standard HL7® FHIR®, nei profili di ciascun paese: per primi CH Core e CH ORF della Svizzera. CH ORF è la guida di implementazione di HL7 Svizzera per ordini e invii tramite modulo.',
-      status: (date) => `In sviluppo; ancora nulla di pubblicato (stato al ${date}).`,
+      heading: 'Accanto: Formancy Health',
+      text: 'Formancy Health esporta un modulo formancy come Questionnaire SDC, le risposte di una persona come QuestionnaireResponse e un PDF, come una lettera di invio di Formancy Report, in una DocumentReference, come risorse HL7® FHIR® R4. Per la Svizzera scrive un invio come CH ORF su CH Core, secondo le guide di implementazione di HL7 Svizzera. È una libreria: la vostra applicazione invia ciò che scrive.',
+      status: (released, date) =>
+        `Formancy Health 0.1.0, un'anteprima per sviluppatori, è pubblicato dal ${released}, non ancora per l'esportazione in produzione dei dati di una persona (stato al ${date}).`,
       link: 'Formancy Health su GitHub',
+      demo: 'La demo di Formancy Health',
     },
   },
   en: {
     meta: {
       title: 'Healthcare forms and PDF documents – Formancy Report',
       description:
-        'Forms with formancy, and referral letters, reports and patient invoices as paginated PDFs from your own data, self-hosted. HL7 FHIR export in development.',
+        'Forms with formancy, and referral letters, reports and patient invoices as paginated PDFs from your own data, self-hosted. HL7 FHIR export in preview.',
       name: 'Healthcare',
     },
     teaser: {
       heading: 'For healthcare',
-      text: 'Referral letters, medical reports and invoices to patients, printed as paginated PDFs from the data your application hands over, with exact amounts, no text cut to fit, and documents that remain yours: what works today, and what is in development.',
+      text: 'Referral letters, medical reports and invoices to patients, printed as paginated PDFs from the data your application hands over, with exact amounts, no text cut to fit, and documents that remain yours: what works today, and what Formancy Health, a developer preview, exports.',
       action: 'Formancy Report in healthcare',
     },
     eyebrow: 'Formancy Report for healthcare',
@@ -231,10 +253,12 @@ const COPY: Readonly<Record<Language, HealthcareCopy>> = {
     },
     actions: { studio: 'Try the editor in the Studio', product: 'Formancy Report: what it does today' },
     health: {
-      heading: 'In development: Formancy Health',
-      text: "Formancy Health will export formancy forms and Formancy Report PDFs to the HL7® FHIR® standard, in each country's profiles: Switzerland's CH Core and CH ORF first. CH ORF is HL7 Switzerland's implementation guide for orders and referrals by form.",
-      status: (date) => `In development; nothing released yet (as of ${date}).`,
+      heading: 'Beside it: Formancy Health',
+      text: "Formancy Health exports a formancy form as an SDC Questionnaire, a person's answers as its QuestionnaireResponse, and a PDF, such as a Formancy Report referral letter, in a DocumentReference, as HL7® FHIR® R4 resources. A Swiss referral is written as CH ORF on CH Core, HL7 Switzerland's implementation guides. It is a library: your application sends what it writes.",
+      status: (released, date) =>
+        `Formancy Health 0.1.0, a developer preview, released on ${released}; not yet for the production export of a person's record (as of ${date}).`,
       link: 'Formancy Health on GitHub',
+      demo: "Formancy Health's demo",
     },
   },
 }
@@ -281,11 +305,16 @@ function HealthcareBody({ page }: { readonly page: PageContext }): ReactElement 
         <h2 id="health">{copy.health.heading}</h2>
         <p>{copy.health.text}</p>
         <p>
-          <strong>{copy.health.status(page.day(HEALTH_AS_OF))}</strong>
+          <strong>{copy.health.status(page.day(HEALTH_RELEASED), page.day(HEALTH_AS_OF))}</strong>
         </p>
-        <p>
-          <a href={FORMANCY_HEALTH}>{copy.health.link}</a>
-        </p>
+        <ul className="links">
+          <li>
+            <a href={FORMANCY_HEALTH_DEMO}>{copy.health.demo}</a>
+          </li>
+          <li>
+            <a href={FORMANCY_HEALTH}>{copy.health.link}</a>
+          </li>
+        </ul>
       </section>
     </>
   )

@@ -44,7 +44,14 @@ node scripts/bump.mjs 0.1.0
 #    that say where it stands -- `standing`, `tryIt.text` and
 #    `status.text` -- and set its status beside them: qr-bill-copy.tsx and
 #    QR_BILL_STATUS in qr-bill.tsx (0024); epc-qr-code-copy.tsx and
-#    EPC_QR_CODE_STATUS in epc-qr-code.tsx (0028).
+#    EPC_QR_CODE_STATUS in epc-qr-code.tsx (0028). The invoices page, the
+#    Word files page and each report designer's page say the same of what
+#    they describe, and what it does not do: say both again in the four
+#    sentences of each one's copy -- `standing`, `tryIt.text`,
+#    `limits.items` and `status.text` -- and set its status beside them:
+#    invoices-copy.tsx and INVOICES_STATUS in invoices.tsx, word-copy.tsx
+#    and WORD_STATUS in word.tsx, angular-copy.tsx and ANGULAR_STATUS in
+#    angular.tsx, react-copy.tsx and REACT_STATUS in react.tsx (0081).
 #    The start page links "## Unreleased" from its hero and its status, so
 #    open a new, empty "## Unreleased" above the release's heading: the
 #    pages' link check refuses the site while CHANGELOG.md has no heading

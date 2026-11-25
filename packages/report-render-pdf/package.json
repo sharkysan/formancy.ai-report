@@ -2,6 +2,23 @@
   "name": "@formancy/report-render-pdf",
   "version": "0.3.0",
   "description": "Formancy Report PDF renderer: draws a resolved report with pdfmake, with repeated table headers, page regions, kept-together blocks and embedded fonts, and refuses rather than truncates.",
+  "keywords": [
+    "formancy",
+    "pdf",
+    "pdf-generation",
+    "pdf-report",
+    "paginated-report",
+    "invoice",
+    "swiss-qr-bill",
+    "qr-rechnung",
+    "epc-qr-code",
+    "sepa",
+    "factur-x",
+    "zugferd",
+    "pdf-a",
+    "charts",
+    "source-available"
+  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,
@@ -56,6 +73,6 @@
     "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
     "directory": "packages/report-render-pdf"
   },
-  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "homepage": "https://formancy.ai/report/en/",
   "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
 }
