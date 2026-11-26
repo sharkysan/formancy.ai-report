@@ -749,9 +749,14 @@ the gate's unit tests, which the Studio's suite runs.
 **`apps/pages`** is the product's pages, prerendered by React's
 `renderToStaticMarkup` into static HTML in German, French, Italian and
 English. `src/groups.ts` is the list of pages, among them a page for each
-payment code that shows its invoice's samples; `scripts/inputs.mjs` reads
-the release, the licence's terms and the faces from this repository's files
-when it builds, and inlines formancy's room from the pages' own
+payment code that shows its invoice's samples, and the invoices, Word files
+and two report designers' pages, which share one layout,
+`src/content/topic.tsx`, each with a copy of its own
+([0081](../decisions/0081-the-start-page-names-pdf-and-word-pages-for-invoices-word-files-and-each-report-designer-join-it-and-every-package-names-keywords.md));
+`scripts/inputs.mjs` reads the release, the licence's terms, the faces,
+and the repository and the homepage the published manifests name -- the
+repository by `repository.url`, the homepage the English start page (0081)
+-- from this repository's files when it builds, and inlines formancy's room from the pages' own
 `@formancy/themes` before the Studio's stylesheets (0034); `src/checks/` hold every page's head, links, words and
 sitemap, every card's evidence and every word a page takes from the Studio
 (0056), and that its footer links formancy.ai's legal notice and privacy

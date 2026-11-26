@@ -800,8 +800,25 @@ makes rests on named tests
   page in one error
   ([0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
   [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
+  The invoices, Word files and report designer pages name what they do
+  not do among the sentences their status sends a release back to
+  ([0081](../decisions/0081-the-start-page-names-pdf-and-word-pages-for-invoices-word-files-and-each-report-designer-join-it-and-every-package-names-keywords.md)).
+- **A page is named for what a reader searches for.** Each page's title,
+  description and slug are its own language's words for its subject: the
+  start page's head names PDF and Word, the German "Reportdesigner", and
+  each topic page's slug is a word of its language (0081). Whether a
+  search engine shows a page for them is measured by nothing here.
 - **The Studio's words are the Studio's pictures'.** A word a page takes
   from the Studio is one `docs/images/readme/captured.json` records it
-  saying, held by `apps/pages/src/checks/studio-words.ts`.
+  saying, held by `apps/pages/src/checks/studio-words.ts`. What a
+  description of a picture of the Studio quotes is text that file records
+  of the scene, as the README's descriptions are held to it
+  (`apps/pages/src/figures.test.ts`, 0081).
 - **No page compares.** No page names a competing product or compares
   Report with one, which review alone holds: a check would list the names.
+- **npm says it too.** Every published manifest names keywords for what
+  its package does, "source-available" among them and never "open
+  source", and the English start page as its homepage, held by
+  `scripts/manifests.test.mjs` and the pages' `site.test.ts`, and the
+  Angular builder's built manifest, which npm shows, to its source's by
+  `scripts/finalize-angular-dist.test.mjs` (0081).

@@ -2,6 +2,16 @@
   "name": "@formancy/report-spec",
   "version": "0.3.0",
   "description": "The Formancy Report definition format: the versioned ReportDefinition, its structural validation, its canonical hash, and the refusal of a document that is not one this package reads. No framework, no PDF engine, no Node.",
+  "keywords": [
+    "formancy",
+    "report",
+    "report-definition",
+    "swiss-qr-bill",
+    "epc-qr-code",
+    "e-invoice",
+    "en16931",
+    "source-available"
+  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,
@@ -45,6 +55,6 @@
     "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
     "directory": "packages/report-spec"
   },
-  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "homepage": "https://formancy.ai/report/en/",
   "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
 }

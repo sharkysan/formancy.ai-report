@@ -11,9 +11,12 @@
  * <a>'s -- is the site's own (0023).
  */
 import { headingAnchors } from '../../../../scripts/heading-anchors.mjs'
-import { FORMANCY, FORMANCY_DATA, FORMANCY_HEALTH, LEGAL_NOTICE, PRIVACY_NOTICE } from '../links.js'
+import { FORMANCY, FORMANCY_ANGULAR, FORMANCY_DATA, FORMANCY_HEALTH, FORMANCY_HEALTH_DEMO, LEGAL_NOTICE, PRIVACY_NOTICE } from '../links.js'
 import type { Built, Read } from './read.js'
 import { read } from './read.js'
+
+/** The few addresses outside the site and this repository that a page may link to, each one links.ts names. */
+const AWAY: ReadonlySet<string> = new Set([FORMANCY, FORMANCY_DATA, FORMANCY_HEALTH, FORMANCY_HEALTH_DEMO, FORMANCY_ANGULAR, LEGAL_NOTICE, PRIVACY_NOTICE])
 
 /**
  * The anchors GitHub gives a Markdown file's headings, as the repository
@@ -63,8 +66,7 @@ export function linkProblems({ site, inputs, exists, text }: Built): string[] {
     // that site the reader's address before a word is read (0023).
     if (element.localName !== 'a') return 'fetched from another site as the page loads, which tells that site who opened the page'
     if (url.protocol !== 'https:') return 'not https'
-    if (at === FORMANCY || at === `${inputs.repository}` || at === FORMANCY_DATA || at === FORMANCY_HEALTH || at === LEGAL_NOTICE || at === PRIVACY_NOTICE)
-      return null
+    if (at === `${inputs.repository}` || AWAY.has(at)) return null
     if (at.startsWith(repository)) return fileProblemOf(decodeURIComponent(at.slice(repository.length)), fragment)
     if (at.startsWith('https://www.npmjs.com/package/'))
       return inputs.packages.includes(decodeURIComponent(at.slice('https://www.npmjs.com/package/'.length)))

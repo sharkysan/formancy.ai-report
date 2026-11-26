@@ -2,6 +2,21 @@
   "name": "@formancy/report-builder-angular",
   "version": "0.3.0",
   "description": "Formancy Report Studio for Angular: the native report editor over report-builder-core and one report-core session, with signals.",
+  "keywords": [
+    "formancy",
+    "angular",
+    "angular-component",
+    "report-designer",
+    "report-builder",
+    "reportdesigner",
+    "signals",
+    "zoneless",
+    "pdf",
+    "word",
+    "invoice",
+    "qr-bill",
+    "source-available"
+  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,
@@ -15,7 +30,7 @@
     "linkDirectory": false,
     "access": "public"
   },
-  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "homepage": "https://formancy.ai/report/en/",
   "bugs": "https://github.com/sharkysan/formancy.ai-report/issues",
   "types": "./dist/types/formancy-report-builder-angular.d.ts",
   "exports": {

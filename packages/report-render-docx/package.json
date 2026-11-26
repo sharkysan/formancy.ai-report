@@ -2,6 +2,17 @@
   "name": "@formancy/report-render-docx",
   "version": "0.3.0",
   "description": "Formancy Report Word writer: writes a resolved report as a Word file a person can go on writing in, the same bytes for the same document, and refuses what belongs to the report's PDF rather than leave it out. No framework, no Node, no DOM, no network.",
+  "keywords": [
+    "formancy",
+    "docx",
+    "word",
+    "word-document",
+    "ooxml",
+    "report",
+    "invoice",
+    "swiss-qr-bill",
+    "source-available"
+  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,
@@ -49,6 +60,6 @@
     "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
     "directory": "packages/report-render-docx"
   },
-  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "homepage": "https://formancy.ai/report/en/",
   "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
 }

@@ -17,7 +17,11 @@
   whose start page leads with a card for each topic page and says what
   Formancy Report does not do yet under a status of its own, and under
   which every card on the site names the tests it rests on and a word a
-  page takes from the Studio is held to the Studio's recorded pictures
+  page takes from the Studio is held to the Studio's recorded pictures;
+  and extended by [0081](0081-the-start-page-names-pdf-and-word-pages-for-invoices-word-files-and-each-report-designer-join-it-and-every-package-names-keywords.md),
+  under which the site gains the invoices, Word files and report
+  designer pages, and the healthcare page says Formancy Health 0.1.0 is
+  released, which this record's page said was in development
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

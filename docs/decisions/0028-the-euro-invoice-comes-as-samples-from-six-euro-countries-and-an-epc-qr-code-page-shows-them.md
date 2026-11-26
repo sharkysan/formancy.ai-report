@@ -16,7 +16,12 @@
   `evidence`, on every page of the site, held by `checks/evidence.ts`
   rather than by this page's test, and the Studio's words this record
   says nothing reads, "Euro invoice", "Starter" and "EPC payment code",
-  are held to the Studio's recorded pictures
+  are held to the Studio's recorded pictures; and by
+  [0081](0081-the-start-page-names-pdf-and-word-pages-for-invoices-word-files-and-each-report-designer-join-it-and-every-package-names-keywords.md),
+  under which four more pages carry a status the site reads before it
+  renders any, named in the one error after this record's page, and the
+  invoices page shows a euro sample in its own language, German's
+  Austria's
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

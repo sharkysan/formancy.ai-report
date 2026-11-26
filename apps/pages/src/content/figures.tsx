@@ -6,7 +6,11 @@
  * scripts/readme-pictures.ts. A description quotes the picture's own
  * words, as the document prints them, in whatever language the page is;
  * figures.test.ts holds every quote to the lines docs/images/pictures.json,
- * or samples.json for a sample, records for that page.
+ * or samples.json for a sample, records for that page. A picture of the
+ * Studio, under readme/, is no document's page: a quote of its own is held
+ * to the text docs/images/readme/captured.json records of the scene, as
+ * the README's are, and the Studio's words it shows are those its page
+ * names as studio words (checks/studio-words.ts, 0081).
  */
 import type { ReactElement } from 'react'
 import { LANGUAGES } from '../languages.js'
@@ -41,8 +45,8 @@ export const STUDIO: Figure = {
   },
 }
 
-/** What the starters print, as the README shows them. */
-export const STARTERS: readonly Figure[] = [
+/** What the starters print, as the README shows them, the quotation first: the document the Studio opens on, whose page the start page and the builders' pages name for a shared link. */
+export const STARTERS: readonly [Figure, ...Figure[]] = [
   {
     picture: 'starter-quotation.png',
     quotes: ['Zwischensumme', 'MWST 8.1 %', 'Rundung', "Total CHF 3'143.00"],
@@ -270,16 +274,134 @@ export const EUROS: Readonly<Record<EuroCountry, Figure>> = {
 }
 
 /**
+ * The e-invoice starter's page, as the invoices page shows it beside the
+ * QR-bill's and the EPC QR code's (0081): a Factur-X, whose final render
+ * embeds the XML that holds the totals it prints.
+ */
+export const E_INVOICE: Figure = {
+  picture: 'starter-e-invoice.png',
+  quotes: ['Rechnungsbetrag 871,63 €', 'Bankverbindung', 'Rechnung'],
+  alt: {
+    de: 'Die Startvorlage E-invoice (Factur-X), eine Rechnung unter dem Logo der Firma, deren endgültiger Druck ein PDF/A-3b ist, das sein XML einbettet: Positionen in Euro bis zum Rechnungsbetrag 871,63 €, darunter die Bankverbindung neben dem EPC-QR-Code, mit dem sie bezahlt wird',
+    fr: "Le modèle de départ E-invoice (Factur-X), une Rechnung allemande, sous le logo de l'entreprise, dont le rendu final est un PDF/A-3b qui embarque son XML : des lignes en euros jusqu'au Rechnungsbetrag 871,63 €, puis la Bankverbindung à côté du QR code SEPA qui permet de la payer",
+    it: "Il modello iniziale E-invoice (Factur-X), una Rechnung tedesca, sotto il logo dell'azienda, la cui stampa definitiva è un PDF/A-3b che incorpora il suo XML: righe in euro fino al Rechnungsbetrag 871,63 €, poi la Bankverbindung accanto al QR code SEPA con cui si paga",
+    en: "The E-invoice (Factur-X) starter, a German Rechnung under the firm's mark, whose final render is a PDF/A-3b that embeds its XML: line items in euro down to Rechnungsbetrag 871,63 €, then the Bankverbindung beside the EPC QR code to pay it with",
+  },
+  caption: {
+    de: 'Deutschland: eine E-Rechnung als Factur-X / ZUGFeRD. Im Studio ist es die Startvorlage E-invoice (Factur-X).',
+    fr: "Allemagne : une facture Factur-X / ZUGFeRD. Dans le Studio, c'est le modèle de départ E-invoice (Factur-X).",
+    it: 'Germania: una fattura Factur-X / ZUGFeRD. Nello Studio è il modello iniziale E-invoice (Factur-X).',
+    en: 'Germany: a Factur-X / ZUGFeRD e-invoice. In the Studio, it is the E-invoice (Factur-X) starter.',
+  },
+}
+
+/** The payment reminder starter's page, as the invoices page shows it (0081): what is overdue, what was paid, and a QR-bill for the rest. */
+export const PAYMENT_REMINDER: Figure = {
+  picture: 'starter-payment-reminder.png',
+  quotes: ["Zu bezahlen CHF 3'207.30", 'CHF 3 207.30', 'Empfangsschein', 'Zahlteil', 'Mahnung'],
+  alt: {
+    de: "Die Startvorlage Payment reminder, eine Mahnung unter dem Logo der Firma: die überfälligen Rechnungen und die erhaltenen Zahlungen, jede Tabelle mit ihrem eigenen Total, dann Zu bezahlen CHF 3'207.30, und am Fuss der Seite Empfangsschein und Zahlteil mit dem Swiss QR Code, über CHF 3 207.30",
+    fr: "Le modèle de départ Payment reminder, une Mahnung, sous le logo de l'entreprise : les factures échues et les paiements reçus, chaque tableau avec son propre total, puis Zu bezahlen CHF 3'207.30 et, au pied de la page, Empfangsschein et Zahlteil avec le Swiss QR Code, d'un montant de CHF 3 207.30",
+    it: "Il modello iniziale Payment reminder, una Mahnung, sotto il logo dell'azienda: le fatture scadute e i pagamenti ricevuti, ogni tabella con il proprio totale, poi Zu bezahlen CHF 3'207.30 e, in fondo alla pagina, Empfangsschein e Zahlteil con lo Swiss QR Code, per un importo di CHF 3 207.30",
+    en: "The Payment reminder starter, a Mahnung under the firm's mark: the overdue invoices and the payments received against them, each table with its own total, then Zu bezahlen CHF 3'207.30, and across the foot of the page the Empfangsschein and the Zahlteil with its Swiss QR Code, for CHF 3 207.30",
+  },
+  caption: {
+    de: 'Eine Mahnung: was überfällig ist, was bezahlt wurde, und eine QR-Rechnung für den Rest. Im Studio ist es die Startvorlage Payment reminder.',
+    fr: "Une relance : ce qui est échu, ce qui a été payé, et une facture QR pour le reste. Dans le Studio, c'est le modèle de départ Payment reminder.",
+    it: 'Un sollecito: ciò che è scaduto, ciò che è stato pagato, e una fattura QR per il resto. Nello Studio è il modello iniziale Payment reminder.',
+    en: 'A payment reminder: what is overdue, what has been paid, and a QR-bill for the rest. In the Studio, it is the Payment reminder starter.',
+  },
+}
+
+/**
+ * The Studio's Preview of the invoice starter, as the Word files page shows
+ * it (0081): Download Word beside Download PDF. A picture of the Studio,
+ * whose words are the Studio's, held by checks/studio-words.ts: it quotes
+ * nothing of the document its Preview shows.
+ */
+export const STUDIO_WORD: Figure = {
+  picture: 'readme/studio-word.webp',
+  quotes: [],
+  alt: {
+    de: 'Die Vorschau des Studios mit der Startvorlage Invoice: Download PDF und Download Word über der Rechnung mit ihrem Zahlteil auf weissem Papier',
+    fr: "L'aperçu du Studio avec le modèle de départ Invoice : Download PDF et Download Word au-dessus de la facture et de sa section paiement, sur papier blanc",
+    it: "L'anteprima dello Studio con il modello iniziale Invoice: Download PDF e Download Word sopra la fattura e la sua sezione pagamento, su carta bianca",
+    en: "The Studio's Preview of the Invoice starter: Download PDF and Download Word above the invoice and its payment part, on white paper",
+  },
+  caption: {
+    de: 'In der Vorschau des Studios gibt Download Word die Word-Datei desselben Dokuments, dessen PDF Download PDF gibt.',
+    fr: "Dans l'aperçu du Studio, Download Word donne le fichier Word du document même dont Download PDF donne le PDF.",
+    it: "Nell'anteprima dello Studio, Download Word dà il file Word dello stesso documento di cui Download PDF dà il PDF.",
+    en: "In the Studio's Preview, Download Word gives the Word file of the very document whose PDF Download PDF gives.",
+  },
+}
+
+/**
+ * The quotation in the Angular builder, as the Angular report designer's
+ * page shows it (0081): edited in the React builder, then shown in the
+ * Angular one over the same session. A picture of the Studio, as
+ * `STUDIO_WORD` is, whose one quote, the line as it was edited, is one
+ * captured.json records the scene's builder showing, as the README's
+ * description of the same picture quotes it.
+ */
+export const STUDIO_ANGULAR: Figure = {
+  picture: 'readme/studio-angular.webp',
+  quotes: ['Zahlbar innert 10 Tagen netto.'],
+  alt: {
+    de: 'Der Angular-Builder mit der ausgewählten Zeile «Zahlbar innert 10 Tagen netto.» der Offerte, daneben die Vorschau, die sie druckt',
+    fr: "Le builder Angular, la ligne « Zahlbar innert 10 Tagen netto. » de l'offre sélectionnée, à côté de l'aperçu qui l'imprime",
+    it: "Il builder Angular con la riga «Zahlbar innert 10 Tagen netto.» dell'offerta selezionata, accanto all'anteprima che la stampa",
+    en: 'The Angular builder with the quotation\'s line "Zahlbar innert 10 Tagen netto." selected, beside the Preview printing it',
+  },
+  caption: {
+    de: 'Die Offerte, im React-Builder bearbeitet und dann im Angular-Builder gezeigt: dieselbe Sitzung, die Änderung noch ausgewählt.',
+    fr: "L'offre modifiée dans le builder React, puis montrée dans le builder Angular : la même session, la modification toujours sélectionnée.",
+    it: "L'offerta modificata nel builder React, poi mostrata nel builder Angular: la stessa sessione, la modifica ancora selezionata.",
+    en: 'The quotation edited in the React builder, then shown in the Angular one: the same session, the edit still selected.',
+  },
+}
+
+/**
+ * The XRechnung starter in the React builder, as the React report
+ * designer's page shows it first (0081): a scene the React builder alone
+ * draws, its e-invoice selected and the Preview of its final render. A
+ * picture of the Studio, as `STUDIO_WORD` is: it quotes nothing of the
+ * document its Preview shows.
+ */
+export const STUDIO_XRECHNUNG: Figure = {
+  picture: 'readme/studio-xrechnung.webp',
+  quotes: [],
+  alt: {
+    de: 'Der React-Builder mit der Startvorlage E-invoice (XRechnung): ihre E-Rechnung ausgewählt und deren Felder in den Eigenschaften, daneben die Vorschau des endgültigen Drucks mit Download PDF, Download XML und Download Word',
+    fr: "Le builder React avec le modèle de départ E-invoice (XRechnung) : sa facture XRechnung sélectionnée et ses champs dans les propriétés, à côté de l'aperçu du rendu final avec Download PDF, Download XML et Download Word",
+    it: "Il builder React con il modello iniziale E-invoice (XRechnung): la sua fattura XRechnung selezionata e i suoi campi nelle proprietà, accanto all'anteprima della stampa definitiva con Download PDF, Download XML e Download Word",
+    en: 'The React builder with the E-invoice (XRechnung) starter: its e-invoice selected and its fields in the properties, beside the Preview of its final render with Download PDF, Download XML and Download Word',
+  },
+  caption: {
+    de: 'Die XRechnung im React-Builder: ihre E-Rechnung Feld für Feld bearbeitet, und der endgültige Druck gibt ihr XML neben dem PDF und der Word-Datei.',
+    fr: 'La XRechnung dans le builder React : sa facture modifiée champ par champ, et le rendu final qui donne son XML à côté du PDF et du fichier Word.',
+    it: 'La XRechnung nel builder React: la sua fattura modificata campo per campo, e la stampa definitiva che dà il suo XML accanto al PDF e al file Word.',
+    en: 'The XRechnung in the React builder: its e-invoice edited field by field, and its final render giving its XML beside the PDF and the Word file.',
+  },
+}
+
+/**
  * Every figure the site shows: the Studio, the starters, the invoice with
- * its QR-bill in each language, and the euro invoice from each country.
- * figures.test.ts holds each one's quotes to its picture, and the wording
- * check reads their quotes as the documents' own words.
+ * its QR-bill in each language, the euro invoice from each country, and
+ * the topic pages' own (0081). figures.test.ts holds each one's quotes to
+ * its picture, and the wording check reads their quotes as the documents'
+ * own words.
  */
 export const FIGURES: readonly Figure[] = [
   STUDIO,
   ...STARTERS,
   ...LANGUAGES.map((language) => INVOICES[language]),
   ...EURO_COUNTRIES.map((country) => EUROS[country]),
+  E_INVOICE,
+  PAYMENT_REMINDER,
+  STUDIO_WORD,
+  STUDIO_ANGULAR,
+  STUDIO_XRECHNUNG,
 ]
 
 /** Every picture the site shows, each by its path under docs/images: what the build copies. */
@@ -287,11 +409,23 @@ export const PICTURES: readonly string[] = FIGURES.map((figure) => figure.pictur
 
 /**
  * A figure on `page`: the picture at its own size, so the page does not
- * move as it loads, described and captioned in the page's language. Only
- * the first picture of a page loads at once; the rest load as they near
- * the window.
+ * move as it loads, described in the page's language as the figure
+ * describes it, which the wording check holds, and captioned by the figure
+ * or by `caption`, a page's own words for what the picture shows there.
+ * Only the first picture of a page loads at once; the rest load as they
+ * near the window.
  */
-export function FigureView({ figure, page, first = false }: { readonly figure: Figure; readonly page: PageContext; readonly first?: boolean }): ReactElement {
+export function FigureView({
+  figure,
+  page,
+  first = false,
+  caption = figure.caption[page.language],
+}: {
+  readonly figure: Figure
+  readonly page: PageContext
+  readonly first?: boolean
+  readonly caption?: string
+}): ReactElement {
   const picture = page.inputs.pictures.find((each) => each.name === figure.picture)
   if (picture === undefined) throw new Error(`the site shows ${figure.picture}, and the inputs hold no such picture`)
   return (
@@ -304,7 +438,7 @@ export function FigureView({ figure, page, first = false }: { readonly figure: F
         loading={first ? 'eager' : 'lazy'}
         decoding="async"
       />
-      <figcaption>{figure.caption[page.language]}</figcaption>
+      <figcaption>{caption}</figcaption>
     </figure>
   )
 }

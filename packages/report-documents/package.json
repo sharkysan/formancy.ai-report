@@ -2,6 +2,13 @@
   "name": "@formancy/report-documents",
   "version": "0.3.0",
   "description": "Formancy Report's one PDF reader: a PDF read whole, within bounds, or refused, for the runtime, the renderer, the server and the builders alike. No framework, no Node, no DOM, no network.",
+  "keywords": [
+    "formancy",
+    "pdf",
+    "pdf-reader",
+    "pdf-parser",
+    "source-available"
+  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,
@@ -45,6 +52,6 @@
     "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
     "directory": "packages/report-documents"
   },
-  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "homepage": "https://formancy.ai/report/en/",
   "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
 }

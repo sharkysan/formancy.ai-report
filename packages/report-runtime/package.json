@@ -2,6 +2,21 @@
   "name": "@formancy/report-runtime",
   "version": "0.3.0",
   "description": "Formancy Report runtime: validates the data a report is given against its contracts, evaluates its expressions, groups, sorts and totals with exact decimals, formats for a locale, and lowers the result to a renderer-neutral document. No framework, no PDF engine, no Node.",
+  "keywords": [
+    "formancy",
+    "report",
+    "report-engine",
+    "exact-decimal",
+    "invoice",
+    "e-invoice",
+    "factur-x",
+    "zugferd",
+    "xrechnung",
+    "en16931",
+    "swiss-qr-bill",
+    "epc-qr-code",
+    "source-available"
+  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,
@@ -46,6 +61,6 @@
     "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
     "directory": "packages/report-runtime"
   },
-  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "homepage": "https://formancy.ai/report/en/",
   "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
 }

@@ -8,7 +8,11 @@
   renderer published, are read again by [0068](0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md),
   under which the sentence is "No Excel, CSV or HTML" and its predicate,
   now `formats`, holds it to the PDF renderer and the Word writer, the
-  two published
+  two published; extended by
+  [0081](0081-the-start-page-names-pdf-and-word-pages-for-invoices-word-files-and-each-report-designer-join-it-and-every-package-names-keywords.md),
+  under which the start page's head names PDF and Word, and the
+  invoices, Word files and report designer pages each carry a status
+  and cards that name their tests
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
 - **Verified by:** the pages' suite, which CI's `test` job runs,

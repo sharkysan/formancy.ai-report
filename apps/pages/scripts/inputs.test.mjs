@@ -6,7 +6,7 @@ import { dirname, join, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, test } from 'vitest'
 import { familiesOf } from '../../../scripts/web-fonts.mjs'
-import { bundleStylesheet, imageSize, licenceTermsOf, readInputs, releaseOf } from './inputs.mjs'
+import { bundleStylesheet, imageSize, licenceTermsOf, publishedOf, readInputs, releaseOf } from './inputs.mjs'
 
 /**
  * What the pages are built from, read from the repository rather than typed
@@ -195,7 +195,12 @@ describe('the inputs as the repository holds them', () => {
   test('are read whole, from the files the build is told to watch', () => {
     const inputs = readInputs(repo, { pictures: ['starter-quotation.png'] })
     expect(inputs.site).toBe('https://formancy.ai/report/')
+    // The repository from each manifest's repository.url, not its
+    // homepage, which since 0081 is the pages' English start page: read
+    // from the homepage, every link the pages make to the source would
+    // lead to the start page instead (0021).
     expect(inputs.repository).toBe('https://github.com/sharkysan/formancy.ai-report')
+    expect(inputs.homepage).toBe('https://formancy.ai/report/en/')
     expect(inputs.packages).toContain('@formancy/report-builder-react')
     expect(inputs.packages).not.toContain('@formancy/report-corpus')
     expect(inputs.licence).toMatchObject({ version: '1', address: 'info@formancy.ai' })
@@ -258,10 +263,69 @@ describe('the inputs as the repository holds them', () => {
     expect(inputs.read).toEqual(expect.arrayContaining(['docs/images/pictures.json', 'docs/images/samples.json']))
   })
 
+  // A picture of the Studio prints no document, and neither manifest of
+  // the pages' pictures records it: read from those alone, it has no lines,
+  // and a description that quotes a document's words the scene shows --
+  // the Angular builder's edited line -- is held by nothing. Its lines are
+  // the text captured.json records of its scene, which the README's
+  // descriptions of the same pictures are held to (0081).
+  test('give a picture of the Studio the lines docs/images/readme/captured.json records of its scene', () => {
+    const inputs = readInputs(repo, { pictures: ['readme/studio-angular.webp'] })
+    expect(inputs.pictures).toEqual([
+      expect.objectContaining({
+        name: 'readme/studio-angular.webp',
+        from: 'docs/images/readme/studio-angular.webp',
+        lines: expect.arrayContaining([expect.stringContaining('"Zahlbar innert 10 Tagen netto."')]),
+      }),
+    ])
+    expect(inputs.read).toEqual(expect.arrayContaining(['docs/images/readme/captured.json']))
+  })
+
   // A picture the site names and the repository does not hold stops the
   // build, rather than a page with a broken image.
   test('refuses a picture the repository does not hold', () => {
     expect(() => readInputs(repo, { pictures: ['starter-missing.png'] })).toThrow(/starter-missing\.png/)
+  })
+})
+
+describe('the repository and the homepage the published manifests name (0081)', () => {
+  const manifest = (name, more = {}) => ({
+    name,
+    repository: { type: 'git', url: 'git+https://github.com/sharkysan/formancy.ai-report.git' },
+    homepage: 'https://formancy.ai/report/en/',
+    ...more,
+  })
+
+  // The pages link the source as the manifests name it, and npm's homepage
+  // is held to the start page: a private package names neither and is not
+  // read, so the corpus's manifest cannot add a second of either.
+  test('are the one repository and the one homepage every published package names', () => {
+    expect(publishedOf([manifest('@formancy/report-spec'), manifest('@formancy/report-core'), { name: '@formancy/report-corpus', private: true }])).toEqual({
+      packages: ['@formancy/report-spec', '@formancy/report-core'],
+      repository: 'https://github.com/sharkysan/formancy.ai-report',
+      homepage: 'https://formancy.ai/report/en/',
+    })
+  })
+
+  // Two repositories leave the pages' links to the source without one
+  // address; a repository.url that is no GitHub repository's git address
+  // reads as none, and the links would lead to whatever it is; two
+  // homepages, or none, leave the start page held to only some of them.
+  // Each stops the build, saying what it found, rather than picking one.
+  test('refuse two repositories, a repository that is not on GitHub, and two homepages or none', () => {
+    const other = { type: 'git', url: 'git+https://github.com/sharkysan/formancy.ai-data.git' }
+    expect(() => publishedOf([manifest('a'), manifest('b', { repository: other })])).toThrow(
+      'the published packages name the repositories ["https://github.com/sharkysan/formancy.ai-report","https://github.com/sharkysan/formancy.ai-data"], and the pages link one',
+    )
+    expect(() => publishedOf([manifest('a'), manifest('b', { repository: { type: 'git', url: 'https://gitlab.com/sharkysan/formancy.ai-report' } })])).toThrow(
+      'b names no repository on GitHub by its repository.url, where the pages link the source',
+    )
+    expect(() => publishedOf([manifest('a'), manifest('b', { homepage: 'https://github.com/sharkysan/formancy.ai-report' })])).toThrow(
+      'the published packages name the homepages ["https://formancy.ai/report/en/","https://github.com/sharkysan/formancy.ai-report"], and the pages hold one to their start page',
+    )
+    expect(() => publishedOf([manifest('a', { homepage: undefined })])).toThrow(
+      'the published packages name the homepages [null], and the pages hold one to their start page',
+    )
   })
 })
 

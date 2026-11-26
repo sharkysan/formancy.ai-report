@@ -2,6 +2,19 @@
   "name": "@formancy/report-builder-react",
   "version": "0.3.0",
   "description": "Formancy Report Studio for React: the native report editor over report-builder-core and one report-core session.",
+  "keywords": [
+    "formancy",
+    "react",
+    "react-component",
+    "report-designer",
+    "report-builder",
+    "reportdesigner",
+    "pdf",
+    "word",
+    "invoice",
+    "qr-bill",
+    "source-available"
+  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "sideEffects": false,
@@ -13,7 +26,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://github.com/sharkysan/formancy.ai-report",
+  "homepage": "https://formancy.ai/report/en/",
   "bugs": "https://github.com/sharkysan/formancy.ai-report/issues",
   "exports": {
     ".": {

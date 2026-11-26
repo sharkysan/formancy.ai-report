@@ -133,14 +133,14 @@ const EVIDENCE = {
 export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
   de: {
     meta: {
-      title: 'Formancy Report: PDF-Berichtsdesigner für Angular und React',
+      title: 'Formancy Report: Reportdesigner für PDF und Word',
       description:
-        'Paginierte PDF-Berichte in nativen Editoren für Angular und React gestalten: exakte Summen, eine Vorschau, die das echte PDF ist. Selbst gehostet.',
+        'Rechnungen, Offerten und Berichte in nativen Editoren für Angular und React gestalten, als PDF drucken oder als Word-Datei schreiben. Selbst gehostet.',
       name: 'Formancy Report',
     },
     eyebrow: (version) => `Version ${version} · Developer Preview`,
-    h1: 'Paginierte PDF-Berichte, gestaltet in Ihrer Angular- oder React-Anwendung',
-    lead: 'Formancy Report ist ein Berichtsdesigner, den Sie selbst betreiben. Wer einen Bericht gestaltet, legt ihn in einem visuellen Editor an, den es nativ für Angular und nativ für React gibt; Ihre Anwendung übergibt die Daten, und der Renderer erzeugt das PDF, auf Ihrem Server oder im Browser. Die Summen sind exakt, und eine QR-Rechnung wird nach den Regeln von SIX geprüft, ein EPC-QR-Code nach denen des EPC.',
+    h1: 'Ein Reportdesigner für PDF und Word, in Ihrer Angular- oder React-Anwendung',
+    lead: 'Formancy Report ist ein Reportdesigner, den Sie selbst betreiben, für die Dokumente, die ein Unternehmen verschickt und ablegt: Rechnungen, Offerten, Auftragsbestätigungen, Mahnungen und Verkaufsberichte. Wer einen Bericht gestaltet, legt ihn in einem visuellen Editor an, den es nativ für Angular und nativ für React gibt; Ihre Anwendung übergibt die Daten, und der Renderer erzeugt das PDF, auf Ihrem Server oder im Browser, oder schreibt denselben Bericht als Word-Datei. Die Summen sind exakt, und eine QR-Rechnung wird nach den Regeln von SIX geprüft, ein EPC-QR-Code nach denen des EPC.',
     standing: (version, unreleased) => (
       <>
         Das neueste Release, {version}, enthält den React- und den Angular-Builder, den PDF-Renderer und die Ausgabe als Word-Datei, exakte Summen, Diagramme,
@@ -237,14 +237,14 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
   },
   fr: {
     meta: {
-      title: 'Formancy Report : rapports PDF pour Angular et React',
+      title: 'Formancy Report : concepteur de rapports PDF et Word',
       description:
-        'Concevez des rapports PDF paginés dans des éditeurs natifs pour Angular et React : totaux exacts, un aperçu qui est le vrai PDF, hébergé chez vous.',
+        'Concevez factures, offres et rapports dans des éditeurs natifs pour Angular et React, imprimés en PDF ou écrits en fichier Word, sur vos serveurs.',
       name: 'Formancy Report',
     },
     eyebrow: (version) => `Version ${version} · préversion pour développeurs`,
-    h1: 'Des rapports PDF paginés, conçus dans votre application Angular ou React',
-    lead: "Formancy Report est un concepteur de rapports que vous hébergez vous-même. La personne qui conçoit le rapport le met en page dans un éditeur visuel qui existe en version native pour Angular et pour React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur. Les totaux sont exacts, et une facture QR est vérifiée selon les règles de SIX, un QR code SEPA selon celles de l'EPC.",
+    h1: 'Un concepteur de rapports PDF et Word, dans votre application Angular ou React',
+    lead: "Formancy Report est un concepteur de rapports que vous hébergez vous-même, pour les documents qu'une entreprise envoie et archive : factures, offres, confirmations de commande, rappels de paiement et rapports de ventes. La personne qui conçoit le rapport le met en page dans un éditeur visuel qui existe en version native pour Angular et pour React ; votre application fournit les données, et le moteur de rendu génère le PDF, sur votre serveur ou dans le navigateur, ou écrit le même rapport en fichier Word. Les totaux sont exacts, et une facture QR est vérifiée selon les règles de SIX, un QR code SEPA selon celles de l'EPC.",
     standing: (version, unreleased) => (
       <>
         La version la plus récente, {version}, contient le builder React et le builder Angular, le moteur de rendu PDF et l'export en fichier Word, les totaux
@@ -341,14 +341,14 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
   },
   it: {
     meta: {
-      title: 'Formancy Report: progettare report PDF per Angular e React',
-      description: "Progettate report PDF impaginati in editor nativi per Angular e React: totali esatti, un'anteprima che è il vero PDF, sui vostri server.",
+      title: 'Formancy Report: report designer per PDF e Word',
+      description: 'Progettate fatture, offerte e report in editor nativi per Angular e React, stampati in PDF o scritti come file Word, sui vostri server.',
       name: 'Formancy Report',
     },
     eyebrow: (version) => `Versione ${version} · anteprima per sviluppatori`,
-    h1: 'Report PDF impaginati, progettati nella vostra applicazione Angular o React',
+    h1: 'Un report designer per PDF e Word, nella vostra applicazione Angular o React',
     topics: { heading: 'Gli argomenti in dettaglio' },
-    lead: "Formancy Report è un designer di report che ospitate voi stessi. Chi progetta un report lo impagina in un editor visuale che esiste in versione nativa per Angular e per React; la vostra applicazione fornisce i dati, e il renderer genera il PDF, sul vostro server o nel browser. I totali sono esatti, e una fattura QR viene verificata secondo le regole di SIX, un QR code SEPA secondo quelle dell'EPC.",
+    lead: "Formancy Report è un report designer che ospitate voi stessi, per i documenti che un'azienda invia e archivia: fatture, offerte, conferme d'ordine, solleciti di pagamento e report di vendita. Chi progetta un report lo impagina in un editor visuale che esiste in versione nativa per Angular e per React; la vostra applicazione fornisce i dati, e il renderer genera il PDF, sul vostro server o nel browser, oppure scrive lo stesso report come file Word. I totali sono esatti, e una fattura QR viene verificata secondo le regole di SIX, un QR code SEPA secondo quelle dell'EPC.",
     standing: (version, unreleased) => (
       <>
         La versione più recente, {version}, contiene il builder React e il builder Angular, il renderer PDF e l'esportazione in file Word, i totali esatti, i
@@ -443,15 +443,15 @@ export const PRODUCT_COPY: Readonly<Record<Language, ProductCopy>> = {
   },
   en: {
     meta: {
-      title: 'Formancy Report: PDF report designer for Angular and React',
+      title: 'Formancy Report: PDF and Word report designer, self-hosted',
       description:
-        'Design paginated PDF reports in native Angular and React editors. Exact totals, a preview that is the real PDF, self-hosted and source-available.',
+        'Design invoices, quotations and reports in native Angular and React editors, print them as PDF or write them as Word files. Exact totals, source-available.',
       name: 'Formancy Report',
     },
     eyebrow: (version) => `Version ${version} · developer preview`,
     topics: { heading: 'The topics in detail' },
-    h1: 'Paginated PDF reports, designed inside your Angular or React application',
-    lead: "Formancy Report is a report designer you host yourself. An author lays out a report in a visual editor built natively for Angular and again for React; your application hands over the data, and the renderer prints the PDF, on your server or in the browser. Totals are exact, and a QR-bill is checked against SIX's rules and an EPC QR code against the EPC's.",
+    h1: 'A report designer for PDF and Word, inside your Angular or React application',
+    lead: "Formancy Report is a report designer you host yourself, for the documents a business sends and keeps: invoices, quotations, order confirmations, payment reminders and sales reports. An author lays out a report in a visual editor built natively for Angular and again for React; your application hands over the data, and the renderer prints the PDF, on your server or in the browser, or writes the same report as a Word file. Totals are exact, and a QR-bill is checked against SIX's rules and an EPC QR code against the EPC's.",
     standing: (version, unreleased) => (
       <>
         The newest release, {version}, holds the React builder and the Angular builder, the PDF renderer and a writer of Word files, exact totals, charts, the

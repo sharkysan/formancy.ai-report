@@ -6,8 +6,10 @@
 export interface SiteInputs {
   /** The address the pages are served under, with its slash: the demo's, read from the Worker's route. */
   readonly site: string
-  /** The repository on GitHub, the homepage every published package names. */
+  /** The repository on GitHub, the one every published package names by its `repository.url`. */
   readonly repository: string
+  /** The homepage every published package names: since 0081, the English start page, which site.test.ts holds to the page the site builds. */
+  readonly homepage: string
   /** The names of the packages published from packages/. */
   readonly packages: readonly string[]
   /** The newest release CHANGELOG.md records. */
@@ -22,7 +24,7 @@ export interface SiteInputs {
   readonly ground: string
   /** src/pages.css with formancy's room and the Studio's stylesheets it imports inlined, the faces' among them, each url() naming its copy. */
   readonly stylesheet: string
-  /** The pictures the site names, each with its size and, for a starter's or an invoice sample's page, the lines it prints. */
+  /** The pictures the site names, each with its size and the lines it shows: a starter's or an invoice sample's page's, or the Studio's text in a scene. */
   readonly pictures: readonly Picture[]
   /** Every file read, as a path from the repository's root: of an installed package, the stylesheets inlined. */
   readonly read: readonly string[]
@@ -42,6 +44,11 @@ export interface Picture {
   readonly from: string
   readonly width: number
   readonly height: number
-  /** The lines docs/images/pictures.json, or samples.json for an invoice sample, says its page prints; none for a picture of the Studio. */
+  /**
+   * The lines docs/images/pictures.json, or samples.json for an invoice
+   * sample, says its page prints; for a picture of the Studio, the lines of
+   * the text docs/images/readme/captured.json records its scene's parts
+   * holding (0081).
+   */
   readonly lines: readonly string[]
 }
