@@ -100,7 +100,10 @@ pnpm demo
 ```
 
 `pnpm demo` builds the packages and the Studio, then serves it at
-http://localhost:4394. Pick a starter or a blank report, edit it in either
+http://localhost:4394. It opens on the invoice, whose Swiss QR-bill is at
+the foot of its page
+([0082](./docs/decisions/0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md)).
+Pick another starter or a blank report, edit it in either
 builder, and download what the Preview prints. The starters' data is
 synthetic and built in, and the page asks no other site for anything, which
 the browser gate holds
@@ -162,9 +165,9 @@ has no room
 
 *The Book value column given the condition `row.value > 1000`: the runtime refuses to print rather than guess, “Preview: refused by the runtime, 1 problem.”, saying why, “row has a value only in a table's cells and what an aggregate reads from each row”, and “Select Book value” takes the keyboard to the column ([0010](./docs/decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)).*
 
-<img src="./docs/images/readme/studio-narrow.webp" width="390" alt="The Studio at a phone's width: the bar's controls a line each, and the builder showing the Preview as its one pane, “Preview: printed.”, with the service inspection's first page.">
+<img src="./docs/images/readme/studio-narrow.webp" width="390" alt="The Studio at a phone's width: the bar's controls a line each, the picker on Invoice, and the builder showing the Preview as its one pane, “Preview: printed.”, with the invoice's page down to its total, its QR-bill below, out of the picture.">
 
-*At 390 pixels wide, the Studio as it opens: one pane at a time, the Preview in the design view's place, “Page 1 of 2”. Nothing scrolls sideways down to 320 pixels, which the browser gate measures ([0029](./docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).*
+*At 390 pixels wide, the Studio as it opens, on the invoice: one pane at a time, the Preview in the design view's place, “Page 1 of 1”. Nothing scrolls sideways down to 320 pixels, which the browser gate measures ([0029](./docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md), [0082](./docs/decisions/0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md)).*
 
 </details>
 

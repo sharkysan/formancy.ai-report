@@ -3,23 +3,27 @@ import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
 import { resolveReport } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { encodeStarters, decodeStarters } from './codec.js'
-import { BLANK, starterLabel, studioStarters } from './starters.js'
+import { BLANK, OPENS_ON, starterLabel, studioStarters } from './starters.js'
 
 const decoded = decodeStarters(encodeStarters(STARTERS, STARTER_IMAGES))
 
 describe("the Studio's starters", () => {
-  // The picker offers the corpus's starters in the corpus's order, then a
-  // blank report. A list written out here would keep offering a starter the
+  // The picker offers the invoice first, the starter the Studio opens on
+  // (0082), then the corpus's others in the corpus's order, then a blank
+  // report. A list written out here would keep offering a starter the
   // corpus dropped, or never offer one it added; the names are derived for
-  // the same reason, from the id, or from the e-invoice's kind (below).
-  test('are the corpus’s, in its order, and a blank report last', () => {
+  // the same reason, from the id, or from the e-invoice's kind (below). The
+  // corpus's own order, plan 7's, is the corpus's test's to hold: a Studio
+  // that reordered the corpus instead would reorder every sample, table and
+  // page that reads it.
+  test('are the invoice first, then the corpus’s others in its order, and a blank report last', () => {
     const listed = studioStarters(decoded.starters)
-    expect(listed.map((starter) => starter.id)).toEqual([...STARTERS.map((starter) => starter.id), 'blank'])
+    expect(listed.map((starter) => starter.id)).toEqual(['invoice', ...STARTERS.map((starter) => starter.id).filter((id) => id !== 'invoice'), 'blank'])
     expect(listed.map(starterLabel)).toEqual([
+      'Invoice',
       'Service inspection',
       'Quotation',
       'Grouped equipment',
-      'Invoice',
       'Euro invoice',
       'E-invoice (Factur-X)',
       'E-invoice (XRechnung)',
@@ -30,6 +34,18 @@ describe("the Studio's starters", () => {
       'Sales report',
       'Blank',
     ])
+  })
+
+  // The Studio opens on the starter its id names, and lists it first: a
+  // corpus that dropped it, or renamed its id, would otherwise open the
+  // Studio on whichever starter came first -- the service inspection, the
+  // stress test 0082 moved the first look away from -- with nothing
+  // failing. Refused by its id, the page draws nothing, and every suite
+  // that lists the starters fails.
+  test('refuse a corpus that holds no starter of the id the Studio opens on', () => {
+    const without = decoded.starters.filter((starter) => starter.id !== OPENS_ON)
+    expect(without).toHaveLength(decoded.starters.length - 1)
+    expect(() => studioStarters(without)).toThrow(`the Studio opens on the starter "${OPENS_ON}", and the corpus holds none of that id`)
   })
 
   // The two e-invoices are one template in both kinds, each billing its own

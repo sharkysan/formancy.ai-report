@@ -45,7 +45,7 @@ export const STUDIO: Figure = {
   },
 }
 
-/** What the starters print, as the README shows them, the quotation first: the document the Studio opens on, whose page the start page and the builders' pages name for a shared link. */
+/** What the starters print, as the README shows them, the quotation first: the document the README's picture of the Studio shows, whose page the start page and the builders' pages name for a shared link. The Studio itself opens on the invoice (0082). */
 export const STARTERS: readonly [Figure, ...Figure[]] = [
   {
     picture: 'starter-quotation.png',

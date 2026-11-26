@@ -13,7 +13,9 @@
   generated from a formancy form;
   extended by [0068](0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md),
   under which its Preview offers the Word file of the render on the paper
-  beside the PDF, or says why the writer refused it
+  beside the PDF, or says why the writer refused it;
+  extended by [0082](0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md),
+  under which it opens on the invoice, which its picker lists first
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**

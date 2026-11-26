@@ -26,7 +26,11 @@
   under which four more pages carry a status as the QR-bill page's, each
   naming what it does not do among its sentences, and the invoices page
   shows a sample of this record in its own language beside the other
-  invoices
+  invoices; and changed by
+  [0082](0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md),
+  under which the Studio the hero's action opens, which opened on
+  another starter when this record was written, opens on the invoice the
+  page says to choose
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**

@@ -193,10 +193,10 @@
     "placement": "more",
     "title": "At a phone's width",
     "width": 390,
-    "caption": "At 390 pixels wide, the Studio as it opens: one pane at a time, the Preview in the design view's place, “Page 1 of 2”. Nothing scrolls sideways down to 320 pixels, which the browser gate measures ([0029](./docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).",
-    "alt": "The Studio at a phone's width: the bar's controls a line each, and the builder showing the Preview as its one pane, “Preview: printed.”, with the service inspection's first page.",
+    "caption": "At 390 pixels wide, the Studio as it opens, on the invoice: one pane at a time, the Preview in the design view's place, “Page 1 of 1”. Nothing scrolls sideways down to 320 pixels, which the browser gate measures ([0029](./docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md), [0082](./docs/decisions/0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md)).",
+    "alt": "The Studio at a phone's width: the bar's controls a line each, the picker on Invoice, and the builder showing the Preview as its one pane, “Preview: printed.”, with the invoice's page down to its total, its QR-bill below, out of the picture.",
     "quotes": {
-      "Page 1 of 2": [
+      "Page 1 of 1": [
         "Builder"
       ],
       "Preview: printed.": [

@@ -37,6 +37,7 @@ const same = (selection: Selection | null, target: ProblemTarget): boolean =>
   selection !== null && 'id' in selection && selection.id === target.id && selection.column === target.column
 
 export function Studio({ starters, workspace, images }: { starters: readonly StudioStarter[]; workspace: Workspace; images: ImageResolver }): ReactElement {
+  // The first starter listed, where studioStarters puts the one the Studio opens on (0082).
   const [starterId, setStarterId] = useState(starters[0]?.id ?? '')
   const [framework, setFramework] = useState<Framework>('react')
   const builder = useRef<HTMLDivElement>(null)

@@ -326,7 +326,7 @@
       ]
     },
     "0013": {
-      "reviewed": "sha256:b315c15c468dc4df8df395df7ab0dff8cabbaccc78f950f0326c918be48360a6",
+      "reviewed": "sha256:33c942fbf4a4764140925a11d711c68d90374b03f13772fb51470b682a22aeb1",
       "limitations": [
         {
           "area": "rendering",
@@ -602,7 +602,7 @@
       ]
     },
     "0024": {
-      "reviewed": "sha256:daaa89b9004d5cb88453a762e814dd6f582f02c744f836929e5d5a237e386c27",
+      "reviewed": "sha256:4e1baeaa9564f38ce5d70080dd1da9bb899d5b16a426d3f3e6271f9d35100d62",
       "limitations": [
         {
           "area": "release",
@@ -3554,6 +3554,30 @@
         {
           "area": "release",
           "says": "What the healthcare page says of Formancy Health, its 0.1.0 a developer preview released on 19 October 2026, was read from that repository by hand on 25 November 2026, is dated so, and goes stale without anything here failing; and the topic pages' sentence on what the licence makes free and what paid says again what LICENSE.md's table says, held to it by review."
+        }
+      ]
+    },
+    "0082": {
+      "reviewed": "sha256:fd4f902c1f903d38d338cd7fa7eef6247d7dd3d376ad38108bca2542c54c5363",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "The Studio opens on the invoice, whose QR-bill pays SIX's example QR-IBAN, so its problems pane opens on a warning, that the payment part's account is SIX's example, no one's, to be replaced before the bill is sent, where it used to say that no problems were found.",
+          "heldBy": "apps/studio/src/studio.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "The Studio opens on a German invoice for a Swiss customer whatever the visitor's language, and picks no starter by the browser's language; the starter it opened on before was in English.",
+          "heldBy": "apps/studio/src/studio.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "The Studio opens the invoice's Preview at the top of its page, so in most windows its QR-bill, the reason the Studio opens on it, is a scroll down, below the view: it was at 1280 by 720, 1440 by 900 and 1920 by 1080 in Chromium on 26 November 2026, and nothing holds the bill in the first view."
+        },
+        {
+          "area": "release",
+          "says": "The Studio's picker lists the invoice first and the other starters after it, where the corpus, the samples and their index, the README's table of the starters and the e-invoice gate's corpus list it fourth, so the same starters stand in two orders.",
+          "heldBy": "apps/studio/src/starters/starters.test.ts"
         }
       ]
     }
