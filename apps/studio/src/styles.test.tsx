@@ -201,8 +201,9 @@ const declaredBy = (css: string, selector: string): string[][] =>
 
 /**
  * The Studio as it opens in a window with no room beside the builder --
- * jsdom's 1024 pixels -- the service inspection printed and its PDF drawn in
- * the React builder's middle. Returns the region the Preview stands in.
+ * jsdom's 1024 pixels -- the starter it opens on printed, the invoice (0082),
+ * and its PDF drawn in the React builder's middle. Returns the region the
+ * Preview stands in.
  */
 async function studio(): Promise<HTMLElement> {
   const { starters, images } = decodeStarters(encodeStarters(STARTERS, STARTER_IMAGES))

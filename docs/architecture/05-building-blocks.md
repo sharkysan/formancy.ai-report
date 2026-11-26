@@ -721,7 +721,12 @@ renderer's browser entry, drawn by PDF.js on white paper (`preview/`),
 and offers the PDF and, where a final render of an e-invoice wrote one,
 its XML, the runtime's of that very render, to download; the picker names
 an e-invoice starter by its kind, in the builder's words
-(`starters/starters.ts`, [0065](../decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)).
+(`starters/starters.ts`, [0065](../decisions/0065-the-xrechnung-is-a-starter-beside-the-e-invoice-and-a-final-render-of-either-offers-its-xml-beside-its-pdf.md)),
+and lists first the starter the Studio opens on, the invoice, which
+`OPENS_ON` names once by its corpus id, the corpus's others after it in
+the corpus's order, which stays plan 7's, and Blank last; a corpus
+without that starter is refused rather than opened on another
+([0082](../decisions/0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md)).
 Beside them it offers, as Download Word, the Word file `renderDocx` writes
 of the document the PDF was drawn from, a report with a code (0074), a
 chart (0076) or a QR-bill's slip (0075) among them, or a note that says why the writer refused it; of a final render of an e-invoice, whose document is the invoice, the Word file is the one written of its copy, which `preview/pipeline.ts` resolves once more from the same request with `eInvoice: 'copy'`, or the runtime's reason there is none ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)): the writer is asked only once the PDF is drawn, from a chunk

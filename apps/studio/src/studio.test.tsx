@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { editorText, SCENARIO_PNG } from '@formancy/report-builder-core'
-import { wordExpressions } from '@formancy/report-core'
+import { diagnose, wordExpressions } from '@formancy/report-core'
 import type { ReportSession } from '@formancy/report-core'
 import { STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
 import { reportWords } from '@formancy/report-spec'
@@ -402,11 +402,38 @@ describe('the Studio', () => {
     expect(await violations()).toEqual([])
   })
 
+  // The Studio opens on the invoice (0082): the picker on it, the bar
+  // saying what it shows in the corpus's own words, the builder holding its
+  // report and the Preview printing it. A Studio that opened the corpus's
+  // first starter would greet a visitor with the service inspection, two
+  // pages of sixty check points that look alike; one whose picker named
+  // the invoice over another starter's session would print a report the
+  // bar does not name. Its problems pane holds one warning, by design: the
+  // bill pays SIX's example account (0039), the cost 0082 states; a second
+  // would be a starter that opens broken.
+  test('opens on the invoice, saying what it shows, and prints it', async () => {
+    mount()
+    const invoice = starters.find((starter) => starter.id === 'invoice')
+    if (invoice === undefined) throw new Error('the corpus has no invoice starter')
+    const opening = screen.getByRole<HTMLSelectElement>('combobox', { name: 'Starter', description: `Shows ${invoice.proves}.` })
+    expect(opening.value).toBe('invoice')
+    expect(within(opening).getByRole<HTMLOptionElement>('option', { selected: true }).textContent).toBe('Invoice')
+    expect(title().value).toBe(invoice.report.title)
+    const diagnosed = diagnose(invoice.report).map((diagnostic) => `${diagnostic.severity} ${diagnostic.code}`)
+    expect(diagnosed).toEqual(['warning example-payment-part'])
+    const problems = within(within(editor()).getByRole('list', { name: 'Problems' })).getAllByRole('listitem')
+    expect(problems.map((problem) => problem.textContent)).toEqual([expect.stringContaining(diagnose(invoice.report)[0]?.message ?? '(none)')])
+    await screen.findByText('Preview: printed.')
+    expect(seen.requests.map(({ id }) => id)).toEqual(seen.requests.map(() => 'invoice'))
+    expect(seen.requests.at(-1)).toMatchObject({ id: 'invoice', mode: 'preview', title: invoice.report.title })
+  })
+
   // The picker opens each starter's own session and keeps the others:
   // coming back to a starter finds what was done to it, and the preview is
   // of the starter shown, never the one before. The starter left keeps
   // nothing subscribed: its builder and its preview are gone, and only its
-  // editor still follows its session.
+  // editor still follows its session. The picker lists the starter the
+  // Studio opens on first, and the corpus's others in its order (0082).
   test('opens each starter, and keeps what was done to the others', async () => {
     const { workspace: opened, user } = mount()
     await user.clear(title())
@@ -415,20 +442,20 @@ describe('the Studio', () => {
     await user.selectOptions(picker(), 'Quotation')
     await waitFor(() => expect(title().value).toBe('Offerte'))
     await waitFor(() => expect(seen.requests.at(-1)).toEqual({ id: 'quotation', mode: 'preview', title: 'Offerte' }))
-    const left = opened.open('service-inspection')
+    const left = opened.open('invoice')
     expect(left.editor.listenerCount()).toBe(0)
     expect(subscriptions(left.session)).toBe(1)
-    await user.selectOptions(picker(), 'Service inspection')
+    await user.selectOptions(picker(), 'Invoice')
     await waitFor(() => expect(title().value).toBe('Kept'))
     expect(
       within(picker())
         .getAllByRole('option')
         .map((option) => option.textContent),
     ).toEqual([
+      'Invoice',
       'Service inspection',
       'Quotation',
       'Grouped equipment',
-      'Invoice',
       'Euro invoice',
       'E-invoice (Factur-X)',
       'E-invoice (XRechnung)',
@@ -450,7 +477,7 @@ describe('the Studio', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Final' }))
     await screen.findByText('Final render: printed.')
     expect(seen.requests.at(-1)?.mode).toBe('final')
-    expect(screen.getByRole('link', { name: 'Download PDF' }).getAttribute('download')).toBe('service-inspection.pdf')
+    expect(screen.getByRole('link', { name: 'Download PDF' }).getAttribute('download')).toBe('invoice.pdf')
     expect(await violations()).toEqual([])
   })
 
@@ -637,7 +664,7 @@ describe('the Studio', () => {
     await waitFor(() => expect(title().value).toBe('Offerte'))
     expect(toggle(true)).toBeTruthy()
     await screen.findByText('Preview: printed.')
-    await user.selectOptions(picker(), 'Service inspection')
+    await user.selectOptions(picker(), 'Invoice')
     expect(toggle(false)).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Preview' })).toBeNull()
   })

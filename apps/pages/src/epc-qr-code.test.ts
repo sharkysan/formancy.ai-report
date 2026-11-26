@@ -117,7 +117,7 @@ describe('the EPC QR code page (0028)', () => {
   // one, which is not the euro invoice. The hero's action goes there and
   // says which starter to choose, and the try-it text names the code as
   // the Studio's English palette does; a reader told only "Studio" meets
-  // a service inspection and no code.
+  // the invoice (0082), which a QR-bill pays, and no EPC code.
   test('opens the Studio at its root, naming the starter to choose there and the code in its palette', () => {
     for (const page of pagesOf('epc-qr-code')) {
       const action = page.document.querySelector('section.hero a.action')

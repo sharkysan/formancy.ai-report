@@ -23,6 +23,14 @@ homepage is now https://formancy.ai/report/en/, where the terms are; its
 repository link is unchanged. The healthcare page says Formancy Health
 0.1.0, a developer preview, is released.
 
+**The Studio opens on the invoice, and its picker lists it first**
+([0082](docs/decisions/0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md)).
+It opened on the service inspection, a stress test of long text over two
+pages, where the invoice shows on one page what a business sends: its
+lines, VAT, the total and the Swiss QR-bill that pays it. Its problems
+pane now opens on the warning that the bill pays SIX's example account;
+the samples and the README's table keep the corpus's order.
+
 ## 0.3.0 — 2026-11-23
 
 **In short.** The third release, still a developer preview: for evaluating
