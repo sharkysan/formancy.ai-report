@@ -268,6 +268,19 @@ describe('readReportData', () => {
     expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/detail', code: 'unexpected-page' }])
   })
 
+  // A row whose key fits no token is in its place with `record: null`
+  // (formancy.ai-data 0044), and two such rows are two rows, not one read
+  // twice: compared by their missing token, the second would refuse a
+  // report that holds no repeated line.
+  test('reads rows that have no token once each, wherever they stand, and refuses none of them as repeated', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const records = line.records.map((row, index) => (index === 9 || index === 59 ? { ...row, record: null } : row))
+    const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
+    const data = read(await readReportData(fixture.client, orderReport(), ORDER))
+    expect(data.detail?.map((row) => row['article'])).toEqual(Array.from({ length: 120 }, (_, index) => `A-${String(1000 + index)}`))
+  })
+
   // The row a page ended with, edited so that it moves back in the order
   // between two pages, takes the next page back with it, and every row
   // between its new place and its old is answered again (formancy.ai-data
