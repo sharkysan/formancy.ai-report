@@ -1,0 +1,58 @@
+{
+  "name": "@formancy/report-ai",
+  "version": "0.3.0",
+  "description": "Formancy Report's turn with a model: ask, read the JSON object the answer holds, ask again with the latest complaint, stop, decline, and a person carrying the turn by hand. In formancy's shapes, asking for nothing yet. No framework, no DOM, no Node, no network. Source-available, as every Formancy Report package.",
+  "keywords": [
+    "formancy",
+    "report",
+    "ai",
+    "llm",
+    "model",
+    "source-available"
+  ],
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test:coverage": "vitest run --coverage",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "check:pkg": "publint && attw --pack . --profile esm-only"
+  },
+  "dependencies": {
+    "@formancy/spec": "0.14.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@formancy/builder-core": "0.14.0",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "publint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "unrun": "^0.3.1",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
+    "directory": "packages/report-ai"
+  },
+  "homepage": "https://formancy.ai/report/en/",
+  "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
+}

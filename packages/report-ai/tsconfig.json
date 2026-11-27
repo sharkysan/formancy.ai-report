@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // No Node and no browser: a turn is asked in a page, on a server and in
+    // an agent's process alike, as formancy's builder-core asks its own
+    // (formancy.ai 0008). No @types/node and no DOM, so a `node:` import, a
+    // `fetch` or an `AbortSignal` in src is a compile error rather than a
+    // review finding; a host is told a turn was stopped by a callback (0083).
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  // The suite reads src/turn/'s files and runs formancy's own turn beside
+  // Report's, in Node, and is checked by tsconfig.test.json.
+  "exclude": ["src/**/*.test.ts"]
+}

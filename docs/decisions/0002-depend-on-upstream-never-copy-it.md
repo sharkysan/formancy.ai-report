@@ -1,6 +1,6 @@
 # 0002 — Depend on released upstream packages at exact versions; never copy them
 
-- **Status:** accepted; narrowed by [0050](0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md): its wait for a release, for the lint and format rules, a byte-for-byte copy of Formancy Health's until formancy.ai releases them as `@formancy/code-style`, deleted when this repository pins it; the narrowing ended on 2026-10-31, when it pinned `@formancy/code-style` 0.12.0
+- **Status:** accepted; narrowed by [0050](0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md): its wait for a release, for the lint and format rules, a byte-for-byte copy of Formancy Health's until formancy.ai releases them as `@formancy/code-style`, deleted when this repository pins it; the narrowing ended on 2026-10-31, when it pinned `@formancy/code-style` 0.12.0; narrowed by [0083](0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md): its rule against a copy, for `packages/report-ai/src/turn/` alone, formancy 0.14.0's model turn held there in formancy's shapes, made generic over the kind and held to formancy's release by a differential test, until formancy releases a turn other products may brief, and deleted for an exact dependency then
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `scripts/upstream-deps.mjs`, through

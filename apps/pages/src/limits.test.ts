@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { REQUEST_KINDS } from '@formancy/report-ai'
 import { COMPONENT_KINDS, PRINTED_BLOCKS, REPORT_SPEC_VERSION, refusedCharacter } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { collapsed } from './checks/read.js'
@@ -181,12 +182,18 @@ describe('what the start page says Formancy Report does not do yet', () => {
     expect(inputs.packages.filter((name) => /viewer/.test(name))).toEqual([])
   })
 
-  // "No changes proposed by an AI" is true while no package published from
-  // packages/ is one: a package published with report-ai in its name fails
-  // here, naming it, until the sentence is read again. One named otherwise
-  // is review's.
-  test('says no AI proposes changes while no published package is one', () => {
-    expect(inputs.packages.filter((name) => /report-ai/.test(name))).toEqual([])
+  // "No changes proposed by an AI" is true while report-ai, the published
+  // package that asks a model, asks one for nothing: its REQUEST_KINDS, read
+  // from its built dist, is empty, so its turn has no request to make and no
+  // answer to propose (0083). A kind added to the list fails here until the
+  // sentence is read again. The turn takes any kind a caller names, so a
+  // published package that took report-ai to ask a model of its own --
+  // the builders, the server -- fails here too, naming it; one that asked
+  // a model through code of its own is review's.
+  test('says no AI proposes changes while report-ai asks a model for nothing and no published package takes it', () => {
+    expect(inputs.packages).toContain('@formancy/report-ai')
+    expect(REQUEST_KINDS).toEqual([])
+    expect(inputs.packages.filter((name) => name !== '@formancy/report-ai' && Object.hasOwn(declared(name), '@formancy/report-ai'))).toEqual([])
   })
 
   // "No consistent read from Formancy Data" is true while the one package
