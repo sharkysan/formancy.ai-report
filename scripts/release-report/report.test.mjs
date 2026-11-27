@@ -743,6 +743,7 @@ describe('the install plan', () => {
       ['node', null],
       ['server', null],
       ['client', null],
+      ['mcp', null],
       ['react', 'newest'],
       ['react-floor', 'floor'],
       ['react-app', 'newest'],
