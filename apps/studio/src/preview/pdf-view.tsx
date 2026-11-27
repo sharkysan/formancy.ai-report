@@ -268,10 +268,25 @@ export function PdfView({
   // browser paints, at once and not smoothly: nothing moves on the screen,
   // and no motion is made. A paper with no height is out of sight, and
   // opens as any other.
+  //
+  // Fit width was measured on the empty paper. Where scrollbars take room,
+  // as Chrome's do on Windows, the pages just laid out give it a vertical
+  // one, which narrows it under pages fitted to the width before; those
+  // overflow it sideways, and the horizontal scrollbar that adds takes the
+  // height the slip is fitted to. The observer fits the width again only
+  // after this effect, too late for a decision made once: so the width is
+  // measured here first and, where it is narrower, fitted again before the
+  // decision. Only narrower, so that a scrollbar that comes and goes with
+  // the fit cannot loop.
   useLayoutEffect(() => {
     const element = paper.current
     if (!toBill.current || loaded === null || element === null) return
     if (element.clientHeight > 0) {
+      const width = roomOf(element)
+      if (width < room) {
+        setRoom(width)
+        return
+      }
       const at = billZoom(shown, element.clientHeight - paddingBelow(element))
       if (at !== shown) {
         setZoom(at)
@@ -280,7 +295,7 @@ export function PdfView({
       element.scrollTop = billScroll(element, paddingBelow(element), slipHeight(shown))
     }
     toBill.current = false
-  }, [loaded, shown])
+  }, [loaded, shown, room])
 
   // Which page is "current" follows the scrolling too: the page most in view,
   // so Next page after scrolling goes on from what the person is reading.

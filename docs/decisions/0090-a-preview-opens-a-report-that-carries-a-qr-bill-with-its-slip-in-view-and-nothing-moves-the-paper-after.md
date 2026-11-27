@@ -1,6 +1,6 @@
 # 0090 — A Preview opens a report that carries a QR-bill with its slip in view, and nothing moves the paper after
 
-- **Status:** accepted; numbered while 0084 to 0087 and 0089 were held by another session's branches; extends [0082](0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md), whose cost "the bill a scroll down" it answers wherever the Preview's paper scrolls, and changes the first viewport of [0029](0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)'s browser gate, which held the first page's top edge and first line
+- **Status:** accepted; numbered while 0084 to 0087 and 0089 were held by branches not yet merged; extends [0082](0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md), whose cost "the bill a scroll down" it answers wherever the Preview's paper scrolls, and changes the first viewport of [0029](0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)'s browser gate, which held the first page's top edge and first line
 - **Date:** 2026-11-27
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -17,10 +17,13 @@
     PDF that carries a bill opens scrolled to its end at fit width where
     the slip fits, and at 62 % where it does not, Fit width then not
     pressed, every page drawn at that zoom and a draw begun at fit width
-    cancelled; a PDF with no bill, and a paper with no height, open at the
-    top at fit width; a later PDF and every zoom leave the paper where the
-    person scrolled it; and a zoom chosen before the first PDF arrived is
-    kept, the PDF opened at its top.
+    cancelled; where the pages give the paper a scrollbar that takes room,
+    its width is fitted again before the bill, so a slip that fits at the
+    width the paper has left opens at fit width, Fit width pressed; a PDF
+    with no bill, and a paper with no height, open at the top at fit
+    width; a later PDF and every zoom leave the paper where the person
+    scrolled it; and a zoom chosen before the first PDF arrived is kept,
+    the PDF opened at its top.
   - **The pipeline.** `apps/studio/src/preview/pipeline.test.ts`: every
     starter's printed outcome says it carries a bill exactly where its
     report holds a payment part; and the invoice's Swiss QR Code, read
@@ -39,7 +42,16 @@
     1.64.1's Chromium 156.0.8078.4 on Windows 11: 7,449 checks in 13
     passes from 320 to 2053 pixels wide, the whole journey in 8, every
     one of the slip's 35 runs of text in view at each first viewport,
-    the paper at 2053 by 2400 holding the page whole and not scrolled.
+    the paper at 2053 by 2400 holding the page whole and not scrolled;
+    and passed again, the same 7,449, once the width was fitted again
+    before the bill (below). The gate launches that Chromium headless, as `scripts/browsers.mjs`'s
+    `LAUNCH_OPTIONS` says, and Playwright starts it so with
+    `--hide-scrollbars`: in no pass does a scrollbar take room. Run
+    through `placeChecks` at the eight first-viewport passes, in both
+    builders, in the same Chromium launched without that switch, its
+    scrollbars 15 pixels as Chrome's are on Windows, the first
+    viewport's checks held on 27 November 2026 but the zoom's at 2053 by
+    900, where fit width beside the builder is 49 % (below).
   - **Seen failing, on 27 November 2026**, on Windows 11 and Node
     24.21.0. The new cases against the Studio without the change: the
     three of the numbers, their functions missing, and three of the
@@ -48,10 +60,12 @@
     own guard planted (below). The gate's first viewport, run through
     `placeChecks` at the eight first-viewport passes from 641 to 2053
     pixels wide, in both builders, against the Studio built without the
-    change: 46 checks failed, every slip check at every pass, while the
-    window's, the zoom's and the paper's held. Then, with the opening
-    decided as the PDF arrived, before its downloads were laid out among
-    the viewer's tools: 4, the slip's foot below the view at 1280 by 720
+    change: 46 checks failed, every slip check at every pass but the
+    painted-on-top check at 2053 by 900, where the slip was three
+    quarters in view, while the window's, the zoom's and the paper's
+    held. Then, with the opening decided as the PDF arrived, before its
+    downloads were laid out among the viewer's tools: 4, the slip's foot
+    below the view at 1280 by 720
     and 1366 by 657, where those tools wrap onto a second row and take the
     paper's height -- which is why it is decided once the PDF is laid
     out; and none with the change. Then, each planted in the working tree
@@ -63,7 +77,14 @@
     chosen-zoom cases; a chosen zoom not ending the opening; a paper with
     no height opened at the bill; no zoom for the slip; every outcome said
     to carry a bill, which failed eleven starters' case; and the slip
-    looked for 200 points lower, which failed the invoice's.
+    looked for 200 points lower, which failed the invoice's. Last, the
+    width fitted again before the bill, added in review: its viewer case
+    against the viewer without it opened at 71 %, Fit width not pressed,
+    where 73 % at fit width was asked; and the Studio built without it,
+    in the Chromium launched with its scrollbars, opened the invoice at
+    68 %, 56 %, 51 % and 79 % at 641 by 900, 1280 by 720, 1366 by 657
+    and 1366 by 768 in React, Fit width pressed at none of them, where
+    with it it opens at 70 % and 79 % at fit width, and at 60 % and 55 %.
 
 ## Context
 
@@ -90,31 +111,37 @@ it opens on; below 40rem the paper no longer scrolls, the Preview's pane
 scrolls as one and the page scrolls past the bar (`styles/narrow.css`).
 The viewer is drawn anew whenever the Preview is: a starter opened, the
 Preview shown again, the framework switched, the window crossing 2052
-pixels (0029).
+pixels (0029). It is drawn anew too when a render the runtime refuses, or
+the renderer does not draw, takes its place, and the next render prints:
+the Preview shows a viewer only while its newest render printed
+(`preview/preview-pane.tsx`).
 
 Measured in the built Studio, served from `dist/` as the README's camera
 serves it, in Playwright 1.64.1's Chromium 156.0.8078.4 on Windows 11 and
 Node 24.21.0, on 27 November 2026, in the React builder as the Studio
-opens, by the page's box and report-spec's `QR_BILL_TOP`:
+opens, by the paper's box, its 20-pixel padding included, the page's box
+and report-spec's `QR_BILL_TOP`. The room the paper gives the slip is its
+box less the padding below the last page, which is what it shows of the
+slip once scrolled to its end:
 
-| Window | Fit zoom | Paper in view | Slip | Slip in view |
-|---|---|---|---|---|
-| 641 by 900, one pane | 72 % | 305 px | 286 px | none |
-| 1280 by 720 | 70 % | 260 px | 278 px | none |
-| 1366 by 657 | 81 % | 241 px | 321 px | none |
-| 1366 by 768 | 81 % | 352 px | 321 px | none |
-| 1440 by 900 | 90 % | 484 px | 357 px | none |
-| 1536 by 864 | 102 % | 482 px | 404 px | none |
-| 1920 by 1080 | 150 % | 742 px | 595 px | none |
-| 2053 by 900, beside | 51 % | 543 px | 202 px | 153 px |
-| 2560 by 1440, beside | 51 % | 1083 px | 202 px | all |
-| 390 by 844, a phone | 43 % | the pane scrolls | 170 px | none |
+| Window | Fit zoom | Paper's box | Room for the slip | Slip | Slip in view |
+|---|---|---|---|---|---|
+| 641 by 900, one pane | 72 % | 305 px | 285 px | 286 px | none |
+| 1280 by 720 | 70 % | 260 px | 240 px | 278 px | none |
+| 1366 by 657 | 81 % | 241 px | 221 px | 321 px | none |
+| 1366 by 768 | 81 % | 352 px | 332 px | 321 px | none |
+| 1440 by 900 | 90 % | 484 px | 464 px | 357 px | none |
+| 1536 by 864 | 102 % | 482 px | 462 px | 404 px | none |
+| 1920 by 1080 | 150 % | 742 px | 722 px | 595 px | none |
+| 2053 by 900, beside | 51 % | 543 px | 523 px | 202 px | 153 px |
+| 2560 by 1440, beside | 51 % | 1083 px | 1063 px | 202 px | all |
+| 390 by 844, a phone | 43 % | the pane scrolls | the pane scrolls | 170 px | none |
 
 So a scroll alone, at fit width, shows the slip whole from 1366 by 768 up,
-and cannot at 1280 by 720 or 1366 by 657, where the slip is taller than
-what the paper shows; and a whole page fitted into what the paper shows,
-less its padding, would be 27 % at 1366 by 768 and the design view's
-least, 25 %, at 1280 by 720.
+and cannot at 641 by 900, by one pixel, nor at 1280 by 720 or 1366 by
+657, where the slip is taller than the room the paper gives it; and a
+whole page fitted into what the paper shows, less its padding, would be
+27 % at 1366 by 768 and the design view's least, 25 %, at 1280 by 720.
 
 ## Decision
 
@@ -124,7 +151,12 @@ document carries one, `bill`, from the resolved document's `paymentPart`
 (`preview/pipeline.ts`); where it stands is report-spec's `QR_BILL_SIZE`
 across the foot of the last page, which the renderer draws it by (0022).
 Once that first PDF is laid out, its downloads among the viewer's tools,
-the viewer keeps Fit width where the slip fits what the paper shows, and
+the viewer measures the paper's width again: fit width was measured on
+the empty paper, and where scrollbars take room, as Chrome's do on
+Windows, the pages give it a vertical one, under which pages fitted
+before overflow it sideways until the observer fits them again, after
+this. Where the paper is narrower, it is fitted again first. Then the
+viewer keeps Fit width where the slip fits what the paper shows, and
 else opens at the largest zoom, to the hundredth below, at which it does
 (`billZoom`), never under half (`BILL_ZOOM_FLOOR`) and never past fit
 width; then it scrolls the paper to its end, the slip's foot at the view's,
@@ -132,16 +164,18 @@ or, where even half is too large, to the slip's top (`billScroll`). It is
 done before the browser paints, by assigning the paper's scroll, so
 nothing moves on the screen, no motion is made and no ancestor of the
 paper, the window among them, is scrolled. The first PDF of each viewer
-alone, and only while the person has chosen no zoom: every later PDF -- an
-edit's, Final's -- and every zoom leave the paper where the person put it.
-A report with no QR-bill opens as before, at fit width at its top; so does
-a paper with no height, drawn out of sight. Nothing in a package changes.
+alone, and only while the person has chosen no zoom: every later PDF that
+viewer shows -- an edit's, Final's -- and every zoom leave the paper where
+the person put it, and a viewer drawn anew opens at the bill again. A
+report with no QR-bill opens as before, at fit width at its top; so does a
+paper with no height, drawn out of sight. Nothing in a package changes.
 
 ## Consequences
 
 **What it buys.** The invoice's QR-bill is in the Studio's first view,
 whole and at half size or more, in every window from 641 to 2053 pixels
-wide whose first view the browser gate measures, 1280 by 720 among them.
+wide whose first view the browser gate measures, its scrollbars hidden,
+1280 by 720 among them.
 Measured by the gate's first viewport on 27 November 2026, in the same
 Chromium, React and Angular:
 
@@ -161,6 +195,17 @@ the sentence React's swap left there (0029). The rule is the document's, not
 the invoice's: the payment reminder (0066), the other starter that carries
 a bill, opens at its bill too, and so does any report a person gives one.
 
+The gate's Chromium hides its scrollbars. Launched with them, 15 pixels
+as Chrome's are on Windows, the Studio opened the invoice in React on 27
+November 2026 at 70 % at 641 by 900 and 79 % at 1366 by 768, each at
+fit width, 60 % at 1280 by 720 and 55 % at 1366 by 657, and at fit
+width at 88 %, 100 % and 148 % at 1440 by 900, 1536 by 864 and 1920 by
+1080: a scrollbar takes its 15 pixels from the width a page is fitted
+to. Beside the builder at
+2053 by 900 fit width is then 49 %, under half, which the slip fits at,
+so nothing raises it: the half is a floor under the zoom the slip needs,
+not under fit width.
+
 **What it costs.**
 
 - **The invoice's head out of the first view.** Where the slip fits, what
@@ -170,21 +215,32 @@ a bill, opens at its bill too, and so does any report a person gives one.
   down; beside the builder at 2053 by 900, where the slip was three
   quarters in view, the paper opens 69 pixels down, the page's top margin
   and the top of the mark above the view.
-- **Smaller than fit width in a short window.** At 1280 by 720 and 1366 by
-  657 the page opens at 60 % and 55 % in React, 58 % and 53 % in Angular,
-  and Fit width says it is not pressed; and a zoom that is a number is not
-  fitted again when a side pane is hidden or the window resized, as any
-  zoom a person chooses is not.
+- **Smaller than fit width where the paper is short.** At 641 by 900,
+  1280 by 720 and 1366 by 657 the page opens at 71 %, 60 % and 55 % in
+  React, 70 %, 58 % and 53 % in Angular, and Fit width says it is not
+  pressed; and a zoom that is a number is not fitted again when a side
+  pane is hidden or the window resized, as any zoom a person chooses is
+  not.
 - **The first page's top edge no longer checked in a browser.** 0029's
   first viewport held the opening starter's first page from its top edge
   to its first line; it now holds the invoice's slip, so nothing in
   Chromium shows that a report with no bill opens at its top. The viewer's
   jsdom case does, over a stand-in for PDF.js.
-- **Opened at the bill again whenever the Preview is drawn anew.** A
+- **Opened at the bill again whenever the viewer is drawn anew.** A
   starter opened again, the Preview hidden and shown, the framework
   switched or the window crossing 2052 pixels draws a new viewer (0029),
-  which opens the invoice at its bill where it opened it at its top: the
-  place a person scrolled to is lost as it was.
+  and so does a render refused or not drawn, then one printed -- an edit
+  the runtime refuses, then its undo; each opens the invoice at its bill
+  where it opened it at its top: the place a person scrolled to is lost
+  as it was.
+- **Measured with the scrollbars hidden.** The browser gate's Chromium
+  starts headless, which Playwright starts with `--hide-scrollbars`, so
+  no pass shows a scrollbar taking room; that the width is fitted again
+  where one does is held by the viewer's jsdom case alone, over a
+  stand-in for the paper's box, and was measured once, by a run by hand
+  of the first viewport's checks in a Chromium launched with its
+  scrollbars (above). There, beside the builder at 2053 by 900, the
+  invoice opens at 49 %, fit width's, under the half the gate holds.
 - **Not on a phone.** Under 40rem the paper does not scroll, the
   Preview's pane scrolls as one and the page past the bar, so the rule
   moves nothing there: scrolling the pane would take the Preview's
@@ -205,8 +261,8 @@ a bill, opens at its bill too, and so does any report a person gives one.
   phone's, and are unchanged.
 
 **What it forecloses.** Nothing the Preview did: Fit width is one press
-away, the person's scroll is never taken, and a report without a bill
-opens as it did.
+away, the person's scroll is never taken while the viewer stands, and a
+report without a bill opens as it did.
 
 ## Alternatives considered
 
@@ -216,9 +272,9 @@ and its bill both in view. Rejected: at 1366 by 768 the page would open at
 10 pt line is 3.3 pixels high; the bill would be in view and not legible.
 
 **Scroll alone, at fit width.** No zoom of its own, and Fit width always
-pressed as the Preview opens. Rejected: at 1280 by 720 the slip is 278
-pixels in 260 and at 1366 by 657 321 in 241, so its foot would be cut in
-the two smallest windows the gate opens.
+pressed as the Preview opens. Rejected: at 641 by 900 the slip is 286
+pixels in 285, at 1280 by 720 278 in 240 and at 1366 by 657 321 in 221,
+so its foot would be cut in three of the windows the gate opens.
 
 **Scroll the slip into view with the browser's `scrollIntoView`.**
 Rejected: it scrolls every ancestor that can scroll, the window among
@@ -234,6 +290,12 @@ whenever it is drawn (0029), as its zoom does.
 the paper's height changes would catch a line added under the tools.
 Rejected: the paper would move after its first paint, under a person
 reading it, which the request ruled out.
+
+**Launch the gate's Chromium with its scrollbars.** It would hold the
+opening where they take room. Rejected for now: the README's pictures
+launch as the gate does, by `scripts/browsers.mjs`'s `LAUNCH_OPTIONS`,
+and every pass's numbers, 0029's among them, were measured without; it
+is a decision of its own.
 
 **Find the slip by its words.** PDF.js's text layer holds "Zahlteil" and
 "Empfangsschein". Rejected: the words are the report's language's, and the

@@ -774,8 +774,10 @@ without that starter is refused rather than opened on another
 The viewer, `preview/pdf-view.tsx`, opens at fit width at the top of the
 first page; the first PDF of a report that carries a QR-bill, which the
 pipeline says by its `bill`, it opens with the slip in view, at fit width
-or at the zoom the slip fits at, never under half, and scrolled to it,
-before the browser paints and never again, the numbers `preview/view.ts`'s
+-- fitted again first where its pages bring a scrollbar that narrows the
+paper -- or at the zoom the slip fits at, never under half, and scrolled
+to it, before the browser paints and never again on that viewer, the
+numbers `preview/view.ts`'s
 `billZoom` and `billScroll`, over report-spec's `QR_BILL_SIZE`
 ([0090](../decisions/0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md)).
 Beside them it offers, as Download Word, the Word file `renderDocx` writes

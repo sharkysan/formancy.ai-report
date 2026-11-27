@@ -374,6 +374,30 @@ function paperBox(box: Readonly<Record<(typeof BOX)[number], number>>): void {
     })
 }
 
+/**
+ * The paper's box where scrollbars take room, as Chrome's do on Windows:
+ * `scrollbar` pixels off its width once it holds pages, every one taller
+ * than its height, and off its height while a page is wider than that
+ * leaves. The pages are found by their role and name; how wide each is,
+ * is its style, which no role says, and is read from the DOM.
+ */
+function paperWithScrollbars({ width, height, scrollHeight, scrollbar }: { width: number; height: number; scrollHeight: number; scrollbar: number }): void {
+  const pages = (paper: HTMLElement): HTMLElement[] => within(paper).queryAllByRole('group', { name: /^Page \d+ of \d+$/ })
+  const clientWidth = (paper: HTMLElement): number => (pages(paper).length === 0 ? width : width - scrollbar)
+  const box: Readonly<Record<(typeof BOX)[number], (paper: HTMLElement) => number>> = {
+    clientWidth,
+    clientHeight: (paper) => (pages(paper).some((page) => parseFloat(page.style.width) > clientWidth(paper)) ? height - scrollbar : height),
+    scrollHeight: () => scrollHeight,
+  }
+  for (const name of BOX)
+    Object.defineProperty(HTMLElement.prototype, name, {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.getAttribute('aria-label') === PAPER_NAME ? box[name](this) : 0
+      },
+    })
+}
+
 /** 600 pixels of room: fit width puts the stand-in's A4 pages at 75 %, where a slip is 297.6 pixels high. */
 const ROOM = 600
 
@@ -419,6 +443,24 @@ describe('the PDF viewer, opened on a document with a QR-bill (0090)', () => {
     expect(pdfjs.drawn.filter((each) => each.zoom === 0.62).map((each) => each.page)).toEqual([1, 2, 3])
     expect(pdfjs.drawn.filter((each) => each.zoom !== 0.62)).toEqual(pdfjs.cancelled)
     expect(paper.scrollTop).toBe(3000 - 250)
+  })
+
+  // Fit width is measured on the empty paper. Where scrollbars take room,
+  // the pages give it a vertical one, 15 pixels here, so pages fitted to
+  // its 600 pixels at 75 % stand wider than the 585 it has left; until
+  // the width is fitted again they overflow it sideways, and the
+  // horizontal scrollbar that adds takes 15 pixels of the 300 the slip is
+  // fitted to. Fitted to that, the invoice opened at 71 %, Fit width not
+  // pressed, where at the paper's own width its slip fits at fit width,
+  // 73 %. The browser gate cannot see it: Playwright's headless Chromium
+  // hides its scrollbars.
+  test('fits the width again before the bill where the pages give the paper a scrollbar', async () => {
+    paperWithScrollbars({ width: ROOM, height: 300, scrollHeight: 3000, scrollbar: 15 })
+    render(<PdfView pdf={PDF} word={WORD} name="invoice" stale={false} bill />)
+    const paper = await settled()
+    expect(within(zoomGroup()).getByText('73%')).toBeTruthy()
+    expect(fitWidth().getAttribute('aria-pressed')).toBe('true')
+    expect(paper.scrollTop).toBe(3000 - 300)
   })
 
   // A document with no QR-bill opens as every PDF did: at fit width, at

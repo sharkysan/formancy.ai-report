@@ -17,9 +17,10 @@ the Preview's first view in every desktop window from 1280 by 720 to 1920
 by 1080. A report that carries a bill now opens scrolled to the slip, at
 fit width, or where the slip would not fit what the paper shows, at the
 zoom it fits at, never under half: 60 % at 1280 by 720. Only the first
-PDF does; an edit, Final or a zoom never moves the paper, and on a phone,
-where the paper does not scroll, nothing changes. The invoice's head is
-now the scroll up.
+PDF on the paper does: while the paper shows a PDF, an edit, Final or a
+zoom never moves it, though after a refused render the next one printed
+opens at the bill again. On a phone, where the paper does not
+scroll, nothing changes. The invoice's head is now the scroll up.
 
 **A coding agent can work on a report template against Report's own
 checks, through the new `@formancy/report-mcp`**

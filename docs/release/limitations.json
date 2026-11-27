@@ -3686,7 +3686,7 @@
       ]
     },
     "0090": {
-      "reviewed": "sha256:c5d258e8867b70489aa5c56f0a29816fd84beaa34e007fdcdf4553df5841bc7b",
+      "reviewed": "sha256:937e4f242e41634474aa94fc6eb0a56b4802e46b45e52eda91deda7b1365c97b",
       "limitations": [
         {
           "area": "builders",
@@ -3695,7 +3695,7 @@
         },
         {
           "area": "builders",
-          "says": "Where the slip would not fit what the Preview's paper shows at fit width, the page opens smaller, at 60 % at 1280 by 720 and 55 % at 1366 by 657 in React in Chromium on 27 November 2026, Fit width not pressed, and is not fitted again when a side pane is hidden or the window resized.",
+          "says": "Where the slip would not fit what the Preview's paper shows at fit width, the page opens smaller, at 71 % at 641 by 900, 60 % at 1280 by 720 and 55 % at 1366 by 657 in React in Chromium on 27 November 2026, Fit width not pressed, and is not fitted again when a side pane is hidden or the window resized.",
           "heldBy": "apps/studio/src/preview/pdf-view.test.tsx"
         },
         {
@@ -3704,7 +3704,7 @@
         },
         {
           "area": "builders",
-          "says": "Each time the Preview is drawn anew -- a starter opened again, the Preview shown again, the framework switched, the window crossing 2052 pixels -- a report with a QR-bill opens at its bill again, and the place a person had scrolled to is lost, as it was before."
+          "says": "Each time the Preview's viewer is drawn anew -- a starter opened again, the Preview shown again, the framework switched, the window crossing 2052 pixels, a render refused or not drawn and then one printed -- a report with a QR-bill opens at its bill again, and the place a person had scrolled to is lost, as it was before."
         },
         {
           "area": "builders",
@@ -3713,6 +3713,11 @@
         {
           "area": "testing",
           "says": "Nothing in Chromium holds a report with no QR-bill to open at its first page's top any longer: the browser gate's first viewport holds the invoice's bill, and the viewer's jsdom suite the rest, over a stand-in for PDF.js.",
+          "heldBy": "apps/studio/src/preview/pdf-view.test.tsx"
+        },
+        {
+          "area": "testing",
+          "says": "The browser gate's Chromium runs headless, which Playwright starts with its scrollbars hidden, so no gate holds the opening where scrollbars take room, as Chrome's do on Windows: the width fitted again where the pages bring one is held by the viewer's jsdom suite alone, over a stand-in for the paper's box, and there, beside the builder at 2053 by 900, fit width is 49 %, under the half the gate holds.",
           "heldBy": "apps/studio/src/preview/pdf-view.test.tsx"
         }
       ]
