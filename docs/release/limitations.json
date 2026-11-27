@@ -147,7 +147,7 @@
       ]
     },
     "0008": {
-      "reviewed": "sha256:58eeec9b7700073c97994ae58513489ea1382963899eb78e60aafdb2087f3da3",
+      "reviewed": "sha256:1eb51330233e64496aeb4406d72de2f5d9b02a21328a3799755b72c1c03859d5",
       "limitations": [
         {
           "area": "editing",
@@ -3588,6 +3588,57 @@
           "area": "release",
           "says": "The Studio's picker lists the invoice first and the other starters after it, where the corpus, the samples and their index, the README's table of the starters and the e-invoice gate's corpus list it fourth, so the same starters stand in two orders.",
           "heldBy": "apps/studio/src/starters/starters.test.ts"
+        }
+      ]
+    },
+    "0088": {
+      "reviewed": "sha256:dd9ec623d68b63306acd4556603e3fb9c3c7a2b2f7e59d1d2b0312e470b575d4",
+      "limitations": [
+        {
+          "area": "release",
+          "says": "@formancy/report-mcp brings the MCP SDK's production closure, which ships its HTTP transports in the one package: with the SDK, 92 packages as this repository's lockfile installed them on 27 November 2026, Express, Hono, CORS and a JSON Schema validator among them, 84 that no other published package reaches, for a server that speaks stdio alone, each at a range inside the SDK's manifest, so what an agent's install holds moves with npm."
+        },
+        {
+          "area": "release",
+          "says": "A host that type-checks report-mcp's declarations, or the SDK's client, with skipLibCheck off and Node's types alone is refused HeadersInit, which the SDK 1.32.2's declarations name and Node's types 22 do not declare as a global, until it declares that name, as the install gate's MCP host does, or skips library checks.",
+          "heldBy": "scripts/install-hosts.test.mjs"
+        },
+        {
+          "area": "editing",
+          "says": "validate_report checks what the validator, the draft's size bound and a render would refuse, and not what a save asks of Report's server: a report whose id is not the template's, one that declares an image the server does not keep as its kind, or one that maps a font is refused only by the save, as template-id-mismatch or asset-not-kept.",
+          "heldBy": "packages/report-mcp/src/server.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "One message past the SDK's stdio bound of 10 MiB closes the MCP server's transport and ends the process without an answer, so an agent that sends one loses the server for the rest of its session; maxToolInputElements is left unset."
+        },
+        {
+          "area": "editing",
+          "says": "No MCP tool reads or saves a draft on Report's server, or renders a PDF, yet: the tools check a report and apply commands to the one an agent hands over and keep nothing, so what an agent wrote reaches a builder or the server only as the host carries it there.",
+          "heldBy": "packages/report-mcp/src/server.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "describe_commands names each command's arguments by their shape alone, a string, an object, a location, and not by what each is for, so which string of updateComponent is the component's id is report-core's declarations' and README's to say, and a model that guesses is refused.",
+          "heldBy": "packages/report-core/src/facts.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "apply_commands answers a refused batch with the first refusal word for word, which names what was refused but not which of the commands it was.",
+          "heldBy": "packages/report-mcp/src/tools.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "apply_commands answers the whole new report, in the text a model reads and again in the structured answer, so a report near MAX_REPORT_BYTES, 256 KiB, goes out twice on every edit, up to twice that of a model's context."
+        },
+        {
+          "area": "testing",
+          "says": "Nothing runs a model against the MCP's tools: their descriptions and its two prompts are asserted for what they say, never for whether a model follows them.",
+          "heldBy": "packages/report-mcp/src/server.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The MCP's bin has been launched by the SDK's stdio client alone, in the install gate and by hand on Windows, and by no agent's client, so whether a given client launches it is that client's."
         }
       ]
     }

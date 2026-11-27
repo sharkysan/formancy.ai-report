@@ -16,6 +16,14 @@ a service by this repository.
 | The Studio and the product's pages | https://formancy.ai/report/, from `main` | Cloudflare Workers Builds, on every push to `main` ([0018](../decisions/0018-the-studio-demo-is-served-at-formancy-ai-report.md), [0021](../decisions/0021-the-product-pages-are-static-html-in-four-languages-beside-the-studio.md)) |
 | Every starter's PDF and Word file, and each e-invoice's XML, with an index | [`samples/`](../../samples/README.md) in the repository, which GitHub serves from `main` like any file, and every clone carries | `node scripts/samples.mjs --write`, by hand, after `pnpm build`, committed; held to the build by `pnpm test:repo` ([0079](../decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)) |
 
+One published package carries a program: `@formancy/report-mcp`'s `bin`,
+`formancy-report-mcp`, which a coding agent's client launches from the
+project that installed it and speaks the Model Context Protocol to over
+stdio. It is published as every package is, with no image, no port and
+no service of its own; the install gate's `mcp` host launches it from the
+packed tarball through the SDK's stdio client
+([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
+
 No container image is published. The container gate builds the server's
 image from each checkout and runs it, and what the release report says of
 that image is labelled the gate's; publishing it, signed by its digest, is
@@ -431,6 +439,20 @@ serve the Studio under the same function of their own address
   tokens carry a tenant claim; and, to run it in production, a production
   licence for Formancy Data as well, whose verifier it depends on
   ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+- **For an agent's MCP server:** `@formancy/report-mcp` installed in a
+  project under Node 22.13 or later, and a client that speaks the Model
+  Context Protocol configured to launch its bin there, by the command npm
+  links; nothing to configure, since its tools need no server, and nothing
+  it reaches but its own pipes and, once, its own manifest. One message
+  past the SDK's stdio bound, 10 MiB, ends the process without an answer. The SDK it depends on, at exactly 1.32.2,
+  brings its HTTP transports and their closure, 92 packages with it on 27
+  November 2026, into that project for a server that speaks stdio alone,
+  at the ranges the SDK's manifest gives. A host that type-checks the
+  package's declarations with `skipLibCheck` off and Node's types alone
+  declares the DOM's `HeadersInit`, which the SDK's declarations name, as
+  the install gate's host does in `scripts/install-fixture/mcp-globals.d.ts`. The bin
+  has been launched by the SDK's stdio client, and by no agent's client
+  (0088).
 - **For the form bridge:** the document of every form version whose
   submissions it prints, kept beside them or fetched by its number from
   formancy's server, which serves each version's document from 0.8.0

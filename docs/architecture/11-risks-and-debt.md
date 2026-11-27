@@ -625,6 +625,21 @@ that the store refuses a root the process cannot write, or that a
 directory it may not read or write fails as the store's own error and is
 never read as empty.
 
+### An agent's MCP server carries the SDK's whole package
+
+`@formancy/report-mcp` speaks stdio, and the SDK it depends on ships its
+HTTP transports in the same package, so Express, Hono, CORS, a JSON
+Schema validator and their closure are installed beside it: 92 packages
+with the SDK on 27 November 2026, 84 of them reached by no other published
+package, each at a range inside the SDK's manifest, so what an agent's
+project installs moves with npm and the SBOM says so (0017). Every one is
+judged by `scripts/dependency-licences.mjs` as any package is. The SDK's
+declarations name the DOM's `HeadersInit`, which Node's types do not
+declare, so a host that type-checks them strictly declares it. What the
+tools tell a model is asserted for what it says, and nothing runs a model
+against them; the bin has been launched by the SDK's client alone
+([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
+
 ### The container gate rests on Docker in CI
 
 The gate builds the image on the runner's Docker and pulls the base image
@@ -915,8 +930,11 @@ server that answers who is asking (0046) and keeps a template's draft and
 its images today; fonts kept beside the images, a retention of a draft's
 older revisions, and a Save in both builders (0049); reviewed AI changes,
 whose groundwork is commands as data ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md));
-a published PDF viewer; and a consistent read from Formancy Data, which
-waits for Data's snapshot export. Whether the runtime checks the bytes a
+a published PDF viewer; a consistent read from Formancy Data, which
+waits for Data's snapshot export; and, for the MCP server whose tools need
+nothing, the tools that read and save a draft on Report's server, with a
+person's token, and a render check that reads the PDF back
+([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)). Whether the runtime checks the bytes a
 host hands it against the digest that names them, which report-spec can now
 take, is a decision of its own, not taken (0033). The format's own plan names positioned
 elements in the page header and footer

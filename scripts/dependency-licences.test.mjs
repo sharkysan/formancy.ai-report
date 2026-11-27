@@ -599,8 +599,12 @@ describe('confined packages', () => {
 
   // The real tree: the renderer's echarts and zrender at the versions the
   // review read, each reached from the renderer alone, and no other package
-  // of the workspace depends on either.
-  test('admits echarts and zrender 6.1.0 for the renderer alone, in this workspace', () => {
+  // of the workspace depends on either. The first case to walk it, so it
+  // pays the walk, and takes the real tree's bound below: the walk took
+  // 2.5 s alone on one Windows machine on 27 November 2026, report-mcp's
+  // closure 0.7 s of it, and passed 5 s in two full runs of three there
+  // under another session's load.
+  test('admits echarts and zrender 6.1.0 for the renderer alone, in this workspace', { timeout: 30_000 }, () => {
     const { entries } = realTree()
     expect(Object.fromEntries(Object.entries(CONFINED).map(([id, admission]) => [id, admission.for]))).toEqual({
       'echarts@6.1.0': '@formancy/report-render-pdf',

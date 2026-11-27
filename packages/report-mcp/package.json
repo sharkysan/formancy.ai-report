@@ -1,0 +1,64 @@
+{
+  "name": "@formancy/report-mcp",
+  "version": "0.3.0",
+  "description": "Formancy Report for a coding agent, over the Model Context Protocol: the format described, a report validated and diagnosed as the validator and a render judge it and held to a draft's size, and report-core's commands described and applied as one batch, each checked before it acts. Speaks stdio, publishes nothing, takes no address. Source-available, as every Formancy Report package.",
+  "keywords": [
+    "formancy",
+    "report",
+    "mcp",
+    "model-context-protocol",
+    "coding-agent",
+    "source-available"
+  ],
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "sideEffects": false,
+  "bin": {
+    "formancy-report-mcp": "./dist/main.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test:coverage": "vitest run --coverage",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check:pkg": "publint && attw --pack . --profile esm-only"
+  },
+  "dependencies": {
+    "@formancy/report-core": "workspace:*",
+    "@formancy/report-spec": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@formancy/report-corpus": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "publint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "unrun": "^0.3.1",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharkysan/formancy.ai-report.git",
+    "directory": "packages/report-mcp"
+  },
+  "homepage": "https://formancy.ai/report/en/",
+  "bugs": "https://github.com/sharkysan/formancy.ai-report/issues"
+}

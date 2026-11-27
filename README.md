@@ -36,6 +36,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **One template, several languages**: a render prints in the one it names, and a word missing there refuses it ([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 - **Lay it out**: several tables over one list of lines, group headers kept with their rows, a first page of its own, text set above or below the line, fonts your application approves, pinned by digest, and SVG logos made of shapes alone -- no text, no embedded picture ([0062](./docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), [0060](./docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md), [0061](./docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md), [0043](./docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), [0030](./docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 - **Read your data where it lives**: your application's JSON, a formancy form's submissions, each against the form version that collected it, or Formancy Data 0.1.0, best-effort ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), [0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+- **Let a coding agent work against Report's checks**: an MCP server, run by the agent's client, that describes the format and the commands, judges a report as the validator and a render would, within the size a draft may have, and applies commands as the builders do; it needs no server, and saves, publishes and fetches nothing ([0088](./docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
 - **Keep drafts on a server**: it verifies your application's token offline and keeps each tenant's template drafts and images; it renders nothing yet ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 
 What is planned next, and what is not planned at all, is in
@@ -76,12 +77,13 @@ writes
 Every starter's page, the invoice in four languages and the euro invoice
 from six countries are in [What the starters print](./docs/starters.md).
 
-> **Status, 23 November 2026:** 0.3.0, a developer preview, is published
+> **Status, 27 November 2026:** 0.3.0, a developer preview, is published
 > on npm, and [its release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.3.0)
 > carries the report of the run that gated it.
 > What 0.3.0 holds and leaves out is
 > [its section of the changelog](./CHANGELOG.md#030--2026-11-23), and
-> what `main` gains after it is under *Unreleased* there. The
+> what `main` gains after it is under *Unreleased* there, among it
+> `@formancy/report-mcp`, which no release has published yet. The
 > report format is still version "0", the draft: a report written now is
 > not promised to be read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
@@ -177,7 +179,7 @@ Every picture in this section is taken by `node scripts/pictures.mjs`, in Chromi
 
 ## How it fits together
 
-![A hand-drawn sketch of Formancy Report's packages on a dark background, in four columns, Edit, Print, Data in and Serve: the Studio and the product pages at the top; the builders, the two renderers, the test support, the form bridge, the data provider, the server and its client below them; then report-builder-core, report-runtime and report-server-core; report-core; and report-spec and report-documents at the bottom. The editing column is violet, the printing column teal, and what is never published is dashed](docs/images/architecture.svg)
+![A hand-drawn sketch of Formancy Report's packages on a dark background, in four columns, Edit, Print, Data in and Serve: the Studio and the product pages at the top; the MCP server for a coding agent below them; the builders, the two renderers, the test support, the form bridge, the data provider, the server and its client below that; then report-builder-core, report-runtime and report-server-core; report-core; and report-spec and report-documents at the bottom. The editing column is violet, the printing column teal, and what is never published is dashed](docs/images/architecture.svg)
 
 A report is a document of its own, versioned and validated by
 `report-spec`. `report-core` changes it by commands with undo, and both
@@ -185,8 +187,9 @@ builders edit that one session. `report-runtime` resolves it against your
 data, deciding every value once, and two engines print the result:
 `report-render-pdf` as a PDF and `report-render-docx` as a Word file. Each
 package depends only on those drawn below it, which
-`scripts/architecture.test.mjs` holds to the manifests; [the
-architecture](./docs/README.md) says the rest.
+`scripts/architecture.test.mjs` holds to the manifests. `report-mcp`
+gives a coding agent the same checks and commands over the Model Context
+Protocol. [The architecture](./docs/README.md) says the rest.
 
 ## Render a report
 
@@ -229,6 +232,7 @@ The install gate runs these lines from the packed packages
 | [`@formancy/report-server-core`](./packages/report-server-core/README.md) | Who may do what to a tenant's reports, the wire, and the use cases for drafts and images; no framework, no Node |
 | [`@formancy/report-server`](./packages/report-server/README.md) | The server, on Fastify: your application's token verified offline, a template's draft and its images |
 | [`@formancy/report-client`](./packages/report-client/README.md) | What your page asks that server with |
+| [`@formancy/report-mcp`](./packages/report-mcp/README.md) | Report's checks for a coding agent, over the Model Context Protocol: the format described, a report validated and diagnosed, and report-core's commands applied, with nothing deployed |
 | [`@formancy/report-builder-core`](./packages/report-builder-core/README.md) | The editor model both builders render; `BUILDER_SCENARIOS` is what each must do |
 | [`@formancy/report-builder-react`](./packages/report-builder-react/README.md) | The builder for React 19 |
 | [`@formancy/report-builder-angular`](./packages/report-builder-angular/README.md) | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js |
@@ -324,6 +328,8 @@ and every run ends in a release report
 | `tslib`, by `@formancy/report-builder-angular` | 2.9.1 | `^2.8.0` |
 | `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
 | `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |
+| `@modelcontextprotocol/sdk`, by `@formancy/report-mcp` | 1.32.2 | `1.32.2` |
+| `zod`, by `@formancy/report-mcp` | 4.6.7 | `4.6.7` |
 | `fflate`, by `@formancy/report-render-docx` | 0.8.3 | `0.8.3` |
 | `pako`, by `@formancy/report-render-docx` | 3.0.2 | `3.0.2` |
 | `echarts`, by `@formancy/report-render-pdf` | 6.1.0 | `6.1.0` |
