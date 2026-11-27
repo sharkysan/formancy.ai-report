@@ -3587,7 +3587,7 @@
       ]
     },
     "0088": {
-      "reviewed": "sha256:bb4c38957477fe21946f0d55e4b41d9ba8ba781e93a46d1ead665a3e17463525",
+      "reviewed": "sha256:dd9ec623d68b63306acd4556603e3fb9c3c7a2b2f7e59d1d2b0312e470b575d4",
       "limitations": [
         {
           "area": "release",
@@ -3597,6 +3597,15 @@
           "area": "release",
           "says": "A host that type-checks report-mcp's declarations, or the SDK's client, with skipLibCheck off and Node's types alone is refused HeadersInit, which the SDK 1.32.2's declarations name and Node's types 22 do not declare as a global, until it declares that name, as the install gate's MCP host does, or skips library checks.",
           "heldBy": "scripts/install-hosts.test.mjs"
+        },
+        {
+          "area": "editing",
+          "says": "validate_report checks what the validator, the draft's size bound and a render would refuse, and not what a save asks of Report's server: a report whose id is not the template's, one that declares an image the server does not keep as its kind, or one that maps a font is refused only by the save, as template-id-mismatch or asset-not-kept.",
+          "heldBy": "packages/report-mcp/src/server.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "One message past the SDK's stdio bound of 10 MiB closes the MCP server's transport and ends the process without an answer, so an agent that sends one loses the server for the rest of its session; maxToolInputElements is left unset."
         },
         {
           "area": "editing",
@@ -3615,7 +3624,7 @@
         },
         {
           "area": "editing",
-          "says": "apply_commands answers the whole new report, in the text a model reads and again in the structured answer, so a report near MAX_REPORT_BYTES, 256 KiB, costs a model's context that much on every edit."
+          "says": "apply_commands answers the whole new report, in the text a model reads and again in the structured answer, so a report near MAX_REPORT_BYTES, 256 KiB, goes out twice on every edit, up to twice that of a model's context."
         },
         {
           "area": "testing",

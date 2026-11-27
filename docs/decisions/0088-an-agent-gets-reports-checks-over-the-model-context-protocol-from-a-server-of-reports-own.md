@@ -1,17 +1,36 @@
 # 0088 — An agent gets Report's checks over the Model Context Protocol, from a server of Report's own
 
-- **Status:** accepted for the tools that need nothing, the prompts and report-core's two derivations; its server half, the tools that read and save a template's draft, is decided here and built by a later pull request, which states its own tests here when it lands; extends [0008](0008-edits-are-commands-and-a-refused-edit-changes-nothing.md); follows formancy.ai 0056 and 0112
+- **Status:** accepted for the tools that need nothing, the prompts and report-core's two derivations; its server half, the tools that read and save a template's draft and the identity they ask with, is decided and not yet built, and no test holds it until the pull request that builds it states its own here; extends [0008](0008-edits-are-commands-and-a-refused-edit-changes-nothing.md); follows formancy.ai 0056 and 0112
 - **Date:** 2026-11-27
 - **Deciders:** Daniel Bacher
 - **Verified by:**
   - **The facts are derived.** `packages/report-core/src/facts.test.ts`:
     `reportFacts()` lists the format by report-spec's and report-core's
-    constants, the very objects, each bound the value of report-spec's
-    constant of its name, every number a note says written from its
-    constant; `describeCommands()` lists every command of `COMMANDS` in its
-    order, each argument in the words `invalid-arguments` refuses it in,
-    and `MAX_BATCH_COMMANDS`, `PART_COMMANDS` and `REFUSAL_CODES` as they
-    are; both exported from the package.
+    constants, the very objects; each bound is the value of report-spec's
+    constant of its name, and every `MAX_` and `MIN_` report-spec exports
+    is a bound or is named there with why no report written as JSON is
+    refused past it -- `MAX_ERRORS`, the number of errors the validator
+    lists, and the limits of a font, an SVG or an image file; every number
+    a note says is written from its constant; `describeCommands()` lists
+    every command of `COMMANDS` in its order, each argument in the words
+    `invalid-arguments` refuses it in, and `MAX_BATCH_COMMANDS`,
+    `PART_COMMANDS` and `REFUSAL_CODES` as they are; both exported from
+    the package.
+  - **The notes are held.** `packages/report-core/src/facts-notes.test.ts`:
+    each note `reportFacts()` gives is one of `NOTES`, and each is held to
+    the validator, the compiler or the command that refuses what it says
+    -- another version and a formancy form refused whole; a decimal
+    default written as a number refused, a double and `/` refused, `dec()`
+    and `divide()` of two decimals not; a third dataset and a table past
+    `MAX_TABLES` refused; a name read out of its place, whole or by a key
+    computed as it renders, an image field, the clock and a random draw
+    refused; a translation keyed by a word the report does not print
+    refused; a QR-bill as a component refused; the account written into
+    the e-invoice and every EPC QR code by one command, and a term EN
+    16931 does not allow refused; a length of three places refused; a
+    diagnostic error beside a report the validator takes. Its cases are
+    typed over every key of `NOTES`, so a note without one does not
+    compile; and the names a note gives are typed against what they name.
   - **The tools as functions.** `packages/report-mcp/src/tools.test.ts`,
     over the corpus's starters: `describe_format` and `describe_commands`
     answer report-core's derivations; every starter validates, with its
@@ -24,10 +43,14 @@
     kept; a refused command answers its code, sentence and path and the
     hash of the report as it was given; a result the validator refuses is
     `invalid-document` with its errors; a stale `expectedHash` is
-    `stale-document`; an unknown command, wrong arguments and a batch
-    inside the batch are refused by the registry; an empty list changes
-    nothing, said as such; and a report the validator refuses has no
-    command run on it.
+    `stale-document`, answering no hash and telling the agent to validate
+    the report it means to edit; an unknown command, wrong arguments and
+    a batch inside the batch are refused by the registry; an empty list
+    changes nothing, said as such; a report the validator refuses has no
+    command run on it; and a report of exactly `MAX_REPORT_BYTES`, measured
+    as report-spec states the bound is, passes, one a byte past it is not
+    `ok` and names `report-too-large`, and an edit that grows a report
+    past it is applied and not `ok`.
   - **Through the protocol.** `packages/report-mcp/src/server.test.ts`,
     with the SDK's own `Client` over its `InMemoryTransport`: the four
     tools listed, each with the description `TOOL_DEFINITIONS` holds and
@@ -38,14 +61,28 @@
     of format `uri`, and no prompt an argument so named, the walk shown to
     find each; a report taken as any JSON value; the server's version the
     manifest's; arguments surviving the round trip, and a refusal arriving
-    as `isError` with its structure; the two prompts, each naming only
-    tools the server registers, writing in the order the format, the
-    report, the checks, and translating from `word-missing` through
-    report-core's commands.
-  - **The composition root.** `packages/report-mcp/src/composition.test.ts`:
-    no module but `main.ts` touches the process, the environment or a
-    file, and none reaches the network, each read with TypeScript's
-    parser and the reading shown to find each ordinary way in.
+    as `isError` with its structure; `validate_report`'s description
+    saying what a save asks of the server that it does not check; the two
+    prompts, each naming only tools the server registers, writing in the
+    order the format, the report, the checks, and translating from
+    `word-missing` through descriptors `translationSteps` makes, typed by
+    report-core's `StepDescriptor`, which the case applies through the
+    registry to a starter that prints words by an expression.
+  - **The composition root.** `packages/report-mcp/src/composition.test.ts`,
+    read with TypeScript's parser: each module imports only the
+    specifiers its list names -- `tools.ts` report-core and report-spec;
+    `server.ts` `node:module`, the SDK's `server/mcp.js` and `types.js`,
+    report-core for types, zod and `./tools.js`; `main.ts` the SDK's
+    `server/stdio.js` and `./server.js`; `index.ts` its two modules -- and
+    a module with no list fails; `main.ts` alone names `process`;
+    `server.ts` alone calls `createRequire`, once, its result called at
+    once with `'../package.json'` alone; no module names `console`,
+    `fetch`, `WebSocket`, `XMLHttpRequest` or `EventSource`. The guard is
+    shown to find, planted, Express, Hono, cross-spawn, the SDK's HTTP
+    server transport and its stdio client, `node:fs` imported, required
+    or loaded through `createRequire`, a `require` kept and called later,
+    `console` by name and by index, `process` outside `main.ts`, `fetch`,
+    and a module of its own.
   - **The licences.** `scripts/dependency-licences.mjs` over the
     SDK's and zod's production closure, as this repository's lockfile
     installs it, every package permissive, judged as any package is.
@@ -64,7 +101,18 @@
     batch dropped before the registry saw it; `tools.ts` reading
     `process.env`; `reportFacts()` holding a copy of `COMPONENT_KINDS`;
     the install plan's tests once the host was planned, before their
-    manifests packed report-mcp; the sketch without report-mcp's box.
+    manifests packed report-mcp; the sketch without report-mcp's box; and,
+    after review, the size cases before the bound was checked, a stale
+    refusal answering the hash, the description that said "as a save
+    would", the limits case while `MAX_ERRORS` was a bound and the list
+    lacked others, the prompt's descriptors before `translationSteps`,
+    and, planted in the real modules, `console.log` in `tools.ts`, a
+    `createRequire` of `node:fs` and an import of Express in `server.ts`,
+    the SDK's stdio client in `main.ts`, `process.env` in `tools.ts` and a
+    module with no list. Two notes failed their cases and were wrong: a
+    double mixed with a decimal is a type error, not an inexact one, and
+    `/` on two decimals is no operation; and a key written out, as
+    `row["amount"]`, is a member's read, refused only when computed.
 
 ## Context
 
@@ -110,11 +158,19 @@ tools check before they act.**
     bounds a report is refused past, each under its constant's name, and
     notes for what a model gets wrong first, each number in them read from
     its constant.
-  - `validate_report`, three lists in the order a save, a render and a
-    language's render judge: the validator's errors; then `diagnose`'s,
-    which gives the report's own and each declared language's, each of
-    the latter naming its language, split by that name, so that nothing
-    is diagnosed twice; and the report's `reportHash`.
+  - `validate_report`, a report judged as the validator and a render
+    judge it: the validator's errors, which a save refuses; the report's
+    size as report-spec measures `MAX_REPORT_BYTES`, the UTF-8 length of
+    its JSON, past which a save refuses the body as `report-too-large`
+    before reading it; then `diagnose`'s, which gives the report's own and
+    each declared language's, each of the latter naming its language,
+    split by that name, so that nothing is diagnosed twice; and the
+    report's `reportHash`. What a save asks of the server's own state
+    stays on the server, and the tool's description says so, as
+    formancy.ai 0056 asks of a check that stays there: the report's id
+    being the template's, `template-id-mismatch`; every image it declares
+    kept by the tenant as the kind it declares, and no font, since no
+    store keeps one, `asset-not-kept` (0049).
   - `describe_commands`, report-core's `describeCommands()`: every command
     of `COMMANDS` in its order, written as a descriptor is,
     `{ command, args }`, each argument in the words `ARGUMENTS`' shapes
@@ -122,9 +178,12 @@ tools check before they act.**
     `REFUSAL_CODES`.
   - `apply_commands`, a session opened on the report given and the
     commands applied as one batch through `describedCommand`, with an
-    optional `expectedHash`: the new report, its hash, its diagnostics and
-    whether it changed; or the refusal's code, sentence, path and errors,
-    and the hash of the report as given, nothing applied.
+    optional `expectedHash`: the new report, its hash, its size, its
+    diagnostics and whether it changed; or the refusal's code, sentence,
+    path and errors, and the hash of the report as given, nothing
+    applied -- but a stale edit, `stale-document`, answers no hash, whose
+    retry would disarm the check, and tells the agent to validate the
+    report it means to edit.
 - **The tools that need a server**, decided, not yet built: `whoami`,
   `list_templates`, `read_draft` and `save_draft`, through report-client;
   `save_draft` runs the validator first and sends nothing it refuses, and
@@ -134,10 +193,12 @@ tools check before they act.**
   report-spec's `validateReport`, the one authority; commands by
   `describedCommand`, a list of them by zod alone.
 - **One envelope**, `{ ok, summary, data }`, as text for the model and as
-  structured content: `ok` false for a refusal and for a report
-  `validate_report` finds a save or a render would refuse -- an edit
-  applied is `ok`, its new report's diagnostics beside it -- and a refusal
-  `isError`, never a thrown error.
+  structured content: `ok` false for a refusal, for a report past
+  `MAX_REPORT_BYTES`, and for a report `validate_report` finds the
+  validator or a render would refuse -- an edit applied is `ok` though its
+  report has a diagnostic error, since a language just added lacks every
+  word until the next edit, but not past the bound, which no save takes
+  -- and a refusal `isError`, never a thrown error.
   The text's JSON has no indentation, since a report is the largest thing
   in it. `TOOL_DEFINITIONS` is exported and asserted. Every tool built is
   annotated read-only and closed-world, `apply_commands` among them, which
@@ -148,11 +209,21 @@ tools check before they act.**
   `validate_report` until it answers ok, every later change through
   `apply_commands`; and `translate_a_report`, from the `word-missing`
   diagnostics a language lists, through `addLanguage`, `translateWord`
-  and `translateExpression`. Every tool a prompt names is one the server
+  and `translateExpression`, printed from the descriptors
+  `translationSteps` makes. Every tool a prompt names is one the server
   registers, which formancy.ai 0112 left unchecked.
 - **The composition root.** `main.ts` is the bin and the only module that
-  touches the process; it reads no setting yet. No module reaches the
-  network.
+  touches the process; it reads no setting yet. `server.ts` reads one
+  file, the package's own manifest, for the version it reports. No module
+  reaches the network or writes to the console, since standard output is
+  the protocol's.
+- **The bound on a call.** The SDK's stdio transport reads at most
+  `STDIO_DEFAULT_MAX_BUFFER_SIZE`, 10 MiB, of one message, forty times
+  `MAX_REPORT_BYTES`; past it the transport closes and the process ends
+  without an answer, so an agent that sends more loses the server for the
+  rest of its session. `maxToolInputElements`, new in the SDK's 1.32.0,
+  is left unset: the client is the person's own, over stdio, and what a
+  tool reads is bounded by the validator and the size check.
 - **Identity, for the server half, is the host's, for a person.**
   `main.ts` will read `FORMANCY_REPORT_URL` and `FORMANCY_REPORT_TOKEN`,
   both or neither; the token a secret reference, `env:NAME` read once or
@@ -173,8 +244,7 @@ tools check before they act.**
   1.32.0 fixed the SDK's, 4.6.6 zod's. Of what this package calls, the
   SDK's release notes from 1.30.1 to 1.32.2 change only that a call of a
   tool or a prompt may omit its arguments and that a transport's optional
-  properties are declared `| undefined`; `maxToolInputElements`, new in
-  1.32.0, is left unset, since the client is the person's own over stdio.
+  properties are declared `| undefined`.
 - **The licences.** The SDK and zod are MIT, judged as any package by
   `scripts/dependency-licences.mjs` on this repository's lockfile. With
   the SDK, its production closure as the lockfile installed it on 27
@@ -194,7 +264,10 @@ what an agent is told of the format and the commands is what report-core
 derives from its own constants, so a kind or a command added there is
 one the agent is told about.
 
-**What it costs.** **A package's worth of dependencies for an agent**:
+**What it costs.** **`validate_report` is not a save.** What a save asks
+of the server's own state -- the report's id, the images it keeps, no
+font -- is answered only by the server, as `template-id-mismatch` or
+`asset-not-kept`, after the fact. **A package's worth of dependencies for an agent**:
 the SDK ships its HTTP transports in one package, so Express, Hono, CORS,
 a JSON Schema validator and their closure, 84 packages no other published
 package reaches, are installed for a server that speaks stdio alone.
@@ -213,7 +286,9 @@ declarations' and README's to say, and a model that guesses is refused
 refusal word for word**, which names what was refused but not which of
 the commands it was. **`apply_commands` answers the whole new report**,
 in the text and again in the structured answer, so a report near
-`MAX_REPORT_BYTES` costs a model's context that much on every edit. The
+`MAX_REPORT_BYTES` goes out twice on every edit, up to twice that bound
+of a model's context. **A message past 10 MiB ends the server** for the
+rest of the agent's session, with no answer. The
 tool descriptions and the prompts are asserted for what they say, never
 for whether a model follows them: nothing here runs a model against the
 tools. The bin has been launched by the SDK's stdio client alone -- in the
