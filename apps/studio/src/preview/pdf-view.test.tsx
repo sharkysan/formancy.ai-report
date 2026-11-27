@@ -18,6 +18,8 @@ import type { WordFile } from './pipeline.js'
  */
 const pdfjs = vi.hoisted(() => ({
   drawn: [] as { readonly page: number; readonly zoom: number; readonly document: number }[],
+  /** The draws the viewer cancelled, as `drawn` holds them. */
+  cancelled: [] as { readonly page: number; readonly zoom: number; readonly document: number }[],
   loads: 0,
   destroyed: [] as number[],
   held: null as Promise<void> | null,
@@ -35,7 +37,7 @@ vi.mock('./pdf-document.js', () => ({
           // As PDF.js's own getPage does, asked of a document let go of: at once, not by rejecting.
           if (pdfjs.destroyed.includes(document)) throw new TypeError("Cannot read properties of null (reading 'sendWithPromise')")
           pdfjs.drawn.push({ page, zoom, document })
-          return { done: Promise.resolve(), cancel: () => undefined }
+          return { done: Promise.resolve(), cancel: () => void pdfjs.cancelled.push({ page, zoom, document }) }
         },
       })),
       destroy: () => {
@@ -61,6 +63,7 @@ beforeAll(() => {
 afterEach(() => {
   cleanup()
   pdfjs.drawn.length = 0
+  pdfjs.cancelled.length = 0
   pdfjs.loads = 0
   pdfjs.destroyed.length = 0
   pdfjs.held = null
@@ -350,5 +353,137 @@ describe('the PDF viewer', () => {
     const paper = screen.getByRole('region', { name: PAPER_NAME })
     expect(paper.tabIndex).toBe(0)
     await screen.findByRole('group', { name: 'Page 1 of 3' })
+  })
+})
+
+/**
+ * The paper's box, stood in: jsdom lays nothing out, so every element is
+ * 0 by 0 and scrolls nothing. Set on the paper alone, found by the name
+ * its region has -- the accessibility tree has no word for a box -- and
+ * gone after each case. How far the paper is scrolled is read from the
+ * DOM too, `scrollTop`, which jsdom keeps as it is set: no role says it.
+ */
+const BOX = ['clientWidth', 'clientHeight', 'scrollHeight'] as const
+function paperBox(box: Readonly<Record<(typeof BOX)[number], number>>): void {
+  for (const name of BOX)
+    Object.defineProperty(HTMLElement.prototype, name, {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.getAttribute('aria-label') === PAPER_NAME ? box[name] : 0
+      },
+    })
+}
+
+/** 600 pixels of room: fit width puts the stand-in's A4 pages at 75 %, where a slip is 297.6 pixels high. */
+const ROOM = 600
+
+describe('the PDF viewer, opened on a document with a QR-bill (0090)', () => {
+  afterEach(() => {
+    for (const name of BOX) Reflect.deleteProperty(HTMLElement.prototype, name)
+  })
+
+  const zoomGroup = (): HTMLElement => screen.getByRole('group', { name: 'Zoom' })
+  const fitWidth = (): HTMLElement => within(zoomGroup()).getByRole('button', { name: 'Fit width' })
+  const settled = async (): Promise<HTMLElement> => {
+    const paper = screen.getByRole('region', { name: PAPER_NAME })
+    await waitFor(() => expect(paper.getAttribute('aria-busy')).toBe('false'))
+    return paper
+  }
+
+  // The slip, 105 mm across the foot of the last page, fits the paper's
+  // 400 pixels at fit width: the paper opens there, Fit width pressed,
+  // scrolled to its end, the slip's foot at the view's. A paper that opened
+  // at the top would show a visitor the invoice's head and leave its
+  // QR-bill, the reason the Studio opens on it (0082), below the view.
+  test('opens scrolled to the bill, at fit width where the slip fits the view', async () => {
+    paperBox({ clientWidth: ROOM, clientHeight: 400, scrollHeight: 3000 })
+    render(<PdfView pdf={PDF} word={WORD} name="invoice" stale={false} bill />)
+    const paper = await settled()
+    expect(within(zoomGroup()).getByText('75%')).toBeTruthy()
+    expect(fitWidth().getAttribute('aria-pressed')).toBe('true')
+    expect(paper.scrollTop).toBe(3000 - 400)
+  })
+
+  // 250 pixels of paper hold no 297.6 pixel slip at fit width: the paper
+  // opens at the largest zoom that does, 62 %, which Fit width then is not,
+  // and scrolled to its end. Fit width and a scroll alone would cut the
+  // slip's foot, as they did in a 1280 by 720 window. Every page is drawn
+  // at that zoom, and a draw begun at fit width as the PDF was laid out is
+  // cancelled: finished, the pages would shrink in front of the person.
+  test('opens at the zoom the slip fits at where fit width is too large for the view', async () => {
+    paperBox({ clientWidth: ROOM, clientHeight: 250, scrollHeight: 3000 })
+    render(<PdfView pdf={PDF} word={WORD} name="invoice" stale={false} bill />)
+    const paper = await settled()
+    expect(within(zoomGroup()).getByText('62%')).toBeTruthy()
+    expect(fitWidth().getAttribute('aria-pressed')).toBe('false')
+    expect(pdfjs.drawn.filter((each) => each.zoom === 0.62).map((each) => each.page)).toEqual([1, 2, 3])
+    expect(pdfjs.drawn.filter((each) => each.zoom !== 0.62)).toEqual(pdfjs.cancelled)
+    expect(paper.scrollTop).toBe(3000 - 250)
+  })
+
+  // A document with no QR-bill opens as every PDF did: at fit width, at
+  // its top. Opened at the end of its last page, a quotation would hide
+  // its head for a slip it does not have.
+  test('opens a document without one at its top, at fit width', async () => {
+    paperBox({ clientWidth: ROOM, clientHeight: 250, scrollHeight: 3000 })
+    render(<PdfView pdf={PDF} word={WORD} name="quotation" stale={false} />)
+    const paper = await settled()
+    expect(within(zoomGroup()).getByText('75%')).toBeTruthy()
+    expect(paper.scrollTop).toBe(0)
+  })
+
+  // A paper with no height is drawn out of sight -- a phone's builder
+  // showing another pane -- and has no view to fit the slip in: opened at
+  // the bill, it would come into sight at half size, scrolled to a slip
+  // fitted to nothing.
+  test('opens a paper with no height at its top, at fit width', async () => {
+    paperBox({ clientWidth: ROOM, clientHeight: 0, scrollHeight: 0 })
+    render(<PdfView pdf={PDF} word={WORD} name="invoice" stale={false} bill />)
+    const paper = await settled()
+    expect(within(zoomGroup()).getByText('75%')).toBeTruthy()
+    expect(fitWidth().getAttribute('aria-pressed')).toBe('true')
+    expect(paper.scrollTop).toBe(0)
+  })
+
+  // The first PDF opens at the bill and nothing after it does: once the
+  // person has scrolled, an edit's PDF, Final's, or a zoom they choose
+  // leaves the paper where they put it. A viewer that opened every PDF at
+  // the bill would pull the page out from under a person reading its head
+  // each time they typed.
+  test('leaves the paper where the person put it, for every PDF after the first and every zoom', async () => {
+    const user = userEvent.setup()
+    paperBox({ clientWidth: ROOM, clientHeight: 400, scrollHeight: 3000 })
+    const { rerender } = render(<PdfView pdf={PDF} word={WORD} name="invoice" stale={false} bill />)
+    const paper = await settled()
+    expect(paper.scrollTop).toBe(2600)
+    paper.scrollTop = 120
+    rerender(<PdfView pdf={NEWER} word={NEWER_WORD} name="invoice" stale={false} bill />)
+    await waitFor(() => expect(pdfjs.loads).toBe(2))
+    await settled()
+    expect(paper.scrollTop).toBe(120)
+    await user.click(within(zoomGroup()).getByRole('button', { name: 'Zoom out' }))
+    await user.click(fitWidth())
+    await settled()
+    expect(paper.scrollTop).toBe(120)
+    expect(within(zoomGroup()).getByText('75%')).toBeTruthy()
+  })
+
+  // A zoom the person chose before the first PDF arrived is theirs: the
+  // PDF comes at it, at its top, and is not refitted to the bill or
+  // scrolled from under the press. With no page yet, fit width is 100 %,
+  // and Zoom in from it 125 %.
+  test('keeps a zoom chosen before the first PDF arrived, and opens that PDF at its top', async () => {
+    const user = userEvent.setup()
+    paperBox({ clientWidth: ROOM, clientHeight: 250, scrollHeight: 3000 })
+    let release = (): void => undefined
+    pdfjs.held = new Promise((resolve) => {
+      release = resolve
+    })
+    render(<PdfView pdf={PDF} word={WORD} name="invoice" stale={false} bill />)
+    await user.click(within(zoomGroup()).getByRole('button', { name: 'Zoom in' }))
+    await act(async () => release())
+    const paper = await settled()
+    expect(within(zoomGroup()).getByText('125%')).toBeTruthy()
+    expect(paper.scrollTop).toBe(0)
   })
 })

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { INVOICE_EDITIONS, INVOICE_LANGUAGES, invoiceLanguagesData, STARTER_IMAGES, STARTERS } from '@formancy/report-corpus'
 import { drawingsOn, epcCodes, readCii, readCodes, readPdf, readPdfObjects, textAt } from '@formancy/report-corpus'
 import { expectation, readDocx, verifyDocx, wordRefusal } from '@formancy/report-corpus'
-import { readCopyLabel, resolveReport } from '@formancy/report-runtime'
+import { QR_BILL_TOP, readCopyLabel, resolveReport } from '@formancy/report-runtime'
 import { afterAll, beforeAll, describe, expect, test, vi, type MockInstance } from 'vitest'
 import { studioImages } from '../images/image-store.js'
 import { decodeStarters, encodeStarters } from '../starters/codec.js'
@@ -104,6 +104,10 @@ describe('the preview pipeline', () => {
       'sales-report': 'Umsatzbericht',
     }
     if (id !== 'blank') expect(pdf.pages.flatMap((page) => page.items.map((item) => item.text)).join(' ')).toContain(titles[id] ?? `(no title for ${id})`)
+    // The Preview opens at the QR-bill of a document that carries one, and
+    // only of one (0090): a flag lost would open the invoice at its head,
+    // one set for every PDF would open the quotation at a slip it lacks.
+    expect(outcome.bill).toBe(request(id).report.paymentPart !== undefined)
     expect(outcome.manifest.mode).toBe('preview')
     // A preview writes no e-invoice (0027): an XML handed on here would be a
     // Download XML of an invoice the runtime never wrote.
@@ -156,7 +160,10 @@ describe('the preview pipeline', () => {
   // receipt and payment part are printed on the invoice's one page, and
   // its code, read from the pixels PDF.js draws, is the bill's text. A
   // browser entry that lost the font, or drew the slip without the code,
-  // would show a Studio invoice nobody could pay.
+  // would show a Studio invoice nobody could pay. Slip and code stand at
+  // the foot of the last page, below report-spec's QR_BILL_TOP, which is
+  // where the Preview opens a document that carries a bill (0090): a slip
+  // drawn anywhere else would open the paper on a box with nothing in it.
   test('prints the invoice with its QR-bill, its code the bill the runtime resolved', async () => {
     const invoice = request('invoice')
     const outcome = await preview(invoice, new AbortController().signal)
@@ -173,7 +180,11 @@ describe('the preview pipeline', () => {
     expect(pdf.pages).toHaveLength(1)
     const printed = pdf.pages[0]?.items.map((item) => item.text).join(' ') ?? ''
     for (const words of ['Empfangsschein', 'Zahlteil', bill.amount ?? '(no amount)']) expect(printed).toContain(words)
-    expect((await readCodes(outcome.pdf, 1)).map((code) => code.text)).toEqual([bill.payload])
+    const codes = await readCodes(outcome.pdf, 1)
+    expect(codes.map((code) => code.text)).toEqual([bill.payload])
+    const foot = (box: { readonly top: number; readonly bottom: number }): boolean => box.top >= QR_BILL_TOP && box.bottom <= (pdf.pages[0]?.height ?? 0)
+    expect(codes.every(foot)).toBe(true)
+    expect(pdf.pages[0]?.items.filter((item) => ['Empfangsschein', 'Zahlteil'].includes(item.text)).map(foot)).toEqual([true, true])
   })
 
   // The euro invoice's EPC code is drawn by the browser entry the page
