@@ -159,7 +159,7 @@ describe('readReportData', () => {
       const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
       const client = changedAfterFirstPage(fixture.client, () => {
         if (change === 'deleted') records.splice(0, 2)
-        else records.unshift({ record: 'l-0', version: '1', answers: { ...records[0]!.answers, article: 'A-0999' } })
+        else records.unshift({ key: 'l-0', record: 'l-0', version: '1', answers: { ...records[0]!.answers, article: 'A-0999' } })
       })
       const data = read(await readReportData(client, orderReport(), ORDER))
       expect(
@@ -253,7 +253,7 @@ describe('readReportData', () => {
   // A page asked for after a row holds only rows after it, so it never
   // ends on that row (formancy.ai-data 0108). One that does is a server
   // answering the same place again: followed, the provider would ask after
-  // the same cursor until the cap, 2,000 requests at the default, adding
+  // the same cursor until the cap, a request for every page it holds, adding
   // the rows each time. Its rows here have no token, which nothing could
   // compare, so the cursor is what says so.
   test('refuses a page that ends on the row it was asked to continue after', async () => {
@@ -279,6 +279,43 @@ describe('readReportData', () => {
     const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
     const data = read(await readReportData(fixture.client, orderReport(), ORDER))
     expect(data.detail?.map((row) => row['article'])).toEqual(Array.from({ length: 120 }, (_, index) => `A-${String(1000 + index)}`))
+  })
+
+  // A page may end on a row whose key fits no token: Data spells its cursor
+  // from the key, which every row has, and continues after it all the same
+  // (formancy.ai-data 0108). A cursor spelt from the token would name every
+  // such row alike and continue after the first of them, so the read would
+  // see rows of the first page again and be refused for a repeat that
+  // never happened.
+  test('reads on after a page that ends on a row with no token, by the cursor of its key', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const records = line.records.map((row, index) => (index === 9 || index === 49 ? { ...row, record: null } : row))
+    const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
+    const data = read(await readReportData(fixture.client, orderReport(), ORDER))
+    expect(data.detail?.map((row) => row['article'])).toEqual(Array.from({ length: 120 }, (_, index) => `A-${String(1000 + index)}`))
+  })
+
+  // A record read on the first page, deleted and created again under its
+  // key before the next, comes back under the same token when it sorts
+  // after the cursor: two records of two moments, not one line moved.
+  // Refused as a repeat all the same, and its message says which of the
+  // two it can be, so a host that reads the log is not told a move that
+  // did not happen.
+  test('refuses a record deleted and created again under its key between two pages, saying so', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const records = [...line.records]
+    const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
+    const sort = [{ field: 'article', direction: 'asc' as const }]
+    const client = changedAfterFirstPage(fixture.client, () => {
+      const [gone] = records.splice(9, 1)
+      records.splice(9, 0, { ...gone!, version: '1', answers: { ...gone!.answers, article: 'A-9999' } })
+    })
+    const result = await readReportData(client, orderReport(), { ...ORDER, detail: { form: 'order-line', parent: 'header', sort } })
+    expect(result.ok ? 'read' : result.errors).toEqual([
+      { path: '/detail/120', code: 'repeated-row', message: expect.stringContaining('created again under its key') as unknown },
+    ])
   })
 
   // The row a page ended with, edited so that it moves back in the order

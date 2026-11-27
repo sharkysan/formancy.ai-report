@@ -59,9 +59,10 @@ export const PROVIDER_ERROR_CODES = [
    */
   'unexpected-page',
   /**
-   * A detail record answered on two pages: the rows moved in the order
-   * between them, as when the row a page ended with is edited
-   * (formancy.ai-data 0108). Refused rather than printed twice.
+   * A detail record answered on two pages: a row moved in the order between
+   * them, as when the row a page ended with is edited (formancy.ai-data
+   * 0108), or one deleted and created again under its key. Refused rather
+   * than printed twice; a row with no token is not compared.
    */
   'repeated-row',
   /** Data refused a request; `refusal` carries its status and code, and the message is its sentence. */

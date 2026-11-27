@@ -32,10 +32,18 @@ import type { FieldRef, ReportDefinition } from '@formancy/report-spec'
 
 type Field = PublishedForm['form']['model']['fields'][number]
 
+/**
+ * A record the fixture holds: what Data answers for it, and its key, which
+ * Data's cursor spells (formancy.ai-data 0108) and which every row has, a
+ * row whose key fits no token, `record: null`, among them. The key never
+ * goes on the wire.
+ */
+export type FixtureRecord = FormRecord & { readonly key: string }
+
 /** One form the fixture serves: what `GET /v1/forms/:id` answers, its records, and the labels each lookup source gives a token. */
 export interface FixtureForm {
   readonly published: PublishedForm
-  readonly records: readonly FormRecord[]
+  readonly records: readonly FixtureRecord[]
   readonly labels?: Readonly<Record<string, Readonly<Record<string, string>>>>
 }
 
@@ -67,8 +75,11 @@ type ListBody = {
 /** Data's sentence for a page after a row that is gone (formancy.ai-data 0108). */
 export const CURSOR_GONE = 'The record this page continues after has been deleted, or is no longer one you may read. Start again from the first page.'
 
-/** A row's cursor, as a page's `next` spells it: the server's own spelling, read by nothing but the server. */
-const cursorOf = (row: FormRecord): string => `c1:${String(row.record)}`
+/** A row's cursor, as a page's `next` spells it: its key, in the server's own spelling, read by nothing but the server. */
+const cursorOf = (row: FixtureRecord): string => `c1:${row.key}`
+
+/** A record as Data answers it: its token, its version and its answers, and never its key. */
+const onTheWire = ({ record, version, answers }: FixtureRecord): FormRecord => ({ record, version, answers })
 
 /**
  * The page `list` answers: Data's defaults for what is left out, at most 50
@@ -77,7 +88,7 @@ const cursorOf = (row: FormRecord): string => `c1:${String(row.record)}`
  */
 function page(form: FixtureForm, body: ListBody): Response {
   const parent = body.parent
-  const compare = (a: FormRecord, b: FormRecord): number => {
+  const compare = (a: FixtureRecord, b: FixtureRecord): number => {
     for (const term of body.sort ?? []) {
       const order = String(a.answers[term.field]).localeCompare(String(b.answers[term.field]))
       if (order !== 0) return term.direction === 'asc' ? order : -order
@@ -93,7 +104,7 @@ function page(form: FixtureForm, body: ListBody): Response {
   const shown = rows.slice(from, from + limit)
   const last = shown.at(-1)
   const hasMore = from + limit < rows.length && last !== undefined
-  return json(200, { rows: shown, hasMore, next: hasMore ? cursorOf(last) : null })
+  return json(200, { rows: shown.map(onTheWire), hasMore, next: hasMore ? cursorOf(last) : null })
 }
 
 /** A data client of a server holding `forms` and answering `menu`, and every request it was asked. */
@@ -114,7 +125,7 @@ export function dataFixture(forms: Readonly<Record<string, FixtureForm>>, menu: 
     const request = body as Record<string, unknown>
     if (kind === 'records' && name === 'read') {
       const found = form.records.find((row) => row.record === request['record'])
-      return found === undefined ? notFound() : json(200, found)
+      return found === undefined ? notFound() : json(200, onTheWire(found))
     }
     if (kind === 'records' && name === 'list') return page(form, request)
     if (kind === 'lookups' && action === 'resolve') {
@@ -174,7 +185,8 @@ function published(id: string, specVersion: '3' | '5', fields: readonly Field[],
 
 /** The order's lines: `count` of them for order `o-1`, and two for another order the person may also read. */
 export function orderForms(count = 3): Record<string, FixtureForm> {
-  const lines: FormRecord[] = Array.from({ length: count }, (_, index) => ({
+  const lines: FixtureRecord[] = Array.from({ length: count }, (_, index) => ({
+    key: `l-${String(index + 1)}`,
     record: `l-${String(index + 1)}`,
     version: '1',
     answers: {
@@ -187,7 +199,8 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
       warehouse: 'Basel',
     },
   }))
-  const other: FormRecord[] = ['l-x', 'l-y'].map((record) => ({
+  const other: FixtureRecord[] = ['l-x', 'l-y'].map((record) => ({
+    key: record,
     record,
     version: '1',
     answers: { order: 'o-2', article: 'B-1', quantity: 1, amount: '1.00', shippedAt: null, warehouse: 'Bern' },
@@ -208,8 +221,13 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
         ['number', 'customer', 'orderedOn', 'total', 'paid'],
       ),
       records: [
-        { record: 'o-1', version: '7', answers: { number: 'Q-2026-0042', customer: 'c-9', orderedOn: '2026-10-15', total: '3143.00', paid: 'false' } },
-        { record: 'o-2', version: '1', answers: { number: 'Q-2026-0043', customer: 'c-9', orderedOn: '2026-10-16', total: '1.00', paid: null } },
+        {
+          key: 'o-1',
+          record: 'o-1',
+          version: '7',
+          answers: { number: 'Q-2026-0042', customer: 'c-9', orderedOn: '2026-10-15', total: '3143.00', paid: 'false' },
+        },
+        { key: 'o-2', record: 'o-2', version: '1', answers: { number: 'Q-2026-0043', customer: 'c-9', orderedOn: '2026-10-16', total: '1.00', paid: null } },
       ],
       labels: { customers: { 'c-9': 'Bäckerei Müller AG' } },
     },

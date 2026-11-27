@@ -119,9 +119,10 @@ async function readRows(
     // ones asked for, cut off, would never be asked for again.
     if (answered.length > limit) return unexpected('Data answered a page of more detail rows than were asked for, and none is handed over')
     if (after !== null && next === after) return unexpected('Data answered a page of detail rows that ends on the row it was asked to continue after')
-    // A record on two pages is rows that moved in the order between them:
-    // printed, it would be totalled twice. A row with no token is in its
-    // place and cannot be compared.
+    // A record on two pages is a row that moved in the order between them,
+    // or one deleted and created again under its key: printed, it would be
+    // totalled twice. A row with no token is in its place and cannot be
+    // compared, so a repeat of one prints.
     for (const [index, row] of answered.entries()) {
       if (row.record === null) continue
       if (seen.has(row.record)) {
@@ -129,7 +130,7 @@ async function readRows(
           path: `/detail/${String(rows.length + index)}`,
           code: 'repeated-row',
           message:
-            'Data answered a detail record that an earlier page held: the rows moved in the order between two pages, and the lines are not printed twice; read them again',
+            'Data answered a detail record that an earlier page held, moved in the order or deleted and created again under its key between two pages, and the lines are not printed twice; read them again',
         }
       }
       seen.add(row.record)
