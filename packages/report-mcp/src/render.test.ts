@@ -1,4 +1,4 @@
-import { QUOTATION, quotationData, quotationLines } from '@formancy/report-corpus'
+import { ALL_FIXTURES, QUOTATION, quotationData, quotationLines } from '@formancy/report-corpus'
 import { MAX_DETAIL_ROWS, MAX_STRING_LENGTH, PREVIEW_LABEL } from '@formancy/report-runtime'
 import type { RenderManifest, RuntimeError } from '@formancy/report-runtime'
 import { emptyReport, MAX_REPORT_BYTES } from '@formancy/report-spec'
@@ -174,6 +174,28 @@ describe('the assets an agent passes', () => {
     expect(result.data).not.toHaveProperty('runtime')
     const unused = { asset: 'unused', digest: logo.digest, mediaType: logo.mediaType, base64: other.base64 }
     expect(dataOf<Refused>(await renderCheck(quotation({ assets: [...STARTER_ASSETS, unused] }))).refusal?.code).toBe('asset-not-its-digest')
+  })
+
+  // A font is an asset as an image is (0043): a face the report maps
+  // comes as bytes with its digest, and its lines print in it; a face
+  // whose bytes are not its digest is refused before anything resolves.
+  test('prints in a face the report maps, passed as bytes with its digest', async () => {
+    const serif = ALL_FIXTURES.find(({ id }) => id === 'host-fonts')?.document.fonts?.serif?.normal
+    if (serif === undefined) throw new Error('the corpus has no host serif')
+    const report = QUOTATION.report
+    const mapped: ReportDefinition = {
+      ...report,
+      assets: [...report.assets, { id: 'serif', mediaType: 'font/ttf', digest: serif.digest }],
+      fonts: { serif: { normal: 'serif' } },
+      styles: report.styles.map((style) => (style.id === 'address' ? { ...style, font: 'serif' } : style)),
+    }
+    const face = { asset: 'serif', digest: serif.digest, mediaType: 'font/ttf', base64: Buffer.from(serif.bytes).toString('base64') }
+    const result = await renderCheck(quotation({ report: mapped, assets: [...STARTER_ASSETS, face] }))
+    expect(result.ok, result.summary).toBe(true)
+    expect(dataOf<Rendered>(result).pages[0]?.lines).toContain('Bäckerei Müller AG')
+    expect(dataOf<Refused>(await renderCheck(quotation({ report: mapped }))).runtime?.map(({ code }) => code)).toContain('missing-asset')
+    const wrong = { ...face, base64: Buffer.from(serif.bytes.subarray(1)).toString('base64') }
+    expect(dataOf<Refused>(await renderCheck(quotation({ report: mapped, assets: [...STARTER_ASSETS, wrong] }))).refusal?.code).toBe('asset-not-its-digest')
   })
 
   // An image the report draws and the call does not carry is the

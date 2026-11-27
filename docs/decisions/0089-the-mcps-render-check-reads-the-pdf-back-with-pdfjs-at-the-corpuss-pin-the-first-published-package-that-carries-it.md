@@ -19,7 +19,9 @@
     asset whose bytes are not the digest it came with is refused
     `asset-not-its-digest` before anything resolves, though the report
     never draws it and though the data would be refused; an image the
-    call does not carry is the runtime's `missing-asset`; assets that are
+    call does not carry is the runtime's `missing-asset`; a face the
+    report maps, passed as bytes with its digest, prints, and is the
+    runtime's `missing-asset` where the call does not carry it; assets that are
     not four strings, bytes that are not base64 and a mode that is
     neither are refused; no byte of the PDF, raw or in base64, in any
     answer; nothing fetched; what the renderer throws that is no refusal
