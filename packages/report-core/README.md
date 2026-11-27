@@ -192,6 +192,19 @@ against `ARGUMENTS` and refuses too few, too many or the wrong type with
 `invalid-arguments`. A descriptor never throws, whatever it holds. A typed
 call to a command can pass none of these.
 
+What someone writing a report or a command as data is told comes from the
+same tables, never from a second list of them
+([0088](../../docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)):
+`describeCommands()` is every command of `COMMANDS`, in its order, as
+`{ command, args }`, each argument in the words `invalid-arguments` refuses
+it in -- its shape, not what it is for -- with `MAX_BATCH_COMMANDS`,
+`PART_COMMANDS` and `REFUSAL_CODES`; and `reportFacts()` is the format's
+vocabularies by report-spec's constants, what an expression reads in each
+place and as which type, every diagnostic's code and severity, the bounds a
+report is refused past under their constants' names, and the notes an
+author writing from memory of other report writers needs first. The MCP
+server's `describe_commands` and `describe_format` answer them.
+
 ## Where a component may go
 
 - `locationOf(report, id)` is where a component stands, as the location a

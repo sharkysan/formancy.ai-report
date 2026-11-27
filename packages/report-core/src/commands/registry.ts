@@ -11,7 +11,7 @@
  */
 import { DATASET_ROLES, REGION_NAMES } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
-import { quote, refuse } from '../outcome.js'
+import { quote, REFUSAL_CODES, refuse } from '../outcome.js'
 import type { Command, CommandOutcome } from '../outcome.js'
 import { duplicateComponent, insertComponent, moveComponent, removeComponent, updateComponent } from './components.js'
 import {
@@ -245,6 +245,32 @@ export const ARGUMENTS: { readonly [N in CommandName]: readonly Shape[] } = {
   translateWord: ['text', 'text', 'textOrNull'],
   translateExpression: ['text', 'text', 'objectOrNull'],
   batch: ['list'],
+}
+
+/** What `describeCommands` says of the commands: each as the data a descriptor is, its arguments in the words a refusal says them in. */
+export interface CommandFacts {
+  /** Every command, in `COMMANDS`' order: its name, and its arguments after the report as `invalid-arguments` names each. */
+  readonly commands: readonly { readonly command: CommandName; readonly args: readonly string[] }[]
+  readonly maxBatchCommands: typeof MAX_BATCH_COMMANDS
+  readonly partCommands: typeof PART_COMMANDS
+  readonly refusalCodes: typeof REFUSAL_CODES
+}
+
+/**
+ * The commands as an agent is told them (0088): every one of `COMMANDS`
+ * with its arguments' shapes in `ARGUMENTS`' words -- the very words a
+ * descriptor of the wrong arguments is refused in -- the batch's bound,
+ * the commands that may change a part of the report's own level, and the
+ * codes a refusal gives. Read from the registry, so a command added there
+ * is a command described, and nothing here is a second list of them.
+ */
+export function describeCommands(): CommandFacts {
+  return {
+    commands: (Object.keys(COMMANDS) as CommandName[]).map((command) => ({ command, args: ARGUMENTS[command].map((shape) => SHAPES[shape].said) })),
+    maxBatchCommands: MAX_BATCH_COMMANDS,
+    partCommands: PART_COMMANDS,
+    refusalCodes: REFUSAL_CODES,
+  }
 }
 
 /** Why `args` are not arguments `name` takes, or undefined when they are. Never quotes an argument. */
