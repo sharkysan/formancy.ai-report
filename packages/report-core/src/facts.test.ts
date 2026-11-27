@@ -37,6 +37,35 @@ import { reportFacts } from './facts.js'
 import * as core from './index.js'
 import { REFUSAL_CODES } from './outcome.js'
 
+/** The file's, never the report's: each holds a file a report names by its digest, which its own reader holds it to. */
+const FILE = 'a file the report names by its digest, held to it by report-spec’s own reader, never a report written as JSON'
+
+/** report-spec's limits that are no bound a report is refused past, each with why. */
+const NOT_BOUNDS: Readonly<Record<string, string>> = {
+  MAX_ERRORS: 'how many errors the validator lists of a report it refuses, not a bound a report is refused past',
+  MAX_ASSET_BYTES: FILE,
+  MAX_ASSET_SIDE: FILE,
+  MAX_FONT_BYTES: FILE,
+  MAX_FONT_CHARACTERS: FILE,
+  MAX_FONT_COMPONENTS: FILE,
+  MAX_FONT_GLYPH_WORK: FILE,
+  MAX_FONT_LINE: FILE,
+  MAX_FONT_OUTLINE_WORK: FILE,
+  MAX_FONT_POINTS: FILE,
+  MIN_FONT_LINE: FILE,
+  MAX_SVG_BYTES: FILE,
+  MAX_SVG_CASCADE: FILE,
+  MAX_SVG_COORDINATE: FILE,
+  MAX_SVG_DASHES: FILE,
+  MAX_SVG_DEPTH: FILE,
+  MAX_SVG_ELEMENTS: FILE,
+  MAX_SVG_GROUPS: FILE,
+  MAX_SVG_REMOVED_NAMES: FILE,
+  MAX_SVG_RULES: FILE,
+  MAX_SVG_SEGMENTS: FILE,
+  MAX_SVG_STOPS: FILE,
+}
+
 describe('reportFacts', () => {
   // A list typed into the facts would stay as it was when a kind, a region
   // or a type is added; the constant itself cannot.
@@ -78,6 +107,19 @@ describe('reportFacts', () => {
     expect(bounds.MAX_REPORT_BYTES).toBe(MAX_REPORT_BYTES)
     expect(bounds.MAX_TABLES).toBe(MAX_TABLES)
     for (const [name, value] of Object.entries(bounds)) expect(value, name).toBe((spec as Readonly<Record<string, unknown>>)[name])
+  })
+
+  // A limit added to report-spec would otherwise never reach an agent, and
+  // nothing would fail: every MAX_ and MIN_ report-spec exports is a bound
+  // the facts give, or is named here with why a report written as JSON is
+  // never refused past it.
+  test('gives every limit report-spec exports, but those no report written as JSON is refused past', () => {
+    const limits = Object.keys(spec).filter((name) => /^(?:MAX|MIN)_/.test(name))
+    expect(limits.length).toBeGreaterThan(40)
+    const given = Object.keys(reportFacts().bounds)
+    expect(given.filter((name) => Object.hasOwn(NOT_BOUNDS, name))).toEqual([])
+    expect(limits.filter((name) => !given.includes(name) && !Object.hasOwn(NOT_BOUNDS, name))).toEqual([])
+    expect(Object.keys(NOT_BOUNDS).filter((name) => !limits.includes(name))).toEqual([])
   })
 
   // The notes are what costs a model a turn; one that named a number

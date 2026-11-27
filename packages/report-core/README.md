@@ -200,10 +200,13 @@ same tables, never from a second list of them
 it in -- its shape, not what it is for -- with `MAX_BATCH_COMMANDS`,
 `PART_COMMANDS` and `REFUSAL_CODES`; and `reportFacts()` is the format's
 vocabularies by report-spec's constants, what an expression reads in each
-place and as which type, every diagnostic's code and severity, the bounds a
-report is refused past under their constants' names, and the notes an
-author writing from memory of other report writers needs first. The MCP
-server's `describe_commands` and `describe_format` answer them.
+place and as which type, every diagnostic's code and severity, every limit
+report-spec exports as a bound under its constant's name -- but those of a
+font, an SVG or an image file and the validator's count of errors, which
+its test names with why -- and `NOTES`, what an author writing from memory
+of other report writers needs first, each held by `facts-notes.test.ts` to
+the validator, the compiler or the command that refuses what it says. The
+MCP server's `describe_commands` and `describe_format` answer them.
 
 ## Where a component may go
 
