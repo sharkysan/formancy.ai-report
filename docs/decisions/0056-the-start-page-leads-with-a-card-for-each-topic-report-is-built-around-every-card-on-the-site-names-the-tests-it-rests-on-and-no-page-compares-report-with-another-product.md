@@ -12,7 +12,11 @@
   [0081](0081-the-start-page-names-pdf-and-word-pages-for-invoices-word-files-and-each-report-designer-join-it-and-every-package-names-keywords.md),
   under which the start page's head names PDF and Word, and the
   invoices, Word files and report designer pages each carry a status
-  and cards that name their tests
+  and cards that name their tests; its absence "No changes proposed by an
+  AI" held by report-ai's built `REQUEST_KINDS` being empty, and no
+  published package but report-ai taking it, since
+  [0083](0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md),
+  in place of no published package named `report-ai`
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
 - **Verified by:** the pages' suite, which CI's `test` job runs,

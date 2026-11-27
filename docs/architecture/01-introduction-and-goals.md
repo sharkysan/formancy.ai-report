@@ -60,7 +60,10 @@ rendered PDF against them. [Building blocks](05-building-blocks.md) has each.
   develop and test, paid to run in production, and a separate agreement to
   redistribute ([0001](../decisions/0001-a-paid-module-in-its-own-repository.md)).
   The Apache-2.0 packages it builds on stay Apache-2.0, and none of their
-  code is in a package here ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md));
+  code is in a package here ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md))
+  but formancy's model turn, which formancy does not export, held in
+  report-ai in formancy's shapes until formancy releases one other
+  products may brief ([0083](../decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md));
   the lint rules, which formancy.ai has not released yet, are copied into
   the repository's tooling until it does ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
 - **Not a form.** A report has pages, regions repeated on every page, a

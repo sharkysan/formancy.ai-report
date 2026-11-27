@@ -22,6 +22,7 @@ describe('codecov.yml', () => {
   test('names every package that produces coverage', () => {
     const ids = coveredPackages().map((entry) => entry.id)
     expect(ids).toEqual([
+      'report-ai',
       'report-builder-angular',
       'report-builder-core',
       'report-builder-react',
