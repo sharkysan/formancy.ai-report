@@ -189,9 +189,11 @@ export const CONFINED = Object.freeze({
  * embeds it in a customer's document nor draws with it, and what a
  * customer installs is the dependency's tarball, which npm fetches from
  * the registry with the licence beside the file. Refused at another
- * digest, depended on by any other published package, and where nothing
- * installs it. **Proposed in 0089 and the owner's to decide**: it admits,
- * for the first time, files under a licence the policy refuses.
+ * digest, depended on by any other published package, where nothing
+ * installs it, and where `heldBy`, `file#test name`, names no case the
+ * repository holds (`heldByProblems`). It admits, for the first time,
+ * files under a licence the policy refuses: the owner admitted these four
+ * on 28 November 2026, narrowly, as 0089 proposed them.
  *
  * - pdfjs-dist 6.4.299's `standard_fonts/LiberationSans-*.ttf`, Liberation
  *   Sans 1.07.4, whose name tables say "Licensed under the Liberation
@@ -214,7 +216,78 @@ export const NEVER_LOADED = Object.freeze({
       'standard_fonts/LiberationSans-Regular.ttf': 'sha256:f8ace1f892b2bd9dc1792ba7f097fa7588f84fed48321480e04de5390828221f',
     }),
     licence: "GPL-2.0 with Red Hat's font-embedding exception: Liberation Sans 1.07.4",
-    heldBy: 'packages/report-mcp/src/pdf-text.test.ts',
+    heldBy: 'packages/report-mcp/src/pdf-text.test.ts#fetches nothing and reads no file, pdfjs-dist’s own standard fonts among them',
     evidence: "standard_fonts/LICENSE_LIBERATION in the tarball, and each face's name table, read 2026-11-27",
+  }),
+})
+
+/**
+ * Native builds a review read by the SBOM each ships, admitted for one
+ * published package alone (0089, extending 0006 as 0058 did; the owner
+ * admitted them on 28 November 2026): a family's name to the version a
+ * review read, the package it is for, each build by the SHA-256 of its
+ * `sbom.cdx.json`, and the components every build's SBOM lists whose
+ * licence the policy refuses or that state none, each with its licence as
+ * the SBOM writes it. A package that ships a `.node` file and is of no
+ * family here is refused; so is one of a family at another version, a
+ * build no review read, an SBOM of other bytes or of other components
+ * beyond the policy, a route that does not pass the package it is for,
+ * and, by the lockfile, a build or a version of the family that no
+ * machine here installs and no review read (`lockfileProblems`).
+ *
+ * - `@napi-rs/canvas` 1.0.11, which pdfjs-dist 6.4.299 requires in Node
+ *   where it is installed, and so loads in report-mcp's process from its
+ *   first render check: its wrapper is MIT, judged as any package, and
+ *   each of its eleven platform builds ships `skia.<platform>.node` and
+ *   `sbom.cdx.json`, CycloneDX 1.6, which the review read from the
+ *   registry's tarballs on 28 November 2026 -- 107 components each, 105
+ *   for `linux-riscv64-gnu`, which lacks highway and libjxl, Apache-2.0
+ *   and BSD-3-Clause. Beyond the policy, the same twelve in every build:
+ *   four Rust crates under MPL-2.0 -- cssparser 0.38.0, cssparser-color
+ *   0.6.0, cssparser-macros 0.7.0, dtoa-short 0.3.5 -- MPL-2.0 being
+ *   file-level, asking nothing of a use that does not modify those files;
+ *   FreeType under the FTL; ICU under the ICU licence, whose data the
+ *   Windows builds ship beside as `icudtl.dat`; libjpeg-turbo under
+ *   BSD-3-Clause, IJG and Zlib; libpng under libpng-2.0; unicode-ident
+ *   under (MIT OR Apache-2.0) AND Unicode-3.0; fnv and siphasher, whose
+ *   "Apache-2.0 / MIT" and "MIT/Apache-2.0" are no SPDX expressions; and
+ *   the canvas crate itself, which states none and the package's manifest
+ *   calls MIT. The SBOM names no Skia component, though the binary is
+ *   Skia's build. pdfjs-dist asks for `^1.0.10`, so an integrator's
+ *   install may resolve a later 1.x, which nobody here read.
+ */
+const CANVAS_BEYOND_POLICY = Object.freeze({
+  'canvas@0.1.0': null,
+  'cssparser-color@0.6.0': 'MPL-2.0',
+  'cssparser-macros@0.7.0': 'MPL-2.0',
+  'cssparser@0.38.0': 'MPL-2.0',
+  'dtoa-short@0.3.5': 'MPL-2.0',
+  'fnv@1.0.7': 'Apache-2.0 / MIT',
+  'freetype@264b5fbf5b912b39f98d038bf75d39be0a73f21b': 'FTL',
+  'icu@d578f2e8b7bd5938e21cfb6bf15c079e0aa5b738': 'ICU',
+  'libjpeg-turbo@e14cbfaa85529d47f9f55b0f104a579c1061f9ad': 'BSD-3-Clause AND IJG AND Zlib',
+  'libpng@d5515b5b8be3901aac04e5bd8bd5c89f287bcd33': 'libpng-2.0',
+  'siphasher@1.0.3': 'MIT/Apache-2.0',
+  'unicode-ident@1.0.24': '(MIT OR Apache-2.0) AND Unicode-3.0',
+})
+export const BUILDS_READ = Object.freeze({
+  '@napi-rs/canvas': Object.freeze({
+    version: '1.0.11',
+    for: '@formancy/report-mcp',
+    builds: Object.freeze({
+      '@napi-rs/canvas-android-arm64': 'sha256:42b4aabaa377371df36a5fc80b5886572906780622a82152dce50f201048ef2b',
+      '@napi-rs/canvas-darwin-arm64': 'sha256:fef97515c7a723fb72bdf087adde78d6897ac69b7211b5221a7093799a7395a1',
+      '@napi-rs/canvas-darwin-x64': 'sha256:263001c3a829b9e2b407b5b05e6835aa44dd079693d2b166cba149f1750faf7e',
+      '@napi-rs/canvas-linux-arm-gnueabihf': 'sha256:2f0fdd1f8eabe4e46e74cf91f4e568a68a656af27237dbb3735252f9e27c8cdd',
+      '@napi-rs/canvas-linux-arm64-gnu': 'sha256:19ba0c193ca252822e955a7a08ee701a3b20cacbb84134b3378f17a4813a09b2',
+      '@napi-rs/canvas-linux-arm64-musl': 'sha256:0958322e992b7f581543956f04c452403ab5b04f05995eb30d0eeb8f331d60ad',
+      '@napi-rs/canvas-linux-riscv64-gnu': 'sha256:53f7a479f7765fa0efbd46e886de2529703b26564d8a6bc4cc5de662d9e61ac9',
+      '@napi-rs/canvas-linux-x64-gnu': 'sha256:d9fdfe49bbc314cccce604ac3947866132539a0f76ebc0798c95b1ecb8c787f8',
+      '@napi-rs/canvas-linux-x64-musl': 'sha256:54bc147b24708142fa7ef855c2c521cbdc87091991768d8daa1a37d63a208a61',
+      '@napi-rs/canvas-win32-arm64-msvc': 'sha256:4bbe84478b9238821fedc9c97c3ba33bde81a0caf2a39d26fff606c907f59b44',
+      '@napi-rs/canvas-win32-x64-msvc': 'sha256:af0b3af01a73d229ffabb515a7d6c0857784e359df39b0da59949e946415bf71',
+    }),
+    beyondPolicy: CANVAS_BEYOND_POLICY,
+    evidence: "sbom.cdx.json of each build, read from the registry's 1.0.11 tarballs on 2026-11-28; the owner admitted them for report-mcp that day",
   }),
 })

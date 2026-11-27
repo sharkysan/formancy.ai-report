@@ -37,8 +37,20 @@
 // A font a package ships that the one published package admitted for
 // never loads is `NEVER_LOADED`: at one version, by the digest of its
 // bytes, its package depended on by that published package and no other,
-// and a test named that shows it is never read (0089). It is the one way a
-// font under a licence the policy refuses passes, and the owner's to grant.
+// and a test named that shows it is never read, `file#test name`, which
+// the guard holds to a case of that name in that file (0089). It is the one
+// way a font under a licence the policy refuses passes; the owner granted
+// it on 28 November 2026.
+//
+// A package that ships a native addon, a `.node` file, carries code built
+// from sources its own licence may not cover. It is refused unless
+// `BUILDS_READ` names its family and its build, at one version, by the
+// SHA-256 of the SBOM the build ships, and the components of that SBOM
+// whose licence the policy refuses are the ones the review recorded; it is
+// reached through the published package admitted for and no other. The
+// lockfile names every platform's build, which no machine installs all of,
+// so each build and version of the family it names must be one the review
+// read too (0089).
 //
 // Where a manifest or a font is silent or wrong, a reviewed exception records
 // what the evidence says the licence is, at one exact version; the policy
@@ -53,11 +65,11 @@ import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync, realpathSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { filesIn, fontLicence, licenceTextsIn } from './dependency-licences/files.mjs'
-import { CONFINED, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES, NEVER_LOADED } from './dependency-licences/reviews.mjs'
+import { filesIn, fontLicence, licenceTextsIn, sbomIn } from './dependency-licences/files.mjs'
+import { BUILDS_READ, CONFINED, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES, NEVER_LOADED } from './dependency-licences/reviews.mjs'
 import { LICENSE_FIELD } from './verify-licenses.mjs'
 
-export { CONFINED, EXCEPTIONS, FORMANCY_DATA, fontLicence, ICC_PROFILES, NEVER_LOADED }
+export { BUILDS_READ, CONFINED, EXCEPTIONS, FORMANCY_DATA, fontLicence, ICC_PROFILES, NEVER_LOADED }
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -224,6 +236,7 @@ export function closure(start, siblings = new Set()) {
       licence,
       licenceFile: pointedFile(directory, licence),
       licenceTexts: licenceTextsIn(directory),
+      sbom: sbomIn(directory),
       dir: directory,
       via,
       sibling: siblings.has(directory),
@@ -334,16 +347,147 @@ function neverLoaded(item, id, font, route, unloaded) {
   return true
 }
 
+/** The admission in `builds` whose family `name` is one of, the family itself or one of its builds, `family-…`: [family, admission], or undefined. */
+function familyOf(name, builds) {
+  return Object.entries(builds).find(([family]) => name === family || name.startsWith(`${family}-`))
+}
+
+/** A component's place and licence as a review records it: `name@version`, and its licence or null. */
+const componentKey = ({ name, version }) => (version === undefined ? name : `${name}@${version}`)
+
+/**
+ * The components of `sbom`, a build's of `name@version`, whose licence the
+ * policy refuses or that state none, by `componentKey`, sorted: what a
+ * review records of the build. The build's own file, which the SBOM lists
+ * under the build's own purl, is the package's, judged by its manifest.
+ */
+export function beyondPolicy(sbom, name, version) {
+  const own = `pkg:npm/${name.replace(/^@/, '%40')}@${version}`
+  return Object.fromEntries(
+    (sbom.components ?? [])
+      .filter((component) => !String(component.purl ?? '').startsWith(own))
+      .filter((component) => component.licence === undefined || !spdxAllows(component.licence))
+      .map((component) => [componentKey(component), component.licence ?? null])
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+  )
+}
+
+/**
+ * What is wrong with a package of a family `builds` admits, or with one
+ * that ships a native addon no admission names: [] where neither, or where
+ * it is the family's version, reached through the package admitted for, and
+ * -- for a build -- one the review read, by its SBOM's digest and the
+ * components beyond the policy that SBOM lists.
+ */
+function buildProblems(item, id, route, builds) {
+  const family = familyOf(item.name, builds)
+  if (family === undefined) {
+    return (item.natives ?? []).length === 0
+      ? []
+      : [`${id} ships a native addon, ${item.natives.join(', ')}, whose build no review read: read its SBOM and record it in BUILDS_READ (${route})`]
+  }
+  const [name, admitted] = family
+  if (item.version !== admitted.version) return [`${id} is a version of ${name}, which a review read at ${admitted.version} alone (${route})`]
+  const found = []
+  if (!item.via.includes(admitted.for)) found.push(`${id} is admitted for ${admitted.for} alone, and is reached otherwise (${route})`)
+  if (item.name === name) return found
+  const read = admitted.builds[item.name]
+  if (read === undefined) return [...found, `${id} is a build of ${name} no review read (${route})`]
+  if (item.sbom?.sha256 !== read)
+    return [...found, `${id}'s sbom.cdx.json is ${item.sbom?.sha256 ?? 'missing'}, not the SBOM the review read (${read}) (${route})`]
+  const beyond = beyondPolicy(item.sbom, item.name, item.version)
+  if (JSON.stringify(beyond) !== JSON.stringify(admitted.beyondPolicy))
+    found.push(`${id}'s SBOM lists ${JSON.stringify(beyond)} beyond the policy, not what the review recorded (${route})`)
+  return found
+}
+
+/**
+ * What is wrong with `lockfile`, pnpm-lock.yaml's text, against `builds`:
+ * every package of an admitted family it names, at any version and on any
+ * platform, must be one the review read -- the family's version, and a
+ * build it names -- and every build a review read must be one the lockfile
+ * names, so the table holds no more than it installs. A machine installs
+ * its own platform's build alone, so the lockfile is what says the rest.
+ */
+export function lockfileProblems(lockfile, builds = BUILDS_READ) {
+  const named = new Set()
+  for (const [, name, version] of lockfile.matchAll(/^ {2}'?((?:@[^@\s'/]+\/)?[^@\s'/]+)@([^'\s:(]+)/gm)) named.add(`${name}@${version}`)
+  const found = []
+  for (const [family, admitted] of Object.entries(builds)) {
+    const members = [...named].filter((key) => {
+      const name = key.slice(0, key.lastIndexOf('@'))
+      return name === family || name.startsWith(`${family}-`)
+    })
+    for (const key of members.sort()) {
+      const name = key.slice(0, key.lastIndexOf('@'))
+      const version = key.slice(key.lastIndexOf('@') + 1)
+      if (version !== admitted.version) found.push(`pnpm-lock.yaml names ${key}, a version of ${family} no review read, at ${admitted.version} alone`)
+      else if (name !== family && !Object.hasOwn(admitted.builds, name)) found.push(`pnpm-lock.yaml names ${key}, a build of ${family} no review read`)
+    }
+    for (const name of Object.keys(admitted.builds)) {
+      if (!named.has(`${name}@${admitted.version}`)) found.push(`build ${name}@${admitted.version} names nothing pnpm-lock.yaml installs; remove it`)
+    }
+  }
+  return found
+}
+
+/**
+ * What is wrong with the `heldBy` of each admission in `unloaded`: it
+ * names `file#test name`, a file of the repository at `root`, and a case
+ * of that name in it, `test('…'` or `it('…'`. A guard that is not a gate
+ * is a comment: the admission holds only while that case runs.
+ */
+export function heldByProblems(unloaded = NEVER_LOADED, repoRoot = root) {
+  const found = []
+  for (const [id, admitted] of Object.entries(unloaded)) {
+    const [, file, name] = /^([^#]+)#(.+)$/.exec(String(admitted.heldBy ?? '')) ?? []
+    if (file === undefined || name === undefined) {
+      found.push(`never-loaded admission ${id} names no test as file#test name: ${String(admitted.heldBy)}`)
+      continue
+    }
+    let text
+    try {
+      text = readFileSync(join(repoRoot, file), 'utf8')
+    } catch {
+      found.push(`never-loaded admission ${id} is held by ${file}, which the repository does not hold`)
+      continue
+    }
+    // The name as a literal of any quote, standing first in a call of test or it, on no line that is a comment's.
+    text = text
+      .split('\n')
+      .filter((line) => !/^\s*(?:\/\/|\/\*|\*)/.test(line))
+      .join('\n')
+    const cased = ["'", '"', '`'].some((quote) => {
+      for (let at = text.indexOf(`${quote}${name}${quote}`); at >= 0; at = text.indexOf(`${quote}${name}${quote}`, at + 1)) {
+        if (/\b(?:test|it)\($/.test(text.slice(0, at).trimEnd())) return true
+      }
+      return false
+    })
+    if (!cased) found.push(`never-loaded admission ${id} is held by ${file}, which has no case named "${name}"`)
+  }
+  return found
+}
+
 /**
  * What is wrong with these closures under the policy, each named once with the
  * route to it. `exceptions` replace what a package or a font file says with
  * what a review found, at that exact version, and are refused when nothing
  * here installs them. `data` admits Formancy Data's packages, `profiles`
  * the ICC profiles a review read, `confined` the packages a review read
- * for one dependent alone, and `unloaded` the fonts a review admitted as
- * never loaded by one dependent, and each is refused the same way.
+ * for one dependent alone, `unloaded` the fonts a review admitted as
+ * never loaded by one dependent, and each is refused the same way; and
+ * `builds` the native builds a review read by their SBOMs, whose unused
+ * entries the lockfile's check refuses (`lockfileProblems`).
  */
-export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA, profiles = ICC_PROFILES, confined = CONFINED, unloaded = NEVER_LOADED) {
+export function problems(
+  entries,
+  exceptions = EXCEPTIONS,
+  data = FORMANCY_DATA,
+  profiles = ICC_PROFILES,
+  confined = CONFINED,
+  unloaded = NEVER_LOADED,
+  builds = BUILDS_READ,
+) {
   const found = new Set()
   const used = new Set()
   const admitted = new Set()
@@ -373,6 +517,7 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
     else if (verdict === false && !(item.sibling && item.licence === LICENSE_FIELD))
       judge(id, item.licence, 'its package.json', route, `${id} declares no licence (${route})`)
     if (!item.sibling) {
+      for (const refusal of buildProblems(item, id, route, builds)) found.add(refusal)
       for (const refusal of confinement(item, id, route, confined)) found.add(refusal)
       if (Object.hasOwn(confined, id)) confinedSeen.add(id)
     }
@@ -450,8 +595,19 @@ export function workspaceClosure(repoRoot = root) {
 
 // `node scripts/dependency-licences.mjs [repository root]`
 if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/dependency-licences.mjs')) {
-  const { published, entries } = workspaceClosure(process.argv[2] ? resolve(process.argv[2]) : root)
-  const found = problems(entries)
+  const repoRoot = process.argv[2] ? resolve(process.argv[2]) : root
+  const { published, entries } = workspaceClosure(repoRoot)
+  let lockfile
+  try {
+    lockfile = readFileSync(join(repoRoot, 'pnpm-lock.yaml'), 'utf8')
+  } catch {
+    lockfile = undefined
+  }
+  const found = [
+    ...problems(entries),
+    ...(lockfile === undefined ? ['pnpm-lock.yaml is not there to read the builds every platform installs from'] : lockfileProblems(lockfile)),
+    ...heldByProblems(NEVER_LOADED, repoRoot),
+  ]
   if (found.length > 0) {
     console.error('Dependency licence check failed:')
     for (const problem of found) console.error(`  - ${problem}`)

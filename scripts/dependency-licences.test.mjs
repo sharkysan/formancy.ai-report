@@ -9,13 +9,17 @@ import { afterAll, describe, expect, test } from 'vitest'
 import YAML from 'yaml'
 import {
   ALLOWED,
+  beyondPolicy,
+  BUILDS_READ,
   CONFINED,
   closure,
   declaredLicence,
   EXCEPTIONS,
   fontLicence,
   FORMANCY_DATA,
+  heldByProblems,
   ICC_PROFILES,
+  lockfileProblems,
   NEVER_LOADED,
   problems,
   spdxAllows,
@@ -974,6 +978,137 @@ describe('fonts the package they are admitted for never loads', () => {
   })
 })
 
+describe('the case an admission of fonts never loaded is held by', () => {
+  // An admission whose case is renamed or gone would admit GPL faces the
+  // package may by then read: the guard holds it to a case of its name.
+  test('is a case of that name in that file, and refused otherwise', () => {
+    const root = tree({ 'pkg/reads.test.ts': "test('reads no font file', () => {})\nit(\n  \"opens nothing\",\n  () => {},\n)\n// test('a comment, no case')" })
+    const held = (heldBy) => heldByProblems({ 'viewer@1.0.0': { heldBy } }, root)
+    expect(held('pkg/reads.test.ts#reads no font file')).toEqual([])
+    expect(held('pkg/reads.test.ts#opens nothing')).toEqual([])
+    expect(held('pkg/reads.test.ts#reads no file')).toEqual([
+      'never-loaded admission viewer@1.0.0 is held by pkg/reads.test.ts, which has no case named "reads no file"',
+    ])
+    expect(held('pkg/reads.test.ts#a comment, no case')).toEqual([
+      'never-loaded admission viewer@1.0.0 is held by pkg/reads.test.ts, which has no case named "a comment, no case"',
+    ])
+    expect(held('pkg/gone.test.ts#reads no font file')).toEqual([
+      'never-loaded admission viewer@1.0.0 is held by pkg/gone.test.ts, which the repository does not hold',
+    ])
+    expect(held('pkg/reads.test.ts')).toEqual(['never-loaded admission viewer@1.0.0 names no test as file#test name: pkg/reads.test.ts'])
+  })
+})
+
+describe('native builds', () => {
+  const MCP = '@formancy/report-mcp'
+  const FAMILY = 'addon'
+  const READ = `sha256:${'a'.repeat(64)}`
+  const beyond = { 'cssparser@0.38.0': 'MPL-2.0', 'own-crate@0.1.0': null }
+  const components = [
+    { name: 'cssparser', version: '0.38.0', licence: 'MPL-2.0' },
+    { name: 'own-crate', version: '0.1.0', licence: undefined },
+    { name: 'zlib', version: '1', licence: 'Zlib' },
+    { name: 'addon.linux.node', licence: undefined, purl: 'pkg:npm/addon-linux@1.0.0#addon.linux.node' },
+  ]
+  const builds = { [FAMILY]: { version: '1.0.0', for: MCP, builds: { 'addon-linux': READ }, beyondPolicy: beyond, evidence: 'this test' } }
+  const build = (more = {}) =>
+    entry('addon-linux', '1.0.0', 'MIT', {
+      via: [MCP, 'viewer', FAMILY],
+      natives: ['addon.linux.node'],
+      sbom: { path: 'sbom.cdx.json', sha256: READ, components },
+      ...more,
+    })
+
+  // The one way a package that ships a native addon passes: its family's
+  // version, a build the review read by its SBOM's digest, the components
+  // beyond the policy those the review recorded, reached through the
+  // package admitted for.
+  test('admits a build at its version and its SBOM, reached through the package it is for', () => {
+    expect(problems([entry(FAMILY, '1.0.0', 'MIT', { via: [MCP, 'viewer'] }), build()], {}, {}, {}, {}, {}, builds)).toEqual([])
+  })
+
+  // Code built from sources its manifest's licence need not cover: a
+  // `.node` file no review read is refused, whatever the manifest says.
+  test('refuses a package that ships a native addon no review read', () => {
+    expect(problems([build()], {}, {}, {}, {}, {}, {})).toEqual([
+      `addon-linux@1.0.0 ships a native addon, addon.linux.node, whose build no review read: read its SBOM and record it in BUILDS_READ (${MCP} > viewer > addon > addon-linux)`,
+    ])
+  })
+
+  // Another release is another binary and another SBOM nobody read.
+  test('refuses another version, another build, and an SBOM of other bytes', () => {
+    expect(problems([build({ version: '1.0.1' })], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon-linux@1.0.1 is a version of addon, which a review read at 1.0.0 alone (${MCP} > viewer > addon > addon-linux)`,
+    ])
+    expect(problems([build({ name: 'addon-darwin' })], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon-darwin@1.0.0 is a build of addon no review read (${MCP} > viewer > addon > addon-darwin)`,
+    ])
+    const other = `sha256:${'b'.repeat(64)}`
+    expect(problems([build({ sbom: { path: 'sbom.cdx.json', sha256: other, components } })], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon-linux@1.0.0's sbom.cdx.json is ${other}, not the SBOM the review read (${READ}) (${MCP} > viewer > addon > addon-linux)`,
+    ])
+  })
+
+  // The digest holds the bytes; the components held to the review's list
+  // hold the list to what the SBOM says, so the record cannot drift from
+  // the file it quotes.
+  test('refuses a build whose SBOM lists other components beyond the policy than the review recorded', () => {
+    const more = [...components, { name: 'gpl-thing', version: '2', licence: 'GPL-2.0-only' }]
+    expect(problems([build({ sbom: { path: 'sbom.cdx.json', sha256: READ, components: more } })], {}, {}, {}, {}, {}, builds)[0]).toMatch(
+      /^addon-linux@1\.0\.0's SBOM lists .*"gpl-thing@2":"GPL-2\.0-only".* beyond the policy, not what the review recorded/,
+    )
+    expect(beyondPolicy({ components }, 'addon-linux', '1.0.0')).toEqual(beyond)
+  })
+
+  // Admitted for the one package whose reading loads it: another route to
+  // it is a package that loads it nobody asked.
+  test('refuses a build reached otherwise than through the package it is for', () => {
+    expect(problems([build({ via: ['@formancy/report-builder-core', FAMILY] })], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon-linux@1.0.0 is admitted for ${MCP} alone, and is reached otherwise (@formancy/report-builder-core > addon > addon-linux)`,
+    ])
+  })
+
+  // No machine installs every platform's build, so what the lockfile
+  // names is what the review must have read, every build and version.
+  test('refuses a build or a version the lockfile names and no review read, and a build it names no longer', () => {
+    const lock = (lines) => `lockfileVersion: '9.0'\n\npackages:\n\n${lines.map((line) => `  ${line}:\n    resolution: {}\n`).join('\n')}`
+    expect(lockfileProblems(lock(['addon@1.0.0', 'addon-linux@1.0.0', 'other@2.0.0']), builds)).toEqual([])
+    expect(lockfileProblems(lock(['addon@1.0.0', 'addon-linux@1.0.0', "'addon-darwin@1.0.0'"]), builds)).toEqual([
+      'pnpm-lock.yaml names addon-darwin@1.0.0, a build of addon no review read',
+    ])
+    expect(lockfileProblems(lock(['addon@1.0.1', 'addon-linux@1.0.0']), builds)).toEqual([
+      'pnpm-lock.yaml names addon@1.0.1, a version of addon no review read, at 1.0.0 alone',
+    ])
+    expect(lockfileProblems(lock(['addon@1.0.0']), builds)).toEqual(['build addon-linux@1.0.0 names nothing pnpm-lock.yaml installs; remove it'])
+  })
+
+  // What the walk reads of a build: its addons by path and its SBOM by its
+  // bytes' digest and its components, at any depth.
+  test('reads a package’s native addons and its SBOM', () => {
+    const sbom = JSON.stringify({
+      bomFormat: 'CycloneDX',
+      components: [
+        { name: 'a', version: '1', licenses: [{ license: { id: 'MIT' } }], components: [{ name: 'b', version: '2', licenses: [{ expression: 'MPL-2.0' }] }] },
+      ],
+    })
+    const root = tree({
+      'addon-linux/package.json': manifest('addon-linux', '1.0.0', 'MIT'),
+      'addon-linux/addon.linux.node': 'ELF',
+      'addon-linux/sbom.cdx.json': sbom,
+    })
+    const [found] = closure(join(root, 'addon-linux'))
+    expect(found.natives).toEqual(['addon.linux.node'])
+    expect(found.sbom).toEqual({
+      path: 'sbom.cdx.json',
+      sha256: digest(Buffer.from(sbom)),
+      components: [
+        { name: 'a', version: '1', licence: 'MIT', purl: undefined },
+        { name: 'b', version: '2', licence: 'MPL-2.0', purl: undefined },
+      ],
+    })
+  })
+})
+
 describe('ICC profiles', () => {
   // A PDF/A embeds its output intent's ICC profile in every PDF a customer
   // sends (0031), and a profile has no licence a guard could read: its
@@ -1105,6 +1240,32 @@ describe('this workspace', { timeout: 30_000 }, () => {
     expect(
       problems(entries, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES, CONFINED, {}).filter((problem) => problem.startsWith('pdfjs-dist@6.4.299/')),
     ).toHaveLength(4)
+  })
+
+  // The canvas PDF.js loads in report-mcp's process is admitted by the
+  // SBOM of the build this machine installed, its components beyond the
+  // policy the review's, for report-mcp alone; refused with no review; and
+  // every build and version the lockfile names, on every platform, is one
+  // the review read (0089).
+  test('admits the canvas build installed here by its SBOM, for report-mcp alone, and every build the lockfile names', () => {
+    const { entries } = realTree()
+    const installed = entries.filter((item) => !item.missing && item.name.startsWith('@napi-rs/canvas-'))
+    expect(installed.length).toBeGreaterThan(0)
+    const canvas = BUILDS_READ['@napi-rs/canvas']
+    for (const build of installed) {
+      expect(build.sbom?.sha256, build.name).toBe(canvas.builds[build.name])
+      expect(beyondPolicy(build.sbom, build.name, build.version), build.name).toEqual(canvas.beyondPolicy)
+      expect(build.via[0], build.name).toBe('@formancy/report-mcp')
+    }
+    expect(lockfileProblems(readFileSync(join(repo, 'pnpm-lock.yaml'), 'utf8'))).toEqual([])
+    expect(
+      problems(entries, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES, CONFINED, NEVER_LOADED, {}).filter((problem) => problem.includes('ships a native addon')),
+    ).toHaveLength(installed.length)
+  })
+
+  // The admission of pdfjs-dist's fonts is held by its case, which runs.
+  test('holds the never-loaded admission to the case it names', () => {
+    expect(heldByProblems()).toEqual([])
   })
 
   // The renderer ships fonts of its own, Liberation Sans 2.1.5 for the
