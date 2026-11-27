@@ -6,8 +6,10 @@
  * declines, by declinedAnswer, ending its run on that turn; a stop pressed
  * while a turn waits; a turn carried through a relay by hand, a paste with
  * no object kept waiting and the fenced answer taken, and a second request
- * while it waits ended busy. REQUEST_KINDS is empty: Report asks a model for
- * nothing yet. The README's example is lines of this file
+ * while it waits ended busy; and REQUEST_KINDS read through the type the
+ * package exports. Whether it is empty is the start page's to hold
+ * (apps/pages/src/limits.test.ts), not this host's. The README's example is
+ * lines of this file
  * (scripts/readme-example.test.mjs). consume.ts runs it and prints what it
  * returns.
  */
@@ -27,7 +29,6 @@ const myBackend = (system: string, user: string, signal: AbortSignal): Promise<s
 
 export async function modelAsked(): Promise<string> {
   const kinds: readonly RequestKind[] = REQUEST_KINDS
-  if (kinds.length !== 0) throw new Error(`report-ai asks a model for ${kinds.join(', ')}, and the start page says it asks for nothing`)
 
   const ask: AskModel = (prompt, turn) => {
     const controller = new AbortController()
@@ -74,5 +75,5 @@ export async function modelAsked(): Promise<string> {
   const refused = await askChecked(refusing, build, check)
   if (refused.ok || refused.ended !== 'busy' || 'reason' in refused) throw new Error('a ModelBusyError did not end the run busy')
 
-  return 'report-ai asked a scripted model through askChecked, which asked again with the latest complaint and took the fenced object on its second turn, ended a declined run on its turn and a stopped one at once, carried a turn through a relay, a paste with no object kept waiting and a second request refused busy, and asks for no kind yet'
+  return `report-ai asked a scripted model through askChecked, which asked again with the latest complaint and took the fenced object on its second turn, ended a declined run on its turn and a stopped one at once, carried a turn through a relay, a paste with no object kept waiting and a second request refused busy, and listed ${String(kinds.length)} kind(s) of request`
 }

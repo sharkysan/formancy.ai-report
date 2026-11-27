@@ -11,6 +11,7 @@ import type {
   RelayTurn as FormancyRelayTurn,
   Stop as FormancyStop,
 } from '@formancy/builder-core'
+import { readFileSync } from 'node:fs'
 import { DECLINE_KEY } from '@formancy/spec'
 import type { FormSchema } from '@formancy/spec'
 import { describe, expect, expectTypeOf, test, vi } from 'vitest'
@@ -27,13 +28,16 @@ import type { Relay, RelayAnswer, RelayTurn } from './relay.js'
  *
  * - **the types**, each of Report's instantiated for formancy's kinds and
  *   held equal to formancy's own -- the prompt, the ask, the turn, the stop,
- *   the relay, its turn and its answers, and a run's failure -- by
+ *   the relay, its turn and its answers, a run's failure, the busy error,
+ *   and the signatures of `createStop`, `declinedAnswer`, `relayMessage`
+ *   and `createRelay`, the functions formancy exports -- by
  *   `expectTypeOf`, which `pnpm typecheck` checks through tsconfig.test.json
  *   (vitest runs it as nothing);
  * - **a run**, through both turns' public doors: the same scripted host
  *   asked by Report's `askChecked` and by formancy's `authorForm`, the one
  *   run formancy exports, ending the same way, after the same turns, with the
- *   same reason, problems of the same kinds and the same last answer;
+ *   same reason, problems of the same kinds and the same last answer, each
+ *   turn's follow-up carrying the problem just before it in both;
  * - **the reader**, which formancy does not export: every paste handed to
  *   both relays answers the same, `'no-object'` exactly where Report's
  *   `readAnswer` finds no object, and every answer read through both runs
@@ -43,11 +47,12 @@ import type { Relay, RelayAnswer, RelayTurn } from './relay.js'
  *   formancy's, so the two speak one protocol and not two alike;
  * - and `declinedAnswer`, `relayMessage` and `ModelBusyError`, byte for byte.
  *
+ * And it compares with the formancy release Report runs, so a bump that
+ * left it behind fails here.
+ *
  * What it cannot see is a path of `askChecked` that `authorForm` never
  * takes, a check that is no form's (0083's cost).
  */
-
-type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false
 
 describe("Report's types are formancy's", () => {
   // A shape that drifted -- a member renamed, one made optional, a union
@@ -69,8 +74,31 @@ describe("Report's types are formancy's", () => {
     expectTypeOf<typeof declinedAnswer>().toEqualTypeOf<typeof formancy.declinedAnswer>()
     expectTypeOf<typeof relayMessage<ModelRequestKind>>().toEqualTypeOf<typeof formancy.relayMessage>()
     expectTypeOf<typeof createRelay<ModelRequestKind>>().toEqualTypeOf<typeof formancy.createRelay>()
-    // A guard on the guard: the equality the cases rest on tells two shapes apart.
-    expectTypeOf<Equal<{ readonly a?: string }, { readonly a: string }>>().toEqualTypeOf<false>()
+    // A guard on the guard: the matcher every case above rests on tells an
+    // optional member from a required one. Were it ever to take the pair,
+    // this directive would be unused, and `pnpm typecheck` fails on that.
+    // @ts-expect-error -- toEqualTypeOf refuses a required member for an optional one
+    expectTypeOf<{ readonly a?: string }>().toEqualTypeOf<{ readonly a: string }>()
+  })
+
+  // A bump that moved Report to a later formancy and left this suite's
+  // behind would compare Report with a release nobody runs: a fix formancy
+  // made to its turn would fail nothing here. So the formancy compared with
+  // is the release report-ai and report-spec take @formancy/spec at.
+  test('is compared with the formancy release Report runs', () => {
+    const manifest = (path: string) =>
+      JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8')) as {
+        readonly dependencies?: Readonly<Record<string, string>>
+        readonly devDependencies?: Readonly<Record<string, string>>
+      }
+    const ai = manifest('../../package.json')
+    const spec = manifest('../../../report-spec/package.json')
+    expect([ai.devDependencies?.['@formancy/builder-core'], ai.devDependencies?.['@formancy/builder-core']]).toEqual([
+      ai.dependencies?.['@formancy/spec'],
+      spec.dependencies?.['@formancy/spec'],
+    ])
+    // A version, so that three that are missing cannot agree.
+    expect(ai.devDependencies?.['@formancy/builder-core']).toMatch(/^\d+\.\d+\.\d+$/)
   })
 
   // A stop or a relay of another shape at run time -- a member added, a
@@ -120,9 +148,11 @@ interface Seen {
  */
 function host(steps: readonly Step[]) {
   const seen: Seen[] = []
+  const followUps: Array<string | undefined> = []
   const cancelled: number[] = []
   const ask = (prompt: ModelPrompt, turn: AskTurn): Promise<string> => {
     seen.push({ attempt: prompt.attempt, limit: prompt.limit, followUp: prompt.followUp !== undefined })
+    followUps.push(prompt.followUp)
     const index = seen.length
     turn.onCancel(() => cancelled.push(index))
     const step = steps[index - 1] ?? { waits: true }
@@ -131,7 +161,7 @@ function host(steps: readonly Step[]) {
     if ('answer' in step) return Promise.resolve(step.answer)
     return new Promise<string>(() => undefined)
   }
-  return { ask, seen, cancelled }
+  return { ask, seen, followUps, cancelled }
 }
 
 /** What formancy's checks make of an answer, said in the kinds Report's run below can say too. */
@@ -157,6 +187,25 @@ const ending = (result: AuthoringResult | Asked<object, string>, kinds: readonly
         lastAnswer: result.lastAnswer,
         problems: kinds,
       }
+
+/**
+ * For each turn a host saw, whether it carried what was wrong with the answer
+ * just before it, and nothing on the first: the latest problem alone
+ * (formancy.ai 0056). The two runs word a follow-up differently, so each is
+ * read by its own run's words -- `carries` -- against the problems its result
+ * gives, and the answers compared. Known only where a run failed; a run that
+ * succeeded gives back no problems.
+ */
+function latestCarried(
+  followUps: ReadonlyArray<string | undefined>,
+  problems: readonly string[],
+  carries: (followUp: string, problem: string) => boolean,
+): boolean[] {
+  return followUps.map((followUp, index) => {
+    const before = problems[index - 1]
+    return index === 0 ? followUp === undefined : followUp !== undefined && before !== undefined && carries(followUp, before)
+  })
+}
 
 interface Run {
   readonly steps: readonly Step[]
@@ -187,8 +236,26 @@ async function both({ steps, attempts, stopAt }: Run) {
   }
   const [formancyEnded, reportEnded] = await Promise.all(runs)
   return {
-    formancy: { ending: ending(formancyEnded, formancyEnded.ok ? [] : formancyEnded.problems.map(kindOf)), seen: theirs.seen, cancelled: theirs.cancelled },
-    report: { ending: ending(reportEnded, reportEnded.ok ? [] : reportEnded.problems), seen: ours.seen, cancelled: ours.cancelled },
+    formancy: {
+      ending: ending(formancyEnded, formancyEnded.ok ? [] : formancyEnded.problems.map(kindOf)),
+      seen: theirs.seen,
+      // formancy's follow-up is its complaint, which ends with the problem's detail.
+      carried: formancyEnded.ok
+        ? []
+        : latestCarried(
+            theirs.followUps,
+            formancyEnded.problems.map((problem) => problem.detail),
+            (followUp, detail) => followUp.endsWith(detail),
+          ),
+      cancelled: theirs.cancelled,
+    },
+    report: {
+      ending: ending(reportEnded, reportEnded.ok ? [] : reportEnded.problems),
+      seen: ours.seen,
+      // Report's is the problem itself, as the build above hands it on.
+      carried: reportEnded.ok ? [] : latestCarried(ours.followUps, reportEnded.problems, (followUp, problem) => followUp === problem),
+      cancelled: ours.cancelled,
+    },
   }
 }
 
@@ -242,6 +309,7 @@ describe('a run of each ends alike', () => {
     ['a decline after an answer that failed', { steps: [{ answer: '{"a": 1}' }, { answer: `I cannot.\n\`\`\`\n${decline('no')}\n\`\`\`` }] }],
     ['a decline with no reason, asked again', { steps: [{ answer: decline('') }, { answer: decline(3) }, { answer: FORM_TEXT }] }],
     ['no object at all', { steps: [{ answer: 'prose' }, { answer: '[]' }, { answer: '"x"' }] }],
+    ['two ways of failing, then a third turn', { steps: [{ answer: 'prose' }, { answer: decline('') }, { answer: '{}' }] }],
     ['a host that rejects', { steps: [{ reject: new Error('the network is down') }] }],
     ['a host that rejects after an answer', { steps: [{ answer: '{}' }, { reject: new Error('quota spent') }] }],
     ['a host that throws before it returns a promise', { steps: [{ throws: new Error('no key is set') }] }],
@@ -265,6 +333,7 @@ describe('a run of each ends alike', () => {
     const { formancy: theirs, report: ours } = await both(run)
     expect(ours.ending).toStrictEqual(theirs.ending)
     expect(ours.seen).toEqual(theirs.seen)
+    expect(ours.carried).toEqual(theirs.carried)
     expect(ours.cancelled).toEqual(theirs.cancelled)
   })
 
@@ -272,7 +341,7 @@ describe('a run of each ends alike', () => {
   // run: each text, as one answer, ends both runs alike -- the same
   // document where there is one, the same decline and reason, the same
   // kind of problem otherwise.
-  test.each(TEXTS.map((text) => [JSON.stringify(text.slice(0, 60)), text] as const))('reading the answer %s', async (_name, text) => {
+  test.each(TEXTS.map((text) => [JSON.stringify(text.slice(0, 60)), text] as const))('reading the answer %#, %s', async (_name, text) => {
     const { formancy: theirs, report: ours } = await both({ steps: [{ answer: text }], attempts: 1 })
     expect(ours.ending).toStrictEqual(theirs.ending)
   })
@@ -290,7 +359,7 @@ describe("each relay answers a paste alike, and each turn asks the other's", () 
   // author an attempt -- a round trip by hand -- where a formancy author's
   // would wait, or the reverse; formancy's relay pre-checks with its own
   // readAnswer, so this is where Report's reader meets formancy's.
-  test.each(TEXTS.map((text) => [JSON.stringify(text.slice(0, 60)), text] as const))('the paste %s', async (_name, text) => {
+  test.each(TEXTS.map((text) => [JSON.stringify(text.slice(0, 60)), text] as const))('the paste %#, %s', async (_name, text) => {
     const relays = [formancy.createRelay(), createRelay<ModelRequestKind>()] as const
     const turns = relays.map(() => handed())
     const answers = relays.map((relay, index) => relay.ask(prompt, turns[index]?.turn ?? handed().turn))

@@ -10,9 +10,13 @@
     report-ai's suite alone. Report's types, instantiated for formancy's
     three kinds, are held equal to formancy's own -- the prompt, the ask,
     the turn, the stop, the relay, its turn and its answers, a run's
-    failure, the busy error and the functions' signatures -- by
-    `expectTypeOf`, which `pnpm typecheck` checks through report-ai's
-    `tsconfig.test.json`. The same scripted host -- an answer that passes
+    failure, the busy error, and the signatures of the four functions
+    formancy exports, `createStop`, `declinedAnswer`, `relayMessage` and
+    `createRelay` -- by `expectTypeOf`, which `pnpm typecheck` checks
+    through report-ai's `tsconfig.test.json`, beside a `@ts-expect-error`
+    that fails it should the matcher ever take an optional member for a
+    required one. `askChecked` and `readAnswer` have no exported
+    counterpart, so nothing compares their types. The same scripted host -- an answer that passes
     at once or after two that fail, every attempt failing, a decline on the
     first turn and after a failure, a decline with no reason asked again,
     no object, a host that rejects with an error, a nameless error, a blank
@@ -23,8 +27,9 @@
     attempts -- is asked by Report's `askChecked` and by formancy's
     `authorForm`, the one run formancy exports, and both end alike: how,
     after how many turns, with the same reason or none, the same last
-    answer and problems of the same kinds, each turn numbered alike and
-    the same turns told of the stop. Every text of a list of answers,
+    answer and problems of the same kinds, each turn numbered alike, each
+    follow-up carrying the problem just before it in both, and the same
+    turns told of the stop. Every text of a list of answers,
     as an answer, ends both runs alike, the same document where it holds
     formancy's working form; and every paste handed to both relays answers
     the same, `'no-object'` exactly where Report's `readAnswer` finds no
@@ -33,14 +38,23 @@
     stop, and Report's run formancy's under formancy's, each answered and
     each stopped. A stop's and a relay's members, `ModelBusyError`,
     `declinedAnswer`, its refusal of a blank reason and `relayMessage` are
-    formancy's byte for byte. Seen failing on 27 November 2026, each fault
+    formancy's byte for byte. And the formancy compared with is the
+    release report-ai and report-spec take `@formancy/spec` at, so a bump
+    that left this suite's behind fails it. Seen failing on 27 November
+    2026, each fault
     planted and put back: `followUp` typed `string | undefined` fails the
     typecheck on every type the prompt reaches; `relayMessage` joined by
     one line break fails three cases, two of them here; `declinedAnswer`
-    trimming its reason fails the text case.
+    trimming its reason fails the text case; `build(problems[0])` in place
+    of the latest fails three, two of them here; this suite's
+    `@formancy/builder-core` at 0.13.0 beside `@formancy/spec` at 0.14.0
+    fails the release case; and a pair the matcher takes leaves the
+    `@ts-expect-error` unused, which fails the typecheck (TS2578).
   - **The turn.** `turn/ask.test.ts`: a run ends one of six ways and only
     an answer that passed is a success; `build` is handed the latest
-    problem alone; a stop before a turn asks nothing, one during a turn
+    problem alone, of answers that failed in two ways; a `build` or a
+    `check` that throws rejects the run, where a host's error ends it; a
+    stop before a turn asks nothing, one during a turn
     ends it at once whether or not the host listens, a host registering
     after the stop is told at once, a stop in the second turn counts both,
     and an answer after the stop is never held; a host that throws before
@@ -54,23 +68,29 @@
     stop's race removed (eight cases, three of them the differential's), a
     latest problem replaced by the list (thirty), a reason taken with
     `String()` (eleven), the relay queueing a second turn (two, one the
-    differential's).
+    differential's), the first problem handed on in place of the latest
+    (three, two the differential's), and a `check` that throws read as an
+    unreachable model (one).
   - **Ready to move.** `turn/generic.test.ts` fails on any file under
-    `src/turn/` that imports anything but `@formancy/spec` and the folder's
-    own modules -- a `@formancy/report-*` package, or report-ai's
+    `src/turn/`, at any depth, that imports anything but `@formancy/spec`
+    and the folder's own modules, a relative import resolved from where its
+    file stands -- a `@formancy/report-*` package, or report-ai's
     `kinds.ts`, through which alone a kind typed as Report's list could
     come in; a test may import vitest, Node and formancy's builder-core
     besides. Seen failing with `relay.ts` importing report-core's
-    `ReportSession`.
+    `ReportSession`, and with a file a level down, `deep/held.ts`,
+    importing it.
   - **The decline is formancy's.** `turn/ask.test.ts` reads a decline
     built from `@formancy/spec`'s `DECLINE_KEY`;
     `scripts/upstream-deps.test.mjs` holds both upstream packages at an
     exact version.
   - **Nothing is asked yet.** `apps/pages/src/limits.test.ts` holds the
     start page's "No changes proposed by an AI" to report-ai's built
-    `REQUEST_KINDS` being empty, in place of the check that no published
+    `REQUEST_KINDS` being empty and to no published package but report-ai
+    taking `@formancy/report-ai`, in place of the check that no published
     package's name held `report-ai`, which this package's arrival failed;
-    seen failing with a kind written into the built list.
+    seen failing with a kind written into the built list, and with
+    report-builder-core's manifest declaring `@formancy/report-ai`.
 
 ## Context
 
@@ -172,13 +192,20 @@ formancy's code itself, not a pattern written again from its records: the
 loop, the race against the stop, the reading of an error by its shape, the
 reader and the relay are formancy 0.14.0's `answers.ts` and `relay.ts`
 nearly line for line, made generic over the kind, with the comments that
-spoke of forms reworded -- 564 lines, `ask.ts` 434 and `relay.ts` 130,
-most of them comments, counted with `wc -l` on 27 November 2026, where
-about 450 were estimated before it was written. formancy.ai's code is
-Apache-2.0, and its rightsholder, who made every commit to formancy's
-`answers.ts`, `relay.ts` and `authoring.ts`, is Report's: the copy
-carries Report's licence, as every file of a Report package does, and
-formancy's keeps its own.
+spoke of forms reworded, most of the two files comments.
+
+formancy.ai publishes this code under Apache-2.0. Its rightsholder is
+Report's, and wrote every commit to `answers.ts` and `relay.ts` up to
+v0.14.0, read with `git log --follow` on 27 November 2026. So he
+publishes it here under Report's licence himself, not as a licensee of
+Apache-2.0, and none of its section 4's conditions apply; Report's
+`NOTICE` says so of `src/turn/`. formancy's copy keeps Apache-2.0, and
+anyone may still take it from there on those terms. A change to
+formancy's turn that someone else wrote is carried here only under
+formancy's CLA, whose section 2 grants the project the right to
+sublicense it
+([formancy.ai 0069](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0069-contributions-under-a-cla.md)),
+or else with Apache-2.0's notices.
 
 The differential holds what formancy exports and what `authorForm` shows
 of its loop, not every internal path of `askChecked`: where an answer

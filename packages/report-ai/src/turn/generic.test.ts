@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 
@@ -26,15 +26,22 @@ function specifiersIn(text: string): string[] {
   return found.map((match) => match[1] ?? '')
 }
 
-/** What a file of `src/turn/` may import: formancy's spec, its own folder's modules, and, in a test, the tools a suite runs with. */
-function refused(specifier: string, isTest: boolean): boolean {
+/**
+ * What a file of `src/turn/` may import: formancy's spec, a module of the
+ * folder itself, at any depth, and, in a test, the tools a suite runs with.
+ * `name` is the file's path inside the folder, so that a relative import is
+ * resolved from where the file stands.
+ */
+function refused(specifier: string, name: string): boolean {
   if (specifier === '@formancy/spec') return false
-  if (/^\.\/[^/]+\.js$/.test(specifier)) return false
-  if (isTest && (specifier === 'vitest' || specifier.startsWith('node:') || specifier === '@formancy/builder-core')) return false
+  if (specifier.startsWith('.')) return relative(TURN, resolve(TURN, dirname(name), specifier)).split(sep)[0] === '..'
+  if (name.endsWith('.test.ts') && (specifier === 'vitest' || specifier.startsWith('node:') || specifier === '@formancy/builder-core')) return false
   return true
 }
 
-const files = readdirSync(TURN)
+/** Every TypeScript file of the folder, in its folders too, so that none escapes the guard by standing a level down. */
+const files = readdirSync(TURN, { recursive: true })
+  .map(String)
   .filter((name) => name.endsWith('.ts'))
   .sort()
   .map((name) => ({ name, text: readFileSync(join(TURN, name), 'utf8') }))
@@ -51,7 +58,7 @@ describe("the turn knows nothing of Report's", () => {
   test("imports formancy's spec and its own modules alone", () => {
     const imports = files.flatMap(({ name, text }) =>
       specifiersIn(text)
-        .filter((specifier) => refused(specifier, name.endsWith('.test.ts')))
+        .filter((specifier) => refused(specifier, name))
         .map((specifier) => `${name} imports ${specifier}`),
     )
     expect(imports).toEqual([])
@@ -71,7 +78,19 @@ describe("the turn knows nothing of Report's", () => {
       '// the briefing said: \u0069mport nothing from the report',
     ].join('\n')
     expect(specifiersIn(text)).toEqual(['@formancy/report-spec', '../kinds.js', '../kinds.js', '@formancy/report-core', '@formancy/report-runtime'])
-    expect(specifiersIn(text).filter((specifier) => refused(specifier, false))).toHaveLength(5)
-    expect(['@formancy/spec', './ask.js'].filter((specifier) => refused(specifier, false))).toEqual([])
+    expect(specifiersIn(text).filter((specifier) => refused(specifier, 'ask.ts'))).toHaveLength(5)
+    expect(['@formancy/spec', './ask.js'].filter((specifier) => refused(specifier, 'ask.ts'))).toEqual([])
+  })
+
+  // A file a level down is read, and its relative imports are resolved from
+  // where it stands: one that reaches the folder's own module is kept, one
+  // that climbs out of it to report-ai's kinds is refused, as from the top.
+  test('resolves a relative import from where its file stands, at any depth', () => {
+    expect(refused('../ask.js', join('deep', 'x.ts'))).toBe(false)
+    expect(refused('./deep/x.js', 'ask.ts')).toBe(false)
+    expect(refused('../../kinds.js', join('deep', 'x.ts'))).toBe(true)
+    expect(refused('../kinds.js', 'ask.ts')).toBe(true)
+    expect(refused('vitest', join('deep', 'x.test.ts'))).toBe(false)
+    expect(refused('vitest', join('deep', 'x.ts'))).toBe(true)
   })
 })

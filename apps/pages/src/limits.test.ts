@@ -186,10 +186,14 @@ describe('what the start page says Formancy Report does not do yet', () => {
   // package that asks a model, asks one for nothing: its REQUEST_KINDS, read
   // from its built dist, is empty, so its turn has no request to make and no
   // answer to propose (0083). A kind added to the list fails here until the
-  // sentence is read again; a model asked by another package is review's.
-  test('says no AI proposes changes while report-ai asks a model for nothing', () => {
+  // sentence is read again. The turn takes any kind a caller names, so a
+  // published package that took report-ai to ask a model of its own --
+  // the builders, the server -- fails here too, naming it; one that asked
+  // a model through code of its own is review's.
+  test('says no AI proposes changes while report-ai asks a model for nothing and no published package takes it', () => {
     expect(inputs.packages).toContain('@formancy/report-ai')
     expect(REQUEST_KINDS).toEqual([])
+    expect(inputs.packages.filter((name) => name !== '@formancy/report-ai' && Object.hasOwn(declared(name), '@formancy/report-ai'))).toEqual([])
   })
 
   // "No consistent read from Formancy Data" is true while the one package

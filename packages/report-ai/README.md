@@ -45,7 +45,8 @@ if (!asked.ok) throw new Error(`the run ended ${asked.ended}: ${asked.reason ?? 
   reason; the model was answering another request (`ModelBusyError`); or
   the model declined, `{"declined": "<why>"}` by `@formancy/spec`'s
   `DECLINE_KEY`, which ends the run on its turn. It resolves on every
-  ending and never rejects.
+  ending, a host's error included, and never rejects for anything the
+  host's model does; a `build` or a `check` that throws rejects it.
 - **Only the latest complaint** is handed to `build`; a prompt says which
   turn it is, `attempt`, of how many, `limit`.
 - **A stop ends the run at once**, whether or not the host listens to

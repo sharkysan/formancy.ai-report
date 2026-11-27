@@ -83,11 +83,14 @@ describe('a run of turns', () => {
     }
   })
 
-  test('hands build the latest problem alone, never the list', async () => {
+  test('hands build the latest problem alone, never the list nor an older one', async () => {
     // A model handed three rounds of complaints starts fixing the first one
     // again (formancy.ai 0056): each turn after the first carries what was
-    // wrong with the answer just before it, and nothing older.
-    const { ask } = scripted('one', 'two', 'three')
+    // wrong with the answer just before it, and nothing older. The answers
+    // fail in two different ways, so a run that handed on the first
+    // problem, or the list, would be told apart from one that hands on the
+    // latest, as formancy's own case tells them apart.
+    const { ask, prompts } = scripted('one', '{"ok": 2}', 'three')
     const latest: unknown[] = []
 
     await askChecked(
@@ -99,7 +102,8 @@ describe('a run of turns', () => {
       check,
     )
 
-    expect(latest).toEqual([undefined, 'no object', 'no object'])
+    expect(latest).toEqual([undefined, 'no object', 'not ok: {"ok":2}'])
+    expect(prompts.map((prompt) => prompt.followUp)).toEqual([undefined, 'no object', 'not ok: {"ok":2}'])
   })
 
   test('tells each turn which it is and of how many, and sends what build gave it verbatim', async () => {
@@ -182,6 +186,30 @@ describe('a model that declines', () => {
     )
 
     expect(handed).toEqual([{ kind: 'object', value: { [DECLINE_KEY]: 'no', ok: false } }])
+  })
+})
+
+describe("the caller's own error", () => {
+  test('in build or in check rejects the run, where a host’s error ends it', async () => {
+    // Only what the host's model does is a way the run ends (formancy.ai
+    // 0157); a mistake in the caller's own code is the caller's to see.
+    // Read as unreachable, it would tell a person the model could not be
+    // reached when the request was never built.
+    const broken = new Error('the briefing could not be read')
+    await expect(
+      askChecked(
+        scripted(OK).ask,
+        () => {
+          throw broken
+        },
+        check,
+      ),
+    ).rejects.toBe(broken)
+    await expect(
+      askChecked(scripted(OK).ask, build, () => {
+        throw broken
+      }),
+    ).rejects.toBe(broken)
   })
 })
 
