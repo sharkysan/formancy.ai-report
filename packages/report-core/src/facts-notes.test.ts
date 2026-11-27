@@ -74,7 +74,12 @@ const HELD = {
     expect(refusedWith(withDefault(12.5)).length).toBeGreaterThan(0)
     expect(refusedWith(withDefault('12.50'))).toEqual([])
     expect(compiled('1.5 * 2.0', 'row')).toContain('expression-inexact')
+    // `/` is refused two ways, and the note says each as the compiler gives
+    // it: told that `/` on decimals is inexact, an agent reads the
+    // expression-type error it gets as the compiler disagreeing with the note.
+    expect(NOTES.exact).toContain('`/` is refused, as inexact on integers')
     expect(compiled('row.quantity / 2', 'row')).toContain('expression-inexact')
+    expect(NOTES.exact).toContain('as no operation on decimals')
     expect(compiled('row.amount / dec("3")', 'row')).toContain('expression-type')
     expect(compiled('divide(row.amount, dec("3"), 2)', 'row')).toEqual([])
     expect(compiled('row.amount * dec("12.50")', 'row')).toEqual([])
