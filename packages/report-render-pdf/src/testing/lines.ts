@@ -4,12 +4,13 @@ import { normalise } from './documents.js'
 
 /**
  * A page's text as lines a reader sees, rebuilt from PDF.js's runs. By its
- * own rule, a copy of `@formancy/report-corpus`'s `pageLines`, which the
- * corpus's index does not export, and which goes once it does: runs on one
- * baseline make one line, read left to right, a gap wider than a word's
- * a space, and lines are read top to bottom; a run turned off the
- * horizontal, which the corpus's reader puts after the lines, is read here
- * by its baseline among them, as the README's pictures were read before.
+ * own rule, a copy of `@formancy/report-corpus`'s `pageLines` but for one
+ * thing, which is why it stays beside the corpus's now its index exports
+ * that (0089): runs on one baseline make one line, read left to right, a
+ * gap wider than a word's a space, and lines are read top to bottom; a run
+ * turned off the horizontal, which the corpus's reader puts after the
+ * lines, is read here by its baseline among them, as the README's
+ * pictures were read before.
  * By the corpus's rule, `offLine`, which the corpus does export: which
  * runs are set below or above the line (0061) and which run on the line
  * each stands beside, each then read into that run's line here. So a page

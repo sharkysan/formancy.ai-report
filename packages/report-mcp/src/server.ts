@@ -11,6 +11,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
 import type { DiagnosticCode, StepDescriptor } from '@formancy/report-core'
 import { z } from 'zod'
+import { MAX_ANSWER_BYTES, MAX_CHECK_PAGES, renderCheck } from './render.js'
 import { applyCommands, checkReport, describeFormat, listCommands } from './tools.js'
 import type { ToolResult } from './tools.js'
 
@@ -42,6 +43,16 @@ export const TOOL_DEFINITIONS = {
     'Answers the new report, its hash and its diagnostics, or the refusal’s code, sentence and path. Prefer it to rewriting a report ' +
     'by hand: a command changes only what it names. Pass expectedHash, the hash validate_report or the last apply_commands answered, ' +
     'and the edit is refused when the report given is not that one.',
+  render_check:
+    'Render a report with data you pass in, as a host renders it, and read back what the PDF prints: each page’s lines of text, top ' +
+    'to bottom, read with PDF.js from the PDF the renderer produced, so you see where a page breaks, what a table prints on which ' +
+    'page and what lands on the last. Or the refusal, by whoever gave it: the validator’s errors, the runtime’s with their codes -- ' +
+    'what the data lacks or breaks, in a final render -- or the renderer’s. The data is the runtime’s envelope, { header, detail, ' +
+    'completeness: { complete: true, captured: the rows given }, consistency: "host-captured" }, an exact number or a date as a string ' +
+    'of its digits; an image or a font the report names comes in assets, its bytes in base64 with the digest ' +
+    'the report pins, never by address. A final render unless mode is preview, which prints what the data lacks and says so. At most ' +
+    `${String(MAX_CHECK_PAGES)} pages, and an answer of at most ${String(MAX_ANSWER_BYTES)} bytes; the PDF itself is not returned. Call it ` +
+    'once validate_report answers ok, with data shaped like the real data, before you show a report to anyone.',
 } as const
 
 /**
@@ -61,7 +72,7 @@ const RESULT_SHAPE = {
   ok: z
     .boolean()
     .describe(
-      'False for a refusal, for a report past MAX_REPORT_BYTES, and for a report validate_report finds the validator or a render would refuse: something to fix before going on.',
+      'False for a refusal, for a report past MAX_REPORT_BYTES, and for a report validate_report finds the validator or a render would refuse: something to fix before going on. The call is isError for all of these but an edit apply_commands applied, whose report is past MAX_REPORT_BYTES: that edit was made, and its report is the one to edit next.',
     ),
   summary: z.string().describe('One or two sentences a person can read.'),
   data: z.unknown().describe('The part an agent acts on.'),
@@ -72,9 +83,11 @@ const RESULT_SHAPE = {
  * client parses without pulling JSON out of a string. The text's JSON has
  * no indentation, since a report is the largest thing in it and a model
  * needs no white space to read it. A refusal is `isError`, an answer to act
- * on, never a thrown error.
+ * on, never a thrown error; an edit applied is not, though it is not `ok`
+ * (0088, 2026-11-27): MCP's `isError` says the call ended in an error, and
+ * a client may fold such an answer's content away.
  */
-function respond({ ok, summary, data }: ToolResult): {
+function respond({ ok, applied, summary, data }: ToolResult): {
   content: { type: 'text'; text: string }[]
   structuredContent: Record<string, unknown>
   isError?: boolean
@@ -82,7 +95,7 @@ function respond({ ok, summary, data }: ToolResult): {
   return {
     content: [{ type: 'text', text: `${summary}\n\n${JSON.stringify(data)}` }],
     structuredContent: { ok, summary, data },
-    ...(ok ? {} : { isError: true }),
+    ...(ok || applied === true ? {} : { isError: true }),
   }
 }
 
@@ -90,7 +103,8 @@ function respond({ ok, summary, data }: ToolResult): {
  * Every tool here: it changes nothing anywhere and reaches nothing but its
  * arguments -- no server, no file, no network -- so a host may run it
  * without asking. `apply_commands` among them: it answers a new report and
- * keeps none.
+ * keeps none; and `render_check`, which renders with what the call holds
+ * and keeps neither the PDF nor anything read of it.
  */
 const LOCAL_CHECK: ToolAnnotations = { readOnlyHint: true, openWorldHint: false }
 
@@ -103,6 +117,30 @@ const LOCAL_CHECK: ToolAnnotations = { readOnlyHint: true, openWorldHint: false 
 const REPORT = z.unknown().describe('A Formancy Report definition: the whole JSON document, reportSpecVersion and all.')
 /** Commands as data, each judged by report-core's registry before it runs; their shapes are describe_commands'. */
 const COMMANDS = z.array(z.unknown()).describe('The commands, in order, each { "command": name, "args": [...] } as describe_commands lists them.')
+/** The data a render reads, judged by the runtime's data check, the one authority on it. */
+const DATA = z
+  .unknown()
+  .describe(
+    'The data, as the runtime reads it: { header: { field: value }, detail: [{ field: value }], completeness: { complete: true, captured: the rows given }, consistency: "host-captured" }, an exact number or a date as a string.',
+  )
+const PARAMETERS = z.unknown().optional().describe('The value of each parameter, by its id, as a person fills them in; a default applies to one left out.')
+const LOCALE = z.string().optional().describe('The language it prints in: the report’s own when absent, or one its translations declare, exactly.')
+const TIME_ZONE = z.string().optional().describe('The IANA zone instants print in, as Europe/Zurich: UTC when absent.')
+const MODE = z
+  .enum(['final', 'preview'])
+  .optional()
+  .describe('final, which refuses data that lacks a field, unless preview, which prints it and says so on every page.')
+const ASSETS = z
+  .array(
+    z.object({
+      asset: z.string().describe('The asset’s id, as the report or the data names it.'),
+      digest: z.string().describe('The sha256: digest the report or the data pins it by.'),
+      mediaType: z.string().describe('Its media type, as the report declares it: image/png, image/jpeg, image/svg+xml or font/ttf.'),
+      base64: z.string().describe('Its bytes, in base64.'),
+    }),
+  )
+  .optional()
+  .describe('Every image or font the report or its data names, as bytes: each is held to its digest before anything renders.')
 const EXPECTED_HASH = z
   .string()
   .optional()
@@ -159,7 +197,7 @@ export const PROMPTS = {
   write_a_report: {
     title: 'Write a report',
     description:
-      'Write a new Formancy Report template from a description, in the order that gets it right the first time: the format, the report, then the checks.',
+      'Write a new Formancy Report template from a description, in the order that gets it right the first time: the format, the report, then the checks and a render.',
     args: { description: z.string().min(1).describe('What the report is for, in a sentence or two.') },
     text: (description: string): readonly string[] => [
       `Write a Formancy Report template for: ${description}`,
@@ -174,7 +212,9 @@ export const PROMPTS = {
       '   refuses every render; then each language’s. Call it again until it answers ok.',
       '4. For every change after that, call `describe_commands` once, then `apply_commands` with the commands and the hash the',
       '   last answer gave, rather than writing the report again: a command changes only what it names.',
-      '5. Show the person the report, and what `validate_report` still warns of, before it is used.',
+      '5. Call `render_check` with data shaped like the real data, and read each page’s lines: where a page breaks, what a table',
+      '   prints on which page, and what the runtime refuses of the data in a final render. Fix what you see, and check again.',
+      '6. Show the person the report, what `validate_report` still warns of and what `render_check` printed, before it is used.',
     ],
   },
   translate_a_report: {
@@ -227,6 +267,17 @@ export function createReportMcpServer(): McpServer {
       annotations: LOCAL_CHECK,
     },
     ({ report, commands, expectedHash }) => respond(applyCommands(report, commands, expectedHash)),
+  )
+  server.registerTool(
+    'render_check',
+    {
+      description: TOOL_DEFINITIONS.render_check,
+      inputSchema: { report: REPORT, data: DATA, parameters: PARAMETERS, locale: LOCALE, timeZone: TIME_ZONE, mode: MODE, assets: ASSETS },
+      outputSchema: RESULT_SHAPE,
+      annotations: LOCAL_CHECK,
+    },
+    async ({ report, data, parameters, locale, timeZone, mode, assets }, { signal }) =>
+      respond(await renderCheck({ report, data, parameters, locale, timeZone, mode, assets }, signal)),
   )
 
   const { write_a_report: write, translate_a_report: translate } = PROMPTS

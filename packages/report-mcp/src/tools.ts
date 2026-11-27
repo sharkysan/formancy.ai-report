@@ -27,6 +27,13 @@ import type { ReportDefinition, ReportError } from '@formancy/report-spec'
 export interface ToolResult {
   /** False means the agent has something to fix before going on, or was refused. */
   readonly ok: boolean
+  /**
+   * True where the tool did what it was asked though `ok` is false: an
+   * edit applied whose report is past `MAX_REPORT_BYTES`. Its answer is
+   * the report the agent carries on from, so it is no call that ended in an
+   * error, which the protocol's `isError` says (0088, 2026-11-27).
+   */
+  readonly applied?: true
   readonly summary: string
   readonly data: unknown
 }
@@ -54,12 +61,13 @@ function counted(found: readonly Diagnostic[]): string {
   return `${plural(errors, 'error')} and ${plural(found.length - errors, 'warning')}`
 }
 
-const plural = (count: number, noun: string): string => `${String(count)} ${noun}${count === 1 ? '' : 's'}`
+/** `count` and `noun`, in the plural but for one. */
+export const plural = (count: number, noun: string): string => `${String(count)} ${noun}${count === 1 ? '' : 's'}`
 
 const hasError = (found: readonly Diagnostic[]): boolean => found.some(({ severity }) => severity === 'error')
 
 /** The UTF-8 length of `report`'s JSON: how report-spec states `MAX_REPORT_BYTES` is measured, and what a server counts of a draft's body. */
-const bytesOf = (report: ReportDefinition): number => new TextEncoder().encode(JSON.stringify(report)).byteLength
+export const bytesOf = (report: unknown): number => new TextEncoder().encode(JSON.stringify(report)).byteLength
 
 /** Whether `verdict`'s report is past the bound a draft is held to. */
 const tooLarge = (verdict: Verdict): boolean => verdict.size.code !== undefined
@@ -87,7 +95,7 @@ function verdictOf(report: ReportDefinition): Verdict {
 }
 
 /** What the validator refused, as an answer: the errors, in its order, each with its code, its JSON Pointer and its sentence. */
-function invalid(errors: readonly ReportError[], what: string): ToolResult {
+export function invalid(errors: readonly ReportError[], what: string): ToolResult {
   return {
     ok: false,
     summary: `${what} is not a report this version reads: the validator gives ${plural(errors.length, 'error')}, and a save refuses it until each is fixed. Fix them in order, by each error's path.`,
@@ -183,7 +191,9 @@ function refused(refusal: Refusal, hash: string): ToolResult {
  * was made against. An edit applied is `ok` though the report it made has
  * a diagnostic error -- a language just added lacks every word until the
  * next edit -- but not where the report is past `MAX_REPORT_BYTES`, which
- * no save takes and only another edit can bring back within it.
+ * no save takes and only another edit can bring back within it. That
+ * answer is `applied`, and no error: the edit was made, and the report it
+ * made is the one to edit next.
  */
 export function applyCommands(report: unknown, commands: readonly unknown[], expectedHash?: string): ToolResult {
   const opening = openReportSession(report)
@@ -201,6 +211,7 @@ export function applyCommands(report: unknown, commands: readonly unknown[], exp
     : `The ${plural(commands.length, 'command')} changed nothing: the report is as it was given, with ${said(verdict)}.`
   return {
     ok: !tooLarge(verdict),
+    ...(tooLarge(verdict) ? { applied: true as const } : {}),
     summary: tooLarge(verdict) ? `${applied} ${sizeSaid(verdict)}` : applied,
     data: { changed, report: session.document(), ...verdict },
   }

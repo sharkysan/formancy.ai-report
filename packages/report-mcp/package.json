@@ -36,8 +36,11 @@
   },
   "dependencies": {
     "@formancy/report-core": "workspace:*",
+    "@formancy/report-render-pdf": "workspace:*",
+    "@formancy/report-runtime": "workspace:*",
     "@formancy/report-spec": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.2",
+    "pdfjs-dist": "6.4.299",
     "zod": "4.6.7"
   },
   "devDependencies": {

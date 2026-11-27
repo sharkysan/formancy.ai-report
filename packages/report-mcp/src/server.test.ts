@@ -2,10 +2,11 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { wordExpressions } from '@formancy/report-core'
 import { QUOTATION, STARTERS } from '@formancy/report-corpus'
-import { reportHash, reportWords } from '@formancy/report-spec'
+import { MAX_REPORT_BYTES, reportHash, reportWords } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { createReportMcpServer, PACKAGE_VERSION, PLACEHOLDERS, PROMPTS, TOOL_DEFINITIONS, translationSteps } from './server.js'
+import { quotationOf, STARTER_ASSETS } from './test-support.js'
 import { applyCommands } from './tools.js'
 
 /**
@@ -66,9 +67,9 @@ function addressesIn(schema: unknown): string[] {
 describe('the tools a client can see', () => {
   // A tool missing is one an agent never calls; one added without a
   // description is one it calls for the wrong reason.
-  test('are the four that need nothing, each with the description TOOL_DEFINITIONS holds', async () => {
+  test('are the five that need nothing, each with the description TOOL_DEFINITIONS holds', async () => {
     const { tools } = await (await connect()).listTools()
-    expect(tools.map(({ name }) => name).sort()).toEqual(['apply_commands', 'describe_commands', 'describe_format', 'validate_report'])
+    expect(tools.map(({ name }) => name).sort()).toEqual(['apply_commands', 'describe_commands', 'describe_format', 'render_check', 'validate_report'])
     for (const tool of tools) expect(tool.description, tool.name).toBe(TOOL_DEFINITIONS[tool.name as keyof typeof TOOL_DEFINITIONS])
   })
 
@@ -80,6 +81,7 @@ describe('the tools a client can see', () => {
     expect(TOOL_DEFINITIONS.validate_report).toContain('after every change')
     expect(TOOL_DEFINITIONS.describe_commands).toContain('before apply_commands')
     expect(TOOL_DEFINITIONS.apply_commands).toContain('expectedHash')
+    expect(TOOL_DEFINITIONS.render_check).toContain('once validate_report answers ok')
   })
 
   // validate_report checks what the validator, the draft's size and a
@@ -137,7 +139,7 @@ describe('the tools a client can see', () => {
   // authority, which one day refuses a report report-spec accepts.
   test('take a report as any JSON value, for report-spec to judge', async () => {
     const { tools } = await (await connect()).listTools()
-    for (const name of ['validate_report', 'apply_commands']) {
+    for (const name of ['validate_report', 'apply_commands', 'render_check']) {
       const report = (tools.find((tool) => tool.name === name)?.inputSchema.properties as Record<string, Record<string, unknown>> | undefined)?.report
       expect(report, name).toBeDefined()
       expect(
@@ -204,6 +206,78 @@ describe('calling them', () => {
     })) as Answer
     expect(stale.isError).toBe(true)
     expect(stale.structuredContent?.data).toMatchObject({ refusal: { code: 'stale-document' } })
+  })
+
+  // An edit applied is no call that ended in an error, MCP's meaning of
+  // isError, though the report it made is past the bound a save takes: a
+  // client that folds an error's content away, or a model that retries
+  // what failed, would lose the report the agent has to bring back within
+  // the bound. Not ok, so the agent knows there is something to fix, and
+  // not isError, which 0088 keeps for a refusal (2026-11-27).
+  test('apply_commands answers an edit applied past MAX_REPORT_BYTES as not ok, and as no error', async () => {
+    const report = quotationOf(MAX_REPORT_BYTES - 1)
+    const grown = (await (
+      await connect()
+    ).callTool({
+      name: 'apply_commands',
+      arguments: { report, commands: [{ command: 'setTitle', args: [`${report.title}xx`] }] },
+    })) as Answer
+    expect(grown.isError).toBeUndefined()
+    expect(grown.structuredContent?.ok).toBe(false)
+    expect(grown.structuredContent?.data).toMatchObject({ changed: true, size: { code: 'report-too-large' }, report: { title: `${report.title}xx` } })
+  })
+})
+
+describe('render_check through the protocol', () => {
+  // Every argument survives the trip under the name a model is told: the
+  // report, its data, its parameters, the locale, the zone, the mode and
+  // the assets, each read back from what the runtime printed with.
+  test('takes the report, its data and what a render names, and answers each page’s lines', async () => {
+    const result = (await (
+      await connect()
+    ).callTool({
+      name: 'render_check',
+      arguments: {
+        report: QUOTATION.report,
+        data: QUOTATION.data,
+        parameters: QUOTATION.parameters,
+        locale: 'de-CH',
+        timeZone: 'Europe/Zurich',
+        mode: 'preview',
+        assets: STARTER_ASSETS,
+      },
+    })) as Answer
+    expect(result.isError).toBeUndefined()
+    const data = result.structuredContent?.data as { pages: { page: number; lines: string[] }[]; manifest: Record<string, unknown> } | undefined
+    expect(data?.pages.map(({ page }) => page)).toEqual([1])
+    expect(data?.pages[0]?.lines[0]).toBe('Offerte Q-2026-0415')
+    expect(data?.manifest).toMatchObject({ locale: 'de-CH', timeZone: 'Europe/Zurich', mode: 'preview' })
+    expect(textOf(result)).toContain('Offerte Q-2026-0415')
+  })
+
+  // A render refused is a call that ended in an error, structured: the
+  // runtime's codes are what the agent fixes the data by.
+  test('answers a refusal as isError, with the runtime’s errors structured', async () => {
+    const result = (await (
+      await connect()
+    ).callTool({
+      name: 'render_check',
+      arguments: { report: QUOTATION.report, data: { ...QUOTATION.data, header: {} }, assets: STARTER_ASSETS },
+    })) as Answer
+    expect(result.isError).toBe(true)
+    expect(result.structuredContent?.data).toMatchObject({
+      rendered: false,
+      runtime: expect.arrayContaining([expect.objectContaining({ code: 'missing-field' })]),
+    })
+  })
+
+  // A mode the tool does not take is the protocol's to refuse, by the
+  // schema a client is told; render.ts refuses it again for a library's
+  // caller.
+  test('tells a client the two modes it takes', async () => {
+    const { tools } = await (await connect()).listTools()
+    const mode = (tools.find(({ name }) => name === 'render_check')?.inputSchema.properties as Record<string, { enum?: unknown }> | undefined)?.mode
+    expect(mode?.enum).toEqual(['final', 'preview'])
   })
 })
 

@@ -1,8 +1,9 @@
 import { describeCommands, diagnose, languageDiagnostics, reportFacts } from '@formancy/report-core'
 import { STARTERS, QUOTATION } from '@formancy/report-corpus'
 import { MAX_REPORT_BYTES, reportHash } from '@formancy/report-spec'
-import type { Component, ReportDefinition } from '@formancy/report-spec'
+import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
+import { quotationOf } from './test-support.js'
 import { applyCommands, checkReport, describeFormat, listCommands } from './tools.js'
 import type { ToolResult } from './tools.js'
 
@@ -33,29 +34,6 @@ interface Refused {
 }
 
 const quotation = QUOTATION.report
-
-/** A report's size as report-spec states `MAX_REPORT_BYTES` is measured: the UTF-8 length of its JSON. */
-const bytesOf = (report: unknown): number => new TextEncoder().encode(JSON.stringify(report)).byteLength
-
-/**
- * The quotation grown to exactly `bytes` bytes by texts of plain letters
- * at the end of its body, each within the text's own bound: a valid report
- * of a size chosen to the byte.
- */
-function quotationOf(bytes: number): ReportDefinition {
-  const text = (id: string, length: number): Component => ({ kind: 'text', id, content: [{ kind: 'text', text: 'x'.repeat(length) }] })
-  const padded = (texts: readonly Component[]): ReportDefinition => ({
-    ...quotation,
-    regions: { ...quotation.regions, body: [...quotation.regions.body, ...texts] },
-  })
-  const texts: Component[] = []
-  while (bytesOf(padded([...texts, text(`pad-${String(texts.length)}`, 9000)])) < bytes) texts.push(text(`pad-${String(texts.length)}`, 9000))
-  const last = `pad-${String(texts.length)}`
-  const short = bytes - bytesOf(padded([...texts, text(last, 0)]))
-  const report = padded([...texts, text(last, short)])
-  expect(bytesOf(report)).toBe(bytes)
-  return report
-}
 
 describe('describe_format', () => {
   // Typed into the tool, the facts would describe the format one release
@@ -252,6 +230,9 @@ describe('the size a draft is held to', () => {
     expect(within.ok).toBe(true)
     const grown = applyCommands(report, [{ command: 'setTitle', args: [`${report.title}xx`] }])
     expect(grown.ok).toBe(false)
+    // Applied, which server.ts answers as no error (0088, 2026-11-27).
+    expect(grown.applied).toBe(true)
+    expect(within.applied).toBeUndefined()
     expect(dataOf<{ changed: boolean; size: unknown }>(grown)).toMatchObject({
       changed: true,
       size: { bytes: MAX_REPORT_BYTES + 1, max: MAX_REPORT_BYTES, code: 'report-too-large' },
