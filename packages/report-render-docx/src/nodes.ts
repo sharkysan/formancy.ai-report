@@ -47,8 +47,8 @@ const EACH_ENDING = new RegExp(LINE_ENDING.source, 'g')
 /**
  * The line endings `text` holds. Each is written as a break, and what
  * follows it as a `w:t` of its own, so each is counted as a run
- * (`check.ts`). Found without keeping a line: a text is counted before it
- * is known to be short enough to write.
+ * (`check.ts`, `check-table.ts`). Found without keeping a line: a text
+ * is counted before it is known to be short enough to write.
  */
 export function lineEndings(text: string): number {
   let found = 0

@@ -5,10 +5,11 @@ import { MAX_ASSET_BYTES, MAX_ASSET_SIDE, MAX_CHART_CATEGORIES, MAX_CHART_SERIES
  * synchronous step, in memory, on whatever thread calls it, and counts no
  * page, so it has no page limit to stop at as the PDF renderer has: these
  * bound the work before any of it is done, counted in the walk that
- * checks the document and, for its pictures, as each asset is first read
- * (`check.ts`). Past one, the document is refused as `content-too-large`,
- * never cut to fit; a font whose family is past `MAX_DOCX_FAMILY_LENGTH`
- * is refused as `invalid-asset`, as a font the writer cannot name.
+ * checks the document (`check-walk.ts`) and, for its pictures, as each
+ * asset is first read (`check-pictures.ts`). Past one, the document is
+ * refused as `content-too-large`, never cut to fit; a font whose family
+ * is past `MAX_DOCX_FAMILY_LENGTH` is refused as `invalid-asset`, as a
+ * font the writer cannot name.
  *
  * Every figure here is of a process a measurement, one at a time, on an
  * Intel Core i9-10900K shared with other work, under Node 24.21.0, whose

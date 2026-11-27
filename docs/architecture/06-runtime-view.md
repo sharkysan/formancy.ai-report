@@ -1297,7 +1297,7 @@ checkDocument: before a byte is written, in this order                          
    │  line ending a run, what a family is written past its bound with
    │  the characters ──────────────────────────────────────────────────▶ content-too-large
    │  then the pictures, each asset read once, in the order the walk
-   │  met them:
+   │  met them:                                                      check-pictures.ts
    ├─ past MAX_DOCX_PICTURES, counted before an asset is read ─────────▶ content-too-large
    ├─ an asset of no bytes, or of more than an asset may be ───────────▶ invalid-asset
    ├─ past MAX_DOCX_MEDIA_BYTES, counted from an asset's length before

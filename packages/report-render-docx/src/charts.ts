@@ -109,7 +109,7 @@ export function chartWords(chart: Chart): ChartWord[] {
 /**
  * What `chart` is of the file's paragraphs, characters and runs
  * (`limits.ts`), and how often it names its family, each time as long as
- * a run does (`check.ts`'s `family`). Drawn, a paragraph, its inline
+ * a run does (`check-walk.ts`'s `family`). Drawn, a paragraph, its inline
  * chart's, and the characters of every word its part states, as often as
  * it states it, with every digit of its numbers; with nothing to draw, a table of one cell and a
  * paragraph of one run for each of its two words that prints.

@@ -1,6 +1,5 @@
 import {
   BASELINE_SHIFTS,
-  MAX_KEEP_WITH_ROWS,
   RenderRefusal,
   type Block,
   type Chart,
@@ -12,26 +11,25 @@ import {
   type Rectangle,
   type ResolvedDocument,
   type Section,
-  type Table,
-  type TextStyle,
 } from '@formancy/report-runtime'
-import { drawnSize, readPicture, type Held, type Picture } from './assets.js'
+import type { Picture } from './assets.js'
 import { checkChart } from './chart-check.js'
 import { chartCount } from './charts.js'
+import { readPictures } from './check-pictures.js'
+import { checkTable } from './check-table.js'
 import { checkColor, checkStyle, checkText, checkWritten } from './check-text.js'
+import { checkLine, NO_LENGTH, shown, tooSmall } from './check-units.js'
+import { count, family, tall, type Walk } from './check-walk.js'
 import { codeCount, codeSymbol, type Code } from './codes.js'
 import { copyLabel } from './copy.js'
 import { createdOf } from './created.js'
 import type { DocxFonts } from './fonts.js'
-import { MAX_DOCX_CHARACTERS, MAX_DOCX_FAMILY_LENGTH, MAX_DOCX_PARAGRAPHS, MAX_DOCX_PICTURES, MAX_DOCX_RUNS, ONE_CELL_TABLE } from './limits.js'
-import { PADDING_X } from './look.js'
+import { ONE_CELL_TABLE } from './limits.js'
 import { lineEndings } from './nodes.js'
 import { pageOf, type Page } from './page.js'
 import { refusePdfOnly } from './pdf-only.js'
-import { cellFace, styledRows } from './rows.js'
 import { slipCount } from './slip.js'
 import { planSlip, type PlannedSlip } from './slip-plan.js'
-import { eighths, emu, MAX_BORDER, MIN_BORDER, twips } from './units.js'
 import { fillWidth, fixedWidth } from './widths.js'
 
 /**
@@ -47,9 +45,11 @@ import { fillWidth, fixedWidth } from './widths.js'
  * of an e-invoice not labelled as one on every header (`copy.ts`, 0077);
  * the page;
  * then the page header, page 1's own, the page footer and the body, each
- * block in document order; the pictures' bytes, in the order the walk met
- * them; and last a QR-bill's payment part and its slip (`slip-plan.ts`,
- * 0075). It is the PDF renderer's order for what both refuse -- its
+ * block in document order, a table where the walk meets it
+ * (`check-table.ts`); the pictures' bytes, in the order the walk met
+ * them (`check-pictures.ts`); and last a QR-bill's payment part and its
+ * slip (`slip-plan.ts`, 0075). It is the PDF renderer's order for what
+ * both refuse -- its
  * fonts, its walk, its `check-images.ts`, then its bill -- which
  * `against-pdf.test.ts` holds on a document wrong in every one of those
  * places.
@@ -63,20 +63,26 @@ import { fillWidth, fixedWidth } from './widths.js'
  * by the one rule both engines ask (0074, `codes.ts`), and a chart, whose
  * contract is stated again (0076, `chart-check.ts`). **What belongs to
  * the PDF, and what nobody has seen Word print as the PDF does**, each
- * `unsupported`. **What Word's units do not state**, each `unsupported`:
- * a line lighter or heavier than its borders hold, and a rectangle, a
- * column, a framed section or a picture so small that its width or its
- * height rounds to none of the unit it is written in. And **the writer's
- * own bounds**, each `content-too-large`: a picture, a rectangle or a
- * spacer taller than the printable area, which no page of a Word file
- * holds; and the file's paragraphs, its text's characters and runs, its
- * codes, its charts and their points, its pictures, their bytes and their
- * image data (`limits.ts`); and a slip's line wider than its place, or
+ * `unsupported`. **What Word's units do not state**, each `unsupported`
+ * (`check-units.ts`): a line lighter or heavier than its borders hold,
+ * and a rectangle, a column, a framed section or a picture so small that
+ * its width or its height rounds to none of the unit it is written in.
+ * And **the writer's own bounds**, each `content-too-large`: a picture, a
+ * rectangle or a spacer taller than the printable area, which no page of
+ * a Word file holds; and the file's paragraphs, its text's characters
+ * and runs, as the walk counts them (`check-walk.ts`), its codes, its
+ * charts and their points, its pictures, their bytes and their image
+ * data (`limits.ts`); and a slip's line wider than its place, or
  * information taller than its section.
  *
  * What the PDF renderer refuses of what it measured -- a block taller
  * than the body between its regions, a line it cannot place, more pages
  * than a host allows -- is not here: the writer measures nothing.
+ *
+ * This module is the order and the walk: where each block stands, what
+ * may not stand there, and what each kind of block is held to that no
+ * module of its own holds. It changes when the order does, when a kind of
+ * block is added, or when what may stand where does.
  */
 
 /** How deep blocks may nest: the PDF renderer's bound on its recursion, and this walk's. */
@@ -110,29 +116,6 @@ interface Place {
   readonly depth: number
 }
 
-interface Walk {
-  readonly fonts: DocxFonts
-  readonly page: Page
-  /** Every image, in the order the walk met it: its asset is read once every block has been walked (`readPictures`). */
-  readonly images: Image[]
-  /**
-   * Every code's symbol, by its block; how often a code was met, which
-   * is as often as a block of one stands, the same block among them;
-   * and the modules their symbols have between them.
-   */
-  readonly codes: Map<Code, QrSymbol>
-  met: number
-  modules: number
-  /** The charts met that are parts of the file, and the points they hold between them. */
-  charts: number
-  points: number
-  paragraphs: number
-  characters: number
-  runs: number
-  /** Of the characters, those that are no text: what the fonts' families are written longer than the bounds allow for (`family`). */
-  families: number
-}
-
 export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Checked {
   const created = createdOf(document.info.creationDate)
   // The title goes into the file's properties, never onto a page: held to being text XML holds, and to no font.
@@ -161,57 +144,6 @@ export function checkDocument(document: ResolvedDocument, fonts: DocxFonts): Che
   // Of a copy that header's paragraph is the label and no empty line (`package.ts`, 0077): the one paragraph counted above, with its text and its run.
   if (copy !== undefined) count(walk, 0, (copy.runs[0] as { readonly text: string }).text.length + family(walk, copy.style?.font, 2), 'paymentPart', 1)
   return { page, created, pictures, codes: walk.codes, slip, ...labelled }
-}
-
-/**
- * So many paragraphs, characters and runs of text more, refused past any
- * bound, naming where the count crossed it. A block that writes no run
- * of text, a spacer or a picture, counts none. A line ending in a text
- * is a run more: it is written as a break and what follows it as a `w:t`
- * of its own (`wml.ts`), far more than the character it is. Every one a
- * text holds is counted, the one that ends a paragraph's or a cell's text
- * among them, which is written as nothing, as an empty run is counted.
- */
-function count(walk: Walk, paragraphs: number, characters: number, subject: string, runs = 0): void {
-  walk.paragraphs += paragraphs
-  walk.characters += characters
-  walk.runs += runs
-  if (walk.paragraphs > MAX_DOCX_PARAGRAPHS)
-    throw new RenderRefusal(
-      'content-too-large',
-      `the report holds more than ${MAX_DOCX_PARAGRAPHS} paragraphs, a table's cell being one and a rectangle or a section's frame two; a Word file holds no more`,
-      subject,
-    )
-  if (walk.characters > MAX_DOCX_CHARACTERS) {
-    const families =
-      walk.families === 0
-        ? ''
-        : `, ${walk.families} of them what a font's family is written past ${MAX_DOCX_FAMILY_LENGTH} characters in every run and paragraph that names it`
-    throw new RenderRefusal(
-      'content-too-large',
-      `the report's text is more than ${MAX_DOCX_CHARACTERS} characters long${families}; a Word file holds no more`,
-      subject,
-    )
-  }
-  if (walk.runs > MAX_DOCX_RUNS)
-    throw new RenderRefusal(
-      'content-too-large',
-      `the report's text is held in more than ${MAX_DOCX_RUNS} runs, a page field being three, a table's cell one and each line ending in a text one more; a Word file holds no more`,
-      subject,
-    )
-}
-
-/**
- * The characters `times` runs and paragraph marks of `token` are written
- * longer than the bounds allow for: each states its family in four font
- * slots, and one whose name is written longer than it may be named
- * (`DocxFonts.longer`) is that much more of the file each time. Counted
- * with the text's characters, by whoever counts those.
- */
-function family(walk: Walk, token: TextStyle['font'], times: number): number {
-  const more = walk.fonts.longer(token) * times
-  walk.families += more
-  return more
 }
 
 function checkBlocks(blocks: readonly Block[], path: string, place: Place, walk: Walk): void {
@@ -326,31 +258,6 @@ function checkParagraph(paragraph: Paragraph, at: string, place: Place, walk: Wa
   count(walk, 1, characters + family(walk, style?.font, runs + 1), at, runs + endings)
 }
 
-/** A line's weight held to what Word's borders hold: from a quarter of a point to twelve, in eighths. */
-function checkLine(weight: number, what: string, subject: string): void {
-  if (eighths(weight) < eighths(MIN_BORDER) || eighths(weight) > eighths(MAX_BORDER))
-    throw new RenderRefusal('unsupported', `${what} ${weight} pt thick; a line of a Word file is from ${MIN_BORDER} to ${MAX_BORDER} pt`, subject)
-}
-
-/** Something of a fixed height: taller than the printable area, no page of a Word file holds it. */
-function tall(height: number, what: string, subject: string, walk: Walk): void {
-  if (height > walk.page.height)
-    throw new RenderRefusal('content-too-large', `${what} is ${height} pt tall; the printable area is ${walk.page.height.toFixed(2)} pt`, subject)
-}
-
-/** A length as a sentence states one: to four digits, so that a share of a width is not its every binary place. */
-const shown = (points: number): string => String(Number(points.toPrecision(4)))
-
-/**
- * Whether a length rounds to none of Word's twentieths of a point: one
- * under a fortieth. A table that wide, or a row of exactly that height,
- * would be written as one of no width or no height, which the PDF draws,
- * thin as it is, and nobody has seen Word draw. A spacer that small is no
- * space and writes nothing (`blocks.ts`); a box that small is refused.
- */
-const tooSmall = (points: number): boolean => twips(points) < 1
-const NO_LENGTH = 'a Word file states no length under a fortieth of a point'
-
 function checkImage(image: Image, place: Place, walk: Walk): void {
   const { id } = image.asset
   if (image.fit !== 'contain' && image.fit !== 'cover')
@@ -397,64 +304,6 @@ function checkDrawnChart(chart: Chart, place: Place, walk: Walk): void {
   walk.points += points
   const { paragraphs, characters, runs, families } = chartCount(chart)
   count(walk, paragraphs, characters + family(walk, chart.style?.font, families), chart.id, runs)
-}
-
-/**
- * Every image's asset as it is embedded, read once however many images
- * draw it, in the order the walk met them and once it has walked every
- * block: where the PDF renderer reads them (`check-images.ts` there), so
- * that a document wrong in a block and in a picture's bytes is refused
- * for the block by both.
- *
- * Each new asset is counted before it is read, and refused past
- * `MAX_DOCX_PICTURES`; then read with what the pictures before it hold
- * (`assets.ts`), and refused where its bytes and theirs are past
- * `MAX_DOCX_MEDIA_BYTES`, counted from its length before a byte of it
- * is read, where its bytes are no picture, where its image data and
- * theirs are past `MAX_DOCX_IMAGE_DATA`, counted from its header before
- * a PNG's is inflated, or where it is a picture nobody has seen Word
- * print as the PDF does. Then each
- * image is held to its picture: an SVG to a box of its own proportions
- * where it covers one, and any picture to an extent Word's unit states.
- */
-function readPictures(images: readonly Image[]): Map<ImageAsset, Picture> {
-  const pictures = new Map<ImageAsset, Picture>()
-  let held: Held = { bytes: 0, data: 0 }
-  for (const image of images) {
-    const { id } = image.asset
-    let picture = pictures.get(image.asset)
-    if (picture === undefined) {
-      if (pictures.size === MAX_DOCX_PICTURES)
-        throw new RenderRefusal(
-          'content-too-large',
-          `the report holds more than ${MAX_DOCX_PICTURES} pictures, ${id} the first past them; a Word file holds no more`,
-          id,
-        )
-      picture = readPicture(image.asset, held)
-      pictures.set(image.asset, picture)
-      held = { bytes: held.bytes + image.asset.bytes.length, data: held.data + picture.data }
-    }
-    // An SVG is drawn whole in its picture's box: one that covers a box of other proportions would have to be cropped.
-    if (
-      picture.kind === 'svg' &&
-      image.fit === 'cover' &&
-      Math.abs(picture.width * image.height - picture.height * image.width) > 1e-6 * picture.width * image.height
-    )
-      throw new RenderRefusal(
-        'unsupported',
-        `the image ${id} is an SVG that covers a box of other proportions than its own, which needs the drawing cropped; whether Word crops one as the PDF does is not known here: a Word file holds an SVG at its own proportions alone`,
-        id,
-      )
-    // A picture's extent is stated in English Metric Units: one that rounds to none would be a picture of no extent.
-    const { width, height } = drawnSize(image, picture)
-    if (emu(width) < 1 || emu(height) < 1)
-      throw new RenderRefusal(
-        'unsupported',
-        `the image ${id} is drawn ${shown(width)} × ${shown(height)} pt, under the unit a Word file states a picture's extent in, 12,700 to the point: the PDF draws it, and what Word draws of a picture of no extent is not known here`,
-        id,
-      )
-  }
-  return pictures
 }
 
 function checkRectangle(rectangle: Rectangle, at: string, place: Place, walk: Walk): void {
@@ -523,71 +372,4 @@ function checkSection(section: Section, at: string, place: Place, walk: Walk): v
     count(walk, ONE_CELL_TABLE, 0, at)
   }
   checkBlocks(section.blocks, `${at}.blocks`, { ...place, width, framed: place.framed || framed(section), depth: place.depth + 1 }, walk)
-}
-
-/** A table held to its shape, as the PDF renderer holds it, and every cell's text to the face it prints in. */
-function checkTable(table: Table, width: number, walk: Walk): void {
-  const columns = table.columns.length
-  const { id } = table
-  if (columns === 0) throw new RenderRefusal('unsupported', `table ${id} has no columns`, id)
-  if (table.columns.some((column) => column.align !== 'left' && column.align !== 'center' && column.align !== 'right'))
-    throw new RenderRefusal('unsupported', `table ${id} aligns a column in a way a report does not know`, id)
-  if (table.header !== undefined && table.header.length !== columns)
-    throw new RenderRefusal('unsupported', `the header of table ${id} has ${table.header.length} cells for ${columns} columns`, id)
-  table.rows.forEach((row, index) => {
-    const cells = row.across === true ? 1 : columns
-    if (row.cells.length !== cells)
-      throw new RenderRefusal(
-        'unsupported',
-        `row ${index} of table ${id} has ${row.cells.length} cells for ${row.across === true ? 'a row across the table, which has one' : `${columns} columns`}`,
-        id,
-      )
-    if (row.cellStyles !== undefined && row.cellStyles.length !== row.cells.length)
-      throw new RenderRefusal('unsupported', `row ${index} of table ${id} has ${row.cellStyles.length} cell styles for ${row.cells.length} cells`, id)
-    for (const style of [row.style, ...(row.cellStyles ?? [])]) checkStyle(style ?? undefined, id, walk.fonts)
-  })
-  checkKeptRows(table)
-  checkStyle(table.headerStyle, id, walk.fonts)
-  const narrow = table.columns.find((column) => column.width !== 'fill' && !(column.width > 2 * PADDING_X && Number.isFinite(column.width)))
-  if (narrow !== undefined) throw new RenderRefusal('unsupported', `table ${id} has a column of ${String(narrow.width)} pt, no wider than its cell padding`, id)
-  const widths = table.columns.map((column) => column.width)
-  const fixed = fixedWidth(widths)
-  if (fixed > width || fillWidth(widths, width) <= 2 * PADDING_X)
-    throw new RenderRefusal('content-too-large', `table ${id}'s fixed columns are ${fixed} pt wide; it stands ${width.toFixed(2)} pt wide`, id)
-  for (const row of styledRows(table)) {
-    let [characters, endings] = [0, 0]
-    row.cells.forEach((text, column) => {
-      const where =
-        row.index !== undefined
-          ? `table ${id}, row ${row.index}, column ${column + 1},`
-          : row.kind === 'header'
-            ? `table ${id}'s header, column ${column + 1},`
-            : `table ${id}'s empty text`
-      checkText(text, cellFace(row.styles[column]!, row.kind), walk.fonts, where, id)
-      // A cell is a paragraph of one run: the run and the mark each state the family its style names.
-      characters += text.length + family(walk, row.styles[column]!.font, 2)
-      endings += lineEndings(text)
-    })
-    count(walk, row.cells.length, characters, id, row.cells.length + endings)
-  }
-}
-
-/** Refuses a table whose rows keep rows otherwise than the runtime writes them (0059), as the PDF renderer does. */
-function checkKeptRows(table: Table): void {
-  table.rows.forEach((row, index) => {
-    const keeps: unknown = row.keepWithRows
-    if (keeps === undefined) return
-    const at = `row ${index} of table ${table.id}`
-    if (row.kind !== 'groupHeader') throw new RenderRefusal('unsupported', `${at} keeps rows with it, and only a group header does`, table.id)
-    if (!(typeof keeps === 'number' && Number.isInteger(keeps) && keeps >= 2 && keeps <= MAX_KEEP_WITH_ROWS)) {
-      throw new RenderRefusal(
-        'unsupported',
-        `${at}, a group header, keeps ${typeof keeps === 'number' ? `${keeps} rows` : `rows by a count of type ${typeof keeps}`}; a group header keeps a whole number of them from 2 to ${MAX_KEEP_WITH_ROWS}, and only its first where it says none`,
-        table.id,
-      )
-    }
-    let details = 0
-    while (table.rows[index + 1 + details]?.kind === 'detail') details++
-    if (keeps > details) throw new RenderRefusal('unsupported', `${at}, a group header, keeps ${keeps} rows, and ${details} detail rows follow it`, table.id)
-  })
 }
