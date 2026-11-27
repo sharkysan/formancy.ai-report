@@ -16,8 +16,9 @@
  * unknown function at exactly that place, the expression called the
  * function there. Everything else -- a string, a member, a comprehension's
  * local -- compiles as before, or fails elsewhere. A generic way to ask
- * which functions an expression calls belongs upstream, and replaces this
- * when it is released.
+ * which functions an expression calls belongs upstream: 0.13.0 released
+ * one, a program's `calls` and a check asked to be `reproducible`, which
+ * replaces this in a change of its own.
  */
 import { compile } from '@formancy/expressions'
 import type { ExpressionKind, SourceSpan, VariableDeclarations } from '@formancy/expressions'

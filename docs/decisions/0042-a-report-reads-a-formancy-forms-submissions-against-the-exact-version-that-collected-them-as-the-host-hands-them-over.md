@@ -24,8 +24,9 @@
     and a version-2 visit, each with its own version's labels; the hash
     computed and a differing one refused; an answer the version has no
     path for refused by its path and never its value; a field the version
-    lacks, moved or retyped; forms at spec 1, 2, 3, 4 and 5 and one Formancy
-    Data generated at spec 3; a spec 6 form refused naming both versions;
+    lacks, moved or retyped; forms at spec 1, 2, 3, 4, 5 and 6 and one Formancy
+    Data generated at spec 3; a spec 7 form refused naming both versions;
+    a time and a date and time read at the width their precision gives;
     a version whose pattern backtracks read, its pattern never run, and one
     that does not compile with the `u` flag refused;
     getters never run, an own `__proto__`, keys called `constructor`, the
@@ -416,6 +417,34 @@ changed; what reached the bridge:
 - **A version's hash is the one it was.** `schemaHash`'s code is 0.11.0's,
   and the starter still names version 2 by its hash (`starter.test.ts`).
 
+**Added 2026-11-27: formancy 0.14.0.** The repository moved
+`@formancy/spec` from 0.12.0 to 0.14.0. Nothing this record decides
+changed; what reached the bridge:
+- **Spec 6 is read**, by [0004](0004-three-version-lines-each-refused-when-unknown.md)'s
+  rule, and with it a time's and a date and time's `precision`
+  ([formancy.ai 0238](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0238-a-time-or-an-instant-declares-its-precision.md)):
+  an answer to such a field has seconds and that many digits after them,
+  `09:50:12.250` at precision 3, and formancy's engine refuses one of
+  another width. The bridge held every temporal answer to version 5's
+  shape, which would have refused each such answer as `invalid-answer`;
+  it now holds one to the shape at its field's width, by upstream's
+  `temporalShapeRegExp`, and a field without a precision to version 5's
+  shape as before (`kinds.test.ts`; it failed with version 5's shape).
+- **A time of day prints as stored, at its width.** A version that gives
+  one a precision prints its seconds and their digits beside an earlier
+  version's minutes. A date and time is an instant at any width, which
+  the runtime reads with up to nine digits after the seconds.
+- **A precision changes no kind.** A version that gives a field the
+  report reads one reviews as compatible, though formancy's diff calls
+  the field changed, and each version's answers are read at its own width
+  and refused at another (`review.test.ts`; it failed likewise); a draft
+  of such a version is the one drafted without it, but for the version it
+  names (`generate.test.ts`).
+- **A version's hash is the one it was.** `schemaHash`, `diffSchemas` and
+  `modelDataPaths` are 0.12.0's code in the built package, and the starter
+  still names version 2 by its hash (`starter.test.ts`). formancy's server
+  adds no route at 0.13.0 or 0.14.0.
+
 ## Alternatives considered
 
 **Read formancy's server with a client of Report's own.** Rejected (FB-Q2):
@@ -423,7 +452,7 @@ the API has no route for one submission or an old version's schema, lists
 submissions without their hash, and publishes no client; one written here
 would be a second reading of formancy's rules (0002). From formancy 0.8.0
 an old version's schema has a route (formancy.ai 0207); the rest still
-stands at 0.12.0 -- no route for one submission, a listing without
+stands at 0.14.0 -- no route for one submission, a listing without
 hashes, no published client -- and nothing in a package here reaches the
 network.
 

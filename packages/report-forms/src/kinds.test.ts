@@ -1,6 +1,6 @@
 import { FIELD_TYPES as REPORT_TYPES } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
-import { FIELD_TYPES as FORM_KINDS, schemaHash } from '@formancy/spec'
+import { FIELD_TYPES as FORM_KINDS, schemaHash, temporalShape } from '@formancy/spec'
 import { describe, expect, test } from 'vitest'
 import readme from '../README.md?raw'
 import { KINDS } from './kinds.js'
@@ -230,6 +230,31 @@ describe('the mapping', () => {
       'invalid-answer /submission/data/on',
       'invalid-answer /submission/data/at',
     ])
+  })
+
+  // Spec 6 gives a time or a date and time a `precision` (formancy.ai
+  // 0238): every answer to such a field has seconds and that many digits
+  // after them, `09:50:12.250`, where one without has version 5's shape,
+  // `09:50`. Held to version 5's shape, every answer such a field collects
+  // would be refused; held to any width, an answer of another width, which
+  // formancy's engine never stores for the field, would print as its own.
+  test('reads a time and a date and time at the width their precision gives, and refuses another', () => {
+    const form = formOf(
+      [
+        { key: 'at', type: 'time', precision: 3 },
+        { key: 'on', type: 'time', precision: 0 },
+        { key: 'seen', type: 'datetime', precision: 6 },
+      ],
+      {},
+      '6',
+    )
+    const report = reportOf({ header: answers(field('at', 'string', 'at'), field('on', 'string', 'on'), field('seen', 'instant', 'seen')) })
+    const precise = { at: '09:50:12.250', on: '09:50:12', seen: '2026-10-15T07:45:03.123456Z' }
+    expect(headerOf(read(report, form, precise))).toEqual(precise)
+    const wide = read(report, form, { at: '09:50', on: '09:50:12.250', seen: '2026-10-15T07:45:03Z' })
+    expect(refusals(wide)).toEqual(['invalid-answer /submission/data/at', 'invalid-answer /submission/data/on', 'invalid-answer /submission/data/seen'])
+    // The refusal names the shape at the field's own width, not version 5's.
+    if (!wide.ok) expect(wide.errors[0]?.message).toContain(temporalShape('time', 3))
   })
 
   // A matrix asks one question of each row, so a field reads one row,

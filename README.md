@@ -321,10 +321,10 @@ and every run ends in a release report
 | `@formancy/data-client` | 0.1.0 | `0.1.0` |
 | `@formancy/data-core` (transitive) | 0.1.0 |  |
 | `@formancy/data-identity` | 0.3.0 | `0.3.0` |
-| `@formancy/expressions` | 0.12.0 | `0.12.0` |
-| `@formancy/spec` | 0.12.0 | `0.12.0` |
+| `@formancy/expressions` | 0.14.0 | `0.14.0` |
+| `@formancy/spec` | 0.14.0 | `0.14.0` |
 | `@formancy/spec` (transitive) | 0.5.0 |  |
-| `@formancy/themes` | 0.12.0 | `0.12.0` |
+| `@formancy/themes` | 0.14.0 | `0.14.0` |
 | `tslib`, by `@formancy/report-builder-angular` | 2.9.1 | `^2.8.0` |
 | `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
 | `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |
