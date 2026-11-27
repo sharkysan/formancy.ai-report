@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { access, constants, link, mkdir, open, readdir, readFile, rm, stat } from 'node:fs/promises'
-import { isAbsolute, join, relative } from 'node:path'
+import { isAbsolute, join, relative, sep } from 'node:path'
 import { DRAFT_FORMAT } from '@formancy/report-server-core'
 import type { StoredDraft, StoredImage, TemplateStore, TemplateSummary } from '@formancy/report-server-core'
 import { isDigest, isIdentifier } from '@formancy/report-spec'
@@ -83,9 +83,10 @@ export interface StoredFile {
  * `file` is the absolute path, which the message names, for an embedder
  * that reads the store itself. `withinTenant` is the file's path inside its
  * tenant's directory -- `templates/<id>/draft/<n>.json` or
- * `assets/<hex>.<ext>` -- which is what the server's log names: the
- * tenant's directory is the unkeyed SHA-256 of the claim, which anybody
- * reading a log reverses for a tenant they can guess.
+ * `assets/<hex>.<ext>`, with `/` on every platform, Windows' among them --
+ * which is what the server's log names: the tenant's directory is the
+ * unkeyed SHA-256 of the claim, which anybody reading a log reverses for a
+ * tenant they can guess.
  */
 export class StoredRecordError extends Error {
   override name = 'StoredRecordError'
@@ -110,7 +111,8 @@ export type StoreOperation = 'list' | 'read' | 'write' | 'link' | 'remove'
  * or failing, the root gone. Node's own error is not handed on, since its
  * message names the absolute path and with it the tenant's directory; this
  * one carries Node's `code`, the `operation`, and `withinTenant`, the path
- * inside the tenant's directory, or `undefined` where what failed is the
+ * inside the tenant's directory, written as `StoredRecordError`'s is, with
+ * `/` on every platform, or `undefined` where what failed is the
  * root itself. The server answers it as `internal` and logs those three,
  * never a message or a stack (0049).
  */
@@ -178,8 +180,13 @@ function fileTemplateStore(root: string): TemplateStore {
   const draftDirectory = (tenant: string, template: string): string => join(tenantDirectory(tenant), 'templates', templateName(template), 'draft')
   const assetDirectory = (tenant: string): string => join(tenantDirectory(tenant), 'assets')
 
-  /** `path`'s place inside `tenant`'s directory: what an error may name, as the tenant's directory may not be. */
-  const within = (tenant: string, path: string): string => relative(tenantDirectory(tenant), path)
+  /**
+   * `path`'s place inside `tenant`'s directory: what an error may name, as
+   * the tenant's directory may not be. Written with `/` on every platform,
+   * as the server's log names it and 0049 states it, where Windows'
+   * `relative` writes `\`; no name the store writes holds either.
+   */
+  const within = (tenant: string, path: string): string => relative(tenantDirectory(tenant), path).split(sep).join('/')
 
   /** `error`, a failure of the file system at `path`, as the store's own (above). */
   const failed = (operation: StoreOperation, tenant: string, path: string, error: unknown): StoreFileSystemError =>

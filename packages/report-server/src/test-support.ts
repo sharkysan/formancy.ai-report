@@ -1,6 +1,7 @@
 /**
  * What the server's suites share, and only they import: the store each case
- * runs on and the servers made over it, the host whose tokens they present,
+ * runs on and the servers made over it, whether a mode takes a permission
+ * away on the platform they run on, the host whose tokens they present,
  * and a client on a socket that may never finish its request. Never
  * shipped: neither the package's entry nor its composition root reaches
  * it, which `composition.test.ts` holds.
@@ -68,6 +69,16 @@ export function eachCase(prefix: string): EachCase {
     },
   }
 }
+
+/**
+ * Whether a directory's mode takes a permission away from this process: a
+ * POSIX matter, as on the runner CI tests on and in the image. On Windows
+ * `chmod` sets no more than the read-only attribute, which listing a
+ * directory and writing a file in it ignore, and `mkdir`'s mode is
+ * ignored, so a case that takes a permission away by a mode runs where
+ * this is true and is skipped where it is not.
+ */
+export const MODES_DENY_ACCESS = process.platform !== 'win32'
 
 /**
  * The host this suite plays: its secret, this test's own and throwaway, the

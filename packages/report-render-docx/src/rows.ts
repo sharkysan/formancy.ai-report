@@ -8,8 +8,8 @@ import { KIND_BOLD, TABLE_SIZE, type RowKind } from './look.js'
  * text in place of detail rows where the table has none, and the
  * document's rows, each cell in the style it prints in. The one walk of a
  * table's cells in this package: the checks hold every cell's text to it
- * (`check.ts`) and the table is built from it (`table.ts`), so that the
- * two cannot take a cell's style from different places. It is the PDF
+ * (`check-table.ts`) and the table is built from it (`table.ts`), so that
+ * the two cannot take a cell's style from different places. It is the PDF
  * renderer's `styledRows` (`table.ts` there) stated again, with its own
  * kinds' bold and its size, and `against-pdf.test.ts` holds what comes of
  * it to the PDF.

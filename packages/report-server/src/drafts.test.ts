@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { chmod, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import type { AddressInfo } from 'node:net'
-import { join } from 'node:path'
+import { join, relative, sep } from 'node:path'
 import { REFUSALS } from '@formancy/report-server-core'
 import type { AuditEvent } from '@formancy/report-server-core'
 import { assetDigest, emptyReport, MAX_ASSET_BYTES, MAX_REPORT_BYTES } from '@formancy/report-spec'
@@ -12,7 +12,7 @@ import type { ReportServerOptions } from './app.js'
 import { auditReference } from './audit.js'
 import { parsePrecondition } from './drafts.js'
 import type { ReportVerifier } from './identity.js'
-import { eachCase, exchange, hostVerifier, signed } from './test-support.js'
+import { eachCase, exchange, hostVerifier, MODES_DENY_ACCESS, signed } from './test-support.js'
 
 /**
  * The draft slice's routes (0049): thin adapters over report-server-core's
@@ -105,11 +105,11 @@ const jpeg = (): Uint8Array =>
 const hexOf = (bytes: Uint8Array): string => assetDigest(bytes).slice('sha256:'.length)
 
 const sha256 = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex')
-/** Every file under the case's store, by its path inside it. */
+/** Every file under the case's store, by its path inside it, written with `/` as the cases write the layout, on Windows too. */
 const filesInStore = async (): Promise<string[]> =>
   (await readdir(cases.directory, { recursive: true, withFileTypes: true }))
     .filter((entry) => entry.isFile())
-    .map((entry) => join(entry.parentPath, entry.name).slice(cases.directory.length + 1))
+    .map((entry) => relative(cases.directory, join(entry.parentPath, entry.name)).split(sep).join('/'))
     .sort()
 /** The digest acme's `template` record of `revision` holds on disk, the 64 digits its tag carries: the SHA-256 of the report's text as the store wrote it. */
 const recordDigest = async (template: string, revision: number): Promise<string> =>
@@ -616,33 +616,37 @@ describe('the log and the trail', () => {
   // errors are, the line would say whose drafts a guessable tenant's are.
   // It is logged by Node's code, what the store was doing, the path inside
   // the tenant's directory where there is one, and the tenant by keyed
-  // hash; never Node's message or its stack.
-  test('names a failure of the file system by its code, the operation, the path inside the tenant and the tenant by keyed hash, answering 500', async () => {
-    const lines: string[] = []
-    const app = await serve({ logger: { stream: { write: (line) => void lines.push(line) } }, audit: { sink: () => {}, key: KEY } })
-    const tag = String((await save(app, 'invoice', report(), { 'if-none-match': '*' })).headers.etag)
-    const tenant = join(cases.directory, 'tenants', sha256('acme'))
-    const directory = join(tenant, 'templates', 'invoice', 'draft')
-    await chmod(directory, 0o000)
-    try {
-      expect(refusal(await read(app, draftUrl('invoice')))).toEqual({ status: 500, code: 'internal' })
-      expect(refusal(await save(app, 'invoice', report(), { 'if-match': tag }))).toEqual({ status: 500, code: 'internal' })
-    } finally {
-      await chmod(directory, 0o700)
-    }
-    await rm(cases.directory, { recursive: true })
-    expect(refusal(await read(app, '/v1/templates'))).toEqual({ status: 500, code: 'internal' })
-    const logged = lines
-      .map((line) => JSON.parse(line) as Record<string, unknown>)
-      .filter((line) => line['msg'] === 'the store’s file system failed it, and nothing was answered from it')
-    const reference = auditReference(KEY, 'tenant', 'acme')
-    expect(logged.map(({ code, operation, file, tenant: named }) => ({ code, operation, file, tenant: named }))).toEqual([
-      { code: 'EACCES', operation: 'list', file: 'templates/invoice/draft', tenant: reference },
-      { code: 'EACCES', operation: 'list', file: 'templates/invoice/draft', tenant: reference },
-      { code: 'ENOENT', operation: 'list', file: undefined, tenant: reference },
-    ])
-    const all = lines.join('')
-    for (const part of [cases.directory, sha256('acme'), 'tenants/', 'permission denied', 'no such file', '"err"', '"stack"'])
-      expect(all, part).not.toContain(part)
-  })
+  // hash; never Node's message or its stack. A permission is taken away by
+  // a mode, which takes nothing away on Windows (MODES_DENY_ACCESS).
+  test.skipIf(!MODES_DENY_ACCESS)(
+    'names a failure of the file system by its code, the operation, the path inside the tenant and the tenant by keyed hash, answering 500',
+    async () => {
+      const lines: string[] = []
+      const app = await serve({ logger: { stream: { write: (line) => void lines.push(line) } }, audit: { sink: () => {}, key: KEY } })
+      const tag = String((await save(app, 'invoice', report(), { 'if-none-match': '*' })).headers.etag)
+      const tenant = join(cases.directory, 'tenants', sha256('acme'))
+      const directory = join(tenant, 'templates', 'invoice', 'draft')
+      await chmod(directory, 0o000)
+      try {
+        expect(refusal(await read(app, draftUrl('invoice')))).toEqual({ status: 500, code: 'internal' })
+        expect(refusal(await save(app, 'invoice', report(), { 'if-match': tag }))).toEqual({ status: 500, code: 'internal' })
+      } finally {
+        await chmod(directory, 0o700)
+      }
+      await rm(cases.directory, { recursive: true })
+      expect(refusal(await read(app, '/v1/templates'))).toEqual({ status: 500, code: 'internal' })
+      const logged = lines
+        .map((line) => JSON.parse(line) as Record<string, unknown>)
+        .filter((line) => line['msg'] === 'the store’s file system failed it, and nothing was answered from it')
+      const reference = auditReference(KEY, 'tenant', 'acme')
+      expect(logged.map(({ code, operation, file, tenant: named }) => ({ code, operation, file, tenant: named }))).toEqual([
+        { code: 'EACCES', operation: 'list', file: 'templates/invoice/draft', tenant: reference },
+        { code: 'EACCES', operation: 'list', file: 'templates/invoice/draft', tenant: reference },
+        { code: 'ENOENT', operation: 'list', file: undefined, tenant: reference },
+      ])
+      const all = lines.join('')
+      for (const part of [cases.directory, sha256('acme'), 'tenants/', 'permission denied', 'no such file', '"err"', '"stack"'])
+        expect(all, part).not.toContain(part)
+    },
+  )
 })

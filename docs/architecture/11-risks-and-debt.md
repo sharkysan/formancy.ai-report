@@ -613,6 +613,12 @@ a cost not measured. A draft that declares a font is refused until fonts
 are kept, and a host that previews a draft from the server writes its own
 image cache, since the runtime's resolver is synchronous
 ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
+The server's cases that take a directory's permission away do it by a
+mode, so they run on POSIX systems, CI's Linux among them, and are
+skipped on Windows, where a mode takes none away: there nothing holds
+that the store refuses a root the process cannot write, or that a
+directory it may not read or write fails as the store's own error and is
+never read as empty.
 
 ### The container gate rests on Docker in CI
 
