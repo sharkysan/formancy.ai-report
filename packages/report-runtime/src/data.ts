@@ -48,7 +48,7 @@ import type { CheckedValue } from './values.js'
 /**
  * How consistent the provider's capture is (plan 13.2): captured by the
  * host, read in one database snapshot, or explicitly neither -- the label
- * Formancy Data 0.1.0's records carry, read at different moments.
+ * Formancy Data's records carry, read at different moments.
  */
 export const CONSISTENCY_MODES = ['host-captured', 'transaction-snapshot', 'best-effort'] as const
 export type Consistency = (typeof CONSISTENCY_MODES)[number]

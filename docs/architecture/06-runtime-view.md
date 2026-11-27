@@ -911,8 +911,9 @@ report-server (createReportServer)
    ├─ preParsing, before any body is read: a token-bearing request a browser
    │  marks cross-site, from an origin not listed? ──▶ 403 cross-origin-refused,
    │  the token not read
-   ├─ preParsing: one Bearer token, verified by data-identity -- the algorithm the
-   │  key's kind pins, iss, aud, exp and sub -- and the tenant claim present
+   ├─ preParsing: one Bearer token, verified by data-identity -- its compact
+   │  form, the algorithm the key's kind pins, iss, aud, exp and sub -- and the
+   │  tenant claim present
    │       any no ──▶ 401 unauthenticated, the verifier's reason in the log
    │  (either refusal of a request that carries a body closes its connection)
    ├─ a route that reads a body: a length declared past its limit ──▶ 413

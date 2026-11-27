@@ -4,11 +4,11 @@ import type { ReportIdentity } from '@formancy/report-server-core'
 
 /**
  * The host's token, verified offline by Formancy Data's own verifier
- * (@formancy/data-identity at exactly 0.3.0, 0047; formancy.ai-data 0014,
- * 0059, 0091), so that a host signing one token for a person has it read
- * by Report's server under exactly the rules Data's applies: the algorithm
- * pinned by the key's kind, `sub` and `exp` required, a key set selected by
- * `kid`, nothing fetched. What Report adds is the tenant (0046): the claim
+ * (@formancy/data-identity at exactly 0.5.0, 0047; formancy.ai-data 0014,
+ * 0059, 0091, 0101), so that a host signing one token for a person has it
+ * read by Report's server under exactly the rules Data's applies: the
+ * token in its compact form alone, the algorithm pinned by the key's kind,
+ * `sub` and `exp` required, a key set selected by `kid`, nothing fetched. What Report adds is the tenant (0046): the claim
  * the operator names is required, so a token without it is refused like
  * any bad token, and no request reaches the server without a tenant.
  */

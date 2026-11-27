@@ -57,12 +57,8 @@ catalog:
 # version, as formancy.ai-data 0055 does; pnpm's minimum release age would
 # otherwise hold them back for a day. scripts/upstream-deps.mjs refuses an
 # exemption outside upstream, for a name or a range, or for a version the
-# lockfile no longer installs. Formancy Data 0.1.0, published on
-# 2026-10-16, for report-data-provider (0016). Formancy Data 0.3.0's
-# @formancy/data-identity, published on 2026-10-21, for report-server's
-# identity verifier. formancy 0.14.0, published on 2026-11-16 and taken on
-# 2026-11-27, is past the age and needs no exemption.
-minimumReleaseAgeExclude:
-  - '@formancy/data-client@0.1.0'
-  - '@formancy/data-core@0.1.0'
-  - '@formancy/data-identity@0.3.0'
+# lockfile no longer installs. None is held: formancy 0.14.0, published on
+# 2026-11-16, and Formancy Data 0.5.0, published on 2026-11-23, were both
+# taken on 2026-11-27, past the age. Formancy Data 0.1.0 (0016) and 0.3.0's
+# @formancy/data-identity (0047) were each adopted on their first day.
+minimumReleaseAgeExclude: []

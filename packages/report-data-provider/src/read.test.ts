@@ -1,10 +1,11 @@
+import type { DataClient } from '@formancy/data-client'
 import { resolveReport } from '@formancy/report-runtime'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { readReportData } from './read.js'
 import type { DataBinding } from './binding.js'
 import type { ProviderRead } from './read.js'
-import { dataFixture, ORDER_MENU, orderForms, orderReport } from './test-support.js'
+import { CURSOR_GONE, dataFixture, ORDER_MENU, orderForms, orderReport } from './test-support.js'
 import type { FixtureForm } from './test-support.js'
 
 const HEADER = { form: 'order', record: 'o-1' } as const
@@ -19,12 +20,27 @@ function read(read: ProviderRead) {
 const lists = (requests: readonly { path: string; body: unknown }[]) =>
   requests.filter((request) => request.path.endsWith('/records/list')).map((request) => request.body)
 
+/** `client`, with `change` made once the first page of lines is answered: what another person does between two pages. */
+function changedAfterFirstPage(client: DataClient, change: () => void): DataClient {
+  let pages = 0
+  return {
+    ...client,
+    list: async (...args: Parameters<DataClient['list']>) => {
+      const page = await client.list(...args)
+      if (++pages === 1) change()
+      return page
+    },
+  }
+}
+
 describe('readReportData', () => {
   // The provider's one job: what a Data form holds becomes data the runtime
   // renders, without a field the report does not print -- the runtime
   // refuses one, and a column like the warehouse is customer data a report
   // never asked for -- and with a lookup's label rather than its token,
-  // which would print as an opaque string.
+  // which would print as an opaque string. The order is a spec 5 form, as
+  // Data publishes one from 0.4.0, and its lines a spec 3 one published
+  // before, which Data serves as it was.
   test('reads an order and its lines into data a final render resolves', async () => {
     const fixture = dataFixture(orderForms(), ORDER_MENU)
     const data = read(await readReportData(fixture.client, orderReport(), ORDER))
@@ -54,10 +70,10 @@ describe('readReportData', () => {
     })
   })
 
-  // The source names the form the records were read through. Data 0.1.0
+  // The source names the form the records were read through. Data 0.5.0
   // publishes a form only under its own id, so a server answering another
   // -- or one that is no formancy form id, which no published form has --
-  // is not Data 0.1.0: named as it answered, the manifest would say the
+  // is not Data 0.5.0: named as it answered, the manifest would say the
   // order came from the invoices, and planned from that form's fields, the
   // read would be another form's. Refused before any record is read, and
   // never by the id it answered.
@@ -96,7 +112,7 @@ describe('readReportData', () => {
     expect(resolveReport(blank, data, { mode: 'final', ...RESOLVE }).ok).toBe(true)
   })
 
-  // Data 0.1.0 has no snapshot export: the header, each page and each
+  // Data 0.5.0 has no snapshot export: the header, each page and each
   // label are read at different moments. Called anything stronger, a
   // report could total lines that were never in one state together.
   test('labels its data best-effort, and asks with the person’s token on every request', async () => {
@@ -118,14 +134,59 @@ describe('readReportData', () => {
     expect(second.header?.['paid']).toBe(null)
   })
 
-  // A list answers fifty rows a page. Read once, a report of 120 lines
-  // would print 50 and call itself complete.
-  test('reads every page, in the order Data gives them', async () => {
+  // A list answers fifty rows a page, and the page after one is asked for
+  // after its last row, by the cursor Data gave (formancy.ai-data 0108).
+  // Read once, a report of 120 lines would print 50 and call itself
+  // complete; asked by an offset, which the 0.5.0 client does not send,
+  // every page would be the first.
+  test('reads every page, each after the last row of the one before, in the order Data gives them', async () => {
     const fixture = dataFixture(orderForms(120), ORDER_MENU)
     const data = read(await readReportData(fixture.client, orderReport(), ORDER))
     expect(data.detail?.map((row) => row['article'])).toEqual(Array.from({ length: 120 }, (_, index) => `A-${String(1000 + index)}`))
     expect(data.completeness).toEqual({ complete: true, captured: 120, cap: 100_000 })
-    expect(lists(fixture.requests).map((body) => (body as { offset: number }).offset)).toEqual([0, 50, 100])
+    expect(lists(fixture.requests).map((body) => (body as { after: unknown }).after)).toEqual([null, 'c1:l-50', 'c1:l-100'])
+  })
+
+  // A page continues after its row wherever that row now stands, so lines
+  // deleted or added before it between two pages move nothing. Paged by
+  // offset, as the provider read Data 0.1.0, two lines deleted from the
+  // first page skipped two of the second, and one added printed one twice.
+  test('reads each line once when lines before the next page are deleted or added between two pages', async () => {
+    for (const change of ['deleted', 'added'] as const) {
+      const forms = orderForms(120)
+      const line = forms['order-line'] as FixtureForm
+      const records = [...line.records]
+      const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
+      const client = changedAfterFirstPage(fixture.client, () => {
+        if (change === 'deleted') records.splice(0, 2)
+        else records.unshift({ key: 'l-0', record: 'l-0', version: '1', answers: { ...records[0]!.answers, article: 'A-0999' } })
+      })
+      const data = read(await readReportData(client, orderReport(), ORDER))
+      expect(
+        data.detail?.map((row) => row['article']),
+        change,
+      ).toEqual(Array.from({ length: 120 }, (_, index) => `A-${String(1000 + index)}`))
+    }
+  })
+
+  // The row a page ended with, deleted before the next page is asked for,
+  // leaves Data nowhere to continue, and it refuses the page `409
+  // cursor-gone` (formancy.ai-data 0108). Data's own grid starts again at
+  // the first page; the provider hands over nothing, as after any refusal,
+  // and the host reads again. Lines handed over up to the gap would be a
+  // report silently cut short.
+  test('refuses the lines when the row a page ended with is gone before the next, handing over nothing', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const records = [...line.records]
+    const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
+    const client = changedAfterFirstPage(fixture.client, () => {
+      records.splice(49, 1)
+    })
+    expect(await readReportData(client, orderReport(), ORDER)).toEqual({
+      ok: false,
+      errors: [{ path: '/detail', code: 'refused', message: CURSOR_GONE, refusal: { status: 409, code: 'cursor-gone' } }],
+    })
   })
 
   // A cap is how a host bounds what one render reads. Past it the data is
@@ -168,6 +229,118 @@ describe('readReportData', () => {
     expect(resolveReport(letter, data, { mode: 'final', ...RESOLVE }).ok).toBe(true)
   })
 
+  // A page holds at most the rows asked for: Data reads one row past the
+  // page and answers `limit` (formancy.ai-data 0108), and the next page
+  // continues after the last row it answered. Cut to the rows asked for,
+  // a longer page would lose the rest for good, and the report would print
+  // short and call itself complete; on the last page asked for at the cap,
+  // the same. Refused, nothing handed over.
+  test('refuses a page of more rows than were asked for, handing over nothing', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const longer = dataFixture(forms, ORDER_MENU)
+    longer.answerNext('/order-line/records/list', 200, { rows: line.records.slice(0, 51), hasMore: true, next: 'c1:l-51' })
+    const first = await readReportData(longer.client, orderReport(), ORDER)
+    expect(first.ok ? 'read' : first.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/detail', code: 'unexpected-page' }])
+    const atCap = dataFixture(forms, ORDER_MENU)
+    const client = changedAfterFirstPage(atCap.client, () => {
+      atCap.answerNext('/order-line/records/list', 200, { rows: line.records.slice(50, 70), hasMore: false, next: null })
+    })
+    const last = await readReportData(client, orderReport(), ORDER, { cap: 60 })
+    expect(last.ok ? 'read' : last.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/detail', code: 'unexpected-page' }])
+  })
+
+  // A page asked for after a row holds only rows after it, so it never
+  // ends on that row (formancy.ai-data 0108). One that does is a server
+  // answering the same place again: followed, the provider would ask after
+  // the same cursor until the cap, a request for every page it holds, adding
+  // the rows each time. Its rows here have no token, which nothing could
+  // compare, so the cursor is what says so.
+  test('refuses a page that ends on the row it was asked to continue after', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const fixture = dataFixture(forms, ORDER_MENU)
+    const unaddressed = line.records.slice(50, 100).map((row) => ({ ...row, record: null }))
+    const client = changedAfterFirstPage(fixture.client, () => {
+      fixture.answerNext('/order-line/records/list', 200, { rows: unaddressed, hasMore: true, next: 'c1:l-50' })
+    })
+    const result = await readReportData(client, orderReport(), ORDER)
+    expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/detail', code: 'unexpected-page' }])
+  })
+
+  // A row whose key fits no token is in its place with `record: null`
+  // (formancy.ai-data 0044), and two such rows are two rows, not one read
+  // twice: compared by their missing token, the second would refuse a
+  // report that holds no repeated line.
+  test('reads rows that have no token once each, wherever they stand, and refuses none of them as repeated', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const records = line.records.map((row, index) => (index === 9 || index === 59 ? { ...row, record: null } : row))
+    const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
+    const data = read(await readReportData(fixture.client, orderReport(), ORDER))
+    expect(data.detail?.map((row) => row['article'])).toEqual(Array.from({ length: 120 }, (_, index) => `A-${String(1000 + index)}`))
+  })
+
+  // A page may end on a row whose key fits no token: Data spells its cursor
+  // from the key, which every row has, and continues after it all the same
+  // (formancy.ai-data 0108). A cursor spelt from the token would name every
+  // such row alike and continue after the first of them, so the read would
+  // see rows of the first page again and be refused for a repeat that
+  // never happened.
+  test('reads on after a page that ends on a row with no token, by the cursor of its key', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const records = line.records.map((row, index) => (index === 9 || index === 49 ? { ...row, record: null } : row))
+    const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
+    const data = read(await readReportData(fixture.client, orderReport(), ORDER))
+    expect(data.detail?.map((row) => row['article'])).toEqual(Array.from({ length: 120 }, (_, index) => `A-${String(1000 + index)}`))
+  })
+
+  // A record read on the first page, deleted and created again under its
+  // key before the next, comes back under the same token when it sorts
+  // after the cursor: two records of two moments, not one line moved.
+  // Refused as a repeat all the same, and its message says which of the
+  // two it can be, so a host that reads the log is not told a move that
+  // did not happen.
+  test('refuses a record deleted and created again under its key between two pages, saying so', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const records = [...line.records]
+    const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
+    const sort = [{ field: 'article', direction: 'asc' as const }]
+    const client = changedAfterFirstPage(fixture.client, () => {
+      const [gone] = records.splice(9, 1)
+      records.splice(9, 0, { ...gone!, version: '1', answers: { ...gone!.answers, article: 'A-9999' } })
+    })
+    const result = await readReportData(client, orderReport(), { ...ORDER, detail: { form: 'order-line', parent: 'header', sort } })
+    expect(result.ok ? 'read' : result.errors).toEqual([
+      { path: '/detail/120', code: 'repeated-row', message: expect.stringContaining('created again under its key') as unknown },
+    ])
+  })
+
+  // The row a page ended with, edited so that it moves back in the order
+  // between two pages, takes the next page back with it, and every row
+  // between its new place and its old is answered again (formancy.ai-data
+  // 0108). Printed, the report would total those lines twice and call
+  // itself complete; refused, as Data's own export refuses a record that
+  // would appear twice, the host reads again. Named by where the row would
+  // have stood, never by its token.
+  test('refuses a record answered on two pages, as when the row a page ended with moves back in the order', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const records = [...line.records]
+    const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
+    const sort = [{ field: 'article', direction: 'asc' as const }]
+    const client = changedAfterFirstPage(fixture.client, () => {
+      const at = records.findIndex((row) => row.record === 'l-50')
+      const moved = records[at]!
+      records[at] = { ...moved, answers: { ...moved.answers, article: 'A-0000' } }
+    })
+    const result = await readReportData(client, orderReport(), { ...ORDER, detail: { form: 'order-line', parent: 'header', sort } })
+    expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/detail/50', code: 'repeated-row' }])
+    expect(JSON.stringify(result)).not.toMatch(/l-1\b|A-1000/)
+  })
+
   // The order is Data's to apply, by the fields the person may sort by;
   // a host's sort that silently did not reach Data would print the lines
   // in key order and look right.
@@ -176,7 +349,7 @@ describe('readReportData', () => {
     const sort = [{ field: 'article', direction: 'desc' as const }]
     const data = read(await readReportData(fixture.client, orderReport(), { ...ORDER, detail: { form: 'order-line', parent: 'header', sort } }))
     expect(data.detail?.map((row) => row['article'])).toEqual(['A-1002', 'A-1001', 'A-1000'])
-    expect(lists(fixture.requests)).toEqual([{ sort, parent: { field: 'order', record: 'o-1' }, offset: 0, limit: 50 }])
+    expect(lists(fixture.requests)).toEqual([{ sort, parent: { field: 'order', record: 'o-1' }, after: null, limit: 50 }])
   })
 
   // `parent: 'header'` reads the header record's children; with no header
@@ -209,7 +382,7 @@ describe('readReportData', () => {
     const fixture = dataFixture(orderForms(), ORDER_MENU)
     const data = read(await readReportData(fixture.client, orderReport(), ORDER))
     expect(data.detail).toHaveLength(3)
-    expect(lists(fixture.requests)).toEqual([{ parent: { field: 'order', record: 'o-1' }, offset: 0, limit: 50 }])
+    expect(lists(fixture.requests)).toEqual([{ parent: { field: 'order', record: 'o-1' }, after: null, limit: 50 }])
     const explicit = dataFixture(orderForms(), ORDER_MENU)
     const parent = { field: 'order', record: 'o-2' }
     expect(read(await readReportData(explicit.client, orderReport(), { ...ORDER, detail: { form: 'order-line', parent } })).detail).toHaveLength(2)
@@ -225,8 +398,8 @@ describe('readReportData', () => {
         {
           ...ORDER_MENU.forms[0]!,
           children: [
-            { form: 'order-line', field: 'order' },
-            { form: 'order-line', field: 'reorder' },
+            { form: 'order-line', field: 'order', one: false, when: null },
+            { form: 'order-line', field: 'reorder', one: false, when: null },
           ],
         },
       ],
@@ -298,10 +471,10 @@ describe('readReportData', () => {
     expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/header/number', code: 'unreadable-field' }])
   })
 
-  // Data 0.1.0 holds no approved asset, and the runtime prints an image
+  // Data 0.5.0 holds no approved asset, and the runtime prints an image
   // only from one. A token or a file name in an image field would be an
   // address, which nothing here follows.
-  test('refuses an image field, which Data 0.1.0 has nothing to fill', async () => {
+  test('refuses an image field, which Data 0.5.0 has nothing to fill', async () => {
     const fixture = dataFixture(orderForms(), ORDER_MENU)
     const report = orderReport()
     const header = report.datasets.header!

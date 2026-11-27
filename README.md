@@ -35,7 +35,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **Chart it**: bar, line and pie charts of the detail rows, totalled as the tables are and laid out by Apache ECharts, not yet in the builders' palettes ([0052](./docs/decisions/0052-a-report-draws-a-bar-line-or-pie-chart-of-its-detail-rows-each-series-a-total-of-one-field-per-category.md), [0058](./docs/decisions/0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md)).
 - **One template, several languages**: a render prints in the one it names, and a word missing there refuses it ([0063](./docs/decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 - **Lay it out**: several tables over one list of lines, group headers kept with their rows, a first page of its own, text set above or below the line, fonts your application approves, pinned by digest, and SVG logos made of shapes alone -- no text, no embedded picture ([0062](./docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), [0060](./docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md), [0061](./docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md), [0043](./docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), [0030](./docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
-- **Read your data where it lives**: your application's JSON, a formancy form's submissions, each against the form version that collected it, or Formancy Data 0.1.0, best-effort ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), [0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+- **Read your data where it lives**: your application's JSON, a formancy form's submissions, each against the form version that collected it, or a Formancy Data 0.5.0 server, best-effort ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), [0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 - **Let a coding agent work against Report's checks**: an MCP server, run by the agent's client, that describes the format and the commands, judges a report as the validator and a render would, within the size a draft may have, and applies commands as the builders do; it needs no server, and saves, publishes and fetches nothing ([0088](./docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
 - **Keep drafts on a server**: it verifies your application's token offline and keeps each tenant's template drafts and images; it renders nothing yet ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
 
@@ -231,7 +231,7 @@ The install gate runs these lines from the packed packages
 | [`@formancy/report-runtime`](./packages/report-runtime/README.md) | Resolves a report against its data into a renderer-neutral document, every value decided once, and writes an e-invoice's XML |
 | [`@formancy/report-render-pdf`](./packages/report-render-pdf/README.md) | Draws that document with pdfmake, in Node and in a browser, or refuses it whole |
 | [`@formancy/report-render-docx`](./packages/report-render-docx/README.md) | Writes that document as a Word file, the same bytes for the same document, and refuses what belongs to its PDF |
-| [`@formancy/report-data-provider`](./packages/report-data-provider/README.md) | Reads a report's data from Formancy Data 0.1.0, best-effort |
+| [`@formancy/report-data-provider`](./packages/report-data-provider/README.md) | Reads a report's data from a Formancy Data 0.5.0 server, best-effort |
 | [`@formancy/report-forms`](./packages/report-forms/README.md) | Reads a formancy form's submissions against the version that collected each, starts a report from a version, and reviews a new one |
 | [`@formancy/report-server-core`](./packages/report-server-core/README.md) | Who may do what to a tenant's reports, the wire, and the use cases for drafts and images; no framework, no Node |
 | [`@formancy/report-server`](./packages/report-server/README.md) | The server, on Fastify: your application's token verified offline, a template's draft and its images |
@@ -328,12 +328,13 @@ and every run ends in a release report
 | --- | --- | --- |
 | `@formancy/builder-core` | 0.14.0 | `0.14.0` |
 | `@formancy/core` (transitive) | 0.14.0 |  |
-| `@formancy/data-client` | 0.1.0 | `0.1.0` |
-| `@formancy/data-core` (transitive) | 0.1.0 |  |
-| `@formancy/data-identity` | 0.3.0 | `0.3.0` |
+| `@formancy/data-client` | 0.5.0 | `0.5.0` |
+| `@formancy/data-core` (transitive) | 0.5.0 |  |
+| `@formancy/data-identity` | 0.5.0 | `0.5.0` |
+| `@formancy/expressions` (transitive) | 0.13.0 |  |
 | `@formancy/expressions` | 0.14.0 | `0.14.0` |
+| `@formancy/spec` (transitive) | 0.13.0 |  |
 | `@formancy/spec` | 0.14.0 | `0.14.0` |
-| `@formancy/spec` (transitive) | 0.5.0 |  |
 | `@formancy/themes` | 0.14.0 | `0.14.0` |
 | `tslib`, by `@formancy/report-builder-angular` | 2.9.1 | `^2.8.0` |
 | `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |

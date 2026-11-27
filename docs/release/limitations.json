@@ -28,7 +28,7 @@
         },
         {
           "area": "data",
-          "says": "Report reads Formancy Data only at the release its provider was built against, 0.1.0, so a Data upgrade reaches a host only through a release of this module that moves the version.",
+          "says": "Report reads Formancy Data only at the release its provider was built against, 0.5.0, from a Data server of that release, so a Data upgrade reaches a host only through a release of this module that moves the version.",
           "heldBy": "scripts/upstream-deps.test.mjs"
         }
       ]
@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:8caa1b599fe40057ff5fa73f459b3b32e62620af6c26cc7ab0685e0772993bb3",
+      "reviewed": "sha256:be062714137d74e4654071552e07b5ee18f07370c8c1690ebe683f765d356921",
       "limitations": [
         {
           "area": "licence",
@@ -378,11 +378,11 @@
       ]
     },
     "0016": {
-      "reviewed": "sha256:58805fcd39a364a5a784437ed25ba2b7f04f0f17b3ae8ce428aabf42ae3b8246",
+      "reviewed": "sha256:1b5c7b6914599401c554760493df2360a822ecd8dd7e789b7a3b4eb62b72bdec",
       "limitations": [
         {
           "area": "data",
-          "says": "Data read through the Formancy Data provider is best-effort: the header, each page of lines and each label are read at different moments, so a line changed between two pages can be printed twice or not at all, and every render's manifest says best-effort.",
+          "says": "Data read through the Formancy Data provider is best-effort: the header, each page of lines and each label are read at different moments, so a line whose place in the order changes between two pages can be left out, and when it is the line a page ended with, every line between its old place and its new can be; a line read twice refuses the read as repeated-row, unless Data names it by no token or another application changed its key between the two pages, the line a page ended with deleted or no longer one the person may read refuses it as cursor-gone, and every render's manifest says best-effort.",
           "heldBy": "packages/report-data-provider/src/read.test.ts"
         },
         {
@@ -400,7 +400,11 @@
         },
         {
           "area": "testing",
-          "says": "The Formancy Data provider has run against a server that answers Data 0.1.0's routes in Data's shapes, never against a real Data server, its policy or its databases."
+          "says": "The Formancy Data provider has run against a server that answers Data 0.5.0's routes in Data's shapes, never against a real Data server, its policy or its databases."
+        },
+        {
+          "area": "data",
+          "says": "The Formancy Data provider reads from a Formancy Data 0.5.0 server alone: Data's client and server are one release, and 0.5.0's client takes an older server's answers as unexpected, so a host on an earlier Data server cannot use this release's provider."
         }
       ]
     },
@@ -1325,7 +1329,7 @@
       "limitations": [
         {
           "area": "data",
-          "says": "A consumer of `@formancy/report-data-provider` installs two releases of `@formancy/spec`, 0.6.0 through `@formancy/report-spec` and 0.5.0 through `@formancy/data-client` and `@formancy/data-core` 0.1.0, which pin it exactly, until Formancy Data releases against 0.6.0; no object of one reaches the other in the provider."
+          "says": "A consumer of `@formancy/report-data-provider` installs two releases of `@formancy/spec`, 0.14.0 through `@formancy/report-spec` and 0.13.0 through `@formancy/data-client` and `@formancy/data-core` 0.5.0, which pin it exactly, and two of `@formancy/expressions`, 0.14.0 through `@formancy/report-runtime` and 0.13.0 through `@formancy/data-core`, until Formancy Data releases against 0.14.0; no object of one reaches the other in the provider."
         },
         {
           "area": "release",
@@ -1611,7 +1615,7 @@
         },
         {
           "area": "data",
-          "says": "The manifest of data read from Formancy Data names the published forms each dataset was read from, and neither the record a report printed nor which publication of each form answered, which Data 0.1.0 does not say.",
+          "says": "The manifest of data read from Formancy Data names the published forms each dataset was read from, and neither the record a report printed nor which publication of each form answered, which Data 0.5.0 does not say.",
           "heldBy": "packages/report-data-provider/src/read.test.ts"
         },
         {
@@ -1625,7 +1629,7 @@
         },
         {
           "area": "data",
-          "says": "The Data provider refuses, as `unexpected-form` and before any record is read, a form a server answers under another id than the one the binding names, which 0.2.0's provider read; Data 0.1.0 answers a form under its own id.",
+          "says": "The Data provider refuses, as `unexpected-form` and before any record is read, a form a server answers under another id than the one the binding names, which 0.2.0's provider read; Data 0.5.0 answers a form under its own id.",
           "heldBy": "packages/report-data-provider/src/read.test.ts"
         },
         {
@@ -1947,7 +1951,7 @@
       ]
     },
     "0046": {
-      "reviewed": "sha256:85cab2f9b7a1c87ceda03d3c96b4421938df831054a973bf588ba12fe0a4b553",
+      "reviewed": "sha256:ccb898160639468828855b0d343580ea55d136a62541005f09876ed95cd2cf42",
       "limitations": [
         {
           "area": "server",
@@ -2023,7 +2027,7 @@
       ]
     },
     "0047": {
-      "reviewed": "sha256:171e6e8ce7c4966ed7b603c47dfd713d1462a0fbf5738de26c533d2f794e65ae",
+      "reviewed": "sha256:c8e04da4a2672b9cae395547f28c564cee40982493a0bf9ce4810feb555bd0f8",
       "limitations": [
         {
           "area": "licence",
@@ -2032,12 +2036,17 @@
         },
         {
           "area": "server",
-          "says": "The server verifies tokens under exactly Data 0.3.0’s rules, through its verifier at that version, so a rule Data changes later reaches Report only through a release of report-server that moves the pin.",
+          "says": "The server verifies tokens under exactly Data 0.5.0’s rules, through its verifier at that version, so a rule Data changes later reaches Report only through a release of report-server that moves the pin.",
           "heldBy": "scripts/upstream-deps.test.mjs"
         },
         {
           "area": "server",
           "says": "The verifier tolerates 30 seconds of clock skew on exp and nbf, data-identity’s default, which the server does not change and nothing here measured."
+        },
+        {
+          "area": "server",
+          "says": "A token that is not exactly its compact form, a signature with = after it or a space in it among them, is refused with the one 401, as Data’s server refuses it since 0.4.0, so a host whose library pads a token’s parts is refused.",
+          "heldBy": "packages/report-server/src/identity.test.ts"
         }
       ]
     },

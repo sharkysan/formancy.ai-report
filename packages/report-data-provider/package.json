@@ -1,7 +1,7 @@
 {
   "name": "@formancy/report-data-provider",
   "version": "0.3.0",
-  "description": "Formancy Report's Formancy Data provider: reads a published Data form's records, through @formancy/data-client 0.1.0 and the person's own token, into the data a report renders from, labelled best-effort. No framework, no Node.",
+  "description": "Formancy Report's Formancy Data provider: reads a published Data form's records, through @formancy/data-client 0.5.0 and the person's own token, into the data a report renders from, labelled best-effort. No framework, no Node.",
   "keywords": [
     "formancy",
     "formancy-data",
@@ -31,7 +31,7 @@
     "check:pkg": "publint && attw --pack . --profile esm-only"
   },
   "dependencies": {
-    "@formancy/data-client": "0.1.0",
+    "@formancy/data-client": "0.5.0",
     "@formancy/report-runtime": "workspace:*",
     "@formancy/report-spec": "workspace:*"
   },
