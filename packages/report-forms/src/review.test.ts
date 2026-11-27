@@ -208,6 +208,46 @@ describe('reviewFormVersion, what prints', () => {
     expect(headerOf(read(REPORT, helped, answered()))).toEqual(headerOf(read(REPORT, V1, answered())))
   })
 
+  // An author who moves a form to spec 6 to give a time and a date and
+  // time a precision (formancy.ai 0238) changes how many digits each
+  // answer the new version collects has, and formancy's diff calls each
+  // such field changed; the answers the version before collected keep
+  // their width. A review that blocked on it would stop every report of
+  // the form for a field it reads as it did; one that let it print while
+  // the read held each answer to version 5's shape would refuse every
+  // submission the new version collects. It prints, each version's
+  // answers read at that version's own width and no other.
+  test('a version that moves to spec 6 and gives its times a precision is compatible, each version read at its own width', () => {
+    const before = formOf(
+      [
+        { key: 'site', type: 'text', label: 'Site' },
+        { key: 'startedAt', type: 'time', label: 'Started at' },
+        { key: 'arrivedAt', type: 'datetime', label: 'Arrived at' },
+      ],
+      {},
+      '5',
+    )
+    const precise = formOf(
+      [
+        { key: 'site', type: 'text', label: 'Site' },
+        { key: 'startedAt', type: 'time', label: 'Started at', precision: 3 },
+        { key: 'arrivedAt', type: 'datetime', label: 'Arrived at', precision: 6 },
+      ],
+      {},
+      '6',
+    )
+    const drafted = generatedFrom(generate(before, { id: 'visit', locale: 'en' })).report
+    const said = diffSchemas(before as unknown as FormSchema, precise as unknown as FormSchema).map((change) => `${change.kind} ${change.path}`)
+    expect(said).toEqual(['field.changed model.fields.arrivedAt', 'field.changed model.fields.startedAt', 'specVersion.changed specVersion'])
+    expect(itemsOf(reviewed(precise, drafted, [before]))).toMatchObject({ status: 'compatible', items: [] })
+    const fine = { site: 'Bern', startedAt: '09:50:12.250', arrivedAt: '2026-10-15T07:45:03.123456Z' }
+    const coarse = { site: 'Bern', startedAt: '09:50', arrivedAt: '2026-10-15T07:45:00Z' }
+    expect(headerOf(read(drafted, precise, fine))).toEqual(fine)
+    expect(headerOf(read(drafted, before, coarse))).toEqual(coarse)
+    expect(refusals(read(drafted, precise, coarse))).toEqual(['invalid-answer /submission/data/startedAt', 'invalid-answer /submission/data/arrivedAt'])
+    expect(refusals(read(drafted, before, fine))).toEqual(['invalid-answer /submission/data/startedAt', 'invalid-answer /submission/data/arrivedAt'])
+  })
+
   // formancy 0.12.0 refuses at publish a pattern that backtracks as its
   // engine runs it, with the `u` flag, which every release before it
   // published (formancy.ai 0226), and asks a host to publish every form

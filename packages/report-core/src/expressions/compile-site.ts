@@ -2,7 +2,7 @@
  * One expression compiled where it stands, with every member it reads
  * checked as the type it is.
  *
- * `@formancy/expressions` 0.12.0, as 0.5.0 to 0.7.0 and 0.11.0, declares a variable only by its
+ * `@formancy/expressions` 0.5.0 to 0.12.0 declared a variable only by its
  * whole name: a declaration of `row.amount` is a variable with a dot in its
  * name, which an expression reading `row.amount` never finds. So each read of a member
  * is spliced, by upstream's own `rewritePath`, which verifies every splice
@@ -11,7 +11,8 @@
  * then types every member read: a decimal meets a decimal, an integer added
  * to a string is refused. The flat name is exactly as long as the read
  * written plainly, so a position the compiler gives is a position in what
- * the author wrote.
+ * the author wrote. From 0.13.0 a variable may be declared by member
+ * instead, which replaces this in a change of its own.
  *
  * What a scope does not bind, a member nothing declares, a member of a
  * single value and an image field read as a value are found first, from

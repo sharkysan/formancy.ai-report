@@ -24,8 +24,9 @@
  * error exactly where it stands, unless it stands in a string or a comment;
  * a renamed function makes the call fail. So text that only looks like a
  * double, a division or a call is never one. A generic way to ask an
- * expression's types and calls belongs upstream, and replaces this when it
- * is released.
+ * expression's types and calls belongs upstream: 0.13.0 released one, a
+ * program's `inexact` and `calls`, which replaces this in a change of its
+ * own.
  */
 import { compile, parse } from '@formancy/expressions'
 import type { ExpressionKind, SourceSpan, VariableDeclarations } from '@formancy/expressions'

@@ -42,6 +42,71 @@ reading the field read one form on Windows and another everywhere else.
 The file system is still asked by the platform's own paths. The image
 runs on Linux, where nothing changes.
 
+**Report takes formancy 0.14.0.** The upstream `@formancy/*` packages
+move from 0.12.0 to 0.14.0, exact, for what 0.12.0 was taken for:
+`@formancy/code-style` for the lint and format rules; `@formancy/spec`
+for report-spec's report hash and for report-forms, which reads a
+formancy form; `@formancy/expressions` for report-core and
+report-runtime; `@formancy/themes` for the Studio, the pages and the
+getting-started guide's install lines. Report keeps to the newest
+formancy, and 0.14.0's builder writes spec 6 for every new form, which
+every reader on 0.13.0 or earlier refuses
+([formancy.ai 0239](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0239-spec-6-freezes-with-the-property-it-opened-for.md)):
+pinned at 0.12.0, report-forms could print no submission of a form
+authored with it.
+
+- **A spec 6 form is read, drafted and reviewed**
+  ([0004](docs/decisions/0004-three-version-lines-each-refused-when-unknown.md),
+  [0042](docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)),
+  and spec 7 is the version refused. Spec 6 adds one property, `precision`
+  on a time or a date and time
+  ([formancy.ai 0238](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0238-a-time-or-an-instant-declares-its-precision.md)):
+  every answer to such a field has seconds and that many digits after
+  them. report-forms held every such answer to version 5's shape and
+  would have refused each as `invalid-answer`; it now holds one to the
+  shape at its field's width, `09:50:12.250` at precision 3, and a field
+  without a precision to version 5's shape as before. A time of day
+  still prints as stored, so a version that gives one a precision prints
+  its seconds beside an earlier version's minutes; a date and time is an
+  instant at any width. A version that gives a field the report reads a
+  precision reviews as compatible, each version's answers read at its
+  own width.
+- **An expression compiles and evaluates as it did.**
+  `@formancy/expressions` 0.13.0 adds a variable declared by member, a
+  program's `calls` and `inexact`, and a check asked to be
+  `reproducible`; 0.14.0 adds helpers for the strings a field is
+  compared with. Each is new and optional, so a declaration by a whole
+  name, which is all report-core writes, checks and binds as it did.
+  report-core still splices members into flat variables and finds the
+  clock, a double, a `/` and `matches()` by probing the compiler, the
+  workarounds
+  [0009](docs/decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)
+  said would go once upstream offered the API. Upstream now does; taking
+  it would change what report-core says and where, so it is a change of
+  its own.
+- **A report's hash is the one it was.** `schemaHash`, `canonicalize`,
+  `diffSchemas` and `modelDataPaths` are 0.12.0's code in the built
+  package: `hash.test.ts`'s pinned digest held, and so did the site
+  visit starter, which names its form version by that hash.
+- **The lint and format rules are the ones they were.**
+  `@formancy/code-style` 0.14.0's module differs from 0.12.0's in its
+  header comment alone, its dependencies and peers the same, so
+  `pnpm lint` and `pnpm format:check` give what they gave and nothing was
+  reformatted.
+- **The Studio and the pages look as they did.** `room.css` and
+  `workbench.css` are 0.12.0's by SHA-256; 0.13.0 and 0.14.0 restyle
+  formancy's four form themes, which nothing here imports. The README's
+  pictures are not retaken.
+- **No floor moved.** None of the four packages declares a Node engine,
+  and code-style's peers are the TypeScript, ESLint and Prettier ranges
+  0.12.0 named.
+- **formancy is no longer exempt from pnpm's minimum release age**:
+  0.14.0 was published on 2026-11-16, past the day the exemption stood
+  in for.
+- **A host that installs `@formancy/report-data-provider` still gets a
+  second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
+  provider takes a Data release built against a newer one.
+
 ## 0.3.0 — 2026-11-23
 
 **In short.** The third release, still a developer preview: for evaluating
