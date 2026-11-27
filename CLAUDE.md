@@ -617,6 +617,13 @@ to the specifiers it may import; it publishes, saves, renders and fetches
 nothing, and the tools that read and save a draft are decided and not yet
 built
 ([0088](docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
+`@formancy/report-ai` holds a model's turn, formancy 0.14.0's own,
+generic over the kind: `askChecked`, `readAnswer`, `createStop`,
+`declinedAnswer`, `ModelBusyError`, `createRelay` and `relayMessage`,
+on `@formancy/spec` alone, for `DECLINE_KEY`, with no framework, DOM,
+Node or network; its `REQUEST_KINDS` is empty, so Report asks a model
+for nothing yet
+([0083](docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
@@ -676,15 +683,7 @@ held by `limits.test.ts` to report-spec's and report-ai's built `dist`,
 devDependencies no page imports (the AI absence to report-ai's empty
 `REQUEST_KINDS`, 0083), and to the published packages' manifests
 ([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md));
-and `src/groups.ts` is the list of pages.
-`@formancy/report-ai` holds a model's turn, formancy 0.14.0's own,
-generic over the kind: `askChecked`, `readAnswer`, `createStop`,
-`declinedAnswer`, `ModelBusyError`, `createRelay` and `relayMessage`,
-on `@formancy/spec` alone, for `DECLINE_KEY`, with no framework, DOM,
-Node or network; its `REQUEST_KINDS` is empty, so Report asks a model
-for nothing yet
-([0083](docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)).
-That is all the product code there is. The package path the plan proposes, each package depending only on those
+and `src/groups.ts` is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
 before it:
 
 1. `report-spec` -- the versioned definition, structural validation, canonical

@@ -195,17 +195,19 @@ nearly line for line, made generic over the kind, with the comments that
 spoke of forms reworded, most of the two files comments.
 
 formancy.ai publishes this code under Apache-2.0. Its rightsholder is
-Report's, and wrote every commit to `answers.ts` and `relay.ts` up to
-v0.14.0, read with `git log --follow` on 27 November 2026. So he
+Report's, and authored every commit to `answers.ts` and `relay.ts` up to
+v0.14.0, and to `authoring.ts`, from which `answers.ts` was split in
+formancy.ai #222, read with `git log --follow` on 27 November 2026. So he
 publishes it here under Report's licence himself, not as a licensee of
 Apache-2.0, and none of its section 4's conditions apply; Report's
 `NOTICE` says so of `src/turn/`. formancy's copy keeps Apache-2.0, and
 anyone may still take it from there on those terms. A change to
-formancy's turn that someone else wrote is carried here only under
+formancy's turn that someone else authored is carried here only under
 formancy's CLA, whose section 2 grants the project the right to
 sublicense it
 ([formancy.ai 0069](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0069-contributions-under-a-cla.md)),
-or else with Apache-2.0's notices.
+and is otherwise not carried: nothing here checks what Apache-2.0 would
+ask of a copy made under its terms instead.
 
 The differential holds what formancy exports and what `authorForm` shows
 of its loop, not every internal path of `askChecked`: where an answer

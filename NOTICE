@@ -9,10 +9,10 @@ This product includes software developed by the formancy project
 Version 2.0. Those packages keep their licence; nothing here changes it.
 
 The model turn in @formancy/report-ai -- its src/turn/, and what its dist
-builds from it -- is formancy 0.14.0's own code, from @formancy/builder-core,
-published here under this product's licence by its rightsholder, who wrote
-it; the sentence above does not cover it. formancy's copy keeps the Apache
-License, Version 2.0.
+builds from it -- is made from formancy 0.14.0's code, from
+@formancy/builder-core, published here under this product's licence by its
+rightsholder, whose every commit to it is his; the sentence above does not
+cover it. formancy's copy keeps the Apache License, Version 2.0.
 
 @formancy/report-render-pdf includes the Liberation Sans fonts, version
 2.1.5, Regular and Bold, in its fonts directory and, as base64, in its
