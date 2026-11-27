@@ -8,6 +8,7 @@ import { assetDigest, emptyReport, isDigest } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { openFileTemplateStore, StoredRecordError, StoreFileSystemError } from './file-store.js'
+import { MODES_DENY_ACCESS } from './test-support.js'
 
 /**
  * The file store (0049, as formancy.ai-data 0013): a tenant's drafts and
@@ -407,35 +408,41 @@ describe('a directory the store cannot read', () => {
   // and the path inside the tenant's directory: Node's own error names the
   // absolute path, and with it the tenant's directory, the unkeyed hash of
   // the claim, which a log reverses for a tenant it can guess.
-  test('throws the store’s own error, by Node’s code, the operation and the path inside the tenant, rather than reading as empty', async () => {
-    await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Kept')))
-    const kept = image('a logo')
-    await store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: kept.bytes })
-    await chmod(draftDirectory(TENANT, 'invoice'), 0o000)
-    await chmod(assetDirectory(TENANT), 0o000)
-    try {
-      const failures = [
-        [() => store.newest(TENANT, 'invoice'), { code: 'EACCES', operation: 'list', withinTenant: 'templates/invoice/draft' }],
-        [() => store.list(TENANT), { code: 'EACCES', operation: 'list', withinTenant: 'templates/invoice/draft' }],
-        [() => store.imageKind(TENANT, kept.digest), { code: 'EACCES', operation: 'read', withinTenant: `assets/${kept.digest.slice('sha256:'.length)}.png` }],
-      ] as const
-      for (const [asked, expected] of failures) {
-        const error = await (asked as () => Promise<unknown>)().catch((caught: unknown) => caught)
-        expect(error).toBeInstanceOf(StoreFileSystemError)
-        expect(error).toMatchObject(expected)
-        expect((error as Error).message).toContain('EACCES')
-        expect((error as Error).message).not.toContain(root)
-        expect((error as Error).message).not.toContain(sha256(TENANT))
+  test.skipIf(!MODES_DENY_ACCESS)(
+    'throws the store’s own error, by Node’s code, the operation and the path inside the tenant, rather than reading as empty',
+    async () => {
+      await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Kept')))
+      const kept = image('a logo')
+      await store.keepImage(TENANT, kept.digest, { mediaType: 'image/png', bytes: kept.bytes })
+      await chmod(draftDirectory(TENANT, 'invoice'), 0o000)
+      await chmod(assetDirectory(TENANT), 0o000)
+      try {
+        const failures = [
+          [() => store.newest(TENANT, 'invoice'), { code: 'EACCES', operation: 'list', withinTenant: 'templates/invoice/draft' }],
+          [() => store.list(TENANT), { code: 'EACCES', operation: 'list', withinTenant: 'templates/invoice/draft' }],
+          [
+            () => store.imageKind(TENANT, kept.digest),
+            { code: 'EACCES', operation: 'read', withinTenant: `assets/${kept.digest.slice('sha256:'.length)}.png` },
+          ],
+        ] as const
+        for (const [asked, expected] of failures) {
+          const error = await (asked as () => Promise<unknown>)().catch((caught: unknown) => caught)
+          expect(error).toBeInstanceOf(StoreFileSystemError)
+          expect(error).toMatchObject(expected)
+          expect((error as Error).message).toContain('EACCES')
+          expect((error as Error).message).not.toContain(root)
+          expect((error as Error).message).not.toContain(sha256(TENANT))
+        }
+      } finally {
+        await chmod(draftDirectory(TENANT, 'invoice'), 0o700)
+        await chmod(assetDirectory(TENANT), 0o700)
       }
-    } finally {
-      await chmod(draftDirectory(TENANT, 'invoice'), 0o700)
-      await chmod(assetDirectory(TENANT), 0o700)
-    }
-  })
+    },
+  )
 
   // A save into a template's directory this process may not write fails
   // writing its temporary file, and says that, not where the volume is.
-  test('throws the store’s own error for a write it cannot make', async () => {
+  test.skipIf(!MODES_DENY_ACCESS)('throws the store’s own error for a write it cannot make', async () => {
     await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'Kept')))
     await chmod(draftDirectory(TENANT, 'invoice'), 0o500)
     try {
@@ -448,6 +455,22 @@ describe('a directory the store cannot read', () => {
       await chmod(draftDirectory(TENANT, 'invoice'), 0o700)
     }
     expect(await readdir(draftDirectory(TENANT, 'invoice'))).toEqual(['1.json'])
+  })
+
+  // A file where a template's directory goes -- left by hand, or by a
+  // restore -- fails the save that would make the directory, as the store's
+  // own error. Its path inside the tenant is the one the server's log names,
+  // written with `/` on every platform as 0049 states it: Windows' own
+  // separator would give an operator `templates\invoice\draft`, which a
+  // search for the stated form misses. The cases above take a permission
+  // away, which a mode does on POSIX alone; this one runs on Windows too.
+  test('throws the store’s own error where a file stands in for a template’s directory, its path inside the tenant written with /', async () => {
+    await mkdir(join(tenantDirectory(TENANT), 'templates'), { recursive: true })
+    await writeFile(join(tenantDirectory(TENANT), 'templates', 'invoice'), 'not a directory')
+    const error = await store.save(TENANT, 'invoice', null, draft('u-1', report('invoice', 'First'))).catch((caught: unknown) => caught)
+    expect(error).toBeInstanceOf(StoreFileSystemError)
+    expect(error).toMatchObject({ code: 'ENOTDIR', operation: 'write', withinTenant: 'templates/invoice/draft' })
+    expect((error as Error).message).not.toContain(root)
   })
 })
 
@@ -471,7 +494,8 @@ describe('the root', () => {
       [file, /not a directory/],
       [relative(process.cwd(), root), /not an absolute path/],
       [join(root, 'a-directory-not-made'), /names nothing/],
-      [locked, /cannot write/],
+      // Made unwritable by its mode, which takes nothing away on Windows (MODES_DENY_ACCESS).
+      ...(MODES_DENY_ACCESS ? ([[locked, /cannot write/]] as const) : []),
     ] as const
     for (const [at, why] of cases) {
       const outcome = await openFileTemplateStore(at)

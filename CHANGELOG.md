@@ -31,6 +31,17 @@ lines, VAT, the total and the Swiss QR-bill that pays it. Its problems
 pane now opens on the warning that the bill pays SIX's example account;
 the samples and the README's table keep the corpus's order.
 
+**On Windows, the report server names a stored file inside the tenant's
+directory with `/`, as it does on Linux and as
+[0049](docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)
+states it.** `withinTenant` on `StoredRecordError` and
+`StoreFileSystemError`, and the `file` the server logs of either, held
+Windows' own separator, `templates\invoice\draft\1.json`, so an operator
+searching a log for the path 0049 gives found nothing, and an embedder
+reading the field read one form on Windows and another everywhere else.
+The file system is still asked by the platform's own paths. The image
+runs on Linux, where nothing changes.
+
 ## 0.3.0 — 2026-11-23
 
 **In short.** The third release, still a developer preview: for evaluating
