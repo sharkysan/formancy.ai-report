@@ -13,9 +13,28 @@
  *   PDFKit, and its package.json has no `license` field, as decision 0005
  *   predicted. The LICENSE file it ships is the MIT License, read on
  *   2026-10-15.
+ * - `pdfjs-dist@6.4.299` reaches `@formancy/report-mcp` (0089) and ships
+ *   ten of Foxit's Type 1 faces in `standard_fonts/`, which have no name
+ *   table to read. Beside them, `standard_fonts/LICENSE_FOXIT` (sha256
+ *   b578cdd2345840ada550bd12519533812320d5f1d21cf4c1c7e1b1b0a31c98b7) is
+ *   PDFium's BSD 3-Clause licence, "Copyright 2014 PDFium Authors", read
+ *   on 2026-11-27. PDF.js reads one only for a PDF that does not embed its
+ *   Courier, Times, Symbol or Zapf Dingbats, and only from the
+ *   `standardFontDataUrl` it is given, which report-mcp gives none.
  */
+const FOXIT_EVIDENCE = 'standard_fonts/LICENSE_FOXIT in the tarball: BSD 3-Clause, Copyright 2014 PDFium Authors, read 2026-11-27'
 export const EXCEPTIONS = Object.freeze({
   'png-js@1.1.0': { licence: 'MIT', evidence: 'LICENSE in the tarball: MIT License, Copyright (c) 2017 Devon Govett' },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitDingbats.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitFixed.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitFixedBold.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitFixedBoldItalic.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitFixedItalic.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitSerif.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitSerifBold.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitSerifBoldItalic.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitSerifItalic.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitSymbol.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
 })
 
 /**
@@ -80,8 +99,22 @@ export const FORMANCY_DATA = Object.freeze({
  *   build carries the same 3,024 bytes as base64 inside a script, where
  *   this walk does not look; the renderer's browser test holds that copy to
  *   this digest.
+ * - pdfjs-dist 6.4.299's `iccs/CGATS001Compat-v2-micro.icc` (0089): 8,464
+ *   bytes of an ICC v2.1 input-class CMYK profile to Lab, `desc` "uCMY",
+ *   `cprt` "CC0", which PDF.js reads only from the `iccUrl` it is given,
+ *   to draw a CMYK image, and report-mcp gives none. Its terms are in the
+ *   file, `cprt`, and beside it, `iccs/LICENSE` (sha256
+ *   286e4fd7b447330b2c88e23890e3cd0a9d38cb398d4a59cb247f578ccbda3213),
+ *   Creative Commons' CC0 1.0 Universal, read on 2026-11-27; not compared
+ *   with the file it was made from.
  */
 export const ICC_PROFILES = Object.freeze({
+  'sha256:73e1ba37d2bad5bab2a964f40a9eed96209666efc067c3322626214bbef234a0': {
+    profile: 'CGATS001Compat-v2-micro.icc, an ICC v2.1 input-class CMYK profile to Lab (desc "uCMY", cprt "CC0"), as pdfjs-dist 6.4.299 ships it',
+    licence:
+      'To the greatest extent permitted by, but not in contravention of, applicable law, Affirmer hereby overtly, fully, permanently, irrevocably and unconditionally waives, abandons, and surrenders all of Affirmer\'s Copyright and Related Rights and associated claims and causes of action, whether now known or unknown (including existing as well as future claims and causes of action), in the Work (i) in all territories worldwide, (ii) for the maximum duration provided by applicable law or treaty (including future time extensions), (iii) in any current or future medium and for any number of copies, and (iv) for any purpose whatsoever, including without limitation commercial, advertising or promotional purposes (the "Waiver").',
+    evidence: 'iccs/LICENSE in the tarball, CC0 1.0 Universal, its section 2, read 2026-11-27, and the cprt tag of the profile itself, "CC0"',
+  },
   'sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a': {
     profile: 'sRGB2014.icc, the International Color Consortium\'s ICC v2 sRGB profile (desc "sRGB2014", cprt "Copyright International Color Consortium, 2015")',
     licence:
@@ -135,4 +168,44 @@ export const CONFINED = Object.freeze({
     for: '@formancy/report-render-pdf',
     evidence: 'LICENSE in the tarball: BSD 3-Clause License, Copyright (c) 2017, Baidu Inc., read 2026-11-12',
   },
+})
+
+/**
+ * Fonts a package ships that the one published package admitted for never
+ * loads, at one version, each by the SHA-256 of its bytes, with the
+ * licence the review read and the test that shows it is never loaded
+ * (0089, extending 0006 as 0058 did): `name@version` to the package it is
+ * for, its fonts by path, the licence, `heldBy` and the evidence. The
+ * policy refuses the licence; a package that never reads a file neither
+ * embeds it in a customer's document nor draws with it, and what a
+ * customer installs is the dependency's tarball, which npm fetches from
+ * the registry with the licence beside the file. Refused at another
+ * digest, depended on by any other published package, and where nothing
+ * installs it. **Proposed in 0089 and the owner's to decide**: it admits,
+ * for the first time, files under a licence the policy refuses.
+ *
+ * - pdfjs-dist 6.4.299's `standard_fonts/LiberationSans-*.ttf`, Liberation
+ *   Sans 1.07.4, whose name tables say "Licensed under the Liberation
+ *   Fonts license" and whose `standard_fonts/LICENSE_LIBERATION` (sha256
+ *   d2c4d5b3e115a519cb58eb691aa64538397e2611f9ebe801392cf9667997e7dc) is
+ *   Red Hat's GPL-2.0 with a font-embedding exception, read on 2026-11-27,
+ *   as 0006 read it on 2026-10-14. PDF.js reads one in place of a
+ *   Helvetica or an Arial a PDF does not embed, only from the
+ *   `standardFontDataUrl` it is given; report-mcp gives none, and
+ *   `pdf-text.test.ts` reads a page in Helvetica, never embedded, with no
+ *   file read.
+ */
+export const NEVER_LOADED = Object.freeze({
+  'pdfjs-dist@6.4.299': Object.freeze({
+    for: '@formancy/report-mcp',
+    fonts: Object.freeze({
+      'standard_fonts/LiberationSans-Bold.ttf': 'sha256:361c61b82d575c5c35fd9157fda8b0194bcfcd0d88ea8521a4fb5dd53d33dddc',
+      'standard_fonts/LiberationSans-BoldItalic.ttf': 'sha256:a224075ac17495ad0a3af3bc0a419ac0704a8b3fd1095456201fb9b095fc281d',
+      'standard_fonts/LiberationSans-Italic.ttf': 'sha256:832b4406dbef23628800d3aaad21048534ac84d7e3ad955be83b8172ed8ef512',
+      'standard_fonts/LiberationSans-Regular.ttf': 'sha256:f8ace1f892b2bd9dc1792ba7f097fa7588f84fed48321480e04de5390828221f',
+    }),
+    licence: "GPL-2.0 with Red Hat's font-embedding exception: Liberation Sans 1.07.4",
+    heldBy: 'packages/report-mcp/src/pdf-text.test.ts',
+    evidence: "standard_fonts/LICENSE_LIBERATION in the tarball, and each face's name table, read 2026-11-27",
+  }),
 })

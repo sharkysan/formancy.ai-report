@@ -112,7 +112,9 @@ const byPath = (a, b) => (a.path < b.path ? -1 : 1)
 /**
  * Every font file and every ICC profile in a package's directory, outside
  * its own node_modules, by path: each by its extension, or by its first
- * bytes. A font is read for its licence; a profile is known by its digest.
+ * bytes. A font is read for its licence, and known by its digest too, which
+ * a font admitted as never loaded is held to; a profile is known by its
+ * digest.
  */
 export function filesIn(directory) {
   const fonts = []
@@ -129,9 +131,10 @@ export function filesIn(directory) {
       const named = FONT_FILE.test(item.name) || PROFILE_FILE.test(item.name)
       const head = named || NOT_OPENED.test(item.name) ? undefined : headOf(path)
       const file = relative(directory, path).replaceAll('\\', '/')
-      if (FONT_FILE.test(item.name) || (head !== undefined && looksLikeFont(head, statSync(path).size)))
-        fonts.push({ path: file, ...fontLicence(readFileSync(path)) })
-      else if (PROFILE_FILE.test(item.name) || (head !== undefined && looksLikeProfile(head)))
+      if (FONT_FILE.test(item.name) || (head !== undefined && looksLikeFont(head, statSync(path).size))) {
+        const bytes = readFileSync(path)
+        fonts.push({ path: file, digest: `sha256:${createHash('sha256').update(bytes).digest('hex')}`, ...fontLicence(bytes) })
+      } else if (PROFILE_FILE.test(item.name) || (head !== undefined && looksLikeProfile(head)))
         profiles.push({ path: file, digest: `sha256:${createHash('sha256').update(readFileSync(path)).digest('hex')}` })
     }
   }

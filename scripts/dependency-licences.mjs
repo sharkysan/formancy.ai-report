@@ -34,6 +34,12 @@
 // version, by the digest of its licence files, depended on by that package
 // and no other published one.
 //
+// A font a package ships that the one published package admitted for
+// never loads is `NEVER_LOADED`: at one version, by the digest of its
+// bytes, its package depended on by that published package and no other,
+// and a test named that shows it is never read (0089). It is the one way a
+// font under a licence the policy refuses passes, and the owner's to grant.
+//
 // Where a manifest or a font is silent or wrong, a reviewed exception records
 // what the evidence says the licence is, at one exact version; the policy
 // still applies to what it records. An exception nothing installs is refused,
@@ -48,10 +54,10 @@ import { readdirSync, readFileSync, realpathSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { filesIn, fontLicence, licenceTextsIn } from './dependency-licences/files.mjs'
-import { CONFINED, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES } from './dependency-licences/reviews.mjs'
+import { CONFINED, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES, NEVER_LOADED } from './dependency-licences/reviews.mjs'
 import { LICENSE_FIELD } from './verify-licenses.mjs'
 
-export { CONFINED, EXCEPTIONS, FORMANCY_DATA, fontLicence, ICC_PROFILES }
+export { CONFINED, EXCEPTIONS, FORMANCY_DATA, fontLicence, ICC_PROFILES, NEVER_LOADED }
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -312,19 +318,38 @@ function confinement(item, id, route, confined) {
 }
 
 /**
+ * Whether `font`, of the package `item` is, is one `unloaded` admits as
+ * never loaded: false where no admission names it, so the policy judges
+ * it; true at the digest the review read, its package depended on by the
+ * package admitted for alone; and what is wrong otherwise.
+ */
+function neverLoaded(item, id, font, route, unloaded) {
+  if (!Object.hasOwn(unloaded, id) || !Object.hasOwn(unloaded[id].fonts, font.path)) return false
+  const admitted = unloaded[id]
+  const read = admitted.fonts[font.path]
+  if (font.digest !== read) return `${id}/${font.path} is ${font.digest ?? 'of no digest'}, not the font the review read (${read}) (${route})`
+  const others = (item.dependents ?? [item.via.at(-1)]).filter((dependent) => dependent !== admitted.for)
+  if (others.length > 0)
+    return `${id}/${font.path} is admitted as never loaded by ${admitted.for} alone, and ${others.join(', ')} depends on ${item.name} (${route})`
+  return true
+}
+
+/**
  * What is wrong with these closures under the policy, each named once with the
  * route to it. `exceptions` replace what a package or a font file says with
  * what a review found, at that exact version, and are refused when nothing
  * here installs them. `data` admits Formancy Data's packages, `profiles`
- * the ICC profiles a review read, and `confined` the packages a review read
- * for one dependent alone, and each is refused the same way.
+ * the ICC profiles a review read, `confined` the packages a review read
+ * for one dependent alone, and `unloaded` the fonts a review admitted as
+ * never loaded by one dependent, and each is refused the same way.
  */
-export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA, profiles = ICC_PROFILES, confined = CONFINED) {
+export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA, profiles = ICC_PROFILES, confined = CONFINED, unloaded = NEVER_LOADED) {
   const found = new Set()
   const used = new Set()
   const admitted = new Set()
   const confinedSeen = new Set()
   const shipped = new Set()
+  const unloadedSeen = new Set()
   const judge = (key, declared, source, route, refusal) => {
     const exception = Object.hasOwn(exceptions, key) ? exceptions[key] : undefined
     if (exception !== undefined) used.add(key)
@@ -352,6 +377,10 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
       if (Object.hasOwn(confined, id)) confinedSeen.add(id)
     }
     for (const font of item.fonts) {
+      const unread = item.sibling ? false : neverLoaded(item, id, font, route, unloaded)
+      if (unread !== false) unloadedSeen.add(`${id}/${font.path}`)
+      if (typeof unread === 'string') found.add(unread)
+      if (unread !== false) continue
       const refusal = font.readable
         ? `${id}/${font.path} is a font whose name table names no licence the policy allows: "${font.description ?? ''}" (${route})`
         : `${id}/${font.path} is a font this guard cannot read a licence from; review it and record an exception (${route})`
@@ -374,6 +403,11 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
   }
   for (const key of Object.keys(confined)) {
     if (!confinedSeen.has(key)) found.add(`confined package ${key} names nothing a published package installs; remove it`)
+  }
+  for (const [id, admitted] of Object.entries(unloaded)) {
+    for (const path of Object.keys(admitted.fonts)) {
+      if (!unloadedSeen.has(`${id}/${path}`)) found.add(`never-loaded font ${id}/${path} names nothing a published package installs; remove it`)
+    }
   }
   for (const [digest, review] of Object.entries(profiles)) {
     if (!shipped.has(digest)) found.add(`reviewed ICC profile ${digest} names nothing a published package installs; remove it`)
