@@ -441,7 +441,7 @@ operating system's layer is under 0006 (SV-Q13).
   until then, and a signature with `=` appended verifies, so a token's
   text is not unique. Both are Data's rules, which Report takes whole
   (0047); a rule for either goes to Data first, and nothing here keys on a
-  token's text.
+  token's text. The second no longer holds since 2026-11-27, below.
 
 **What it forecloses.**
 - Sessions, passwords and keys of the server's own; identity is the host's.
@@ -449,6 +449,19 @@ operating system's layer is under 0006 (SV-Q13).
 - A permission decided anywhere but the table.
 - Reading Formancy Data from the server, which would put it on the network
   (SV-Q3); a host captures data and hands it over.
+
+**Added 2026-11-27: a token has one text.** data-identity 0.5.0, which the
+server verifies with since that day (0047), refuses a token that is not
+exactly its compact form, three base64url parts with no padding, no space,
+no `+` and no `/`, as `ERR_JWS_INVALID`, before any key is asked
+(formancy.ai-data 0101, from Data 0.4.0). A signature with `=` after it,
+which jose decodes to the same bytes and which verified here until then, is
+now the one 401, with that reason in the log. `bearer()` still lets `=`,
+`+` and `/` through, the characters RFC 6750 allows a token, so it is the
+verifier that refuses them. `identity.test.ts` holds it, watched failing at
+data-identity 0.3.0, which verified the padded signature. That a token's
+`exp` may lie years ahead still holds: data-identity sets no longest
+lifetime.
 
 ## Alternatives considered
 

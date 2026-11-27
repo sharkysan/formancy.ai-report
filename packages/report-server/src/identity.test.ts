@@ -6,7 +6,7 @@ import type { ReportIdentityOptions } from './identity.js'
 
 /**
  * The host's token, verified offline by Formancy Data's verifier
- * (@formancy/data-identity 0.3.0, formancy.ai-data 0014, 0091), and the
+ * (@formancy/data-identity 0.5.0, formancy.ai-data 0014, 0091, 0101), and the
  * tenant Report requires of it (0046). Each refusal is formancy.ai-data
  * 0014's case, here through Report's wrapper, so a wrapper that let one
  * through -- by catching too much, or reading the payload itself -- fails
@@ -88,6 +88,27 @@ describe('createReportVerifier', () => {
       const outcome = await verify(presented)
       expect(outcome.ok, what).toBe(false)
     }
+  })
+
+  // A token has one spelling, its compact form: three base64url parts and
+  // nothing else (formancy.ai-data 0101). jose decodes a signature with `=`
+  // or a space in it to the same bytes, and the signature covers only the
+  // parts before it, so a verifier that took one would accept a host's
+  // token under a second text that Data's server refuses, and a log or a
+  // cache keyed on the text would see two people where there is one. The
+  // server's bearer() lets `=` through, so the verifier is what refuses it.
+  test('refuses a token that is not exactly its compact form, its signature padded or spaced, as ERR_JWS_INVALID', async () => {
+    const verify = await createReportVerifier(options)
+    const honest = await token()
+    expect((await verify(honest)).ok).toBe(true)
+    const [header = '', payload = '', signature = ''] = honest.split('.')
+    const respelled = {
+      'its signature padded': `${honest}=`,
+      'its signature padded twice': `${honest}==`,
+      'a space in its signature': `${header}.${payload}.${signature.slice(0, 8)} ${signature.slice(8)}`,
+      'its payload padded': `${header}.${payload}=.${signature}`,
+    }
+    for (const [what, presented] of Object.entries(respelled)) expect(await verify(presented), what).toEqual({ ok: false, reason: 'ERR_JWS_INVALID' })
   })
 
   // Report's own refusal: a token that names no tenant has no reports to

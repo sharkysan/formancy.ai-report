@@ -42,8 +42,8 @@ The pieces, each a package:
   ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)), and refuses what
   belongs to the report's PDF
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md));
-- a **provider** that reads a report's data from Formancy Data 0.1.0,
-  best-effort
+- a **provider** that reads a report's data from a Formancy Data 0.5.0
+  server, best-effort
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md));
 - an **editor model** with a **React builder** and an **Angular builder** over
   it, native in each framework, over one session
@@ -60,7 +60,10 @@ rendered PDF against them. [Building blocks](05-building-blocks.md) has each.
   develop and test, paid to run in production, and a separate agreement to
   redistribute ([0001](../decisions/0001-a-paid-module-in-its-own-repository.md)).
   The Apache-2.0 packages it builds on stay Apache-2.0, and none of their
-  code is in a package here ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md));
+  code is in a package here ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md))
+  but formancy's model turn, which formancy does not export, held in
+  report-ai in formancy's shapes until formancy releases one other
+  products may brief ([0083](../decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md));
   the lint rules, which formancy.ai has not released yet, are copied into
   the repository's tooling until it does ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
 - **Not a form.** A report has pages, regions repeated on every page, a

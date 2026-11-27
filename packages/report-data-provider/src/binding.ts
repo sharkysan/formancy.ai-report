@@ -44,14 +44,27 @@ export const PROVIDER_ERROR_CODES = [
   'unknown-parent',
   /** A field the report declares that the form does not let this person read, or does not have. */
   'unreadable-field',
-  /** An image field: Data 0.1.0 holds no approved asset for one to print. */
+  /** An image field: Data 0.5.0 holds no approved asset for one to print. */
   'unsupported-field',
   /** The detail form offers this person no list of its records. */
   'not-listable',
-  /** Data answered a binding's form with a published form under another id, or one that is no formancy form id: Data 0.1.0 publishes a form only under its own (0041). */
+  /** Data answered a binding's form with a published form under another id, or one that is no formancy form id: Data 0.5.0 publishes a form only under its own (0041). */
   'unexpected-form',
   /** A lookup value whose label Data did not give this person. */
   'unresolved-label',
+  /**
+   * A page of the detail rows Data's list does not answer: more rows than
+   * were asked for, or one that ends on the row it was asked to continue
+   * after (formancy.ai-data 0108). Data did not refuse it, so no `refusal`.
+   */
+  'unexpected-page',
+  /**
+   * A detail record answered on two pages: a row moved in the order between
+   * them, as when the row a page ended with is edited (formancy.ai-data
+   * 0108), or one deleted and created again under its key. Refused rather
+   * than printed twice; a row with no token is not compared.
+   */
+  'repeated-row',
   /** Data refused a request; `refusal` carries its status and code, and the message is its sentence. */
   'refused',
 ] as const
@@ -135,7 +148,7 @@ export function planFields(role: DatasetRole, contract: DatasetContract, publish
       errors.push({
         path,
         code: 'unsupported-field',
-        message: `${declared.id} is an image field, and a Formancy Data 0.1.0 form holds no approved asset to print`,
+        message: `${declared.id} is an image field, and a Formancy Data 0.5.0 form holds no approved asset to print`,
       })
     } else if (field === undefined || !readable.has(declared.id)) {
       errors.push({

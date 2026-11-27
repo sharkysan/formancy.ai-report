@@ -55,14 +55,15 @@ import { renderPdf, RenderRefusal } from '@formancy/report-render-pdf'
 import { readReportData } from '@formancy/report-data-provider'
 import type { DataBinding, ProviderRead } from '@formancy/report-data-provider'
 import { createDataClient } from '@formancy/data-client'
-import type { PublishedForm } from '@formancy/data-client'
 import { drawnEInvoice } from './e-invoice.js'
+import { serveQuotation } from './data-server.js'
 import { chartDrawn } from './chart.js'
 import { addedImages } from './images.js'
 import { fontsRead, hostFontRendered } from './fonts.js'
 import { imagesInOrder } from './image-order.js'
 import { formsRead } from './forms.js'
 import { documentsRead } from './documents.js'
+import { modelAsked } from './model-turn.js'
 import { wordWritten } from './docx.js'
 import { archivedPdfA } from './pdfa.js'
 import { firstPageDrawn } from './first-page.js'
@@ -521,49 +522,19 @@ const eInvoiced = await drawnEInvoice(report.page)
 
 // The Data provider, from its tarball, with @formancy/data-client at the
 // exact release it pins, from the registry: the quotation read from a data
-// server answering Formancy Data 0.1.0's routes -- its header as one
+// server answering Formancy Data 0.5.0's routes -- its header as one
 // record, its lines as that record's children, every value as Data spells
 // it -- must be the quotation's own data, and render. The client checks
-// every reply's shape, so a reply Data would not send fails here. The
+// every reply's shape, so a reply Data 0.5.0 would not send -- a form
+// without its `bulk`, a page without its `next` -- fails here; the server
+// is data-server.ts, and it answers the lines on two pages, the second
+// asked for after the cursor the first gave. The
 // packages/report-data-provider README's example is these lines
 // (scripts/readme-example.test.mjs).
 const { header: quotationHeader = {}, detail: quotationLines = [] } = quotationData
 const dataServer = 'https://data.invalid'
 const quotationToken = 'q-1'
-const formOf = (id: string, keys: readonly string[]): PublishedForm => ({
-  form: {
-    specVersion: '3',
-    id,
-    title: id,
-    model: {
-      fields: keys.map((key) => (key === 'quotation' ? { key, type: 'select', label: key, optionsSource: 'quotations' } : { key, type: 'text', label: key })),
-    },
-  },
-  operations: ['read'],
-  readable: [...keys],
-  list: { searchable: [], sortable: [...keys] },
-  deleting: null,
-})
-const lineKeys = ['quotation', ...Object.keys(quotationLines[0] ?? {})]
-const dataRoutes: Readonly<Record<string, unknown>> = {
-  'GET /v1/forms': { forms: [{ id: 'quotation', title: 'Quotations', operations: ['read'], children: [{ form: 'quotation-line', field: 'quotation' }] }] },
-  'GET /v1/forms/quotation': formOf('quotation', Object.keys(quotationHeader)),
-  'GET /v1/forms/quotation-line': formOf('quotation-line', lineKeys),
-  'POST /v1/forms/quotation/records/read': { record: quotationToken, version: '1', answers: quotationHeader },
-  'POST /v1/forms/quotation-line/records/list': {
-    rows: quotationLines.map((line, index) => ({ record: `l-${String(index)}`, version: '1', answers: { quotation: quotationToken, ...line } })),
-    hasMore: false,
-  },
-}
-Object.assign(globalThis, {
-  fetch: (input: string, init: RequestInit): Promise<Response> => {
-    const route = `${init.method ?? 'GET'} ${input.slice(dataServer.length)}`
-    const body = Object.hasOwn(dataRoutes, route) ? dataRoutes[route] : { code: 'not-found', message: 'No such route.' }
-    return Promise.resolve(
-      new Response(JSON.stringify(body), { status: Object.hasOwn(dataRoutes, route) ? 200 : 404, headers: { 'content-type': 'application/json' } }),
-    )
-  },
-})
+const served = serveQuotation(dataServer, quotationToken, quotationHeader, quotationLines)
 const fromData = await (async () => {
   // The host's own sign-in, whose token Data's policy reads on every request.
   const session = { token: (): string => 'install-check' }
@@ -579,6 +550,7 @@ const fromData = await (async () => {
   ) {
     throw new Error("the quotation read from Data is not the quotation's own data, read best-effort")
   }
+  if (served.pages() !== 2) throw new Error(`the quotation's lines were read in ${String(served.pages())} pages, not in two after a cursor`)
   // The manifest names the published form each dataset was read from (0041).
   const source: DataSource | undefined = resolution.manifest.source
   if (source?.provider !== 'formancy-data' || JSON.stringify(source.forms) !== JSON.stringify({ header: 'quotation', detail: 'quotation-line' }))
@@ -588,5 +560,5 @@ const fromData = await (async () => {
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
 
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; ${shiftedValid}; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved with its mark and rendered to a ${rendered.length}-byte PDF that draws it, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; its manifest named the form submission its lines came from, and a source holding a name was refused; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; ${eInvoiced}; the Data provider read the quotation from Data 0.1.0's routes through @formancy/data-client as the quotation's own data, best-effort, its manifest naming the forms it read, and it rendered to a ${fromData.length}-byte PDF; ${await addedImages()}; ${await imagesInOrder()}; ${fontsRead()}; ${await hostFontRendered()}; ${await formsRead()}; ${documentsRead(rendered)}; ${await archivedPdfA()}; ${await firstPageDrawn()}; ${await languagesPrinted()}; ${await shiftedRendered()}; ${wordWritten(billedResolution.document, paidResolution.document, chartedDocument)}`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; ${shiftedValid}; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved with its mark and rendered to a ${rendered.length}-byte PDF that draws it, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; its manifest named the form submission its lines came from, and a source holding a name was refused; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; ${eInvoiced}; the Data provider read the quotation from Data 0.5.0's routes through @formancy/data-client, its lines in two pages after a cursor, as the quotation's own data, best-effort, its manifest naming the forms it read, and it rendered to a ${fromData.length}-byte PDF; ${await addedImages()}; ${await imagesInOrder()}; ${fontsRead()}; ${await hostFontRendered()}; ${await formsRead()}; ${documentsRead(rendered)}; ${await archivedPdfA()}; ${await firstPageDrawn()}; ${await languagesPrinted()}; ${await shiftedRendered()}; ${wordWritten(billedResolution.document, paidResolution.document, chartedDocument)}; ${await modelAsked()}`,
 )

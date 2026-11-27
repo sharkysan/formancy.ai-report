@@ -18,23 +18,31 @@ Three things follow, and each has a guard:
   refuses a range, a `workspace:` link or a path
   ([0002](docs/decisions/0002-depend-on-upstream-never-copy-it.md)). That
   includes Formancy Data's packages: `report-data-provider` depends on
-  `@formancy/data-client` at exactly 0.1.0
+  `@formancy/data-client` at exactly 0.5.0
   ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)),
   `report-server` on `@formancy/data-identity`, Data's token verifier, at
-  exactly 0.3.0
+  exactly 0.5.0
   ([0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)),
   and nothing else depends on Data.
   A generic improvement goes upstream through that
-  repository's own contribution rules, not into a patched copy here.
+  repository's own contribution rules, not into a patched copy here;
+  a fix to report-ai's turn is offered upstream as well (0083).
   The lint and format rules are formancy.ai's `@formancy/code-style`,
   pinned exactly as a root devDependency and called with this
   repository's paths by `eslint.config.mjs`: a rule changes there, never
   here
   ([0050](docs/decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
-  One copy is carried, tooling that no package carries: the merge across
-  the format, `scripts/prettier-merge.mjs` and its test, is Formancy
-  Data's, which no release replaces, so a change to it is made in both
-  repositories.
+  Two copies are carried. One is tooling that no package carries: the
+  merge across the format, `scripts/prettier-merge.mjs` and its test, is
+  Formancy Data's, which no release replaces, so a change to it is made in
+  both repositories. The other is in a package:
+  `packages/report-ai/src/turn/` is formancy 0.14.0's model turn, generic
+  over the kind, importing nothing of Report's (`generic.test.ts`), held
+  by `against-formancy.test.ts` to `@formancy/builder-core` at exactly
+  0.14.0, a devDependency of that suite alone, which moves with every
+  formancy bump; it stays until formancy releases a turn other products
+  may brief, and is then deleted for an exact dependency
+  ([0083](docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)).
 - **Every package declares the source-available licence**, never Apache-2.0.
   `scripts/verify-licenses.mjs` refuses a manifest that says otherwise and a
   tarball without `LICENSE.md` and `NOTICE`. The realistic mistake is a
@@ -518,7 +526,7 @@ that names one to print in its place (`/Ref`, `/OPI`) are refused;
 pdf-lib's own name pool is never fed a file's names, and its PNG decoder,
 UPNG, never called (`read.test.ts`)
 ([0054](docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
-`@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
+`@formancy/report-data-provider` reads that data from a Formancy Data 0.5.0 server
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
 ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
@@ -628,6 +636,13 @@ directory of `src/` and holds each module to the specifiers it may
 import; it publishes, saves and fetches nothing, and the tools that read
 and save a draft are decided and not yet built
 ([0088](docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
+`@formancy/report-ai` holds a model's turn, formancy 0.14.0's own,
+generic over the kind: `askChecked`, `readAnswer`, `createStop`,
+`declinedAnswer`, `ModelBusyError`, `createRelay` and `relayMessage`,
+on `@formancy/spec` alone, for `DECLINE_KEY`, with no framework, DOM,
+Node or network; its `REQUEST_KINDS` is empty, so Report asks a model
+for nothing yet
+([0083](docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
@@ -683,8 +698,9 @@ holds, and what Formancy Report does not do yet, is said under a page's
 status, which stops the build once the changelog names a later release;
 every card names the tests it rests on; every absence on the start page
 but one detail table and one level of grouping, which review holds, is
-held by `limits.test.ts` to report-spec's built `dist`, a devDependency
-no page imports, and to the published packages' manifests
+held by `limits.test.ts` to report-spec's and report-ai's built `dist`,
+devDependencies no page imports (the AI absence to report-ai's empty
+`REQUEST_KINDS`, 0083), and to the published packages' manifests
 ([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md));
 and `src/groups.ts` is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
 before it:
@@ -695,6 +711,10 @@ before it:
    pako alone, depending on no package of this repository; no framework,
    no Node, no DOM, no network (0054).
 2. `report-core` -- pure document commands, atomic history, diagnostics.
+   Beside it, `report-ai` -- the model's turn in formancy's shapes, on
+   `@formancy/spec` alone and no package of this repository; no
+   framework, no Node, no DOM, no network; it asks a model for nothing
+   yet (0083). The architecture draws it between report-core and L2.
 3. `report-builder-core` -- selection, palette, properties, geometry, review
    state, the images a person adds, a report's QR-bill and e-invoice edited
    as parts of its own level; then `report-builder-react` and
@@ -712,7 +732,7 @@ before it:
 6. `report-server-core` / `report-server` / `report-client` -- built: who
    may do what, a server that knows who is asking (0046) and keeps a
    template's draft and its images, and the client a host asks it with
-   (0049); then `report-viewer`, `report-ai`.
+   (0049); then `report-viewer`.
 7. `report-data-provider` -- the only package allowed to depend on Formancy
    Data's contracts, at the exact release it was built against (0016);
    `report-server` may depend on Data's identity verifier alone (0047);
@@ -1335,7 +1355,9 @@ Locally, run the same commands for what you changed.
   with its chart, its chart a part of the runtime's digits and no
   workbook beside it (0076), and the e-invoice's copy, its page header
   opening with the runtime's label and no part holding the XML, the
-  invoice itself refused (0077);
+  invoice itself refused (0077), and asks a scripted model through the
+  packed report-ai, a relay carried by hand among it, in
+  `model-turn.ts` (0083);
   `server.ts`, the server made in its host's process and asked over a
   socket, a draft saved through the packed client, read back and a stale
   save refused `draft-changed`;

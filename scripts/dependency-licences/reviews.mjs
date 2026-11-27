@@ -39,7 +39,8 @@ export const EXCEPTIONS = Object.freeze({
 
 /**
  * Formancy Data's packages, each admitted for the one package allowed to
- * depend on it (0006, extended 2026-10-16 by 0016 and 2026-10-22 by 0047):
+ * depend on it (0006, extended 2026-10-16 by 0016 and 2026-10-22 by 0047,
+ * admitted again at Data 0.5.0 on 2026-11-27):
  * `name@version` to the sha256 of the `LICENSE.md` their `SEE LICENSE IN`
  * pointer names, as the review read it, and the package whose dependency
  * it may be -- the provider for Data's client, the server for Data's
@@ -59,19 +60,27 @@ export const EXCEPTIONS = Object.freeze({
  *   `LICENSE.md` is the same Version 1.1, byte for byte the file 0.1.0
  *   shipped, read on 2026-10-22. It depends on jose alone, which the policy
  *   judges like anybody's.
+ * - Data 0.5.0, published 2026-11-23, admitted in place of both on
+ *   2026-11-27: `data-client`, the `data-core` it depends on and
+ *   `data-identity` each ship a `LICENSE.md` that is the same Version 1.1,
+ *   byte for byte the file 0.1.0 and 0.3.0 shipped, read whole that day
+ *   from the registry's tarballs, whose sha512 is the lockfile's. Their
+ *   `NOTICE` is 0.1.0's too. data-core now brings `@formancy/spec` and
+ *   `@formancy/expressions` 0.13.0, formancy's, under Apache-2.0, which the
+ *   policy judges like anybody's.
  */
 export const FORMANCY_DATA = Object.freeze({
-  '@formancy/data-client@0.1.0': {
+  '@formancy/data-client@0.5.0': {
     licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
     for: '@formancy/report-data-provider',
-    evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026',
+    evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026, the same bytes as 0.1.0 shipped',
   },
-  '@formancy/data-core@0.1.0': {
+  '@formancy/data-core@0.5.0': {
     licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
     for: '@formancy/report-data-provider',
-    evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026',
+    evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026, the same bytes as 0.1.0 shipped',
   },
-  '@formancy/data-identity@0.3.0': {
+  '@formancy/data-identity@0.5.0': {
     licenceFile: 'sha256:329ae16264e73a3f429611267bfa3263c99eda5d6e2b419f223b2cc64536b8d4',
     for: '@formancy/report-server',
     evidence: 'LICENSE.md in the tarball: Formancy Data Source-Available Licence, Version 1.1, in force from 11 October 2026, the same bytes as 0.1.0 shipped',

@@ -260,6 +260,9 @@ importers:
         specifier: ^19.3.0
         version: 19.3.1(react@19.3.1)
     devDependencies:
+      '@formancy/report-ai':
+        specifier: workspace:*
+        version: link:../../packages/report-ai
       '@formancy/report-spec':
         specifier: workspace:*
         version: link:../../packages/report-spec
@@ -414,6 +417,40 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 5.0.4(@types/node@22.20.5)(@vitest/coverage-v8@5.0.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(less@4.9.1(supports-color@8.1.1))(sass-embedded@1.104.1)(sass@1.104.1)(yaml@2.9.1))
+
+  packages/report-ai:
+    dependencies:
+      '@formancy/spec':
+        specifier: 0.14.0
+        version: 0.14.0
+    devDependencies:
+      '@arethetypeswrong/cli':
+        specifier: 'catalog:'
+        version: 0.18.5
+      '@formancy/builder-core':
+        specifier: 0.14.0
+        version: 0.14.0
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.5
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.4(vitest@5.0.4)
+      publint:
+        specifier: 'catalog:'
+        version: 0.3.25
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.1(@arethetypeswrong/core@0.18.5)(publint@0.3.25)(typescript@6.0.3)(unrun@0.3.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      unrun:
+        specifier: ^0.3.1
+        version: 0.3.1
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@22.20.5)(@vitest/coverage-v8@5.0.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(less@4.9.1(supports-color@8.1.1))(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
 
   packages/report-builder-angular:
     dependencies:
@@ -708,8 +745,8 @@ importers:
   packages/report-data-provider:
     dependencies:
       '@formancy/data-client':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.5.0
+        version: 0.5.0
       '@formancy/report-runtime':
         specifier: workspace:*
         version: link:../report-runtime
@@ -1012,8 +1049,8 @@ importers:
         specifier: 11.2.1
         version: 11.2.1
       '@formancy/data-identity':
-        specifier: 0.3.0
-        version: 0.3.0
+        specifier: 0.5.0
+        version: 0.5.0
       '@formancy/report-server-core':
         specifier: workspace:*
         version: link:../report-server-core
@@ -1728,6 +1765,9 @@ packages:
   '@fontsource/ibm-plex-sans@5.3.0':
     resolution: {integrity: sha512-CbE4CbbEEZJX860XyUiRpsksXIQR8Rp2XDva2VO53NJox9tVNtusrysd2x5YkUEY3ErQ66W1IiiQL8/wihhw5w==}
 
+  '@formancy/builder-core@0.14.0':
+    resolution: {integrity: sha512-XrZE78OrkZ69LxQ82DH94fvl4SO+WOS48MDbyGPcre/ulV2Fgeha+X8vjFpxULvv5m4AP4S8C+W5Exlv7XvZuA==}
+
   '@formancy/code-style@0.14.0':
     resolution: {integrity: sha512-5UIq6/ZFIdlHEtMqFQEiI94DrNVCoQ5wPK/Z/4bjze7WkPR7Hhn+uE7K6yHNPYUytIIJl6pQCAC19zHtEKe5Ug==}
     peerDependencies:
@@ -1735,23 +1775,29 @@ packages:
       prettier: ^3.9.10
       typescript: ~6.0.3
 
-  '@formancy/data-client@0.1.0':
-    resolution: {integrity: sha512-t7R3lF81H+hQ/i/piPpuFQle+eUKz1B3uQAWq0IdeIdE5uy/pqc93OLwTFoyglcW2Mc/jfbu+X3eqrjEzrzFQg==}
+  '@formancy/core@0.14.0':
+    resolution: {integrity: sha512-qvap4qwLKoTaXOPgzubMTAGTwX+YsV62HuyVcICOBlACIjPwlgb4iLuu/28WjQ4kwu/Tgq777Ci1f444KrSvYQ==}
 
-  '@formancy/data-core@0.1.0':
-    resolution: {integrity: sha512-2LYf/U8JaGy76to3iiykGaw71Du1BEFQUDWXMl1f0Na3E7nkaADegFutJjBKCzgyPgQbNRoc1n0Uo5tNgSrnIw==}
+  '@formancy/data-client@0.5.0':
+    resolution: {integrity: sha512-B741cuk/WaWeYz/5WhB6LjTP4uTyAHWDAikFFAD52sboZv6E/UHKty5Gc2KBC6cPhr9w9AnRiudfzlSY/EYemg==}
 
-  '@formancy/data-identity@0.3.0':
-    resolution: {integrity: sha512-LcZZwwMuD1vTXV+QDiN5UoTdXDfLm4R3nKE77FP3ApiwYyh5PKOYHBGQtb4kCoswRRMSAjIsh+9WSbmybgbLzg==}
+  '@formancy/data-core@0.5.0':
+    resolution: {integrity: sha512-ntM2ZaiagZfCBJ3tQ56VswuBNfy8l1Er1fDf5QpKPZ8d6bgQ/iTM49PGbXLE3YeoefuRU2sCCFD6WKq+e/dycw==}
+
+  '@formancy/data-identity@0.5.0':
+    resolution: {integrity: sha512-5pR4c9inl1TdFqj+hSIt5ln6nhTFyZ4ggop7+gQ9qSudu7hWBVGHmzzofCL9ZB4rh522QcnjGV4vrp9MSZrHbA==}
+
+  '@formancy/expressions@0.13.0':
+    resolution: {integrity: sha512-IC7dntZ1PTHW65OkmyDwuI7Y8lJXzQ3b9Xt6lYphLXn34Ai6+Z9QOW1f0Rtmq85SPebP5xYwnmmuSy7J0gw+Kg==}
 
   '@formancy/expressions@0.14.0':
     resolution: {integrity: sha512-W2Pait1vgHb56AMstQmNXgF2ZfhH8NzwEIJOg6x9lSTZoMVhYENQYTi2Ae8OZGDXt4LEx/oSoPyfp+My+5wZhQ==}
 
+  '@formancy/spec@0.13.0':
+    resolution: {integrity: sha512-7+wOiurp837CAIYUssJJSGPCh6vuQQ2HxaVAlLQojK4aWQRmgyAn6fURyjnCQG2Sjjc3DsmJce7tAbOgciGPTQ==}
+
   '@formancy/spec@0.14.0':
     resolution: {integrity: sha512-j8ZsVxqwo7kqXrUkprK3Hhk7L148sFaEsEC4uIhIV37War77NE9dnia4rPGvZBgyApD5jxPn3OFR8ZhLife/2w==}
-
-  '@formancy/spec@0.5.0':
-    resolution: {integrity: sha512-XBI1vrDBwX/kKHYTR6YxXbWEGq1zwBEj007wa8sWVXEEQ6yLZuZvDlMuT+697YoKI2K9ysD4iq0ZxgXpVvx0xw==}
 
   '@formancy/themes@0.14.0':
     resolution: {integrity: sha512-wesGA4ANeAfL3+tzlGYwrXIFYVnd75Rz6x9zm/gAp1ytoMbuBRtk4tdZlKuCFHL0yeSCW5rskY+wD+dNIixH1A==}
@@ -5898,6 +5944,12 @@ snapshots:
 
   '@fontsource/ibm-plex-sans@5.3.0': {}
 
+  '@formancy/builder-core@0.14.0':
+    dependencies:
+      '@formancy/core': 0.14.0
+      '@formancy/expressions': 0.14.0
+      '@formancy/spec': 0.14.0
+
   '@formancy/code-style@0.14.0(eslint@10.13.0(supports-color@8.1.1))(prettier@3.9.10)(supports-color@8.1.1)(typescript@6.0.3)':
     dependencies:
       '@eslint-community/eslint-plugin-eslint-comments': 4.8.1(eslint@10.13.0(supports-color@8.1.1))
@@ -5911,29 +5963,39 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@formancy/data-client@0.1.0':
+  '@formancy/core@0.14.0':
     dependencies:
-      '@formancy/data-core': 0.1.0
-      '@formancy/spec': 0.5.0
+      '@formancy/expressions': 0.14.0
+      '@formancy/spec': 0.14.0
 
-  '@formancy/data-core@0.1.0':
+  '@formancy/data-client@0.5.0':
     dependencies:
-      '@formancy/spec': 0.5.0
+      '@formancy/data-core': 0.5.0
+      '@formancy/spec': 0.13.0
 
-  '@formancy/data-identity@0.3.0':
+  '@formancy/data-core@0.5.0':
+    dependencies:
+      '@formancy/expressions': 0.13.0
+      '@formancy/spec': 0.13.0
+
+  '@formancy/data-identity@0.5.0':
     dependencies:
       jose: 6.2.13
+
+  '@formancy/expressions@0.13.0':
+    dependencies:
+      '@marcbachmann/cel-js': 8.0.0
 
   '@formancy/expressions@0.14.0':
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
 
-  '@formancy/spec@0.14.0':
+  '@formancy/spec@0.13.0':
     dependencies:
       '@noble/hashes': 2.4.0
       ajv: 8.20.0
 
-  '@formancy/spec@0.5.0':
+  '@formancy/spec@0.14.0':
     dependencies:
       '@noble/hashes': 2.4.0
       ajv: 8.20.0

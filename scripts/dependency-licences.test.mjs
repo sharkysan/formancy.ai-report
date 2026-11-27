@@ -1120,16 +1120,16 @@ describe('this workspace', { timeout: 30_000 }, () => {
 
   // The admissions are read against what pnpm installed: each Data package
   // the provider and the server need, at the version each pins, with the
-  // licence file the review read -- Data 0.1.0's client for the provider
-  // (0016), Data 0.3.0's identity verifier for the server (0047) -- and each
+  // licence file the review read -- Data 0.5.0's client and core for the
+  // provider (0016), its identity verifier for the server (0047) -- and each
   // reached from its own package and no other. Every Data package the walk
   // meets is one of these: a third would be refused, or admitted unread.
-  test('admits Data 0.1.0 for the provider and Data 0.3.0’s verifier for the server, each reached from its own package alone', () => {
+  test('admits Data 0.5.0’s client for the provider and its verifier for the server, each reached from its own package alone', () => {
     const { entries } = realTree()
     expect(Object.fromEntries(Object.entries(FORMANCY_DATA).map(([id, admission]) => [id, admission.for]))).toEqual({
-      '@formancy/data-client@0.1.0': '@formancy/report-data-provider',
-      '@formancy/data-core@0.1.0': '@formancy/report-data-provider',
-      '@formancy/data-identity@0.3.0': '@formancy/report-server',
+      '@formancy/data-client@0.5.0': '@formancy/report-data-provider',
+      '@formancy/data-core@0.5.0': '@formancy/report-data-provider',
+      '@formancy/data-identity@0.5.0': '@formancy/report-server',
     })
     const data = entries.filter((item) => !item.missing && /^@formancy\/data-/.test(item.name))
     expect([...new Set(data.map((item) => `${item.name}@${item.version}`))].sort()).toEqual(Object.keys(FORMANCY_DATA).sort())

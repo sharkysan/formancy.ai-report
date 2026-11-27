@@ -190,13 +190,18 @@ resolved document's words, which know no page
 ## 6. Depend, never copy, and let the licence choose the dependencies
 
 formancy's packages are dependencies at exact released versions, and none
-of their code is here: one engine decides what an expression and a decimal
-mean, in a form and in a report
+of their code is here but the copies below: one engine decides what an
+expression and a decimal mean, in a form and in a report
 ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)). Two
 copies are tooling, in no package: the lint and format rules the four
 formancy repositories share, until formancy.ai releases them, and Formancy
 Data's merge across the format, `scripts/prettier-merge.mjs`, which no
-release replaces ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)). Every
+release replaces ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)).
+One is in a package: formancy's model turn, which formancy does not
+export, held in report-ai's `src/turn/` in formancy's shapes, importing nothing of
+Report's and held to formancy 0.14.0's by a differential test, until
+formancy releases a turn other products may brief
+([0083](../decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)). Every
 production dependency and every font file a published package ships is
 walked and held to an allow-list of permissive licences, the fonts read from
 their own name tables
