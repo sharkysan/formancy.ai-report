@@ -1,6 +1,6 @@
 # 0006 — Dependencies and fonts allow public source and licensed production
 
-- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which admits an ICC profile by the digest of its bytes and the licence sentence a review read, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose host fonts are outside this guard, their licence the customer's, by [0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), which admits Data's identity verifier for the server, by [0054](0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md), whose PDF reader brings a parser and pako into a published package's production dependencies, every package of their closure under licence metadata the policy allows and none an exception, the parser's stream decoders ports of PDF.js's and XPDF's under Apache-2.0, which neither its dist nor its licence file says and the guard judges by the parser's MIT field alone, and by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), which confines Apache ECharts and zrender to the renderer, each at one version, by the digests of the licence files a review read, and by [0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md), which brings pdfjs-dist into a published package's closure for report-mcp, its Foxit faces by exceptions and its CMYK profile by its digest, and proposes, for the owner to decide, a table of fonts a package ships and the one published package admitted for never loads, `NEVER_LOADED`, for its Liberation Sans 1
+- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which admits an ICC profile by the digest of its bytes and the licence sentence a review read, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose host fonts are outside this guard, their licence the customer's, by [0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), which admits Data's identity verifier for the server, by [0054](0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md), whose PDF reader brings a parser and pako into a published package's production dependencies, every package of their closure under licence metadata the policy allows and none an exception, the parser's stream decoders ports of PDF.js's and XPDF's under Apache-2.0, which neither its dist nor its licence file says and the guard judges by the parser's MIT field alone, and by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), which confines Apache ECharts and zrender to the renderer, each at one version, by the digests of the licence files a review read, and by [0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md), which brings pdfjs-dist into a published package's closure for report-mcp, its Foxit faces by exceptions and its CMYK profile by its digest, and, by the owner's decision of 28 November 2026, a table of fonts a package ships and the one published package admitted for never loads, `NEVER_LOADED`, for its Liberation Sans 1, and one of native builds admitted by the SBOM each ships, `BUILDS_READ`, for `@napi-rs/canvas`, every package that ships a native addon refused without it
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `scripts/dependency-licences.mjs`, run as a step of
@@ -371,7 +371,7 @@ Apache-2.0, which the policy allows as any package, and the walk found
 every other package, font and profile of the tree allowed or read.
 
 **Added 2026-11-27: pdfjs-dist, for report-mcp, and fonts never loaded,
-proposed.** `@formancy/report-mcp` reads the PDF its render check
+admitted by the owner on 2026-11-28.** `@formancy/report-mcp` reads the PDF its render check
 renders with pdfjs-dist 6.4.299 ([0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)), so the walk reaches what this
 record found on 14 October and said would stop such a package:
 - the ten Foxit Type 1 faces, which have no name table, are recorded as
@@ -384,21 +384,59 @@ record found on 14 October and said would stop such a package:
   font-embedding exception, which no exception may admit: the policy
   applies to what an exception records.
 
-For the last, 0089 proposes a table of its own, `NEVER_LOADED`, in
+For the last, 0089 proposed a table of its own, `NEVER_LOADED`, in
 `scripts/dependency-licences/reviews.mjs`: a font a package ships that
 the one published package admitted for never loads -- at one version, by
 the SHA-256 of each file, its package depended on by that published
-package and no other, and with the test that shows it is never read,
-`packages/report-mcp/src/pdf-text.test.ts`, which reads a page in
-Helvetica, never embedded, with no file read. Refused at another digest,
-from another dependent, and where nothing installs it. It admits, for
-the first time, files under a licence the policy refuses, which this
-record says takes a change to it: the owner's to grant. Until then, a
-font a package never loads is judged as any font is, and the guard
-refuses pdfjs-dist's.
+package and no other, and with the case that shows it is never read,
+named `file#test name`: `packages/report-mcp/src/pdf-text.test.ts`'s
+case that reads a page in Helvetica, never embedded, with no file read,
+which the guard finds in that file (`heldByProblems`). Refused at
+another digest, from another dependent, where nothing installs it, and
+where its case is gone. It admits, for the first time, files under a
+licence the policy refuses, which this record says takes a change to it:
+the owner admitted these four faces on 28 November 2026, narrowly, as
+proposed.
 `dependency-licences.test.mjs` holds each rule on fixtures and the real
 tree's admission for report-mcp alone; with the table emptied, the real
 tree refuses the four faces again.
+
+**Added 2026-11-28: native builds, read by their SBOMs.** pdfjs-dist
+requires `@napi-rs/canvas` in Node where it is installed, so the
+canvas's platform build runs in report-mcp's process from its first
+render check. Each of its eleven builds at 1.0.11 is MIT by its manifest
+and ships a native addon, `skia.<platform>.node`, and a CycloneDX SBOM,
+`sbom.cdx.json`, which lists the code linked into the addon; the walk
+read the manifest's MIT alone, so code a package vendors, which this
+record leaves to review, had passed unread. Read from the registry's
+tarballs on 28 November 2026, every build's SBOM lists the same twelve
+components the policy refuses or that state no licence: cssparser
+0.38.0, cssparser-color 0.6.0, cssparser-macros 0.7.0 and dtoa-short
+0.3.5 under MPL-2.0; FreeType under the FTL; ICU under the ICU licence;
+libjpeg-turbo under BSD-3-Clause AND IJG AND Zlib; libpng under
+libpng-2.0; unicode-ident under (MIT OR Apache-2.0) AND Unicode-3.0; fnv
+and siphasher under "Apache-2.0 / MIT" and "MIT/Apache-2.0", which are no
+SPDX expressions; and the canvas crate, which states none. MPL-2.0 is
+file-level and asks nothing of a use that does not modify those files.
+The owner admitted the builds for report-mcp alone that day, by a table
+of their own, `BUILDS_READ`
+([0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)):
+- a package that ships a `.node` file is refused unless the table names
+  its family, its version and its build by the SHA-256 of the SBOM it
+  ships; the walk reads that SBOM, and the components beyond the policy
+  it lists must be those the review recorded; and it is reached through
+  report-mcp;
+- every build and every version of the family that `pnpm-lock.yaml`
+  names, on any platform, must be one the review read, since a machine
+  installs its own platform's build alone, and a build the table names
+  that the lockfile no longer does is refused as unused
+  (`lockfileProblems`).
+pdfjs-dist asks for the canvas at `^1.0.10`, so an integrator's own
+install may resolve a later 1.x that nobody here read: the guard holds
+this repository's lockfile. `dependency-licences.test.mjs` holds each
+rule on fixtures, the build this machine installed by its SBOM, and the
+real lockfile; with the table emptied, the installed build is refused as
+a native addon nobody read.
 
 ## Alternatives considered
 

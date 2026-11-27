@@ -82,11 +82,19 @@ refused. pdfjs-dist 6.4.299, which `report-mcp` reads its render
 check's PDF with, is the first package that ships fonts under a licence
 the policy refuses -- four faces of Liberation Sans 1, GPL-2.0 with a
 font-embedding exception -- in a published closure: they are admitted
-for `report-mcp` alone as never loaded, by the SHA-256 of each file, with
-the test that shows nothing reads them (`NEVER_LOADED`, 0006 as
-[0089](docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md) proposes extending it, the owner's to decide); its Foxit
-faces are exceptions, file by file, and its CMYK profile is in
-`ICC_PROFILES`. What it cannot see -- whether a licence's terms are what its
+for `report-mcp` alone as never loaded, by the SHA-256 of each file, held
+by the case that shows nothing reads them, `file#test name`, which the
+guard finds in that file (`NEVER_LOADED`); its Foxit faces are
+exceptions, file by file, and its CMYK profile is in `ICC_PROFILES`. A
+package that ships a native addon, a `.node` file, is refused unless a
+review read its build's SBOM: `@napi-rs/canvas` 1.0.11, which PDF.js
+loads, is admitted for `report-mcp` alone by the SHA-256 of each of its
+eleven builds' `sbom.cdx.json`, the components beyond the policy that
+SBOM lists -- MPL-2.0's cssparser crates and dtoa-short, FreeType, ICU,
+libjpeg-turbo, libpng, unicode-ident -- the review's, and every build
+and version `pnpm-lock.yaml` names one it read (`BUILDS_READ`). Both
+are the owner's decisions of 28 November 2026, 0006 as
+[0089](docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md) extends it. What it cannot see -- whether a licence's terms are what its
 identifier says, code a package vendors, a font or a profile inside a
 script -- is held by review, and 0006 lists it.
 
@@ -625,8 +633,12 @@ locale, the zone and the mode an agent passes in, its assets as base64
 bytes each held to its digest first, drawn by `renderPdf` within
 `MAX_CHECK_PAGES`, and each page's lines read back by `pdf-text.ts` with
 pdfjs-dist at the corpus's pin, by the corpus's `pageLines` rule written
-again and held equal to it in `pdf-text.test.ts`, the answer held to
-`MAX_ANSWER_BYTES` and never the PDF
+again and held equal to it and to its fractions in `pdf-text.test.ts`,
+the answer's data held to `MAX_ANSWER_BYTES` and never the PDF, the
+renderer and PDF.js imported with the first check, and the whole call
+under the SDK's 10 MiB stdio bound, which the description names; a
+language's words in the payment part are listed for a person,
+`forPerson`, and the translate prompt leaves them out
 ([0089](docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)). It stands on report-spec,
 report-core, the runtime, the renderer, the SDK at exactly 1.32.2, zod at
 exactly 4.6.7 and pdfjs-dist at exactly 6.4.299, which

@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:fe276c52f01a0af73c7ba76daed6a0270ffba185b9f2cf6f3a91aef3d0afbd5c",
+      "reviewed": "sha256:c8a70d0e75fe1b903982d64c2d3bd7b0ff9a410e34dd28615a2a8c16c28ddc18",
       "limitations": [
         {
           "area": "licence",
@@ -3635,7 +3635,7 @@
       ]
     },
     "0088": {
-      "reviewed": "sha256:f11381a99d4a7e440e7af678e502fd3e6e3e31332c23ca356fb0f26cc43c54ba",
+      "reviewed": "sha256:506a04ce8c92cd90592563cf12fed9e896c6dbe401e1028fda04b42dd5d582c8",
       "limitations": [
         {
           "area": "release",
@@ -3691,12 +3691,21 @@
       ]
     },
     "0089": {
-      "reviewed": "sha256:128006a8993a7e2d1b3f6edc5f44d3647ec5eaa19dd58ae4ef4459c3b9098150",
+      "reviewed": "sha256:020f745ff78c488e9559133c6b4e8d3fb1f1ec684b54ba8d31d2fee203238bc1",
       "limitations": [
         {
           "area": "licence",
-          "says": "@formancy/report-mcp depends on pdfjs-dist 6.4.299, which ships four faces of Liberation Sans 1.07.4 under GPL-2.0 with a font-embedding exception beside its Apache-2.0 code: the licence guard admits those files for report-mcp alone as never loaded, an admission 0089 proposes for the owner to decide, and report-mcp never reads them, but every agent's install holds them.",
+          "says": "@formancy/report-mcp depends on pdfjs-dist 6.4.299, which ships four faces of Liberation Sans 1.07.4 under GPL-2.0 with a font-embedding exception beside its Apache-2.0 code: the licence guard admits those files for report-mcp alone as never loaded, which the owner decided on 28 November 2026, and report-mcp never reads them, but every agent's install holds them.",
           "heldBy": "packages/report-mcp/src/pdf-text.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "report-mcp's render check loads @napi-rs/canvas, which pdfjs-dist requires in Node: each of its 1.0.11 builds links code its SBOM lists under licences the policy refuses -- MPL-2.0 (cssparser 0.38.0, cssparser-color 0.6.0, cssparser-macros 0.7.0, dtoa-short 0.3.5), the FTL (FreeType), ICU, IJG (libjpeg-turbo), libpng-2.0 and Unicode-3.0 (unicode-ident) -- which the owner admitted for report-mcp alone on 28 November 2026, by each build's SBOM; MPL-2.0 is file-level and asks nothing of a use that does not modify those files.",
+          "heldBy": "scripts/dependency-licences.test.mjs"
+        },
+        {
+          "area": "licence",
+          "says": "pdfjs-dist asks for @napi-rs/canvas at ^1.0.10, so an integrator's own install may resolve a later 1.x build whose SBOM nobody here read: the licence guard holds the builds this repository's lockfile names, not an integrator's."
         },
         {
           "area": "release",
@@ -3709,7 +3718,7 @@
         },
         {
           "area": "rendering",
-          "says": "render_check refuses whole a report past 40 pages, and an answer past MAX_REPORT_BYTES, 256 KiB, with its page count, so a long report is checked with fewer rows.",
+          "says": "render_check refuses whole a report past 40 pages, and an answer whose data is past MAX_REPORT_BYTES, 256 KiB, with its page count, so a long report is checked with fewer rows; a client may show an answer's data twice, as text and as structure.",
           "heldBy": "packages/report-mcp/src/render.test.ts"
         },
         {
@@ -3718,12 +3727,17 @@
           "heldBy": "packages/report-mcp/src/render.test.ts"
         },
         {
+          "area": "editing",
+          "says": "One render_check call through stdio carries at most the SDK's 10 MiB -- the report, the data and every asset's base64 together -- and past it the server ends without an answer: the quotation with its logo carries at most 78,013 of its lines in one call (measured 28 November 2026), short of the runtime's 100,000 rows, so an agent checks a sample of rows.",
+          "heldBy": "packages/report-mcp/src/server.test.ts"
+        },
+        {
           "area": "rendering",
           "says": "A render check runs on the MCP server's one thread and can take seconds within every bound, 3.3 s at 100,000 detail rows on one machine; a client's cancel reaching it through the protocol is not tested."
         },
         {
           "area": "testing",
-          "says": "render_check's line reader is a second copy of the corpus's pageLines, held equal to it on the corpus's PDFs and not on every report, nor at every fraction: a word gap of 0.25 em read those PDFs as the 0.15 em both use.",
+          "says": "render_check's line reader is a second copy of the corpus's pageLines, held equal to it on the corpus's PDFs and by each fraction it is written with, and not on every report: one that lines up otherwise than any of the corpus's can read differently in the two.",
           "heldBy": "packages/report-mcp/src/pdf-text.test.ts"
         }
       ]

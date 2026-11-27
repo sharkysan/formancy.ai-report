@@ -648,7 +648,7 @@ tools tell a model is asserted for what it says, and nothing runs a model
 against them; the bin has been launched by the SDK's client alone
 ([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
 
-### The MCP's render check carries PDF.js, a second line reader and GPL fonts it never loads
+### The MCP's render check carries PDF.js, a second line reader, GPL fonts it never loads and a canvas whose build links code under copyleft
 
 `render_check` reads the PDF it rendered with pdfjs-dist, so every
 agent's install carries the renderer and PDF.js: 127 packages and 194 MB
@@ -657,13 +657,19 @@ binary and pdfjs-dist the largest. pdfjs-dist ships four faces of
 Liberation Sans 1.07.4 under GPL-2.0 with a font-embedding exception,
 which the licence policy refuses; report-mcp never reads them, a test
 shows a page that would need one read without it, and the guard admits
-them for report-mcp alone as never loaded, an admission 0089 proposes
-and the owner decides. The lines are read by a copy of the corpus's
-`pageLines` rule, held equal to it on the corpus's PDFs and not on every
-report, nor at every word gap: one of 0.25 em reads those PDFs as the
-0.15 em both use. A render check runs on the server's one thread and can
-take seconds within its bounds, and a client's cancel through the
-protocol is not tested ([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)).
+them for report-mcp alone as never loaded, on the owner's decision of
+28 November 2026. PDF.js loads `@napi-rs/canvas`, whose builds' SBOMs
+list code under MPL-2.0, the FTL, ICU, IJG, libpng-2.0 and Unicode-3.0,
+admitted for report-mcp alone that day by each build's SBOM; pdfjs-dist
+asks for it at `^1.0.10`, so an integrator's install may resolve a later
+build nobody here read, and the guard reads what an SBOM says, not what a
+binary holds. The lines are read by a copy of the corpus's `pageLines`
+rule, held equal to it on the corpus's PDFs and by each of its
+fractions, and not on every report. Through stdio one call is at most
+10 MiB, past which the server ends: about 78,000 of the quotation's
+lines. A render check runs on the server's one thread and can take
+seconds within its bounds, and a client's cancel through the protocol is
+not tested ([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)).
 
 ### The container gate rests on Docker in CI
 

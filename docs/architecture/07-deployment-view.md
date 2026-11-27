@@ -453,9 +453,12 @@ serve the Studio under the same function of their own address
   November 2026, into that project for a server that speaks stdio alone,
   at the ranges the SDK's manifest gives. Its render check brings the
   runtime, the renderer and pdfjs-dist 6.4.299 with `@napi-rs/canvas`,
-  whose platform binary npm installs where it has one: 127 packages and
-  194 MB on one Windows machine on 27 November 2026, which the renderer
-  and PDF.js are imported from with the first check
+  whose platform binary npm installs where it has one, at a range that may
+  take a later build than the 1.0.11 whose SBOMs were read: 127
+  third-party packages and 194 MB on one Windows machine on 27 November
+  2026, which the renderer and PDF.js are imported from with the first
+  check. One call through stdio is at most 10 MiB, past which the server
+  ends
   ([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)). A host that type-checks the
   package's declarations with `skipLibCheck` off and Node's types alone
   declares the DOM's `HeadersInit`, which the SDK's declarations name, as

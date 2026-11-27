@@ -24,16 +24,31 @@ renderer's refusal by its codes; never the PDF itself. Images and fonts
 come as base64 bytes with their digests, each held to its digest before
 anything resolves. One call is bounded: the report by `MAX_REPORT_BYTES`,
 the data by the runtime's rows and string length, the PDF by 40 pages,
-and the answer by `MAX_REPORT_BYTES` again, refused whole past it.
+and the answer's data by `MAX_REPORT_BYTES` again, refused whole past it;
+and through stdio the whole call by the SDK's 10 MiB, which ends the
+server past it and which the tool's description names: about 78,000 of
+the quotation's lines at most, so an agent checks a sample.
 report-mcp now depends on the runtime, the renderer and `pdfjs-dist` at
 exactly 6.4.299, the corpus's, Apache-2.0, with its optional native
-`@napi-rs/canvas`, MIT: an agent's install was 127 packages and 194 MB on
-one Windows machine on 27 November 2026, the renderer and PDF.js loaded
-only with the first check. pdfjs-dist ships Liberation Sans 1 under
-GPL-2.0 with a font-embedding exception, which report-mcp never loads;
-the licence guard admits those four files for report-mcp alone as never
-loaded, an admission 0089 proposes and the owner decides, and reads
-pdfjs-dist's Foxit faces and its CMYK profile by reviews of their own.
+`@napi-rs/canvas`: an agent's install had 127 third-party packages and
+194 MB on one Windows machine on 27 November 2026, beside the Formancy
+packages, the renderer and PDF.js loaded only with the first check.
+pdfjs-dist ships Liberation Sans 1 under GPL-2.0 with a font-embedding
+exception, which report-mcp never loads; and the canvas, MIT by its
+manifest, is a native build whose SBOM lists code under MPL-2.0 -- four
+Rust crates -- the FTL, ICU, IJG, libpng-2.0 and Unicode-3.0, and which
+PDF.js loads. The owner admitted both for report-mcp alone on
+28 November 2026: the four faces as never loaded, held by the case that
+shows it, and the canvas's eleven builds by their SBOMs' digests, every
+build and version the lockfile names one a review read. The licence
+guard now refuses any package that ships a native addon whose build no
+review read, and reads pdfjs-dist's Foxit faces and its CMYK profile by
+reviews of their own. pdfjs-dist asks for the canvas at `^1.0.10`, so an
+integrator's own install may take a later build nobody here read.
+`validate_report` lists, for each language, what it lacks in the
+payment part, `forPerson`, and the translate prompt tells an agent to
+leave those words to a person: the QR-bill's message prints on the slip
+and in the code a bank reads.
 Besides: an edit `apply_commands` applied whose report is past
 `MAX_REPORT_BYTES` is answered not `ok` and no longer `isError`, since
 the edit was made and its report is the one to fix; the composition

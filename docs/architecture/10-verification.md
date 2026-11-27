@@ -664,13 +664,16 @@ the corpus's rule written again ([0089](../decisions/0089-the-mcps-render-check-
 | Nothing fetched and no file read, a page in Helvetica, never embedded, among the PDFs read | `report-mcp/src/pdf-text.test.ts` |
 | The answer: the quotation's lines in the page's order, the runtime's refusals by their codes, a preview labelled, an asset held to its digest before anything resolves, no byte of the PDF; the report, the rows, a string, the pages and the answer each at its bound and one past it | `report-mcp/src/render.test.ts` |
 | One PDF.js: report-mcp's pin the corpus's, a dependency | `scripts/mirrored-pdfjs.test.mjs` |
+| The reader's fractions the corpus's, each | `report-mcp/src/pdf-text.test.ts` |
+| The canvas PDF.js loads: every native addon refused unless its build's SBOM was read, the installed build by its digest and its components beyond the policy, every build and version the lockfile names; the never-loaded fonts held by the case they name | `scripts/dependency-licences.test.mjs` |
 | The packed bin render-checking the quotation and reading its title back | The install gate's `mcp.ts` |
 
 What it does not see is what PDF.js does not: the lines are text, and
 where a line stands on its page is not answered. The two readers are held
 equal on the corpus's PDFs and not on every report, and not at every
-fraction of their rule: a word gap of 0.25 em reads those PDFs as the
-0.15 em both use does.
+fraction of their rule: each fraction is held to the corpus's by name,
+since the compared PDFs read alike for any word gap from 0.15 to
+0.25 em.
 
 **What it does not see.** A rule or a border through a row, a shape over a
 line, a clipped glyph, white text on white: none is text or an image to
@@ -740,7 +743,7 @@ that describe the repository rather than a package. Among them:
 | Guard | Fails when |
 |---|---|
 | `upstream-deps.test.mjs` | An `@formancy/*` dependency from outside the workspace, in the root manifest or a workspace's, is a range, a link or a path ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)) |
-| `dependency-licences.test.mjs` | The licence policy's rules, each on a fixture, then the real tree: a package, a font, an ICC profile no review admits, a font admitted as never loaded at another digest or from another dependent, and a Formancy Data package reached from any but the one package it is admitted for ([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md), [0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)) |
+| `dependency-licences.test.mjs` | The licence policy's rules, each on a fixture, then the real tree: a package, a font, an ICC profile no review admits, a font admitted as never loaded at another digest, from another dependent or held by no case of the name it gives, a native addon no review read the SBOM of, a canvas build or version the lockfile names unread, and a Formancy Data package reached from any but the one package it is admitted for ([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md), [0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)) |
 | `container.test.mjs` | The container gate leaves no record when it cannot run Docker, runs anything when the report imports its checks (0046), or stops planning the draft slice's three checks: a restart on one volume, an image read back, a save on a read-only root (0049) |
 | `licence-status.test.mjs` | A document's licence sentence says another version, date or address than `LICENSE.md` ([0001](../decisions/0001-a-paid-module-in-its-own-repository.md)) |
 | `workflows.test.mjs` | A workflow loses its shape: an unpinned third-party action, a `${{ }}` in a script, a cache in a release, a job without its collect step ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)), `verify` without `pnpm lint` and `pnpm format:check` after the build and the typecheck and before the guards (0050), or the `browser` job without the pages' gate before its collect step, or without the pages' files among those it uploads (0053) |
