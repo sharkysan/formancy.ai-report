@@ -11,13 +11,18 @@
  * The paper is the document's, not the room's: white, drawn by PDF.js from
  * the PDF, and no rule of the Studio's reaches inside it (the stylesheets
  * exclude `.paper *`), so what is shown is what prints.
+ *
+ * It opens at fit width, at the top of the first page; a document that
+ * carries a QR-bill opens with its slip in view, at the foot of its last
+ * page (0090). That is the first PDF alone, and only while the person has
+ * chosen no zoom: after it, nothing moves the paper but the person.
  */
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactElement } from 'react'
 import { formatZoom, PX_PER_PT, zoomedIn, zoomedOut } from '@formancy/report-builder-core'
 import type { LoadedPdf, PdfLoading } from './pdf-document.js'
 import type { WordFile } from './pipeline.js'
-import { fitZoom, pageOf } from './view.js'
+import { billScroll, billZoom, fitZoom, pageOf, slipHeight } from './view.js'
 
 interface Size {
   readonly width: number
@@ -47,6 +52,12 @@ export const PAPER_NAME = 'PDF pages'
 
 /** The media type Word registered for a .docx, which a browser saves the file as. */
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+/** The paper's width less its padding: the room a page is fitted to. */
+const roomOf = (paper: HTMLElement): number => paper.clientWidth - 2 * parseFloat(getComputedStyle(paper).paddingInlineStart || '0')
+
+/** The CSS pixels of the paper's padding below its last page. */
+const paddingBelow = (paper: HTMLElement): number => parseFloat(getComputedStyle(paper).paddingBlockEnd || '0')
 
 /** Why a render has no Word file, in the writer's own sentence where it refused the report; nothing where it wrote one. */
 function noWordFile(word: WordFile): string | undefined {
@@ -126,6 +137,7 @@ function useObjectUrl(content: BlobPart | undefined, type: string): string | und
  * written by the same render, is offered beside it as `name`.xml; and
  * `word`, the Word file of the document `pdf` was drawn from, after them
  * as `name`.docx, or, where the writer wrote none, a note that says why.
+ * `bill` says the document carries a QR-bill, which the paper opens at.
  */
 export function PdfView({
   pdf,
@@ -133,12 +145,14 @@ export function PdfView({
   word,
   name,
   stale,
+  bill = false,
 }: {
   pdf: Uint8Array
   xml?: string | undefined
   word: WordFile
   name: string
   stale: boolean
+  bill?: boolean
 }): ReactElement {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
@@ -148,6 +162,14 @@ export function PdfView({
   const [drawn, setDrawn] = useState<Drawn>({ of: null, zoom: 0, pages: new Set() })
   const paper = useRef<HTMLDivElement>(null)
   const note = useId()
+  /** Whether the paper still opens as 0090 has it: until its first PDF is on it, or the person chooses a zoom before. */
+  const opening = useRef(true)
+  /** Set as the first PDF of a document with a QR-bill arrives: the paper opens at the slip once that PDF is laid out, and never again. */
+  const toBill = useRef(false)
+  const choose = (next: number | 'fit'): void => {
+    opening.current = false
+    setZoom(next)
+  }
   /**
    * The PDF.js document on the paper, let go of only once a newer one is
    * there in its place, or the paper goes. Until then the paper redraws it
@@ -178,6 +200,8 @@ export function PdfView({
         if (!live) return
         const replaced = onPaper.current
         onPaper.current = loading ?? null
+        toBill.current = opening.current && bill
+        opening.current = false
         setLoaded({ pdf: document, sizes, from: pdf, xml, word })
         setFailed(null)
         setCurrent((page) => Math.min(page, sizes.length))
@@ -192,14 +216,14 @@ export function PdfView({
       // One still loading is let go of; the one on the paper stays there until another replaces it.
       if (loading !== onPaper.current) loading?.destroy()
     }
-  }, [pdf, xml, word])
+  }, [pdf, xml, word, bill])
 
   // The paper's width, for Fit width: measured once laid out, and again
   // whenever the pane changes size.
   useLayoutEffect(() => {
     const element = paper.current
     if (element === null) return undefined
-    const measure = (): void => setRoom(element.clientWidth - 2 * parseFloat(getComputedStyle(element).paddingInlineStart || '0'))
+    const measure = (): void => setRoom(roomOf(element))
     measure()
     if (typeof ResizeObserver === 'undefined') return undefined
     const observer = new ResizeObserver(measure)
@@ -235,6 +259,44 @@ export function PdfView({
   const settled = loaded !== null && loaded.from === pdf && drawn.of === loaded && drawn.zoom === shown && drawn.pages.size === pages
   const busy = stale || !settled
 
+  // The first PDF of a document with a QR-bill opens at the slip (0090),
+  // decided once that PDF is laid out, its downloads among the tools --
+  // which wrap a narrow pane's tools onto a second row and take the
+  // paper's height. Where the slip is taller than what the paper shows at
+  // fit width, the zoom it fits at is set and the decision made again at
+  // it; then the paper is scrolled to the slip. All of it before the
+  // browser paints, at once and not smoothly: nothing moves on the screen,
+  // and no motion is made. A paper with no height is out of sight, and
+  // opens as any other.
+  //
+  // Fit width was measured on the empty paper. Where scrollbars take room,
+  // as Chrome's do on Windows, the pages just laid out give it a vertical
+  // one, which narrows it under pages fitted to the width before; those
+  // overflow it sideways, and the horizontal scrollbar that adds takes the
+  // height the slip is fitted to. The observer fits the width again only
+  // after this effect, too late for a decision made once: so the width is
+  // measured here first and, where it is narrower, fitted again before the
+  // decision. Only narrower, so that a scrollbar that comes and goes with
+  // the fit cannot loop.
+  useLayoutEffect(() => {
+    const element = paper.current
+    if (!toBill.current || loaded === null || element === null) return
+    if (element.clientHeight > 0) {
+      const width = roomOf(element)
+      if (width < room) {
+        setRoom(width)
+        return
+      }
+      const at = billZoom(shown, element.clientHeight - paddingBelow(element))
+      if (at !== shown) {
+        setZoom(at)
+        return
+      }
+      element.scrollTop = billScroll(element, paddingBelow(element), slipHeight(shown))
+    }
+    toBill.current = false
+  }, [loaded, shown, room])
+
   // Which page is "current" follows the scrolling too: the page most in view,
   // so Next page after scrolling goes on from what the person is reading.
   useEffect(() => {
@@ -267,10 +329,10 @@ export function PdfView({
           <Tool label="Next page" unavailable={current >= pages} onPress={() => go(current + 1)} />
         </div>
         <div role="group" aria-label="Zoom" className="tool-group">
-          <Tool label="Zoom out" unavailable={zoomedOut(shown) === shown} onPress={() => setZoom(zoomedOut(shown))} />
+          <Tool label="Zoom out" unavailable={zoomedOut(shown) === shown} onPress={() => choose(zoomedOut(shown))} />
           <span className="tool-value">{formatZoom(shown, 'en')}</span>
-          <Tool label="Zoom in" unavailable={zoomedIn(shown) === shown} onPress={() => setZoom(zoomedIn(shown))} />
-          <Tool label="Fit width" pressed={zoom === 'fit'} onPress={() => setZoom('fit')} />
+          <Tool label="Zoom in" unavailable={zoomedIn(shown) === shown} onPress={() => choose(zoomedIn(shown))} />
+          <Tool label="Fit width" pressed={zoom === 'fit'} onPress={() => choose('fit')} />
         </div>
         {url === undefined ? null : (
           <a className="tool download" href={url} download={`${name}.pdf`}>

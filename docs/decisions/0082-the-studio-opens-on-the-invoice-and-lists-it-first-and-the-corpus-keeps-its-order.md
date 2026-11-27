@@ -1,6 +1,6 @@
 # 0082 — The Studio opens on the invoice and lists it first, and the corpus keeps its order
 
-- **Status:** accepted; numbered while 0069 was held for a workbook's export and 0070 to 0073 by another branch; extends [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), whose Studio opened the corpus's first starter, and changes what [0024](0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)'s QR-bill page sends a reader to: the Studio's root now opens on the invoice it names
+- **Status:** accepted; numbered while 0069 was held for a workbook's export and 0070 to 0073 by another branch; extends [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md), whose Studio opened the corpus's first starter, and changes what [0024](0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md)'s QR-bill page sends a reader to: the Studio's root now opens on the invoice it names; its cost "the bill a scroll down" answered by [0090](0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md), under which the Preview opens at the bill wherever its paper scrolls
 - **Date:** 2026-11-26
 - **Deciders:** Daniel Bacher
 - **Verified by:**

@@ -107,7 +107,9 @@ pnpm demo
 `pnpm demo` builds the packages and the Studio, then serves it at
 http://localhost:4394. It opens on the invoice, whose Swiss QR-bill is at
 the foot of its page
-([0082](./docs/decisions/0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md)).
+([0082](./docs/decisions/0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md)),
+with the Preview scrolled to the bill wherever its paper scrolls
+([0090](./docs/decisions/0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md)).
 Pick another starter or a blank report, edit it in either
 builder, and download what the Preview prints. The starters' data is
 synthetic and built in, and the page asks no other site for anything, which
