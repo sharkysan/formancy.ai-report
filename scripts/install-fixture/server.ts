@@ -6,7 +6,7 @@
  * Copied into a temporary npm project by install-test.mjs, installed from
  * the packed tarballs, type-checked with skipLibCheck OFF and run under
  * Node. What is on trial: the published entry points resolve, with the
- * types that shipped, @formancy/data-identity 0.3.0 among what npm brings;
+ * types that shipped, @formancy/data-identity 0.5.0 among what npm brings;
  * and the server, made in this process over a file store on a directory of
  * its own and listening on a socket, answers
  * /health, refuses a request without a token, with a tenantless token, a

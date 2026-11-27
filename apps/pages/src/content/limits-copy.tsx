@@ -38,7 +38,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
     items: {
       detail:
         'Eine Liste von Detailzeilen, gruppiert nach höchstens einem Feld: Ein Bericht liest eine Liste von Detailzeilen, und seine Tabellen drucken nur Zeilen dieser Liste, jede nach einem Feld oder gar nicht gruppiert.',
-      data: 'Kein konsistentes Lesen aus Formancy Data: Die Daten eines Berichts werden nach bestem Bemühen (best-effort) gelesen, der Kopf, die Zeilen Anfrage für Anfrage und jede Bezeichnung zu verschiedenen Zeitpunkten; eine Zeile, die zwischen zwei Anfragen hinzukommt oder wegfällt, kann doppelt oder gar nicht gedruckt werden, und eine Summe kann verschiedene Datenstände mischen.',
+      data: 'Kein konsistentes Lesen aus Formancy Data: Die Daten eines Berichts werden nach bestem Bemühen (best-effort) gelesen, der Kopf, die Zeilen Anfrage für Anfrage und jede Bezeichnung zu verschiedenen Zeitpunkten; eine Zeile, die zwischen zwei Anfragen in der Reihenfolge an einen anderen Platz rückt, kann fehlen, und ist sie die letzte Zeile einer Anfrage, so können alle Zeilen zwischen ihrem alten und ihrem neuen Platz fehlen; eine Zeile, die doppelt gedruckt würde, führt stattdessen dazu, dass der Bericht abgelehnt wird, ausser Data nennt sie ohne Token oder eine andere Anwendung hat ihren Schlüssel zwischen zwei Anfragen geändert, und eine Summe kann verschiedene Datenstände mischen.',
       formats:
         'Kein Excel, CSV oder HTML: Ein Bericht wird als PDF gedruckt oder als Word-Datei geschrieben; nichts schreibt seine Tabellen als Arbeitsmappe oder als Text, und nichts den Bericht als Webseite.',
       codes:
@@ -58,7 +58,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
     items: {
       detail:
         "Une liste de lignes de détail, regroupée selon un champ au plus : un rapport lit une liste de lignes de détail, et ses tableaux n'impriment que des lignes de cette liste, chacun regroupé selon un champ ou pas du tout.",
-      data: "Pas de lecture cohérente depuis Formancy Data : les données d'un rapport y sont lues en mode best-effort, l'en-tête, les lignes requête après requête et chaque libellé à des moments différents ; une ligne ajoutée ou supprimée entre deux requêtes peut être imprimée deux fois ou pas du tout, et un total peut mêler des états différents.",
+      data: "Pas de lecture cohérente depuis Formancy Data : les données d'un rapport y sont lues en mode best-effort, l'en-tête, les lignes requête après requête et chaque libellé à des moments différents ; une ligne qui change de place dans l'ordre entre deux requêtes peut manquer, et si c'est la dernière ligne d'une requête, toutes les lignes entre son ancienne place et la nouvelle peuvent manquer ; une ligne qui serait imprimée deux fois fait refuser le rapport, sauf si Data ne la nomme par aucun jeton ou si une autre application a changé sa clé entre deux requêtes, et un total peut mêler des états différents.",
       formats:
         "Ni Excel, ni CSV, ni HTML : un rapport est imprimé en PDF ou écrit en fichier Word ; rien n'écrit ses tableaux sous forme de classeur ou de texte, ni le rapport sous forme de page web.",
       codes:
@@ -78,7 +78,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
     items: {
       detail:
         "Un elenco di righe di dettaglio, raggruppato al massimo per un campo: un report legge un elenco di righe di dettaglio, e le sue tabelle stampano solo righe di quell'elenco, ciascuna raggruppata per un campo o per nessuno.",
-      data: "Nessuna lettura coerente da Formancy Data: i dati di un report vengono letti in modalità best-effort, l'intestazione, le righe una richiesta dopo l'altra e ogni etichetta in momenti diversi; una riga aggiunta o rimossa tra due richieste può essere stampata due volte o per niente, e un totale può mescolare stati diversi.",
+      data: "Nessuna lettura coerente da Formancy Data: i dati di un report vengono letti in modalità best-effort, l'intestazione, le righe una richiesta dopo l'altra e ogni etichetta in momenti diversi; una riga che cambia posto nell'ordine tra due richieste può mancare, e se è l'ultima riga di una richiesta possono mancare tutte le righe tra il suo vecchio posto e il nuovo; una riga che verrebbe stampata due volte fa rifiutare il report, a meno che Data non la indichi senza token o che un'altra applicazione ne abbia cambiato la chiave tra due richieste, e un totale può mescolare stati diversi.",
       formats:
         'Né Excel, né CSV, né HTML: un report viene stampato in PDF o scritto come file Word; niente scrive le sue tabelle come cartella di lavoro o come testo, né il report come pagina web.',
       codes:
@@ -98,7 +98,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
     items: {
       detail:
         'One list of detail rows, grouped by one field at most: a report reads one list of detail rows, and its tables print rows of that list alone, each grouped by one field or by none.',
-      data: "No consistent read from Formancy Data: a report's data is read from it best-effort, its header, its rows a request at a time and each label at different moments, so a row added or removed between two requests can print twice or not at all, and a total can mix states.",
+      data: "No consistent read from Formancy Data: a report's data is read from it best-effort, its header, its rows a request at a time and each label at different moments, so a row that moves in the order between two requests can be left out, and when it is the last row of a request, so can every row between its old place and its new; a row that would print twice refuses the report instead, unless Data names it by no token or another application changed its key between two requests, and a total can mix states.",
       formats:
         'No Excel, CSV or HTML: a report is printed as a PDF or written as a Word file, and nothing writes its tables as a workbook or as text, or the report as a web page.',
       codes: "No codes but QR codes: a report prints QR codes, EPC QR codes and a QR-bill's Swiss QR Code, but no other kind of barcode.",

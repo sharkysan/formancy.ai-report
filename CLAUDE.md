@@ -18,10 +18,10 @@ Three things follow, and each has a guard:
   refuses a range, a `workspace:` link or a path
   ([0002](docs/decisions/0002-depend-on-upstream-never-copy-it.md)). That
   includes Formancy Data's packages: `report-data-provider` depends on
-  `@formancy/data-client` at exactly 0.1.0
+  `@formancy/data-client` at exactly 0.5.0
   ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)),
   `report-server` on `@formancy/data-identity`, Data's token verifier, at
-  exactly 0.3.0
+  exactly 0.5.0
   ([0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)),
   and nothing else depends on Data.
   A generic improvement goes upstream through that
@@ -518,7 +518,7 @@ that names one to print in its place (`/Ref`, `/OPI`) are refused;
 pdf-lib's own name pool is never fed a file's names, and its PNG decoder,
 UPNG, never called (`read.test.ts`)
 ([0054](docs/decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)).
-`@formancy/report-data-provider` reads that data from Formancy Data 0.1.0
+`@formancy/report-data-provider` reads that data from a Formancy Data 0.5.0 server
 through `@formancy/data-client`, as the person whose token the host
 supplies, labelled best-effort
 ([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).

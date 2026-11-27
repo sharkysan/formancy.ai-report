@@ -1,19 +1,31 @@
 # 0016 — The Data provider reads Formancy Data 0.1.0 best-effort, as the person, and checks what it can before it reads a record
 
-- **Status:** accepted; extended by [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose data names the forms it read; its admission "for it alone" narrowed by [0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), under which the server depends on Data's identity verifier and the provider remains the one package that reads Data's records
+- **Status:** accepted; extended by [0041](0041-a-renders-manifest-names-where-its-data-came-from-by-identifiers-alone.md), whose data names the forms it read; its admission "for it alone" narrowed by [0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), under which the server depends on Data's identity verifier and the provider remains the one package that reads Data's records; at Formancy Data 0.5.0 since 2026-11-27, its pages read after a row, below
 - **Date:** 2026-10-16
 - **Deciders:** Daniel Bacher
 - **Verified by:**
   - **`packages/report-data-provider/src/read.test.ts`.** It runs the real
-    `@formancy/data-client` 0.1.0 over a fixture that answers Data 0.1.0's
+    `@formancy/data-client` 0.5.0 over a fixture that answers Data 0.5.0's
     routes (`test-support.ts`). The client calls a reply that is not in
     Data's shape `unexpected`, so a fixture that drifts from the contract
     fails. Every case was watched failing against a provider that refused
-    everything. The cases cover:
+    everything, and the paging cases against the provider that paged by
+    offset, below. The cases cover:
     - an order and its lines read into data that a final render resolves,
       without the column the report does not declare, and with the
       customer's label rather than its token;
-    - every page, at offsets 0, 50 and 100;
+    - every page, each asked for after the last row of the one before;
+    - lines deleted or added before the next page between two pages, each
+      line read once;
+    - the row a page ended with gone before the next, refused as Data's
+      `cursor-gone` with nothing handed over;
+    - a page of more rows than were asked for, and one that ends on the
+      row it was asked to continue after, refused as `unexpected-page`;
+    - a record two pages hold, as the row a page ended with moved back in
+      the order brings, and a record deleted and created again under its
+      key, refused as `repeated-row`, its message naming both; rows with
+      no token on two pages read once each and refused as none, and a
+      page that ends on one read on after it by its key's cursor;
     - the cap, as incomplete data that a final render refuses and a preview
       prints;
     - `parent: 'header'` by the menu's one field, and refused when the menu
@@ -28,8 +40,8 @@
     - a decimal past the report's scale, handed over unchanged and refused
       by the runtime.
   - **The install gate.** `scripts/install-fixture/consume.ts` reads the
-    quotation starter's data from a server answering Data 0.1.0's routes.
-    It uses the packed provider and the `@formancy/data-client` 0.1.0 that
+    quotation starter's data from a server answering Data 0.5.0's routes.
+    It uses the packed provider and the `@formancy/data-client` 0.5.0 that
     npm installs from the registry, type-checked with `skipLibCheck` off.
     What it reads must be the quotation's own data, labelled best-effort,
     and must render. The package README's example is those lines
@@ -190,6 +202,91 @@ names no record: a record's token spells its key (formancy.ai-data
 0012), and a key can be the customer's own data. Data 0.1.0 says no
 version of a published form, so none is named. `read.test.ts` and the
 install gate's `consume.ts` hold it.
+
+**Added 2026-11-27: Formancy Data 0.5.0, its pages read after a row.**
+The provider depends on `@formancy/data-client` at exactly 0.5.0, as
+*What it forecloses* above foresaw: a release of this package, with a new
+admission (0006), which read the licence file 0.5.0's client and core
+ship, Version 1.1, byte for byte 0.1.0's. Data's client and server are one
+release from 0.4.0: 0.4.0's client takes a 0.3.0 server's form, menu and
+page as `unexpected` (formancy.ai-data 0108), and 0.5.0's takes a 0.4.0
+form, which has no `bulk`, as `unexpected` too (formancy.ai-data 0173,
+0175). A host that reads Data through this release runs a Data 0.5.0
+server; one on an earlier server keeps the provider built against it.
+
+What Data changed that the provider meets, read from Data's changelog for
+0.2.0 to 0.5.0 and its published declarations:
+
+- **A page is asked for after a row, not at an offset**
+  (formancy.ai-data 0108). The 0.5.0 client sends `after` and never
+  `offset`, which a 0.4.0 server refuses as `400 malformed`. Passed an
+  offset, the client drops it, so the provider as it was would have been
+  given the first page for every page it asked for. It now asks each page
+  after the `next` of the one before, and still counts what it asked by the
+  page, Data's arithmetic for a row it cannot address. Data finds the row
+  a page continues after again by its key, so what *What it costs* says of
+  offsets changes: a row added or deleted before that row between two pages
+  moves nothing, where it skipped a row or printed one twice. A row whose
+  place in the order changes between two pages, a sorted field edited, can
+  still be skipped or read twice. When it is the row a page ended with, the
+  next page moves with it, and every row between its old place and its new
+  can be skipped or read again (0108's own cost): more than an offset lost
+  to one edit, which moved its neighbours one place at most, and possible
+  only under a binding's `sort`, since in the key's order the edited row
+  is a key changed, so gone. The row a page ended with deleted, or
+  no longer one the person may read, leaves the next page nowhere to start,
+  and Data refuses it `409 cursor-gone`. The provider hands that on as any
+  refusal, with nothing handed over. Data's own grid starts again at the
+  first page instead; the provider does not, so that a host knows its read
+  was refused and reads again from the first page, rather than being handed
+  a report put together from two walks. The data is still `best-effort`.
+- **A page is held to what Data's list answers, and a record is read
+  once.** Data reads a row past the page and answers at most `limit`
+  rows, and a page asked for after a row holds only rows after it (0108).
+  A page of more rows than were asked for is refused as `unexpected-page`
+  rather than cut, since the next page continues after its last row and
+  the rows past the cut would never be asked for again; so is a page that
+  ends on the row it was asked to continue after, which would read the
+  same page until the cap. A record token an earlier page held refuses the
+  read as `repeated-row`, at the place the row would have stood, as Data's
+  own export refuses a record that would appear twice (formancy.ai-data
+  0079, as 0108 extends it). What it costs: a report read while a sorted
+  field of its lines is edited is refused more often, and the host reads
+  again; a row the same edit skips is not seen, since no page says it was
+  there, and prints without it; and a row with no token, whose key fits
+  none (formancy.ai-data 0012), is not compared, so a repeat of one prints
+  twice. So does a row whose key another application changes between two
+  pages: Data's own update refuses a change to a key column
+  (formancy.ai-data 0018), but another writer of the database can make
+  one, and the row comes back under a new token. A record deleted and
+  created again under its key between two pages, sorting after the
+  cursor, comes back under the same token and is refused too: two records
+  of two moments rather than one line moved, which `repeated-row`'s
+  message names. A server that answered a record twice in its own order
+  would be refused as well, which Data's `ORDER BY` ending in the key does
+  not do.
+- **A form published from 0.4.0 is formancy's spec 5** (formancy.ai-data
+  0118), and one published before keeps spec 3. The provider reads a
+  field's key, type, options and lookup source, which both versions hold
+  alike; the fixture serves the order at spec 5 and its lines at spec 3.
+- **A lookup source answers a search with a page** from 0.2.0
+  (formancy.ai-data 0085). The provider uses no lookup source: it asks the
+  client's `resolve`, which answers the rows it names as 0.1.0's did, at
+  most `LIST_PAGE_SIZE` tokens a request, where Data 0.5.0 takes 100.
+- **A second `@formancy/spec`, and a second `@formancy/expressions`.**
+  data-client and data-core 0.5.0 pin `@formancy/spec` 0.13.0 exactly, and
+  data-core `@formancy/expressions` 0.13.0, beside the 0.14.0 Report pins.
+  No object of one reaches the other in the provider: it reads a published
+  form's fields through Data's types, and hands report-spec a string, the
+  form's id.
+- **Unchanged.** Data 0.5.0 has no snapshot export, holds no image as an
+  approved asset, publishes a form only under its own id (0041), names no
+  publication of a form, and answers fifty rows a page.
+
+`read.test.ts`'s paging cases were watched failing against the provider
+that paged by offset, under the 0.5.0 client: every page asked for was the
+first. The install gate reads the quotation from a stand-in answering
+0.5.0's shapes.
 
 ## Alternatives considered
 

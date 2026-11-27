@@ -200,16 +200,19 @@ describe('what the start page says Formancy Report does not do yet', () => {
 
   // "No consistent read from Formancy Data" is true while the one package
   // published from packages/ that reads Formancy Data reads it through
-  // @formancy/data-client at exactly 0.1.0, which has no snapshot export
-  // and reads a report's header, rows and labels request by request
-  // (0016): a later client, or another package reading Data through one,
-  // fails here until the sentence is read again.
-  test("says a read from Formancy Data is best-effort while the data provider alone reads it, through Data's 0.1.0 client", () => {
+  // @formancy/data-client at exactly 0.5.0, which has no snapshot export,
+  // reads a report's header, rows and labels request by request, and asks
+  // each page after the last row of the one before, so that a row that
+  // moves in the order can be left out, and when it is the last row of a
+  // page, so can every row between its old place and its new, while a row
+  // read twice refuses the read (0016): a later client, or another package
+  // reading Data through one, fails here until the sentence is read again.
+  test("says a read from Formancy Data is best-effort while the data provider alone reads it, through Data's 0.5.0 client", () => {
     const readers = inputs.packages.flatMap((name) => {
       const range = declared(name)['@formancy/data-client']
       return range === undefined ? [] : [[name, range]]
     })
-    expect(readers).toEqual([['@formancy/report-data-provider', '0.1.0']])
+    expect(readers).toEqual([['@formancy/report-data-provider', '0.5.0']])
   })
 
   // "No render jobs: Formancy Report prints no PDF on a server of its own"
