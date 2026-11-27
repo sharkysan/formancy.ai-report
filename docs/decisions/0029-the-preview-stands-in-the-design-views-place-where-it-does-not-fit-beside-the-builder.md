@@ -1,6 +1,6 @@
 # 0029 — The Preview stands in the design view's place wherever it does not fit beside the builder, as a host's view the editor holds and both builders draw in their middle
 
-- **Status:** accepted
+- **Status:** accepted; its browser gate's first viewport, which held the first page from its top edge to its first line, changed by [0090](0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md) to hold the QR-bill of the invoice the Studio opens on, whose Preview opens at it
 - **Date:** 2026-10-17
 - **Deciders:** Daniel Bacher
 - **Verified by:**
