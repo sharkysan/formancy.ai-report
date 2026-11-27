@@ -10,6 +10,33 @@ later.
 
 ## Unreleased
 
+**A coding agent can work on a report template against Report's own
+checks, through the new `@formancy/report-mcp`**
+([0088](docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
+An agent that writes a template from memory of other report writers types
+a decimal as a float, adds a second detail dataset or keys a translation by
+a name it invented, and learns of each only when a save or a render
+refuses it. The package is an MCP server, the bin `formancy-report-mcp`,
+which the agent's client launches over stdio: `describe_format` tells it
+the format, `validate_report` judges a report as the validator and a
+render would and holds it to the size a draft may have,
+`describe_commands` lists report-core's commands and `apply_commands`
+runs them as one edit through the builders' own registry and session,
+refused whole, where the agent passes the hash it last checked, when the
+report is not that one. What a save asks of Report's server -- the
+report's id, the images it keeps, no font -- the server alone answers. It
+needs no server and reads no setting; it saves, publishes, renders and
+fetches nothing, and no input takes a URL, a path or a file.
+report-core now exports what the tools answer, `reportFacts()` and
+`describeCommands()`, read from the format's constants and the registry.
+It depends on the MCP SDK, `@modelcontextprotocol/sdk`, at exactly
+1.32.2, and `zod` at exactly 4.6.7, both MIT, whose production closure
+was 92 packages on 27 November 2026, all permissive, Express and Hono
+among them, since the
+SDK ships its HTTP transports in the same package. The tools that read
+and save a draft on Report's server, and a render check, are still to
+come.
+
 **The product pages name PDF and Word, and pages for invoices, Word
 files and each report designer join them; every published package names
 keywords and the start page as its homepage**

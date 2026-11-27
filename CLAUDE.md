@@ -602,6 +602,21 @@ An image a person adds runs through report-spec's `sniffImage`,
 `addAsset`, and builder-core's `addImage`, into the host's `ImageStore`,
 keyed by digest, before the report declares it
 ([0033](docs/decisions/0033-a-person-adds-an-image-in-either-builder-and-the-host-keeps-its-bytes.md)).
+`@formancy/report-mcp` gives a coding agent Report's checks over the
+Model Context Protocol, a published package whose bin,
+`formancy-report-mcp`, an agent's client launches over stdio:
+`describe_format` and `describe_commands` answer report-core's
+`reportFacts()` and `describeCommands()`, derived from report-spec's
+constants and the registry; `validate_report` answers the validator's
+errors, the report's size against `MAX_REPORT_BYTES` and its diagnostics
+and each language's; and `apply_commands` a session's batch through the
+registry, with an optional `expectedHash`. It stands on report-spec,
+report-core, the SDK at exactly 1.32.2 and zod at exactly 4.6.7; `main.ts`
+alone touches the process, and `src/composition.test.ts` holds each module
+to the specifiers it may import; it publishes, saves, renders and fetches
+nothing, and the tools that read and save a draft are decided and not yet
+built
+([0088](docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
@@ -710,6 +725,11 @@ before it:
    (0045), and a new version reviewed (0048); report-spec, report-core,
    report-runtime and `@formancy/spec` at the exact release the repository
    pins, and never Formancy Data's contracts.
+9. `report-mcp` -- Report's checks for a coding agent, a published bin
+   speaking the Model Context Protocol over stdio (0088): on report-spec
+   and report-core, and on the runtime, the renderer and the client once
+   its render check and its server half are built; the SDK and zod at
+   exact releases; no server over HTTP, no address taken.
 
 A package arrives with the decision record that says what it may import. When
 this map goes stale, the rename is the edit to make here.
@@ -1322,6 +1342,10 @@ Locally, run the same commands for what you changed.
   `server.ts`, the server made in its host's process and asked over a
   socket, a draft saved through the packed client, read back and a stale
   save refused `draft-changed`;
+  `mcp.ts`, in a host of its own beside the SDK's client at the release
+  report-mcp declares, the packed bin launched by the command npm linked
+  through that client's stdio transport, its tools listed, a report
+  validated, a command applied and a stale hash refused (0088);
   `react.tsx` drawn by React's server renderer in its development and
   production builds; `angular.ts` compiled
   ahead of time, linked and bundled by `build.mjs`, and drawn by

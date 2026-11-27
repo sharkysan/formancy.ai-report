@@ -86,6 +86,10 @@ component_management:
       name: packages/report-forms
       paths:
         - packages/report-forms/**
+    - component_id: report-mcp
+      name: packages/report-mcp
+      paths:
+        - packages/report-mcp/**
     - component_id: report-render-docx
       name: packages/report-render-docx
       paths:

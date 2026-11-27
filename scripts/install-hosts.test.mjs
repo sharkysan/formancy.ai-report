@@ -47,6 +47,10 @@ const manifests = new Map([
   ['@formancy/report-server-core', { dependencies: {} }],
   ['@formancy/report-server', { dependencies: { '@formancy/report-server-core': '0.1.0', fastify: '5.12.7' } }],
   ['@formancy/report-client', { dependencies: { '@formancy/report-server-core': '0.1.0', '@formancy/report-spec': '0.1.0' } }],
+  [
+    '@formancy/report-mcp',
+    { dependencies: { '@formancy/report-core': '0.1.0', '@formancy/report-spec': '0.1.0', '@modelcontextprotocol/sdk': '1.32.2', zod: '4.6.7' } },
+  ],
 ])
 const named = (name) => planProjects(manifests).find((project) => project.name === name)
 /** The workbench release the Studio declares, which the guide's pages install. */
@@ -55,11 +59,12 @@ const themes = JSON.parse(readFileSync(new URL('../apps/studio/package.json', im
 describe('the projects the gate installs', () => {
   // A project for every host and both ends of each builder's range; one
   // missing is a host nobody checks.
-  test("are a Node host, the server's and the client's, and each builder at the newest release its peers admit and at their floor", () => {
+  test("are a Node host, the server's, the client's and the MCP's, and each builder at the newest release its peers admit and at their floor", () => {
     expect(planProjects(manifests).map(({ name, consumer }) => `${name}: ${consumer}`)).toEqual([
       'node: consume.ts',
       'server: server.ts',
       'client: client.ts',
+      'mcp: mcp.ts',
       'react: react.tsx',
       'react-floor: react.tsx',
       'react-app: guide-react.tsx',
@@ -125,6 +130,35 @@ describe('the projects the gate installs', () => {
       'node build.mjs --platform browser --exports @formancy/report-client',
     ])
     expect(named('node')?.packages).not.toContain('@formancy/report-client')
+  })
+
+  // The MCP's host is a Node host with report-mcp and what it declares and
+  // nothing else, so an MCP that imported the runtime, the renderer or the
+  // client without declaring it fails there, where the Node host would pass
+  // it; and the SDK's client beside it is the release report-mcp declares,
+  // read from its manifest, so the client that launches the bin and the pin
+  // it was built against are one fact (0088).
+  test('install the MCP with only the packages it declares, and the SDK’s client at the release it declares', () => {
+    expect(named('mcp')?.packages).toEqual(['@formancy/report-core', '@formancy/report-mcp', '@formancy/report-spec'])
+    expect(named('mcp')?.framework).toEqual({ '@modelcontextprotocol/sdk': '1.32.2' })
+    expect(named('mcp')?.browser).toBe(false)
+    expect(named('mcp')?.tsconfig.content.compilerOptions.types).toEqual(['node'])
+    expect(named('mcp')?.tsconfig.content.include).toEqual(['mcp.ts', 'mcp-globals.d.ts'])
+    expect(named('mcp')?.steps.map((step) => step.command.join(' '))).toEqual(['tsc -p tsconfig.mcp.json', 'tsx --tsconfig tsconfig.mcp.json mcp.ts'])
+    expect(named('node')?.packages).not.toContain('@formancy/report-mcp')
+  })
+
+  // A host planned without what it serves checks nothing, and a client
+  // installed at a release nobody declared would launch the bin with an
+  // SDK the MCP was never built against.
+  test('refuse to plan the MCP host without the MCP, or with an MCP that declares no SDK', () => {
+    expect(() => planProjects(new Map([...manifests].filter(([name]) => name !== '@formancy/report-mcp')))).toThrow(
+      /@formancy\/report-mcp was not packed, so the mcp host has nothing to check/,
+    )
+    const unpinned = new Map([...manifests, ['@formancy/report-mcp', { dependencies: { '@formancy/report-core': '0.1.0' } }]])
+    expect(() => planProjects(unpinned)).toThrow(
+      /@formancy\/report-mcp declares no @modelcontextprotocol\/sdk, so the mcp host has no release of it to install/,
+    )
   })
 
   // The install gate refuses @types/node in a browser's host -- each
