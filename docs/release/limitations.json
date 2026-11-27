@@ -255,7 +255,7 @@
       ]
     },
     "0011": {
-      "reviewed": "sha256:fadf5dbe644ea7600f64cf36f7c068bd99fbf0b135f8d1ccc924a3564fe85eea",
+      "reviewed": "sha256:2db9730bf6abd0119c9e316ada6f15ea436bfc93b1e74950e95edd72e38de741",
       "limitations": [
         {
           "area": "rendering",
@@ -297,6 +297,11 @@
           "area": "rendering",
           "says": "A heading kept with a table whose rows print nothing is kept with its column header, whose page pdfmake writes over each time it repeats the header, so where such a table runs past its page the heading moves to the next page with it and leaves its own page empty under the line before it.",
           "heldBy": "packages/report-render-pdf/src/flow.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "On a page a table in a framed section continues on, the header pdfmake repeats, and the rule over it, print above the frame's top rule, the header outside the frame's sides and off its fill, and a framed section in another starts each page after its first on the outer frame's top rule; every row stands inside its frames, and nothing is lost.",
+          "heldBy": "packages/report-render-pdf/src/blocks.test.ts"
         }
       ]
     },

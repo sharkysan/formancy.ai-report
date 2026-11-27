@@ -310,6 +310,19 @@ answers to
 | The fixture: a heading under the body's first line and a run of two, each on one page with its table's first row, the header over each table on every page, in both entries | `report-corpus/src/fixtures/kept-heading.ts`, rendered by `report-render-pdf/src/corpus.test.ts` and `browser.test.ts` |
 | The check and the fixture's arithmetic: lines placed on one page found split across pages, or one not printed, each on a real PDF watched failing; none derived; every table of the fixture past every plausible page, its first heading under the body's first line, every line it places printed once | `report-corpus/src/checks.test.ts`, `fixture.test.ts`, `fixtures/fixtures.test.ts` |
 
+**A frame on a page it continues on, held as it stands.** What pdfmake
+puts first on a page -- a header it repeats -- stands above the frame
+around it, and a frame in a frame starts on the outer one's top rule;
+both are held on the PDF as they stand, by the paths and the runs PDF.js
+reads back, until pdfmake adds a repeated header once the tables around
+it have moved down
+([0011](../decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)):
+
+| Where | What holds it |
+|---|---|
+| A table of 150 rows in a 2 pt frame, padded and filled, alone, under a paragraph and without a header row: on page 1 every line and the rule over the table inside the frame; on each later page the header above the frame's top rule, beside neither side and off the fill, the rule over the table above the top rule, and every row inside; failing where the header is not repeated or a frame draws no sides | `report-render-pdf/src/blocks.test.ts`, "sections" |
+| A framed section of 90 lines in a framed section: the inner frame's sides starting the outer frame's border and padding below the outer one's on page 1 and on its top rule on page 2, every line inside both; failing where a frame draws no sides or its top padding is other than it states | `report-render-pdf/src/blocks.test.ts`, "sections" |
+
 **A first page's own header, at every layer that reads it.** Which header
 a page prints is decided once, by the renderer, and every layer that reads
 the region is held where it reads it; a report without it is held to
