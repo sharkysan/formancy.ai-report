@@ -214,7 +214,15 @@ describe.each(BILLS)('the slip of %s in both engines', (_name, bill) => {
 })
 
 // A suite that compared no slip would hold none.
-test('every bill of the suite is written by the writer', () => {
-  expect(BILLS.length).toBeGreaterThan(10)
-  for (const [, bill] of BILLS) expect(renderDocx(billDocument(resolvedBill(bill))).length).toBeGreaterThan(0)
-})
+// Every bill is written whole, most of each write its Swiss QR Code drawn at 600 pixels to the inch: the suite's sixteen took 1.1 seconds
+// alone and 3.0 to 3.3 under coverage, which is how CI's test job runs this suite, and 5.4 here beside other work, past vitest's own 5
+// seconds, measured on 27 November 2026 on an Intel Core i9-10900K under Node 24.21.0, and 2.2 in CI's job that day (run 46010242982).
+// So it takes the bound every other case here takes.
+test(
+  'every bill of the suite is written by the writer',
+  () => {
+    expect(BILLS.length).toBeGreaterThan(10)
+    for (const [, bill] of BILLS) expect(renderDocx(billDocument(resolvedBill(bill))).length).toBeGreaterThan(0)
+  },
+  TIMEOUT,
+)
