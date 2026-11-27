@@ -41,7 +41,10 @@ Three things follow, and each has a guard:
   manifest copied from upstream.
 - **Never call it open source.** Not in a README, a package description, a
   commit message or a landing page. "Source-available" is the phrase, and the
-  licence table in `README.md` is the explanation.
+  licence table in `README.md` is the explanation. The product pages' wording
+  check refuses the phrase unless it is denied, and `scripts/manifests.test.mjs`
+  refuses a published manifest's keyword that says it
+  ([0081](docs/decisions/0081-the-start-page-names-pdf-and-word-pages-for-invoices-word-files-and-each-report-designer-join-it-and-every-package-names-keywords.md)).
 
 A dependency must allow both public source and licensed production use:
 permissive licences only, no GPL or AGPL, no source-available or
