@@ -31,6 +31,21 @@ lines, VAT, the total and the Swiss QR-bill that pays it. Its problems
 pane now opens on the warning that the bill pays SIX's example account;
 the samples and the README's table keep the corpus's order.
 
+**A table in a framed section prints the header it repeats above the
+frame on the pages it continues on, as the renderer's documentation now
+says**
+([0011](docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+pdfmake 0.3.11 puts a header it repeats at the top of a page before the
+frame around the table continues there, so on each later page the header
+and the rule over it stand above the frame's top rule, the header outside
+its sides and off its fill, while every row stands inside; a framed
+section inside another starts each page after its first on the outer
+frame's top rule. The renderer's README said a frame's blocks are laid
+out inside it, tables included; it now names the exception, and tests
+hold both as they stand until pdfmake adds a repeated header inside the
+frames around it. Nothing prints otherwise than it did, and no starter
+holds either.
+
 ## 0.3.0 — 2026-11-23
 
 **In short.** The third release, still a developer preview: for evaluating
