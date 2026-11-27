@@ -1,5 +1,5 @@
 /**
- * A report's data, read from Formancy Data 0.1.0's runtime plane through
+ * A report's data, read from Formancy Data 0.5.0's runtime plane through
  * `@formancy/data-client`, as the person whose token the client carries:
  * the header's one record, the detail rows a page at a time, and each
  * lookup's label. Everything that can be checked without a record -- the
@@ -12,7 +12,7 @@
  *
  * The data names its source: the published form each dataset was read
  * from, by the id the binding addressed it by, which the render's manifest
- * carries (0041). Data 0.1.0 publishes a form only under its own id, so a
+ * carries (0041). Data 0.5.0 publishes a form only under its own id, so a
  * form answered under another is refused before any record is read. Not
  * the header record's token: a token spells the record's key
  * (formancy.ai-data 0012), and a key can be the customer's own data. Data
@@ -84,7 +84,10 @@ async function parentOf(
   )
 }
 
-/** Every detail row up to `cap`, a page at a time from offset 0, and whether Data said none follow. */
+/**
+ * Every detail row up to `cap`, a page at a time, each page after the last
+ * row of the one before, and whether Data said none follow.
+ */
 async function readRows(
   client: DataClient,
   detail: DetailBinding,
@@ -93,19 +96,26 @@ async function readRows(
   signal?: AbortSignal,
 ): Promise<{ rows: FormRecord[]; complete: boolean } | ProviderError> {
   const rows: FormRecord[] = []
-  // The offset moves by the page asked for, Data's own arithmetic: a row it
-  // cannot address is still in its place (formancy.ai-data 0044).
-  for (let offset = 0; offset < cap;) {
-    const limit = Math.min(LIST_PAGE_SIZE, cap - offset)
+  // A page is asked for after the row the one before ended with, by the
+  // cursor Data gave, and Data finds that row again by its key
+  // (formancy.ai-data 0108): a row added or deleted before it meanwhile
+  // moves nothing, and that row gone is Data's refusal, `cursor-gone`,
+  // handed on as any refusal is. What is asked counts by the page, Data's
+  // own arithmetic: a row it cannot address is still in its place
+  // (formancy.ai-data 0044).
+  let after: string | null = null
+  for (let asked = 0; asked < cap;) {
+    const limit = Math.min(LIST_PAGE_SIZE, cap - asked)
     const page = await client.list(
       detail.form,
-      { ...(detail.sort === undefined ? {} : { sort: [...detail.sort] }), ...(parent === undefined ? {} : { parent }), offset, limit },
+      { ...(detail.sort === undefined ? {} : { sort: [...detail.sort] }), ...(parent === undefined ? {} : { parent }), after, limit },
       signal,
     )
     if (!page.ok) return fromRefusal('/detail', page)
     rows.push(...page.value.rows.slice(0, limit))
     if (!page.value.hasMore) return { rows, complete: true }
-    offset += limit
+    asked += limit
+    after = page.value.next
   }
   return { rows, complete: false }
 }
@@ -157,7 +167,7 @@ async function labelled(
 /**
  * The data `report` renders from, read from Formancy Data through `client`
  * where `binding` says, or every reason it was not. Its consistency is
- * `best-effort`: Data 0.1.0 has no snapshot, so the header, each page and
+ * `best-effort`: Data 0.5.0 has no snapshot, so the header, each page and
  * each label are read at different moments. Its source names the forms it
  * read (0041). Rejects only with the abort `options.signal` raised.
  */
@@ -193,7 +203,7 @@ export async function readReportData(client: DataClient, report: ReportDefinitio
         {
           path: `/${role}`,
           code: 'unexpected-form',
-          message: `Data answered the ${role} form with a published form under another id, or one that is no formancy form id; Data 0.1.0 publishes a form only under its own`,
+          message: `Data answered the ${role} form with a published form under another id, or one that is no formancy form id; Data 0.5.0 publishes a form only under its own`,
         },
       ])
     }

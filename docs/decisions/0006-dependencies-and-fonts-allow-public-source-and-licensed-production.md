@@ -73,7 +73,7 @@
 
   An admission nothing installs is refused. On the real tree, the
   provider's closure holds `@formancy/data-client` and
-  `@formancy/data-core` 0.1.0, each with the file read, and nothing else
+  `@formancy/data-core` 0.5.0, each with the file read, and nothing else
   reaches them. The rules were watched failing one at a time, as 0016
   lists.
 
@@ -351,6 +351,25 @@ Studio names it (`apps/studio/src/embedded-notices.ts`), which its
 `notices.test.ts` holds. `dependency-licences.test.mjs` holds each rule,
 the route behind the renderer among them, and the real tree's two
 confined packages.
+
+**Added 2026-11-27: Formancy Data 0.5.0, admitted again.** The provider
+moved to `@formancy/data-client` 0.5.0
+([0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md))
+and the server to `@formancy/data-identity` 0.5.0
+([0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)),
+and the guard stopped on all three Data packages of the tree, client, core
+and verifier, each `SEE LICENSE IN LICENSE.md` at a version no admission
+named, and on the three admissions nothing installed any more. The
+`LICENSE.md` each 0.5.0 tarball ships was read whole that day: the
+Formancy Data Source-Available Licence Version 1.1, in force from
+11 October 2026, the same text and the same SHA-256 as 0.1.0's and
+0.3.0's, from the registry's tarballs, whose sha512 is the lockfile's.
+`FORMANCY_DATA` admits the three at 0.5.0 by that digest, each for the
+package it was for, and holds no other. data-core 0.5.0 brings
+`@formancy/spec` and `@formancy/expressions` 0.13.0, formancy's, under
+Apache-2.0, which the policy allows as any package. The walk on
+2026-11-27 found 107 third-party packages, 10 fonts and one ICC profile,
+each allowed or read.
 
 ## Alternatives considered
 

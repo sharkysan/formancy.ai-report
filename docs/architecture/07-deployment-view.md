@@ -420,8 +420,10 @@ serve the Studio under the same function of their own address
   graphics states, and a title holding `&`, `<` or `>` are refused by
   that render alone, which no builder warns of. The Studio offers none
   (0057).
-- **For the provider:** a Formancy Data 0.1.0 server and a data client
-  carrying the person's token
+- **For the provider:** a Formancy Data 0.5.0 server, since Data's client
+  and server are one release and the provider's 0.5.0 client takes an
+  older server's answers as `unexpected` (formancy.ai-data 0108, 0173), and
+  a data client carrying the person's token
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 - **For the server:** the image built from the repository, or the
   package embedded through `createReportServer` under Node 22.13 or later,

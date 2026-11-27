@@ -1,6 +1,6 @@
 # 0047 — report-server verifies the host's token with Formancy Data's own verifier, `@formancy/data-identity` at exactly 0.3.0, read under Data's settings' names; 0006's guard admits Data's licence for report-server's data-identity beside the provider's client, each for its own package alone; Report's own verifier on jose, Data's server as a bridge, a session and a peer dependency lost
 
-- **Status:** accepted; numbered while 0043, 0044 and 0045 were held by branches not yet merged, and numbered before 0048 and merged after it; extends [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md) and [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md); its "report-server-core depends on nothing" no longer true since [0049](0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md), under which report-server-core depends on report-spec, which the server's closure now holds
+- **Status:** accepted; numbered while 0043, 0044 and 0045 were held by branches not yet merged, and numbered before 0048 and merged after it; extends [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md) and [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md); its "report-server-core depends on nothing" no longer true since [0049](0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md), under which report-server-core depends on report-spec, which the server's closure now holds; at data-identity 0.5.0 since 2026-11-27, which holds a token to its compact form, below
 - **Date:** 2026-10-22
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -10,29 +10,31 @@
     through report-server; it is refused from the provider and from any
     other package, naming the package that depends on it; and Data's
     client is refused from the server, as it is from anything but the
-    provider. On the real tree: the admissions are exactly Data 0.1.0's
-    client and core for the provider and Data 0.3.0's data-identity for the
-    server, every Data package the walk meets is one of them, each with the
-    file the review read, and each reached from its own package and no
-    other. Watched failing on the real tree before the admission: the
-    command exited 1 with "@formancy/data-identity@0.3.0 is SEE LICENSE IN
+    provider. On the real tree: the admissions are exactly Data's client
+    and core for the provider and Data's data-identity for the server, all
+    three at 0.5.0 since 2026-11-27 (below), every Data package the walk
+    meets is one of them, each with the file the review read, and each
+    reached from its own package and no other. Watched failing on the real
+    tree before the first admission: the command exited 1 with "@formancy/data-identity@0.3.0 is SEE LICENSE IN
     LICENSE.md by its package.json, which the policy refuses
     (@formancy/report-server > @formancy/data-identity)", the only problem
     the walk found in report-server's closure.
   - **The exact version.** `scripts/upstream-deps.test.mjs` refuses a
     range, a `workspace:` link or a path for any `@formancy/data-*`
     dependency, and an exemption from pnpm's release age the lockfile does
-    not install; `pnpm-workspace.yaml` exempts this one version, dated.
+    not install; `pnpm-workspace.yaml` exempted 0.3.0, adopted on its first
+    day, and exempts nothing for 0.5.0, taken past the age.
   - **Data's rules, through Report.** `packages/report-server/src/identity.test.ts`
     runs formancy.ai-data 0014's refusals through the verifier data-identity
-    builds (0046), and `settings.test.ts` and `serve.test.ts` the settings
-    and the key set read again on SIGHUP (formancy.ai-data 0059), under
+    builds (0046), and the compact form it holds a token to from 0.4.0
+    (formancy.ai-data 0101); `settings.test.ts` and `serve.test.ts` run
+    the settings and the key set read again on SIGHUP (formancy.ai-data 0059), under
     Report's names.
   - **From the registry.** The install gate's `server` host installs the
-    packed server, and npm installs data-identity 0.3.0 from the registry
+    packed server, and npm installs data-identity 0.5.0 from the registry
     beside it; the consumer type-checks with `skipLibCheck` off and verifies
     a token through it (`scripts/install-fixture/server.ts`). The README's
-    generated table lists data-identity at 0.3.0
+    generated table lists data-identity at 0.5.0
     (`scripts/release-report/tested-on.test.mjs`).
   - **Not mechanically enforced:** that data-identity imports nothing but
     jose and Node's built-ins, which its manifest says and Data's 0091
@@ -132,6 +134,26 @@ verifier, at exactly 0.3.0.
 that Data's verifier does not have goes to Data first, as the tenant would
 have, had it been a key rule and not an attribute Report requires of a
 verified token.
+
+**Added 2026-11-27: data-identity 0.5.0, a token in its compact form
+alone.** The server depends on `@formancy/data-identity` at exactly 0.5.0,
+as *A review per Data release* above said, with the provider's move to
+Data 0.5.0
+([0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
+Its `LICENSE.md` is Version 1.1, byte for byte the file 0.3.0 shipped, read
+whole that day, and `FORMANCY_DATA` admits it at 0.5.0 by that digest, for
+`@formancy/report-server` alone (0006). It still depends on jose alone, at
+the same range. Its declarations are 0.3.0's byte for byte, and its code
+differs by one rule, from 0.4.0: a token that is not exactly its compact
+form -- three base64url parts and nothing else, no `=` padding, no space,
+no `+` or `/` -- is refused as `ERR_JWS_INVALID` before any key is asked
+(formancy.ai-data 0101). Until then a signature with `=` after it verified
+here, the debt 0046 recorded, and a host's token had a second text Data's
+0.4.0 server refused. `identity.test.ts` holds the rule through Report's
+wrapper, watched failing at 0.3.0, which verified the padded signature. No
+token this repository signs is refused by it: the tests sign with jose's
+`SignJWT`, and the install gate and the container gate with Node's
+`base64url`, which pads nothing.
 
 ## Alternatives considered
 

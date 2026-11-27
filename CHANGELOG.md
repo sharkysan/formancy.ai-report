@@ -104,8 +104,64 @@ authored with it.
   0.14.0 was published on 2026-11-16, past the day the exemption stood
   in for.
 - **A host that installs `@formancy/report-data-provider` still gets a
-  second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
-  provider takes a Data release built against a newer one.
+  second `@formancy/spec`**, 0.13.0 through Formancy Data 0.5.0 since the
+  provider took it (below), until Data releases against 0.14.0.
+
+**Report reads Formancy Data 0.5.0, and its server verifies tokens with
+Data 0.5.0's verifier.** `@formancy/report-data-provider` moves from
+`@formancy/data-client` 0.1.0 to exactly 0.5.0, and
+`@formancy/report-server` from `@formancy/data-identity` 0.3.0 to exactly
+0.5.0
+([0016](docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md),
+[0047](docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+Data has released 0.2.0 to 0.5.0 since, and from 0.4.0 its client and
+server are one release: a 0.4.0 server refuses the list request the 0.1.0
+client sends, which pages by offset, so a host on a current Data server
+could not read its records through the provider.
+
+- **A host that reads Formancy Data runs a Data 0.5.0 server.** The
+  provider's 0.5.0 client takes an older server's answers as `unexpected`:
+  a 0.3.0 server's form, menu and page of records, and a 0.4.0 server's
+  form, which carries no `bulk`
+  ([formancy.ai-data 0108](https://github.com/sharkysan/formancy.ai-data/blob/v0.5.0/docs/decisions/0108-a-forms-list-pages-after-the-last-row-it-showed-found-again-by-its-key.md),
+  [0173](https://github.com/sharkysan/formancy.ai-data/blob/v0.5.0/docs/decisions/0173-chosen-records-are-deleted-each-on-its-own-with-one-answer-per-record.md)).
+  Upgrade the Data server, then Report.
+- **The lines are read a page after a row, not at an offset.** Each page
+  is asked for after the last row of the one before, which Data finds
+  again by its key, so a line added or deleted before it between two pages
+  no longer prints a line twice or skips one. A line whose place in the
+  order changes between two pages, a sorted field edited, still can, and
+  the data is still labelled best-effort.
+- **A new refusal: the line a page ended with deleted before the next
+  page.** Data then has nowhere to continue and refuses the page as
+  `409 cursor-gone`. The provider hands that on as `refused`, with Data's
+  status, code and sentence, and hands over nothing, as after any refusal;
+  read the report again.
+- **The server refuses a token that is not exactly its compact form**
+  ([formancy.ai-data 0101](https://github.com/sharkysan/formancy.ai-data/blob/v0.5.0/docs/decisions/0101-a-host-token-is-refused-unless-it-is-its-compact-form-exactly.md)).
+  A signature with `=` after it, which verified until now, or a space in
+  it, is the one 401, with `ERR_JWS_INVALID` in the log, as Data's own
+  server has refused it since 0.4.0. A token jose signs, or one written
+  with Node's `base64url`, is compact.
+- **Forms Data publishes from 0.4.0 are formancy's spec 5**, and those
+  published before stay spec 3; the provider reads either.
+- **The licence is the one it was.** The `LICENSE.md` each 0.5.0 package
+  ships is the Formancy Data Source-Available Licence Version 1.1, byte for
+  byte the file 0.1.0 and 0.3.0 shipped; it was read again and admitted
+  at 0.5.0, for the provider and the server each
+  ([0006](docs/decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md)).
+  Running either in production still needs a Formancy Data production
+  licence.
+- **A second `@formancy/expressions` beside the second `@formancy/spec`.**
+  data-core 0.5.0 pins `@formancy/expressions` 0.13.0 exactly, beside the
+  0.14.0 the runtime takes; no object of one reaches the other in the
+  provider.
+- **Data's lookup pages do not reach the provider.** From 0.2.0 a Data
+  lookup source answers a search with a page; the provider asks for the
+  labels of the tokens it holds, which Data answers as it did.
+- **Formancy Data is no longer exempt from pnpm's minimum release age**:
+  0.5.0 was published on 2026-11-23, past the day the exemption stood in
+  for, so no exemption remains.
 
 ## 0.3.0 — 2026-11-23
 

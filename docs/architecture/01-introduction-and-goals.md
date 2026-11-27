@@ -42,8 +42,8 @@ The pieces, each a package:
   ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)), and refuses what
   belongs to the report's PDF
   ([0068](../decisions/0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md));
-- a **provider** that reads a report's data from Formancy Data 0.1.0,
-  best-effort
+- a **provider** that reads a report's data from a Formancy Data 0.5.0
+  server, best-effort
   ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md));
 - an **editor model** with a **React builder** and an **Angular builder** over
   it, native in each framework, over one session

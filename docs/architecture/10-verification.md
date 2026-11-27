@@ -740,7 +740,7 @@ later releases and say why, and the legal gate waits for a lawyer
   [0024](../decisions/0024-the-invoice-comes-in-four-languages-as-samples-and-a-qr-bill-page-shows-them.md),
   [0028](../decisions/0028-the-euro-invoice-comes-as-samples-from-six-euro-countries-and-an-epc-qr-code-page-shows-them.md)).
 - **No real Formancy Data server.** The provider's tests and the install gate
-  run against a stand-in that answers 0.1.0's routes in Data's shapes, with
+  run against a stand-in that answers 0.5.0's routes in Data's shapes, with
   no database and no policy ([0016](../decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 - **No identity provider, and one container on one machine.** The server's
   tokens are signed by its tests and its gates with keys of their own;

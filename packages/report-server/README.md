@@ -19,11 +19,12 @@ and for the drafts and images, decision [0049](../../docs/decisions/0049-a-templ
 
 **Identity is the host's.** The host signs a short-lived JWT for a person;
 the server verifies it with Formancy Data's own verifier,
-`@formancy/data-identity` at exactly 0.3.0
+`@formancy/data-identity` at exactly 0.5.0
 ([0047](../../docs/decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)),
-under Data's rules: the algorithm pinned by the key's kind, `sub` and `exp`
-required, a key set selected by `kid` and read again on SIGHUP, nothing
-fetched (formancy.ai-data 0014, 0059). Report adds the tenant: the claim
+under Data's rules: the token in its compact form alone, three base64url
+parts with no padding or space, the algorithm pinned by the key's kind,
+`sub` and `exp` required, a key set selected by `kid` and read again on
+SIGHUP, nothing fetched (formancy.ai-data 0014, 0059, 0101). Report adds the tenant: the claim
 `FORMANCY_REPORT_ATTRIBUTES` names is required on every token, and a token
 without it is refused like any bad token. A single-tenant host puts one
 constant in that claim. A tenant, a role or a permission a browser sends is
@@ -31,8 +32,9 @@ never read.
 
 **Every bad token is the same 401**, `unauthenticated`: a wrong signature,
 issuer or audience, an expired token, one with no `exp` or no `sub`, `alg:
-none`, HS256 signed with a public key's text, and a token without its
-tenant. Which check failed is in the log, by the verifier's reason, never
+none`, HS256 signed with a public key's text, a token not in its compact
+form -- a signature with `=` after it among them -- and a token without
+its tenant. Which check failed is in the log, by the verifier's reason, never
 the token.
 
 **Nothing else answers.** Every other method and path is the one 404,

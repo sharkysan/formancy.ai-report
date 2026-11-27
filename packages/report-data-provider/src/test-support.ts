@@ -1,20 +1,29 @@
 /**
  * What the provider's tests read from: a data server that answers the
- * routes of Formancy Data 0.1.0's runtime plane that the provider asks, from
- * records held in memory, behind the real `@formancy/data-client` 0.1.0.
+ * routes of Formancy Data 0.5.0's runtime plane that the provider asks, from
+ * records held in memory, behind the real `@formancy/data-client` 0.5.0.
  * The client checks every reply's shape and calls one that is not the
- * server's `unexpected`, so a fixture that drifted from Data's contract
- * fails the tests rather than passing them. Only test files import this.
+ * server's `unexpected` -- a published form without 0.5.0's `bulk`, a menu
+ * child without `one`, a page without its `next` -- so a fixture that
+ * drifted from Data's contract fails the tests rather than passing them.
+ * Only test files import this.
  *
  * It is a fixture and not Data: no database, no policy and no snapshot. What
- * a person may read is whatever `readable` and the records say, and a list
- * is sorted by plain string order. A claim about Data's own behaviour is
- * Data's to prove, against its databases (formancy.ai-data 0003).
+ * a person may read is whatever `readable` and the records say, a list is
+ * sorted by plain string order, and the key's order is the order of
+ * `records`. A page continues after the row its cursor names, found again
+ * among the form's records wherever it now stands, and a cursor whose row
+ * is gone is refused `409 cursor-gone`, as Data pages (formancy.ai-data
+ * 0108). A claim about Data's own behaviour is Data's to prove, against its
+ * databases (formancy.ai-data 0003).
  *
  * `orderForms` is a quotation's order and its lines as Data generates forms
  * for two tables: an order header with a lookup of its customer, a nullable
  * yes-or-no, a decimal and an instant; and lines that name their order by a
- * lookup, which is what makes them the order's children in the menu.
+ * lookup, which is what makes them the order's children in the menu. The
+ * order is formancy's spec 5, as Data 0.4.0 and later publish a form; the
+ * lines are spec 3, a form published before and served as it was
+ * (formancy.ai-data 0118).
  */
 import { createDataClient } from '@formancy/data-client'
 import type { DataClient, FormMenu, FormRecord, PublishedForm } from '@formancy/data-client'
@@ -51,24 +60,40 @@ const notFound = (): Response => json(404, { code: 'not-found', message: 'No suc
 type ListBody = {
   readonly parent?: { readonly field: string; readonly record: string }
   readonly sort?: readonly { readonly field: string; readonly direction: 'asc' | 'desc' }[]
-  readonly offset?: number
+  readonly after?: string | null
   readonly limit?: number
 }
 
-/** The page `list` answers: Data's defaults for what is left out, at most 50 rows, and whether more follow. */
+/** Data's sentence for a page after a row that is gone (formancy.ai-data 0108). */
+export const CURSOR_GONE = 'The record this page continues after has been deleted, or is no longer one you may read. Start again from the first page.'
+
+/** A row's cursor, as a page's `next` spells it: the server's own spelling, read by nothing but the server. */
+const cursorOf = (row: FormRecord): string => `c1:${String(row.record)}`
+
+/**
+ * The page `list` answers: Data's defaults for what is left out, at most 50
+ * rows after the row `after` names in the order asked -- the sort's terms,
+ * then the key -- and the cursor of its last row when more follow.
+ */
 function page(form: FixtureForm, body: ListBody): Response {
   const parent = body.parent
-  const rows = form.records.filter((row) => parent === undefined || row.answers[parent.field] === parent.record)
-  const sorted = [...rows].sort((a, b) => {
+  const compare = (a: FormRecord, b: FormRecord): number => {
     for (const term of body.sort ?? []) {
       const order = String(a.answers[term.field]).localeCompare(String(b.answers[term.field]))
       if (order !== 0) return term.direction === 'asc' ? order : -order
     }
-    return 0
-  })
-  const offset = body.offset ?? 0
+    return form.records.indexOf(a) - form.records.indexOf(b)
+  }
+  const rows = form.records.filter((row) => parent === undefined || row.answers[parent.field] === parent.record).sort(compare)
+  const cursor = body.after ?? null
+  const after = cursor === null ? undefined : form.records.find((row) => cursorOf(row) === cursor)
+  if (cursor !== null && after === undefined) return json(409, { code: 'cursor-gone', message: CURSOR_GONE })
+  const from = after === undefined ? 0 : rows.filter((row) => compare(row, after) <= 0).length
   const limit = Math.min(body.limit ?? 50, 50)
-  return json(200, { rows: sorted.slice(offset, offset + limit), hasMore: offset + limit < sorted.length })
+  const shown = rows.slice(from, from + limit)
+  const last = shown.at(-1)
+  const hasMore = from + limit < rows.length && last !== undefined
+  return json(200, { rows: shown, hasMore, next: hasMore ? cursorOf(last) : null })
 }
 
 /** A data client of a server holding `forms` and answering `menu`, and every request it was asked. */
@@ -128,13 +153,22 @@ const yesOrNo = (key: string): Field => ({
   ],
 })
 
-function published(id: string, fields: readonly Field[], readable: readonly string[]): PublishedForm {
+/** A form this person may read and list and nothing else, as Data 0.5.0 answers `GET /v1/forms/:id` for it. */
+function published(id: string, specVersion: '3' | '5', fields: readonly Field[], readable: readonly string[]): PublishedForm {
   return {
-    form: { specVersion: '3', id, title: id, model: { fields: [...fields] } },
+    form: { specVersion, id, title: id, model: { fields: [...fields] } },
     operations: ['read'],
     readable: [...readable],
-    list: { searchable: [], sortable: [...readable] },
+    list: { searchable: [], sortable: [...readable], filterable: [], views: [], own: [] },
     deleting: null,
+    copied: null,
+    versions: null,
+    writable: { create: null, update: null },
+    moves: null,
+    opens: [],
+    together: null,
+    actions: [],
+    bulk: { delete: false, update: null },
   }
 }
 
@@ -162,6 +196,7 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
     order: {
       published: published(
         'order',
+        '5',
         [
           text('number'),
           lookup('customer', 'customers'),
@@ -181,6 +216,7 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
     'order-line': {
       published: published(
         'order-line',
+        '3',
         [
           lookup('order', 'orders'),
           text('article'),
@@ -200,8 +236,8 @@ export function orderForms(count = 3): Record<string, FixtureForm> {
 /** The menu Data answers for the order forms: the lines are the order's children, named by their `order` lookup. */
 export const ORDER_MENU: FormMenu = {
   forms: [
-    { id: 'order', title: 'Orders', operations: ['read'], children: [{ form: 'order-line', field: 'order' }] },
-    { id: 'order-line', title: 'Order lines', operations: ['read'], children: [] },
+    { id: 'order', title: 'Orders', group: null, operations: ['read'], children: [{ form: 'order-line', field: 'order', one: false, when: null }] },
+    { id: 'order-line', title: 'Order lines', group: null, operations: ['read'], children: [] },
   ],
 }
 
