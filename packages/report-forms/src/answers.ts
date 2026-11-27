@@ -19,7 +19,7 @@
  * a refusal of it stands at the field's own path.
  */
 import { MAX_DETAIL_ROWS, MAX_STRING_LENGTH, readValue } from '@formancy/report-runtime'
-import { resolveText, richTextToPlain, ROW_ID, TEMPORAL_SHAPES } from '@formancy/spec'
+import { resolveText, richTextToPlain, ROW_ID, temporalShape, temporalShapeRegExp } from '@formancy/spec'
 import type { FieldDef } from '@formancy/spec'
 import type { Findings } from './errors.js'
 import { answerAt, at } from './errors.js'
@@ -138,8 +138,6 @@ export function rowsAt(record: AnswerRecord, keys: readonly string[]): readonly 
   return found === undefined ? [] : (found.record.rows.get(found.key) ?? [])
 }
 
-const SHAPES = { time: new RegExp(TEMPORAL_SHAPES.time), date: new RegExp(TEMPORAL_SHAPES.date), instant: new RegExp(TEMPORAL_SHAPES.datetime) } as const
-
 /** An answer turned into what the field's type holds, or why not. */
 type Turned =
   | { readonly ok: true; readonly value: unknown }
@@ -209,10 +207,15 @@ function turn(plan: ReadPlan, value: unknown, context: AnswerContext): Turned {
       return typeof value === 'string' ? turned(value) : invalid(`a ${def.type} field's answer is text`)
     case 'time':
     case 'date':
-    case 'instant':
-      return typeof value === 'string' && SHAPES[plan.as].test(value)
+    case 'instant': {
+      // At the width the field's precision gives, as formancy's engine holds an answer to it
+      // (spec 6, formancy.ai 0238), and version 5's shape where it declares none: upstream's
+      // shapes, each compiled once as its package loads, never from a document's value.
+      const type = plan.as === 'instant' ? 'datetime' : plan.as
+      return typeof value === 'string' && temporalShapeRegExp(type, def.precision).test(value)
         ? turned(value)
-        : invalid(`a ${def.type} field's answer is formancy's fixed shape for it, ${TEMPORAL_SHAPES[plan.as === 'instant' ? 'datetime' : plan.as]}`)
+        : invalid(`a ${def.type} field's answer is formancy's fixed shape for it, ${temporalShape(type, def.precision)}`)
+    }
     case 'rich':
       return typeof value === 'string' ? turned(richTextToPlain(value)) : invalid("a rich text field's answer is its text")
     case 'number': {

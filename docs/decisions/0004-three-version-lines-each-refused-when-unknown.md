@@ -14,8 +14,8 @@
   installs are exempt from pnpm's minimum release age. Each is proved on
   fixtures, then on the real tree. `packages/report-forms/src/read.test.ts`
   proves that a form is read through the pinned `@formancy/spec`'s
-  validator ([0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)): forms at spec 1 to 5 are read, one Formancy
-  Data generated at spec 3 among them, a spec 6 form is refused with both
+  validator ([0042](0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md)): forms at spec 1 to 6 are read, one Formancy
+  Data generated at spec 3 among them, a spec 7 form is refused with both
   versions named, and a form the validator refuses is refused by its code.
 
   **Not mechanically enforced:**
@@ -192,6 +192,30 @@ the bridge reads such a version. `read.test.ts` reads one with `(\p{L}+)+` and r
 `a{`, which does not compile with `u`, by the validator's code, at 0.11.0
 and at 0.12.0 alike; it failed with the bridge made to refuse a version
 that holds a pattern.
+
+**Added 2026-11-27: formancy 0.14.0, spec 6 read.** The repository pins
+formancy 0.14.0, whose validator reads spec versions 1 to 6, and the
+bridge reads what it reads, as above: a spec 6 form is read and a spec 7
+one refused, naming the versions 0.14.0 reads. formancy writes spec 6 for
+every new form from 0.14.0, whether a field uses what it adds or not, and
+every reader on 0.13.0 or earlier refuses it
+([formancy.ai 0239](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0239-spec-6-freezes-with-the-property-it-opened-for.md)),
+so the bridge at 0.12.0 could print no submission of a form authored
+with it.
+Spec 6 adds one property, `precision` on a time or a date and time
+([formancy.ai 0238](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0238-a-time-or-an-instant-declares-its-precision.md)),
+which changes what an answer to such a field holds: seconds, and that
+many digits after them. What the bridge reads of such an answer is
+0042's question. 0.13.0's validator reads what 0.12.0's does. 0.14.0's
+new checks, read in its code, hold a bound to its field's width, which
+without a precision is the width 0.12.0's schema held it to, so a form of
+spec 1 to 5 is refused as before, and every test of one here passed
+unchanged. `read.test.ts` reads a spec 6 form; `generate.test.ts` drafts
+version 2 of the corpus's visit at spec 6, its times given a precision,
+into the report version 2 drafts, but for the version it names; and
+`review.test.ts` reviews a version that moves to spec 6 for them as one
+that prints. Each failed at 0.12.0, which refused the form. arc42 8.6's
+row for the form spec changed with it.
 
 ## Alternatives considered
 

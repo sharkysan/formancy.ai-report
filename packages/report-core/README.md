@@ -373,10 +373,11 @@ one.
   place each stands, by the same verdict: what the builders mark and edit
   as words, so that they ask for no translation the diagnostics do not.
 
-Every member read is checked as its type. `@formancy/expressions` 0.12.0,
-as 0.5.0 to 0.7.0 and 0.11.0 before it, declares a variable only by its whole name, so each read of `row.amount` is
+Every member read is checked as its type. `@formancy/expressions` 0.5.0 to
+0.12.0 declared a variable only by its whole name, so each read of `row.amount` is
 spliced, by upstream's own `rewritePath`, into a read of `row_amount`, a
-variable declared as a decimal. An exact value is used as what it is,
+variable declared as a decimal. From 0.13.0 a variable may be declared by
+member, which the 0.14.0 pinned carries and this package does not use yet. An exact value is used as what it is,
 `row.amount * dec("1.081")`, and `dec(row.amount)` is a type error. A member
 that may be null is checked as `dyn`, since CEL has no nullable scalars.
 

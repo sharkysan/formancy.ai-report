@@ -101,13 +101,13 @@ version whose fields are where the report reads them prints.
 |---|---|---|
 | `text`, `hidden` | `string`, `integer`, `decimal` | as stored; a number written as text is held to its type's one spelling |
 | `textarea` | `string` | as stored |
-| `time` | `string` | `HH:MM`, as stored: a report has no time of day |
+| `time` | `string` | as stored, `HH:MM`, or with seconds and the digits after them its spec 6 `precision` gives, `HH:MM:SS.fff` at 3: a report has no time of day |
 | `richtext` | `string` | its plain text, by formancy's `richTextToPlain`; the formatting is lost |
 | `number` | `integer`, `decimal` | by the number rule, below |
 | `checkbox` | `boolean` | |
 | `select`, `radio` | `string` | the option's label in the locale the read names, the report's own by default, from the submission's own version; or its stored value, with `read: 'value'`. Options a deployment resolves (`optionsSource`) are labelled by the host's `labels` |
 | `date` | `date` | |
-| `datetime` | `instant` | formancy's is UTC, with `Z` |
+| `datetime` | `instant` | formancy's is UTC, with `Z`, and the digits after the seconds its spec 6 `precision` gives |
 | `matrix` | `string` | one row, its `member`: the chosen column's label or value |
 | `selectboxes` | `boolean` | one option, its `member`: ticked or not; `[]` ticks none |
 | `repeater` | the detail | one repeater's rows; a repeater in a repeater formancy refuses |

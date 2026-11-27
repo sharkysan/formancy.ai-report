@@ -255,6 +255,25 @@ as theirs, `group.key + 1` compiling under the one and refused as
 `expression-type` under the other. `compile-report.test.ts` holds the
 three, and `members.test.ts` the members.
 
+**Added 2026-11-27: upstream offers what the workarounds stand in for.**
+`@formancy/expressions` 0.13.0, which the 0.14.0 the repository now pins
+carries, declares a variable by member, so that `row.amount` is checked
+as a decimal and `row` read whole is refused as `variable_read_whole`
+([formancy.ai 0231](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0231-a-variable-may-be-declared-by-member.md));
+a compiled program says which functions it calls and where it computes
+through a double or divides integers, its `calls` and `inexact`
+([formancy.ai 0229](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0229-a-program-says-what-it-calls-and-where-it-is-not-exact.md));
+and a check may be asked to refuse the clock and a random draw,
+`reproducible`
+([formancy.ai 0228](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0228-an-expression-can-be-asked-to-be-reproducible.md)).
+Each was asked for by what this record does. Nothing here uses them yet:
+`compileReport` still declares each member by a flat name of its own,
+which 0.14.0 checks and binds as 0.12.0 did, and the splice, the clock
+probe and the exactness probes pass their tests unchanged. By this
+record's rule each workaround now goes; taking upstream's in its place
+would change what report-core says and where, so it is a change of its
+own.
+
 ## Alternatives considered
 
 **Declare each name as a `map`**, the first version. Rejected: every member
