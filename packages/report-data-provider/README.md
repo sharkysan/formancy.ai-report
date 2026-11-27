@@ -6,7 +6,8 @@ server through `@formancy/data-client` at exactly 0.5.0, as the person
 whose token the client carries. The server must be 0.5.0 too: Data's client
 and server are one release, and 0.5.0's client takes an older server's
 answers as `unexpected` (formancy.ai-data 0108, 0173), so a host upgrades
-its Data server first, by [Data's upgrade notes](https://github.com/sharkysan/formancy.ai-data/blob/v0.5.0/CHANGELOG.md#upgrade-from-040). So
+its Data server first, walking every *Upgrade from* section of
+[Data's changelog](https://github.com/sharkysan/formancy.ai-data/blob/v0.5.0/CHANGELOG.md) from the release it runs. So
 must the host's own `@formancy/data-client`, which it makes the client
 with: `readReportData` takes 0.5.0's `DataClient`. It reads the header's
 one record, the detail rows a page at a time and each lookup's label, and
@@ -29,7 +30,10 @@ two pages, a sorted field edited, can be skipped or read twice. When it is
 the row a page ended with, the next page moves with it, and every row
 between its old place and its new can be skipped or read again, as 0108
 says. A row read twice refuses the read as `repeated-row`, rather than
-print twice; a row skipped is not seen, and the report prints without it.
+print twice, but for two: a row Data names by no token, which nothing can
+compare, and a row whose key another application changed between two
+pages, which comes back under a new token; each of those prints twice. A
+row skipped is not seen, and the report prints without it.
 The row a page ended with deleted, or no longer one the person may read,
 refuses the read, below; and a total can mix moments.
 

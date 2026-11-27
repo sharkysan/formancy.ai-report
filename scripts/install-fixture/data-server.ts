@@ -8,8 +8,8 @@
  * after the row the one before ended with (formancy.ai-data 0108): fewer
  * than the provider asks for, which Data does not answer while more
  * follow, so that a real `next` crosses the packed client and comes back
- * as `after` in a quotation of twelve lines. consume.ts installs it as the global
- * fetch. It lives apart because it changes when Data's wire contract does,
+ * as `after`: the quotation's lines fill two pages of `PAGE`, which
+ * consume.ts holds. consume.ts installs it as the global fetch. It lives apart because it changes when Data's wire contract does,
  * and the rest of consume.ts does not.
  */
 import type { PublishedForm } from '@formancy/data-client'

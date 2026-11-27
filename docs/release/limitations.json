@@ -378,11 +378,11 @@
       ]
     },
     "0016": {
-      "reviewed": "sha256:4341584997d4e565aed3908dbf78fbf392e7a6ca340b8d01d0e65e3f4360b5b8",
+      "reviewed": "sha256:1b5c7b6914599401c554760493df2360a822ecd8dd7e789b7a3b4eb62b72bdec",
       "limitations": [
         {
           "area": "data",
-          "says": "Data read through the Formancy Data provider is best-effort: the header, each page of lines and each label are read at different moments, so a line whose place in the order changes between two pages can be left out, and when it is the line a page ended with, every line between its old place and its new can be; a line read twice refuses the read as repeated-row, the line a page ended with deleted or no longer one the person may read refuses it as cursor-gone, and every render's manifest says best-effort.",
+          "says": "Data read through the Formancy Data provider is best-effort: the header, each page of lines and each label are read at different moments, so a line whose place in the order changes between two pages can be left out, and when it is the line a page ended with, every line between its old place and its new can be; a line read twice refuses the read as repeated-row, unless Data names it by no token or another application changed its key between the two pages, the line a page ended with deleted or no longer one the person may read refuses it as cursor-gone, and every render's manifest says best-effort.",
           "heldBy": "packages/report-data-provider/src/read.test.ts"
         },
         {

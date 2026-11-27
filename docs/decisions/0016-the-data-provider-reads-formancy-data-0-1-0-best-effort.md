@@ -22,8 +22,10 @@
     - a page of more rows than were asked for, and one that ends on the
       row it was asked to continue after, refused as `unexpected-page`;
     - a record two pages hold, as the row a page ended with moved back in
-      the order brings, refused as `repeated-row`, and rows with no token
-      on two pages read once each and refused as none;
+      the order brings, and a record deleted and created again under its
+      key, refused as `repeated-row`, its message naming both; rows with
+      no token on two pages read once each and refused as none, and a
+      page that ends on one read on after it by its key's cursor;
     - the cap, as incomplete data that a final render refuses and a preview
       prints;
     - `parent: 'header'` by the menu's one field, and refused when the menu
@@ -252,9 +254,17 @@ What Data changed that the provider meets, read from Data's changelog for
   field of its lines is edited is refused more often, and the host reads
   again; a row the same edit skips is not seen, since no page says it was
   there, and prints without it; and a row with no token, whose key fits
-  none (formancy.ai-data 0012), is not compared. A server that answered a
-  record twice in its own order would be refused too, which Data's
-  `ORDER BY` ending in the key does not do.
+  none (formancy.ai-data 0012), is not compared, so a repeat of one prints
+  twice. So does a row whose key another application changes between two
+  pages: Data's own update refuses a change to a key column
+  (formancy.ai-data 0018), but another writer of the database can make
+  one, and the row comes back under a new token. A record deleted and
+  created again under its key between two pages, sorting after the
+  cursor, comes back under the same token and is refused too: two records
+  of two moments rather than one line moved, which `repeated-row`'s
+  message names. A server that answered a record twice in its own order
+  would be refused as well, which Data's `ORDER BY` ending in the key does
+  not do.
 - **A form published from 0.4.0 is formancy's spec 5** (formancy.ai-data
   0118), and one published before keeps spec 3. The provider reads a
   field's key, type, options and lookup source, which both versions hold

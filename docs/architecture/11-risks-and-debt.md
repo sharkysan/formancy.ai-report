@@ -521,8 +521,10 @@ The header, each page and each label are read at different moments, each
 page after the last row of the one before, so a row whose place in the
 order changes between two pages can be left out, and when it is the row a
 page ended with, every row between its old place and its new can be. A
-row read twice refuses the read, and so does the row a page ended with
-deleted or no longer one the person may read; a total can mix moments. The
+row read twice refuses the read, but for a row Data names by no token and
+one whose key another application changed between the two pages, which
+print twice; the row a page ended with deleted or no longer one the
+person may read refuses it too; and a total can mix moments. The
 provider has run against a fixture that answers Data 0.5.0's routes, never
 against a Data server with a database and a policy behind it. Every Data
 release is a new admission and a release of this package, and a host runs
