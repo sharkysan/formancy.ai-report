@@ -443,7 +443,7 @@ serve the Studio under the same function of their own address
   project under Node 22.13 or later, and a client that speaks the Model
   Context Protocol configured to launch its bin there, by the command npm
   links; nothing to configure, since its tools need no server, and nothing
-  it reaches but its own pipes. The SDK it depends on, at exactly 1.30.1,
+  it reaches but its own pipes. The SDK it depends on, at exactly 1.32.2,
   brings its HTTP transports and their closure, 92 packages with it on 27
   November 2026, into that project for a server that speaks stdio alone,
   at the ranges the SDK's manifest gives. A host that type-checks the

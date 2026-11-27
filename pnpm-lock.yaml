@@ -828,11 +828,11 @@ importers:
         specifier: workspace:*
         version: link:../report-spec
       '@modelcontextprotocol/sdk':
-        specifier: 1.30.1
-        version: 1.30.1(supports-color@8.1.1)(zod@4.6.5)
+        specifier: 1.32.2
+        version: 1.32.2(supports-color@8.1.1)(zod@4.6.7)
       zod:
-        specifier: 4.6.5
-        version: 4.6.5
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@arethetypeswrong/cli':
         specifier: 'catalog:'
@@ -1895,8 +1895,8 @@ packages:
     engines: {node: '>=20.19.0'}
     hasBin: true
 
-  '@modelcontextprotocol/sdk@1.30.1':
-    resolution: {integrity: sha512-H2HxLvC3HDNybePJaLdSrU1hhUK5iQw+WvV1b01myFyI7sdVGe1u/IPTE5D9fGCiJDVtgMV/lmFkQXLmQyIFYA==}
+  '@modelcontextprotocol/sdk@1.32.2':
+    resolution: {integrity: sha512-SWsVtH/0vULSQStoZ6xxH2K09Li8fXYTMC64ZeogCdpZ3XSi1eCPOByV1OpuJxuI3OcmHhosDWYyii07tpPsLw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -5260,9 +5260,6 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@4.6.5:
-    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
-
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
@@ -6049,7 +6046,7 @@ snapshots:
 
   '@marcbachmann/cel-js@8.0.0': {}
 
-  '@modelcontextprotocol/sdk@1.30.1(supports-color@8.1.1)(zod@4.6.5)':
+  '@modelcontextprotocol/sdk@1.32.2(supports-color@8.1.1)(zod@4.6.7)':
     dependencies:
       '@hono/node-server': 2.1.11(hono@4.13.22)
       ajv: 8.20.0
@@ -6066,8 +6063,8 @@ snapshots:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.2
       raw-body: 3.0.2
-      zod: 4.6.5
-      zod-to-json-schema: 3.25.2(zod@4.6.5)
+      zod: 4.6.7
+      zod-to-json-schema: 3.25.2(zod@4.6.7)
     transitivePeerDependencies:
       - supports-color
 
@@ -9153,15 +9150,13 @@ snapshots:
       '@yuku-toolchain/types': 0.19.0
       yuku-core: 0.19.0
 
-  zod-to-json-schema@3.25.2(zod@4.6.5):
+  zod-to-json-schema@3.25.2(zod@4.6.7):
     dependencies:
-      zod: 4.6.5
+      zod: 4.6.7
 
   zod-validation-error@4.0.2(zod@4.6.7):
     dependencies:
       zod: 4.6.7
-
-  zod@4.6.5: {}
 
   zod@4.6.7: {}
 

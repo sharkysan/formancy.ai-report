@@ -328,8 +328,8 @@ and every run ends in a release report
 | `tslib`, by `@formancy/report-builder-angular` | 2.9.1 | `^2.8.0` |
 | `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
 | `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |
-| `@modelcontextprotocol/sdk`, by `@formancy/report-mcp` | 1.30.1 | `1.30.1` |
-| `zod`, by `@formancy/report-mcp` | 4.6.5 | `4.6.5` |
+| `@modelcontextprotocol/sdk`, by `@formancy/report-mcp` | 1.32.2 | `1.32.2` |
+| `zod`, by `@formancy/report-mcp` | 4.6.7 | `4.6.7` |
 | `fflate`, by `@formancy/report-render-docx` | 0.8.3 | `0.8.3` |
 | `pako`, by `@formancy/report-render-docx` | 3.0.2 | `3.0.2` |
 | `echarts`, by `@formancy/report-render-pdf` | 6.1.0 | `6.1.0` |

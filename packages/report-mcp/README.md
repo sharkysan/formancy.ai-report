@@ -79,8 +79,8 @@ of the commands it was.
 ## Dependencies
 
 `@formancy/report-spec` and `@formancy/report-core`; the MCP SDK,
-`@modelcontextprotocol/sdk`, at exactly 1.30.1, and `zod`, its peer, at
-exactly 4.6.5, both MIT. The SDK brings its HTTP transports in the same
+`@modelcontextprotocol/sdk`, at exactly 1.32.2, and `zod`, its peer, at
+exactly 4.6.7, both MIT. The SDK brings its HTTP transports in the same
 package, so its production closure -- Express, Hono, CORS and a JSON
 Schema validator among it -- is installed for a server that speaks stdio
 alone; `scripts/dependency-licences.mjs` judges every package of it, all

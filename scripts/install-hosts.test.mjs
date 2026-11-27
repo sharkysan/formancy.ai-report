@@ -49,7 +49,7 @@ const manifests = new Map([
   ['@formancy/report-client', { dependencies: { '@formancy/report-server-core': '0.1.0', '@formancy/report-spec': '0.1.0' } }],
   [
     '@formancy/report-mcp',
-    { dependencies: { '@formancy/report-core': '0.1.0', '@formancy/report-spec': '0.1.0', '@modelcontextprotocol/sdk': '1.30.1', zod: '4.6.5' } },
+    { dependencies: { '@formancy/report-core': '0.1.0', '@formancy/report-spec': '0.1.0', '@modelcontextprotocol/sdk': '1.32.2', zod: '4.6.7' } },
   ],
 ])
 const named = (name) => planProjects(manifests).find((project) => project.name === name)
@@ -140,7 +140,7 @@ describe('the projects the gate installs', () => {
   // it was built against are one fact (0088).
   test('install the MCP with only the packages it declares, and the SDK’s client at the release it declares', () => {
     expect(named('mcp')?.packages).toEqual(['@formancy/report-core', '@formancy/report-mcp', '@formancy/report-spec'])
-    expect(named('mcp')?.framework).toEqual({ '@modelcontextprotocol/sdk': '1.30.1' })
+    expect(named('mcp')?.framework).toEqual({ '@modelcontextprotocol/sdk': '1.32.2' })
     expect(named('mcp')?.browser).toBe(false)
     expect(named('mcp')?.tsconfig.content.compilerOptions.types).toEqual(['node'])
     expect(named('mcp')?.tsconfig.content.include).toEqual(['mcp.ts', 'mcp-globals.d.ts'])

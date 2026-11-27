@@ -3582,7 +3582,7 @@
       ]
     },
     "0088": {
-      "reviewed": "sha256:694f85eaa261bde967d653750b1ad481abc3ccd4a2d8bd62cc4d038ed388325c",
+      "reviewed": "sha256:bb4c38957477fe21946f0d55e4b41d9ba8ba781e93a46d1ead665a3e17463525",
       "limitations": [
         {
           "area": "release",
@@ -3590,11 +3590,7 @@
         },
         {
           "area": "release",
-          "says": "@formancy/report-mcp pins the MCP SDK at 1.30.1 and zod at 4.6.5, which published advisories name -- five of the SDK's, fixed by 1.32.0, about its OAuth client, experimental tasks, HTTP servers and HTTP client transports, none of which the package uses, and one of zod's, fixed in 4.6.6, about large arrays of failing elements -- so npm audit and Dependabot report them in every project that installs it until the pins move."
-        },
-        {
-          "area": "release",
-          "says": "A host that type-checks report-mcp's declarations, or the SDK's client, with skipLibCheck off and Node's types alone is refused HeadersInit, which the SDK 1.30.1's declarations name and Node's types 22 do not declare as a global, until it declares that name, as the install gate's MCP host does, or skips library checks.",
+          "says": "A host that type-checks report-mcp's declarations, or the SDK's client, with skipLibCheck off and Node's types alone is refused HeadersInit, which the SDK 1.32.2's declarations name and Node's types 22 do not declare as a global, until it declares that name, as the install gate's MCP host does, or skips library checks.",
           "heldBy": "scripts/install-hosts.test.mjs"
         },
         {

@@ -27,7 +27,7 @@ renders and fetches nothing, and no input takes a URL, a path or a file.
 report-core now exports what the tools answer, `reportFacts()` and
 `describeCommands()`, read from the format's constants and the registry.
 It depends on the MCP SDK, `@modelcontextprotocol/sdk`, at exactly
-1.30.1, and `zod` at exactly 4.6.5, both MIT, whose production closure
+1.32.2, and `zod` at exactly 4.6.7, both MIT, whose production closure
 is 92 packages, all permissive, Express and Hono among them, since the
 SDK ships its HTTP transports in the same package. The tools that read
 and save a draft on Report's server, and a render check, are still to

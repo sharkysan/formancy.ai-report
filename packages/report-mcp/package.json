@@ -37,8 +37,8 @@
   "dependencies": {
     "@formancy/report-core": "workspace:*",
     "@formancy/report-spec": "workspace:*",
-    "@modelcontextprotocol/sdk": "1.30.1",
-    "zod": "4.6.5"
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
