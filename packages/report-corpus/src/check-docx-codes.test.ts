@@ -208,6 +208,10 @@ describe('verifyDocx fails on a code whose picture', () => {
 
   // A wide code would be more than 2,400 pixels a side at 600 to the inch: its picture is as many whole pixels a module as 2,400 hold,
   // and fine enough at that. At a pixel a module fewer it is too coarse, as any picture under 600 to the inch is.
+  // Two pictures of 2,376 and 2,343 pixels a side, each drawn, read back, walked pixel by pixel and read by ZXing: 0.7 to 0.9 seconds
+  // alone and 2.5 to 2.7 under coverage, which is how CI's test job runs this suite, measured on 27 November 2026 on an Intel Core
+  // i9-10900K shared with other work, under Node 24.21.0, and 5.4 in CI's job that day (run 45992532351), past vitest's own 5 seconds.
+  // The bound is ten times what was measured here.
   test('is a large code’s, fine enough at as many pixels a module as the most hold', async () => {
     const large = (pixels: number): Promise<string> => {
       const parts = handCodeParts().set(QR_PNG, codePng(QR_SYMBOL, pixels))
@@ -220,7 +224,7 @@ describe('verifyDocx fails on a code whose picture', () => {
     }
     expect(await large(72)).toBe('')
     expect(await large(71)).toMatch(/a picture of 2343 pixels across 360 pt, fewer than 600 to the inch/)
-  })
+  }, 30_000)
 
   // The EPC allows a symbol up to version 13, which is what a bank's app must read: 340 bytes at level M are version 14, and no EPC QR code.
   test('is an EPC QR code’s in a larger version than the EPC allows', async () => {
