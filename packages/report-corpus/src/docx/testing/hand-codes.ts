@@ -43,9 +43,12 @@ export function codePng(
   const stride = 1 + Math.ceil(side / 8)
   const lines = new Uint8Array(side * stride)
   for (let y = 0; y < side; y++) {
+    // The row of modules a scanline stands in, looked up once a scanline: a large code's picture is millions of pixels.
+    const row = symbol.modules[Math.floor(y / pixels) - quiet]
+    const at = y * stride + 1
     for (let x = 0; x < side; x++) {
-      const dark = symbol.modules[Math.floor(y / pixels) - quiet]?.[Math.floor(x / pixels) - quiet] === true
-      if (!spoil(x, y, dark)) lines[y * stride + 1 + (x >> 3)]! |= 0x80 >> (x & 7)
+      const dark = row?.[Math.floor(x / pixels) - quiet] === true
+      if (!spoil(x, y, dark)) lines[at + (x >> 3)]! |= 0x80 >> (x & 7)
     }
   }
   const header = new Uint8Array(13)

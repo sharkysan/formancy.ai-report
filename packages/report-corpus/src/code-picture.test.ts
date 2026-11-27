@@ -25,13 +25,21 @@ const inSquare = (symbol: QrSymbol, side: number, strays: readonly (readonly [nu
 
 describe('codeGrid', () => {
   // The grid is found from the pixels: how many a module takes, and how many modules the symbol is, which is its version.
+  // At a hundred and forty the picture is 4,060 pixels a side, sixteen million pixels drawn, read back and walked: 0.55 to 0.7
+  // seconds alone and 2.5 to 2.8 under coverage, which is how CI's test job runs this suite, measured on 27 November 2026 on an Intel
+  // Core i9-10900K shared with other work, under Node 24.21.0, and 3.1 in CI's job that day (run 45992532351). The bound is ten times
+  // what was measured here.
   test.each([
     ['one pixel a module', 1],
     ['nine', 9],
     ['a hundred and forty', 140],
-  ])('finds a symbol drawn at %s', (_name, pixels) => {
-    expect(codeGrid(pixelsOf(SYMBOL, pixels))).toEqual({ pixels, modules: 21, version: 1 })
-  })
+  ])(
+    'finds a symbol drawn at %s',
+    (_name, pixels) => {
+      expect(codeGrid(pixelsOf(SYMBOL, pixels))).toEqual({ pixels, modules: 21, version: 1 })
+    },
+    30_000,
+  )
 
   test('finds the largest symbol, 177 modules a side', () => {
     expect(codeGrid(pixelsOf(qrSymbol(code('x'.repeat(1273), 'H'), 1000), 3))).toEqual({ pixels: 3, modules: 177, version: 40 })
