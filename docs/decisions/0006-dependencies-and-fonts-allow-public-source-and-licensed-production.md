@@ -367,9 +367,8 @@ Formancy Data Source-Available Licence Version 1.1, in force from
 `FORMANCY_DATA` admits the three at 0.5.0 by that digest, each for the
 package it was for, and holds no other. data-core 0.5.0 brings
 `@formancy/spec` and `@formancy/expressions` 0.13.0, formancy's, under
-Apache-2.0, which the policy allows as any package. The walk on
-2026-11-27 found 107 third-party packages, 10 fonts and one ICC profile,
-each allowed or read.
+Apache-2.0, which the policy allows as any package, and the walk found
+every other package, font and profile of the tree allowed or read.
 
 ## Alternatives considered
 
