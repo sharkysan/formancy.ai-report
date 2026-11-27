@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1190 744" width="1190" height="744" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1190 820" width="1190" height="820" role="img" aria-labelledby="title description">
   <title id="title">Formancy Report: the packages in their layers</title>
-  <desc id="description">A sketch of the packages of Formancy Report and its two apps, in the layers docs/architecture/05-building-blocks.md orders them in, each depending only on the packages drawn below it: report-spec and report-documents at the foot; report-core; report-builder-core, report-runtime and report-server-core; the builders, the two renderers, the test support, the form bridge, the data provider, the server and its client; and the Studio and the product pages at the top.</desc>
+  <desc id="description">A sketch of the packages of Formancy Report and its two apps, in the layers docs/architecture/05-building-blocks.md orders them in, each depending only on the packages drawn below it: report-spec and report-documents at the foot; report-core; report-ai, the model's turn; report-builder-core, report-runtime and report-server-core; the builders, the two renderers, the test support, the form bridge, the data provider, the server and its client; and the Studio and the product pages at the top.</desc>
   <style>
     /* The room's colours, each named as @formancy/themes/room.css names it (0034, narrowed by 0079): an image cannot
        import the room, so each is typed here, and scripts/architecture.test.mjs holds it to the installed room.css. */
@@ -22,7 +22,7 @@
     .column { font: 600 15px 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.12em; }
     .layer { font: 14px 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.08em; }
   </style>
-  <rect class="fill-ground" x="0" y="0" width="1190" height="744" rx="18"/>
+  <rect class="fill-ground" x="0" y="0" width="1190" height="820" rx="18"/>
   <text class="heading fill-text" x="24" y="52">Formancy Report, in its layers</text>
   <text class="says fill-muted" x="24" y="84">Each package depends only on the packages drawn below it. Violet is what a person edits with, teal what decides and prints a document.</text>
   <text class="column fill-client" x="128" y="120">EDIT</text>
@@ -32,10 +32,10 @@
   <text class="layer fill-muted" x="24" y="166">apps</text>
   <text class="layer fill-muted" x="24" y="240">L3</text>
   <text class="layer fill-muted" x="24" y="444">L2</text>
-  <text class="layer fill-muted" x="24" y="520">L1</text>
-  <text class="layer fill-muted" x="24" y="596">L0</text>
-  <path class="pen stroke-muted" d="M104.3 151 Q105.5 379.6 103.9 611.5 M105 611.9 Q101.5 603.1 96.1 594.7 M103.3 613.1 Q107.8 604.7 112.9 594.7"/>
-  <text class="layer fill-muted" transform="translate(92 381) rotate(-90)" text-anchor="middle">depends on what is below</text>
+  <text class="layer fill-muted" x="24" y="596">L1</text>
+  <text class="layer fill-muted" x="24" y="672">L0</text>
+  <path class="pen stroke-muted" d="M104.3 151 Q105.5 417.6 103.9 687.5 M105 687.9 Q101.5 679.1 96.1 670.7 M103.3 689.1 Q107.8 680.7 112.9 670.7"/>
+  <text class="layer fill-muted" transform="translate(92 419) rotate(-90)" text-anchor="middle">depends on what is below</text>
   <g id="report-studio">
     <rect class="fill-glass" x="124" y="132" width="516" height="56" rx="6"/>
     <path class="pen stroke-client private" d="M123.6 133.4 Q384.8 134.3 642.2 133.6 M641.3 128.5 Q642.1 162 638.8 191.3 M643.6 188.8 Q382.9 188.1 123.6 188.8 M125.5 188.9 Q123.3 162.1 122.8 131 M121.1 132.2 Q380.5 131.1 643.5 132 M639 129.4 Q640.5 160 638.4 188.9 M641.3 188.8 Q380.9 188.5 120.8 188.4 M125.6 188.5 Q126 161.5 123.9 131"/>
@@ -120,26 +120,32 @@
     <text class="name fill-text" x="936" y="434">report-server-core</text>
     <text class="says fill-muted" x="936" y="455">who may do what · the wire</text>
   </g>
+  <g id="report-ai">
+    <rect class="fill-glass" x="124" y="486" width="250" height="56" rx="6"/>
+    <path class="pen stroke-muted" d="M122.4 486.8 Q251.1 485.3 375.3 483.8 M374.4 487.9 Q372.9 516.4 373.7 540.2 M375 542.6 Q246.6 543.6 123.1 544.2 M124.2 540.6 Q125.7 513.5 122 487.2 M124.9 484.4 Q249.8 488.1 373.3 487.3 M371.8 486.4 Q375.9 512.9 376.4 541.7 M372.2 543 Q249.6 539.6 125.6 541.1 M126.2 542.2 Q122.6 515.7 123.5 484"/>
+    <text class="name fill-text" x="138" y="510">report-ai</text>
+    <text class="says fill-muted" x="138" y="531">the model's turn, formancy's</text>
+  </g>
   <g id="report-core">
-    <rect class="fill-glass" x="124" y="486" width="782" height="56" rx="6"/>
-    <path class="pen stroke-muted" d="M122 486.2 Q516.4 489.2 909.7 487.5 M907.6 482.8 Q906.5 515.2 906.6 543.9 M906.5 542.2 Q513.5 541.8 120.8 540.7 M122.5 545.3 Q122.2 512.5 124 484.3 M123 485 Q514.3 487.1 907.7 486.1 M906.2 485.4 Q907.8 514.9 907 542.9 M908.1 540.8 Q515.7 541.7 121.4 541.6 M125.1 543.8 Q123.7 514.9 123.7 485"/>
-    <text class="name fill-text" x="138" y="510">report-core</text>
-    <text class="says fill-muted" x="138" y="531">commands · undo · one compilation of every expression</text>
+    <rect class="fill-glass" x="124" y="562" width="782" height="56" rx="6"/>
+    <path class="pen stroke-muted" d="M122 562.2 Q516.4 565.2 909.7 563.5 M907.6 558.8 Q906.5 591.2 906.6 619.9 M906.5 618.2 Q513.5 617.8 120.8 616.7 M122.5 621.3 Q122.2 588.5 124 560.3 M123 561 Q514.3 563.1 907.7 562.1 M906.2 561.4 Q907.8 590.9 907 618.9 M908.1 616.8 Q515.7 617.7 121.4 617.6 M125.1 619.8 Q123.7 590.9 123.7 561"/>
+    <text class="name fill-text" x="138" y="586">report-core</text>
+    <text class="says fill-muted" x="138" y="607">commands · undo · one compilation of every expression</text>
   </g>
   <g id="report-spec">
-    <rect class="fill-glass" x="124" y="562" width="782" height="56" rx="6"/>
-    <path class="pen stroke-muted" d="M122.8 560.4 Q517.5 563 908.4 563 M906.4 559.9 Q904.5 586.9 907.3 618.4 M908 616.7 Q515.3 615.3 123.5 618 M122.8 621.6 Q124.8 589.9 123.7 560.3 M121.4 561.7 Q514.3 563.4 909.6 562.4 M904.6 559 Q904.6 589.8 904.5 620.4 M909.1 619.5 Q513.8 620 122.1 617 M122.7 619.6 Q122.5 589 123.5 558.3"/>
-    <text class="name fill-text" x="138" y="586">report-spec</text>
-    <text class="says fill-muted" x="138" y="607">the format · validation · hash · SIX's, the EPC's and EN 16931's rules</text>
+    <rect class="fill-glass" x="124" y="638" width="782" height="56" rx="6"/>
+    <path class="pen stroke-muted" d="M122.8 636.4 Q517.5 639 908.4 639 M906.4 635.9 Q904.5 662.9 907.3 694.4 M908 692.7 Q515.3 691.3 123.5 694 M122.8 697.6 Q124.8 665.9 123.7 636.3 M121.4 637.7 Q514.3 639.4 909.6 638.4 M904.6 635 Q904.6 665.8 904.5 696.4 M909.1 695.5 Q513.8 696 122.1 693 M122.7 695.6 Q122.5 665 123.5 634.3"/>
+    <text class="name fill-text" x="138" y="662">report-spec</text>
+    <text class="says fill-muted" x="138" y="683">the format · validation · hash · SIX's, the EPC's and EN 16931's rules</text>
   </g>
   <g id="report-documents">
-    <rect class="fill-glass" x="922" y="562" width="250" height="56" rx="6"/>
-    <path class="pen stroke-muted" d="M921.7 561.9 Q1049.8 564.3 1175 562.9 M1172.8 559.6 Q1174.2 591 1170.4 619.5 M1173.2 618.9 Q1049.2 617.8 921.4 617.4 M922.9 618.7 Q925 589.2 922.4 560.9 M921.2 562.5 Q1046.7 564.5 1174.8 561.8 M1172.6 561 Q1171.7 593.2 1172 621.6 M1174.9 618.1 Q1048.1 618.4 920.3 616.9 M923.4 620.3 Q925.8 591.7 923.5 561.6"/>
-    <text class="name fill-text" x="936" y="586">report-documents</text>
-    <text class="says fill-muted" x="936" y="607">the one PDF reader</text>
+    <rect class="fill-glass" x="922" y="638" width="250" height="56" rx="6"/>
+    <path class="pen stroke-muted" d="M921.7 637.9 Q1049.8 640.3 1175 638.9 M1172.8 635.6 Q1174.2 667 1170.4 695.5 M1173.2 694.9 Q1049.2 693.8 921.4 693.4 M922.9 694.7 Q925 665.2 922.4 636.9 M921.2 638.5 Q1046.7 640.5 1174.8 637.8 M1172.6 637 Q1171.7 669.2 1172 697.6 M1174.9 694.1 Q1048.1 694.4 920.3 692.9 M923.4 696.3 Q925.8 667.7 923.5 637.6"/>
+    <text class="name fill-text" x="936" y="662">report-documents</text>
+    <text class="says fill-muted" x="936" y="683">the one PDF reader</text>
   </g>
-  <path class="pen stroke-muted private" d="M120.5 652.3 Q144.8 654.2 170.5 651.8 M168.6 648.4 Q170.6 662.8 168.6 679 M170.5 677 Q145 678.3 120.8 675.3 M125.1 677.5 Q123.3 664.7 122.4 651.4 M121.5 653.5 Q148.1 653.3 173.5 651.9 M171.4 651.1 Q169 667.1 171.3 679 M170.6 675.4 Q147.1 677 123 675.5 M124.9 679.5 Q123 663.1 125 651"/>
-  <text class="says fill-muted" x="186" y="670">private: never published as a package</text>
-  <path class="pen stroke-muted" d="M122 693 Q148.1 693.4 171.3 692.6 M169.2 690.6 Q170.5 702.6 171.2 717.1 M173.5 716.3 Q148 718 123.1 715.6 M123 717.6 Q126.8 705.4 125.7 690 M122.1 690.8 Q145.4 691.3 171.2 693.2 M168.7 689.5 Q171 706.6 170.7 719.5 M170.4 716.5 Q146.2 716.1 121.1 714.9 M123.9 717.4 Q126.2 702.5 123.7 688.8"/>
-  <text class="says fill-muted" x="186" y="710">a package a release publishes to npm, as @formancy/ and the name in the box</text>
+  <path class="pen stroke-muted private" d="M120.5 728.3 Q144.8 730.2 170.5 727.8 M168.6 724.4 Q170.6 738.8 168.6 755 M170.5 753 Q145 754.3 120.8 751.3 M125.1 753.5 Q123.3 740.7 122.4 727.4 M121.5 729.5 Q148.1 729.3 173.5 727.9 M171.4 727.1 Q169 743.1 171.3 755 M170.6 751.4 Q147.1 753 123 751.5 M124.9 755.5 Q123 739.1 125 727"/>
+  <text class="says fill-muted" x="186" y="746">private: never published as a package</text>
+  <path class="pen stroke-muted" d="M122 769 Q148.1 769.4 171.3 768.6 M169.2 766.6 Q170.5 778.6 171.2 793.1 M173.5 792.3 Q148 794 123.1 791.6 M123 793.6 Q126.8 781.4 125.7 766 M122.1 766.8 Q145.4 767.3 171.2 769.2 M168.7 765.5 Q171 782.6 170.7 795.5 M170.4 792.5 Q146.2 792.1 121.1 790.9 M123.9 793.4 Q126.2 778.5 123.7 764.8"/>
+  <text class="says fill-muted" x="186" y="786">a package a release publishes to npm, as @formancy/ and the name in the box</text>
 </svg>

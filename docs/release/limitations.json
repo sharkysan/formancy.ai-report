@@ -19,7 +19,7 @@
       ]
     },
     "0002": {
-      "reviewed": "sha256:a5c7e1953422a1b63d423f6aeeb6d8de5327082e17d75bf4c3bc8f069668cc36",
+      "reviewed": "sha256:a66814957c42be771df42ada0e3b48cee68d23dac8d21141db862deb271d53b0",
       "limitations": [
         {
           "area": "release",
@@ -3583,6 +3583,40 @@
           "area": "release",
           "says": "The Studio's picker lists the invoice first and the other starters after it, where the corpus, the samples and their index, the README's table of the starters and the e-invoice gate's corpus list it fourth, so the same starters stand in two orders.",
           "heldBy": "apps/studio/src/starters/starters.test.ts"
+        }
+      ]
+    },
+    "0083": {
+      "reviewed": "sha256:8f998b1a940f202b2d03bb79cc0ff2aa28d5dd6e1171fe973728b76b854aeb72",
+      "limitations": [
+        {
+          "area": "editing",
+          "says": "`@formancy/report-ai` asks a model for nothing yet: `REQUEST_KINDS` is empty, so a host can run requests of its own through `askChecked` and a relay, and no Report feature proposes anything a person reviews.",
+          "heldBy": "apps/pages/src/limits.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A stop ends a run at once and discards the answer that arrives after it, but a host whose `AskModel` ignores `turn.onCancel` keeps paying for the request the person abandoned.",
+          "heldBy": "packages/report-ai/src/turn/ask.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "An answer pasted into a relay is not bound to the request it answers, so a person may paste any chat's answer, and only the caller's check stands between it and what the run returns.",
+          "heldBy": "packages/report-ai/src/turn/relay.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "report-ai's turn is formancy 0.14.0's, so a fix formancy makes to its own turn after 0.14.0 reaches Report only when someone carries it here by hand or a formancy bump fails the differential test.",
+          "heldBy": "packages/report-ai/src/turn/against-formancy.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "Where an answer's object is not formancy's working form, the differential test sees only that both readers found an object, never which, so a reader that took another object of the same text passes it.",
+          "heldBy": "packages/report-ai/src/turn/against-formancy.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "The turn in `@formancy/report-ai` carries the source-available licence, as every Report package does, though the code it copies is Apache-2.0 in formancy's `@formancy/builder-core`, which does not export it."
         }
       ]
     }

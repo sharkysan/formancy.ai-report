@@ -181,3 +181,23 @@ describe('the Word writer\'s README, "Write a report as a Word file"', () => {
     expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
   })
 })
+
+describe('the model turn\'s README, "Ask a model"', () => {
+  // A reader copies it into a host that asks its own model (0083), so
+  // every line of it is a line the install gate runs, from the packed
+  // report-ai in the Node host (scripts/install-fixture/model-turn.ts). An
+  // example that drifted from what the package exports, or from how a run
+  // is asked, would otherwise compile nowhere.
+  test('is code the install gate runs, line for line', () => {
+    const readme = readFileSync(join(root, 'packages/report-ai/README.md'), 'utf8').replaceAll('\r\n', '\n')
+    const lines = exampleLines(readme, 'Ask a model')
+    const consumer = new Set(
+      readFileSync(join(root, 'scripts/install-fixture/model-turn.ts'), 'utf8')
+        .replaceAll('\r\n', '\n')
+        .split('\n')
+        .map((line) => line.trim()),
+    )
+    expect(lines?.length).toBeGreaterThan(10)
+    expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
+  })
+})

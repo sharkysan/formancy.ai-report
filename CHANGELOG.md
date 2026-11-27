@@ -107,6 +107,28 @@ authored with it.
   second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
   provider takes a Data release built against a newer one.
 
+**A new package, `@formancy/report-ai`, holds a model's turn, and asks a
+model for nothing yet**
+([0083](docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)).
+Report's first AI features -- a report's missing words proposed by a model
+and reviewed word by word, then more -- need what formancy's builders
+have: ask a model, read the JSON object it wrote, ask again with the
+latest complaint, let a person stop the run, let the model decline, and
+let a person carry the turn by hand where no model may be called.
+formancy does not export that turn, and types it with its own three
+requests, so Report holds it in formancy's shapes and names --
+`askChecked`, `createStop`, `readAnswer`, `declinedAnswer`,
+`ModelBusyError`, `createRelay` and `relayMessage`, `AuthoringPrompt`
+as `ModelPrompt` -- generic over the kind, until formancy releases one
+other products may brief; then the copy is deleted for it. A test holds
+it to formancy 0.14.0's released turn, its types, its runs and its relay,
+through `@formancy/builder-core` 0.14.0, which that suite alone
+installs, and the README's table of what Report is tested with names it.
+`REQUEST_KINDS` is empty, so the start page's "No changes proposed by an
+AI" still holds, and is now held to that list rather than to no package
+being named `report-ai`. The package depends on `@formancy/spec` 0.14.0
+alone, for the decline's key; no framework, no DOM, no Node, no network.
+
 ## 0.3.0 — 2026-11-23
 
 **In short.** The third release, still a developer preview: for evaluating

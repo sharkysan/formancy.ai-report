@@ -260,6 +260,9 @@ importers:
         specifier: ^19.3.0
         version: 19.3.1(react@19.3.1)
     devDependencies:
+      '@formancy/report-ai':
+        specifier: workspace:*
+        version: link:../../packages/report-ai
       '@formancy/report-spec':
         specifier: workspace:*
         version: link:../../packages/report-spec
@@ -414,6 +417,40 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 5.0.4(@types/node@22.20.5)(@vitest/coverage-v8@5.0.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(less@4.9.1(supports-color@8.1.1))(sass-embedded@1.104.1)(sass@1.104.1)(yaml@2.9.1))
+
+  packages/report-ai:
+    dependencies:
+      '@formancy/spec':
+        specifier: 0.14.0
+        version: 0.14.0
+    devDependencies:
+      '@arethetypeswrong/cli':
+        specifier: 'catalog:'
+        version: 0.18.5
+      '@formancy/builder-core':
+        specifier: 0.14.0
+        version: 0.14.0
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.5
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.4(vitest@5.0.4)
+      publint:
+        specifier: 'catalog:'
+        version: 0.3.25
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.1(@arethetypeswrong/core@0.18.5)(publint@0.3.25)(typescript@6.0.3)(unrun@0.3.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      unrun:
+        specifier: ^0.3.1
+        version: 0.3.1
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@22.20.5)(@vitest/coverage-v8@5.0.4)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.5(@types/node@22.20.5)(esbuild@0.28.2)(less@4.9.1(supports-color@8.1.1))(sass-embedded@1.105.1)(sass@1.105.1)(yaml@2.9.1))
 
   packages/report-builder-angular:
     dependencies:
@@ -1676,12 +1713,18 @@ packages:
   '@fontsource/ibm-plex-sans@5.3.0':
     resolution: {integrity: sha512-CbE4CbbEEZJX860XyUiRpsksXIQR8Rp2XDva2VO53NJox9tVNtusrysd2x5YkUEY3ErQ66W1IiiQL8/wihhw5w==}
 
+  '@formancy/builder-core@0.14.0':
+    resolution: {integrity: sha512-XrZE78OrkZ69LxQ82DH94fvl4SO+WOS48MDbyGPcre/ulV2Fgeha+X8vjFpxULvv5m4AP4S8C+W5Exlv7XvZuA==}
+
   '@formancy/code-style@0.14.0':
     resolution: {integrity: sha512-5UIq6/ZFIdlHEtMqFQEiI94DrNVCoQ5wPK/Z/4bjze7WkPR7Hhn+uE7K6yHNPYUytIIJl6pQCAC19zHtEKe5Ug==}
     peerDependencies:
       eslint: ^10.13.0
       prettier: ^3.9.10
       typescript: ~6.0.3
+
+  '@formancy/core@0.14.0':
+    resolution: {integrity: sha512-qvap4qwLKoTaXOPgzubMTAGTwX+YsV62HuyVcICOBlACIjPwlgb4iLuu/28WjQ4kwu/Tgq777Ci1f444KrSvYQ==}
 
   '@formancy/data-client@0.1.0':
     resolution: {integrity: sha512-t7R3lF81H+hQ/i/piPpuFQle+eUKz1B3uQAWq0IdeIdE5uy/pqc93OLwTFoyglcW2Mc/jfbu+X3eqrjEzrzFQg==}
@@ -5553,6 +5596,12 @@ snapshots:
 
   '@fontsource/ibm-plex-sans@5.3.0': {}
 
+  '@formancy/builder-core@0.14.0':
+    dependencies:
+      '@formancy/core': 0.14.0
+      '@formancy/expressions': 0.14.0
+      '@formancy/spec': 0.14.0
+
   '@formancy/code-style@0.14.0(eslint@10.13.0(supports-color@8.1.1))(prettier@3.9.10)(supports-color@8.1.1)(typescript@6.0.3)':
     dependencies:
       '@eslint-community/eslint-plugin-eslint-comments': 4.8.1(eslint@10.13.0(supports-color@8.1.1))
@@ -5565,6 +5614,11 @@ snapshots:
       typescript-eslint: 8.72.1(eslint@10.13.0(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)
     transitivePeerDependencies:
       - supports-color
+
+  '@formancy/core@0.14.0':
+    dependencies:
+      '@formancy/expressions': 0.14.0
+      '@formancy/spec': 0.14.0
 
   '@formancy/data-client@0.1.0':
     dependencies:

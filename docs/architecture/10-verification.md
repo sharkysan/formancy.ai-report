@@ -260,6 +260,22 @@ What each bound costs, in time and heap, and how many real files the
 reader refuses are measurements, dated in `limits.ts` and in 0054, and
 held by nothing.
 
+**A model's turn, held to formancy's.** Nothing asks a model yet:
+report-ai's `REQUEST_KINDS` is empty. The turn is formancy 0.14.0's,
+held in report-ai's `src/turn/` until formancy releases one other
+products may brief, and what fails when the two stop agreeing is a suite
+that runs formancy's released package beside it
+([0083](../decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)):
+
+| Where | What holds it |
+|---|---|
+| The types, instantiated for formancy's kinds and held equal to formancy's own: the prompt, the ask, the turn, the stop, the relay and its turn, a run's failure, the busy error and the functions' signatures | `report-ai/src/turn/against-formancy.test.ts`, under `pnpm typecheck` through report-ai's `tsconfig.test.json`, since vitest runs `expectTypeOf` as nothing |
+| A run and the reader: the same scripted host asked by Report's `askChecked` and formancy's `authorForm`, ending alike, each turn numbered and told of a stop alike; every answer of a list read alike through both runs and every paste alike through both relays; each run asking the other's relay; `declinedAnswer` and `relayMessage` byte for byte | `report-ai/src/turn/against-formancy.test.ts`, with `@formancy/builder-core` 0.14.0 a devDependency of that suite alone |
+| The six endings, the latest problem alone, the stop's race, a reason read by its shape, the decline by `@formancy/spec`'s key; the relay's one turn, its pre-check and a stop clearing it | `report-ai/src/turn/ask.test.ts`, `relay.test.ts` |
+| The folder imports `@formancy/spec` and its own modules alone, so it can be deleted for formancy's | `report-ai/src/turn/generic.test.ts` |
+| The start page's "No changes proposed by an AI", held to the built `REQUEST_KINDS` | `apps/pages/src/limits.test.ts` |
+| The packed package | The install gate's `scripts/install-fixture/model-turn.ts`: a scripted model asked again with the latest complaint, a decline, a stop and a relay carried by hand, from the packed report-ai; the package README's example is its lines (`scripts/readme-example.test.mjs`) |
+
 **A group header and the rows it keeps, at every layer that reads the
 count.** The count is the format's, resolved against its group once, by
 the runtime, and kept by the blocks, rules and planned breaks that keep

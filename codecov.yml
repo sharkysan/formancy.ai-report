@@ -46,6 +46,10 @@ component_management:
       - type: project
         informational: true
   individual_components:
+    - component_id: report-ai
+      name: packages/report-ai
+      paths:
+        - packages/report-ai/**
     - component_id: report-builder-angular
       name: packages/report-builder-angular
       paths:

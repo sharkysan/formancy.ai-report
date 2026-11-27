@@ -76,12 +76,15 @@ writes
 Every starter's page, the invoice in four languages and the euro invoice
 from six countries are in [What the starters print](./docs/starters.md).
 
-> **Status, 23 November 2026:** 0.3.0, a developer preview, is published
+> **Status, 27 November 2026:** 0.3.0, a developer preview, is published
 > on npm, and [its release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.3.0)
 > carries the report of the run that gated it.
 > What 0.3.0 holds and leaves out is
 > [its section of the changelog](./CHANGELOG.md#030--2026-11-23), and
-> what `main` gains after it is under *Unreleased* there. The
+> what `main` gains after it is under *Unreleased* there: among it
+> `@formancy/report-ai`, a model's turn in formancy's shapes, which asks a
+> model for nothing yet
+> ([0083](./docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)). The
 > report format is still version "0", the draft: a report written now is
 > not promised to be read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
@@ -177,7 +180,7 @@ Every picture in this section is taken by `node scripts/pictures.mjs`, in Chromi
 
 ## How it fits together
 
-![A hand-drawn sketch of Formancy Report's packages on a dark background, in four columns, Edit, Print, Data in and Serve: the Studio and the product pages at the top; the builders, the two renderers, the test support, the form bridge, the data provider, the server and its client below them; then report-builder-core, report-runtime and report-server-core; report-core; and report-spec and report-documents at the bottom. The editing column is violet, the printing column teal, and what is never published is dashed](docs/images/architecture.svg)
+![A hand-drawn sketch of Formancy Report's packages on a dark background, in four columns, Edit, Print, Data in and Serve: the Studio and the product pages at the top; the builders, the two renderers, the test support, the form bridge, the data provider, the server and its client below them; then report-builder-core, report-runtime and report-server-core; report-ai, the model's turn; report-core; and report-spec and report-documents at the bottom. The editing column is violet, the printing column teal, and what is never published is dashed](docs/images/architecture.svg)
 
 A report is a document of its own, versioned and validated by
 `report-spec`. `report-core` changes it by commands with undo, and both
@@ -221,6 +224,7 @@ The install gate runs these lines from the packed packages
 | [`@formancy/report-spec`](./packages/report-spec/README.md) | The report format, version 0 (a draft): its types, validation, a canonical hash, and the rules of payment codes, e-invoices, SVGs and fonts |
 | [`@formancy/report-documents`](./packages/report-documents/README.md) | The one PDF reader: a PDF read whole or refused, within measured bounds; nothing calls it yet |
 | [`@formancy/report-core`](./packages/report-core/README.md) | Commands over a report, a session with exact undo, and one compilation of every expression |
+| [`@formancy/report-ai`](./packages/report-ai/README.md) | A model's turn, in formancy's shapes: ask, read the answer, ask again with the latest complaint, stop, decline, or a person carries it by hand; it asks a model for nothing yet |
 | [`@formancy/report-runtime`](./packages/report-runtime/README.md) | Resolves a report against its data into a renderer-neutral document, every value decided once, and writes an e-invoice's XML |
 | [`@formancy/report-render-pdf`](./packages/report-render-pdf/README.md) | Draws that document with pdfmake, in Node and in a browser, or refuses it whole |
 | [`@formancy/report-render-docx`](./packages/report-render-docx/README.md) | Writes that document as a Word file, the same bytes for the same document, and refuses what belongs to its PDF |
@@ -270,7 +274,11 @@ depends on
 
 Report depends on the released `@formancy/*` packages at exact versions and
 copies none of their code
-([0002](./docs/decisions/0002-depend-on-upstream-never-copy-it.md)).
+([0002](./docs/decisions/0002-depend-on-upstream-never-copy-it.md)), but
+for formancy's model turn, which formancy does not export: `@formancy/report-ai`
+holds it in formancy's shapes, held to formancy 0.14.0's by a test, until
+formancy releases one other products may brief
+([0083](./docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)).
 Formancy Data is optional: one package reads its records as the person whose
 token your application supplies
 ([0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)),
@@ -314,6 +322,8 @@ and every run ends in a release report
 
 | | Tested with | Declared as |
 | --- | --- | --- |
+| `@formancy/builder-core` | 0.14.0 | `0.14.0` |
+| `@formancy/core` (transitive) | 0.14.0 |  |
 | `@formancy/data-client` | 0.1.0 | `0.1.0` |
 | `@formancy/data-core` (transitive) | 0.1.0 |  |
 | `@formancy/data-identity` | 0.3.0 | `0.3.0` |
