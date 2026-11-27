@@ -107,6 +107,21 @@ authored with it.
   second `@formancy/spec`**, 0.5.0 through Formancy Data 0.1.0, until the
   provider takes a Data release built against a newer one.
 
+**A table in a framed section prints the header it repeats above the
+frame on the pages it continues on, as the renderer's documentation now
+says**
+([0011](docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
+pdfmake 0.3.11 puts a header it repeats at the top of a page before the
+frame around the table continues there, so on each later page the header
+and the rule over it stand above the frame's top rule, the header outside
+its sides and off its fill, while every row stands inside; a framed
+section inside another starts each page after its first on the outer
+frame's top rule. The renderer's README said a frame's blocks are laid
+out inside it, tables included; it now names the exception, and tests
+hold both as they stand until pdfmake adds a repeated header inside the
+frames around it. Nothing prints otherwise than it did, and no starter
+holds either.
+
 **A new package, `@formancy/report-ai`, holds a model's turn, and asks a
 model for nothing yet**
 ([0083](docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)).
