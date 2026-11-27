@@ -10,6 +10,38 @@ later.
 
 ## Unreleased
 
+**A coding agent can render a report with sample data and read what its
+PDF prints, page by page, through `@formancy/report-mcp`'s new
+`render_check`**
+([0089](docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)).
+What an agent most needs to know of a report -- on which page a line
+landed, what a table prints where, what stands on the last page -- only
+the PDF knows, and Report proves every claim about output on the PDF. The
+tool renders the report as a host does, with the data, the parameters,
+the locale, the zone and the mode passed in, and answers each page's
+lines read back with PDF.js, or the validator's, the runtime's or the
+renderer's refusal by its codes; never the PDF itself. Images and fonts
+come as base64 bytes with their digests, each held to its digest before
+anything resolves. One call is bounded: the report by `MAX_REPORT_BYTES`,
+the data by the runtime's rows and string length, the PDF by 40 pages,
+and the answer by `MAX_REPORT_BYTES` again, refused whole past it.
+report-mcp now depends on the runtime, the renderer and `pdfjs-dist` at
+exactly 6.4.299, the corpus's, Apache-2.0, with its optional native
+`@napi-rs/canvas`, MIT: an agent's install was 127 packages and 194 MB on
+one Windows machine on 27 November 2026, the renderer and PDF.js loaded
+only with the first check. pdfjs-dist ships Liberation Sans 1 under
+GPL-2.0 with a font-embedding exception, which report-mcp never loads;
+the licence guard admits those four files for report-mcp alone as never
+loaded, an admission 0089 proposes and the owner decides, and reads
+pdfjs-dist's Foxit faces and its CMYK profile by reviews of their own.
+Besides: an edit `apply_commands` applied whose report is past
+`MAX_REPORT_BYTES` is answered not `ok` and no longer `isError`, since
+the edit was made and its report is the one to fix; the composition
+guard reads every directory of the package and holds `createRequire` to
+its one unaliased import; and report-core's note on `/` says it is
+refused as inexact on integers and as no operation on decimals, as the
+compiler refuses it.
+
 **A coding agent can work on a report template against Report's own
 checks, through the new `@formancy/report-mcp`**
 ([0088](docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
@@ -25,8 +57,8 @@ runs them as one edit through the builders' own registry and session,
 refused whole, where the agent passes the hash it last checked, when the
 report is not that one. What a save asks of Report's server -- the
 report's id, the images it keeps, no font -- the server alone answers. It
-needs no server and reads no setting; it saves, publishes, renders and
-fetches nothing, and no input takes a URL, a path or a file.
+needs no server and reads no setting; it saves, publishes and fetches
+nothing, and no input takes a URL, a path or a file.
 report-core now exports what the tools answer, `reportFacts()` and
 `describeCommands()`, read from the format's constants and the registry.
 It depends on the MCP SDK, `@modelcontextprotocol/sdk`, at exactly
@@ -34,8 +66,7 @@ It depends on the MCP SDK, `@modelcontextprotocol/sdk`, at exactly
 was 92 packages on 27 November 2026, all permissive, Express and Hono
 among them, since the
 SDK ships its HTTP transports in the same package. The tools that read
-and save a draft on Report's server, and a render check, are still to
-come.
+and save a draft on Report's server are still to come.
 
 **The product pages name PDF and Word, and pages for invoices, Word
 files and each report designer join them; every published package names

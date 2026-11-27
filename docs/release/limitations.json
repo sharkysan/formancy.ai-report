@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:d167ba8fe1c0ca9a39536739761c4b5cf486d721244d3865814f38ee01e9ff0d",
+      "reviewed": "sha256:9ebac5853cb44ee04bececf346ab7e7335c06a5cfebf30d41c3cd1dc7eb70bbc",
       "limitations": [
         {
           "area": "testing",
@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:8caa1b599fe40057ff5fa73f459b3b32e62620af6c26cc7ab0685e0772993bb3",
+      "reviewed": "sha256:f3c05b7f59fc7a0affac464d2ca0ad6b4d21ee23306d6c0c708a12289f972477",
       "limitations": [
         {
           "area": "licence",
@@ -3592,7 +3592,7 @@
       ]
     },
     "0088": {
-      "reviewed": "sha256:dd9ec623d68b63306acd4556603e3fb9c3c7a2b2f7e59d1d2b0312e470b575d4",
+      "reviewed": "sha256:f11381a99d4a7e440e7af678e502fd3e6e3e31332c23ca356fb0f26cc43c54ba",
       "limitations": [
         {
           "area": "release",
@@ -3614,7 +3614,12 @@
         },
         {
           "area": "editing",
-          "says": "No MCP tool reads or saves a draft on Report's server, or renders a PDF, yet: the tools check a report and apply commands to the one an agent hands over and keep nothing, so what an agent wrote reaches a builder or the server only as the host carries it there.",
+          "says": "No MCP tool reads or saves a draft on Report's server yet: the tools check, apply commands to and render the report an agent hands over and keep nothing, so what an agent wrote reaches a builder or the server only as the host carries it there.",
+          "heldBy": "packages/report-mcp/src/server.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "An edit apply_commands applied whose report is past MAX_REPORT_BYTES is answered not ok and without isError, since the edit was made: a client that reads isError alone takes it for a report a save would take, where ok and the summary say it is not.",
           "heldBy": "packages/report-mcp/src/server.test.ts"
         },
         {
@@ -3639,6 +3644,44 @@
         {
           "area": "testing",
           "says": "The MCP's bin has been launched by the SDK's stdio client alone, in the install gate and by hand on Windows, and by no agent's client, so whether a given client launches it is that client's."
+        }
+      ]
+    },
+    "0089": {
+      "reviewed": "sha256:d5f75d2540cfde44ed3c108278e5fde2127ce3fb1ef62b21954158db704af7b9",
+      "limitations": [
+        {
+          "area": "licence",
+          "says": "@formancy/report-mcp depends on pdfjs-dist 6.4.299, which ships four faces of Liberation Sans 1.07.4 under GPL-2.0 with a font-embedding exception beside its Apache-2.0 code: the licence guard admits those files for report-mcp alone as never loaded, an admission 0089 proposes for the owner to decide, and report-mcp never reads them, but every agent's install holds them.",
+          "heldBy": "packages/report-mcp/src/pdf-text.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "report-mcp's install carries the renderer and PDF.js since its render check: its third-party closure was 127 packages and 194 MB on one Windows machine on 27 November 2026, ECharts, the native @napi-rs/canvas binary and pdfjs-dist the largest, for an agent that may never render."
+        },
+        {
+          "area": "rendering",
+          "says": "render_check answers each page's lines of text, read from the PDF with PDF.js, and never the PDF's bytes or where a line stands on its page: text drawn over text, clipping, colour, an image and a code are not seen, and a chart's words are read as runs.",
+          "heldBy": "packages/report-mcp/src/render.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "render_check refuses whole a report past 40 pages, and an answer past MAX_REPORT_BYTES, 256 KiB, with its page count, so a long report is checked with fewer rows.",
+          "heldBy": "packages/report-mcp/src/render.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "render_check's data is the runtime's envelope, completeness and consistency beside header and detail, which the runtime refuses data without: an agent's sample data of header and detail alone is refused by those codes until it carries them.",
+          "heldBy": "packages/report-mcp/src/render.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A render check runs on the MCP server's one thread and can take seconds within every bound, 3.3 s at 100,000 detail rows on one machine; a client's cancel reaching it through the protocol is not tested."
+        },
+        {
+          "area": "testing",
+          "says": "render_check's line reader is a second copy of the corpus's pageLines, held equal to it on the corpus's PDFs and not on every report, nor at every fraction: a word gap of 0.25 em read those PDFs as the 0.15 em both use.",
+          "heldBy": "packages/report-mcp/src/pdf-text.test.ts"
         }
       ]
     }

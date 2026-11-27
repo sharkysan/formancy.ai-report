@@ -443,11 +443,18 @@ serve the Studio under the same function of their own address
   project under Node 22.13 or later, and a client that speaks the Model
   Context Protocol configured to launch its bin there, by the command npm
   links; nothing to configure, since its tools need no server, and nothing
-  it reaches but its own pipes and, once, its own manifest. One message
+  it reaches but its own pipes and, once, its own manifest, its
+  dependencies reading their own files -- the renderer its faces, PDF.js
+  its worker module. One message
   past the SDK's stdio bound, 10 MiB, ends the process without an answer. The SDK it depends on, at exactly 1.32.2,
   brings its HTTP transports and their closure, 92 packages with it on 27
   November 2026, into that project for a server that speaks stdio alone,
-  at the ranges the SDK's manifest gives. A host that type-checks the
+  at the ranges the SDK's manifest gives. Its render check brings the
+  runtime, the renderer and pdfjs-dist 6.4.299 with `@napi-rs/canvas`,
+  whose platform binary npm installs where it has one: 127 packages and
+  194 MB on one Windows machine on 27 November 2026, which the renderer
+  and PDF.js are imported from with the first check
+  ([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)). A host that type-checks the
   package's declarations with `skipLibCheck` off and Node's types alone
   declares the DOM's `HeadersInit`, which the SDK's declarations name, as
   the install gate's host does in `scripts/install-fixture/mcp-globals.d.ts`. The bin

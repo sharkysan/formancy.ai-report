@@ -637,6 +637,25 @@ regions; a table's rules and padding, a rule's space, a rectangle's
 outline, the gap under a header and every colour print nothing it reads,
 and are review's.
 
+**What an agent is told.** The MCP's `render_check` answers a report's
+lines, page by page, read back from the PDF the renderer drew of it with
+the data the agent passed in, by a reader of report-mcp's own, which is
+the corpus's rule written again ([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)):
+
+| Where | What holds it |
+|---|---|
+| The reading: every starter's final render, every Euro invoice sample and the corpus's runs set off the line, read equal to the corpus's `pageLines` of the same PDF; a run set off its line and a turned caption among them | `report-mcp/src/pdf-text.test.ts` |
+| Nothing fetched and no file read, a page in Helvetica, never embedded, among the PDFs read | `report-mcp/src/pdf-text.test.ts` |
+| The answer: the quotation's lines in the page's order, the runtime's refusals by their codes, a preview labelled, an asset held to its digest before anything resolves, no byte of the PDF; the report, the rows, a string, the pages and the answer each at its bound and one past it | `report-mcp/src/render.test.ts` |
+| One PDF.js: report-mcp's pin the corpus's, a dependency | `scripts/mirrored-pdfjs.test.mjs` |
+| The packed bin render-checking the quotation and reading its title back | The install gate's `mcp.ts` |
+
+What it does not see is what PDF.js does not: the lines are text, and
+where a line stands on its page is not answered. The two readers are held
+equal on the corpus's PDFs and not on every report, and not at every
+fraction of their rule: a word gap of 0.25 em reads those PDFs as the
+0.15 em both use does.
+
 **What it does not see.** A rule or a border through a row, a shape over a
 line, a clipped glyph, white text on white: none is text or an image to
 PDF.js, and the paths it reads are an SVG drawing's and a chart's alone. A
@@ -705,7 +724,7 @@ that describe the repository rather than a package. Among them:
 | Guard | Fails when |
 |---|---|
 | `upstream-deps.test.mjs` | An `@formancy/*` dependency from outside the workspace, in the root manifest or a workspace's, is a range, a link or a path ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)) |
-| `dependency-licences.test.mjs` | The licence policy's rules, each on a fixture, then the real tree: a package, a font, an ICC profile no review admits, and a Formancy Data package reached from any but the one package it is admitted for ([0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)) |
+| `dependency-licences.test.mjs` | The licence policy's rules, each on a fixture, then the real tree: a package, a font, an ICC profile no review admits, a font admitted as never loaded at another digest or from another dependent, and a Formancy Data package reached from any but the one package it is admitted for ([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md), [0006](../decisions/0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md), [0031](../decisions/0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)) |
 | `container.test.mjs` | The container gate leaves no record when it cannot run Docker, runs anything when the report imports its checks (0046), or stops planning the draft slice's three checks: a restart on one volume, an image read back, a save on a read-only root (0049) |
 | `licence-status.test.mjs` | A document's licence sentence says another version, date or address than `LICENSE.md` ([0001](../decisions/0001-a-paid-module-in-its-own-repository.md)) |
 | `workflows.test.mjs` | A workflow loses its shape: an unpinned third-party action, a `${{ }}` in a script, a cache in a release, a job without its collect step ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)), `verify` without `pnpm lint` and `pnpm format:check` after the build and the typecheck and before the guards (0050), or the `browser` job without the pages' gate before its collect step, or without the pages' files among those it uploads (0053) |
@@ -718,7 +737,7 @@ that describe the repository rather than a package. Among them:
 | `release-report/limitations.test.mjs` | A record has no register entry, or changed since it was read ([0014](../decisions/0014-a-release-report-is-derived-from-the-run-that-gated-it.md)) |
 | `release-notes.test.mjs` | A release body carries another section than its version's, a section that folds its detail whole or with no link to the whole section at its tag, a section that folds nothing other than whole, a link to an anchor GitHub does not give the heading, or the newest release's body does not fit GitHub's 125,000 characters with room for the report's summary ([0080](../decisions/0080-a-release-body-carries-its-sections-summary-and-links-the-whole-section-where-the-section-folds-its-detail.md)) |
 | `e-invoice/*.test.mjs` | A module of the e-invoice gate stops doing its part: the judges, veraPDF's among them, over the run recorded in `scripts/e-invoice/recorded/`; the registers, the admitted licence, veraPDF's floor and the accepted warnings; the cache's hash check; the corpus, the PDFs and their controls; the reader of the tools' XML; the digest of a PDF's objects; the unzip; the recording, which holds no path of the machine it ran on (0027, 0031) |
-| `mirrored-pdfjs.test.mjs` | The corpus or the Studio pins another `pdfjs-dist` than the release whose ends of an inline image report-documents copied, `MIRRORED_PDFJS` in `inline-end.ts`, or pins it by a range ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)) |
+| `mirrored-pdfjs.test.mjs` | The corpus, the Studio or report-mcp pins another `pdfjs-dist` than the release whose ends of an inline image report-documents copied, `MIRRORED_PDFJS` in `inline-end.ts`, or pins it by a range ([0054](../decisions/0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md)); report-mcp pins it as a devDependency, or at another release than the corpus's, whose `pageLines` its reader is held to ([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)) |
 | `documents-declarations.test.mjs` | report-documents' built declarations, which a host compiles against, name a module -- imports, exports from, or references one -- so that a type of pdf-lib's or pako's would reach a host; or it is missing, the build not run, which in CI runs before this suite (0054) |
 | `samples.test.mjs` | A file of [`samples/`](../../samples/README.md), or the README's table of the starters, is not what the packages as built write of every starter: a Word file, an XML, the index or the table by a byte, each row's pages counted by PDF.js and what it holds read from the document, a PDF by its objects with every stream inflated, since its bytes are the zlib's that deflated them; a file is missing or no starter writes it; a render at the samples' one instant is not the same bytes twice; the Factur-X's PDF and an e-invoice's XML are not the files the e-invoice gate recorded and judged; or the README links a sample the folder does not hold, or leaves one unlinked ([0079](../decisions/0079-every-starters-pdf-and-word-file-are-committed-as-samples-held-to-the-build-and-the-readme-draws-every-package-in-a-sketch.md)) |
 | `manifests.test.mjs` | A published manifest names no keywords of its own, a keyword not lower case words joined by hyphens, one twice, one that calls it open source, or not "formancy" and "source-available"; or the published packages name more than one homepage, or one not over https; with `finalize-angular-dist.test.mjs`, the Angular builder's built manifest names other keywords or another homepage than its source (0081) |

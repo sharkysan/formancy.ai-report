@@ -1,6 +1,6 @@
 # 0006 — Dependencies and fonts allow public source and licensed production
 
-- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which admits an ICC profile by the digest of its bytes and the licence sentence a review read, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose host fonts are outside this guard, their licence the customer's, by [0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), which admits Data's identity verifier for the server, by [0054](0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md), whose PDF reader brings a parser and pako into a published package's production dependencies, every package of their closure under licence metadata the policy allows and none an exception, the parser's stream decoders ports of PDF.js's and XPDF's under Apache-2.0, which neither its dist nor its licence file says and the guard judges by the parser's MIT field alone, and by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), which confines Apache ECharts and zrender to the renderer, each at one version, by the digests of the licence files a review read
+- **Status:** accepted; extended by [0016](0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md), which admits Formancy Data's packages for the Data provider, by [0022](0022-a-report-carries-one-swiss-qr-bill-at-the-foot-of-its-last-page.md), which reads Liberation Sans 2's licence sentence, and by [0031](0031-an-e-invoice-is-drawn-as-a-pdf-a-3b-that-embeds-its-xml.md), which admits an ICC profile by the digest of its bytes and the licence sentence a review read, by [0043](0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), whose host fonts are outside this guard, their licence the customer's, by [0047](0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md), which admits Data's identity verifier for the server, by [0054](0054-a-pdf-is-read-by-one-reader-of-its-own-which-refuses-what-it-cannot-bound.md), whose PDF reader brings a parser and pako into a published package's production dependencies, every package of their closure under licence metadata the policy allows and none an exception, the parser's stream decoders ports of PDF.js's and XPDF's under Apache-2.0, which neither its dist nor its licence file says and the guard judges by the parser's MIT field alone, and by [0058](0058-the-renderer-lays-a-chart-out-with-apache-echarts-and-prints-its-marks-and-its-words-where-echarts-placed-them.md), which confines Apache ECharts and zrender to the renderer, each at one version, by the digests of the licence files a review read, and by [0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md), which brings pdfjs-dist into a published package's closure for report-mcp, its Foxit faces by exceptions and its CMYK profile by its digest, and proposes, for the owner to decide, a table of fonts a package ships and the one published package admitted for never loads, `NEVER_LOADED`, for its Liberation Sans 1
 - **Date:** 2026-10-14
 - **Deciders:** Daniel Bacher
 - **Verified by:** `scripts/dependency-licences.mjs`, run as a step of
@@ -351,6 +351,36 @@ Studio names it (`apps/studio/src/embedded-notices.ts`), which its
 `notices.test.ts` holds. `dependency-licences.test.mjs` holds each rule,
 the route behind the renderer among them, and the real tree's two
 confined packages.
+
+**Added 2026-11-27: pdfjs-dist, for report-mcp, and fonts never loaded,
+proposed.** `@formancy/report-mcp` reads the PDF its render check
+renders with pdfjs-dist 6.4.299 ([0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)), so the walk reaches what this
+record found on 14 October and said would stop such a package:
+- the ten Foxit Type 1 faces, which have no name table, are recorded as
+  exceptions file by file at 6.4.299, BSD-3-Clause by
+  `standard_fonts/LICENSE_FOXIT`, PDFium's, read that day;
+- `iccs/CGATS001Compat-v2-micro.icc`, an ICC v2.1 CMYK profile whose
+  `cprt` tag says "CC0", is reviewed by its digest, with the waiver of
+  `iccs/LICENSE`, CC0 1.0, as its sentence;
+- the four faces of Liberation Sans 1.07.4 are under GPL-2.0 with a
+  font-embedding exception, which no exception may admit: the policy
+  applies to what an exception records.
+
+For the last, 0089 proposes a table of its own, `NEVER_LOADED`, in
+`scripts/dependency-licences/reviews.mjs`: a font a package ships that
+the one published package admitted for never loads -- at one version, by
+the SHA-256 of each file, its package depended on by that published
+package and no other, and with the test that shows it is never read,
+`packages/report-mcp/src/pdf-text.test.ts`, which reads a page in
+Helvetica, never embedded, with no file read. Refused at another digest,
+from another dependent, and where nothing installs it. It admits, for
+the first time, files under a licence the policy refuses, which this
+record says takes a change to it: the owner's to grant. Until then, a
+font a package never loads is judged as any font is, and the guard
+refuses pdfjs-dist's.
+`dependency-licences.test.mjs` holds each rule on fixtures and the real
+tree's admission for report-mcp alone; with the table emptied, the real
+tree refuses the four faces again.
 
 ## Alternatives considered
 
