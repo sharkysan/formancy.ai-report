@@ -448,8 +448,8 @@ serve the Studio under the same function of their own address
   November 2026, into that project for a server that speaks stdio alone,
   at the ranges the SDK's manifest gives. A host that type-checks the
   package's declarations with `skipLibCheck` off and Node's types alone
-  declares the DOM's `HeadersInit`, which the SDK's name, as the install
-  gate's host does in `scripts/install-fixture/mcp-globals.d.ts`. The bin
+  declares the DOM's `HeadersInit`, which the SDK's declarations name, as
+  the install gate's host does in `scripts/install-fixture/mcp-globals.d.ts`. The bin
   has been launched by the SDK's stdio client, and by no agent's client
   (0088).
 - **For the form bridge:** the document of every form version whose
