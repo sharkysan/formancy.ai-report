@@ -1,0 +1,36 @@
+{
+  "into": "fr-CH",
+  "words": [
+    "Rapport des ventes",
+    "Rapport des ventes ",
+    "Période : ",
+    " au ",
+    "Établi le : ",
+    "Chiffre d'affaires ",
+    " sur ",
+    " pièces",
+    "Formancy Haustechnik AG · Industriestrasse 7 · 3052 Zollikofen · CHE-123.456.789 TVA",
+    " · Formancy Haustechnik AG",
+    "Chiffre d'affaires",
+    "Aucune vente pendant la période.",
+    "Chiffre d'affaires par secteur",
+    "CHF",
+    "Chiffre d'affaires par région",
+    "Pièces par secteur",
+    "Pièce",
+    "Date",
+    "Région",
+    "Description",
+    "Quantité",
+    "Unité",
+    "Montant",
+    "Total des ventes",
+    "Page ",
+    " sur ",
+    "Montants en francs suisses hors TVA ; un avoir réduit le chiffre d'affaires de son secteur et de sa région."
+  ],
+  "expressions": {
+    "e1": "group.key + \" (\" + string(group.documents) + \" pièces)\"",
+    "e2": "\"Total \" + group.key"
+  }
+}

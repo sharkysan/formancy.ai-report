@@ -16,7 +16,11 @@
   AI" held by report-ai's built `REQUEST_KINDS` being empty, and no
   published package but report-ai taking it, since
   [0083](0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md),
-  in place of no published package named `report-ai`
+  in place of no published package named `report-ai`, and narrowed by
+  [0085](0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md),
+  under which a model is asked for a language's missing words, to "No
+  changes described in words", held by `REQUEST_KINDS` being the
+  translation alone
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
 - **Verified by:** the pages' suite, which CI's `test` job runs,

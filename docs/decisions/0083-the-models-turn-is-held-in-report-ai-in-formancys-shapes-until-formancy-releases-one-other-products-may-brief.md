@@ -1,6 +1,6 @@
 # 0083 — The model's turn is held in report-ai, in formancy's shapes, until formancy releases one other products may brief
 
-- **Status:** accepted; narrows [0002](0002-depend-on-upstream-never-copy-it.md) for `packages/report-ai/src/turn/` alone, as [0050](0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md) narrowed it for the lint rules until `@formancy/code-style` was released
+- **Status:** accepted; narrows [0002](0002-depend-on-upstream-never-copy-it.md) for `packages/report-ai/src/turn/` alone, as [0050](0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md) narrowed it for the lint rules until `@formancy/code-style` was released; its `REQUEST_KINDS`, empty here, given the translation by [0085](0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md), under which the start page's guard holds "No changes described in words" to it, and report-ai depends on report-core and report-spec outside `src/turn/`, which still imports neither
 - **Date:** 2026-11-27
 - **Deciders:** Daniel Bacher
 - **Verified by:**

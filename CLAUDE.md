@@ -621,9 +621,26 @@ built
 generic over the kind: `askChecked`, `readAnswer`, `createStop`,
 `declinedAnswer`, `ModelBusyError`, `createRelay` and `relayMessage`,
 on `@formancy/spec` alone, for `DECLINE_KEY`, with no framework, DOM,
-Node or network; its `REQUEST_KINDS` is empty, so Report asks a model
-for nothing yet
+Node or network
 ([0083](docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)).
+Its `REQUEST_KINDS` is the translation alone: `translationRequest` asks
+for exactly what report-core's `languageDiagnostics` names `word-missing`,
+read back to each source through report-spec's walk, under keys of its own
+(`w1`, `e1`), with three places a word (`places.ts`), an expression's type
+and reads, and the language's words so far, never data, a string
+report-spec's `NOT_WORDS` names but a place's ids and kinds, the
+e-invoice, or the payment part, whose every word is `forPerson`; at most
+`MAX_BATCH_COMMANDS` entries a turn and the room `MAX_WORDS` leaves, and
+refused past `MAX_MODEL_REQUEST_BYTES`, measured in `limits.ts`; the
+briefing, `briefing.ts`, pinned beside `briefingDigest`; `askThrough`
+sends a host's `complete` the kind, the user part and the digest, never
+the briefing; `checkTranslation` reads an answer back by key, and
+`proposeTranslation` keeps what is still missing in the report as it
+stands, holds each text to `refusedCharacter`, the validator through
+`tryEdit` and `languageDiagnostics`, refusing an entry alone, and gives
+one batch against the report's hash. The recorded answers are
+`fixtures/answers/`; no builder draws a proposal yet
+([0085](docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
@@ -680,8 +697,9 @@ status, which stops the build once the changelog names a later release;
 every card names the tests it rests on; every absence on the start page
 but one detail table and one level of grouping, which review holds, is
 held by `limits.test.ts` to report-spec's and report-ai's built `dist`,
-devDependencies no page imports (the AI absence to report-ai's empty
-`REQUEST_KINDS`, 0083), and to the published packages' manifests
+devDependencies no page imports (the absence of changes described in
+words to report-ai's `REQUEST_KINDS` being the translation alone, 0085),
+and to the published packages' manifests
 ([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md));
 and `src/groups.ts` is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
 before it:
@@ -692,10 +710,12 @@ before it:
    pako alone, depending on no package of this repository; no framework,
    no Node, no DOM, no network (0054).
 2. `report-core` -- pure document commands, atomic history, diagnostics.
-   Beside it, `report-ai` -- the model's turn in formancy's shapes, on
-   `@formancy/spec` alone and no package of this repository; no
-   framework, no Node, no DOM, no network; it asks a model for nothing
-   yet (0083). The architecture draws it between report-core and L2.
+   Above it, `report-ai` -- a language's missing words asked of a model
+   and held as one batch of report-core's commands (0085), on report-core,
+   report-spec, `@formancy/spec` and `@noble/hashes`; its turn, in
+   formancy's shapes, on `@formancy/spec` alone and no package of this
+   repository (0083); no framework, no Node, no DOM, no network. The
+   architecture draws it between report-core and L2.
 3. `report-builder-core` -- selection, palette, properties, geometry, review
    state, the images a person adds, a report's QR-bill and e-invoice edited
    as parts of its own level; then `report-builder-react` and
@@ -1337,7 +1357,9 @@ Locally, run the same commands for what you changed.
   opening with the runtime's label and no part holding the XML, the
   invoice itself refused (0077), and asks a scripted model through the
   packed report-ai, a relay carried by hand among it, in
-  `model-turn.ts` (0083);
+  `model-turn.ts` (0083), and a scripted server, through `askThrough`,
+  for the quotation's missing French, proposed and applied as one step
+  and refused stale after an edit, in `translation.ts` (0085);
   `server.ts`, the server made in its host's process and asked over a
   socket, a draft saved through the packed client, read back and a stale
   save refused `draft-changed`;

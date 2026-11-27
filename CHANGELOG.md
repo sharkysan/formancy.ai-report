@@ -10,6 +10,35 @@ later.
 
 ## Unreleased
 
+**A model can be asked for the words a report's language lacks, and its
+answer is held to the format and the compiler before a person sees it**
+([0085](docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
+A report written in several languages names each word a language still
+lacks, and somebody types every one. `@formancy/report-ai` now asks a
+model for exactly those, `REQUEST_KINDS` being `['translation']`:
+`translateMissing(ask, report, locale)` sends what report-core's
+`word-missing` names, under keys of its own, with where each word stands
+and an expression's type and reads, and the language's words so far, and
+never the report's data, a parameter's value, the e-invoice, or any word
+of a QR-bill's message, which is a person's to write. The answer is read
+back by key, and `proposeTranslation(report, answer)` keeps only what the
+language still lacks in the report as it stands, so a word a person
+translated meanwhile is never written over, holds each text to the
+characters a report prints, the validator and the diagnostics, refusing a
+bad entry alone with the sentence that refused it, and gives one batch of
+`translateWord` and `translateExpression` against the report's hash,
+which a session applies as one undo step or refuses as `stale-document`
+once the report moved. A turn asks at most `MAX_BATCH_COMMANDS` entries
+and is refused before anything is asked past `MAX_MODEL_REQUEST_BYTES`,
+256 KiB, measured on the corpus. A host whose server holds the model's key
+gives `askThrough(complete)` a `complete` of its own, which sends the kind,
+the user part and the briefing's digest, never the briefing. No model is
+asked in CI: the answers are recorded. No builder draws a proposal yet,
+and the start page's "No changes proposed by an AI" is narrowed to "No
+changes described in words". report-ai now depends on report-core and
+report-spec, and on `@noble/hashes` at exactly 2.4.0, MIT, which
+report-spec already takes; report-spec exports `NOT_WORDS`.
+
 **A coding agent can work on a report template against Report's own
 checks, through the new `@formancy/report-mcp`**
 ([0088](docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).

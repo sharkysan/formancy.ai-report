@@ -260,8 +260,7 @@ What each bound costs, in time and heap, and how many real files the
 reader refuses are measurements, dated in `limits.ts` and in 0054, and
 held by nothing.
 
-**A model's turn, held to formancy's.** Nothing asks a model yet:
-report-ai's `REQUEST_KINDS` is empty. The turn is formancy 0.14.0's,
+**A model's turn, held to formancy's.** The turn is formancy 0.14.0's,
 held in report-ai's `src/turn/` until formancy releases one other
 products may brief, and what fails when the two stop agreeing is a suite
 that runs formancy's released package beside it
@@ -273,8 +272,26 @@ that runs formancy's released package beside it
 | A run and the reader: the same scripted host asked by Report's `askChecked` and formancy's `authorForm`, ending alike, each turn numbered and told of a stop alike, each follow-up carrying the problem just before it in both; every answer of a list read alike through both runs and every paste alike through both relays; each run asking the other's relay; `declinedAnswer` and `relayMessage` byte for byte | `report-ai/src/turn/against-formancy.test.ts`, with `@formancy/builder-core` 0.14.0 a devDependency of that suite alone, held by the same file to the release report-ai and report-spec take `@formancy/spec` at |
 | The six endings, the latest problem alone, the stop's race, a reason read by its shape, the decline by `@formancy/spec`'s key; the relay's one turn, its pre-check and a stop clearing it | `report-ai/src/turn/ask.test.ts`, `relay.test.ts` |
 | The folder, at any depth, imports `@formancy/spec` and its own modules alone, so it can be deleted for formancy's | `report-ai/src/turn/generic.test.ts` |
-| The start page's "No changes proposed by an AI", held to the built `REQUEST_KINDS` and to no published package but report-ai taking it | `apps/pages/src/limits.test.ts` |
 | The packed package | The install gate's `scripts/install-fixture/model-turn.ts`: a scripted model asked again with the latest complaint, a decline, a stop and a relay carried by hand, from the packed report-ai; the package README's example is its lines (`scripts/readme-example.test.mjs`) |
+
+**A language's missing words, asked of a model.** A model is asked for
+the words a language lacks and nothing else, and what it answers is held
+to the format and the compiler, entry by entry, before a person sees any
+of it ([0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)). No model answers in CI: every answer is recorded, in the
+shapes models write, in `packages/report-ai/fixtures/answers/`, and
+scripted hosts hand them over turn by turn. What a model makes of the
+briefing is measured nowhere.
+
+| Where | What holds it |
+|---|---|
+| What is asked: exactly what `word-missing` names, read back apart from the request, over every starter with a language added and with half of it written; the payment part's for a person, its words so far kept back; none of the sample data, no string `NOT_WORDS` names but a place's ids and kinds, nothing of the payment part, as written or as JSON escapes it; three places a word and a count, each in one of its shapes naming only the report's ids | `report-ai/src/translation/request.test.ts`, `places.test.ts` |
+| The briefing's text beside its digest, its example answer read by the reader and its decline as a decline; `REQUEST_KINDS` the translation alone, read by the list | `report-ai/src/translation/briefing.test.ts` |
+| The reader over the recorded answers: a fence, other text, another locale or none, a member no object of strings, no object, a decline with or without a reason, keys not asked, a partial answer, blank texts, nothing to ask, a stop | `report-ai/src/translation/reader.test.ts` |
+| The proposal: a word a person wrote meanwhile never overwritten, a changed source dropped, an expression that does not compile, reads another member or gives another type refused with report-core's sentence, a character no report prints and a header past its bound refused at their entries, the rest kept; one undo step against the report's hash, any subset, `stale-document` once it moved, the same answer read again | `report-ai/src/translation/proposal.test.ts` |
+| The bounds: the bound held to the corpus by the factors its comment states, one byte past it refused before anything is asked, no turn past it, at most `MAX_BATCH_COMMANDS` entries and the room `MAX_WORDS` leaves | `report-ai/src/translation/bounds.test.ts` |
+| Through a host's server: the kind, the user part and the digest sent, never the briefing; a prompt briefed otherwise, a kind Report does not ask and a request past the bound refused before `complete`; a decline, an error and a stop | `report-ai/src/ask-through.test.ts` |
+| The start page's "No changes described in words", held to the built `REQUEST_KINDS` being the translation alone and to no published package but report-ai taking it | `apps/pages/src/limits.test.ts` |
+| The packed package | The install gate's `scripts/install-fixture/translation.ts`: the quotation's French asked of a scripted server through `askThrough`, proposed, applied as one step and refused stale after an edit, from the packed report-ai; the package README's example is its lines (`scripts/readme-example.test.mjs`) |
 
 **A group header and the rows it keeps, at every layer that reads the
 count.** The count is the format's, resolved against its group once, by

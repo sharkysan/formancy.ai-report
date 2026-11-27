@@ -201,3 +201,23 @@ describe('the model turn\'s README, "Ask a model"', () => {
     expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
   })
 })
+
+describe(`the model turn's README, "Translate a language's missing words"`, () => {
+  // A reader copies it into a host whose server asks its model (0085), so
+  // every line of it is a line the install gate runs, from the packed
+  // report-ai in the Node host (scripts/install-fixture/translation.ts):
+  // an example that drifted from what the package exports, or from how a
+  // proposal is applied, would otherwise compile nowhere.
+  test('is code the install gate runs, line for line', () => {
+    const readme = readFileSync(join(root, 'packages/report-ai/README.md'), 'utf8').replaceAll('\r\n', '\n')
+    const lines = exampleLines(readme, "Translate a language's missing words")
+    const consumer = new Set(
+      readFileSync(join(root, 'scripts/install-fixture/translation.ts'), 'utf8')
+        .replaceAll('\r\n', '\n')
+        .split('\n')
+        .map((line) => line.trim()),
+    )
+    expect(lines?.length).toBeGreaterThan(5)
+    expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
+  })
+})

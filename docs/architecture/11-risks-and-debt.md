@@ -695,6 +695,22 @@ alone, and no external judge of the e-invoice gate reads a translated
 e-invoice
 ([0063](../decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 
+### A model's translation is checked for everything but its language
+
+What report-ai holds a model's answer to is the format, the compiler and
+the characters a report prints: a row a person reviews compiles, reads what
+its source reads and prints. Whether it says what its source says is the
+reviewer's to judge, and a fluent mistranslation passes every check, as
+formancy.ai 0161 says of its own; nothing checks that a text is in the
+language asked, and a character the report's own faces lack is refused
+only when that language renders. What leaves for the host's model is the
+template's words, where each stands by its ids, and the language's words so
+far, under that provider's terms, and nothing here says it is private. A
+word that stands in a QR-bill's message is always a person's to write, so
+a report with a bill is never translated whole by a model. No builder
+draws a proposal yet
+([0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
+
 ### Tax and invoicing law nobody here checks
 
 The euro invoice's samples print each country's standard VAT rate as one
