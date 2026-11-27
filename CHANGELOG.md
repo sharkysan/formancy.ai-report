@@ -10,6 +10,17 @@ later.
 
 ## Unreleased
 
+**The Studio's Preview opens the invoice with its QR-bill in view**
+([0090](docs/decisions/0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md)).
+The Studio opens on the invoice for its Swiss QR-bill, which was below
+the Preview's first view in every desktop window from 1280 by 720 to 1920
+by 1080. A report that carries a bill now opens scrolled to the slip, at
+fit width, or where the slip would not fit what the paper shows, at the
+zoom it fits at, never under half: 60 % at 1280 by 720. Only the first
+PDF does; an edit, Final or a zoom never moves the paper, and on a phone,
+where the paper does not scroll, nothing changes. The invoice's head is
+now the scroll up.
+
 **A coding agent can work on a report template against Report's own
 checks, through the new `@formancy/report-mcp`**
 ([0088](docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).

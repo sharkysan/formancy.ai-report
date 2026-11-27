@@ -960,7 +960,7 @@
       ]
     },
     "0029": {
-      "reviewed": "sha256:9927a8cd2ace2d1cb623120070fc44758c7b459f2d6209a07825ef1199eef323",
+      "reviewed": "sha256:54330cbbdef10426f43d37bddd6c0768d35541e9f9936fdff9e3945eabbc21a2",
       "limitations": [
         {
           "area": "builders",
@@ -969,7 +969,7 @@
         },
         {
           "area": "builders",
-          "says": "The Studio's Preview starts over, printed again at its first page, fitted to the width and in preview mode, each time it takes the design view's place, the framework is switched below 2053 pixels or the window crosses 2052, and the design view it swaps with loses its scroll position."
+          "says": "The Studio's Preview starts over, printed again at its first page -- or, for a report that carries a QR-bill, at its bill (0090) -- fitted to the width and in preview mode, each time it takes the design view's place, the framework is switched below 2053 pixels or the window crosses 2052, and the design view it swaps with loses its scroll position."
         },
         {
           "area": "builders",
@@ -1031,7 +1031,7 @@
         },
         {
           "area": "testing",
-          "says": "The browser gate looks for the Preview's first page in the first viewport at 641, 1366, 1440, 1536, 1920 and 2053 pixels wide and at no width from 769 to 1365, and its 1366 by 657 is a screen less an assumed 111 pixels of browser and taskbar, measured on no browser."
+          "says": "The browser gate looks for the invoice's QR-bill in the Preview's first view, since 0090 in place of its first page, at 641, 1280, 1366, 1440, 1536, 1920 and 2053 pixels wide and at no width from 769 to 1279, and its 1366 by 657 is a screen less an assumed 111 pixels of browser and taskbar, measured on no browser."
         },
         {
           "area": "testing",
@@ -3577,7 +3577,7 @@
       ]
     },
     "0082": {
-      "reviewed": "sha256:fd4f902c1f903d38d338cd7fa7eef6247d7dd3d376ad38108bca2542c54c5363",
+      "reviewed": "sha256:7d1d1480e61aacbd738b7fc21d4e1577c4065c69235ce1cd501f64baa773c967",
       "limitations": [
         {
           "area": "builders",
@@ -3591,7 +3591,7 @@
         },
         {
           "area": "builders",
-          "says": "The Studio opens the invoice's Preview at the top of its page, so in most windows its QR-bill, the reason the Studio opens on it, is a scroll down, below the view: it was at 1280 by 720, 1440 by 900 and 1920 by 1080 in Chromium on 26 November 2026, and nothing holds the bill in the first view."
+          "says": "The Studio opened the invoice's Preview at the top of its page, its QR-bill below the view in most windows; since 0090 it opens at the bill wherever the Preview's paper scrolls, and on a phone, where it does not, the bill is still a scroll down."
         },
         {
           "area": "release",
@@ -3682,6 +3682,38 @@
         {
           "area": "testing",
           "says": "The MCP's bin has been launched by the SDK's stdio client alone, in the install gate and by hand on Windows, and by no agent's client, so whether a given client launches it is that client's."
+        }
+      ]
+    },
+    "0090": {
+      "reviewed": "sha256:c5d258e8867b70489aa5c56f0a29816fd84beaa34e007fdcdf4553df5841bc7b",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "The Studio's Preview opens a report that carries a QR-bill at its slip, so the invoice opens with its head -- the firm's mark, the customer and the lines -- a scroll up, and beside the builder at 2053 by 900 the top of the mark above the view.",
+          "heldBy": "apps/studio/src/preview/pdf-view.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "Where the slip would not fit what the Preview's paper shows at fit width, the page opens smaller, at 60 % at 1280 by 720 and 55 % at 1366 by 657 in React in Chromium on 27 November 2026, Fit width not pressed, and is not fitted again when a side pane is hidden or the window resized.",
+          "heldBy": "apps/studio/src/preview/pdf-view.test.tsx"
+        },
+        {
+          "area": "builders",
+          "says": "The Preview fits the bill once, as its first PDF is laid out: a height its paper loses after -- a window resized, a line added under its tools -- can leave the slip's foot below the view, and nothing fits it again."
+        },
+        {
+          "area": "builders",
+          "says": "Each time the Preview is drawn anew -- a starter opened again, the Preview shown again, the framework switched, the window crossing 2052 pixels -- a report with a QR-bill opens at its bill again, and the place a person had scrolled to is lost, as it was before."
+        },
+        {
+          "area": "builders",
+          "says": "On a phone, under 40rem, where the Preview's paper does not scroll and its pane scrolls as one, the Preview opens at the top of the page as before, and the invoice's QR-bill is a scroll down."
+        },
+        {
+          "area": "testing",
+          "says": "Nothing in Chromium holds a report with no QR-bill to open at its first page's top any longer: the browser gate's first viewport holds the invoice's bill, and the viewer's jsdom suite the rest, over a stand-in for PDF.js.",
+          "heldBy": "apps/studio/src/preview/pdf-view.test.tsx"
         }
       ]
     }
