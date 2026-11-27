@@ -439,6 +439,62 @@ summary fixtures, and six of the e-invoice gate's PDFs, which its record
 holds by digest. `kept-heading`, new, printed six pages on main's build
 and prints four (20 November 2026).
 
+**Found 2026-11-27, and held as it stands: a frame starts below what
+pdfmake puts first on a page.** A frame is a one-cell table (above). On a
+page a framed section continues on, pdfmake 0.3.11 first adds every
+header it repeats at the top of the page's body
+(`src/PageElementWriter.js` 78) and only then tells the tables around it
+that the page changed (87). Each of those tables starts its part of the
+page at the height it is told, below those headers
+(`src/LayoutBuilder.js` 916, `src/TableProcessor.js` 427), and moves its
+content down by its border and padding from there (153). So a table in a
+framed section that runs onto further pages prints on each of them its
+header, and the rule over it, above the frame's top rule, the header
+beside neither of the frame's sides and off its fill; its rows stand
+inside. A table without a header row (0078) prints its rule over its rows
+there. And a framed section in a framed section starts its part of a later
+page where the outer one does, its top rule on the outer frame's top rule
+and its sides from there, where on its first page it stands the outer
+frame's border and padding lower; its lines stand where they should. In
+the renderer's own documents, on 27 November 2026: a 2 pt frame, padded
+6 pt and filled, around a table of 150 rows prints four pages, and on
+pages 2 to 4 the header's text runs from 55.02 to 64.02 pt down the page,
+the frame's top rule is drawn at 67.92 pt and its sides start at 66.92;
+on page 1 the header stands under the top rule. A 1 pt frame padded 4 pt,
+of 90 lines, inside a 2 pt frame padded 6 pt, starts its sides on page 2
+at 51.38 pt, where the outer frame's start; on page 1 they start 8 pt
+lower.
+Nothing the renderer hands pdfmake reaches above or beside what pdfmake
+puts first on a page: a frame's part of it starts below every header
+repeated there, the frame's own included. A fix in the renderer alone
+would draw a frame twice -- its sides and fill beside each repeated
+header as well as around its part of the page, with a header row of the
+frame's own for its top rule and padding, and a rule to keep that row
+from ending a page alone -- two drawings of one frame that could
+disagree. Refusing such a table, or keeping it on one page, would break
+the runtime's word that a section adds no layout rule and that a table's
+header repeats on every page the table spans. The fix belongs in
+pdfmake, each repeated header added once the tables around it have moved
+down, which pdfmake's own note at `src/TableProcessor.js` 458 asks of
+its page change; it has not been asked of pdfmake. What it costs: on a
+page a framed table continues on, its header stands above the box its
+rows stand in, and a frame in a frame lies on the outer one's top rule.
+Nothing is lost, and every row stands inside its frames. No starter
+prints a table in a framed section, or a framed section in another; the
+Word writer refuses a table in a framed section
+([0068](0068-a-report-is-written-as-a-word-file-by-a-writer-of-its-own-and-what-belongs-to-its-pdf-is-refused.md)).
+`blocks.test.ts` holds both as they stand, on the paths and the runs
+PDF.js reads back -- a rule by its path's box, a line by its runs' boxes,
+which are computed from their baselines
+([0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md)) --
+for a table alone in a frame, under a paragraph and without a header row:
+page 1 every line and the rule over the table inside, each later page the
+header and that rule above the top rule and every row inside. It fails
+where the header is not repeated, where a frame draws no sides and where
+a frame's top padding is other than it states, each tried on 27 November
+2026; a pdfmake that adds the header inside the frame, or starts a frame
+below the ones around it, fails it too, and the limitation goes.
+
 ## Alternatives considered
 
 **Let pdfmake break a long word in a cell**, as it does in a paragraph.

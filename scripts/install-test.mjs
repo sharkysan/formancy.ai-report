@@ -19,7 +19,9 @@
  * packages are driven end to end, and the server, in a host of its own, is
  * made, listens on a socket and is asked over it, through the packed client
  * too; the client, in a browser's host of its own, is type-checked against
- * the DOM's types and bundled for a browser. The React builder is
+ * the DOM's types and bundled for a browser. The MCP server's bin, in a
+ * host of its own, is launched by the SDK's stdio client as an agent's
+ * client launches it, and asked over its pipes. The React builder is
  * drawn by React's server renderer, in its development and its production
  * build, and bundled
  * for a browser. The Angular builder is compiled into a host ahead of time,

@@ -161,8 +161,9 @@ Every block of the resolved document:
   leave; a column longer than the page continues on the next.
 - **Sections**: with a border, a fill or padding, a frame drawn around the
   part of the section on each page, its blocks laid out inside it as in the
-  body, tables and page breaks included; without one, its blocks and nothing
-  more.
+  body, tables and page breaks included, but for what pdfmake puts first on
+  a page the frame continues on (below); without one, its blocks and
+  nothing more.
 - **Keep-together blocks**, moved whole to the next page when they do not
   fit, and paragraphs **kept with the next** block. A table is kept with by
   its first row under the column header, and by its header only where no
@@ -842,6 +843,16 @@ bytes by a test. Both faces map every character SIX allows in a bill (IG
   keep-together block, a column or a page region, and not past the end of a
   framed section: a heading that ends a framed section is not kept with
   what follows it.
+- **Frame what pdfmake puts first on a page.** On a page a framed table
+  continues on, pdfmake puts the header it repeats, and the rule over it,
+  at the top of the body before the frame continues, so they print above
+  the frame's top rule, the header beside neither side and off the fill;
+  the rows stand inside. A table without a header row prints its rule
+  over its rows there. A framed section in another starts its part of
+  each page after its first on the outer frame's top rule, where on its
+  first page it stands that frame's border and padding lower. Nothing is
+  lost, and the fix is pdfmake's
+  ([0011](../../docs/decisions/0011-report-render-pdf-draws-the-document-and-refuses-what-it-cannot.md)).
 - **Say when a group header keeps fewer rows than its row says.** Where
   the rows it keeps do not fit on a page with it under the repeated column
   header, it is kept with as many as fit, and nothing says so: the heights

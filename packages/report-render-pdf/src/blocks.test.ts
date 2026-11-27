@@ -1,12 +1,13 @@
-import { readPdf, verify, type ReadPdf } from '@formancy/report-corpus'
-import type { Block, Image, ResolvedDocument } from '@formancy/report-runtime'
+import { readPdf, verify, type PdfBox, type PdfPage, type ReadPdf } from '@formancy/report-corpus'
+import type { Block, Image, ResolvedDocument, Table } from '@formancy/report-runtime'
 import { describe, expect, test } from 'vitest'
 import { OUTLINE } from './content.js'
 import { renderPdf } from './node.js'
+import { RULE } from './table.js'
 import { bareDocument, BODY_HEIGHT, details, documentOf, fixtureOf, ledger, paragraph, PAGE, PRINTABLE_WIDTH, TIMEOUT } from './testing/documents.js'
 import { readDrawing, type DrawnPage, type Shape } from './testing/drawing.js'
 import { encodePng, exifSegment, jpegOf } from './testing/images.js'
-import { lineOf, pageLines, runOf } from './testing/lines.js'
+import { lineOf, pageLines, runOf, type Line } from './testing/lines.js'
 
 /**
  * The blocks the renderer trial's document did not have -- columns, rules of
@@ -267,9 +268,11 @@ describe('sections', () => {
   )
 
   // A table is part of the flow, and a section can hold one: inside a frame
-  // its header still repeats on every page, its rows inside the frame.
+  // its header still repeats on every page, at the frame's inset, and its
+  // rows stand inside the frame. Where the header it repeats stands against
+  // the frame's top rule is the limitation held below.
   test(
-    'holds a table whose header repeats on every page, inside the frame',
+    "holds a table whose header repeats on every page, at the frame's inset",
     async () => {
       const document = documentOf('Table in a frame', [
         { kind: 'section', border: { thickness: 1, color: '#000000' }, padding: 6, blocks: [ledger('framed', details(1, 120))] },
@@ -282,7 +285,116 @@ describe('sections', () => {
     },
     TIMEOUT,
   )
+
+  // A limitation, held as it stands (0011). pdfmake 0.3.11 adds a table's
+  // repeated header at the top of a page's body before the frame around
+  // the table continues on that page, and starts the frame's part there
+  // below the header: on each page the table continues on, the header and
+  // the rule over it print above the frame's top rule, the header beside
+  // neither of its sides and off its fill, and the rows under it inside
+  // the frame. Nothing is lost, and page 1 holds every line and the rule
+  // inside. The same for a table that a paragraph stands above in the
+  // frame, and for a table without a header row (0078), whose rule over
+  // its rows is all pdfmake repeats. A pdfmake that adds the header inside
+  // the frame fails this, as does a renderer that draws the frame some
+  // other way; either way the limitation goes, and this then holds every
+  // line inside.
+  const { header: _none, ...headerless }: Table = ledger('headerless', details(1, 150))
+  test.each([
+    ['alone in the frame', [ledger('framed', details(1, 150))], true],
+    ['under a paragraph in the frame', [paragraph('Above the table'), ledger('framed', details(1, 150)), paragraph('Under the table')], true],
+    ['without a header row', [headerless], false],
+  ] as const)(
+    "prints what a table repeats above its frame's top rule on each page the table continues on, its rows inside: %s",
+    async (_, blocks, headed) => {
+      const frame = { thickness: 2, color: '#000080', fill: '#eef2f8' } as const
+      const document = documentOf('Table in a frame', [
+        { kind: 'section', border: { thickness: frame.thickness, color: frame.color }, fill: frame.fill, padding: 6, blocks },
+      ])
+      const { pdf } = await rendered(document)
+      expect(pdf.pages.length).toBeGreaterThanOrEqual(3)
+      const header = "'Key Description Amount'"
+      const repeated = [`${header} is above the top rule`, `${header} has 0 of the 2 sides beside it`, `${header} is off the fill`]
+      expect(pdf.pages.map((page) => outsideFrame(page, frame, (line) => /^(Key|ROW-|Above|Under)/.test(line.text)))).toEqual(
+        pdf.pages.map((page) => (page.number === 1 || !headed ? [] : repeated)),
+      )
+      // The rule over the table's first line on each page, which pdfmake repeats with the header: under the frame's top rule on page 1, over it after.
+      const ruleAbove = (page: PdfPage): boolean => {
+        const frameTop = Math.min(...page.paths.filter((path) => path.stroke === frame.color && path.height === 0).map((path) => path.top))
+        const tableTop = Math.min(...page.paths.filter((path) => path.stroke === '#bfbfbf' && path.height === 0).map((path) => path.top))
+        return tableTop + RULE / 2 <= frameTop - frame.thickness / 2 + 1e-3
+      }
+      expect(pdf.pages.map(ruleAbove)).toEqual(pdf.pages.map((page) => page.number > 1))
+    },
+    TIMEOUT,
+  )
+
+  // A limitation, held as it stands (0011). On a page a framed section in
+  // a framed section continues on, pdfmake starts the part of both frames
+  // where the page's body starts, so the inner frame's top rule and sides
+  // start on the outer frame's top rule, not its border and padding below
+  // it as on the page they start on. Its lines stand inside both frames
+  // all the same. A pdfmake that starts each frame below the frames around
+  // it fails this, and the limitation goes.
+  test(
+    "starts a framed section in another on the outer frame's top rule on each page they continue on",
+    async () => {
+      const outer = { thickness: 2, color: '#000080', padding: 6 } as const
+      const inner = { thickness: 1, color: '#800000' } as const
+      const lines = Array.from({ length: 90 }, (_, index) => `Nested line ${index + 1}`)
+      const document = documentOf('Frame in a frame', [
+        {
+          kind: 'section',
+          border: { thickness: outer.thickness, color: outer.color },
+          padding: outer.padding,
+          blocks: [{ kind: 'section', border: inner, padding: 4, blocks: lines.map((text) => paragraph(text)) }],
+        },
+      ])
+      const { pdf } = await rendered(document)
+      expect(verify(fixtureOf('frame-in-a-frame', document, { keys: lines, minPagesExpected: 2, maxPagesExpected: 2 }), pdf)).toEqual([])
+      const sidesTop = (page: PdfPage, color: string): number =>
+        Math.min(...page.paths.filter((path) => path.stroke === color && path.width === 0).map((path) => path.top))
+      expect(pdf.pages.map((page) => sidesTop(page, inner.color) - sidesTop(page, outer.color))).toEqual(
+        pdf.pages.map((page) => (page.number === 1 ? expect.closeTo(outer.thickness + outer.padding, 5) : expect.closeTo(0, 5))),
+      )
+      const nested = (line: Line): boolean => line.text.startsWith('Nested line')
+      expect(pdf.pages.map((page) => [...outsideFrame(page, outer, nested), ...outsideFrame(page, inner, nested)])).toEqual(pdf.pages.map(() => []))
+    },
+    TIMEOUT,
+  )
 })
+
+/**
+ * Why each line of `page` that `held` picks does not stand inside the part
+ * of the frame stroked in `frame.color` on that page: above its top rule
+ * or below its bottom rule, without both of its sides beside it from the
+ * line's top to its bottom, or off its fill where it has one. The frame is
+ * read from the paths PDF.js reads back (the corpus's `PdfPage.paths`), a
+ * rule by its path's box, before its weight; a line from its runs, whose
+ * boxes are computed from their baselines (0003).
+ */
+function outsideFrame(
+  page: PdfPage,
+  frame: { readonly thickness: number; readonly color: string; readonly fill?: string },
+  held: (line: Line) => boolean,
+): string[] {
+  const strokes = page.paths.filter((path) => path.stroke === frame.color)
+  const rules = strokes.filter((path) => path.height === 0).map((path) => path.top)
+  const [top, bottom] = [Math.min(...rules) + frame.thickness / 2, Math.max(...rules) - frame.thickness / 2]
+  const along = (box: PdfBox, line: Line): boolean => box.top <= line.top && box.top + box.height >= line.bottom
+  return pageLines(page)
+    .filter(held)
+    .flatMap((line) => {
+      const which = `'${line.text}'`
+      const sides = strokes.filter((path) => path.width === 0 && along(path, line)).length
+      return [
+        ...(line.bottom <= top - frame.thickness ? [`${which} is above the top rule`] : line.top <= top ? [`${which} is across the top rule`] : []),
+        ...(line.bottom >= bottom ? [`${which} is not above the bottom rule`] : []),
+        ...(sides === 2 ? [] : [`${which} has ${sides} of the 2 sides beside it`]),
+        ...(frame.fill === undefined || page.paths.some((path) => path.fill === frame.fill && along(path, line)) ? [] : [`${which} is off the fill`]),
+      ]
+    })
+}
 
 describe('images', () => {
   const wide = { id: 'wide', mediaType: 'image/png', bytes: encodePng(16, 8, (x) => [x * 16, 64, 128]) } as const

@@ -1,6 +1,6 @@
 # 0008 — Edits are commands, and a refused edit changes nothing
 
-- **Status:** accepted; extended by [0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md), under which several commands as one are one command, a batch, and a field is removed with what reads it
+- **Status:** accepted; extended by [0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md), under which several commands as one are one command, a batch, and a field is removed with what reads it; and by [0088](0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md), under which the registry describes its commands to an agent, and an agent's commands run through it as a batch in a session
 - **Date:** 2026-10-15
 - **Deciders:** Daniel Bacher
 - **Verified by:** the tests of `@formancy/report-core`, run by its

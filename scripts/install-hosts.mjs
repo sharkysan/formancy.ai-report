@@ -4,7 +4,9 @@
  * The server has a Node host of its own, holding it and what it declares
  * and nothing else, beside the Node program's, which holds every other
  * package that is no builder (0046); the client is installed beside it,
- * to be asked of it, and in a browser's host of its own (0049).
+ * to be asked of it, and in a browser's host of its own (0049). The MCP
+ * server has a Node host of its own too, with the SDK's client that
+ * launches its bin (0088).
  *
  * Each kind of host gets a project of its own, holding what that host would
  * hold and nothing else, because one shared project lets a package resolve
@@ -68,7 +70,8 @@ const REACT_TYPES = { '@types/react': ['react', typesOf], '@types/react-dom': ['
  * package that is no host's builder and no host `serves`. Each builder's host lists the peers
  * its builder must declare, what follows them, and what it runs, in order;
  * `with` names packages a host installs beside its builder or what it
- * serves, each with what it declares. A host is a browser's -- checked
+ * serves, each with what it declares, and `alongside` third-party
+ * packages it installs at the version what it serves declares. A host is a browser's -- checked
  * against the DOM's types and none of Node's, and refused @types/node --
  * when it has a builder or says `browser`. A command whose program is not
  * `node` is a binary installed in the project.
@@ -145,6 +148,31 @@ export const HOSTS = {
     steps: [
       { name: 'type-check', command: ['tsc', '-p', 'tsconfig.client.json'] },
       { name: 'browser build', command: ['node', 'build.mjs', '--platform', 'browser', '--exports', '@formancy/report-client'] },
+    ],
+  },
+  // A coding agent's client launching Report's MCP server (0088): Node's
+  // types, report-mcp and what it declares, and the SDK's client
+  // `alongside` it at the release report-mcp declares, as a client holds
+  // one, so an MCP that imported a package it never declared -- the
+  // runtime, the renderer -- fails here, where the Node host would pass
+  // it. mcp.ts launches the bin npm linked, as a client's configuration
+  // names it, and speaks to it over stdio; `mcp-globals.d.ts` declares the
+  // one name the SDK's declarations need beyond Node's types.
+  mcp: {
+    serves: '@formancy/report-mcp',
+    alongside: ['@modelcontextprotocol/sdk'],
+    consumer: 'mcp.ts',
+    tools: { '@types/node': '^22.10.0', typescript: TYPESCRIPT, tsx: TSX },
+    tsconfig: {
+      file: 'tsconfig.mcp.json',
+      content: {
+        compilerOptions: { ...STRICT, target: 'ES2023', module: 'NodeNext', moduleResolution: 'nodenext', lib: ['ES2023'], types: ['node'], noEmit: true },
+        include: ['mcp.ts', 'mcp-globals.d.ts'],
+      },
+    },
+    steps: [
+      { name: 'type-check', command: ['tsc', '-p', 'tsconfig.mcp.json'] },
+      { name: 'run', command: ['tsx', '--tsconfig', 'tsconfig.mcp.json', 'mcp.ts'] },
     ],
   },
   react: {
@@ -331,10 +359,28 @@ function packagesOf(kind, host, main, manifests) {
 }
 
 /**
+ * What a host installs `alongside` what it serves, each at the version
+ * the served package declares -- the SDK an MCP client speaks with, at the
+ * release the MCP was built against -- so that the host's client and the
+ * served package's pin are one fact; refused where the package declares
+ * none.
+ */
+function alongsideOf(kind, host, manifests) {
+  const declared = manifests.get(host.serves).dependencies ?? {}
+  return Object.fromEntries(
+    (host.alongside ?? []).map((name) => {
+      if (declared[name] === undefined) throw new Error(`${host.serves} declares no ${name}, so the ${kind} host has no release of it to install`)
+      return [name, declared[name]]
+    }),
+  )
+}
+
+/**
  * The projects to install, from the packed manifests (`name` to manifest):
  * the Node host with every package that is no host's own, the server's
  * host with the server and the client and what they declare, the client's
- * host with the client and what it declares, and each builder's host at
+ * host with the client and what it declares, the MCP's with the MCP, what
+ * it declares and the SDK at its release, and each builder's host at
  * the newest release its peers admit and at their floor.
  */
 export function planProjects(manifests) {
@@ -358,7 +404,7 @@ export function planProjects(manifests) {
     }
     if (host.serves !== undefined) {
       if (!manifests.has(host.serves)) throw new Error(`${host.serves} was not packed, so the ${kind} host has nothing to check`)
-      return [{ name: kind, at: null, packages: packagesOf(kind, host, host.serves, manifests), framework: {}, ...common }]
+      return [{ name: kind, at: null, packages: packagesOf(kind, host, host.serves, manifests), framework: alongsideOf(kind, host, manifests), ...common }]
     }
     if (host.builder === undefined) {
       return [
