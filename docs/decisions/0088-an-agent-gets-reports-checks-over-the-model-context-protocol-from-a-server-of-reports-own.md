@@ -191,7 +191,21 @@ the SDK ships its HTTP transports in one package, so Express, Hono, CORS,
 a JSON Schema validator and their closure, 84 packages no other published
 package reaches, are installed for a server that speaks stdio alone.
 Those are ranges inside the SDK's manifest, so what a consumer installs
-moves with npm, as the SBOM says (0017). **The SDK's declarations name
+moves with npm, as the SBOM says (0017). **The pins carry published
+advisories**, as `npm audit` read them on 27 November 2026: the SDK
+1.30.1 five, GHSA-6qxp-vccf-f47h, GHSA-22jm-h49p-29qw, GHSA-46jr-4wx8-v453,
+GHSA-rvq5-wwqv-78pq and GHSA-6prh-2h8m-c8cw, all fixed by 1.32.0, each
+about a path this package does not take -- the OAuth client, experimental
+tasks, an HTTP server's validation or bearer authentication, an HTTP
+client transport -- and the third saying a server over stdio alone is not
+affected; zod 4.6.5 one, GHSA-mrhx-c7xc-m3w5, fixed in 4.6.6, the memory a
+large array of elements that fail their schema takes, where this
+package's one array schema takes any element and nothing here has read
+whether the SDK's own schemas hold such an array. `npm audit` and
+Dependabot name them in every project that installs report-mcp until the
+pins move, which is a decision of its own: these are the releases
+formancy's `@formancy/mcp` 0.14.0 resolves, which the design measured.
+**The SDK's declarations name
 the DOM's `HeadersInit`**, which Node's types 22 do not declare as a
 global, and report-mcp's own declarations name the SDK's `McpServer`,
 which reaches it: a host that type-checks either with `skipLibCheck` off
