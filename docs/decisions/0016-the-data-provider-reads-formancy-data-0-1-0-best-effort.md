@@ -22,7 +22,8 @@
     - a page of more rows than were asked for, and one that ends on the
       row it was asked to continue after, refused as `unexpected-page`;
     - a record two pages hold, as the row a page ended with moved back in
-      the order brings, refused as `repeated-row`;
+      the order brings, refused as `repeated-row`, and rows with no token
+      on two pages read once each and refused as none;
     - the cap, as incomplete data that a final render refuses and a preview
       prints;
     - `parent: 'header'` by the menu's one field, and refused when the menu
