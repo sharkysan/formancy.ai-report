@@ -5,8 +5,12 @@ Formancy Report's Formancy Data provider. It reads a report's data from a
 server through `@formancy/data-client` at exactly 0.5.0, as the person
 whose token the client carries. The server must be 0.5.0 too: Data's client
 and server are one release, and 0.5.0's client takes an older server's
-answers as `unexpected` (formancy.ai-data 0108, 0173). It reads the header's one record, the detail rows a
-page at a time and each lookup's label, and hands over the data
+answers as `unexpected` (formancy.ai-data 0108, 0173), so a host upgrades
+its Data server first, by [Data's upgrade notes](https://github.com/sharkysan/formancy.ai-data/blob/v0.5.0/CHANGELOG.md#upgrade-from-040). So
+must the host's own `@formancy/data-client`, which it makes the client
+with: `readReportData` takes 0.5.0's `DataClient`. It reads the header's
+one record, the detail rows a page at a time and each lookup's label, and
+hands over the data
 `@formancy/report-runtime` renders from, or every reason it will not. No
 framework and no Node. It is the one package of this repository that may
 depend on Data's contracts; the report server depends on Data's identity
@@ -21,9 +25,13 @@ its `consistency`, and the render's manifest carries it. Each page is asked
 for after the last row of the one before, which Data finds again by its
 key (formancy.ai-data 0108), so a row added or deleted before it between
 two pages moves nothing. A row whose place in the order changes between
-two pages, a sorted field edited, can still be printed twice or not at
-all; the row a page ended with deleted refuses the read, below; and a
-total can mix moments.
+two pages, a sorted field edited, can be skipped or read twice. When it is
+the row a page ended with, the next page moves with it, and every row
+between its old place and its new can be skipped or read again, as 0108
+says. A row read twice refuses the read as `repeated-row`, rather than
+print twice; a row skipped is not seen, and the report prints without it.
+The row a page ended with deleted, or no longer one the person may read,
+refuses the read, below; and a total can mix moments.
 
 **Its source.** The data names the published form each dataset was read
 from, by the id the binding addressed it by -- `{ provider:
@@ -95,9 +103,13 @@ incomplete: a final render refuses it, and a preview prints it labelled.
 
 **A refusal** from Data hands over nothing. That covers a record that is
 gone, a policy that says no and a server that is down, on any page, and a
-page after a row deleted since the page before ended with it, `409
-cursor-gone`, which a host meets by reading again. Data's own sentence,
-status and code travel in the error.
+page after a row deleted, or no longer one the person may read, since the
+page before ended with it, `409 cursor-gone`, which a host meets by reading
+again. Data's own sentence, status and code travel in the error. The
+provider refuses two more of its own, with nothing handed over: a page
+Data's list does not answer, more rows than were asked for or one that
+ends on the row it was asked to continue after, as `unexpected-page`; and
+a record two pages hold, as `repeated-row`.
 
 ## What it does not do
 

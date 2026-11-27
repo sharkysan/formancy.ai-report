@@ -96,6 +96,8 @@ async function readRows(
   signal?: AbortSignal,
 ): Promise<{ rows: FormRecord[]; complete: boolean } | ProviderError> {
   const rows: FormRecord[] = []
+  const seen = new Set<string>()
+  const unexpected = (message: string): ProviderError => ({ path: '/detail', code: 'unexpected-page', message })
   // A page is asked for after the row the one before ended with, by the
   // cursor Data gave, and Data finds that row again by its key
   // (formancy.ai-data 0108): a row added or deleted before it meanwhile
@@ -112,10 +114,30 @@ async function readRows(
       signal,
     )
     if (!page.ok) return fromRefusal('/detail', page)
-    rows.push(...page.value.rows.slice(0, limit))
-    if (!page.value.hasMore) return { rows, complete: true }
+    const { rows: answered, hasMore, next } = page.value
+    // The next page continues after the last row answered, so rows past the
+    // ones asked for, cut off, would never be asked for again.
+    if (answered.length > limit) return unexpected('Data answered a page of more detail rows than were asked for, and none is handed over')
+    if (after !== null && next === after) return unexpected('Data answered a page of detail rows that ends on the row it was asked to continue after')
+    // A record on two pages is rows that moved in the order between them:
+    // printed, it would be totalled twice. A row with no token is in its
+    // place and cannot be compared.
+    for (const [index, row] of answered.entries()) {
+      if (row.record === null) continue
+      if (seen.has(row.record)) {
+        return {
+          path: `/detail/${String(rows.length + index)}`,
+          code: 'repeated-row',
+          message:
+            'Data answered a detail record that an earlier page held: the rows moved in the order between two pages, and the lines are not printed twice; read them again',
+        }
+      }
+      seen.add(row.record)
+    }
+    rows.push(...answered)
+    if (!hasMore) return { rows, complete: true }
     asked += limit
-    after = page.value.next
+    after = next
   }
   return { rows, complete: false }
 }

@@ -52,6 +52,18 @@ export const PROVIDER_ERROR_CODES = [
   'unexpected-form',
   /** A lookup value whose label Data did not give this person. */
   'unresolved-label',
+  /**
+   * A page of the detail rows Data's list does not answer: more rows than
+   * were asked for, or one that ends on the row it was asked to continue
+   * after (formancy.ai-data 0108). Data did not refuse it, so no `refusal`.
+   */
+  'unexpected-page',
+  /**
+   * A detail record answered on two pages: the rows moved in the order
+   * between them, as when the row a page ended with is edited
+   * (formancy.ai-data 0108). Refused rather than printed twice.
+   */
+  'repeated-row',
   /** Data refused a request; `refusal` carries its status and code, and the message is its sentence. */
   'refused',
 ] as const

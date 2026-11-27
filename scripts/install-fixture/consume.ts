@@ -526,12 +526,14 @@ const eInvoiced = await drawnEInvoice(report.page)
 // it -- must be the quotation's own data, and render. The client checks
 // every reply's shape, so a reply Data 0.5.0 would not send -- a form
 // without its `bulk`, a page without its `next` -- fails here; the server
-// is data-server.ts. The packages/report-data-provider README's example
-// is these lines (scripts/readme-example.test.mjs).
+// is data-server.ts, and it answers the lines on two pages, the second
+// asked for after the cursor the first gave. The
+// packages/report-data-provider README's example is these lines
+// (scripts/readme-example.test.mjs).
 const { header: quotationHeader = {}, detail: quotationLines = [] } = quotationData
 const dataServer = 'https://data.invalid'
 const quotationToken = 'q-1'
-serveQuotation(dataServer, quotationToken, quotationHeader, quotationLines)
+const served = serveQuotation(dataServer, quotationToken, quotationHeader, quotationLines)
 const fromData = await (async () => {
   // The host's own sign-in, whose token Data's policy reads on every request.
   const session = { token: (): string => 'install-check' }
@@ -547,6 +549,7 @@ const fromData = await (async () => {
   ) {
     throw new Error("the quotation read from Data is not the quotation's own data, read best-effort")
   }
+  if (served.pages() !== 2) throw new Error(`the quotation's lines were read in ${String(served.pages())} pages, not in two after a cursor`)
   // The manifest names the published form each dataset was read from (0041).
   const source: DataSource | undefined = resolution.manifest.source
   if (source?.provider !== 'formancy-data' || JSON.stringify(source.forms) !== JSON.stringify({ header: 'quotation', detail: 'quotation-line' }))
@@ -556,5 +559,5 @@ const fromData = await (async () => {
 if (new TextDecoder().decode(fromData.subarray(0, 5)) !== '%PDF-') throw new Error('the quotation read from Data did not render to a PDF')
 
 console.log(
-  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; ${shiftedValid}; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved with its mark and rendered to a ${rendered.length}-byte PDF that draws it, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; its manifest named the form submission its lines came from, and a source holding a name was refused; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; ${eInvoiced}; the Data provider read the quotation from Data 0.5.0's routes through @formancy/data-client as the quotation's own data, best-effort, its manifest naming the forms it read, and it rendered to a ${fromData.length}-byte PDF; ${await addedImages()}; ${await imagesInOrder()}; ${fontsRead()}; ${await hostFontRendered()}; ${await formsRead()}; ${documentsRead(rendered)}; ${await archivedPdfA()}; ${await firstPageDrawn()}; ${await languagesPrinted()}; ${await shiftedRendered()}; ${wordWritten(billedResolution.document, paidResolution.document, chartedDocument)}`,
+  `ok: ${REPORT_FORMAT} ${REPORT_SPEC_VERSION}; a form refused, a report read, validated and hashed (${hash.slice(0, 12)}...), a refused one not hashed; ${shiftedValid}; a session on a blank report inserted a text, refused an edit atomically, took a proposal from JSON, diagnosed its clock, refused a malformed one and undid back to its first snapshot; a page counter was offered the page regions only; a decimal total compiled and bound as a decimal; an editor inserted a text in the report's language as one change, labelled it in the session and in French, undid it by its key and let go of its listeners; the editor stylesheet resolved; the quotation resolved with its mark and rendered to a ${rendered.length}-byte PDF that draws it, and a name its font cannot draw was refused; with a Swiss QR-bill it validated, resolved and rendered to a ${billPdf.length}-byte PDF whose slip is in the package's Liberation Sans, and a top margin past its slip was refused in the same words by the validator and the renderer, through the runtime's hand-on of report-spec's rule; with an EPC QR code in Austria's frame it validated, resolved to the EPC's payload and rendered to a ${paidPdf.length}-byte PDF whose caption is in the package's Liberation Sans, and a captioned square too small was refused in the same words by the validator and the renderer; its manifest named the form submission its lines came from, and a source holding a name was refused; a drawing approved by report-spec's cleanSvg, the runtime's own, printed as an SVG logo with no image in its ${logoPdf.length}-byte PDF, and the drawing as saved was refused; ${eInvoiced}; the Data provider read the quotation from Data 0.5.0's routes through @formancy/data-client, its lines in two pages after a cursor, as the quotation's own data, best-effort, its manifest naming the forms it read, and it rendered to a ${fromData.length}-byte PDF; ${await addedImages()}; ${await imagesInOrder()}; ${fontsRead()}; ${await hostFontRendered()}; ${await formsRead()}; ${documentsRead(rendered)}; ${await archivedPdfA()}; ${await firstPageDrawn()}; ${await languagesPrinted()}; ${await shiftedRendered()}; ${wordWritten(billedResolution.document, paidResolution.document, chartedDocument)}`,
 )

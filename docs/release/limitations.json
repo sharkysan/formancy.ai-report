@@ -373,11 +373,11 @@
       ]
     },
     "0016": {
-      "reviewed": "sha256:9ef79945a8a3ea3843836605c687cef5ee432ddb41d028e637de3248ce9b58d2",
+      "reviewed": "sha256:806c46c27601dbea3c93b68fc18cc45fcf3e0435d695590601ce55d93cda43a4",
       "limitations": [
         {
           "area": "data",
-          "says": "Data read through the Formancy Data provider is best-effort: the header, each page of lines and each label are read at different moments, so a line whose place in the order changes between two pages can be printed twice or not at all, the line a page ended with deleted before the next refuses the read as cursor-gone, and every render's manifest says best-effort.",
+          "says": "Data read through the Formancy Data provider is best-effort: the header, each page of lines and each label are read at different moments, so a line whose place in the order changes between two pages can be left out, and when it is the line a page ended with, every line between its old place and its new can be; a line read twice refuses the read as repeated-row, the line a page ended with deleted or no longer one the person may read refuses it as cursor-gone, and every render's manifest says best-effort.",
           "heldBy": "packages/report-data-provider/src/read.test.ts"
         },
         {

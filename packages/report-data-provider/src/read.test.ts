@@ -229,6 +229,68 @@ describe('readReportData', () => {
     expect(resolveReport(letter, data, { mode: 'final', ...RESOLVE }).ok).toBe(true)
   })
 
+  // A page holds at most the rows asked for: Data reads one row past the
+  // page and answers `limit` (formancy.ai-data 0108), and the next page
+  // continues after the last row it answered. Cut to the rows asked for,
+  // a longer page would lose the rest for good, and the report would print
+  // short and call itself complete; on the last page asked for at the cap,
+  // the same. Refused, nothing handed over.
+  test('refuses a page of more rows than were asked for, handing over nothing', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const longer = dataFixture(forms, ORDER_MENU)
+    longer.answerNext('/order-line/records/list', 200, { rows: line.records.slice(0, 51), hasMore: true, next: 'c1:l-51' })
+    const first = await readReportData(longer.client, orderReport(), ORDER)
+    expect(first.ok ? 'read' : first.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/detail', code: 'unexpected-page' }])
+    const atCap = dataFixture(forms, ORDER_MENU)
+    const client = changedAfterFirstPage(atCap.client, () => {
+      atCap.answerNext('/order-line/records/list', 200, { rows: line.records.slice(50, 70), hasMore: false, next: null })
+    })
+    const last = await readReportData(client, orderReport(), ORDER, { cap: 60 })
+    expect(last.ok ? 'read' : last.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/detail', code: 'unexpected-page' }])
+  })
+
+  // A page asked for after a row holds only rows after it, so it never
+  // ends on that row (formancy.ai-data 0108). One that does is a server
+  // answering the same place again: followed, the provider would ask after
+  // the same cursor until the cap, 2,000 requests at the default, adding
+  // the rows each time. Its rows here have no token, which nothing could
+  // compare, so the cursor is what says so.
+  test('refuses a page that ends on the row it was asked to continue after', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const fixture = dataFixture(forms, ORDER_MENU)
+    const unaddressed = line.records.slice(50, 100).map((row) => ({ ...row, record: null }))
+    const client = changedAfterFirstPage(fixture.client, () => {
+      fixture.answerNext('/order-line/records/list', 200, { rows: unaddressed, hasMore: true, next: 'c1:l-50' })
+    })
+    const result = await readReportData(client, orderReport(), ORDER)
+    expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/detail', code: 'unexpected-page' }])
+  })
+
+  // The row a page ended with, edited so that it moves back in the order
+  // between two pages, takes the next page back with it, and every row
+  // between its new place and its old is answered again (formancy.ai-data
+  // 0108). Printed, the report would total those lines twice and call
+  // itself complete; refused, as Data's own export refuses a record that
+  // would appear twice, the host reads again. Named by where the row would
+  // have stood, never by its token.
+  test('refuses a record answered on two pages, as when the row a page ended with moves back in the order', async () => {
+    const forms = orderForms(120)
+    const line = forms['order-line'] as FixtureForm
+    const records = [...line.records]
+    const fixture = dataFixture({ ...forms, 'order-line': { ...line, records } }, ORDER_MENU)
+    const sort = [{ field: 'article', direction: 'asc' as const }]
+    const client = changedAfterFirstPage(fixture.client, () => {
+      const at = records.findIndex((row) => row.record === 'l-50')
+      const moved = records[at]!
+      records[at] = { ...moved, answers: { ...moved.answers, article: 'A-0000' } }
+    })
+    const result = await readReportData(client, orderReport(), { ...ORDER, detail: { form: 'order-line', parent: 'header', sort } })
+    expect(result.ok ? 'read' : result.errors.map(({ path, code }) => ({ path, code }))).toEqual([{ path: '/detail/50', code: 'repeated-row' }])
+    expect(JSON.stringify(result)).not.toMatch(/l-1\b|A-1000/)
+  })
+
   // The order is Data's to apply, by the fields the person may sort by;
   // a host's sort that silently did not reach Data would print the lines
   // in key order and look right.

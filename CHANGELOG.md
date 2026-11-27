@@ -125,18 +125,35 @@ could not read its records through the provider.
   form, which carries no `bulk`
   ([formancy.ai-data 0108](https://github.com/sharkysan/formancy.ai-data/blob/v0.5.0/docs/decisions/0108-a-forms-list-pages-after-the-last-row-it-showed-found-again-by-its-key.md),
   [0173](https://github.com/sharkysan/formancy.ai-data/blob/v0.5.0/docs/decisions/0173-chosen-records-are-deleted-each-on-its-own-with-one-answer-per-record.md)).
-  Upgrade the Data server, then Report.
+  Upgrade the Data server first, by
+  [Data's upgrade notes](https://github.com/sharkysan/formancy.ai-data/blob/v0.5.0/CHANGELOG.md#upgrade-from-040), then Report.
+  The host moves its own `@formancy/data-client` to exactly 0.5.0 too,
+  since it makes the client the provider reads through:
+  `readReportData` takes 0.5.0's `DataClient`, and a host that declares
+  0.1.0 installs two clients and hands the provider the wrong one.
 - **The lines are read a page after a row, not at an offset.** Each page
   is asked for after the last row of the one before, which Data finds
   again by its key, so a line added or deleted before it between two pages
   no longer prints a line twice or skips one. A line whose place in the
-  order changes between two pages, a sorted field edited, still can, and
-  the data is still labelled best-effort.
-- **A new refusal: the line a page ended with deleted before the next
-  page.** Data then has nowhere to continue and refuses the page as
-  `409 cursor-gone`. The provider hands that on as `refused`, with Data's
-  status, code and sentence, and hands over nothing, as after any refusal;
-  read the report again.
+  order changes between two pages, a sorted field edited, still can. When
+  it is the line a page ended with, the next page moves with it, and every
+  line between its old place and its new can be skipped or read again, as
+  Data's 0108 says: more than an offset lost to one edit. The data is
+  still labelled best-effort.
+- **A new refusal: the line a page ended with deleted, or no longer one
+  the person may read, before the next page.** Data then has nowhere to
+  continue and refuses the page as `409 cursor-gone`. The provider hands
+  that on as `refused`, with Data's status, code and sentence, and hands
+  over nothing, as after any refusal; read the report again.
+- **Two refusals of the provider's own, `unexpected-page` and
+  `repeated-row`, in `PROVIDER_ERROR_CODES`.** A page of more lines than
+  were asked for is refused rather than cut, since the next page continues
+  after its last line and the lines past the cut would never be read; so
+  is a page that ends on the line it was asked to continue after, which
+  would read the same page until the cap. A line an earlier page held,
+  which a line moving back in the order brings, is refused rather than
+  printed and totalled twice, as Data's own export refuses one. A line
+  skipped by such a move is not seen.
 - **The server refuses a token that is not exactly its compact form**
   ([formancy.ai-data 0101](https://github.com/sharkysan/formancy.ai-data/blob/v0.5.0/docs/decisions/0101-a-host-token-is-refused-unless-it-is-its-compact-form-exactly.md)).
   A signature with `=` after it, which verified until now, or a space in

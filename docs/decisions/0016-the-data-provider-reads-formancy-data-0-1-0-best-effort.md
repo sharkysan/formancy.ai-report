@@ -19,6 +19,10 @@
       line read once;
     - the row a page ended with gone before the next, refused as Data's
       `cursor-gone` with nothing handed over;
+    - a page of more rows than were asked for, and one that ends on the
+      row it was asked to continue after, refused as `unexpected-page`;
+    - a record two pages hold, as the row a page ended with moved back in
+      the order brings, refused as `repeated-row`;
     - the cap, as incomplete data that a final render refuses and a preview
       prints;
     - `parent: 'header'` by the menu's one field, and refused when the menu
@@ -221,13 +225,35 @@ What Data changed that the provider meets, read from Data's changelog for
   offsets changes: a row added or deleted before that row between two pages
   moves nothing, where it skipped a row or printed one twice. A row whose
   place in the order changes between two pages, a sorted field edited, can
-  still be skipped or printed twice. The row a page ended with deleted, or
+  still be skipped or read twice. When it is the row a page ended with, the
+  next page moves with it, and every row between its old place and its new
+  can be skipped or read again (0108's own cost): more than an offset lost
+  to one edit, which moved its neighbours one place at most, and possible
+  only under a binding's `sort`, since in the key's order the edited row
+  is a key changed, so gone. The row a page ended with deleted, or
   no longer one the person may read, leaves the next page nowhere to start,
   and Data refuses it `409 cursor-gone`. The provider hands that on as any
   refusal, with nothing handed over. Data's own grid starts again at the
   first page instead; the provider does not, so that a host knows its read
   was refused and reads again from the first page, rather than being handed
   a report put together from two walks. The data is still `best-effort`.
+- **A page is held to what Data's list answers, and a record is read
+  once.** Data reads a row past the page and answers at most `limit`
+  rows, and a page asked for after a row holds only rows after it (0108).
+  A page of more rows than were asked for is refused as `unexpected-page`
+  rather than cut, since the next page continues after its last row and
+  the rows past the cut would never be asked for again; so is a page that
+  ends on the row it was asked to continue after, which would read the
+  same page until the cap. A record token an earlier page held refuses the
+  read as `repeated-row`, at the place the row would have stood, as Data's
+  own export refuses a record that would appear twice (formancy.ai-data
+  0079, as 0108 extends it). What it costs: a report read while a sorted
+  field of its lines is edited is refused more often, and the host reads
+  again; a row the same edit skips is not seen, since no page says it was
+  there, and prints without it; and a row with no token, whose key fits
+  none (formancy.ai-data 0012), is not compared. A server that answered a
+  record twice in its own order would be refused too, which Data's
+  `ORDER BY` ending in the key does not do.
 - **A form published from 0.4.0 is formancy's spec 5** (formancy.ai-data
   0118), and one published before keeps spec 3. The provider reads a
   field's key, type, options and lookup source, which both versions hold
