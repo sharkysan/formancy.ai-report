@@ -7,8 +7,12 @@
  * verdict here is another package's: report-spec's validator decides what a
  * report is, report-core's diagnostics what a render refuses, and its
  * registry and session what an edit does. Nothing here judges a report a
- * second way, so an agent is told what the builder, a save and a render
- * would say, in the order they would say it.
+ * second way, so an agent is told what the builder, the validator and a
+ * render would say, in the order they would say it, and whether the
+ * report is within `MAX_REPORT_BYTES`, the bound a draft's body is held
+ * to. What a save asks of the server's own state is the server's: that the
+ * report's id is the template's, that every image it declares is kept
+ * there, and that it maps no font (0049).
  *
  * None of these needs a server, a file or the network: each is a function
  * of its arguments, and the report an agent works on is the one it hands
@@ -16,7 +20,7 @@
  */
 import { describeCommands, diagnose, openReportSession, reportFacts } from '@formancy/report-core'
 import type { CommandDescriptor, Diagnostic, Refusal } from '@formancy/report-core'
-import { reportHash, validateReport } from '@formancy/report-spec'
+import { MAX_REPORT_BYTES, reportHash, validateReport } from '@formancy/report-spec'
 import type { ReportDefinition, ReportError } from '@formancy/report-spec'
 
 /** A tool's answer: whether there is nothing to fix, one or two sentences for the model, and the part an agent acts on, which every tool gives. */
@@ -27,11 +31,17 @@ export interface ToolResult {
   readonly data: unknown
 }
 
-/** What a report the validator accepts is told: its hash, its own diagnostics, and each declared language's. */
+/** What a report the validator accepts is told: its hash, its size against the draft's bound, its own diagnostics, and each declared language's. */
 export interface Verdict {
   readonly valid: true
   /** `reportHash` of the report: what an edit's `expectedHash` names. */
   readonly hash: string
+  /**
+   * The report's bytes as report-spec measures `MAX_REPORT_BYTES`, and the
+   * bound; past it, `code` names the refusal a save gives a body that
+   * large, before anything reads it (0049).
+   */
+  readonly size: { readonly bytes: number; readonly max: number; readonly code?: 'report-too-large' }
   /** The report's own diagnostics: an error here refuses every render. */
   readonly diagnostics: readonly Diagnostic[]
   /** Each language the report's translations declare, in their order: an error here refuses a render in that language alone. */
@@ -48,6 +58,16 @@ const plural = (count: number, noun: string): string => `${String(count)} ${noun
 
 const hasError = (found: readonly Diagnostic[]): boolean => found.some(({ severity }) => severity === 'error')
 
+/** The UTF-8 length of `report`'s JSON: how report-spec states `MAX_REPORT_BYTES` is measured, and what a server counts of a draft's body. */
+const bytesOf = (report: ReportDefinition): number => new TextEncoder().encode(JSON.stringify(report)).byteLength
+
+/** Whether `verdict`'s report is past the bound a draft is held to. */
+const tooLarge = (verdict: Verdict): boolean => verdict.size.code !== undefined
+
+/** The bound in a sentence, where `verdict`'s report is past it. */
+const sizeSaid = (verdict: Verdict): string =>
+  `It is ${String(verdict.size.bytes)} bytes as JSON, past MAX_REPORT_BYTES, ${String(verdict.size.max)}: a save refuses it as report-too-large before reading it.`
+
 /**
  * `report`'s diagnostics, split as a render judges them: `diagnose` gives
  * the report's own first and then each declared language's, each naming
@@ -56,9 +76,11 @@ const hasError = (found: readonly Diagnostic[]): boolean => found.some(({ severi
  */
 function verdictOf(report: ReportDefinition): Verdict {
   const found = diagnose(report)
+  const bytes = bytesOf(report)
   return {
     valid: true,
     hash: reportHash(report),
+    size: { bytes, max: MAX_REPORT_BYTES, ...(bytes > MAX_REPORT_BYTES ? { code: 'report-too-large' as const } : {}) },
     diagnostics: found.filter(({ language }) => language === undefined),
     languages: (report.translations ?? []).map(({ locale }) => ({ locale, diagnostics: found.filter(({ language }) => language === locale) })),
   }
@@ -98,21 +120,23 @@ export function describeFormat(): ToolResult {
 }
 
 /**
- * A report judged as a save and a render judge it, without saving or
- * rendering anything: the validator, whose errors a save refuses; then the
- * report's own diagnostics, whose errors refuse every render; then each
- * declared language's, whose errors refuse a render in that language. A
- * later list means nothing of a report an earlier one refused, so a report
- * the validator refuses is answered with its errors alone.
+ * A report judged as the validator and a render judge it, without saving
+ * or rendering anything: the validator, whose errors a save refuses; the
+ * draft's bound, `MAX_REPORT_BYTES`; then the report's own diagnostics,
+ * whose errors refuse every render; then each declared language's, whose
+ * errors refuse a render in that language. A later list means nothing of a
+ * report an earlier one refused, so a report the validator refuses is
+ * answered with its errors alone.
  */
 export function checkReport(report: unknown): ToolResult {
   const validation = validateReport(report)
   if (!validation.valid) return invalid(validation.errors, 'The document')
   const verdict = verdictOf(validation.report)
-  const clean = !hasError(verdict.diagnostics) && verdict.languages.every(({ diagnostics }) => !hasError(diagnostics))
+  const renders = !hasError(verdict.diagnostics) && verdict.languages.every(({ diagnostics }) => !hasError(diagnostics))
+  const judged = `${renders ? 'Valid, and nothing refuses a render' : 'Valid, but a render is refused'}: ${said(verdict)}.`
   return {
-    ok: clean,
-    summary: `${clean ? 'Valid, and nothing refuses a render' : 'Valid, and a save takes it, but a render is refused'}: ${said(verdict)}.`,
+    ok: renders && !tooLarge(verdict),
+    summary: tooLarge(verdict) ? `${sizeSaid(verdict)} ${judged}` : judged,
     data: verdict,
   }
 }
@@ -130,14 +154,23 @@ export function listCommands(): ToolResult {
   }
 }
 
-/** A refusal as an answer: its code, its sentence, its place and the validator's errors where it has them, and the hash of the report as given. */
+/**
+ * A refusal as an answer: its code, its sentence, its place and the
+ * validator's errors where it has them, and the hash of the report as
+ * given -- but for a stale edit, whose obvious retry with that hash would
+ * disarm the check without the agent reading the report again: it is told
+ * to validate the report it means to edit instead.
+ */
 function refused(refusal: Refusal, hash: string): ToolResult {
   const { ok: _ok, ...reason } = refusal
-  return {
-    ok: false,
-    summary: `Refused, ${refusal.code}: ${refusal.message}. Nothing was applied: the report is as it was given.`,
-    data: { refusal: reason, hash },
-  }
+  const said = `Refused, ${refusal.code}: ${refusal.message}. Nothing was applied: the report is as it was given.`
+  if (refusal.code === 'stale-document')
+    return {
+      ok: false,
+      summary: `${said} Call validate_report on the report you mean to edit, and write the commands against it and the hash it answers.`,
+      data: { refusal: reason },
+    }
+  return { ok: false, summary: said, data: { refusal: reason, hash } }
 }
 
 /**
@@ -147,7 +180,10 @@ function refused(refusal: Refusal, hash: string): ToolResult {
  * once, and a stale `expectedHash` refused before anything runs. A
  * refusal changes nothing; the new report is answered with its hash and
  * its verdict, so that the next edit can name the hash of the report it
- * was made against.
+ * was made against. An edit applied is `ok` though the report it made has
+ * a diagnostic error -- a language just added lacks every word until the
+ * next edit -- but not where the report is past `MAX_REPORT_BYTES`, which
+ * no save takes and only another edit can bring back within it.
  */
 export function applyCommands(report: unknown, commands: readonly unknown[], expectedHash?: string): ToolResult {
   const opening = openReportSession(report)
@@ -160,11 +196,12 @@ export function applyCommands(report: unknown, commands: readonly unknown[], exp
   if (!outcome.ok) return refused(outcome, session.hash())
   const changed = session.revision() !== before
   const verdict = verdictOf(session.document())
+  const applied = changed
+    ? `Applied ${plural(commands.length, 'command')} as one edit. The report now has ${said(verdict)}.`
+    : `The ${plural(commands.length, 'command')} changed nothing: the report is as it was given, with ${said(verdict)}.`
   return {
-    ok: true,
-    summary: changed
-      ? `Applied ${plural(commands.length, 'command')} as one edit. The report now has ${said(verdict)}.`
-      : `The ${plural(commands.length, 'command')} changed nothing: the report is as it was given, with ${said(verdict)}.`,
+    ok: !tooLarge(verdict),
+    summary: tooLarge(verdict) ? `${applied} ${sizeSaid(verdict)}` : applied,
     data: { changed, report: session.document(), ...verdict },
   }
 }

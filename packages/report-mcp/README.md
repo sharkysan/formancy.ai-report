@@ -3,10 +3,11 @@
 Formancy Report for a coding agent, over the Model Context Protocol: a
 server a client launches, speaking stdio, whose tools let a model write
 and change a report template against the checks that will judge it --
-the format described, a report validated and diagnosed as a save and a
-render judge it, and report-core's commands applied as the builders apply
-them. The tools need nothing but their arguments: no server, no file, no
-network. Nothing here publishes, saves, renders or takes an address, and
+the format described, a report validated and diagnosed as the validator
+and a render judge it and held to the size a draft may have, and
+report-core's commands applied as the builders apply them. The tools need
+nothing but their arguments: no server, no file, no network; the server
+reads one file, its own manifest, for the version it reports. Nothing here publishes, saves, renders or takes an address, and
 no input names a URL, a path or a file. Decision
 [0088](../../docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)
 is why, after formancy's `@formancy/mcp`
@@ -41,9 +42,9 @@ standard output but the protocol.
 | Tool | What it answers |
 | --- | --- |
 | `describe_format` | report-core's `reportFacts()`: the version the package reads, the regions, the component kinds, the field and parameter types, the names an expression reads in each place and the CEL type each field is read as, every diagnostic's code and severity, the bounds a report is refused past, and the notes a model gets wrong first |
-| `validate_report` | report-spec's `validateReport`, whose errors a save refuses; then report-core's `diagnose`, the report's own diagnostics, whose errors refuse every render, and each declared language's, whose errors refuse a render in that language alone; with the report's `reportHash` |
+| `validate_report` | report-spec's `validateReport`, whose errors a save refuses; the report's size against `MAX_REPORT_BYTES`, the UTF-8 length of its JSON, past which a save refuses it as `report-too-large`; then report-core's `diagnose`, the report's own diagnostics, whose errors refuse every render, and each declared language's, whose errors refuse a render in that language alone; with the report's `reportHash`. What a save asks of the server's own state it leaves to the server: the report's id being the template's, every image it declares kept there, and no font |
 | `describe_commands` | report-core's `describeCommands()`: every command of its registry, each written as the descriptor `{ "command", "args" }` is, its arguments in the words a refusal names them in; how many one edit holds; and `PART_COMMANDS`, the commands that may change whom a payment reaches |
-| `apply_commands` | a session opened on the report given, and the commands applied as one batch through the registry the builders use: the new report, its hash and its diagnostics, or the refusal's code, sentence and path, nothing applied; with `expectedHash`, an edit made against another report is refused `stale-document` |
+| `apply_commands` | a session opened on the report given, and the commands applied as one batch through the registry the builders use: the new report, its hash, its size and its diagnostics, or the refusal's code, sentence and path, nothing applied; with `expectedHash`, an edit made against another report is refused `stale-document`, and the agent told to validate the report it means to edit; an edit that grows the report past `MAX_REPORT_BYTES` is applied and answered not `ok` |
 
 Every answer is one envelope, `{ ok, summary, data }`, as text for the
 model and as structured content for the client; a refusal is `isError`,

@@ -1,9 +1,12 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
-import { QUOTATION } from '@formancy/report-corpus'
-import { reportHash } from '@formancy/report-spec'
+import { wordExpressions } from '@formancy/report-core'
+import { QUOTATION, STARTERS } from '@formancy/report-corpus'
+import { reportHash, reportWords } from '@formancy/report-spec'
+import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import { createReportMcpServer, PACKAGE_VERSION, PROMPTS, TOOL_DEFINITIONS } from './server.js'
+import { createReportMcpServer, PACKAGE_VERSION, PLACEHOLDERS, PROMPTS, TOOL_DEFINITIONS, translationSteps } from './server.js'
+import { applyCommands } from './tools.js'
 
 /**
  * The server, driven through the real protocol by the SDK's own client
@@ -77,6 +80,18 @@ describe('the tools a client can see', () => {
     expect(TOOL_DEFINITIONS.validate_report).toContain('after every change')
     expect(TOOL_DEFINITIONS.describe_commands).toContain('before apply_commands')
     expect(TOOL_DEFINITIONS.apply_commands).toContain('expectedHash')
+  })
+
+  // validate_report checks what the validator, the draft's size and a
+  // render check, and not what a save asks of the server's own state: a
+  // description that said it judges as a save would sends an agent to a
+  // 422 after the fact for a font, an image the server does not keep or
+  // an id that is not the template's (formancy.ai 0056: a check that stays
+  // on the server is named as staying there).
+  test('say which of a save’s checks validate_report leaves to the server', () => {
+    expect(TOOL_DEFINITIONS.validate_report).not.toMatch(/as a save/)
+    expect(TOOL_DEFINITIONS.validate_report).toContain('MAX_REPORT_BYTES')
+    for (const left of ['the template’s', 'kept there', 'no font']) expect(TOOL_DEFINITIONS.validate_report, left).toContain(left)
   })
 
   // Unannotated, a tool reads as destructive and open-world, so a host that
@@ -234,6 +249,26 @@ describe('the prompts a client can see', () => {
     const said = promptText(messages)
     expect(said).toContain('fr-CH')
     expect(said).toContain('word-missing')
-    for (const command of ['addLanguage', 'translateWord', 'translateExpression']) expect(said, command).toContain(command)
+    for (const step of translationSteps('fr-CH', PLACEHOLDERS)) expect(said).toContain(JSON.stringify(step))
+  })
+
+  // The descriptors the prompt prints are made by one typed function, and
+  // run here through the registry on a report that prints words and an
+  // expression that prints words: a command renamed in report-core does
+  // not compile, and its arguments reordered are refused here, where the
+  // prompt would otherwise tell a model to send what the registry refuses.
+  test('show the commands as descriptors the registry applies', () => {
+    const starter = STARTERS.find(({ report }) => wordExpressions(report).length > 0)
+    if (starter === undefined) throw new Error('no starter prints words by an expression')
+    const { report } = starter
+    const word = reportWords(report)[0]?.text ?? ''
+    const source = wordExpressions(report)[0]?.cel ?? ''
+    const steps = translationSteps('es-ES', { word, text: `${word} (es)`, source, translation: source })
+    const result = applyCommands(report, steps)
+    expect(result.summary).not.toMatch(/invalid-arguments|unknown-command/)
+    expect(result.ok).toBe(true)
+    const spanish = (result.data as { report: ReportDefinition }).report.translations?.find(({ locale }) => locale === 'es-ES')
+    expect(spanish?.words).toEqual([{ word, text: `${word} (es)` }])
+    expect(spanish?.expressions).toEqual([{ cel: source, expression: { cel: source } }])
   })
 })

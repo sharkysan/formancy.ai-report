@@ -1,7 +1,7 @@
 import { describeCommands, diagnose, languageDiagnostics, reportFacts } from '@formancy/report-core'
 import { STARTERS, QUOTATION } from '@formancy/report-corpus'
-import { reportHash } from '@formancy/report-spec'
-import type { ReportDefinition } from '@formancy/report-spec'
+import { MAX_REPORT_BYTES, reportHash } from '@formancy/report-spec'
+import type { Component, ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { applyCommands, checkReport, describeFormat, listCommands } from './tools.js'
 import type { ToolResult } from './tools.js'
@@ -33,6 +33,29 @@ interface Refused {
 }
 
 const quotation = QUOTATION.report
+
+/** A report's size as report-spec states `MAX_REPORT_BYTES` is measured: the UTF-8 length of its JSON. */
+const bytesOf = (report: unknown): number => new TextEncoder().encode(JSON.stringify(report)).byteLength
+
+/**
+ * The quotation grown to exactly `bytes` bytes by texts of plain letters
+ * at the end of its body, each within the text's own bound: a valid report
+ * of a size chosen to the byte.
+ */
+function quotationOf(bytes: number): ReportDefinition {
+  const text = (id: string, length: number): Component => ({ kind: 'text', id, content: [{ kind: 'text', text: 'x'.repeat(length) }] })
+  const padded = (texts: readonly Component[]): ReportDefinition => ({
+    ...quotation,
+    regions: { ...quotation.regions, body: [...quotation.regions.body, ...texts] },
+  })
+  const texts: Component[] = []
+  while (bytesOf(padded([...texts, text(`pad-${String(texts.length)}`, 9000)])) < bytes) texts.push(text(`pad-${String(texts.length)}`, 9000))
+  const last = `pad-${String(texts.length)}`
+  const short = bytes - bytesOf(padded([...texts, text(last, 0)]))
+  const report = padded([...texts, text(last, short)])
+  expect(bytesOf(report)).toBe(bytes)
+  return report
+}
 
 describe('describe_format', () => {
   // Typed into the tool, the facts would describe the format one release
@@ -126,7 +149,7 @@ describe('apply_commands', () => {
     expect(answered.report.title).toBe('Offerte 2026-117')
     expect(answered.report.locale).toBe('de-DE')
     expect(answered.hash).toBe(reportHash(answered.report))
-    expect(answered.diagnostics).toEqual(diagnose(answered.report))
+    expect(answered.diagnostics).toEqual(diagnose(answered.report).filter(({ language }) => language === undefined))
     expect(result.summary).toContain('2 commands')
   })
 
@@ -168,6 +191,11 @@ describe('apply_commands', () => {
     expect(fresh.ok).toBe(true)
     const stale = applyCommands(quotation, [{ command: 'setTitle', args: ['Offerte'] }], 'sha256:0000')
     expect(dataOf<Refused>(stale).refusal.code).toBe('stale-document')
+    // The hash of the report as given would be the obvious retry, which
+    // disarms the check without the agent reading the report again: it is
+    // told to validate the report it means to edit instead.
+    expect(dataOf<Refused>(stale)).not.toHaveProperty('hash')
+    expect(stale.summary).toContain('validate_report')
   })
 
   // A descriptor read from JSON was never type-checked: one that is no
@@ -193,5 +221,41 @@ describe('apply_commands', () => {
     const result = applyCommands({ reportSpecVersion: '9' }, [{ command: 'setTitle', args: ['Offerte'] }])
     expect(result.ok).toBe(false)
     expect(result.data).toEqual({ valid: false, errors: [expect.objectContaining({ code: 'unsupported-version' })] })
+  })
+})
+
+describe('the size a draft is held to', () => {
+  // describe_format names MAX_REPORT_BYTES among the bounds a report is
+  // refused past, and a save refuses a body past it, report-too-large,
+  // before anything reads it: a tool that called such a report fine would
+  // send the agent to a 413 after the fact. Measured as report-spec states
+  // the bound is, at the bound and one byte past it.
+  test('passes a report of MAX_REPORT_BYTES and refuses one a byte past it', () => {
+    const at = checkReport(quotationOf(MAX_REPORT_BYTES))
+    expect(at.ok).toBe(true)
+    expect(dataOf<{ size: unknown }>(at).size).toEqual({ bytes: MAX_REPORT_BYTES, max: MAX_REPORT_BYTES })
+    const past = checkReport(quotationOf(MAX_REPORT_BYTES + 1))
+    expect(past.ok).toBe(false)
+    expect(dataOf<{ valid: boolean; size: unknown }>(past)).toMatchObject({
+      valid: true,
+      size: { bytes: MAX_REPORT_BYTES + 1, max: MAX_REPORT_BYTES, code: 'report-too-large' },
+    })
+    expect(past.summary).toContain('report-too-large')
+  })
+
+  // An edit can grow a report past the bound without a command refusing
+  // it: the edit is applied, and its answer says no save takes the report
+  // it made.
+  test('answers an edit that grows a report past it as applied, and not ok', () => {
+    const report = quotationOf(MAX_REPORT_BYTES - 1)
+    const within = applyCommands(report, [{ command: 'setTitle', args: [`${report.title}`] }])
+    expect(within.ok).toBe(true)
+    const grown = applyCommands(report, [{ command: 'setTitle', args: [`${report.title}xx`] }])
+    expect(grown.ok).toBe(false)
+    expect(dataOf<{ changed: boolean; size: unknown }>(grown)).toMatchObject({
+      changed: true,
+      size: { bytes: MAX_REPORT_BYTES + 1, max: MAX_REPORT_BYTES, code: 'report-too-large' },
+    })
+    expect(grown.summary).toContain('report-too-large')
   })
 })

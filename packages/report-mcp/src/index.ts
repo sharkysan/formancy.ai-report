@@ -4,8 +4,9 @@
  *
  * Installed in a client that speaks MCP, it lets a model write and change
  * a report template against the checks that will judge it: the format
- * described, the report validated and diagnosed as a save and a render
- * judge it, and report-core's commands applied as the builders apply them.
+ * described, the report validated and diagnosed as the validator and a
+ * render judge it and held to a draft's size, and report-core's commands
+ * applied as the builders apply them.
  * The tools need nothing but their arguments: no server, no file, no
  * network. Nothing here publishes, saves or takes an address.
  */

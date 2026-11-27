@@ -9,6 +9,7 @@
 import { createRequire } from 'node:module'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
+import type { DiagnosticCode, StepDescriptor } from '@formancy/report-core'
 import { z } from 'zod'
 import { applyCommands, checkReport, describeFormat, listCommands } from './tools.js'
 import type { ToolResult } from './tools.js'
@@ -25,10 +26,12 @@ export const TOOL_DEFINITIONS = {
     'what an expression may read and as which type, the bounds a report is refused past, and the traps. Call this BEFORE writing or ' +
     'changing a report. A kind or a type that is not listed does not exist, whatever other report writers call it.',
   validate_report:
-    'Judge a report as a save and a render would, without saving or rendering anything: the validator first, whose errors a save ' +
-    'refuses; then the diagnostics of its expressions and bindings, whose errors refuse every render; then each declared language’s, ' +
-    'whose errors refuse a render in that language alone. Each comes back with its code, its JSON Pointer path and its sentence, and a ' +
-    'valid report with its hash. Call it after every change you write by hand, and before you show a report to anyone.',
+    'Judge a report as the validator and a render would, without saving or rendering anything: the validator first, whose errors a ' +
+    'save refuses; the bound a draft is held to, MAX_REPORT_BYTES of JSON; then the diagnostics of its expressions and bindings, whose ' +
+    'errors refuse every render; then each declared language’s, whose errors refuse a render in that language alone. Each comes back ' +
+    'with its code, its JSON Pointer path and its sentence, and a valid report with its hash and its size. A save also asks what only ' +
+    'Report’s server knows, which this does not check: that the report’s id is the template’s, that every image it declares is kept ' +
+    'there, and that it maps no font. Call it after every change you write by hand, and before you show a report to anyone.',
   describe_commands:
     'List every editing command of report-core, the ones both builders run, each written as { "command": name, "args": [...] } with ' +
     'the shape of each argument after the report; how many one edit may hold; and the commands that may change whom a payment ' +
@@ -55,7 +58,11 @@ export const PACKAGE_VERSION: string = (createRequire(import.meta.url)('../packa
  * part an agent acts on (formancy.ai 0112).
  */
 const RESULT_SHAPE = {
-  ok: z.boolean().describe('False for a refusal, and for a report validate_report finds a save or a render would refuse: something to fix before going on.'),
+  ok: z
+    .boolean()
+    .describe(
+      'False for a refusal, for a report past MAX_REPORT_BYTES, and for a report validate_report finds the validator or a render would refuse: something to fix before going on.',
+    ),
   summary: z.string().describe('One or two sentences a person can read.'),
   data: z.unknown().describe('The part an agent acts on.'),
 }
@@ -103,6 +110,44 @@ const EXPECTED_HASH = z
     'The hash of the report the commands were written against, from validate_report or the last apply_commands. Given, the edit is refused when the report is not that one.',
   )
 
+/** What a translation's descriptors are made of: a word as the report prints it and its translation, an expression's source and its translation's. */
+export interface TranslationOf {
+  readonly word: string
+  readonly text: string
+  readonly source: string
+  readonly translation: string
+}
+
+/** What the prompt writes where a model puts its own words. */
+export const PLACEHOLDERS: TranslationOf = {
+  word: '<the word exactly as the report prints it>',
+  text: '<its translation>',
+  source: '<the expression’s source>',
+  translation: '<its translation’s source>',
+}
+
+/**
+ * The descriptors a translation is applied with, typed by the registry's
+ * own descriptor type, so that a command renamed or an argument retyped in
+ * report-core does not compile: the language added, a word translated and
+ * an expression translated. The prompt prints them with `PLACEHOLDERS`,
+ * and `server.test.ts` applies them through the registry.
+ */
+export function translationSteps(
+  language: string,
+  { word, text, source, translation }: TranslationOf,
+): readonly [StepDescriptor, StepDescriptor, StepDescriptor] {
+  return [
+    { command: 'addLanguage', args: [language] },
+    { command: 'translateWord', args: [language, word, text] },
+    { command: 'translateExpression', args: [language, source, { cel: translation }] },
+  ]
+}
+
+/** The diagnostics the translate prompt names, typed by report-core's codes. */
+const WORD_MISSING = 'word-missing' satisfies DiagnosticCode
+const TRANSLATION_DIFFERS = 'translation-differs' satisfies DiagnosticCode
+
 /**
  * What somebody asks an agent to do with a report, each in the order that
  * gets it right the first time, MCP's own answer to a skill pack
@@ -136,22 +181,25 @@ export const PROMPTS = {
     title: 'Translate a report',
     description: 'Write a report’s words in a language it declares, or one to add, word by word, keyed as the format keys them.',
     args: { language: z.string().min(1).describe('The language, as a BCP 47 tag: fr-CH, it-CH, en-GB.') },
-    text: (language: string): readonly string[] => [
-      `Translate this report into ${language}.`,
-      '',
-      'A Formancy Report is translated word by word: each word is keyed by its exact text in the report’s own language, and an',
-      'expression that prints words by its source. A key of your own is refused. Work this way:',
-      '',
-      `1. Call \`validate_report\`. If the report declares no translation for ${language}, call \`apply_commands\` with`,
-      `   { "command": "addLanguage", "args": ["${language}"] } and the hash it answered.`,
-      `2. Read the word-missing diagnostics listed under ${language}: each is a word or an expression the language lacks, at its path.`,
-      '3. Call `apply_commands` once, with every translation in one list and the hash the last answer gave: for a word,',
-      `   { "command": "translateWord", "args": ["${language}", <the word exactly as the report prints it>, <its translation>] },`,
-      `   and for an expression, { "command": "translateExpression", "args": ["${language}", <its source>, { "cel": <the translation> }] }.`,
-      `4. Call \`validate_report\` again. A translation-differs error means a translated expression prints another type or reads`,
-      `   other members than its source: write it again. Stop when nothing is listed under ${language}.`,
-      '5. Show the person the translations before the report is used.',
-    ],
+    text: (language: string): readonly string[] => {
+      const [add, word, expression] = translationSteps(language, PLACEHOLDERS).map((step) => JSON.stringify(step))
+      return [
+        `Translate this report into ${language}.`,
+        '',
+        'A Formancy Report is translated word by word: each word is keyed by its exact text in the report’s own language, and an',
+        'expression that prints words by its source. A key of your own is refused. Work this way:',
+        '',
+        `1. Call \`validate_report\`. If the report declares no translation for ${language}, call \`apply_commands\` with`,
+        `   ${String(add)} and the hash it answered.`,
+        `2. Read the ${WORD_MISSING} diagnostics listed under ${language}: each is a word or an expression the language lacks, at its path.`,
+        '3. Call `apply_commands` once, with every translation in one list and the hash the last answer gave: for a word,',
+        `   ${String(word)},`,
+        `   and for an expression, ${String(expression)}.`,
+        `4. Call \`validate_report\` again. A ${TRANSLATION_DIFFERS} error means a translated expression prints another type or reads`,
+        `   other members than its source: write it again. Stop when nothing is listed under ${language}.`,
+        '5. Show the person the translations before the report is used.',
+      ]
+    },
   },
 } as const
 

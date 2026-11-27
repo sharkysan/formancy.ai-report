@@ -1,7 +1,7 @@
 {
   "name": "@formancy/report-mcp",
   "version": "0.3.0",
-  "description": "Formancy Report for a coding agent, over the Model Context Protocol: the format described, a report validated and diagnosed as a save and a render judge it, and report-core's commands described and applied as one batch, each checked before it acts. Speaks stdio, publishes nothing, takes no address. Source-available, as every Formancy Report package.",
+  "description": "Formancy Report for a coding agent, over the Model Context Protocol: the format described, a report validated and diagnosed as the validator and a render judge it and held to a draft's size, and report-core's commands described and applied as one batch, each checked before it acts. Speaks stdio, publishes nothing, takes no address. Source-available, as every Formancy Report package.",
   "keywords": [
     "formancy",
     "report",
