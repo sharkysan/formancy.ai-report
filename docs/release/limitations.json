@@ -47,7 +47,7 @@
       ]
     },
     "0004": {
-      "reviewed": "sha256:03108506e98563fc27b66830102a1b45e77d6a3c82317331b3e2e81e2d60661b",
+      "reviewed": "sha256:53641be31721ca2632bc1fc1aec0b6ed407bc1a0877c87461eeb2549cbfac7fd",
       "limitations": [
         {
           "area": "format",
@@ -177,7 +177,7 @@
       ]
     },
     "0009": {
-      "reviewed": "sha256:8ac6fd2b2b86ff6666cc60d409f4fdd9b1dfd729d332eca283c4a10e85dd92df",
+      "reviewed": "sha256:3d2f5332bcae2e0f2d738ce7ae18db1b4ad1a57aac48850e4d0f1cf2171080a5",
       "limitations": [
         {
           "area": "runtime",
@@ -1639,7 +1639,7 @@
       ]
     },
     "0042": {
-      "reviewed": "sha256:c0464289531480835eb82268415fb2610c988f51597e4d1c1e2b503d8c4471cd",
+      "reviewed": "sha256:ca97593d788f3e17fde10f70ac880bf7e0e6a0a245db1927cb4078bd6935819e",
       "limitations": [
         {
           "area": "format",
@@ -1657,6 +1657,11 @@
           "area": "data",
           "says": "The form bridge never matches an answer against its field's `pattern`, so an answer the pattern refuses, in a submission formancy's engine never stored, prints; and a version whose pattern can be made to backtrack, which formancy published before 0.12.0, is read and printed like any other.",
           "heldBy": "packages/report-forms/src/read.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A formancy time of day prints as stored, at the width its field's spec 6 `precision` gives, so the submissions of a form version that gives it a precision print its seconds and their digits, `09:50:12.250`, beside an earlier version's `09:50`; an answer at another width than its own version's is refused as `invalid-answer`.",
+          "heldBy": "packages/report-forms/src/review.test.ts"
         },
         {
           "area": "data",

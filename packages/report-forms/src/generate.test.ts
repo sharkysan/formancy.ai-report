@@ -253,7 +253,31 @@ describe('generateReport is deterministic', () => {
     expect(five.report.provenance).toEqual({ kind: 'form', form: 'site-visit', formHash: schemaHash(atSpec5(SITE_VISIT_V2)) })
     expect(two.notes).toEqual(five.notes)
   })
+
+  // Spec 6 gives a time and a date and time a precision (formancy.ai
+  // 0238), which changes how many digits each answer has and nothing a
+  // report declares: a time of day is text, printed as stored, and a date
+  // and time an instant at any width. A draft that read a precision as a
+  // type would give one version two reports by the width of its clock. So
+  // version 2 at spec 6, its start a time to the millisecond and its
+  // arrival an instant to the second, is the same report but for the
+  // version it names.
+  test('gives a version that gives its times a precision at spec 6 the same report, naming that version', () => {
+    const two = generatedFrom(generate(SITE_VISIT_V2, VISIT))
+    const six = generatedFrom(generate(atSpec6(SITE_VISIT_V2), VISIT))
+    expect({ ...two.report, provenance: six.report.provenance }).toEqual(six.report)
+    expect(six.report.provenance).toEqual({ kind: 'form', form: 'site-visit', formHash: schemaHash(atSpec6(SITE_VISIT_V2)) })
+    expect(two.notes).toEqual(six.notes)
+  })
 })
+
+/** `form` at spec 6, its start of work a time to the millisecond and its arrival a date and time to the second (formancy.ai 0238). */
+function atSpec6(form: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const PRECISIONS: Readonly<Record<string, number>> = { startedAt: 3, arrivedAt: 0 }
+  const model = form['model'] as { readonly fields: readonly (Readonly<Record<string, unknown>> & { readonly key: string })[] }
+  const fields = model.fields.map((def) => (Object.hasOwn(PRECISIONS, def.key) ? { ...def, precision: PRECISIONS[def.key] } : def))
+  return { ...form, specVersion: '6', model: { fields } }
+}
 
 /** What spec 5 adds to the site visit's fields, by key: help text, an example, autofill, defaults and a shuffled order (formancy.ai 0194 to 0200). */
 const SPEC_5_FIELDS: Readonly<Record<string, Record<string, unknown>>> = {
@@ -442,7 +466,7 @@ describe('generateReport, its options', () => {
   // A form formancy's validator refuses is no version, and a report made
   // from it would print by rules formancy never accepted.
   test('refuses a form that is no version, as a read does', () => {
-    expect(generationRefusals(generate({ ...SITE_VISIT_V2, specVersion: '6' }, VISIT))).toEqual(['unsupported-spec-version /form/specVersion'])
+    expect(generationRefusals(generate({ ...SITE_VISIT_V2, specVersion: '7' }, VISIT))).toEqual(['unsupported-spec-version /form/specVersion'])
     expect(
       generationRefusals(
         generate(

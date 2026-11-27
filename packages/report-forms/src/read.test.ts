@@ -395,6 +395,18 @@ describe('a submission of every spec version', () => {
         },
       ],
     ],
+    // Spec 6 adds a time's and a date and time's `precision` alone
+    // (formancy.ai 0238, 0239), and formancy writes it for every new form
+    // from 0.14.0, whether a field uses it or not: a bridge that refused it
+    // would print no submission of a form authored since.
+    [
+      '6',
+      [
+        { key: 'site', type: 'text' },
+        { key: 'at', type: 'time', precision: 3, earliest: '08:00:00.000' },
+        { key: 'seen', type: 'datetime', precision: 6 },
+      ],
+    ],
   ])('reads a form at spec %s', (specVersion, fields) => {
     const form = formOf(fields, {}, specVersion)
     const report = reportOf({ header: answers(field('site', 'string', 'site')) })
@@ -485,11 +497,11 @@ describe('a submission of every spec version', () => {
 
   // A form of a version upstream's pinned validator does not read is
   // refused whole, naming that version and the ones it reads (0004): a
-  // field of spec 6 could be the one that hides a row.
+  // field of spec 7 could be the one that hides a row.
   test('refuses a spec the pinned validator does not read, naming both versions', () => {
-    const outcome = read(reportOf({ header: answers(field('site', 'string', 'site')) }), formOf([{ key: 'site', type: 'text' }], {}, '6'), { site: 'Bern' })
+    const outcome = read(reportOf({ header: answers(field('site', 'string', 'site')) }), formOf([{ key: 'site', type: 'text' }], {}, '7'), { site: 'Bern' })
     expect(refusals(outcome)).toEqual(['unsupported-spec-version /form/specVersion'])
-    if (!outcome.ok) expect(outcome.errors[0]?.message).toMatch(/"6".*"1", "2", "3", "4", "5"\D/)
+    if (!outcome.ok) expect(outcome.errors[0]?.message).toMatch(/"7".*"1", "2", "3", "4", "5", "6"\D/)
     // A version that is no string of digits may be anything a host stored, a name among it: said as what it is not.
     const named = read(reportOf({ header: answers(field('site', 'string', 'site')) }), formOf([{ key: 'site', type: 'text' }], {}, 'Erika Mustermann'), {})
     expect(refusals(named)).toEqual(['unsupported-spec-version /form/specVersion'])
