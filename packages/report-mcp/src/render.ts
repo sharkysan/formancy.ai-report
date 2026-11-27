@@ -13,8 +13,11 @@
  * it; the PDF's pages, `MAX_CHECK_PAGES`, which the renderer refuses past
  * before it lays anything out; and the answer's size, `MAX_ANSWER_BYTES`.
  * The data is bounded by the runtime's own rules -- `MAX_DETAIL_ROWS`
- * rows, `MAX_STRING_LENGTH` characters a string -- and the call by the
- * transport's.
+ * rows, `MAX_STRING_LENGTH` characters a string -- and, through stdio,
+ * by the transport's before them: the SDK reads at most 10 MiB of one
+ * message, the report, the data and every asset's base64 together, and
+ * ends the server past it, which about 78,000 of the quotation's rows
+ * reach (0089).
  *
  * Nothing here is fetched or read from a file, and the PDF is never
  * answered: an agent is told what it prints, and the bytes stay here.
@@ -33,10 +36,11 @@ import type { ToolResult } from './tools.js'
 export const MAX_CHECK_PAGES = 40
 
 /**
- * The most bytes an answer's JSON may have: the bound the report itself is
- * held to, so that a check costs a model's context no more than the
- * largest report it may send. Past it the answer is refused, with the
- * page count, and no line of it is cut.
+ * The most bytes an answer's data may have as JSON: the bound the report
+ * itself is held to, so that a check's data is no larger than the largest
+ * report an agent may send, though a client may show it twice, as the
+ * text and as the structure, as it does an edit's report (0088). Past it
+ * the answer is refused, with the page count, and no line of it is cut.
  */
 export const MAX_ANSWER_BYTES = MAX_REPORT_BYTES
 
@@ -92,13 +96,26 @@ function refusedHere(code: RenderCheckRefusal, message: string, more: Record<str
   }
 }
 
-/** Strict base64, as MCP carries bytes: the alphabet, its padding, a length of whole quanta. */
-const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
+/**
+ * Base64 as MCP carries bytes, read by its length in whole quanta and one
+ * character class with its padding after it, which backtracks nothing: a
+ * pattern of quanta took a frame of V8's stack for each and overflowed it
+ * from 4,473,916 characters, an asset of 3.35 MB, in a bare Node 24.21
+ * process, and sooner on a deeper stack (bisected on 28 November 2026);
+ * this reads 10 MiB in 20 ms. What the class lets past and `atob`
+ * refuses, padding alone, is not base64 either.
+ */
+const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/
 
 /** `base64`'s bytes, or undefined where it is not base64. */
 function decoded(base64: string): Uint8Array | undefined {
-  if (!BASE64.test(base64)) return undefined
-  const binary = atob(base64)
+  if (base64.length % 4 !== 0 || !BASE64.test(base64)) return undefined
+  let binary: string
+  try {
+    binary = atob(base64)
+  } catch {
+    return undefined
+  }
   const bytes = new Uint8Array(binary.length)
   for (let at = 0; at < binary.length; at++) bytes[at] = binary.charCodeAt(at)
   return bytes
@@ -169,9 +186,18 @@ export function bounded(pages: readonly CheckedPage[], warnings: readonly Runtim
   }
 }
 
-/** The renderer and PDF.js, loaded with the first render check: most of a client's sessions never render. */
+/**
+ * The renderer and PDF.js, loaded with the first render check: most of a
+ * client's sessions never render. A load that fails is forgotten, so the
+ * next check loads them again rather than failing for the rest of the
+ * session; concurrent first checks share the one load.
+ */
 let engines: Promise<readonly [typeof import('@formancy/report-render-pdf'), typeof import('./pdf-text.js')]> | undefined
-const loaded = () => (engines ??= Promise.all([import('@formancy/report-render-pdf'), import('./pdf-text.js')]))
+const loaded = () =>
+  (engines ??= Promise.all([import('@formancy/report-render-pdf'), import('./pdf-text.js')]).catch((error: unknown) => {
+    engines = undefined
+    throw error
+  }))
 
 /**
  * `input`'s report rendered with its data, as a host renders it, and what

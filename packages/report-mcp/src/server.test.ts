@@ -2,6 +2,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { wordExpressions } from '@formancy/report-core'
 import { QUOTATION, STARTERS } from '@formancy/report-corpus'
+import { STDIO_DEFAULT_MAX_BUFFER_SIZE } from '@modelcontextprotocol/sdk/shared/stdio.js'
+import { DATA_MODES } from '@formancy/report-runtime'
 import { MAX_REPORT_BYTES, reportHash, reportWords } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
@@ -272,12 +274,22 @@ describe('render_check through the protocol', () => {
   })
 
   // A mode the tool does not take is the protocol's to refuse, by the
-  // schema a client is told; render.ts refuses it again for a library's
-  // caller.
-  test('tells a client the two modes it takes', async () => {
+  // schema a client is told, which is the runtime's own list: a mode the
+  // runtime gained would otherwise be refused here. render.ts refuses
+  // another again for a library's caller.
+  test('tells a client the modes it takes, the runtime’s', async () => {
     const { tools } = await (await connect()).listTools()
     const mode = (tools.find(({ name }) => name === 'render_check')?.inputSchema.properties as Record<string, { enum?: unknown }> | undefined)?.mode
-    expect(mode?.enum).toEqual(['final', 'preview'])
+    expect(mode?.enum).toEqual([...DATA_MODES])
+  })
+
+  // The SDK's stdio transport reads at most this of one message and ends
+  // the server past it, with no answer (0088): a call of real data and a
+  // logo passes it long before the runtime's rows bound does, so the
+  // description says so, by the transport's own number.
+  test('tells a model the whole call must stay under the transport’s bound', () => {
+    expect(TOOL_DEFINITIONS.render_check).toContain(`under ${String(STDIO_DEFAULT_MAX_BUFFER_SIZE)} bytes`)
+    expect(TOOL_DEFINITIONS.render_check).toContain('the server ends without an answer')
   })
 })
 
@@ -323,6 +335,10 @@ describe('the prompts a client can see', () => {
     const said = promptText(messages)
     expect(said).toContain('fr-CH')
     expect(said).toContain('word-missing')
+    // The payment part's words are a person's (0088, 2026-11-28): the prompt tells the agent to leave out what validate_report lists for one, by the verdict's own key.
+    expect(said).toContain('forPerson')
+    expect(said).toContain('payment part')
+    expect(TOOL_DEFINITIONS.validate_report).toContain('forPerson')
     for (const step of translationSteps('fr-CH', PLACEHOLDERS)) expect(said).toContain(JSON.stringify(step))
   })
 

@@ -24,12 +24,23 @@ import { describe, expect, test } from 'vitest'
  * - `console` is no module's: standard output is the protocol's, and a
  *   line written there corrupts the stream a client reads;
  * - `fetch`, `WebSocket`, `XMLHttpRequest` and `EventSource` are no
- *   module's, main.ts's among them.
+ *   module's, main.ts's among them;
+ * - render.ts reaches the renderer and pdf-text.ts only through
+ *   `import()`, and a type, so that a session that never renders never
+ *   loads them, nor the native canvas PDF.js requires (0089);
+ * - pdf-text.ts calls PDF.js's `getDocument` by that name alone, with an
+ *   object literal of `READ_OPTIONS` and nothing else: no address of a
+ *   standard font, a CMap, a profile or a decoder, no URL, no worker
+ *   fetch and no factory, which is what keeps pdfjs-dist's own fonts
+ *   unread, as the licence guard's admission of them says (0089).
  *
  * Read from the sources with TypeScript's parser, as report-server's
  * composition test reads its own, so an import is found however it is
  * spelt -- static, re-exported, dynamic or required -- and a comment or a
- * sentence that names one is not one.
+ * sentence that names one is not one. What it does not read: a name built
+ * as the module runs, as `globalThis['pro' + 'cess']`, and the base a
+ * `createRequire` is given. It holds against an accident, not against a
+ * module written to get past it.
  */
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -57,8 +68,10 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
   'server.ts': [
     'node:module',
     '@modelcontextprotocol/sdk/server/mcp.js',
+    '@modelcontextprotocol/sdk/shared/stdio.js',
     '@modelcontextprotocol/sdk/types.js',
     '@formancy/report-core',
+    '@formancy/report-runtime',
     'zod',
     './render.js',
     './tools.js',
@@ -74,6 +87,12 @@ const MANIFEST = '../package.json'
 const MODULE = 'node:module'
 const REQUIRE = 'createRequire'
 const NETWORK = ['fetch', 'WebSocket', 'XMLHttpRequest', 'EventSource']
+/** What a module may load only when it is first asked for, through `import()`, or name as a type. */
+const LAZY: Readonly<Record<string, readonly string[]>> = { 'render.ts': ['@formancy/report-render-pdf', './pdf-text.js'] }
+/** The module that reads a PDF, the one function it reads with, and the options it may give it: none that names where to fetch or read anything from. */
+const READER = 'pdf-text.ts'
+const OPEN = 'getDocument'
+const READ_OPTIONS = ['data', 'disableFontFace', 'useSystemFonts', 'verbosity']
 
 /** Whether `node` is a string literal with `text`. */
 const literal = (node: ts.Node | undefined, text?: string): boolean =>
@@ -106,6 +125,29 @@ function takesTheRequire(declaration: ts.ImportDeclaration): boolean {
   return more.length === 0 && only !== undefined && !only.isTypeOnly && only.propertyName === undefined && only.name.text === REQUIRE
 }
 
+/** Whether `declaration` imports or re-exports types alone: `import type`, or every name it takes marked `type`. */
+function typesAlone(declaration: ts.ImportDeclaration | ts.ExportDeclaration): boolean {
+  if (ts.isExportDeclaration(declaration)) return declaration.isTypeOnly
+  const clause = declaration.importClause
+  if (clause === undefined) return false
+  if (clause.isTypeOnly) return true
+  const named = clause.namedBindings
+  return clause.name === undefined && named !== undefined && ts.isNamedImports(named) && named.elements.every((element) => element.isTypeOnly)
+}
+
+/** What is wrong with a call of `getDocument`, `call`: its one argument an object literal of `READ_OPTIONS` alone, each written out. */
+function openedOtherwise(call: ts.CallExpression): string | undefined {
+  const [options, ...more] = call.arguments
+  if (options === undefined || more.length > 0 || !ts.isObjectLiteralExpression(options))
+    return `calls ${OPEN} with what is not one object literal of its options`
+  for (const property of options.properties) {
+    if (!(ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) || !ts.isIdentifier(property.name))
+      return `calls ${OPEN} with an option it does not write out`
+    if (!READ_OPTIONS.includes(property.name.text)) return `calls ${OPEN} with ${property.name.text}`
+  }
+  return undefined
+}
+
 /** What is wrong with module `name`, whose source is `source`, against the rules above, each said once. */
 function problemsOf(name: string, source: string): string[] {
   const allowed = ALLOWED[name]
@@ -117,15 +159,36 @@ function problemsOf(name: string, source: string): string[] {
     else if (node.text === MODULE && (declaration === undefined || !takesTheRequire(declaration)))
       problems.add(`${name} takes ${MODULE} otherwise than as import { ${REQUIRE} } from '${MODULE}'`)
   }
+  /** A lazy module named anywhere but in `import()` or for types alone is loaded with `name`. */
+  const eager = (node: ts.Node | undefined, declaration?: ts.ImportDeclaration | ts.ExportDeclaration) => {
+    if (node !== undefined && ts.isStringLiteralLike(node) && (LAZY[name] ?? []).includes(node.text) && (declaration === undefined || !typesAlone(declaration)))
+      problems.add(`${name} loads ${node.text} with itself, where it may load it only through import()`)
+  }
   const visit = (node: ts.Node): void => {
-    if (ts.isImportDeclaration(node)) specifier(node.moduleSpecifier, node)
-    if (ts.isExportDeclaration(node)) specifier(node.moduleSpecifier)
-    if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) specifier(node.moduleReference.expression)
-    if (
-      ts.isCallExpression(node) &&
-      (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require'))
-    )
+    if (ts.isImportDeclaration(node)) {
+      specifier(node.moduleSpecifier, node)
+      eager(node.moduleSpecifier, node)
+    }
+    if (ts.isExportDeclaration(node)) {
+      specifier(node.moduleSpecifier)
+      eager(node.moduleSpecifier, node)
+    }
+    if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
+      specifier(node.moduleReference.expression)
+      eager(node.moduleReference.expression)
+    }
+    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) specifier(node.arguments[0])
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'require') {
       specifier(node.arguments[0])
+      eager(node.arguments[0])
+    }
+    if (name === READER && ts.isImportSpecifier(node) && (node.propertyName ?? node.name).text === OPEN && node.propertyName !== undefined)
+      problems.add(`${name} takes ${OPEN} under another name`)
+    if (name === READER && ts.isIdentifier(node) && node.text === OPEN && !declared(node)) {
+      const call = node.parent
+      const problem = ts.isCallExpression(call) && call.expression === node ? openedOtherwise(call) : `keeps ${OPEN} to call it elsewhere`
+      if (problem !== undefined) problems.add(`${name} ${problem}`)
+    }
     if (ts.isIdentifier(node) && !declared(node)) {
       if (node.text === 'process' && name !== PROCESS) problems.add(`${name} touches the process`)
       if (node.text === 'console') problems.add(`${name} writes to the console`)
@@ -181,6 +244,15 @@ describe('what each module may reach', () => {
       ['server.ts', "export { createRequire } from 'node:module'"],
       ['server.ts', "const { createRequire: load } = await import('node:module')\nconst fs = load(import.meta.url)('node:fs')"],
       ['server.ts', "import { type createRequire } from 'node:module'"],
+      ['render.ts', "import { renderPdf } from '@formancy/report-render-pdf'"],
+      ['render.ts', "export { pdfLines } from './pdf-text.js'"],
+      ['render.ts', "import * as text from './pdf-text.js'"],
+      ['pdf-text.ts', "const task = getDocument({ data, standardFontDataUrl: '/standard_fonts/' })"],
+      ['pdf-text.ts', 'const task = getDocument({ ...options, data })'],
+      ['pdf-text.ts', 'const task = getDocument(options)'],
+      ['pdf-text.ts', "import { getDocument as open } from 'pdfjs-dist/legacy/build/pdf.mjs'"],
+      ['pdf-text.ts', 'const read = getDocument'],
+      ['pdf-text.ts', "const task = getDocument({ data, ['cMapUrl']: '/cmaps/' })"],
       ['server.ts', "import express from 'express'"],
       ['server.ts', "import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'"],
       ['main.ts', "import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'"],
@@ -208,6 +280,12 @@ describe('what each module may reach', () => {
       ['tools.ts', '// console.log and process.env are no module’s; fetch is the server half’s, through report-client'],
       ['tools.ts', "const said = 'the console, the process and a fetch are named in a sentence'"],
       ['tools.ts', "import { reportHash } from '@formancy/report-spec'"],
+      ['render.ts', "const engines = Promise.all([import('@formancy/report-render-pdf'), import('./pdf-text.js')])"],
+      ['render.ts', "import type { CheckedLines } from './pdf-text.js'"],
+      [
+        'pdf-text.ts',
+        'const task = getDocument({ data: new Uint8Array(bytes), disableFontFace: true, useSystemFonts: false, verbosity: VerbosityLevel.ERRORS })',
+      ],
     ]
     for (const [name, text] of harmless) expect(problemsOf(name, text), `${name}: ${text}`).toEqual([])
   })

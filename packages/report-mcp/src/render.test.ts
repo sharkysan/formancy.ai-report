@@ -3,6 +3,7 @@ import { MAX_DETAIL_ROWS, MAX_STRING_LENGTH, PREVIEW_LABEL } from '@formancy/rep
 import type { RenderManifest, RuntimeError } from '@formancy/report-runtime'
 import { emptyReport, MAX_REPORT_BYTES } from '@formancy/report-spec'
 import type { Component, ReportDefinition } from '@formancy/report-spec'
+import { STDIO_DEFAULT_MAX_BUFFER_SIZE } from '@modelcontextprotocol/sdk/shared/stdio.js'
 import { describe, expect, test, vi } from 'vitest'
 import { bounded, MAX_ANSWER_BYTES, MAX_CHECK_PAGES, renderCheck } from './render.js'
 import type { CheckedPage, RenderCheckInput } from './render.js'
@@ -198,6 +199,21 @@ describe('the assets an agent passes', () => {
     expect(dataOf<Refused>(await renderCheck(quotation({ report: mapped, assets: [...STARTER_ASSETS, wrong] }))).refusal?.code).toBe('asset-not-its-digest')
   })
 
+  // An asset of a few megabytes is one an agent passes: a pattern that
+  // overflowed V8's stack from 4.47 million characters answered it with a
+  // bare "Maximum call stack size exceeded" and no code. At the transport's
+  // bound, 10 MiB of base64, whole quanta: bytes that are not their digest,
+  // one character off, and padding alone are each answered by their code.
+  test('reads 10 MiB of base64 and answers it by its codes', async () => {
+    const [logo] = STARTER_ASSETS
+    if (logo === undefined) throw new Error('the corpus has no starter image')
+    const big = 'A'.repeat(STDIO_DEFAULT_MAX_BUFFER_SIZE)
+    const code = async (base64: string) => dataOf<Refused>(await renderCheck(quotation({ assets: [{ ...logo, base64 }] }))).refusal?.code
+    expect(await code(big)).toBe('asset-not-its-digest')
+    expect(await code(`${big.slice(0, -1)}!`)).toBe('asset-not-base64')
+    expect(await code('====')).toBe('asset-not-base64')
+  }, 30_000)
+
   // An image the report draws and the call does not carry is the
   // runtime's missing-asset, as a host's lookup that has none is.
   test('answers the runtime’s missing-asset for an image the call does not carry', async () => {
@@ -350,6 +366,27 @@ describe('what it reaches', () => {
 })
 
 describe('a fault', () => {
+  // A load of the renderer that failed once -- a file not opened on a busy
+  // machine -- is forgotten: kept, it would fail every check for the rest
+  // of the session, which only a restart would end.
+  test('loads the renderer again after a load that failed', async () => {
+    vi.resetModules()
+    let loads = 0
+    vi.doMock('@formancy/report-render-pdf', async () => {
+      loads += 1
+      if (loads === 1) throw new Error('EMFILE: too many open files')
+      return vi.importActual('@formancy/report-render-pdf')
+    })
+    try {
+      const fresh = await import('./render.js')
+      await expect(fresh.renderCheck(quotation())).rejects.toThrow('EMFILE')
+      expect((await fresh.renderCheck(quotation())).ok).toBe(true)
+    } finally {
+      vi.doUnmock('@formancy/report-render-pdf')
+      vi.resetModules()
+    }
+  })
+
   // What the renderer throws that is no refusal is a fault: thrown on, for
   // the protocol to answer as the call's error, and never told to an agent
   // as the renderer's verdict on its report.

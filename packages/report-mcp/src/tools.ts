@@ -20,7 +20,7 @@
  */
 import { describeCommands, diagnose, openReportSession, reportFacts } from '@formancy/report-core'
 import type { CommandDescriptor, Diagnostic, Refusal } from '@formancy/report-core'
-import { MAX_REPORT_BYTES, reportHash, validateReport } from '@formancy/report-spec'
+import { MAX_REPORT_BYTES, reportHash, reportWords, validateReport, wordExpressionSites } from '@formancy/report-spec'
 import type { ReportDefinition, ReportError } from '@formancy/report-spec'
 
 /** A tool's answer: whether there is nothing to fix, one or two sentences for the model, and the part an agent acts on, which every tool gives. */
@@ -52,7 +52,59 @@ export interface Verdict {
   /** The report's own diagnostics: an error here refuses every render. */
   readonly diagnostics: readonly Diagnostic[]
   /** Each language the report's translations declare, in their order: an error here refuses a render in that language alone. */
-  readonly languages: readonly { readonly locale: string; readonly diagnostics: readonly Diagnostic[] }[]
+  readonly languages: readonly LanguageVerdict[]
+}
+
+/** What a language lacks that stands in the payment part: a word or an expression, by its source, and every place it stands. */
+export interface ForPerson {
+  readonly kind: 'word' | 'expression'
+  readonly source: string
+  /** The JSON Pointer to each place it stands, in document order; the first is where `word-missing` stands. */
+  readonly paths: readonly string[]
+}
+
+/** A declared language's verdict: its diagnostics, and of what it lacks, what a person writes and no agent translates. */
+export interface LanguageVerdict {
+  readonly locale: string
+  readonly diagnostics: readonly Diagnostic[]
+  /**
+   * Each word or expression the language lacks, among its `word-missing`,
+   * that stands anywhere in the payment part: printed on the QR-bill's slip
+   * and encoded in the code a bank reads, so a person's to write, and never
+   * an agent's to translate (0039, 0048; 0088, 2026-11-28).
+   */
+  readonly forPerson: readonly ForPerson[]
+}
+
+/** Where the payment part stands in a report's JSON, by the definition's own key. */
+const PAYMENT_PART = `/${'paymentPart' satisfies keyof ReportDefinition}/`
+
+/**
+ * What `locale` lacks in `report` that stands in the payment part: of the
+ * `word-missing` among `found`, each word and expression by report-spec's
+ * one walk of a report's words, with every place it stands, whose places
+ * include one under `/paymentPart/` -- a word that also stands elsewhere
+ * among them, since a word is translated once, wherever it stands. The
+ * rule report-ai's request leaves the payment part to a person by (0085),
+ * by the same walk. An e-invoice's texts are no words in it.
+ */
+function forPersonOf(report: ReportDefinition, found: readonly Diagnostic[]): ForPerson[] {
+  const missingAt = new Set(found.flatMap(({ code, path }) => (code === 'word-missing' ? [path] : [])))
+  const bySource = (places: readonly { readonly path: string; readonly source: string }[], kind: ForPerson['kind']): ForPerson[] => {
+    const grouped = new Map<string, string[]>()
+    for (const { path, source } of places) grouped.set(source, [...(grouped.get(source) ?? []), path])
+    return [...grouped].map(([source, paths]) => ({ kind, source, paths }))
+  }
+  return [
+    ...bySource(
+      reportWords(report).map(({ path, text }) => ({ path, source: text })),
+      'word',
+    ),
+    ...bySource(
+      wordExpressionSites(report).map(({ path, cel }) => ({ path, source: cel })),
+      'expression',
+    ),
+  ].filter(({ paths }) => missingAt.has(paths[0] ?? '') && paths.some((path) => path.startsWith(PAYMENT_PART)))
 }
 
 /** How many of `found` are errors, and how many warnings, in words. */
@@ -90,7 +142,10 @@ function verdictOf(report: ReportDefinition): Verdict {
     hash: reportHash(report),
     size: { bytes, max: MAX_REPORT_BYTES, ...(bytes > MAX_REPORT_BYTES ? { code: 'report-too-large' as const } : {}) },
     diagnostics: found.filter(({ language }) => language === undefined),
-    languages: (report.translations ?? []).map(({ locale }) => ({ locale, diagnostics: found.filter(({ language }) => language === locale) })),
+    languages: (report.translations ?? []).map(({ locale }) => {
+      const diagnostics = found.filter(({ language }) => language === locale)
+      return { locale, diagnostics, forPerson: forPersonOf(report, diagnostics) }
+    }),
   }
 }
 

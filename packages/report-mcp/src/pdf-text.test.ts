@@ -1,9 +1,11 @@
+import * as corpus from '@formancy/report-corpus'
 import { EURO_INVOICE_SAMPLES, pageLines, readPdf, SHIFTED_FIXTURES, starterImages, STARTERS } from '@formancy/report-corpus'
 import type { Starter } from '@formancy/report-corpus'
 import { renderPdf } from '@formancy/report-render-pdf'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
 import type { ResolvedDocument } from '@formancy/report-runtime'
 import { describe, expect, test, vi } from 'vitest'
+import * as reader from './pdf-text.js'
 import { pdfLines } from './pdf-text.js'
 
 /**
@@ -77,10 +79,18 @@ function helvetica(text: string): Uint8Array {
   return new TextEncoder().encode(pdf)
 }
 
-const documents: readonly (readonly [string, () => ResolvedDocument])[] = [
-  ...STARTERS.map((starter) => [starter.id, () => resolved(starter)] as const),
-  ...EURO_INVOICE_SAMPLES.filter(({ id }) => !STARTERS.some((starter) => starter.id === id)).map((sample) => [sample.id, () => resolved(sample)] as const),
-  ...SHIFTED_FIXTURES.map(({ id, document }) => [id, () => document] as const),
+/**
+ * The PDFs both readers read, each with whether the renderer may refuse
+ * it: a starter and a Euro invoice sample never, so that one refused stops
+ * no comparison without failing; a run set off the line only where the
+ * corpus expects it refused.
+ */
+const documents: readonly (readonly [string, () => ResolvedDocument, boolean])[] = [
+  ...STARTERS.map((starter) => [starter.id, () => resolved(starter), false] as const),
+  ...EURO_INVOICE_SAMPLES.filter(({ id }) => !STARTERS.some((starter) => starter.id === id)).map(
+    (sample) => [sample.id, () => resolved(sample), false] as const,
+  ),
+  ...SHIFTED_FIXTURES.map(({ id, document, expect: expected }) => [id, () => document, expected.outcome !== 'render'] as const),
 ]
 
 describe('the lines a render check answers', () => {
@@ -88,12 +98,23 @@ describe('the lines a render check answers', () => {
   // for a word, a lowered run left a line of its own, a turned caption
   // read among the lines -- would tell an agent of lines no check here
   // proves; each PDF is read by both and the two held equal.
-  test.each(documents)('are the corpus’s pageLines of the same PDF: %s', async (_id, document) => {
+  test.each(documents)('are the corpus’s pageLines of the same PDF: %s', async (_id, document, mayRefuse) => {
     const pdf = await printed(document())
-    if (pdf === undefined) return
+    if (pdf === undefined) {
+      expect(mayRefuse, 'the renderer refused a document the corpus expects printed').toBe(true)
+      return
+    }
     const lines = await pdfLines(pdf)
     expect(lines).toEqual(await corpusLines(pdf))
     expect(lines.flat().length).toBeGreaterThan(0)
+  })
+
+  // The fractions the rule is written with are the corpus's, each: a gap
+  // for a word moved in one reader alone would read the corpus's PDFs
+  // alike anywhere between 0.15 and 0.25 em, and nothing else would see it.
+  test('are read by the corpus’s fractions, each of them', () => {
+    const fractions = ['DESCENT', 'SAME_LINE', 'WORD_GAP', 'SHIFT_TOLERANCE', 'JOIN_GAP'] as const
+    expect(Object.fromEntries(fractions.map((name) => [name, reader[name]]))).toEqual(Object.fromEntries(fractions.map((name) => [name, corpus[name]])))
   })
 
   // A guard on the guard: the documents compared hold what makes the rule
@@ -101,6 +122,7 @@ describe('the lines a render check answers', () => {
   // horizontal -- and every starter prints.
   test('compare every starter, a run set off its line and a caption turned up the side', async () => {
     const pdfs = await Promise.all(documents.map(async ([id, document]) => [id, await printed(document())] as const))
+    expect(EURO_INVOICE_SAMPLES.every(({ id }) => pdfs.some(([printedId, pdf]) => printedId === id && pdf !== undefined))).toBe(true)
     const read = await Promise.all(pdfs.flatMap(([id, pdf]) => (pdf === undefined ? [] : [readPdf(pdf).then((reading) => [id, reading] as const)])))
     expect(STARTERS.every(({ id }) => read.some(([printedId]) => printedId === id))).toBe(true)
     expect(read.some(([, { pages }]) => pages.some((page) => pageLines(page).some(({ shifted }) => shifted.length > 0)))).toBe(true)

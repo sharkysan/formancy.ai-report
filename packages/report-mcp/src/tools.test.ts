@@ -1,6 +1,6 @@
 import { describeCommands, diagnose, languageDiagnostics, reportFacts } from '@formancy/report-core'
-import { STARTERS, QUOTATION } from '@formancy/report-corpus'
-import { MAX_REPORT_BYTES, reportHash } from '@formancy/report-spec'
+import { INVOICE, STARTERS, QUOTATION } from '@formancy/report-corpus'
+import { MAX_REPORT_BYTES, reportHash, reportWords, wordExpressionSites } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { quotationOf } from './test-support.js'
@@ -65,6 +65,38 @@ describe('validate_report', () => {
       // A warning prints as written, so a starter with no error is ok.
       expect(result.ok, id).toBe(diagnose(report).every(({ severity }) => severity !== 'error'))
     }
+  })
+
+  // The QR-bill's message is a word, and it prints on the slip and is
+  // encoded in the code a bank reads: no proposal changes what the payment
+  // part prints (0039, 0048), report-ai asks a model for none of its words
+  // (0085), and an agent is told which they are, by the same walk, so that
+  // the words it is offered to translate hold none of them -- a word that
+  // also stands elsewhere among them, since a word is translated once.
+  test('lists what a language lacks in the payment part for a person, and offers an agent none of it', () => {
+    const french = dataOf<{ report: ReportDefinition }>(applyCommands(INVOICE.report, [{ command: 'addLanguage', args: ['fr-CH'] }])).report
+    const [language] = dataOf<{
+      languages: readonly {
+        readonly diagnostics: readonly { readonly code: string; readonly path: string }[]
+        readonly forPerson: readonly { readonly kind: string; readonly source: string; readonly paths: readonly string[] }[]
+      }[]
+    }>(checkReport(french)).languages
+    if (language === undefined) throw new Error('the invoice in French declares no language')
+    expect(language.forPerson).toEqual([{ kind: 'word', source: 'Rechnung ', paths: ['/paymentPart/message/0/text'] }])
+    const inPart = new Set([
+      ...reportWords(french).flatMap(({ path, text }) => (path.startsWith('/paymentPart/') ? [text] : [])),
+      ...wordExpressionSites(french).flatMap(({ path, cel }) => (path.startsWith('/paymentPart/') ? [cel] : [])),
+    ])
+    const sourceAt = new Map([
+      ...reportWords(french).map(({ path, text }) => [path, text] as const),
+      ...wordExpressionSites(french).map(({ path, cel }) => [path, cel] as const),
+    ])
+    const person = new Set(language.forPerson.map(({ source }) => source))
+    const offered = language.diagnostics.flatMap(({ code, path }) =>
+      code === 'word-missing' && !person.has(sourceAt.get(path) ?? '') ? [sourceAt.get(path)] : [],
+    )
+    expect(offered.length).toBeGreaterThan(0)
+    expect(offered.filter((source) => inPart.has(source ?? ''))).toEqual([])
   })
 
   // The three lists are the order a save, a render and a language's render

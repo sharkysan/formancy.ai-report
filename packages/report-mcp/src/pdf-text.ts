@@ -12,7 +12,9 @@
  * prints, is read into the line it stands beside (0061); and a run turned
  * off the horizontal is a line of its own, after the others. The box a run
  * is given is the corpus's, computed the same way to the last operation,
- * so that two runs a hair apart are ordered here as there.
+ * so that two runs a hair apart are ordered here as there, and its
+ * fractions are exported, for `pdf-text.test.ts` to hold each to the
+ * corpus's; the package's index exports none of them.
  *
  * PDF.js is loaded with the defaults that fetch nothing and read no file:
  * no standard font, CMap, ICC profile or decoder by address, since none is
@@ -42,15 +44,15 @@ interface Run {
 }
 
 /** How far below the baseline a run's box reaches, as a fraction of its size: the corpus's `DESCENT`. */
-const DESCENT = 0.2
+export const DESCENT = 0.2
 /** Two runs are on one line when their baselines are closer than this fraction of the smaller size: the corpus's `SAME_LINE`. */
-const SAME_LINE = 0.3
+export const SAME_LINE = 0.3
 /** A gap between two runs wider than this fraction of the size is a word space: the corpus's `WORD_GAP`. */
-const WORD_GAP = 0.15
+export const WORD_GAP = 0.15
 /** How far a run's size and its baseline's move may stand from what the document states and still be read as set off the line, in points: the corpus's `SHIFT_TOLERANCE`. */
-const SHIFT_TOLERANCE = 0.01
+export const SHIFT_TOLERANCE = 0.01
 /** How far from the run beside it, as a fraction of that run's size, a run set off the line may stand and still be read as its: the corpus's `JOIN_GAP`. */
-const JOIN_GAP = 0.3
+export const JOIN_GAP = 0.3
 
 /**
  * The text of the PDF `bytes` are, as each page's lines, top to bottom;

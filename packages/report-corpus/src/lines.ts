@@ -40,14 +40,14 @@ export interface ShiftedRun {
  * font size apart, so they never merge; runs of different sizes on one
  * baseline differ by nothing.
  */
-const SAME_LINE = 0.3
+export const SAME_LINE = 0.3
 
 /**
  * A gap between two runs wider than this fraction of the font size is a word
  * space. A space is about a quarter of an em in Roboto and Helvetica, and a
  * kerning adjustment at a join between runs is under a tenth.
  */
-const WORD_GAP = 0.15
+export const WORD_GAP = 0.15
 
 /**
  * How far, in points, a run's size and its baseline's move may stand from

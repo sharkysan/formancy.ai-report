@@ -106,10 +106,14 @@ export type { SwissQrBill } from './fixtures/bills.js'
 export { CODE_FIXTURES } from './fixtures/codes.js'
 export { FIRST_PAGE_FIXTURES } from './fixtures/first-page-header.js'
 export { SHIFTED_FIXTURES } from './fixtures/shifted.js'
-/** A page's lines as a reader sees them: the rule report-mcp's render check reads a page by too, held equal to this one on every starter (0089). */
-export { JOIN_GAP, offLine, pageLines } from './lines.js'
+/**
+ * A page's lines as a reader sees them: the rule report-mcp's render check
+ * reads a page by too, held equal to this one on the corpus's PDFs and by
+ * each of the fractions it is written with (0089).
+ */
+export { JOIN_GAP, offLine, pageLines, SAME_LINE, SHIFT_TOLERANCE, WORD_GAP } from './lines.js'
 export type { Line, ShiftedRun } from './lines.js'
-export { baselineOf, readPdf } from './read-pdf.js'
+export { baselineOf, DESCENT, readPdf } from './read-pdf.js'
 export { curvePoints, curveSamples, onCurve } from './curves.js'
 export { drawingsOn } from './drawings.js'
 export type { Drawing } from './drawings.js'

@@ -8,12 +8,14 @@
  */
 import { createRequire } from 'node:module'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { STDIO_DEFAULT_MAX_BUFFER_SIZE } from '@modelcontextprotocol/sdk/shared/stdio.js'
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
 import type { DiagnosticCode, StepDescriptor } from '@formancy/report-core'
+import { DATA_MODES } from '@formancy/report-runtime'
 import { z } from 'zod'
 import { MAX_ANSWER_BYTES, MAX_CHECK_PAGES, renderCheck } from './render.js'
 import { applyCommands, checkReport, describeFormat, listCommands } from './tools.js'
-import type { ToolResult } from './tools.js'
+import type { LanguageVerdict, ToolResult } from './tools.js'
 
 /**
  * Each tool's description, apart from its wiring. Exported and asserted,
@@ -32,7 +34,8 @@ export const TOOL_DEFINITIONS = {
     'errors refuse every render; then each declared language’s, whose errors refuse a render in that language alone. Each comes back ' +
     'with its code, its JSON Pointer path and its sentence, and a valid report with its hash and its size. A save also asks what only ' +
     'Report’s server knows, which this does not check: that the report’s id is the template’s, that every image it declares is kept ' +
-    'there, and that it maps no font. Call it after every change you write by hand, and before you show a report to anyone.',
+    'there, and that it maps no font. Of what a language lacks, a word that stands in the payment part is listed in its forPerson: ' +
+    'a person writes it, never an agent. Call it after every change you write by hand, and before you show a report to anyone.',
   describe_commands:
     'List every editing command of report-core, the ones both builders run, each written as { "command": name, "args": [...] } with ' +
     'the shape of each argument after the report; how many one edit may hold; and the commands that may change whom a payment ' +
@@ -51,8 +54,10 @@ export const TOOL_DEFINITIONS = {
     'completeness: { complete: true, captured: the rows given }, consistency: "host-captured" }, an exact number or a date as a string ' +
     'of its digits; an image or a font the report names comes in assets, its bytes in base64 with the digest ' +
     'the report pins, never by address. A final render unless mode is preview, which prints what the data lacks and says so. At most ' +
-    `${String(MAX_CHECK_PAGES)} pages, and an answer of at most ${String(MAX_ANSWER_BYTES)} bytes; the PDF itself is not returned. Call it ` +
-    'once validate_report answers ok, with data shaped like the real data, before you show a report to anyone.',
+    `${String(MAX_CHECK_PAGES)} pages, and an answer of at most ${String(MAX_ANSWER_BYTES)} bytes; the PDF itself is not returned. The ` +
+    `whole call -- the report, its data and every asset's base64 -- must stay under ${String(STDIO_DEFAULT_MAX_BUFFER_SIZE)} bytes of ` +
+    'JSON, or the server ends without an answer: send a sample of the rows, a few hundred, never the whole data. Call it once ' +
+    'validate_report answers ok, with data shaped like the real data, before you show a report to anyone.',
 } as const
 
 /**
@@ -101,10 +106,12 @@ function respond({ ok, applied, summary, data }: ToolResult): {
 
 /**
  * Every tool here: it changes nothing anywhere and reaches nothing but its
- * arguments -- no server, no file, no network -- so a host may run it
- * without asking. `apply_commands` among them: it answers a new report and
- * keeps none; and `render_check`, which renders with what the call holds
- * and keeps neither the PDF nor anything read of it.
+ * arguments -- no server and no network, and no file but its packages'
+ * own: the manifest, and for `render_check` the renderer's faces, PDFKit's
+ * profile and PDF.js's worker module -- so a host may run it without
+ * asking. `apply_commands` among them: it answers a new report and keeps
+ * none; and `render_check`, which renders with what the call holds and
+ * keeps neither the PDF nor anything read of it.
  */
 const LOCAL_CHECK: ToolAnnotations = { readOnlyHint: true, openWorldHint: false }
 
@@ -126,10 +133,7 @@ const DATA = z
 const PARAMETERS = z.unknown().optional().describe('The value of each parameter, by its id, as a person fills them in; a default applies to one left out.')
 const LOCALE = z.string().optional().describe('The language it prints in: the report’s own when absent, or one its translations declare, exactly.')
 const TIME_ZONE = z.string().optional().describe('The IANA zone instants print in, as Europe/Zurich: UTC when absent.')
-const MODE = z
-  .enum(['final', 'preview'])
-  .optional()
-  .describe('final, which refuses data that lacks a field, unless preview, which prints it and says so on every page.')
+const MODE = z.enum(DATA_MODES).optional().describe('final, which refuses data that lacks a field, unless preview, which prints it and says so on every page.')
 const ASSETS = z
   .array(
     z.object({
@@ -182,9 +186,10 @@ export function translationSteps(
   ]
 }
 
-/** The diagnostics the translate prompt names, typed by report-core's codes. */
+/** The diagnostics the translate prompt names, typed by report-core's codes, and the list of what a person writes, by the verdict's own key. */
 const WORD_MISSING = 'word-missing' satisfies DiagnosticCode
 const TRANSLATION_DIFFERS = 'translation-differs' satisfies DiagnosticCode
+const FOR_PERSON = 'forPerson' satisfies keyof LanguageVerdict
 
 /**
  * What somebody asks an agent to do with a report, each in the order that
@@ -212,8 +217,9 @@ export const PROMPTS = {
       '   refuses every render; then each language’s. Call it again until it answers ok.',
       '4. For every change after that, call `describe_commands` once, then `apply_commands` with the commands and the hash the',
       '   last answer gave, rather than writing the report again: a command changes only what it names.',
-      '5. Call `render_check` with data shaped like the real data, and read each page’s lines: where a page breaks, what a table',
-      '   prints on which page, and what the runtime refuses of the data in a final render. Fix what you see, and check again.',
+      '5. Call `render_check` with a sample of rows shaped like the real data, a few hundred and never the whole data, and read each',
+      '   page’s lines: where a page breaks, what a table prints on which page, and what the runtime refuses of the data in a final',
+      '   render. Fix what you see, and check again.',
       '6. Show the person the report, what `validate_report` still warns of and what `render_check` printed, before it is used.',
     ],
   },
@@ -232,6 +238,8 @@ export const PROMPTS = {
         `1. Call \`validate_report\`. If the report declares no translation for ${language}, call \`apply_commands\` with`,
         `   ${String(add)} and the hash it answered.`,
         `2. Read the ${WORD_MISSING} diagnostics listed under ${language}: each is a word or an expression the language lacks, at its path.`,
+        `   Leave out every one \`validate_report\` lists in ${FOR_PERSON} for ${language}: it stands in the payment part, which prints on the`,
+        '   QR-bill’s slip and is encoded in the code a bank reads, so a person writes it. Never translate it; name each to the person.',
         '3. Call `apply_commands` once, with every translation in one list and the hash the last answer gave: for a word,',
         `   ${String(word)},`,
         `   and for an expression, ${String(expression)}.`,
