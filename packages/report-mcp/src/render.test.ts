@@ -97,6 +97,15 @@ describe('what render_check answers', () => {
     expect(result.data).not.toHaveProperty('pages')
   })
 
+  // The data is the runtime's envelope, a host's as an agent's: sample
+  // data of header and detail alone is refused by the runtime's codes for
+  // what it lacks, which the tool's description names.
+  test('answers the runtime’s refusal of data without its completeness and its consistency', async () => {
+    const { header, detail } = quotationData() as { header: unknown; detail: unknown }
+    const result = await renderCheck(quotation({ data: { header, detail } }))
+    expect(dataOf<Refused>(result).runtime?.map(({ code }) => code)).toEqual(['invalid-completeness', 'invalid-consistency'])
+  })
+
   // A preview prints what a final render refuses, and every page says it
   // is one: the agent sees the label, and the warning that put it there.
   test('prints a preview of the same data, labelled, with the runtime’s warning', async () => {
