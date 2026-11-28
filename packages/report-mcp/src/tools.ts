@@ -60,7 +60,7 @@ export interface ForPerson {
   readonly kind: 'word' | 'expression'
   readonly source: string
   /** The JSON Pointer to each place it stands, in document order; the first is where `word-missing` stands. */
-  readonly paths: readonly string[]
+  readonly paths: readonly [string, ...string[]]
 }
 
 /** A declared language's verdict: its diagnostics, and of what it lacks, what a person writes and no agent translates. */
@@ -89,10 +89,14 @@ const PAYMENT_PART = `/${'paymentPart' satisfies keyof ReportDefinition}/`
  * by the same walk. An e-invoice's texts are no words in it.
  */
 function forPersonOf(report: ReportDefinition, found: readonly Diagnostic[]): ForPerson[] {
-  const missingAt = new Set(found.flatMap(({ code, path }) => (code === 'word-missing' ? [path] : [])))
+  const missingAt = new Set(found.filter(({ code }) => code === 'word-missing').map(({ path }) => path))
   const bySource = (places: readonly { readonly path: string; readonly source: string }[], kind: ForPerson['kind']): ForPerson[] => {
-    const grouped = new Map<string, string[]>()
-    for (const { path, source } of places) grouped.set(source, [...(grouped.get(source) ?? []), path])
+    const grouped = new Map<string, [string, ...string[]]>()
+    for (const { path, source } of places) {
+      const known = grouped.get(source)
+      if (known === undefined) grouped.set(source, [path])
+      else known.push(path)
+    }
     return [...grouped].map(([source, paths]) => ({ kind, source, paths }))
   }
   return [
@@ -104,7 +108,7 @@ function forPersonOf(report: ReportDefinition, found: readonly Diagnostic[]): Fo
       wordExpressionSites(report).map(({ path, cel }) => ({ path, source: cel })),
       'expression',
     ),
-  ].filter(({ paths }) => missingAt.has(paths[0] ?? '') && paths.some((path) => path.startsWith(PAYMENT_PART)))
+  ].filter(({ paths }) => missingAt.has(paths[0]) && paths.some((path) => path.startsWith(PAYMENT_PART)))
 }
 
 /** How many of `found` are errors, and how many warnings, in words. */

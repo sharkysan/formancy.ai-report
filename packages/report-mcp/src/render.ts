@@ -102,20 +102,17 @@ function refusedHere(code: RenderCheckRefusal, message: string, more: Record<str
  * pattern of quanta took a frame of V8's stack for each and overflowed it
  * from 4,473,916 characters, an asset of 3.35 MB, in a bare Node 24.21
  * process, and sooner on a deeper stack (bisected on 28 November 2026);
- * this reads 10 MiB in 20 ms. What the class lets past and `atob`
- * refuses, padding alone, is not base64 either.
+ * this reads 10 MiB in 20 ms. Whole quanta with at most two `=` after the
+ * alphabet leave `atob` nothing to refuse: of every such string of four
+ * and eight characters over five of them, it refused none (28 November
+ * 2026).
  */
 const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/
 
 /** `base64`'s bytes, or undefined where it is not base64. */
 function decoded(base64: string): Uint8Array | undefined {
   if (base64.length % 4 !== 0 || !BASE64.test(base64)) return undefined
-  let binary: string
-  try {
-    binary = atob(base64)
-  } catch {
-    return undefined
-  }
+  const binary = atob(base64)
   const bytes = new Uint8Array(binary.length)
   for (let at = 0; at < binary.length; at++) bytes[at] = binary.charCodeAt(at)
   return bytes

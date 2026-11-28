@@ -97,17 +97,24 @@ describe('the lines a render check answers', () => {
   // A reader that joined runs otherwise than the corpus's -- another gap
   // for a word, a lowered run left a line of its own, a turned caption
   // read among the lines -- would tell an agent of lines no check here
-  // proves; each PDF is read by both and the two held equal.
-  test.each(documents)('are the corpus’s pageLines of the same PDF: %s', async (_id, document, mayRefuse) => {
-    const pdf = await printed(document())
-    if (pdf === undefined) {
-      expect(mayRefuse, 'the renderer refused a document the corpus expects printed').toBe(true)
-      return
-    }
-    const lines = await pdfLines(pdf)
-    expect(lines).toEqual(await corpusLines(pdf))
-    expect(lines.flat().length).toBeGreaterThan(0)
-  })
+  // proves; each PDF is read by both and the two held equal. The bound is
+  // the guard on the guard's below: the sales report's first chart loads
+  // ECharts, 2.2 s alone, and passed vitest's 5 s under coverage beside
+  // another build (28 November 2026).
+  test.each(documents)(
+    'are the corpus’s pageLines of the same PDF: %s',
+    async (_id, document, mayRefuse) => {
+      const pdf = await printed(document())
+      if (pdf === undefined) {
+        expect(mayRefuse, 'the renderer refused a document the corpus expects printed').toBe(true)
+        return
+      }
+      const lines = await pdfLines(pdf)
+      expect(lines).toEqual(await corpusLines(pdf))
+      expect(lines.flat().length).toBeGreaterThan(0)
+    },
+    60_000,
+  )
 
   // The fractions the rule is written with are the corpus's, each: a gap
   // for a word moved in one reader alone would read the corpus's PDFs

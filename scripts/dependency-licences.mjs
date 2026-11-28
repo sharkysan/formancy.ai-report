@@ -65,6 +65,7 @@ import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync, realpathSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { beyondPolicy as beyondPolicyBy, buildProblems, lockfileProblems as lockfileProblemsOf } from './dependency-licences/builds.mjs'
 import { filesIn, fontLicence, licenceTextsIn, sbomIn } from './dependency-licences/files.mjs'
 import { BUILDS_READ, CONFINED, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES, NEVER_LOADED } from './dependency-licences/reviews.mjs'
 import { LICENSE_FIELD } from './verify-licenses.mjs'
@@ -347,89 +348,11 @@ function neverLoaded(item, id, font, route, unloaded) {
   return true
 }
 
-/** The admission in `builds` whose family `name` is one of, the family itself or one of its builds, `family-…`: [family, admission], or undefined. */
-function familyOf(name, builds) {
-  return Object.entries(builds).find(([family]) => name === family || name.startsWith(`${family}-`))
-}
+/** The components of a build's SBOM beyond the policy, as a review records them (`builds.mjs`), judged by this policy. */
+export const beyondPolicy = (sbom, name, version) => beyondPolicyBy(sbom, name, version, spdxAllows)
 
-/** A component's place and licence as a review records it: `name@version`, and its licence or null. */
-const componentKey = ({ name, version }) => (version === undefined ? name : `${name}@${version}`)
-
-/**
- * The components of `sbom`, a build's of `name@version`, whose licence the
- * policy refuses or that state none, by `componentKey`, sorted: what a
- * review records of the build. The build's own file, which the SBOM lists
- * under the build's own purl, is the package's, judged by its manifest.
- */
-export function beyondPolicy(sbom, name, version) {
-  const own = `pkg:npm/${name.replace(/^@/, '%40')}@${version}`
-  return Object.fromEntries(
-    (sbom.components ?? [])
-      .filter((component) => !String(component.purl ?? '').startsWith(own))
-      .filter((component) => component.licence === undefined || !spdxAllows(component.licence))
-      .map((component) => [componentKey(component), component.licence ?? null])
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
-  )
-}
-
-/**
- * What is wrong with a package of a family `builds` admits, or with one
- * that ships a native addon no admission names: [] where neither, or where
- * it is the family's version, reached through the package admitted for, and
- * -- for a build -- one the review read, by its SBOM's digest and the
- * components beyond the policy that SBOM lists.
- */
-function buildProblems(item, id, route, builds) {
-  const family = familyOf(item.name, builds)
-  if (family === undefined) {
-    return (item.natives ?? []).length === 0
-      ? []
-      : [`${id} ships a native addon, ${item.natives.join(', ')}, whose build no review read: read its SBOM and record it in BUILDS_READ (${route})`]
-  }
-  const [name, admitted] = family
-  if (item.version !== admitted.version) return [`${id} is a version of ${name}, which a review read at ${admitted.version} alone (${route})`]
-  const found = []
-  if (!item.via.includes(admitted.for)) found.push(`${id} is admitted for ${admitted.for} alone, and is reached otherwise (${route})`)
-  if (item.name === name) return found
-  const read = admitted.builds[item.name]
-  if (read === undefined) return [...found, `${id} is a build of ${name} no review read (${route})`]
-  if (item.sbom?.sha256 !== read)
-    return [...found, `${id}'s sbom.cdx.json is ${item.sbom?.sha256 ?? 'missing'}, not the SBOM the review read (${read}) (${route})`]
-  const beyond = beyondPolicy(item.sbom, item.name, item.version)
-  if (JSON.stringify(beyond) !== JSON.stringify(admitted.beyondPolicy))
-    found.push(`${id}'s SBOM lists ${JSON.stringify(beyond)} beyond the policy, not what the review recorded (${route})`)
-  return found
-}
-
-/**
- * What is wrong with `lockfile`, pnpm-lock.yaml's text, against `builds`:
- * every package of an admitted family it names, at any version and on any
- * platform, must be one the review read -- the family's version, and a
- * build it names -- and every build a review read must be one the lockfile
- * names, so the table holds no more than it installs. A machine installs
- * its own platform's build alone, so the lockfile is what says the rest.
- */
-export function lockfileProblems(lockfile, builds = BUILDS_READ) {
-  const named = new Set()
-  for (const [, name, version] of lockfile.matchAll(/^ {2}'?((?:@[^@\s'/]+\/)?[^@\s'/]+)@([^'\s:(]+)/gm)) named.add(`${name}@${version}`)
-  const found = []
-  for (const [family, admitted] of Object.entries(builds)) {
-    const members = [...named].filter((key) => {
-      const name = key.slice(0, key.lastIndexOf('@'))
-      return name === family || name.startsWith(`${family}-`)
-    })
-    for (const key of members.sort()) {
-      const name = key.slice(0, key.lastIndexOf('@'))
-      const version = key.slice(key.lastIndexOf('@') + 1)
-      if (version !== admitted.version) found.push(`pnpm-lock.yaml names ${key}, a version of ${family} no review read, at ${admitted.version} alone`)
-      else if (name !== family && !Object.hasOwn(admitted.builds, name)) found.push(`pnpm-lock.yaml names ${key}, a build of ${family} no review read`)
-    }
-    for (const name of Object.keys(admitted.builds)) {
-      if (!named.has(`${name}@${admitted.version}`)) found.push(`build ${name}@${admitted.version} names nothing pnpm-lock.yaml installs; remove it`)
-    }
-  }
-  return found
-}
+/** What is wrong with the builds `lockfile`, pnpm-lock.yaml's text, names, against `builds` (`builds.mjs`). */
+export const lockfileProblems = (lockfile, builds = BUILDS_READ) => lockfileProblemsOf(lockfile, builds)
 
 /**
  * What is wrong with the `heldBy` of each admission in `unloaded`: it
@@ -517,7 +440,7 @@ export function problems(
     else if (verdict === false && !(item.sibling && item.licence === LICENSE_FIELD))
       judge(id, item.licence, 'its package.json', route, `${id} declares no licence (${route})`)
     if (!item.sibling) {
-      for (const refusal of buildProblems(item, id, route, builds)) found.add(refusal)
+      for (const refusal of buildProblems(item, id, route, builds, spdxAllows)) found.add(refusal)
       for (const refusal of confinement(item, id, route, confined)) found.add(refusal)
       if (Object.hasOwn(confined, id)) confinedSeen.add(id)
     }

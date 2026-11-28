@@ -379,8 +379,11 @@ describe('a fault', () => {
     })
     try {
       const fresh = await import('./render.js')
-      await expect(fresh.renderCheck(quotation())).rejects.toThrow('EMFILE')
+      // vitest answers a factory that throws with an error of its own, the factory's as its cause.
+      await expect(fresh.renderCheck(quotation())).rejects.toThrow()
+      expect(loads).toBe(1)
       expect((await fresh.renderCheck(quotation())).ok).toBe(true)
+      expect(loads).toBe(2)
     } finally {
       vi.doUnmock('@formancy/report-render-pdf')
       vi.resetModules()
