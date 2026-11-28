@@ -1,0 +1,14 @@
+{
+  "into": "fr-CH",
+  "words": {
+    "w1": "Rapport des ventes",
+    "w99": "Annexe",
+    "e1": "group.key + \" (\" + string(group.documents) + \" pièces)\"",
+    "w30": ""
+  },
+  "expressions": {
+    "e2": "\"Total \" + group.key",
+    "w3": "Période : ",
+    "e9": "\"Total\""
+  }
+}

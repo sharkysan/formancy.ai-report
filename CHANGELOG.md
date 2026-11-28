@@ -57,6 +57,42 @@ its one unaliased import; and report-core's note on `/` says it is
 refused as inexact on integers and as no operation on decimals, as the
 compiler refuses it.
 
+**A model can be asked for the words a report's language lacks, and its
+answer is held to the format and the compiler before a person sees it**
+([0085](docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
+A report written in several languages names each word a language still
+lacks, and somebody types every one. `@formancy/report-ai` now asks a
+model for exactly those, `REQUEST_KINDS` being `['translation']`:
+`translateMissing(ask, report, locale)` sends what report-core's
+`word-missing` names, under keys of its own, with where each word stands
+and an expression's type and reads, and the language's words so far, and
+never the report's data, a parameter's value, the e-invoice, or any word
+of a QR-bill's message, which report-ai leaves for a person to write. The
+answer is read back by key, and `proposeTranslation(report, answer)` keeps
+only what the language still lacks in the report as it stands, so a word a
+person translated meanwhile is never written over, and only what its room
+under `MAX_WORDS` holds; it holds each text to the characters a report
+prints, an expression's escapes among them, and a word to its source's
+spaces at either end, then to the validator and the diagnostics, refusing a
+bad entry alone with the sentence that refused it, and gives one batch of
+`translateWord` and `translateExpression` against the report's hash, which
+a session applies as one undo step or refuses as `stale-document` once the
+report moved. A turn asks at most `MAX_BATCH_COMMANDS` entries, says in
+`later` and `noRoom` what it left for another, and is refused before
+anything is asked past `MAX_MODEL_REQUEST_BYTES`, 256 KiB of the body
+`{ kind, user, briefing }` as JSON, so that a host's server can read a
+request's body under that one number. A host whose server holds the
+model's key gives `askThrough(complete)` a `complete` of its own, which
+sends the kind, the user part and the briefing's digest, never the
+briefing; the server owes the comparison of the digest with its own. No
+model is asked in CI: the answers are recorded. No builder draws a
+proposal yet. The start
+page's "No changes proposed by an AI" is narrowed to "No changes described
+in words in the builders", whose last clause names the agent a host may
+bring through report-mcp. report-ai now depends on report-core and
+report-spec, and on `@noble/hashes` at exactly 2.4.0, MIT, which
+report-spec already takes; report-spec exports `NOT_WORDS`.
+
 **The Studio's Preview opens the invoice with its QR-bill in view**
 ([0090](docs/decisions/0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md)).
 The Studio opens on the invoice for its Swiss QR-bill, which was below

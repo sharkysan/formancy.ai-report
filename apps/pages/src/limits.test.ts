@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { REQUEST_KINDS } from '@formancy/report-ai'
+import { PROMPTS } from '@formancy/report-mcp'
 import { COMPONENT_KINDS, PRINTED_BLOCKS, REPORT_SPEC_VERSION, refusedCharacter } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { collapsed } from './checks/read.js'
@@ -182,17 +183,23 @@ describe('what the start page says Formancy Report does not do yet', () => {
     expect(inputs.packages.filter((name) => /viewer/.test(name))).toEqual([])
   })
 
-  // "No changes proposed by an AI" is true while report-ai, the published
-  // package that asks a model, asks one for nothing: its REQUEST_KINDS, read
-  // from its built dist, is empty, so its turn has no request to make and no
-  // answer to propose (0083). A kind added to the list fails here until the
-  // sentence is read again. The turn takes any kind a caller names, so a
-  // published package that took report-ai to ask a model of its own --
-  // the builders, the server -- fails here too, naming it; one that asked
-  // a model through code of its own is review's.
-  test('says no AI proposes changes while report-ai asks a model for nothing and no published package takes it', () => {
-    expect(inputs.packages).toContain('@formancy/report-ai')
-    expect(REQUEST_KINDS).toEqual([])
+  // "No changes described in words in the builders" is true while neither
+  // builder asks a model anything -- no published package but report-ai
+  // takes report-ai, the builders among them -- and report-ai asks a model
+  // for a language's missing words and nothing else: its REQUEST_KINDS,
+  // read from its built dist, is the translation alone (0085), and holds
+  // no request for a change a person describes -- an `edit`, or any kind
+  // added after it -- so a kind added fails here until the sentence is read
+  // again (0083 held the list empty). The sentence's last clause says what
+  // is outside the builders: report-mcp's prompts, which an agent's own
+  // model reads (0088), to write a template from a description and to
+  // translate one. They are read from its built dist too, so a prompt
+  // added fails here until the sentence is read again. A package that
+  // asked a model through code of its own is review's.
+  test('says no change is described in words in the builders while report-ai asks for missing words alone, no other package takes it, and report-mcp offers the prompts the sentence names', () => {
+    expect(inputs.packages).toEqual(expect.arrayContaining(['@formancy/report-ai', '@formancy/report-mcp']))
+    expect(REQUEST_KINDS).toEqual(['translation'])
+    expect(Object.keys(PROMPTS).sort()).toEqual(['translate_a_report', 'write_a_report'])
     expect(inputs.packages.filter((name) => name !== '@formancy/report-ai' && Object.hasOwn(declared(name), '@formancy/report-ai'))).toEqual([])
   })
 

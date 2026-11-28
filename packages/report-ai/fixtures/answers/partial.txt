@@ -1,0 +1,9 @@
+{
+  "into": "fr-CH",
+  "words": {
+    "w1": "Rapport des ventes",
+    "w17": "Pièce",
+    "w18": "Date",
+    "w19": "Région"
+  }
+}

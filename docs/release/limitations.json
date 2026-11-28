@@ -2465,7 +2465,7 @@
       ]
     },
     "0056": {
-      "reviewed": "sha256:14e4bc180c16e2d21b4bb8d0521ec19a4bf987ec969db20fdf1ac2da2104addc",
+      "reviewed": "sha256:49030d72db687bd677a4aa44964d63f2fe75f1a6d6be910f0709379a361de56e",
       "limitations": [
         {
           "area": "release",
@@ -3601,11 +3601,11 @@
       ]
     },
     "0083": {
-      "reviewed": "sha256:cdc6756b2ab5c8bfedca10f0a6a7bf1843421681d51568cc100b72f11f2b37c9",
+      "reviewed": "sha256:1ae49df6fb2fea6d8d5b30ca734e30ac039191b555d40ea71764a0bd286056f7",
       "limitations": [
         {
           "area": "editing",
-          "says": "`@formancy/report-ai` asks a model for nothing yet: `REQUEST_KINDS` is empty, so a host can run requests of its own through `askChecked` and a relay, and no Report feature proposes anything a person reviews.",
+          "says": "`@formancy/report-ai`'s turn takes any kind a caller names, and Report's own requests are `REQUEST_KINDS`', the translation of a language's missing words alone since 0085, so a host can run requests of its own through `askChecked` and a relay, and no builder proposes a change a person describes in words.",
           "heldBy": "apps/pages/src/limits.test.ts"
         },
         {
@@ -3631,6 +3631,68 @@
         {
           "area": "licence",
           "says": "The turn in `@formancy/report-ai` carries the source-available licence, as every Report package does, though the code it copies is Apache-2.0 in formancy's `@formancy/builder-core`, which does not export it."
+        }
+      ]
+    },
+    "0085": {
+      "reviewed": "sha256:37a7a0fc28f3dd28ade0040b74449940e3add2cefd4a3fee04b15a27a7ab207f",
+      "limitations": [
+        {
+          "area": "editing",
+          "says": "A model's translation is only as good as its reviewer's command of the language: a fluent mistranslation passes every check report-ai makes, and nothing checks that a text is written in the language asked."
+        },
+        {
+          "area": "builders",
+          "says": "No builder draws a translation proposal yet: a host that wants one calls report-ai's `translateMissing` and `proposeTranslation` itself and applies the rows it accepts through its own session."
+        },
+        {
+          "area": "editing",
+          "says": "A word that stands anywhere in a report's QR-bill message is never asked of a model by report-ai's request and stays for a person to write, so a report with a QR-bill is never translated whole by report-ai.",
+          "heldBy": "packages/report-ai/src/translation/request.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A template's words are what a model reads, so a word written as an instruction can steer the texts written for every other key, and an expression's literals so long as it keeps its type and its reads; what can land is bounded by the reader and the proposal, and what a steered text says only the reviewer catches."
+        },
+        {
+          "area": "editing",
+          "says": "A word whose text does not keep its source's white space at either end is refused rather than corrected, so a model that trims a run's spaces loses that row until a person or another turn writes it.",
+          "heldBy": "packages/report-ai/src/translation/texts.test.ts"
+        },
+        {
+          "area": "data",
+          "says": "A translation request carries the template's words, where each stands by its components' and columns' ids, and the language's words so far to whichever model the host's `complete` asks, under that provider's terms, and nothing else of the report.",
+          "heldBy": "packages/report-ai/src/translation/request.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A character a report's own faces lack passes a translation's review, since report-ai never sees a face's bytes, and the render in that language refuses it after the word has landed."
+        },
+        {
+          "area": "editing",
+          "says": "A report whose missing words, or the ids of the places they stand in, make one turn's body longer than `MAX_MODEL_REQUEST_BYTES`, 256 KiB of the request as JSON, is refused before anything is asked rather than asked in parts, until a person has written enough of its words.",
+          "heldBy": "packages/report-ai/src/translation/bounds.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A new translation run names nothing an earlier answer had refused, so a model may write the same refused entry again, and a word lands with no record that a model wrote it."
+        },
+        {
+          "area": "editing",
+          "says": "A model never improves a word a language already has: a person empties a word to have it asked for again.",
+          "heldBy": "packages/report-ai/src/translation/proposal.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "Holding a model's answer validates and diagnoses the whole report in every language it declares at least twice, 90 to 97 ms for the XRechnung sample's whole answer on the machine it was measured on, and more as the report and its languages grow."
+        },
+        {
+          "area": "server",
+          "says": "A host whose server asks the model writes `askThrough`'s `complete` itself, and that server must write the system part from `modelBriefing` by the kind and refuse a briefing digest that is not its own, since Report's own server answers no request of a model yet."
+        },
+        {
+          "area": "release",
+          "says": "`@formancy/report-ai` now installs report-core and report-spec, with `@formancy/expressions`, and `@noble/hashes` at exactly 2.4.0, for a briefing's digest and a request's bytes."
         }
       ]
     },

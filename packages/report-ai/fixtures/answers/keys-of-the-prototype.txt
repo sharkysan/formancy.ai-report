@@ -1,0 +1,8 @@
+{
+  "into": "fr-CH",
+  "words": {
+    "__proto__": "Prototype",
+    "constructor": "Constructeur",
+    "w1": "Rapport des ventes"
+  }
+}

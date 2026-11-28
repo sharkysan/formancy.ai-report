@@ -1,13 +1,14 @@
 {
   "name": "@formancy/report-ai",
   "version": "0.3.0",
-  "description": "Formancy Report's turn with a model: ask, read the JSON object the answer holds, ask again with the latest complaint, stop, decline, and a person carrying the turn by hand. In formancy's shapes, asking for nothing yet. No framework, no DOM, no Node, no network. Source-available, as every Formancy Report package.",
+  "description": "Formancy Report's requests of a model: a language's missing words asked for, and the answer held to the format and the compiler as one batch of report-core commands before a person sees it, on a turn in formancy's shapes -- ask, read the JSON object, ask again with the latest complaint, stop, decline, or a person carrying the turn by hand. No framework, no DOM, no Node, no network. Source-available, as every Formancy Report package.",
   "keywords": [
     "formancy",
     "report",
     "ai",
     "llm",
     "model",
+    "translation",
     "source-available"
   ],
   "license": "SEE LICENSE IN LICENSE.md",
@@ -32,11 +33,15 @@
     "check:pkg": "publint && attw --pack . --profile esm-only"
   },
   "dependencies": {
-    "@formancy/spec": "0.14.0"
+    "@formancy/report-core": "workspace:*",
+    "@formancy/report-spec": "workspace:*",
+    "@formancy/spec": "0.14.0",
+    "@noble/hashes": "2.4.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
     "@formancy/builder-core": "0.14.0",
+    "@formancy/report-corpus": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "publint": "catalog:",

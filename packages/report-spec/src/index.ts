@@ -321,7 +321,10 @@ export { reportHash } from './hash.js'
 export { emptyReport } from './empty.js'
 export { componentAt, heldRegions, walkComponents } from './walk.js'
 export type { ComponentLocation } from './walk.js'
-export { isWord, reportWords, wordExpressionSites } from './translation.js'
+// NOT_WORDS: every string that prints as written in every language, by its
+// pointer, for a caller that must show it never sends one with a report's
+// words (report-ai's request, 0085).
+export { isWord, NOT_WORDS, reportWords, wordExpressionSites } from './translation.js'
 export type { TranslatedExpression, TranslatedWord, Translation, WordExpressionSite, WordPlace } from './translation.js'
 export { declaredLocales, renderLocale, reportIn, writtenIn } from './report-in.js'
 export type { LocaleChoice } from './report-in.js'
