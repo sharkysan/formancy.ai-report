@@ -232,8 +232,17 @@ function bySource(places: readonly { readonly path: string; readonly source: str
 export function missingWords(report: ReportDefinition, locale: string): MissingWords {
   const translation = report.translations?.find((held) => held.locale === locale)
   if (translation === undefined) return { paymentPart: [], rest: [] }
-  const sites = wordExpressionSites(report)
-  const missingAt = new Set(missing(report, translation, sites, diagnosis(report)).map(({ path }) => path))
+  return lackedIn(report, translation, wordExpressionSites(report), diagnosis(report))
+}
+
+/**
+ * What `translation` lacks of `report`, as `missingWords` says it, from
+ * `own`, the report's diagnosis in its own language, and `sites`, its word
+ * expressions' sites: so that every declared language's is read from one
+ * diagnosis (`diagnoseByLanguage`).
+ */
+export function lackedIn(report: ReportDefinition, translation: Translation, sites: readonly WordExpressionSite[], own: Diagnosis): MissingWords {
+  const missingAt = new Set(missing(report, translation, sites, own).map(({ path }) => path))
   const of = (kind: MissingWord['kind'], places: readonly { readonly path: string; readonly source: string }[]): MissingWord[] =>
     [...bySource(places)].flatMap(([source, paths]) => {
       const at = paths.find((path) => missingAt.has(path))
