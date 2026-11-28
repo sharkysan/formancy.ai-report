@@ -17,7 +17,7 @@
     "w14": "CHF",
     "w15": "Chiffre d'affaires par région",
     "w16": "Pièces par secteur",
-    "w17": "Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative ",
+    "w17": "Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative Pièce justificative",
     "w18": "Date",
     "w19": "Région",
     "w20": "Description",

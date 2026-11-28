@@ -35,7 +35,9 @@
     words); the payment part let through (six); the language's words so
     far sent with the payment part's (two); the places uncapped (one); the
     parameters sent beside the words (two); the payment part sent whole
-    (eight).
+    (eight); and on 28 November, an expression matched at its first site
+    alone (one), and a translation of a word no longer printed sent
+    (one).
   - **The briefing.** `translation/briefing.test.ts` pins its text beside
     its digest, the SHA-256 of its UTF-8 computed again with Node's crypto,
     reads its example answer with the reader and its example decline as a
@@ -57,7 +59,12 @@
     the run at once. Seen failing, each planted and put back: a key read
     back to the source at its position (two); a blank text written (one);
     the locale not compared (two); a key not asked kept (one); a decline
-    with no reason read as an answer (one).
+    with no reason read as an answer (one); and on 28 November, the locale
+    read by its presence rather than its type (one), a member's texts that
+    are no strings skipped rather than asked again for (three), and the
+    answer's keys read into a plain object, where `__proto__` sets the
+    prototype and is lost (one). The case of a key written twice holds
+    `JSON.parse`'s own rule, which no fault of the reader's can change.
   - **The proposal.** `translation/proposal.test.ts`, and
     `translation/texts.test.ts` for the rules of a text: the whole answer
     is a row an entry, one batch whose candidate the language lacks nothing
@@ -86,7 +93,12 @@
     one finding (four cases); a word written whatever the report now holds
     (three); the characters unchecked (one); the diagnostics unread
     (three); a word of the payment part written (one); a hash other than
-    the report's (four).
+    the report's (four); and on 28 November, a word's spaces unchecked
+    (two, one of them `texts.test.ts`'s), an expression's escapes unread
+    (two), an escaped backslash read as an escape's start (one), the room
+    unapplied (one), a finding at no entry keeping every entry left (one),
+    and an expression that prints no words said to be written meanwhile
+    (one).
   - **The bounds.** `translation/bounds.test.ts`: the bound holds a turn of
     `MAX_BATCH_COMMANDS` entries at the most bytes an entry adds to any
     body the corpus makes, and sixteen times its largest body, at the least
@@ -100,7 +112,10 @@
     room left asks nothing and says so in `noRoom`. Seen failing, each
     planted and put back: the bound unchecked (one); a request measured by
     its first turn alone (one); the count uncapped (one); the room
-    unchecked (one); the bound halved (two).
+    unchecked (one); the bound halved (two); and on 28 November, the body
+    measured by its user part alone (three, two of them `askThrough`'s),
+    `noRoom` said of the count rather than the room (two), and the
+    answer's `later` and `noRoom` dropped (one).
   - **Through a host's server.** `packages/report-ai/src/ask-through.test.ts`:
     `askThrough` sends the kind, the user part and the briefing's digest and
     never the briefing; refuses a prompt briefed otherwise, a kind Report
@@ -112,14 +127,16 @@
     with no reason, in a sentence of its own; tells the host of a stop.
     Seen failing, each planted and put back: the system part not compared
     (one); the briefing sent (one); a decline read as a text (one); the
-    kind looked up in a table (one); the size unchecked (one).
+    kind looked up in a table (one); the size unchecked (one); and on 28
+    November, a decline with no reason handed on (one).
   - **The start page.** `apps/pages/src/limits.test.ts` holds "No changes
     described in words in the builders" to report-ai's built
     `REQUEST_KINDS` being the translation alone, to no published package
     but report-ai taking it, and to report-mcp's built `PROMPTS` being the
     two its last clause names; seen failing with `edit` written into the
-    built list, and the sentence it replaces, "No changes proposed by an
-    AI", failing on the translation's arrival.
+    built list, and with a third prompt written into report-mcp's, and the
+    sentence it replaces, "No changes proposed by an AI", failing on the
+    translation's arrival.
   - **The packed package.** The install gate's
     `scripts/install-fixture/translation.ts`: the quotation, French added,
     asked of a scripted server through `askThrough`, which checks the
