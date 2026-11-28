@@ -63,9 +63,15 @@ function unprintedEscape(cel: string): { readonly point: number; readonly why: C
   return undefined
 }
 
-/** The white space `text` begins and ends with. */
+/**
+ * The white space `text` begins and ends with: what `trimStart` and
+ * `trimEnd` take away, the white space and line terminators `\s` names,
+ * found in one pass. A pattern anchored at the end, `\s*$`, is tried again
+ * at every space of a run that something else ends, which a model's text
+ * of many spaces would make quadratic.
+ */
 function edges(text: string): readonly [string, string] {
-  return [(/^\s*/u.exec(text) as RegExpExecArray)[0], (/\s*$/u.exec(text) as RegExpExecArray)[0]]
+  return [text.slice(0, text.length - text.trimStart().length), text.slice(text.trimEnd().length)]
 }
 
 /** Why `entry`'s text is no row, before the format and the compiler read it, or undefined where nothing here keeps it from being one. */
