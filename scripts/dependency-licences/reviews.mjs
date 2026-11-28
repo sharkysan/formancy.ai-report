@@ -228,12 +228,17 @@ export const NEVER_LOADED = Object.freeze({
  * review read, the package it is for, each build by the SHA-256 of its
  * `sbom.cdx.json`, and the components every build's SBOM lists whose
  * licence the policy refuses or that state none, each with its licence as
- * the SBOM writes it. A package that ships a `.node` file and is of no
- * family here is refused; so is one of a family at another version, a
- * build no review read, an SBOM of other bytes or of other components
- * beyond the policy, a route that does not pass the package it is for,
- * and, by the lockfile, a build or a version of the family that no
- * machine here installs and no review read (`lockfileProblems`).
+ * the SBOM writes it; the packages the review saw depend on the family,
+ * `dependents`; and each build's tarball, and the family's, by the
+ * integrity `pnpm-lock.yaml` records, which pnpm installs by. A package
+ * that ships a `.node` file and is of no family here is refused; so is one
+ * of a family at another version, a build no review read, an SBOM of other
+ * bytes or of other components beyond the policy, a route that does not
+ * pass the package it is for, a dependent the review did not see, and, by
+ * the lockfile, a build or a version of the family that no review read or
+ * a tarball of other bytes (`lockfileProblems`). Every tarball the SBOMs
+ * were read from is the one the lockfile records, compared on 28 November
+ * 2026.
  *
  * - `@napi-rs/canvas` 1.0.11, which pdfjs-dist 6.4.299 requires in Node
  *   where it is installed, and so loads in report-mcp's process from its
@@ -274,18 +279,53 @@ export const BUILDS_READ = Object.freeze({
   '@napi-rs/canvas': Object.freeze({
     version: '1.0.11',
     for: '@formancy/report-mcp',
+    dependents: Object.freeze(['pdfjs-dist']),
+    integrity: 'sha512-vt5tog1cr+QKadIddGe+3LrcX0EmjEd0izF717Uwf92mBmgYfq2XRmL2r4bZU40spB69exxhrBn9I91HYEr/7w==',
     builds: Object.freeze({
-      '@napi-rs/canvas-android-arm64': 'sha256:42b4aabaa377371df36a5fc80b5886572906780622a82152dce50f201048ef2b',
-      '@napi-rs/canvas-darwin-arm64': 'sha256:fef97515c7a723fb72bdf087adde78d6897ac69b7211b5221a7093799a7395a1',
-      '@napi-rs/canvas-darwin-x64': 'sha256:263001c3a829b9e2b407b5b05e6835aa44dd079693d2b166cba149f1750faf7e',
-      '@napi-rs/canvas-linux-arm-gnueabihf': 'sha256:2f0fdd1f8eabe4e46e74cf91f4e568a68a656af27237dbb3735252f9e27c8cdd',
-      '@napi-rs/canvas-linux-arm64-gnu': 'sha256:19ba0c193ca252822e955a7a08ee701a3b20cacbb84134b3378f17a4813a09b2',
-      '@napi-rs/canvas-linux-arm64-musl': 'sha256:0958322e992b7f581543956f04c452403ab5b04f05995eb30d0eeb8f331d60ad',
-      '@napi-rs/canvas-linux-riscv64-gnu': 'sha256:53f7a479f7765fa0efbd46e886de2529703b26564d8a6bc4cc5de662d9e61ac9',
-      '@napi-rs/canvas-linux-x64-gnu': 'sha256:d9fdfe49bbc314cccce604ac3947866132539a0f76ebc0798c95b1ecb8c787f8',
-      '@napi-rs/canvas-linux-x64-musl': 'sha256:54bc147b24708142fa7ef855c2c521cbdc87091991768d8daa1a37d63a208a61',
-      '@napi-rs/canvas-win32-arm64-msvc': 'sha256:4bbe84478b9238821fedc9c97c3ba33bde81a0caf2a39d26fff606c907f59b44',
-      '@napi-rs/canvas-win32-x64-msvc': 'sha256:af0b3af01a73d229ffabb515a7d6c0857784e359df39b0da59949e946415bf71',
+      '@napi-rs/canvas-android-arm64': Object.freeze({
+        sbom: 'sha256:42b4aabaa377371df36a5fc80b5886572906780622a82152dce50f201048ef2b',
+        integrity: 'sha512-dtJS4FQEfH9OwSYLtMrEnj7T8DzBbJc/97LI/OkiWOYpW/iW5t6R/gcxVrUXS8l45gCVpwMufgucRe/pe0ISqA==',
+      }),
+      '@napi-rs/canvas-darwin-arm64': Object.freeze({
+        sbom: 'sha256:fef97515c7a723fb72bdf087adde78d6897ac69b7211b5221a7093799a7395a1',
+        integrity: 'sha512-J/JylWoJTG8OQqZaiqly4IODyAxNofUlZo0wtSBJtHk6AdymbdIkPynAM1JvQaZpPaG5h+msk9QuK8y4i1ooqw==',
+      }),
+      '@napi-rs/canvas-darwin-x64': Object.freeze({
+        sbom: 'sha256:263001c3a829b9e2b407b5b05e6835aa44dd079693d2b166cba149f1750faf7e',
+        integrity: 'sha512-nlecCk3xy06eAGC7krZtzNDm9UNTHKuHQYK8ZYegdjzgSL8anGt/eLJZm86OWaNgZkwQwvDqfSmG8Nqe6MPZNQ==',
+      }),
+      '@napi-rs/canvas-linux-arm-gnueabihf': Object.freeze({
+        sbom: 'sha256:2f0fdd1f8eabe4e46e74cf91f4e568a68a656af27237dbb3735252f9e27c8cdd',
+        integrity: 'sha512-DKImmG+sTPolE0kGPsYPBxTtOjb3INALp32O2lW2CfSr0bAzSEKKuu+GrQbtilClyoPOahUErS3OrznFDraoWA==',
+      }),
+      '@napi-rs/canvas-linux-arm64-gnu': Object.freeze({
+        sbom: 'sha256:19ba0c193ca252822e955a7a08ee701a3b20cacbb84134b3378f17a4813a09b2',
+        integrity: 'sha512-55sykACGENj5j1rhj+81AO8JbR9HYgGjRZ7/H+pNr4VE1DvINKYNMTcutk8ZmWxk276jAQvUKJ3+Kdj9GXU3lQ==',
+      }),
+      '@napi-rs/canvas-linux-arm64-musl': Object.freeze({
+        sbom: 'sha256:0958322e992b7f581543956f04c452403ab5b04f05995eb30d0eeb8f331d60ad',
+        integrity: 'sha512-6Jz6jys17yXydO+WdJgu7JhoB4K7/w9sWHByzzTmLjQghUx3TDMWvLv+UcCdnWhg4oprET67EMymnrETdeGNAg==',
+      }),
+      '@napi-rs/canvas-linux-riscv64-gnu': Object.freeze({
+        sbom: 'sha256:53f7a479f7765fa0efbd46e886de2529703b26564d8a6bc4cc5de662d9e61ac9',
+        integrity: 'sha512-lf2XeEebWiUYVOVEjLXxF7dfXrBBSEOBn9AqBh39VYXrPt5cDqI+1t58IFSjn8npqkg5jIOs8TQbjKABbFW1gQ==',
+      }),
+      '@napi-rs/canvas-linux-x64-gnu': Object.freeze({
+        sbom: 'sha256:d9fdfe49bbc314cccce604ac3947866132539a0f76ebc0798c95b1ecb8c787f8',
+        integrity: 'sha512-iDapw7nFSE5tsmQxcH2+KotJhyfVPmHd6vUOQN/Em+8WNbkZJwJ/rDowlJMFnMl0SYSDSfgKCNUGi6Sn5++Smg==',
+      }),
+      '@napi-rs/canvas-linux-x64-musl': Object.freeze({
+        sbom: 'sha256:54bc147b24708142fa7ef855c2c521cbdc87091991768d8daa1a37d63a208a61',
+        integrity: 'sha512-26q26AyITo3CGZX4HWFIMgBMA1lu3YN07gxzBm4tW6Hglq/OVyTP50kDrmWuKybCX6dh3m8Ly+c7YhI+sqCgCQ==',
+      }),
+      '@napi-rs/canvas-win32-arm64-msvc': Object.freeze({
+        sbom: 'sha256:4bbe84478b9238821fedc9c97c3ba33bde81a0caf2a39d26fff606c907f59b44',
+        integrity: 'sha512-cUO96IdsfvIj2S+2PNcDSkTcLhjPj8pIOEWRV1Kj70MOP4wnE9zSk7N4C1EKHlFGRcgdR5AkbnBZj0dfHK9nbQ==',
+      }),
+      '@napi-rs/canvas-win32-x64-msvc': Object.freeze({
+        sbom: 'sha256:af0b3af01a73d229ffabb515a7d6c0857784e359df39b0da59949e946415bf71',
+        integrity: 'sha512-DFYp/ZQRdKunI/LPc0UkRXG1vlNjJKOJf8O8Ctb8+wm2Nt2ELg9Eamc31D2VoakkfGo8L+z0Iejz6WtFbQwyGw==',
+      }),
     }),
     beyondPolicy: CANVAS_BEYOND_POLICY,
     evidence: "sbom.cdx.json of each build, read from the registry's 1.0.11 tarballs on 2026-11-28; the owner admitted them for report-mcp that day",

@@ -1010,10 +1010,24 @@ describe('native builds', () => {
     { name: 'zlib', version: '1', licence: 'Zlib' },
     { name: 'addon.linux.node', licence: undefined, purl: 'pkg:npm/addon-linux@1.0.0#addon.linux.node' },
   ]
-  const builds = { [FAMILY]: { version: '1.0.0', for: MCP, builds: { 'addon-linux': READ }, beyondPolicy: beyond, evidence: 'this test' } }
+  const WRAPPER = `sha512-${'w'.repeat(86)}==`
+  const TARBALL = `sha512-${'l'.repeat(86)}==`
+  const builds = {
+    [FAMILY]: {
+      version: '1.0.0',
+      for: MCP,
+      dependents: ['viewer'],
+      integrity: WRAPPER,
+      builds: { 'addon-linux': { sbom: READ, integrity: TARBALL } },
+      beyondPolicy: beyond,
+      evidence: 'this test',
+    },
+  }
+  const wrapper = (more = {}) => entry(FAMILY, '1.0.0', 'MIT', { via: [MCP, 'viewer'], dependents: ['viewer'], ...more })
   const build = (more = {}) =>
     entry('addon-linux', '1.0.0', 'MIT', {
       via: [MCP, 'viewer', FAMILY],
+      dependents: [FAMILY],
       natives: ['addon.linux.node'],
       sbom: { path: 'sbom.cdx.json', sha256: READ, components },
       ...more,
@@ -1024,7 +1038,7 @@ describe('native builds', () => {
   // beyond the policy those the review recorded, reached through the
   // package admitted for.
   test('admits a build at its version and its SBOM, reached through the package it is for', () => {
-    expect(problems([entry(FAMILY, '1.0.0', 'MIT', { via: [MCP, 'viewer'] }), build()], {}, {}, {}, {}, {}, builds)).toEqual([])
+    expect(problems([wrapper(), build()], {}, {}, {}, {}, {}, builds)).toEqual([])
   })
 
   // Code built from sources its manifest's licence need not cover: a
@@ -1068,10 +1082,27 @@ describe('native builds', () => {
     ])
   })
 
+  // The walk records the first route to a package, and a package may be
+  // reached by more than one: a published package that depended on the
+  // family itself, behind a first route through report-mcp, would load a
+  // native build for a purpose no review read. Every dependent is held,
+  // as a confined package's and a never-loaded font's are.
+  test('refuses a family member another package depends on, though its first route passes the package it is for', () => {
+    const second = '@formancy/report-rasteriser'
+    expect(problems([wrapper({ dependents: ['viewer', second] }), build()], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon@1.0.0 is depended on by ${second} and viewer, where the review saw viewer alone (${MCP} > viewer > addon)`,
+    ])
+    expect(problems([wrapper(), build({ dependents: [FAMILY, second] })], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon-linux@1.0.0 is depended on by ${second} and addon, where the review saw addon alone (${MCP} > viewer > addon > addon-linux)`,
+    ])
+  })
+
   // No machine installs every platform's build, so what the lockfile
   // names is what the review must have read, every build and version.
   test('refuses a build or a version the lockfile names and no review read, and a build it names no longer', () => {
-    const lock = (lines) => `lockfileVersion: '9.0'\n\npackages:\n\n${lines.map((line) => `  ${line}:\n    resolution: {}\n`).join('\n')}`
+    const integrity = { 'addon@1.0.0': WRAPPER, 'addon-linux@1.0.0': TARBALL }
+    const lock = (lines, at = integrity) =>
+      `lockfileVersion: '9.0'\n\npackages:\n\n${lines.map((line) => `  ${line}:\n    resolution: {integrity: ${at[line.replaceAll("'", '')] ?? `sha512-${'x'.repeat(86)}==`}}\n`).join('\n')}`
     expect(lockfileProblems(lock(['addon@1.0.0', 'addon-linux@1.0.0', 'other@2.0.0']), builds)).toEqual([])
     expect(lockfileProblems(lock(['addon@1.0.0', 'addon-linux@1.0.0', "'addon-darwin@1.0.0'"]), builds)).toEqual([
       'pnpm-lock.yaml names addon-darwin@1.0.0, a build of addon no review read',
@@ -1080,6 +1111,15 @@ describe('native builds', () => {
       'pnpm-lock.yaml names addon@1.0.1, a version of addon no review read, at 1.0.0 alone',
     ])
     expect(lockfileProblems(lock(['addon@1.0.0']), builds)).toEqual(['build addon-linux@1.0.0 names nothing pnpm-lock.yaml installs; remove it'])
+    // A build is the tarball pnpm installs: the SBOM a review read is held
+    // to the build's other bytes by the integrity the lockfile records.
+    const other = `sha512-${'o'.repeat(86)}==`
+    expect(lockfileProblems(lock(['addon@1.0.0', 'addon-linux@1.0.0'], { ...integrity, 'addon-linux@1.0.0': other }), builds)).toEqual([
+      `pnpm-lock.yaml installs addon-linux@1.0.0 as ${other}, not the tarball the review read (${TARBALL})`,
+    ])
+    expect(lockfileProblems(lock(['addon@1.0.0', 'addon-linux@1.0.0'], { ...integrity, 'addon@1.0.0': other }), builds)).toEqual([
+      `pnpm-lock.yaml installs addon@1.0.0 as ${other}, not the tarball the review read (${WRAPPER})`,
+    ])
   })
 
   // What the walk reads of a build: its addons by path and its SBOM by its
@@ -1253,7 +1293,9 @@ describe('this workspace', { timeout: 30_000 }, () => {
     expect(installed.length).toBeGreaterThan(0)
     const canvas = BUILDS_READ['@napi-rs/canvas']
     for (const build of installed) {
-      expect(build.sbom?.sha256, build.name).toBe(canvas.builds[build.name])
+      expect(build.sbom?.sha256, build.name).toBe(canvas.builds[build.name]?.sbom)
+      // Every dependent the walk saw, not its first route: the family itself alone.
+      expect(build.dependents, build.name).toEqual(['@napi-rs/canvas'])
       expect(beyondPolicy(build.sbom, build.name, build.version), build.name).toEqual(canvas.beyondPolicy)
       expect(build.via[0], build.name).toBe('@formancy/report-mcp')
     }
