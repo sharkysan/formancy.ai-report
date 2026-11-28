@@ -229,6 +229,18 @@ describe('a host that cannot ask its model', () => {
     })
   })
 
+  test('ends it unreachable, with no reason, when what it resolves with is no text', async () => {
+    // A host in plain JavaScript that forgets to return its model's text
+    // resolves with nothing; read as an answer, it threw in the reader and
+    // rejected the run, which the caller had been promised never happens,
+    // and the model was not wrong: the host was. A departure from
+    // formancy 0.14.0, whose turn rejects there (0083).
+    for (const answer of [undefined, 42, { text: OK }]) {
+      const ask = (() => Promise.resolve(answer)) as unknown as AskModel<'test'>
+      expect(await askChecked(ask, build, check)).toEqual({ ok: false, attempts: 1, problems: [], lastAnswer: '', ended: 'unreachable' })
+    }
+  })
+
   test('ends it the same way when it throws before it returns a promise', async () => {
     // A host that reads its configuration up front throws rather than
     // rejects; left to escape, that error would leave the run neither

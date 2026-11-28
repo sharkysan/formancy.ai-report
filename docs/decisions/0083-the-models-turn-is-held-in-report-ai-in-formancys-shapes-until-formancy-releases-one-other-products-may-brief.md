@@ -1,6 +1,6 @@
 # 0083 — The model's turn is held in report-ai, in formancy's shapes, until formancy releases one other products may brief
 
-- **Status:** accepted; narrows [0002](0002-depend-on-upstream-never-copy-it.md) for `packages/report-ai/src/turn/` alone, as [0050](0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md) narrowed it for the lint rules until `@formancy/code-style` was released; its `REQUEST_KINDS`, empty here, given the translation by [0085](0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md), under which the start page's guard holds "No changes described in words in the builders" to it, and report-ai depends on report-core and report-spec outside `src/turn/`, which still imports neither
+- **Status:** accepted; narrows [0002](0002-depend-on-upstream-never-copy-it.md) for `packages/report-ai/src/turn/` alone, as [0050](0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md) narrowed it for the lint rules until `@formancy/code-style` was released; its `REQUEST_KINDS`, empty here, given the translation by [0085](0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md), under which the start page's guard holds "No changes described in words in the builders" to it, and report-ai depends on report-core and report-spec outside `src/turn/`, which still imports neither; departs from formancy's turn in one place since 28 November 2026, found by the review of [0086](0086-a-person-reviews-a-models-translation-word-by-word-in-either-builder-and-applies-what-they-accepted-as-one-undo-step.md)'s pull request and said under Decision: a host's answer that is no text ends the turn unreachable, where formancy's reader throws on it and rejects the run
 - **Date:** 2026-11-27
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -36,7 +36,11 @@
     object, which is how Report's reader meets formancy's, which formancy
     does not export. formancy's run asks Report's relay under Report's
     stop, and Report's run formancy's under formancy's, each answered and
-    each stopped. A stop's and a relay's members, `ModelBusyError`,
+    each stopped. One departure is held there too: a host that resolves
+    no text rejects formancy's run and ends Report's unreachable, seen
+    failing with Report's turn reading the value as formancy's does, and
+    `turn/ask.test.ts` holds Report's half for `undefined`, a number and
+    an object. A stop's and a relay's members, `ModelBusyError`,
     `declinedAnswer`, its refusal of a blank reason and `relayMessage` are
     formancy's byte for byte. And the formancy compared with is the
     release report-ai and report-spec take `@formancy/spec` at, so a bump
@@ -143,7 +147,16 @@ and names, and held to formancy's released behaviour by a test.**
   `ModelPrompt`, formancy's `AuthoringPrompt` under the name its
   generalisation would take; `turn/relay.ts` holds `createRelay` and
   `relayMessage`, with `Relay`, `RelayTurn` and `RelayAnswer`. They behave
-  as formancy's do. The prompt, the ask and the relay are generic over the
+  as formancy's do, but in one place: a host's `AskModel` that resolves
+  with no text -- `undefined` from a host in plain JavaScript that forgot
+  its `return`, a number, an object -- ends the turn as one the host could
+  not make, `unreachable` with no reason, so that `askChecked` resolves on
+  every ending as it promises. formancy 0.14.0 hands such a value to its
+  reader, which throws, and its run rejects; a caller holding the run in
+  a state, as report-builder-core's review does (0086), would be left
+  waiting on a run that no longer is. The change belongs in the draft of
+  the turn formancy is to be offered, and the differential test says when
+  formancy's release takes it. The prompt, the ask and the relay are generic over the
   kind, `K extends string`, which defaults to `string`, so an `AskModel`
   written for any kind serves every request; `askChecked` takes it last,
   `askChecked<T, P, K>`, so a call written as formancy's `askChecked<T, P>`

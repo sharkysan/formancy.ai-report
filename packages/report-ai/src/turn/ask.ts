@@ -9,7 +9,10 @@ import { DECLINE_KEY } from '@formancy/spec'
  * formancy's own is `@formancy/builder-core`'s `answers.ts`, which does not
  * export it and types its prompt with formancy's three requests. This is
  * the same loop, generic over the kind a product asks, and
- * `against-formancy.test.ts` holds it to formancy 0.14.0's released one.
+ * `against-formancy.test.ts` holds it to formancy 0.14.0's released one,
+ * but for one departure, 0083's: a host's answer that is no text ends the
+ * turn as one the host could not make, where formancy's reader throws on it
+ * and rejects the run.
  * Nothing in this folder imports a Report package, so it can be deleted for
  * formancy's the day there is one (`generic.test.ts`).
  *
@@ -202,8 +205,9 @@ type Turn =
  * because it is an answer that failed -- the run asks again -- and only the
  * caller can word what the model is told about it.
  *
- * It resolves on every ending, a host's error included, so a caller reads what
- * happened from the result rather than from whether it threw.
+ * It resolves on every ending, a host's error included, and a host's answer
+ * that is no text, so a caller reads what happened from the result rather
+ * than from whether it threw.
  */
 export async function askChecked<T, P, K extends string = string>(
   ask: AskModel<K>,
@@ -286,7 +290,8 @@ function take<K extends string>(ask: AskModel<K>, prompt: ModelPrompt<K>, stop: 
       },
     }
 
-    let answer: Promise<string>
+    // What the host resolves with is read as unknown: a host in plain JavaScript may hand on anything.
+    let answer: Promise<unknown>
     try {
       answer = Promise.resolve(ask(prompt, turn))
     } catch (error) {
@@ -296,7 +301,11 @@ function take<K extends string>(ask: AskModel<K>, prompt: ModelPrompt<K>, stop: 
       return
     }
     answer.then(
-      (text) => settle({ kind: 'answered', answer: text }),
+      // A text is an answer; anything else is the host's wiring, not the
+      // model's answer, and the turn one the host could not make, with no
+      // reason of its own. formancy 0.14.0 reads it as an answer and rejects
+      // the run in the reader, which this departs from (0083).
+      (text) => settle(typeof text === 'string' ? { kind: 'answered', answer: text } : { kind: 'unreachable', reason: undefined }),
       (error: unknown) => settle(refused(error)),
     )
   })

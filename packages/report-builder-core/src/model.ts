@@ -17,6 +17,7 @@ import type { Component, ComponentKind, RegionName } from '@formancy/report-spec
 import type { ImageLibrary } from './image-store.js'
 import type { Box, Canvas, PageGeometry } from './model-canvas.js'
 import type { PropertyPanel } from './model-properties.js'
+import type { TranslationState } from './model-translation.js'
 import type { EditorLocale } from './text.js'
 
 /**
@@ -305,4 +306,10 @@ export interface EditorState {
    */
   readonly view: 'design' | 'host'
   readonly status: Announcement
+  /**
+   * A model's translation of the language edited, for an editor given a
+   * model (0086): what asks, the run, the review and its sentences; null
+   * without one, and a builder then draws nothing of it.
+   */
+  readonly translation: TranslationState | null
 }

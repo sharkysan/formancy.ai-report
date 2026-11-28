@@ -541,6 +541,9 @@ importers:
 
   packages/report-builder-core:
     dependencies:
+      '@formancy/report-ai':
+        specifier: workspace:*
+        version: link:../report-ai
       '@formancy/report-core':
         specifier: workspace:*
         version: link:../report-core

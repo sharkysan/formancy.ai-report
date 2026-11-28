@@ -78,6 +78,19 @@ does not know, throws a `RangeError` when the editor is made. Like the
 hidden panes it is the editor's: no edit, undo or other editor touches it
 ([0029](../../docs/decisions/0029-the-preview-stands-in-the-design-views-place-where-it-does-not-fit-beside-the-builder.md)).
 
+**A host's model.** A host that lets a person ask a model for the words a
+language lacks gives the editor its model, and the state's `translation`
+then holds the run and its review (*A model's translation*, below). The
+host installs `@formancy/report-ai` beside the builder for `askThrough`:
+report-builder-core depends on it, and a package's own dependency is no
+import a host may rely on:
+
+```ts
+import { askThrough } from '@formancy/report-ai'
+
+const editor = createReportEditor(opening.session, { model: { ask: askThrough(myServer) } })
+```
+
 **A host's image store.** A host that keeps the images a person adds
 gives the editor its store, and both builders then offer Add image…
 (*Images a person adds*, below):
@@ -346,6 +359,10 @@ const editor = createReportEditor(opening.session, {
   middle, `'host'`. A builder draws the middle pane from `view` and never
   works it out from `hostView` again. An editor made with its view shown
   in the middle starts with `panel` on it.
+- **`translation`**: a model's translation of the language edited, for an
+  editor given a model, and null without one: its Ask, whether a run
+  waits, the part's one status sentence, the review and the notes under
+  it (*A model's translation*, below).
 
 ## Actions
 
@@ -386,12 +403,20 @@ session's do.
 | `setLanguage(locale)` | Shows and edits the words of `locale`, the report's own or one a translation declares; the editor's own, never the report's, kept as the zoom is. Refused (`not-found`) for a language the report is not written in. |
 | `removeLanguage(locale)` | Removes the report's translation into `locale`, with its words, in one step, "Remove language", and shows the report's own words if it was the one edited. Refused (`not-found`) for a language the report has no translation in. |
 | `setBaseline(key, baseline, selected?)` | Sets the run at `key` of the selected text below or above the line (`'subscript'`, `'superscript'`), or back on it (`null`), in one step, "Set below the line": the characters `selected` in its field -- their start and end in UTF-16 code units, and the text the field showed -- snapped to whole graphemes by `Intl.Segmenter` and split from the run, or the whole run where none, or all of them, are selected, or the run is bound -- the field's text read as the run's with a line broken by CR LF or by CR alone as LF, as a textarea gives it back, and its offsets counted back into the run's; then that run joined to the literal runs beside it on its baseline, and no other. Its outcome's `then` is the pressed button of the run that holds the text now, which a split or a join moved. Refused (`invalid-value`) for a selection of other text than the report holds -- a refused value left typed in the field, with nothing selected in it too -- and a baseline the format lacks, as none of the options, (`not-found`) for a key that names no run with a baseline to set, a page counter's among them, (`unavailable`) for a press that would change nothing, and by the validator past `MAX_INLINES`, the report unchanged ([0061](../../docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md)). |
+| `stopTranslation` | Stops the model's run waiting under the language edited: it ends as stopped, its model told. Refused (`unavailable`) with none waiting there, and under another language in the sentence the state says there. |
+| `acceptTranslation(key, accepted)`, `acceptAllTranslations` | Accepts a row of the review held under the language edited by its key, or takes it back, or accepts every row; a toggle sent where it is already changes nothing and tells no listener. Refused (`not-found`) for a key that names no row, and (`unavailable`) with no review held there. |
+| `applyTranslation` | Applies the rows accepted as one undo step, report-core's `batch` against the proposal's `expectedHash`, "Translate words into French (Switzerland): 3". Refused (`unavailable`) with nothing accepted, and (`refused`), nothing changed, once the report moved since the model answered, the review kept with Review again beside it. |
+| `discardTranslation` | Forgets what is held under the language edited, a run waiting among it, its model told and its answer, when it comes, held for nobody; and, from any language, dismisses the sentence a language's removal left. Refused (`unavailable`) with nothing held there, and under another language than a run waiting or a review held, in the sentence the state says there. |
+| `reviewTranslationAgain` | Reads the held answer again against the report as it stands, with no new turn: what a person wrote meanwhile left out, and each row that stays kept as accepted as it was. Refused (`unavailable`) with no answer held there, and under another language than a review held, in the sentence the state says there. |
 | `addItem(key)`, `removeItem(key)`, `moveItem(key, to)` | Adds an item to the end of the selection's list at `key`, removes the item at `key` (its list's pointer and its index, "/vat/1"), or moves it to the position `to`, each one step: an e-invoice's VAT categories, "Add VAT category", "Remove VAT category", "Move VAT category". Refused (`at-edge`) past either end, (`unavailable`) for an Add the state marks unavailable, saying why, and (`not-found`) for a key that names no list or item, a key that is no string among them. |
 
 `editor.addImage(file)` is no action: reading a file and a host keeping it
 take time, and `dispatch` is synchronous (0008). It resolves with an
 outcome as `dispatch` returns one, and rejects only with what a listener
-threw, once the add is done.
+threw, once the add is done. `editor.askTranslation()` is none for the
+same reason: it resolves once the model's run ends, done where an answer
+is held for review and `not-answered` where the run ended without one or
+was discarded first.
 
 Every pointer gesture has a keyboard path (formancy.ai 0046). `actionForKey`
 gives the keys:
@@ -535,6 +560,85 @@ back to the report's own.
 What it does not do: a side-by-side grid of every language's words, a
 language made the report's own in place of another, and a preview of a
 language with words missing, which the runtime refuses (0063).
+
+## A model's translation
+
+Given a model, the editor asks it for the words the language edited lacks,
+through report-ai (0085), and holds the answer for a person to review word
+by word and apply as one undo step
+([0086](../../docs/decisions/0086-a-person-reviews-a-models-translation-word-by-word-in-either-builder-and-applies-what-they-accepted-as-one-undo-step.md)).
+No builder draws it yet: the state below is what both will draw, decided
+here once.
+
+- **Ask.** `translation.ask` is offered where the language edited lacks
+  words, counting them as the switch does ("Ask a model for the missing
+  words: 12"), and null in the report's own language and in one that
+  lacks nothing. `askTranslation()` asks; while a run waits, or a review
+  is held, for any language, Ask is unavailable and refused as `busy`.
+  After Apply, the same Ask, counting what is still missing, asks for the
+  rest.
+- **Discard** is the part's own, `translation.discard`: offered with a
+  review held under the language edited, and under every language with
+  the sentence a language's removal left, which it dismisses; while a run
+  waits, Stop is drawn, and `discardTranslation` forgets the run all the
+  same.
+- **The run** is held by the editor, for the language it was asked for,
+  so a builder switched or drawn again draws the same run. While it waits,
+  `busy` is true and a builder draws Stop beside the status. Under
+  another language the status says only where it waits or is held, and
+  every action there is refused in that sentence; a run that came to
+  nothing is said under its own language alone. A language removed, or its
+  adding undone, while its run waits or its review is held takes the run
+  and the review with it, its model told to stop, and the status says so
+  under every language until it is discarded or another run is asked; a
+  run that came to nothing goes unsaid. The editor changes its state
+  before it stops a run, so a host's `onCancel`, or a relay's subscriber,
+  that throws is thrown after, from the call that ended the run. A run has
+  a stop of its own, and what it comes to lands only while it is still the
+  run in flight: an answer to a run discarded, removed or stopped is held
+  for nobody, and `askTranslation` says which ended it, a disposed editor
+  with code `disposed`. A disposed editor stops its run.
+- **The review**, under its own language, once an answer holds a row to
+  apply: `heading`, the region's name; `columns`, the report's own
+  language, where a word stands, the language edited and whether a row is
+  accepted; and each row's `key`, `source`, `text`, `where` -- the outline
+  label of each component and column its word stands in, or the title --
+  `target`, what the focus moving into the row selects, so the design view
+  shows its place, `accepted`, for `aria-pressed`, and `toggle`, its
+  accessible name, which says the text and its source ("Accept “fr
+  Introduction” for “Introduction”"). Then `acceptAll`, `apply`, counting
+  what is accepted, and, once Apply was refused, `reviewAgain`. A builder
+  draws the part at the top of the properties pane, above what is
+  selected's own fields and whatever is selected, since a row's focus
+  selects where its word stands: the review stays where it is, and nothing
+  above the row reflows. That focus is a selection like any other, so it
+  lets go of a refused value left typed in a field of what was selected.
+  The rows are kept, the same objects, while the report, the language
+  edited, the review and what is accepted are the same.
+- **The status** is the part's own polite live region, in formancy's
+  order: a run waiting, an Apply refused, a run that ended without an
+  answer -- stopped, given up, a model not reached, busy, declined, or a
+  request too large to send -- then how many words are ready and how many
+  would still be missing with all of them applied. **The notes**, a
+  sentence each under the table, or alone where no row is held: an entry
+  refused and why, as report-ai says it, which is English in every editor
+  language; the entries dropped, by reason, a key nobody asked quoted as
+  the key; what stands in the payment part, for a person to write, a word
+  put there meanwhile said there alone; how many the
+  model left untranslated; how many were left for another run, or, where
+  a list has no room left, not asked; and each list with no room left, so
+  that a language with no room is never said as one that lacks nothing.
+- **Apply** is one step of report-core's `batch` of the accepted rows,
+  against the proposal's hash: a report that moved since refuses it, and
+  Review again reads the same answer against the report as it is, leaving
+  out what a person wrote meanwhile. Applied, the review goes, and the
+  editor's live region says how many words landed and how many are still
+  missing.
+
+What it does not do: edit a proposed word in the review, where a person
+accepts it and corrects it in its field afterwards; group many rows by
+component; hold two languages' runs or reviews at once; and keep a run or
+a review whose language was removed.
 
 ## What a builder renders
 
@@ -892,7 +996,9 @@ language is refused for (0063).
 
 Every label a builder shows is in the catalogue, in English, Swiss German
 and Swiss French, a file for each (`src/text-en.ts`, `src/text-de-ch.ts`,
-`src/text-fr-ch.ts`) that `src/text.ts` puts together:
+`src/text-fr-ch.ts`), what the editor says of a model in a file of its own
+for each (`src/text-model-*.ts`), spread into it, that `src/text.ts` puts
+together:
 `editorText(locale)` fills one, and `formatZoom` writes a
 percentage as the language does, by Intl, as the share a QR code's level
 restores is written. A test fails when the three languages differ in their

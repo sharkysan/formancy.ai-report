@@ -1471,7 +1471,7 @@ languageDiagnostics(candidate) ──▶ an error the language did not give befo
    ├─ a finding at no entry left ──▶ every entry left refused, with its sentence
    ▼
 { rows, refused, dropped, stillMissing, forPerson, candidate, expectedHash }
-   │  a person accepts some rows (no builder draws them yet)
+   │  a person accepts some rows: report-builder-core's review (6.24)
    ▼
 session.apply({ batch: the rows' steps }, { expectedHash, label })
    ├─ the report moved since ──▶ stale-document; nothing changes; the same
@@ -1496,7 +1496,57 @@ and compare the digest it is sent with its own; nothing here holds it to
 that, and Report's own server's route is 0084's, a record still to come
 ([0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
 
-## 6.24 An agent's save, from the token's file to the revision that stands
+## 6.24 A model's translation reviewed, from Ask to one undo step
+
+```
+the language edited lacks words; the editor was given a model, { ask }
+   │
+   ▼
+editor.askTranslation()                              report-builder-core's translation-review.ts
+   ├─ no model, the report's own language, a language that lacks nothing
+   │  ──▶ unavailable; nobody asked
+   ├─ a run waits, or a review is held, for any language ──▶ busy
+   ▼
+a stop of its own; the run held for its language (state 'asking')
+   │  under another language: "A model is translating into French …", no Stop
+   ├─ Stop ──▶ the turn told; the run ends stopped
+   ├─ Discard ──▶ the run forgotten, the turn told; its answer lands nowhere
+   ├─ the language removed, or its adding undone ──▶ the run forgotten, the
+   │                                                 turn told; said under
+   │                                                 every language
+   ▼
+translateMissing(ask, the report when Ask was pressed, locale)   report-ai (6.23)
+   ├─ ended without an answer ──▶ said as its ending; Ask offered again
+   ├─ another run is in flight now ──▶ lands nowhere: not-answered
+   ▼
+proposeTranslation(the report as it stands, answer) ──▶ rows, refused, dropped,
+   │                                                    forPerson, later, noRoom
+   ├─ no row ──▶ its status and its notes; Ask offered again
+   ▼
+the review, under its own language: a row a word, each toggled accepted;
+the refused, dropped, a person's, left and roomless said outside the rows
+   ▼
+applyTranslation ──▶ session.apply(batch of the accepted rows' steps,
+   │                   { expectedHash: the proposal's, label: "Translate
+   │                     words into French (Switzerland): 3" })
+   ├─ the report moved ──▶ stale-document; nothing changes; Review again
+   │                       proposes the held answer against the report as it
+   │                       stands, no new turn, what a person wrote left out
+   ▼
+one undo step (6.1); the review goes; Ask, counting what is still missing,
+asks for the rest
+```
+
+The run belongs to the editor, which outlives a builder drawn again, and
+to the language it was asked for, so that a person who looks at another
+language while a model answers comes back to the same run, and no
+language's review is drawn or applied under another. What lands is decided
+once, for both builders: only the run in flight, only the rows accepted,
+and only against the report the proposal was made on, by the session's own
+rule. The builders draw the state, and no builder draws it yet
+([0086](../decisions/0086-a-person-reviews-a-models-translation-word-by-word-in-either-builder-and-applies-what-they-accepted-as-one-undo-step.md)).
+
+## 6.25 An agent's save, from the token's file to the revision that stands
 
 ```
 an agent's client launches the bin, FORMANCY_REPORT_URL and FORMANCY_REPORT_TOKEN set
@@ -1545,7 +1595,7 @@ The agent saves as the person whose token the host gave it, and the
 server decides as it decides for that person's own page: who they are,
 what their roles allow, and whether the draft named is the newest
 ([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
-What the bin adds is that it sends only what the checks pass, reads its
+What the bin adds is that it sends a save once nothing an agent can fix is left, reads its
 token where the setting names it before every request when that is a
 file, and hands on of an answer only what it can read as its route's
 wire type ([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).

@@ -36,7 +36,7 @@ import { TotalsSection } from './totals.js'
  * refuses the site until it has the heading again.
  */
 export const START_STATUS: PageStatus = {
-  asOf: '2026-11-22',
+  asOf: '2026-11-28',
   release: '0.3.0',
   feature: 'start',
   ask: 'what that release holds and what Formancy Report does not do yet',

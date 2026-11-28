@@ -77,7 +77,7 @@ writes
 Every starter's page, the invoice in four languages and the euro invoice
 from six countries are in [What the starters print](./docs/starters.md).
 
-> **Status, 27 November 2026:** 0.3.0, a developer preview, is published
+> **Status, 28 November 2026:** 0.3.0, a developer preview, is published
 > on npm, and [its release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.3.0)
 > carries the report of the run that gated it.
 > What 0.3.0 holds and leaves out is
@@ -87,9 +87,11 @@ from six countries are in [What the starters print](./docs/starters.md).
 > `@formancy/report-ai`, a model's turn in formancy's shapes
 > ([0083](./docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)),
 > which asks a model for the words a report's language lacks and holds
-> the answer to the format and the compiler as one batch of commands,
-> and which no builder draws yet
-> ([0085](./docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)). The
+> the answer to the format and the compiler as one batch of commands
+> ([0085](./docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)),
+> and the editor model's review of that answer, word by word, applied as
+> one undo step, which no builder draws yet
+> ([0086](./docs/decisions/0086-a-person-reviews-a-models-translation-word-by-word-in-either-builder-and-applies-what-they-accepted-as-one-undo-step.md)). The
 > report format is still version "0", the draft: a report written now is
 > not promised to be read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
@@ -232,7 +234,7 @@ The install gate runs these lines from the packed packages
 | [`@formancy/report-spec`](./packages/report-spec/README.md) | The report format, version 0 (a draft): its types, validation, a canonical hash, and the rules of payment codes, e-invoices, SVGs and fonts |
 | [`@formancy/report-documents`](./packages/report-documents/README.md) | The one PDF reader: a PDF read whole or refused, within measured bounds; nothing calls it yet |
 | [`@formancy/report-core`](./packages/report-core/README.md) | Commands over a report, a session with exact undo, and one compilation of every expression |
-| [`@formancy/report-ai`](./packages/report-ai/README.md) | A language's missing words asked of a model and its answer held to the format and the compiler as one batch of commands, on a model's turn in formancy's shapes: ask, read the answer, ask again with the latest complaint, stop, decline, or a person carries it by hand; no builder draws it yet |
+| [`@formancy/report-ai`](./packages/report-ai/README.md) | A language's missing words asked of a model and its answer held to the format and the compiler as one batch of commands, on a model's turn in formancy's shapes: ask, read the answer, ask again with the latest complaint, stop, decline, or a person carries it by hand; report-builder-core holds its review, which no builder draws yet |
 | [`@formancy/report-runtime`](./packages/report-runtime/README.md) | Resolves a report against its data into a renderer-neutral document, every value decided once, and writes an e-invoice's XML |
 | [`@formancy/report-render-pdf`](./packages/report-render-pdf/README.md) | Draws that document with pdfmake, in Node and in a browser, or refuses it whole |
 | [`@formancy/report-render-docx`](./packages/report-render-docx/README.md) | Writes that document as a Word file, the same bytes for the same document, and refuses what belongs to its PDF |
@@ -242,7 +244,7 @@ The install gate runs these lines from the packed packages
 | [`@formancy/report-server`](./packages/report-server/README.md) | The server, on Fastify: your application's token verified offline, a template's draft and its images |
 | [`@formancy/report-client`](./packages/report-client/README.md) | What your page asks that server with |
 | [`@formancy/report-mcp`](./packages/report-mcp/README.md) | Report's checks for a coding agent, over the Model Context Protocol: the format described, a report validated and diagnosed, report-core's commands applied, and a render's lines read back from its PDF, with nothing deployed; and, given the server and a person's token, a template's draft read and saved as that person |
-| [`@formancy/report-builder-core`](./packages/report-builder-core/README.md) | The editor model both builders render; `BUILDER_SCENARIOS` is what each must do |
+| [`@formancy/report-builder-core`](./packages/report-builder-core/README.md) | The editor model both builders render, a model's translation reviewed word by word among it; `BUILDER_SCENARIOS` is what each must do |
 | [`@formancy/report-builder-react`](./packages/report-builder-react/README.md) | The builder for React 19 |
 | [`@formancy/report-builder-angular`](./packages/report-builder-angular/README.md) | The builder for Angular 22: standalone components, signals and `OnPush`, no zone.js |
 
