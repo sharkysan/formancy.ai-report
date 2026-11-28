@@ -355,6 +355,30 @@ beside the builder, the Studio takes along into the middle. The Preview's
 viewer keeps the PDF on its paper, and redraws it as a pane hidden or
 shown resizes the paper, until PDF.js has loaded the newer one.
 
+Each time the viewer is drawn -- the Preview drawn anew, or a render
+printed after one that was refused or not drawn -- its first PDF says
+where it opens
+([0090](../decisions/0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md)):
+
+```
+the first PDF on the paper, laid out with its downloads among the tools
+   │
+   ├── no QR-bill, or a paper out of sight
+   │        ──▶ fit width, the top of the first page, as every PDF opened before
+   │
+   ├── a zoom the person chose before it ──▶ that zoom, the top of the first page
+   │
+   └── a QR-bill (the pipeline's `bill`) ──▶ fit width again, where the pages
+            gave the paper a scrollbar that narrows it ──▶ billZoom: fit width
+            where the slip, QR_BILL_SIZE, fits what the paper shows; else the
+            zoom it fits at, never under half ──▶ laid out again at it ──▶
+            billScroll: the paper's end, the slip's foot at the view's, or the
+            slip's top where half is too large; all before the browser paints
+   │
+   ▼
+every later PDF on that viewer and every zoom: the paper where the person left it
+```
+
 ## 6.6 A Swiss QR-bill, from a literal to the slip
 
 ```

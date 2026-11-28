@@ -45,17 +45,20 @@ const breakpointsOf = (css) => [...css.matchAll(/@media\s*\(\s*max-width:\s*([\d
  * 1366 by 768, 1536 by 864 and 1920 by 1080, each a screen's whole, and
  * 1366 by 657, what a browser's tabs, address bar and the system's taskbar
  * leave of the first -- taken as 111 pixels, not measured on any one
- * browser. They are `light`: the checks of where the Preview stands
- * (gate-place.mjs) and nothing else, since a pass of the whole journey
- * walks every starter in both builders with axe.
+ * browser; and 1280 by 720, the smallest window 0082 looked for the
+ * invoice's QR-bill in, where at fit width the slip is taller than the
+ * paper shows (0090). They are `light`: the checks of where the Preview
+ * stands (gate-place.mjs) and nothing else, since a pass of the whole
+ * journey walks every starter in both builders with axe.
  *
- * `firstViewport` marks the passes at which the Preview's first page is in
- * the window as the Studio opens, unscrolled: every one but two kinds. The
- * phones, at or under the Studio's narrowest breakpoint, where the page
- * scrolls past the bar to the builder by design (narrow.css); and the first
- * width past report-builder.css's one-pane tier, where the builder draws its
- * three panes and the middle one is what the two side panes leave of the
- * window: a sliver (0029 says both).
+ * `firstViewport` marks the passes at which the QR-bill of the report the
+ * Studio opens on is in the Preview's first view whole, the window
+ * unscrolled (0090): every one but two kinds. The phones, at or under the
+ * Studio's narrowest breakpoint, where the page scrolls past the bar to the
+ * builder by design and the Preview's pane scrolls as one (narrow.css); and
+ * the first width past report-builder.css's one-pane tier, where the
+ * builder draws its three panes and the middle one is what the two side
+ * panes leave of the window: a sliver (0029 says both).
  *
  * Each pass says where the Preview stands at its width -- `middle`, at or
  * under the widest breakpoint (narrow.css's, which layout.ts's query
@@ -92,6 +95,7 @@ export function passes() {
       .map((px) => ({ label: `one past the ${String(px)}px breakpoint`, width: px + 1, height: 900 })),
     { label: 'laptop, 1440', width: 1440, height: 900 },
     ...[
+      [1280, 720],
       [1366, 657],
       [1366, 768],
       [1536, 864],

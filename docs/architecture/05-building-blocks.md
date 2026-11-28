@@ -782,6 +782,15 @@ and lists first the starter the Studio opens on, the invoice, which
 the corpus's order, which stays plan 7's, and Blank last; a corpus
 without that starter is refused rather than opened on another
 ([0082](../decisions/0082-the-studio-opens-on-the-invoice-and-lists-it-first-and-the-corpus-keeps-its-order.md)).
+The viewer, `preview/pdf-view.tsx`, opens at fit width at the top of the
+first page; the first PDF of a report that carries a QR-bill, which the
+pipeline says by its `bill`, it opens with the slip in view, at fit width
+-- fitted again first where its pages bring a scrollbar that narrows the
+paper -- or at the zoom the slip fits at, never under half, and scrolled
+to it, before the browser paints and never again on that viewer, the
+numbers `preview/view.ts`'s
+`billZoom` and `billScroll`, over report-spec's `QR_BILL_SIZE`
+([0090](../decisions/0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md)).
 Beside them it offers, as Download Word, the Word file `renderDocx` writes
 of the document the PDF was drawn from, a report with a code (0074), a
 chart (0076) or a QR-bill's slip (0075) among them, or a note that says why the writer refused it; of a final render of an e-invoice, whose document is the invoice, the Word file is the one written of its copy, which `preview/pipeline.ts` resolves once more from the same request with `eInvoice: 'copy'`, or the runtime's reason there is none ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)): the writer is asked only once the PDF is drawn, from a chunk

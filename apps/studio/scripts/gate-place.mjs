@@ -13,10 +13,13 @@
 //     beside it -- or, where the builder shows one pane at a time, it is
 //     the pane shown;
 //   - where the pass is a first viewport, the window holds the Studio
-//     without scrolling, and the Preview's first page is in it, unscrolled:
-//     its top edge, its first line of text, the page painted on top where
-//     it is in view, drawn on white with ink; how much of it, and at what
-//     fit zoom, measured;
+//     without scrolling, and the QR-bill of the report it opens on is in
+//     the Preview's first view whole (0090): the slip's box, across the
+//     foot of the last page, inside what the paper shows of that page,
+//     every run of text the slip prints with it, the page painted on top
+//     there, at half size or more, drawn on white with ink; how much of
+//     the page, how far the paper was scrolled to it and at what zoom,
+//     measured;
 //   - in a light pass, which walks no journey, that state measured as the
 //     journey measures each starter's;
 //   - in the middle, the toolbar's Design view takes the Preview out and
@@ -38,6 +41,8 @@
 // tree has no word for -- a pane's box, a scroll, what is painted on top --
 // is read from the DOM, by the builders' own hooks.
 
+import { PAGE_SIZES, QR_BILL_TOP } from '@formancy/report-spec'
+import { BILL_ZOOM_FLOOR } from '../src/preview/view.ts'
 import { describeFocus } from './gate-measure.mjs'
 import { builderRulesInThePreview, drawnPages } from './gate-page.mjs'
 import { designViewOf, editorOf, previewOf, printed, said, setField, standing, toggleOf, WITHIN } from './gate-steps.mjs'
@@ -104,11 +109,22 @@ async function designViewFocused(page) {
   }
 }
 
-/** The Preview's first page as the window shows it, unscrolled. */
+/**
+ * Where the slip stands on its page, as a share of the page's height from
+ * its top: report-spec's `QR_BILL_TOP` of an A4 page, down to the page's
+ * foot (0022). Read here from report-spec, not from the Studio's own
+ * `slipHeight`, so the Studio's sum is checked rather than repeated.
+ */
+const SLIP_FROM = QR_BILL_TOP / PAGE_SIZES.A4.height
+
+/**
+ * The Preview's first view as the window shows it as the Studio opens:
+ * the QR-bill of the report it opens on, the invoice's, in it whole (0090).
+ */
 async function firstViewport(gate, page, framework) {
   const { check } = gate
-  const first = previewOf(page).getByRole('group', { name: /^Page 1 of \d+$/ })
-  const seen = await first.evaluate((sheet) => {
+  const last = previewOf(page).getByRole('group', { name: /^Page (\d+) of \1$/ })
+  const seen = await last.evaluate((sheet, slipFrom) => {
     // What is painted of the page: its box cut by every ancestor that clips it, and by the window.
     const own = sheet.getBoundingClientRect()
     let [left, top, right, bottom] = [own.left, own.top, own.right, own.bottom]
@@ -119,38 +135,56 @@ async function firstViewport(gate, page, framework) {
       if (style.overflowY !== 'visible') [top, bottom] = [Math.max(top, box.top), Math.min(bottom, box.bottom)]
     }
     ;[left, top, right, bottom] = [Math.max(left, 0), Math.max(top, 0), Math.min(right, innerWidth), Math.min(bottom, innerHeight)]
+    const whole = (box) => box.top >= top - 0.5 && box.bottom <= bottom + 0.5 && box.left >= left - 0.5 && box.right <= right + 0.5
+    // The slip, across the page's foot; and the runs of text PDF.js laid over it, what the receipt and the payment part print.
+    const slip = { left: own.left, right: own.right, top: own.top + own.height * slipFrom, bottom: own.bottom }
     const runs = [...sheet.querySelectorAll('.paper-text span')]
       .filter((span) => span.children.length === 0 && (span.textContent ?? '').trim() !== '')
       .map((span) => span.getBoundingClientRect())
-    const whole = (box) => box.top >= top - 0.5 && box.bottom <= bottom + 0.5 && box.left >= left - 0.5 && box.right <= right + 0.5
-    const firstLine = runs.length === 0 ? null : runs.reduce((a, b) => (b.top < a.top ? b : a))
-    const hit = right > left && bottom > top ? document.elementFromPoint((left + right) / 2, (top + bottom) / 2) : null
+      .filter((box) => box.top >= slip.top - 0.5 && box.bottom <= slip.bottom + 0.5)
+    const [shownTop, shownBottom] = [Math.max(top, slip.top), Math.min(bottom, slip.bottom)]
+    const hit = right > left && shownBottom > shownTop ? document.elementFromPoint((left + right) / 2, (shownTop + shownBottom) / 2) : null
     return {
       scrolled: window.scrollY,
       scrolls: document.documentElement.scrollHeight - innerHeight,
-      top: own.top,
+      slip: whole(slip),
+      slipTop: slip.top,
+      slipBottom: slip.bottom,
+      viewTop: top,
+      viewBottom: bottom,
+      runs: runs.length,
+      runsInView: runs.filter(whole).length,
       shown: Math.max(0, bottom - top),
       height: own.height,
-      inView: runs.filter(whole).length,
-      firstLine: firstLine !== null && whole(firstLine),
+      paperScrolled: sheet.closest('[role="region"][aria-label="PDF pages"]')?.scrollTop ?? null,
       onTop: hit !== null && sheet.contains(hit),
     }
-  })
+  }, SLIP_FROM)
   check(
     `${framework}: the window holds the Studio without scrolling`,
     seen.scrolled === 0 && seen.scrolls <= 0 ? null : `the page is scrolled ${String(seen.scrolled)}px, and scrolls ${String(seen.scrolls)}px`,
   )
+  const px = (value) => `${String(Math.round(value))}px`
   check(
-    `${framework}: and the Preview's first page is in it, unscrolled, from its top edge to its first line of text`,
-    seen.top >= 0 && seen.firstLine
+    `${framework}: and the QR-bill of the report it opens on is in the Preview's first view whole: the slip across the foot of its last page, inside what the paper shows of the page`,
+    seen.slip
       ? null
-      : `its top edge is at ${String(Math.round(seen.top))}px of a ${String(page.viewportSize()?.height)}px window, and its first line is ${seen.firstLine ? '' : 'not '}in view`,
+      : `the slip stands from ${px(seen.slipTop)} to ${px(seen.slipBottom)}, and the paper shows the page from ${px(seen.viewTop)} to ${px(seen.viewBottom)}`,
   )
   check(
-    `${framework}: and what is in view of it is the page, painted on top`,
+    `${framework}: and every run of text the slip prints is in it`,
+    seen.runs > 0 && seen.runsInView === seen.runs ? null : `${String(seen.runsInView)} of the ${String(seen.runs)} runs of text in the slip's box are in view`,
+  )
+  check(
+    `${framework}: and what is in view of the slip is the page, painted on top`,
     seen.onTop ? null : 'the point at the middle of what is in view of it is something else',
   )
-  const [sheet] = await drawnPages(page, { within: WITHIN })
+  const zoom = /(\d+)\s*%/.exec(await previewOf(page).getByRole('group', { name: 'Zoom', exact: true }).innerText())
+  check(
+    `${framework}: at half size or more, so the page stays readable`,
+    zoom !== null && Number(zoom[1]) >= BILL_ZOOM_FLOOR * 100 ? null : `the zoom says ${zoom === null ? 'nothing' : `${zoom[1]}%`}`,
+  )
+  const sheet = (await drawnPages(page, { within: WITHIN })).at(-1)
   check(
     `${framework}: and it is drawn on white paper, with ink on it`,
     sheet !== undefined && sheet.white > 0.5 && sheet.ink > 0.001
@@ -159,16 +193,16 @@ async function firstViewport(gate, page, framework) {
         ? 'no page was drawn'
         : `${(sheet.white * 100).toFixed(1)}% white, ${(sheet.ink * 100).toFixed(2)}% ink`,
   )
-  const zoom = /(\d+)\s*%/.exec(await previewOf(page).getByRole('group', { name: 'Zoom', exact: true }).innerText())
   // Measurements are kept for the whole run, not under a pass: each says its window.
   const at = `${framework}, ${String(page.viewportSize()?.width)} by ${String(page.viewportSize()?.height)}`
   gate.measure({
-    name: `${at}: the Preview's first page, in view of the first viewport`,
+    name: `${at}: the Preview's last page, in view of the first viewport`,
     value: Math.round(seen.shown),
     unit: `px of its ${String(Math.round(seen.height))}`,
   })
-  gate.measure({ name: `${at}: the Preview's first page, its runs of text in view`, value: seen.inView, unit: 'runs' })
-  gate.measure({ name: `${at}: the Preview's fit zoom`, value: zoom === null ? null : Number(zoom[1]), unit: '%' })
+  gate.measure({ name: `${at}: the slip's runs of text in view`, value: seen.runsInView, unit: 'runs' })
+  gate.measure({ name: `${at}: the paper scrolled to the slip`, value: seen.paperScrolled === null ? null : Math.round(seen.paperScrolled), unit: 'px' })
+  gate.measure({ name: `${at}: the Preview's zoom as it opens`, value: zoom === null ? null : Number(zoom[1]), unit: '%' })
 }
 
 /** In the middle: the toolbar's Design view takes the Preview's place back, and the bar's Preview gives it back. */

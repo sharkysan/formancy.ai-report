@@ -64,9 +64,10 @@
 //     builder's middle, in the design view's place, with the outline and
 //     the properties beside it, up to the Studio's widest breakpoint, and
 //     beside the builder past it; at each pass gate-page.mjs's `passes()`
-//     marks a first viewport -- the laptop's, and the screens 0029 names --
-//     the window holds the Studio whole as it opens, and the Preview's first
-//     page in it, unscrolled; the toolbar's Design view and the bar's
+//     marks a first viewport -- the laptop's, the screens 0029 names and
+//     1280 by 720 -- the window holds the Studio whole as it opens, and
+//     the Preview's first view the invoice's QR-bill whole, at half size
+//     or more (0090); the toolbar's Design view and the bar's
 //     Preview swap the two, the window crossing the breakpoint moves it,
 //     and the paper resized as an edit prints is redrawn (gate-place.mjs);
 //   - the design view's note is never cut by its pane, nor a control of the

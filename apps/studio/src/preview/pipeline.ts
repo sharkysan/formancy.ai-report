@@ -78,6 +78,8 @@ export type PreviewOutcome =
       readonly xml: string | undefined
       /** The Word file of the document `pdf` was drawn from, or why there is none (0068). */
       readonly word: WordFile
+      /** Whether the document carries a QR-bill, whose slip the renderer draws at the foot of its last page (0022): the Preview opens at it (0090). */
+      readonly bill: boolean
       readonly manifest: RenderManifest
       readonly warnings: readonly RuntimeError[]
     }
@@ -104,7 +106,7 @@ export async function preview(
   // An e-invoice's Word file is its copy's, resolved from the same request; any other document's is its own.
   const copy = document.eInvoice === undefined ? resolved : resolveReport(report, starter.data, { ...options, eInvoice: 'copy' })
   const word: WordFile = copy.ok ? await wordFile(copy.document) : { kind: 'refused', refusal: noCopy(copy.errors) }
-  return { kind: 'printed', pdf, xml: document.eInvoice?.xml, word, manifest, warnings }
+  return { kind: 'printed', pdf, xml: document.eInvoice?.xml, word, bill: document.paymentPart !== undefined, manifest, warnings }
 }
 
 /** Why an e-invoice has no copy to write a Word file of, in the runtime's own sentences: a refusal of the Word file's alone, about the e-invoice. */
