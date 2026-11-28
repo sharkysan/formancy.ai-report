@@ -55,6 +55,8 @@ const manifest = JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8'
 const bin = manifest.bin?.['formancy-report-mcp']
 if (bin === undefined || !existsSync(join(installed, bin)))
   throw new Error(`the packed report-mcp names its bin formancy-report-mcp at ${String(bin)}, which its tarball does not hold`)
+/** The bin's own file, which Node runs without the link npm made, for a start that stops before it speaks. */
+const binFile = join(installed, bin)
 
 interface Answer {
   readonly isError?: boolean
@@ -174,7 +176,7 @@ async function besideTheServer(): Promise<string> {
   try {
     // One setting alone: one line on standard error, naming both, and exit 1.
     const { FORMANCY_REPORT_TOKEN: _token, ...environment } = process.env
-    const half = spawnSync(process.execPath, [join(installed, bin)], { env: { ...environment, FORMANCY_REPORT_URL: at }, input: '', encoding: 'utf8' })
+    const half = spawnSync(process.execPath, [binFile], { env: { ...environment, FORMANCY_REPORT_URL: at }, input: '', encoding: 'utf8' })
     if (half.status !== 1 || !/^Set FORMANCY_REPORT_URL and FORMANCY_REPORT_TOKEN together, or neither/.test(half.stderr) || half.stdout !== '')
       throw new Error(`the bin with one setting alone exited ${String(half.status)}, saying ${JSON.stringify(half.stderr)}`)
 
