@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import { MODEL_EN } from './text-model-en.js'
 import { EDITOR_LOCALES, EDITOR_TEXT, editorText, formatZoom } from './text.js'
 import type { MessageId } from './text.js'
 
@@ -41,11 +42,32 @@ describe('the catalogue', () => {
     for (const [id, message] of Object.entries(EDITOR_TEXT['de-CH'])) expect(message, id).not.toContain('ß')
   })
 
+  // Swiss French sets a no-break space before a colon and inside
+  // guillemets, so that neither starts or ends a line on its own: a plain
+  // space there is a line a screen may break before the colon.
+  test('Swiss French has no plain space before a colon or inside guillemets', () => {
+    for (const [id, message] of Object.entries(EDITOR_TEXT['fr-CH'])) expect(message, id).not.toMatch(/ [:;!?»]|« /)
+  })
+
   // A language whose catalogue is English with a few words changed is not a
   // translation; at least the labels a person reads first differ.
   test('each language says the panes in its own words', () => {
     const panes: MessageId[] = ['pane.outline', 'pane.palette', 'pane.properties', 'pane.problems', 'action.undo', 'action.delete']
     for (const id of panes) {
+      expect(EDITOR_TEXT['de-CH'][id], id).not.toBe(EDITOR_TEXT.en[id])
+      expect(EDITOR_TEXT['fr-CH'][id], id).not.toBe(EDITOR_TEXT.en[id])
+    }
+  })
+
+  // A model's review is read by a person deciding whether to trust what a
+  // model wrote, in the language they chose: a sentence of it left in
+  // English in Swiss German or Swiss French is one they may misread. Every
+  // one is part of each catalogue, and written in its own words (0086).
+  test("each language says a model's review in its own words", () => {
+    const ids = Object.keys(MODEL_EN) as MessageId[]
+    expect(ids.length).toBeGreaterThan(0)
+    for (const locale of EDITOR_LOCALES) expect(Object.keys(EDITOR_TEXT[locale]), locale).toEqual(expect.arrayContaining(ids))
+    for (const id of ids) {
       expect(EDITOR_TEXT['de-CH'][id], id).not.toBe(EDITOR_TEXT.en[id])
       expect(EDITOR_TEXT['fr-CH'][id], id).not.toBe(EDITOR_TEXT.en[id])
     }

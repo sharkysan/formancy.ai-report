@@ -39,6 +39,7 @@ import type {
   Selection,
 } from './model.js'
 import type { Box, Canvas, CanvasPaymentPart } from './model-canvas.js'
+import type { TranslationState } from './model-translation.js'
 import { REPORT_LEVEL_PARTS } from './model.js'
 import { buildOutline, outlineOrder, outlineParts, selectionKey } from './outline.js'
 import { paletteEntries } from './palette.js'
@@ -47,6 +48,7 @@ import type { FieldError } from './properties.js'
 import { selected } from './selection.js'
 import type { EditorLocale, EditorText } from './text.js'
 import { formatZoom } from './text.js'
+import type { HeldTranslation } from './translation-review.js'
 
 /** What is the editor's own and never the report's: one person's view of it. */
 export interface Local {
@@ -64,6 +66,8 @@ export interface Local {
   readonly adding: string | null
   /** The language whose words are shown and edited, one a translation declares; null for the report's own (0063). */
   readonly language: string | null
+  /** A model's translation, held for the language it was asked for, whichever is edited (0086). */
+  readonly translation: HeldTranslation | null
 }
 
 /** What the document and the language edited decide. */
@@ -312,7 +316,7 @@ function dragOf(
   return { drag: { subject, via, over, title, ...(found.length === 0 ? { nowhere: t('places.none', { name }) } : {}) }, dropTargets: found }
 }
 
-/** The whole state, frozen, from the document's derivations, the session's history and the editor's own. */
+/** The whole state, frozen, from the document's derivations, the session's history and the editor's own, and a model's translation as translation-review.ts says it. */
 export function buildState(
   derived: Derived,
   session: SessionView,
@@ -321,6 +325,7 @@ export function buildState(
   t: EditorText,
   targets: () => readonly DropTarget[],
   images: Images,
+  translation: TranslationState | null,
 ): EditorState {
   const { report, labels, problems, severities, overflowing } = derived
   const inputs = { labels, selection: local.selection, problems, severities, overflowing }
@@ -367,5 +372,6 @@ export function buildState(
     hostView: local.host,
     view: viewOf(local.host),
     status: local.status,
+    translation,
   })
 }

@@ -5,7 +5,10 @@ is asked for one thing: **the words a report's language lacks**, and its
 answer becomes one batch of report-core commands, every entry of which the
 format and the compiler have accepted before a person sees it
 ([0085](../../docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
-No builder draws it yet. The turn underneath -- ask, read the JSON object
+report-builder-core holds it for a person to review word by word and
+apply as one undo step
+([0086](../../docs/decisions/0086-a-person-reviews-a-models-translation-word-by-word-in-either-builder-and-applies-what-they-accepted-as-one-undo-step.md)),
+which no builder draws yet. The turn underneath -- ask, read the JSON object
 the answer holds, ask again with the latest complaint, let a person stop
 the run, let the model decline, and let a person carry the turn by hand --
 is formancy's own, which `@formancy/builder-core` does not export and types

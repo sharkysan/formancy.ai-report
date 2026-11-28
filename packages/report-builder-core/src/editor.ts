@@ -11,10 +11,10 @@
  * Here are the editor's state, its listeners and the actions that edit the
  * report or walk it. Its views -- the panes, the host's view and the zoom
  * -- are `views.ts`'s, its drag `dragging.ts`'s, its images `images.ts`'s,
- * what adds or removes a part or a group `part-actions.ts`'s and what sets
- * a run below or above the line `baselines.ts`'s: each is lent what it
- * needs of the editor, and every action of each runs through the one
- * `dispatch` here.
+ * what adds or removes a part or a group `part-actions.ts`'s, what sets
+ * a run below or above the line `baselines.ts`'s and a model's
+ * translation `translation-review.ts`'s: each is lent what it needs of the
+ * editor, and every action of each runs through the one `dispatch` here.
  *
  * `state()` is the same frozen object until something changes, which is
  * what React's `useSyncExternalStore` and an Angular signal compare by. An
@@ -49,6 +49,9 @@ import { buildState, derive, viewOf } from './state.js'
 import type { Derived, Local } from './state.js'
 import { editorText } from './text.js'
 import type { EditorLocale } from './text.js'
+import { modelOf, translationActions, translationState } from './translation-review.js'
+import type { EditorModel } from './translation-review.js'
+import { translationWords } from './translation-words.js'
 import { hostViewOf, viewActions } from './views.js'
 import type { HostViewOptions } from './views.js'
 
@@ -61,6 +64,8 @@ export interface ReportEditorOptions {
   readonly hostView?: HostViewOptions
   /** Where an image a person adds is kept (0033). Without it the builders draw no Add image…, and the report's images are the host's alone to declare. */
   readonly images?: ImageStore
+  /** A model the editor may ask for the words a language lacks, its answer reviewed word by word (0086). Without it the state's `translation` is null, and the builders draw nothing of it. */
+  readonly model?: EditorModel
 }
 
 export interface ReportEditor {
@@ -85,7 +90,16 @@ export interface ReportEditor {
    * only with what a listener threw, once the add is done.
    */
   addImage(file: ImageFile): Promise<EditorOutcome>
-  /** Unsubscribes from the session and forgets every listener; every action after it is refused. */
+  /**
+   * Asks the editor's model for the words the language edited lacks, and
+   * holds its answer for review in that language, or says why not (0086).
+   * Resolves once the run ends, with an outcome as `dispatch` returns one:
+   * done when an answer is held, `not-answered` when the run ended without
+   * one or was discarded first; rejects only with what a listener threw,
+   * once the run is done. Stop, and the rest, are actions.
+   */
+  askTranslation(): Promise<EditorOutcome>
+  /** Unsubscribes from the session and forgets every listener and a model's run waiting; every action after it is refused. */
   dispose(): void
 }
 
@@ -97,6 +111,8 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   const start = options.zoom
   const host = hostViewOf(options.hostView)
   const images = imagesOf(options.images, locale, t)
+  const model = modelOf(options.model)
+  const words = translationWords(t, locale)
   let local: Local = {
     selection: null,
     zoom: start === undefined || !Number.isFinite(start) ? 1 : clampZoom(start),
@@ -109,6 +125,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     status: { text: '', sequence: 0 },
     adding: null,
     language: null,
+    translation: null,
   }
   let derived: Derived | undefined
   let cached: EditorState | undefined
@@ -199,13 +216,15 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     const gone = selection !== null && selected(report, selection) === undefined
     const subjectGone = drag !== null && 'id' in drag.subject && componentAt(report, drag.subject.id) === undefined
     // A language removed, or its adding undone, gives the view back to the report's own.
-    const language = report.translations?.some((translation) => translation.locale === local.language) === true ? local.language : null
+    const declared = (tag: string | null): boolean => report.translations?.some((translation) => translation.locale === tag) === true
+    const language = declared(local.language) ? local.language : null
     local = {
       ...local,
       language,
       selection: gone ? null : selection,
       errors: local.errors.size === 0 ? local.errors : new Map(),
       drag: drag === null || subjectGone ? null : { ...drag, over: null },
+      translation: translating.followed(local.translation, declared),
     }
     changed()
   }
@@ -238,11 +257,11 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
    * made, and the error is thrown from `dispatch` once it is done. An error
    * before the commit made no edit, and passes straight through.
    */
-  function commit(command: Command<object>, label: string): CommandOutcome {
+  function commit(command: Command<object>, label: string, expectedHash?: string): CommandOutcome {
     const before = session.revision()
     let made: CommandOutcome | undefined
     try {
-      return session.apply((report) => (made = command(report)), { label })
+      return session.apply((report) => (made = command(report)), expectedHash === undefined ? { label } : { label, expectedHash })
     } catch (error) {
       if (session.revision() === before || made?.ok !== true) throw error
       deferred.push(error)
@@ -406,7 +425,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   function history(direction: 'undo' | 'redo'): EditorOutcome {
     const can = direction === 'undo' ? session.canUndo() : session.canRedo()
     if (!can) return refuse('no-history', t(direction === 'undo' ? 'status.nothingToUndo' : 'status.nothingToRedo'))
-    const label = shownLabel(direction === 'undo' ? session.undoLabel() : session.redoLabel(), t) ?? ''
+    const label = shownLabel(direction === 'undo' ? session.undoLabel() : session.redoLabel(), t, locale) ?? ''
     travel(direction)
     setLocal(announce(t(direction === 'undo' ? 'status.undone' : 'status.redone', { label })))
     return DONE
@@ -417,6 +436,11 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
   const imaging = imageActions(images, { current, local: () => local, setLocal, announce, refuse, commit, act, raise, disposed: () => disposed })
   const parts = partActions({ current, local: () => local, refuse, applyEdit }, t, locale)
   const languages = languageActions({ current, local: () => local, setLocal, announce, refuse, applyEdit }, t, locale)
+  const translating = translationActions(
+    model,
+    { current, local: () => local, setLocal, announce, refuse, commit, act, raise, disposed: () => disposed },
+    words,
+  )
 
   const handlers: Handlers = {
     select: (action) =>
@@ -469,6 +493,12 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     setLanguage: (action) => languages.setLanguage(action.locale),
     removeLanguage: (action) => languages.removeLanguage(action.locale),
     setBaseline: (action) => setRunBaseline({ current, local: () => local, refuse, applyEdit }, t, locale, action.key, action.baseline, action.selected),
+    stopTranslation: () => translating.stop(),
+    acceptTranslation: (action) => translating.accept(action.key, action.accepted),
+    acceptAllTranslations: () => translating.acceptAll(),
+    applyTranslation: () => translating.apply(),
+    discardTranslation: () => translating.discard(),
+    reviewTranslationAgain: () => translating.reviewAgain(),
   }
 
   return {
@@ -478,10 +508,11 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
         const history = {
           canUndo: session.canUndo(),
           canRedo: session.canRedo(),
-          undoLabel: shownLabel(session.undoLabel(), t),
-          redoLabel: shownLabel(session.redoLabel(), t),
+          undoLabel: shownLabel(session.undoLabel(), t, locale),
+          redoLabel: shownLabel(session.redoLabel(), t, locale),
         }
-        cached = buildState(now, { revision: session.revision(), history }, local, locale, t, dragging.targets, images)
+        const translation = translationState(model, now, local.translation, words)
+        cached = buildState(now, { revision: session.revision(), history }, local, locale, t, dragging.targets, images, translation)
       }
       return cached
     },
@@ -503,11 +534,13 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
       return outcome as EditorOutcome
     },
     addImage: (file) => imaging.addImage(file),
+    askTranslation: () => translating.ask(),
     dispose() {
       if (disposed) return
       disposed = true
       unsubscribe()
       listeners.clear()
+      translating.forget()
     },
   }
 }

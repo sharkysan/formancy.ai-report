@@ -21,7 +21,13 @@
   under which a model is asked for a language's missing words, to "No
   changes described in words in the builders", held by `REQUEST_KINDS`
   being the translation alone and by report-mcp's `PROMPTS` being the two
-  its last clause names
+  its last clause names; and read again by
+  [0086](0086-a-person-reviews-a-models-translation-word-by-word-in-either-builder-and-applies-what-they-accepted-as-one-undo-step.md),
+  under which report-builder-core holds a model's translation for review,
+  and held since by report-builder-core being the one package beside
+  report-ai that takes it, calling of it the translation's run, its
+  proposal and a stop alone, in place of no package but report-ai taking
+  it
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
 - **Verified by:** the pages' suite, which CI's `test` job runs,

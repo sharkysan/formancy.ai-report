@@ -82,6 +82,22 @@ export type EditorAction =
    * selection, else the whole run.
    */
   | { readonly type: 'setBaseline'; readonly key: string; readonly baseline: BaselineShift | null; readonly selected?: FieldSelection }
+  /**
+   * A model's translation of the language edited (0086), each refused
+   * under another language than the run's: Stop the run waiting, which
+   * ends as stopped; accept a row by its key, or take it back; accept
+   * every row; apply the rows accepted as one undo step, against the
+   * proposal's hash; discard what is held, a run waiting forgotten and its
+   * later answer never held; and review the held answer again against the
+   * report as it stands. A run is asked by `askTranslation`, which takes
+   * time and is no action.
+   */
+  | { readonly type: 'stopTranslation' }
+  | { readonly type: 'acceptTranslation'; readonly key: string; readonly accepted: boolean }
+  | { readonly type: 'acceptAllTranslations' }
+  | { readonly type: 'applyTranslation' }
+  | { readonly type: 'discardTranslation' }
+  | { readonly type: 'reviewTranslationAgain' }
 
 /**
  * What a builder reads from a run's field when one of its buttons is
@@ -132,13 +148,15 @@ export const EDITOR_REFUSAL_CODES = [
    * host's view stands in the design view's place; an image to add, with no
    * store to keep it or no room in the report for it; Remove, for an
    * image something draws; a part the report has already, added, and an
-   * e-invoice, which is edited and never made from nothing (0044); and a
-   * group's Add or Remove with nothing to do.
+   * e-invoice, which is edited and never made from nothing (0044); a
+   * group's Add or Remove with nothing to do; and a model's translation
+   * asked of no model, in the report's own language, in one that lacks
+   * nothing, or acted on where it is not held (0086).
    */
   'unavailable',
   /** Undo or redo with no step to take. */
   'no-history',
-  /** An image to add while another is being added. */
+  /** An image to add while another is being added; a model's translation asked while one waits or is held for review. */
   'busy',
   /** A file that is not an image the report prints, or past a limit, or of a kind the host does not keep: the report unchanged. */
   'not-an-image',
@@ -146,6 +164,8 @@ export const EDITOR_REFUSAL_CODES = [
   'not-kept',
   /** While the host kept the image, the report came to declare another under its id, which an add never replaces. */
   'changed',
+  /** A model's run ended with no answer to hold: stopped, given up, unreachable, busy, declined, past its bound, or discarded before it answered; the state's status says which. */
+  'not-answered',
 ] as const
 
 export type EditorRefusalCode = (typeof EDITOR_REFUSAL_CODES)[number]

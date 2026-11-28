@@ -3,6 +3,7 @@
  * (text-en.ts). Switzerland writes ss, never a sharp s.
  */
 import type { Catalogue } from './text-en.js'
+import { MODEL_DE_CH } from './text-model-de-ch.js'
 
 export const DE_CH: Catalogue = {
   'editor.label': 'Berichtseditor',
@@ -445,4 +446,5 @@ export const DE_CH: Catalogue = {
   'status.baselineInOwnLanguage':
     'Einen Teil von {name} stellen Sie in der eigenen Sprache des Berichts tief oder hoch: Wechseln Sie zu ihr, oder wählen Sie nichts aus, um {name} ganz zu setzen.',
   'status.notOptionalRun': '{name} gehört zum Text: Er wird in seinem Feld bearbeitet, nie hinzugefügt oder entfernt.',
+  ...MODEL_DE_CH,
 }

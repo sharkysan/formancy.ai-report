@@ -10,6 +10,38 @@ later.
 
 ## Unreleased
 
+**The editor model holds a model's translation for a person to review
+word by word, and applies what they accepted as one undo step**
+([0086](docs/decisions/0086-a-person-reviews-a-models-translation-word-by-word-in-either-builder-and-applies-what-they-accepted-as-one-undo-step.md)).
+report-ai's proposal of a language's missing words reached nobody: a host
+had to draw it and apply it itself, and a builder that did would have
+decided alone when a row may land. `@formancy/report-builder-core` now
+takes `ReportEditorOptions.model`, `{ ask }`, and
+`editor.askTranslation()` asks it for the words the language edited
+lacks; the state's `translation` holds Ask, counting what the language
+lacks, the run while it waits with Stop, and the answer as rows, each its
+source, where it stands in the editor's words, what the focus moving into
+it selects, the proposed text and a toggle named by both texts, with what
+was refused, dropped, left for a person, left for another run or past a
+list's room said outside the rows, so that a language with no room left
+is never said as one that lacks nothing. `acceptTranslation` and
+`acceptAllTranslations` choose rows, `applyTranslation` applies those
+accepted as one report-core `batch` against the proposal's hash, labelled
+"Translate words into French (Switzerland): 3", refused once the report
+moved, and `reviewTranslationAgain` then reads the same answer against
+the report as it is, leaving out what a person wrote; `discardTranslation`
+forgets a waiting run, and only the run in flight ever lands. The run is
+held by the editor for its language, so a builder switched or drawn again
+draws the same run, and under another language it is only said; a
+language removed takes its run and its review with it. Every word is in
+English, German (Switzerland) and French (Switzerland). No builder draws
+it yet; both builders' review and its scenarios come next.
+report-builder-core now depends on report-ai, and through it on
+`@formancy/spec` and `@noble/hashes` at exactly 2.4.0, MIT, in every host
+of either builder; `EDITOR_REFUSAL_CODES` gains `not-answered`. The start
+page's guard of "No changes described in words in the builders" now holds
+report-builder-core to report-ai's translation alone.
+
 **A model can be asked for the words a report's language lacks, and its
 answer is held to the format and the compiler before a person sees it**
 ([0085](docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).

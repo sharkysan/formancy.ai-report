@@ -38,6 +38,10 @@ export type { PropertyAction, PropertyField, PropertyGroup, PropertyKind, Proper
 // Where a host keeps the images a person adds, and the report's images as the state lists them (0033).
 export type { AddedImage, ImageFile, ImageLibrary, ImageStore, KeptImage, LibraryAsset } from './image-store.js'
 
+// A model the editor may ask for the words a language lacks, and its answer as the state shows it for review (0086).
+export type { EditorModel } from './translation-review.js'
+export type { TranslationButton, TranslationReview, TranslationReviewRow, TranslationState } from './model-translation.js'
+
 export { clampZoom, MAX_ZOOM, MIN_ZOOM, PX_PER_PT, zoomedIn, zoomedOut, ZOOM_STEPS } from './geometry.js'
 export { targetBeside, targetNear } from './targets.js'
 export { actionForKey } from './keys.js'

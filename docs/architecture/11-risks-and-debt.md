@@ -716,7 +716,7 @@ model is the template's words, where each stands by its ids, and the
 language's words so far, under that provider's terms, and nothing here says
 it is private. A word that stands in a QR-bill's message is always a
 person's to write in what report-ai asks, so a report with a bill is never
-translated whole by report-ai. No builder draws a proposal yet
+translated whole by report-ai. report-builder-core holds a proposal for review (0086), and no builder draws it yet
 ([0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
 
 A template is untrusted, and its words are what a model reads: a header

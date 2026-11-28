@@ -112,10 +112,15 @@ export function missingKeys(edited: Edited): ReadonlySet<string> {
   return keys
 }
 
+/** How many words `tag` lacks: report-core's `word-missing` in that language, once a word, as the problems list it. */
+export function missingIn(diagnostics: readonly Diagnostic[], tag: string): number {
+  return diagnostics.filter(({ code, language }) => code === 'word-missing' && language === tag).length
+}
+
 /**
  * The languages the state shows: each the report is written in, its own
- * first, named in the editor's language, with how many words it lacks --
- * report-core's `word-missing`, once a word, as the problems list it.
+ * first, named in the editor's language, with how many words it lacks
+ * (`missingIn`).
  */
 export function languagesOf(
   report: ReportDefinition,
@@ -129,7 +134,7 @@ export function languagesOf(
     declared: declaredLocales(report).map((tag, index) => {
       const own = index === 0
       const name = languageName(tag, locale)
-      const missing = own ? 0 : diagnostics.filter(({ code, language }) => code === 'word-missing' && language === tag).length
+      const missing = own ? 0 : missingIn(diagnostics, tag)
       const label = own ? t('language.own', { name }) : missing === 0 ? name : t('language.missing', { name, count: missing })
       return { locale: tag, name, label, own, missing }
     }),

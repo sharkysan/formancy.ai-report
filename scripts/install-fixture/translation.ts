@@ -10,10 +10,14 @@
  * French title then the one report-spec's reportIn prints; an edit made
  * meanwhile refuses the same batch stale. The README's "Translate a
  * language's missing words" is lines of this file
- * (scripts/readme-example.test.mjs). consume.ts runs it and prints what it
- * returns.
+ * (scripts/readme-example.test.mjs). And the same French reviewed in
+ * report-builder-core's editor (0086), given askThrough over the same
+ * server: held for review, every row accepted, applied as one step labelled
+ * with the language and the count, and undone. consume.ts runs both and
+ * prints what they return.
  */
 import { addLanguage, languageDiagnostics, openReportSession } from '@formancy/report-core'
+import { createReportEditor } from '@formancy/report-builder-core'
 import { reportIn } from '@formancy/report-spec'
 import { askThrough, proposeTranslation, translateMissing } from '@formancy/report-ai'
 import type { TranslationProposal, TranslationResult } from '@formancy/report-ai'
@@ -58,4 +62,28 @@ export async function translatedByModel(): Promise<string> {
   if (stale.ok || stale.code !== 'stale-document') throw new Error('a proposal applied over a later edit was not refused stale')
 
   return `report-ai asked a scripted server, through askThrough, for the ${String(lacked)} words the quotation's French lacked, ${String(proposal.rows.length)} rows applied as one step against the report's hash, the French title ${french}, and the same batch refused stale after an edit, every request under ${String(MAX_MODEL_REQUEST_BYTES)} bytes`
+}
+
+export async function reviewedInEditor(): Promise<string> {
+  const opened = openReportSession(quotation)
+  if (!opened.ok) throw new Error('the quotation did not open')
+  const { session } = opened
+  if (!session.apply((report) => addLanguage(report, 'fr-CH')).ok) throw new Error('French was not added')
+  const missing = (): number => languageDiagnostics(session.document(), 'fr-CH').filter(({ code }) => code === 'word-missing').length
+  const lacked = missing()
+  const editor = createReportEditor(session, { model: { ask: askThrough(myServer) } })
+  if (!editor.dispatch({ type: 'setLanguage', locale: 'fr-CH' }).ok) throw new Error('French could not be edited')
+  const asked = await editor.askTranslation()
+  if (!asked.ok) throw new Error(`the editor's run ended: ${asked.message}`)
+  const rows = editor.state().translation?.review?.rows.length ?? 0
+  if (rows === 0) throw new Error('the editor held no row for review')
+  if (session.revision() !== 1) throw new Error('the editor applied a row before a person accepted it')
+  if (!editor.dispatch({ type: 'acceptAllTranslations' }).ok || !editor.dispatch({ type: 'applyTranslation' }).ok)
+    throw new Error('the accepted rows were not applied')
+  const label = editor.state().history.undoLabel
+  if (label !== `Translate words into French (Switzerland): ${String(rows)}`) throw new Error(`the step is labelled ${String(label)}`)
+  if (reportIn(session.document(), 'fr-CH').title !== 'Offre') throw new Error('the French title did not land')
+  if (!editor.dispatch({ type: 'undo' }).ok || missing() !== lacked) throw new Error('Undo did not take the French back')
+  editor.dispose()
+  return `report-builder-core's editor asked the same server through its model for the French, held ${String(rows)} rows for review, applied them as one step, "${label}", and undid it`
 }

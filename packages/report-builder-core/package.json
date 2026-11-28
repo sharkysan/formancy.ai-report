@@ -42,6 +42,7 @@
     "check:pkg": "publint && attw --pack . --profile esm-only"
   },
   "dependencies": {
+    "@formancy/report-ai": "workspace:*",
     "@formancy/report-core": "workspace:*",
     "@formancy/report-spec": "workspace:*"
   },
