@@ -435,6 +435,24 @@ describe('the prompts a client can see', () => {
     expect(said.indexOf('`describe_format`')).toBeLessThan(said.indexOf('`validate_report`'))
   })
 
+  // Where a report's payment part holds words, validate_report never
+  // answers ok and its language never lists nothing, until somebody writes
+  // the slip's words, which the prompts keep for a person: a prompt that
+  // stopped only there would have an agent loop, or write the slip itself.
+  // Each stops once nothing is left but what forPerson names, and has the
+  // agent name those to the person (#116's re-review, F11).
+  test('tell a model to stop once nothing is left but the words forPerson names, and to name those to the person', async () => {
+    const client = await connect()
+    const write = promptText((await client.getPrompt({ name: 'write_a_report', arguments: { description: 'an invoice' } })).messages)
+    const translate = promptText((await client.getPrompt({ name: 'translate_a_report', arguments: { language: 'fr-CH' } })).messages)
+    expect(write).not.toContain('Call it again until it answers ok.')
+    expect(write).toContain('until it answers ok, or nothing is left but the words it lists in forPerson')
+    expect(write).toContain('name those to the person')
+    expect(translate).not.toContain('Stop when nothing is listed under fr-CH.')
+    expect(translate).toContain('Stop when nothing is listed under fr-CH but what forPerson names')
+    expect(translate).toContain('name those to the person')
+  })
+
   // A translation is keyed by the word's exact text, the one thing a model
   // gets wrong first; the prompt names the language it was asked for and
   // the diagnostic that lists what that language lacks.

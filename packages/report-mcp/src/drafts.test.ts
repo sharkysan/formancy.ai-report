@@ -350,6 +350,39 @@ describe('save_draft', () => {
     for (const answer of [mismatch, notKept, forbidden]) expect(answer.ok).toBe(false)
   })
 
+  // A report-server names, in asset-not-kept, the assets of the report sent
+  // that it does not keep: one naming an asset the report does not declare
+  // is no answer to that save, and its ids are handed on in nothing (#116's
+  // re-review, N12).
+  test('reads an asset-not-kept that names an asset the report sent does not declare as no answer of the API', async () => {
+    const naming = createReportClient({
+      server: server.at,
+      token: () => server.sign(),
+      fetch: recordingFetch(async () => Response.json({ ...REFUSALS['asset-not-kept'], assets: ['logo', 'kept-by-nobody'] }, { status: 422 })).fetch,
+    })
+    const answer = await saveDraft(naming, 'quotation', QUOTATION.report)
+    expect(answer.ok).toBe(false)
+    expect(answer.data).toEqual({ answered: false, route: 'PUT /v1/templates/:template/draft' })
+    expect(JSON.stringify(answer)).not.toContain('kept-by-nobody')
+  })
+
+  // A person's draft can hold an error of its own in the payment part or
+  // the e-invoice -- an amount reading a field since removed -- which the
+  // agent is told a person writes: refused, as an error of its own is, and
+  // named for the person, as forPerson names a word (#116's re-review, N14).
+  test('names an error of its own that stands in the payment part for the person, and sends nothing', async () => {
+    const broken = valid({ ...INVOICE.report, paymentPart: { ...INVOICE.report.paymentPart, amount: { cel: 'totals.nope' } } })
+    const answer = await saveDraft(clientAs(), 'invoice', broken)
+    expect(answer.ok).toBe(false)
+    expect(answer.summary).toContain('Nothing was sent')
+    expect(answer.summary).toContain('/paymentPart/amount/cel')
+    expect(answer.summary).toContain('Ask the person')
+    expect(dataOf<{ forPerson: readonly { path: string; severity: string }[] }>(answer).forPerson).toEqual([
+      expect.objectContaining({ path: '/paymentPart/amount/cel', severity: 'error' }),
+    ])
+    expect(asked).toEqual([])
+  })
+
   // A refusal with nothing more to do than its own sentence says is
   // answered by that sentence alone, its code and its status beside it.
   test('answers a refusal with no next step by its own sentence', async () => {

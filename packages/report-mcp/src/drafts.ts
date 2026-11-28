@@ -117,14 +117,13 @@ function notATemplate(): ToolResult {
   }
 }
 
-/** `route` answered a 2xx that is not the wire type report-server-core says it answers: said, and nothing of it handed on. */
-function unreadable(route: McpRoute, type: string, then = 'Nothing of it was read.'): ToolResult {
-  return {
-    ok: false,
-    summary: `Report’s server answered ${route} with what is not the ${type} report-server-core says that route answers. ${then}`,
-    data: { answered: false, route },
-  }
+/** `route` answered what is not what report-server-core says it answers -- `what` -- said, and nothing of it handed on. */
+function unreadable(route: McpRoute, what: string, then = 'Nothing of it was read.'): ToolResult {
+  return { ok: false, summary: `Report’s server answered ${route} with what is not ${what}. ${then}`, data: { answered: false, route } }
 }
+
+/** A route's wire type, as `unreadable` says what an answer is not. */
+const wire = (type: string): string => `the ${type} report-server-core says that route answers`
 
 /** What to do about a refusal, beside its own sentence, for those an agent can do something about. */
 const NEXT: Partial<Readonly<Record<RefusalCode, string>>> = {
@@ -182,7 +181,7 @@ export async function whoAmI(client: Pick<ReportClient, 'whoami'>): Promise<Tool
   if (answered.ok === 'unanswered') return unanswered(route, answered)
   if (!answered.ok) return refusedBy(answered)
   const me: unknown = answered.value
-  if (!isWhoAmI(me)) return unreadable(route, 'WhoAmI')
+  if (!isWhoAmI(me)) return unreadable(route, wire('WhoAmI'))
   const { subject, tenant, roles, capacities, actions } = me
   const saves = actions.includes(SAVE) ? `${SAVE} among their actions: save_draft is theirs, and saves as them` : `not ${SAVE}: save_draft is refused them`
   return {
@@ -200,7 +199,7 @@ export async function listTemplates(client: Pick<ReportClient, 'listTemplates'>)
   if (!answered.ok) return refusedBy(answered)
   // report-client answers a 2xx only as the JSON object it holds, and throws any other body.
   const templates: unknown = (answered.value as unknown as Readonly<Record<string, unknown>>)['templates']
-  if (!Array.isArray(templates) || !templates.every(isSummary)) return unreadable(route, 'TemplateList')
+  if (!Array.isArray(templates) || !templates.every(isSummary)) return unreadable(route, wire('TemplateList'))
   const listed = templates.map(({ template, revision, title }) => ({ template, revision, title }))
   return {
     ok: true,
@@ -223,7 +222,7 @@ export async function readDraft(client: Pick<ReportClient, 'readDraft'>, templat
   if (answered.ok === 'unanswered') return unanswered(route, answered)
   if (!answered.ok) return refusedBy(answered)
   const draft: unknown = answered.value
-  if (!isDraftOf(draft, template)) return unreadable(route, 'Draft')
+  if (!isDraftOf(draft, template)) return unreadable(route, wire('Draft'))
   const { revision, digest, savedBy } = draft
   // Served as it was saved, and never validated again by the server (0049): a report a later format refuses is this release's to say so of.
   const validation = validateReport(draft.report)
@@ -257,7 +256,7 @@ function lackingSaid(lacking: readonly Lacking[]): string {
       const still = `${locale} still lacks ${plural(missing, 'word')}, and a render in ${locale} is refused until it has them`
       if (forPerson.length === 0) return ` ${still}: translate them with apply_commands, or leave them for later.`
       const words = forPerson.map(({ source }) => JSON.stringify(source)).join(', ')
-      return ` ${still}; of them, the payment part's ${words}, which a person writes: ask the person, and write none of it yourself.`
+      return ` ${still}; of them, the payment part's ${words}, which a person writes: ask the person for them, and apply only what they give.`
     })
     .join('')
 }
@@ -287,19 +286,31 @@ export async function saveDraft(client: Pick<ReportClient, 'saveDraft'>, templat
   }
   const judged = judgedForSave(report)
   if ('refused' in judged) {
-    const { summary, data } = judged.refused
+    const { refused, forPerson } = judged
+    // An error of its own where a person writes -- the payment part, the e-invoice -- is the person's to fix, as forPerson names a word (#116's re-review, N14).
+    const person =
+      forPerson.length === 0
+        ? ''
+        : ` Of its own errors, those in the payment part or the e-invoice are a person's to fix, since a person writes those parts: ${forPerson.map(({ code, path }) => `${code} at ${path}`).join(', ')}. Ask the person.`
     return {
       ok: false,
-      summary: `Nothing was sent: save_draft sends a report once nothing an agent can fix is left -- the validator's errors, MAX_REPORT_BYTES, an error of its own, a language's other than a word it lacks. ${summary}`,
-      data,
+      summary: `Nothing was sent: save_draft sends a report once nothing an agent can fix is left -- the validator's errors, MAX_REPORT_BYTES, an error of its own, a language's other than a word it lacks. ${refused.summary}${person}`,
+      data: forPerson.length === 0 ? refused.data : { ...(refused.data as Readonly<Record<string, unknown>>), forPerson },
     }
   }
   const { report: checked, lacking } = judged
   const answered = await asking(() => client.saveDraft(template, checked, from === undefined ? null : { revision: from.revision, digest: from.digest }))
   if (answered.ok === 'unanswered') return unanswered(route, answered, UNKNOWN_SAVE)
-  if (!answered.ok) return answered.refusal.code === 'draft-changed' ? changed(answered.status, answered.refusal) : refusedBy(answered)
+  if (!answered.ok) {
+    const { refusal } = answered
+    if (refusal.code === 'draft-changed') return changed(answered.status, refusal)
+    // The server names the assets of the report sent that it does not keep: one naming another is no answer to this save (#116's re-review, N12).
+    if (refusal.code === 'asset-not-kept' && !refusal.assets.every((id) => checked.assets.some((asset) => asset.id === id)))
+      return unreadable(route, 'an asset-not-kept of the report sent, since it names assets that report does not declare', UNKNOWN_SAVE)
+    return refusedBy(answered)
+  }
   const saved: unknown = answered.value
-  if (!isSavedAs(saved, template)) return unreadable(route, 'DraftSaved', UNKNOWN_SAVE)
+  if (!isSavedAs(saved, template)) return unreadable(route, wire('DraftSaved'), UNKNOWN_SAVE)
   const { revision, digest } = saved
   return {
     ok: true,

@@ -18,7 +18,7 @@
  * of its arguments, and the report an agent works on is the one it hands
  * over, which nothing here keeps.
  */
-import { describeCommands, diagnoseByLanguage, openReportSession, reportFacts } from '@formancy/report-core'
+import { describeCommands, diagnoseByLanguage, inPaymentPart, openReportSession, reportFacts } from '@formancy/report-core'
 import type { CommandDescriptor, Diagnostic, DiagnosticCode, MissingWord, Refusal } from '@formancy/report-core'
 import { MAX_REPORT_BYTES, reportHash, validateReport } from '@formancy/report-spec'
 import type { ReportDefinition, ReportError } from '@formancy/report-spec'
@@ -96,7 +96,7 @@ const sizeSaid = (verdict: Verdict): string =>
  * `diagnoseByLanguage`: the report's own, and each declared language's
  * with what it lacks, from one diagnosis of the report, so nothing is
  * diagnosed twice -- asked of `missingWords` once a language, the verdict
- * diagnosed the report again for each, 75 to 90 % more on a starter in
+ * diagnosed the report again for each, 76 to 92 % more on a starter in
  * twenty-three languages, measured (0088, 2026-11-28).
  */
 function verdictOf(report: ReportDefinition): Verdict {
@@ -170,6 +170,9 @@ function judged(report: unknown): { readonly result: ToolResult; readonly accept
   }
 }
 
+/** Where the e-invoice stands in a report's JSON, by the definition's own key: a person's to write, as the payment part is (0044). */
+const E_INVOICE = `/${'eInvoice' satisfies keyof ReportDefinition}/`
+
 /** The diagnostic a language gives for each word it lacks: an error of a draft being translated, which a save takes. */
 const WORD_MISSING = 'word-missing' satisfies DiagnosticCode
 
@@ -192,15 +195,20 @@ export interface Lacking {
  * could never save. Otherwise the report the validator returned, and each
  * language that still lacks words, with those a person writes.
  */
-export function judgedForSave(report: unknown): { readonly refused: ToolResult } | { readonly report: ReportDefinition; readonly lacking: readonly Lacking[] } {
+export function judgedForSave(
+  report: unknown,
+): { readonly refused: ToolResult; readonly forPerson: readonly Diagnostic[] } | { readonly report: ReportDefinition; readonly lacking: readonly Lacking[] } {
   const { result, accepted } = judged(report)
-  if (accepted === undefined) return { refused: result }
+  if (accepted === undefined) return { refused: result, forPerson: [] }
   const { verdict } = accepted
   const toFix =
     tooLarge(verdict) ||
     hasError(verdict.diagnostics) ||
     verdict.languages.some(({ diagnostics }) => diagnostics.some(({ severity, code }) => severity === 'error' && code !== WORD_MISSING))
-  if (toFix) return { refused: result }
+  if (toFix) {
+    const forPerson = verdict.diagnostics.filter(({ severity, path }) => severity === 'error' && (inPaymentPart(path) || path.startsWith(E_INVOICE)))
+    return { refused: result, forPerson }
+  }
   const lacking = verdict.languages.flatMap(({ locale, diagnostics, forPerson }) => {
     const missing = diagnostics.filter(({ code }) => code === WORD_MISSING).length
     return missing === 0 ? [] : [{ locale, missing, forPerson }]

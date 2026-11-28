@@ -26,4 +26,13 @@ describe('a file a token is read from', () => {
       expect(isFilePath(path, true), path).toBe(true)
     for (const path of ['/home/me/token', '\\token', 'C:token', 'token', '\\\\', '//']) expect(isFilePath(path, true), path).toBe(false)
   })
+
+  // A file URL typed with two slashes, file://C:/token, leaves //C:/token
+  // after file:, a share on a server named C: -- which no server is: every
+  // request would fail at its first call, where the bin should stop at its
+  // start (#116's re-review, N15). A device path's ? is no colon.
+  test('is no share whose server holds a colon, on Windows', () => {
+    for (const path of ['//C:/token', '\\\\C:\\token', '//server']) expect(isFilePath(path, true), path).toBe(false)
+    expect(isFilePath('\\\\?\\C:\\token', true)).toBe(true)
+  })
 })

@@ -69,7 +69,8 @@ export class TokenUnavailable extends Error {}
  * a drive alone, `C:token`, relative to that drive's current directory.
  */
 export function isFilePath(path: string, windows = sep === '\\'): boolean {
-  return windows ? /^(?:[A-Za-z]:[\\/]|[\\/]{2}[^\\/])/.test(path) : posix.isAbsolute(path)
+  // A share's server holds no colon: //C:/token is a file URL typed with two slashes, and names no server (#116's re-review, N15).
+  return windows ? /^(?:[A-Za-z]:[\\/]|[\\/]{2}[^\\/:]+[\\/])/.test(path) : posix.isAbsolute(path)
 }
 
 /**
