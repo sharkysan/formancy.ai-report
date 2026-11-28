@@ -80,12 +80,6 @@ function helvetica(text: string): Uint8Array {
 }
 
 /**
- * The PDFs both readers read, each with whether the renderer may refuse
- * it: a starter and a Euro invoice sample never, so that one refused stops
- * no comparison without failing; a run set off the line only where the
- * corpus expects it refused.
- */
-/**
  * How long warming the renderer may take, and the guard on the guard below,
  * which renders every document at once: the sales report's first render,
  * ECharts loaded with it, took 2.0 s in a bare Node 24.21 on an i9-10900K,
@@ -95,6 +89,12 @@ function helvetica(text: string): Uint8Array {
  */
 const WARMING = 30_000
 
+/**
+ * The PDFs both readers read, each with whether the renderer may refuse
+ * it: a starter and a Euro invoice sample never, so that one refused stops
+ * no comparison without failing; a run set off the line only where the
+ * corpus expects it refused.
+ */
 const documents: readonly (readonly [string, () => ResolvedDocument, boolean])[] = [
   ...STARTERS.map((starter) => [starter.id, () => resolved(starter), false] as const),
   ...EURO_INVOICE_SAMPLES.filter(({ id }) => !STARTERS.some((starter) => starter.id === id)).map(
