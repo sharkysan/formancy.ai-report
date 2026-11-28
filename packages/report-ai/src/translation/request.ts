@@ -1,5 +1,5 @@
-import { compileReport, languageDiagnostics, MAX_BATCH_COMMANDS } from '@formancy/report-core'
-import type { CompiledExpression } from '@formancy/report-core'
+import { compileReport, inPaymentPart, MAX_BATCH_COMMANDS, missingWords } from '@formancy/report-core'
+import type { CompiledExpression, MissingWord } from '@formancy/report-core'
 import { MAX_WORDS, reportWords, wordExpressionSites } from '@formancy/report-spec'
 import type { ReportDefinition, Translation, WordExpressionSite, WordPlace } from '@formancy/report-spec'
 import { briefingDigest } from '../kinds.js'
@@ -17,8 +17,8 @@ import { placesOf } from './places.js'
  * (formancy.ai 0161's `translationPrompt(document, locale)`). What it asks
  * for is exactly what report-core's `languageDiagnostics` says the
  * language lacks, `word-missing`, the count a builder shows, read back to
- * its source through report-spec's one walk of a report's words, and never
- * a second list of them.
+ * its source by report-core's `missingWords` through report-spec's one walk
+ * of a report's words, and never a second list of them.
  *
  * **The payment part is never sent.** Its message is a word (0063), and it
  * is printed on the slip and encoded in the code a bank reads; no proposal
@@ -26,24 +26,13 @@ import { placesOf } from './places.js'
  * expression that stands in it anywhere -- the same word elsewhere among
  * them, since a word is translated once, wherever it stands -- is listed
  * for a person to write and never asked, and the language's words so far
- * are sent without any of the payment part's. That is this request's rule:
- * report-mcp's prompt to an agent's own model (0088) is another way to a
- * model, and 0085 says where the two differ.
+ * are sent without any of the payment part's. `missingWords` gives those
+ * apart, by the one rule report-mcp's verdict for an agent's own model
+ * reads too (0088).
  */
 
 /** Which of a language's two lists an entry belongs to. */
-export type EntryKind = 'word' | 'expression'
-
-/** A word or an expression a language lacks, by its source, and every place it stands. */
-export interface Lacking {
-  readonly kind: EntryKind
-  /** A word's exact text in the report's own language, or an expression's exact source: what a translation keys it by (0063). */
-  readonly source: string
-  /** The JSON Pointer to each place it stands, in document order. */
-  readonly paths: readonly string[]
-  /** The place `word-missing` stands at: a word's first, an expression's first site that prints words, which the compiler's verdict decides. */
-  readonly at: string
-}
+export type EntryKind = MissingWord['kind']
 
 /** One entry a request asks for, under the key the answer writes back. */
 export interface AskedEntry {
@@ -70,7 +59,7 @@ export interface TranslationRequest {
   /** The lists the language has no room left in under `MAX_WORDS` for what it still lacks: until a person makes room, no turn asks for those. */
   readonly noRoom: readonly EntryKind[]
   /** What the language lacks that stands in the payment part, for a person to write and never asked. */
-  readonly forPerson: readonly Lacking[]
+  readonly forPerson: readonly MissingWord[]
   /** The briefing. */
   readonly system: string
   /** The request itself, as JSON. */
@@ -87,42 +76,11 @@ export type TranslationRequesting =
 /** Places told of a word, at most: enough to tell a header from a sentence, without a word in every row of a table told every time. */
 export const MAX_PLACES = 3
 
-const inPaymentPart = (path: string): boolean => path.startsWith('/paymentPart/')
-
 /** The translation into `locale`, or a RangeError for a locale the report does not declare one in: a caller asks for a language the report holds. */
 function translationOf(report: ReportDefinition, locale: string): Translation {
   const translation = report.translations?.find((held) => held.locale === locale)
   if (translation === undefined) throw new RangeError(`the report declares no translation into ${JSON.stringify(locale)} to ask a model for`)
   return translation
-}
-
-/** Each source in `places`, with every place it stands, in the order of its first. */
-function bySource(places: readonly { readonly path: string; readonly source: string }[]): Map<string, readonly string[]> {
-  const found = new Map<string, readonly string[]>()
-  for (const { path, source } of places) found.set(source, [...(found.get(source) ?? []), path])
-  return found
-}
-
-/**
- * Every word and expression `locale` lacks in `report`: those `word-missing`
- * names, each by its source, with every place it stands and the one the
- * diagnostic stands at, which for an expression is its first site that
- * prints words and not always its first; and of them, those standing
- * anywhere in the payment part, which are a person's.
- */
-export function lacking(report: ReportDefinition, locale: string): { readonly ask: readonly Lacking[]; readonly forPerson: readonly Lacking[] } {
-  translationOf(report, locale)
-  const missingAt = new Set(languageDiagnostics(report, locale).flatMap(({ code, path }) => (code === 'word-missing' ? [path] : [])))
-  const of = (kind: EntryKind, places: ReadonlyMap<string, readonly string[]>): Lacking[] =>
-    [...places].flatMap(([source, paths]) => {
-      const at = paths.find((path) => missingAt.has(path))
-      return at === undefined ? [] : [{ kind, source, paths, at }]
-    })
-  const all = [
-    ...of('word', bySource(reportWords(report).map(({ path, text }) => ({ path, source: text })))),
-    ...of('expression', bySource(wordExpressionSites(report).map(({ path, cel }) => ({ path, source: cel })))),
-  ]
-  return { ask: all.filter((entry) => !entry.paths.some(inPaymentPart)), forPerson: all.filter((entry) => entry.paths.some(inPaymentPart)) }
 }
 
 /**
@@ -203,7 +161,7 @@ export function longestBody(user: string, locale: string): number {
  */
 export function translationRequest(report: ReportDefinition, locale: string): TranslationRequesting {
   const translation = translationOf(report, locale)
-  const { ask, forPerson } = lacking(report, locale)
+  const { rest: ask, paymentPart: forPerson } = missingWords(report, locale)
   const { taken, left, noRoom } = withinRoom(ask, translation)
   const phrase = placesOf(report)
   // Every path of an entry is one of the walk's, so each has its owner here.

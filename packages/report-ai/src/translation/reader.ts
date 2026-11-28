@@ -1,10 +1,11 @@
+import type { MissingWord } from '@formancy/report-core'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { askChecked } from '../turn/ask.js'
 import type { AskModel, Asked, AskOptions, Checkable, Verdict } from '../turn/ask.js'
 import { TRANSLATION_COMPLAINTS, translationTurn } from './briefing.js'
 import type { TranslationProblem } from './briefing.js'
 import { translationRequest } from './request.js'
-import type { AskedEntry, EntryKind, Lacking, TranslationRequest } from './request.js'
+import type { AskedEntry, EntryKind, TranslationRequest } from './request.js'
 
 /**
  * Asking a model for the words a language lacks, and reading what it
@@ -48,7 +49,7 @@ export interface TranslationAnswer {
   /** What the request asked, in its order. */
   readonly asked: readonly AskedEntry[]
   /** What the request listed for a person and never asked: the payment part's. */
-  readonly forPerson: readonly Lacking[]
+  readonly forPerson: readonly MissingWord[]
   /** What the answer wrote for asked keys, in the order they were asked; never a blank text. */
   readonly written: readonly WrittenEntry[]
   /** Keys the answer wrote that the request did not ask. */

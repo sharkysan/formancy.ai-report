@@ -876,12 +876,21 @@ importers:
       '@formancy/report-core':
         specifier: workspace:*
         version: link:../report-core
+      '@formancy/report-render-pdf':
+        specifier: workspace:*
+        version: link:../report-render-pdf
+      '@formancy/report-runtime':
+        specifier: workspace:*
+        version: link:../report-runtime
       '@formancy/report-spec':
         specifier: workspace:*
         version: link:../report-spec
       '@modelcontextprotocol/sdk':
         specifier: 1.32.2
         version: 1.32.2(supports-color@8.1.1)(zod@4.6.7)
+      pdfjs-dist:
+        specifier: 6.4.299
+        version: 6.4.299
       zod:
         specifier: 4.6.7
         version: 4.6.7

@@ -34,6 +34,24 @@
 // version, by the digest of its licence files, depended on by that package
 // and no other published one.
 //
+// A font a package ships that the one published package admitted for
+// never loads is `NEVER_LOADED`: at one version, by the digest of its
+// bytes, its package depended on by that published package and no other,
+// and a test named that shows it is never read, `file#test name`, which
+// the guard holds to a case of that name in that file (0089). It is the one
+// way a font under a licence the policy refuses passes; the owner granted
+// it on 28 November 2026.
+//
+// A package that ships a native addon, a `.node` file, carries code built
+// from sources its own licence may not cover. It is refused unless
+// `BUILDS_READ` names its family and its build, at one version, by the
+// SHA-256 of the SBOM the build ships, and the components of that SBOM
+// whose licence the policy refuses are the ones the review recorded; it is
+// reached through the published package admitted for and no other. The
+// lockfile names every platform's build, which no machine installs all of,
+// so each build and version of the family it names must be one the review
+// read too (0089).
+//
 // Where a manifest or a font is silent or wrong, a reviewed exception records
 // what the evidence says the licence is, at one exact version; the policy
 // still applies to what it records. An exception nothing installs is refused,
@@ -47,11 +65,12 @@ import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync, realpathSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { filesIn, fontLicence, licenceTextsIn } from './dependency-licences/files.mjs'
-import { CONFINED, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES } from './dependency-licences/reviews.mjs'
+import { beyondPolicy as beyondPolicyBy, buildProblems, lockfileProblems as lockfileProblemsOf } from './dependency-licences/builds.mjs'
+import { filesIn, fontLicence, licenceTextsIn, sbomIn } from './dependency-licences/files.mjs'
+import { BUILDS_READ, CONFINED, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES, NEVER_LOADED } from './dependency-licences/reviews.mjs'
 import { LICENSE_FIELD } from './verify-licenses.mjs'
 
-export { CONFINED, EXCEPTIONS, FORMANCY_DATA, fontLicence, ICC_PROFILES }
+export { BUILDS_READ, CONFINED, EXCEPTIONS, FORMANCY_DATA, fontLicence, ICC_PROFILES, NEVER_LOADED }
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -218,6 +237,7 @@ export function closure(start, siblings = new Set()) {
       licence,
       licenceFile: pointedFile(directory, licence),
       licenceTexts: licenceTextsIn(directory),
+      sbom: sbomIn(directory),
       dir: directory,
       via,
       sibling: siblings.has(directory),
@@ -312,19 +332,91 @@ function confinement(item, id, route, confined) {
 }
 
 /**
+ * Whether `font`, of the package `item` is, is one `unloaded` admits as
+ * never loaded: false where no admission names it, so the policy judges
+ * it; true at the digest the review read, its package depended on by the
+ * package admitted for alone; and what is wrong otherwise.
+ */
+function neverLoaded(item, id, font, route, unloaded) {
+  if (!Object.hasOwn(unloaded, id) || !Object.hasOwn(unloaded[id].fonts, font.path)) return false
+  const admitted = unloaded[id]
+  const read = admitted.fonts[font.path]
+  if (font.digest !== read) return `${id}/${font.path} is ${font.digest ?? 'of no digest'}, not the font the review read (${read}) (${route})`
+  const others = (item.dependents ?? [item.via.at(-1)]).filter((dependent) => dependent !== admitted.for)
+  if (others.length > 0)
+    return `${id}/${font.path} is admitted as never loaded by ${admitted.for} alone, and ${others.join(', ')} depends on ${item.name} (${route})`
+  return true
+}
+
+/** The components of a build's SBOM beyond the policy, as a review records them (`builds.mjs`), judged by this policy. */
+export const beyondPolicy = (sbom, name, version) => beyondPolicyBy(sbom, name, version, spdxAllows)
+
+/** What is wrong with the builds `lockfile`, pnpm-lock.yaml's text, names, against `builds` (`builds.mjs`). */
+export const lockfileProblems = (lockfile, builds = BUILDS_READ) => lockfileProblemsOf(lockfile, builds)
+
+/**
+ * What is wrong with the `heldBy` of each admission in `unloaded`: it
+ * names `file#test name`, a file of the repository at `root`, and a case
+ * of that name in it, `test('…'` or `it('…'`. A guard that is not a gate
+ * is a comment: the admission holds only while that case runs.
+ */
+export function heldByProblems(unloaded = NEVER_LOADED, repoRoot = root) {
+  const found = []
+  for (const [id, admitted] of Object.entries(unloaded)) {
+    const [, file, name] = /^([^#]+)#(.+)$/.exec(String(admitted.heldBy ?? '')) ?? []
+    if (file === undefined || name === undefined) {
+      found.push(`never-loaded admission ${id} names no test as file#test name: ${String(admitted.heldBy)}`)
+      continue
+    }
+    let text
+    try {
+      text = readFileSync(join(repoRoot, file), 'utf8')
+    } catch {
+      found.push(`never-loaded admission ${id} is held by ${file}, which the repository does not hold`)
+      continue
+    }
+    // The name as a literal of any quote, standing first in a call of test or it, on no line that is a comment's.
+    text = text
+      .split('\n')
+      .filter((line) => !/^\s*(?:\/\/|\/\*|\*)/.test(line))
+      .join('\n')
+    const cased = ["'", '"', '`'].some((quote) => {
+      for (let at = text.indexOf(`${quote}${name}${quote}`); at >= 0; at = text.indexOf(`${quote}${name}${quote}`, at + 1)) {
+        if (/\b(?:test|it)\($/.test(text.slice(0, at).trimEnd())) return true
+      }
+      return false
+    })
+    if (!cased) found.push(`never-loaded admission ${id} is held by ${file}, which has no case named "${name}"`)
+  }
+  return found
+}
+
+/**
  * What is wrong with these closures under the policy, each named once with the
  * route to it. `exceptions` replace what a package or a font file says with
  * what a review found, at that exact version, and are refused when nothing
  * here installs them. `data` admits Formancy Data's packages, `profiles`
- * the ICC profiles a review read, and `confined` the packages a review read
- * for one dependent alone, and each is refused the same way.
+ * the ICC profiles a review read, `confined` the packages a review read
+ * for one dependent alone, `unloaded` the fonts a review admitted as
+ * never loaded by one dependent, and each is refused the same way; and
+ * `builds` the native builds a review read by their SBOMs, whose unused
+ * entries the lockfile's check refuses (`lockfileProblems`).
  */
-export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA, profiles = ICC_PROFILES, confined = CONFINED) {
+export function problems(
+  entries,
+  exceptions = EXCEPTIONS,
+  data = FORMANCY_DATA,
+  profiles = ICC_PROFILES,
+  confined = CONFINED,
+  unloaded = NEVER_LOADED,
+  builds = BUILDS_READ,
+) {
   const found = new Set()
   const used = new Set()
   const admitted = new Set()
   const confinedSeen = new Set()
   const shipped = new Set()
+  const unloadedSeen = new Set()
   const judge = (key, declared, source, route, refusal) => {
     const exception = Object.hasOwn(exceptions, key) ? exceptions[key] : undefined
     if (exception !== undefined) used.add(key)
@@ -348,10 +440,15 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
     else if (verdict === false && !(item.sibling && item.licence === LICENSE_FIELD))
       judge(id, item.licence, 'its package.json', route, `${id} declares no licence (${route})`)
     if (!item.sibling) {
+      for (const refusal of buildProblems(item, id, route, builds, spdxAllows)) found.add(refusal)
       for (const refusal of confinement(item, id, route, confined)) found.add(refusal)
       if (Object.hasOwn(confined, id)) confinedSeen.add(id)
     }
     for (const font of item.fonts) {
+      const unread = item.sibling ? false : neverLoaded(item, id, font, route, unloaded)
+      if (unread !== false) unloadedSeen.add(`${id}/${font.path}`)
+      if (typeof unread === 'string') found.add(unread)
+      if (unread !== false) continue
       const refusal = font.readable
         ? `${id}/${font.path} is a font whose name table names no licence the policy allows: "${font.description ?? ''}" (${route})`
         : `${id}/${font.path} is a font this guard cannot read a licence from; review it and record an exception (${route})`
@@ -374,6 +471,11 @@ export function problems(entries, exceptions = EXCEPTIONS, data = FORMANCY_DATA,
   }
   for (const key of Object.keys(confined)) {
     if (!confinedSeen.has(key)) found.add(`confined package ${key} names nothing a published package installs; remove it`)
+  }
+  for (const [id, admitted] of Object.entries(unloaded)) {
+    for (const path of Object.keys(admitted.fonts)) {
+      if (!unloadedSeen.has(`${id}/${path}`)) found.add(`never-loaded font ${id}/${path} names nothing a published package installs; remove it`)
+    }
   }
   for (const [digest, review] of Object.entries(profiles)) {
     if (!shipped.has(digest)) found.add(`reviewed ICC profile ${digest} names nothing a published package installs; remove it`)
@@ -416,8 +518,19 @@ export function workspaceClosure(repoRoot = root) {
 
 // `node scripts/dependency-licences.mjs [repository root]`
 if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/dependency-licences.mjs')) {
-  const { published, entries } = workspaceClosure(process.argv[2] ? resolve(process.argv[2]) : root)
-  const found = problems(entries)
+  const repoRoot = process.argv[2] ? resolve(process.argv[2]) : root
+  const { published, entries } = workspaceClosure(repoRoot)
+  let lockfile
+  try {
+    lockfile = readFileSync(join(repoRoot, 'pnpm-lock.yaml'), 'utf8')
+  } catch {
+    lockfile = undefined
+  }
+  const found = [
+    ...problems(entries),
+    ...(lockfile === undefined ? ['pnpm-lock.yaml is not there to read the builds every platform installs from'] : lockfileProblems(lockfile)),
+    ...heldByProblems(NEVER_LOADED, repoRoot),
+  ]
   if (found.length > 0) {
     console.error('Dependency licence check failed:')
     for (const problem of found) console.error(`  - ${problem}`)

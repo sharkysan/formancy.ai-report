@@ -1,10 +1,10 @@
-import { languageDiagnostics, tryEdit } from '@formancy/report-core'
-import type { Diagnostic, StepDescriptor } from '@formancy/report-core'
+import { languageDiagnostics, missingWords, tryEdit } from '@formancy/report-core'
+import type { Diagnostic, MissingWord, StepDescriptor } from '@formancy/report-core'
 import { reportHash, reportWords, wordExpressionSites } from '@formancy/report-spec'
 import type { ReportDefinition, Translation } from '@formancy/report-spec'
 import type { TranslationAnswer, WrittenEntry } from './reader.js'
-import { lacking, withinRoom } from './request.js'
-import type { EntryKind, Lacking } from './request.js'
+import { withinRoom } from './request.js'
+import type { EntryKind } from './request.js'
 import { textRefusal } from './texts.js'
 
 /**
@@ -92,7 +92,7 @@ export interface TranslationProposal {
   /** What the language would still lack with every row applied, as report-core says it. */
   readonly stillMissing: readonly Diagnostic[]
   /** What the language lacks in the payment part: a person's to write, and never asked. */
-  readonly forPerson: readonly Lacking[]
+  readonly forPerson: readonly MissingWord[]
   /** The report as every row would leave it: what a preview of the proposal renders. */
   readonly candidate: ReportDefinition
 }
@@ -228,9 +228,9 @@ export function proposeTranslation(report: ReportDefinition, answer: Translation
     return { locale: answer.locale, expectedHash, rows: [], refused: [], dropped: [...notAsked, ...gone], stillMissing: [], forPerson: [], candidate: report }
   }
 
-  const now = lacking(report, answer.locale)
-  const askable = new Map(now.ask.map((entry) => [`${entry.kind} ${entry.source}`, entry]))
-  const personal = new Set(now.forPerson.map(({ kind, source }) => `${kind} ${source}`))
+  const now = missingWords(report, answer.locale)
+  const askable = new Map(now.rest.map((entry) => [`${entry.kind} ${entry.source}`, entry]))
+  const personal = new Set(now.paymentPart.map(({ kind, source }) => `${kind} ${source}`))
   const translated = new Set([...translation.words.map(({ word }) => `word ${word}`), ...translation.expressions.map(({ cel }) => `expression ${cel}`)])
   const sited = new Set([...reportWords(report).map(({ text }) => `word ${text}`), ...wordExpressionSites(report).map(({ cel }) => `expression ${cel}`)])
   const dropped: DroppedEntry[] = [...notAsked]
@@ -266,7 +266,7 @@ export function proposeTranslation(report: ReportDefinition, answer: Translation
     refused: [...texts, ...refused],
     dropped,
     stillMissing: diagnostics.filter(({ code }) => code === 'word-missing'),
-    forPerson: now.forPerson,
+    forPerson: now.paymentPart,
     candidate,
   }
 }

@@ -9,13 +9,18 @@ import { afterAll, describe, expect, test } from 'vitest'
 import YAML from 'yaml'
 import {
   ALLOWED,
+  beyondPolicy,
+  BUILDS_READ,
   CONFINED,
   closure,
   declaredLicence,
   EXCEPTIONS,
   fontLicence,
   FORMANCY_DATA,
+  heldByProblems,
   ICC_PROFILES,
+  lockfileProblems,
+  NEVER_LOADED,
   problems,
   spdxAllows,
   workspaceClosure,
@@ -289,14 +294,14 @@ describe('problems', () => {
   // A package with no licence grants nothing: it is not permissive by
   // default. Today's png-js 1.1.0, which pdfmake pulls in, is one.
   test('refuses a package that declares no licence, naming it and the route to it', () => {
-    const found = problems([entry('png-js', '1.1.0', undefined, { via: ['@formancy/report-x', 'pdfkit'] })], {}, {}, {}, {})
+    const found = problems([entry('png-js', '1.1.0', undefined, { via: ['@formancy/report-x', 'pdfkit'] })], {}, {}, {}, {}, {})
     expect(found).toEqual(['png-js@1.1.0 declares no licence (@formancy/report-x > pdfkit > png-js)'])
   })
 
   // A refused licence names the package, what it declared and how it got in,
   // so the person reading CI's log knows which dependency to replace.
   test('refuses a package under a refused licence, saying which', () => {
-    expect(problems([entry('left', '2.0.0', 'GPL-3.0-only')], {}, {}, {}, {})).toEqual([
+    expect(problems([entry('left', '2.0.0', 'GPL-3.0-only')], {}, {}, {}, {}, {})).toEqual([
       'left@2.0.0 is GPL-3.0-only by its package.json, which the policy refuses (@formancy/report-x > left)',
     ])
   })
@@ -306,8 +311,8 @@ describe('problems', () => {
   // have changed it.
   test('honours an exception only at its exact version', () => {
     const exceptions = { 'png-js@1.1.0': { licence: 'MIT', evidence: 'LICENSE in the tarball: MIT License, Copyright (c) 2017 Devon Govett' } }
-    expect(problems([entry('png-js', '1.1.0', undefined)], exceptions, {}, {}, {})).toEqual([])
-    expect(problems([entry('png-js', '1.1.1', undefined)], exceptions, {}, {}, {})).toEqual([
+    expect(problems([entry('png-js', '1.1.0', undefined)], exceptions, {}, {}, {}, {})).toEqual([])
+    expect(problems([entry('png-js', '1.1.1', undefined)], exceptions, {}, {}, {}, {})).toEqual([
       'png-js@1.1.1 declares no licence (@formancy/report-x > png-js)',
       'exception png-js@1.1.0 names nothing a published package installs; remove it',
     ])
@@ -318,7 +323,7 @@ describe('problems', () => {
   // GPL by saying so.
   test('holds an exception to the policy too', () => {
     const exceptions = { 'quiet@1.0.0': { licence: 'GPL-3.0-only', evidence: 'COPYING' } }
-    expect(problems([entry('quiet', '1.0.0', undefined)], exceptions, {}, {}, {})).toEqual([
+    expect(problems([entry('quiet', '1.0.0', undefined)], exceptions, {}, {}, {}, {})).toEqual([
       'quiet@1.0.0 is GPL-3.0-only by its reviewed exception, which the policy refuses (@formancy/report-x > quiet)',
     ])
   })
@@ -326,7 +331,7 @@ describe('problems', () => {
   // An exception left behind after its package left reads as a review still
   // in force, and would admit that release again without anyone looking.
   test('refuses an exception nothing installs', () => {
-    expect(problems([], { 'gone@1.0.0': { licence: 'MIT', evidence: 'LICENSE' } }, {}, {}, {})).toEqual([
+    expect(problems([], { 'gone@1.0.0': { licence: 'MIT', evidence: 'LICENSE' } }, {}, {}, {}, {})).toEqual([
       'exception gone@1.0.0 names nothing a published package installs; remove it',
     ])
   })
@@ -334,7 +339,7 @@ describe('problems', () => {
   // A dependency that is not installed cannot be read, and is what a customer's
   // install would fetch anyway. Skipped, it would pass unread.
   test('refuses a required dependency that is not installed', () => {
-    expect(problems([{ name: 'absent', missing: true, via: ['@formancy/report-x', 'a'] }], {}, {}, {}, {})).toEqual([
+    expect(problems([{ name: 'absent', missing: true, via: ['@formancy/report-x', 'a'] }], {}, {}, {}, {}, {})).toEqual([
       'absent is a dependency of a and is not installed, so its licence cannot be read (@formancy/report-x > a > absent)',
     ])
   })
@@ -350,14 +355,14 @@ describe('Formancy Data', () => {
   // the same person; a provider that reads Data cannot exist without them.
   // Refused as a SEE LICENSE IN pointer, the provider could never ship.
   test('admits a Data package at its exact version, with the licence the review read, reached from the provider', () => {
-    expect(problems([data('0.1.0')], {}, admitted, {}, {})).toEqual([])
+    expect(problems([data('0.1.0')], {}, admitted, {}, {}, {})).toEqual([])
   })
 
   // A later Data release may change its licence. Admitted by name, it would
   // reach a customer unread; at its exact version only, it is a pointer
   // nobody has read, and the admission that no longer applies is named too.
   test('refuses another version, and the admission it leaves unused', () => {
-    expect(problems([data('0.1.1')], {}, admitted, {}, {})).toEqual([
+    expect(problems([data('0.1.1')], {}, admitted, {}, {}, {})).toEqual([
       '@formancy/data-client@0.1.1 is SEE LICENSE IN LICENSE.md by its package.json, which the policy refuses (@formancy/report-data-provider > @formancy/data-client)',
       'Formancy Data admission @formancy/data-client@0.1.0 names nothing a published package installs; remove it',
     ])
@@ -368,10 +373,10 @@ describe('Formancy Data', () => {
   // are; the digest says they are the ones read.
   test('refuses an admitted version whose licence file is not the one the review read', () => {
     const changed = `sha256:${'b'.repeat(64)}`
-    expect(problems([data('0.1.0', { licenceFile: changed })], {}, admitted, {}, {})).toEqual([
+    expect(problems([data('0.1.0', { licenceFile: changed })], {}, admitted, {}, {}, {})).toEqual([
       `@formancy/data-client@0.1.0's LICENSE.md is ${changed}, not the Formancy Data licence the review read (${READ}) (@formancy/report-data-provider > @formancy/data-client)`,
     ])
-    expect(problems([data('0.1.0', { licenceFile: null })], {}, admitted, {}, {})).toEqual([
+    expect(problems([data('0.1.0', { licenceFile: null })], {}, admitted, {}, {}, {})).toEqual([
       `@formancy/data-client@0.1.0's LICENSE.md is missing, not the Formancy Data licence the review read (${READ}) (@formancy/report-data-provider > @formancy/data-client)`,
     ])
   })
@@ -382,10 +387,10 @@ describe('Formancy Data', () => {
   // through the provider, Data is the provider's dependency, and that is
   // allowed.
   test('refuses Data reached from any package but the provider, and allows it through the provider', () => {
-    expect(problems([data('0.1.0', { via: ['@formancy/report-x'] })], {}, admitted, {}, {})).toEqual([
+    expect(problems([data('0.1.0', { via: ['@formancy/report-x'] })], {}, admitted, {}, {}, {})).toEqual([
       '@formancy/data-client@0.1.0 is admitted for @formancy/report-data-provider alone, and @formancy/report-x depends on it (@formancy/report-x > @formancy/data-client)',
     ])
-    expect(problems([data('0.1.0', { via: ['@formancy/report-x', '@formancy/report-data-provider'] })], {}, admitted, {}, {})).toEqual([])
+    expect(problems([data('0.1.0', { via: ['@formancy/report-x', '@formancy/report-data-provider'] })], {}, admitted, {}, {}, {})).toEqual([])
   })
 
   // 0047: Data's identity verifier is admitted for the server, as the
@@ -399,15 +404,15 @@ describe('Formancy Data', () => {
       '@formancy/data-identity@0.3.0': { licenceFile: READ, for: '@formancy/report-server', evidence: 'LICENSE.md' },
     }
     const identity = (via) => entry('@formancy/data-identity', '0.3.0', 'SEE LICENSE IN LICENSE.md', { via, licenceFile: READ })
-    expect(problems([data('0.1.0'), identity(['@formancy/report-server'])], {}, both, {}, {})).toEqual([])
-    expect(problems([data('0.1.0'), identity(['@formancy/report-x', '@formancy/report-server'])], {}, both, {}, {})).toEqual([])
-    expect(problems([data('0.1.0'), identity(['@formancy/report-data-provider'])], {}, both, {}, {})).toEqual([
+    expect(problems([data('0.1.0'), identity(['@formancy/report-server'])], {}, both, {}, {}, {})).toEqual([])
+    expect(problems([data('0.1.0'), identity(['@formancy/report-x', '@formancy/report-server'])], {}, both, {}, {}, {})).toEqual([])
+    expect(problems([data('0.1.0'), identity(['@formancy/report-data-provider'])], {}, both, {}, {}, {})).toEqual([
       '@formancy/data-identity@0.3.0 is admitted for @formancy/report-server alone, and @formancy/report-data-provider depends on it (@formancy/report-data-provider > @formancy/data-identity)',
     ])
-    expect(problems([data('0.1.0'), identity(['@formancy/report-x'])], {}, both, {}, {})).toEqual([
+    expect(problems([data('0.1.0'), identity(['@formancy/report-x'])], {}, both, {}, {}, {})).toEqual([
       '@formancy/data-identity@0.3.0 is admitted for @formancy/report-server alone, and @formancy/report-x depends on it (@formancy/report-x > @formancy/data-identity)',
     ])
-    expect(problems([data('0.1.0', { via: ['@formancy/report-server'] }), identity(['@formancy/report-server'])], {}, both, {}, {})).toEqual([
+    expect(problems([data('0.1.0', { via: ['@formancy/report-server'] }), identity(['@formancy/report-server'])], {}, both, {}, {}, {})).toEqual([
       '@formancy/data-client@0.1.0 is admitted for @formancy/report-data-provider alone, and @formancy/report-server depends on it (@formancy/report-server > @formancy/data-client)',
     ])
   })
@@ -416,7 +421,7 @@ describe('Formancy Data', () => {
   // the pointer this repository's own packages use, so a Data package that
   // declared MIT or GPL is judged by its field and not waved through.
   test('judges a Data package that does not point at its licence file like any other package', () => {
-    expect(problems([data('0.1.0', { licence: 'GPL-3.0-only' })], {}, admitted, {}, {})).toEqual([
+    expect(problems([data('0.1.0', { licence: 'GPL-3.0-only' })], {}, admitted, {}, {}, {})).toEqual([
       '@formancy/data-client@0.1.0 is GPL-3.0-only by its package.json, which the policy refuses (@formancy/report-data-provider > @formancy/data-client)',
       'Formancy Data admission @formancy/data-client@0.1.0 names nothing a published package installs; remove it',
     ])
@@ -437,13 +442,13 @@ describe('confined packages', () => {
   // is the renderer's dependency, and allowed.
   test('admits a confined package at its version, reached from the renderer, directly or through another confined package', () => {
     const found = [charting('echarts', '6.1.0', 'Apache-2.0', [RENDERER]), charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER, 'echarts'])]
-    expect(problems(found, {}, {}, {}, confined)).toEqual([])
+    expect(problems(found, {}, {}, {}, confined, {})).toEqual([])
   })
 
   // R22 -- a builder that took ECharts would carry a charting library into every editor's bundle, for a chart the design view never draws.
   test('refuses echarts reached from a published package other than the renderer', () => {
     const found = [charting('echarts', '6.1.0', 'Apache-2.0', ['@formancy/report-builder-core']), charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER])]
-    expect(problems(found, {}, {}, {}, confined)).toEqual([
+    expect(problems(found, {}, {}, {}, confined, {})).toEqual([
       'echarts@6.1.0 is admitted for @formancy/report-render-pdf alone, and @formancy/report-builder-core depends on it (@formancy/report-builder-core > echarts)',
     ])
   })
@@ -451,7 +456,7 @@ describe('confined packages', () => {
   // A new ECharts is a new layout and a new measurer, which no review has read.
   test('refuses a confined package at a version no review read, and the confinement it leaves unused', () => {
     const found = [charting('echarts', '6.2.0', 'Apache-2.0', [RENDERER]), charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER])]
-    expect(problems(found, {}, {}, {}, confined)).toEqual([
+    expect(problems(found, {}, {}, {}, confined, {})).toEqual([
       'echarts@6.2.0 is a version of echarts, which a review read at 6.1.0 alone, for @formancy/report-render-pdf (@formancy/report-render-pdf > echarts)',
       'confined package echarts@6.1.0 names nothing a published package installs; remove it',
     ])
@@ -465,11 +470,11 @@ describe('confined packages', () => {
       charting('echarts', '6.1.0', 'Apache-2.0', [RENDERER], { licenceTexts: { LICENSE: changed } }),
       charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER]),
     ]
-    expect(problems(found, {}, {}, {}, confined)).toEqual([
+    expect(problems(found, {}, {}, {}, confined, {})).toEqual([
       `echarts@6.1.0's LICENSE is ${changed}, not the file the review read (${READ}) (@formancy/report-render-pdf > echarts)`,
     ])
     const gone = [charting('echarts', '6.1.0', 'Apache-2.0', [RENDERER], { licenceTexts: {} }), charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER])]
-    expect(problems(gone, {}, {}, {}, confined)).toEqual([
+    expect(problems(gone, {}, {}, {}, confined, {})).toEqual([
       `echarts@6.1.0's LICENSE is missing, not the file the review read (${READ}) (@formancy/report-render-pdf > echarts)`,
     ])
   })
@@ -478,7 +483,7 @@ describe('confined packages', () => {
   // package that declared GPL would still be refused by the policy.
   test('judges a confined package by the policy as any other', () => {
     const found = [charting('echarts', '6.1.0', 'GPL-3.0-only', [RENDERER]), charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER])]
-    expect(problems(found, {}, {}, {}, confined)).toEqual([
+    expect(problems(found, {}, {}, {}, confined, {})).toEqual([
       'echarts@6.1.0 is GPL-3.0-only by its package.json, which the policy refuses (@formancy/report-render-pdf > echarts)',
     ])
   })
@@ -486,7 +491,7 @@ describe('confined packages', () => {
   // An entry left behind after its package left reads as a review still in
   // force, and would admit that release again without anyone looking.
   test('refuses a confinement nothing installs', () => {
-    expect(problems([], {}, {}, {}, confined)).toEqual([
+    expect(problems([], {}, {}, {}, confined, {})).toEqual([
       'confined package echarts@6.1.0 names nothing a published package installs; remove it',
       'confined package zrender@6.1.0 names nothing a published package installs; remove it',
     ])
@@ -498,11 +503,11 @@ describe('confined packages', () => {
       entry('tslib', '2.8.1', '0BSD', { via: ['@formancy/report-builder-angular'] }),
       entry('tslib', '2.3.0', '0BSD', { via: [RENDERER, 'echarts'] }),
     ]
-    expect(problems(found, {}, {}, {}, confined)).toEqual([
+    expect(problems(found, {}, {}, {}, confined, {})).toEqual([
       'confined package echarts@6.1.0 names nothing a published package installs; remove it',
       'confined package zrender@6.1.0 names nothing a published package installs; remove it',
     ])
-    expect(problems(found, {}, {}, {}, {})).toEqual([])
+    expect(problems(found, {}, {}, {}, {}, {})).toEqual([])
   })
 
   // A direct dependency hides behind the route through the renderer: the
@@ -513,7 +518,7 @@ describe('confined packages', () => {
       charting('echarts', '6.1.0', 'Apache-2.0', ['@formancy/report-builder-core', RENDERER], { dependents: [RENDERER, '@formancy/report-builder-core'] }),
       charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER]),
     ]
-    expect(problems(found, {}, {}, {}, confined)).toEqual([
+    expect(problems(found, {}, {}, {}, confined, {})).toEqual([
       'echarts@6.1.0 is admitted for @formancy/report-render-pdf alone, and @formancy/report-builder-core depends on it (@formancy/report-builder-core > @formancy/report-render-pdf > echarts)',
     ])
   })
@@ -525,7 +530,7 @@ describe('confined packages', () => {
       charting('echarts', '6.1.0', 'Apache-2.0', ['@formancy/report-builder-core', RENDERER], { dependents: [RENDERER] }),
       charting('zrender', '6.1.0', 'BSD-3-Clause', ['@formancy/report-builder-core', RENDERER, 'echarts'], { dependents: [RENDERER, 'echarts'] }),
     ]
-    expect(problems(found, {}, {}, {}, confined)).toEqual([])
+    expect(problems(found, {}, {}, {}, confined, {})).toEqual([])
   })
 
   // echarts' root LICENSE only points at d3's BSD-3 text, which lives in
@@ -538,7 +543,7 @@ describe('confined packages', () => {
       charting('echarts', '6.1.0', 'Apache-2.0', [RENDERER], { licenceTexts: { LICENSE: READ, 'licenses/LICENSE-d3': READ } }),
       charting('zrender', '6.1.0', 'BSD-3-Clause', [RENDERER]),
     ]
-    expect(problems(found, {}, {}, {}, withNotice)).toEqual([
+    expect(problems(found, {}, {}, {}, withNotice, {})).toEqual([
       `echarts@6.1.0's licenses/LICENSE-d3 is ${READ}, not the file the review read (${NOTICE}) (@formancy/report-render-pdf > echarts)`,
     ])
   })
@@ -592,7 +597,7 @@ describe('confined packages', () => {
     expect(echarts.via).toEqual(['@formancy/report-builder-core', RENDERER])
     expect(echarts.dependents).toEqual(['@formancy/report-builder-core', RENDERER])
     const read = { 'echarts@6.1.0': { licenceFile: { path: 'LICENSE', sha256: digest('the terms') }, for: RENDERER, evidence: 'LICENSE' } }
-    expect(problems(found, {}, {}, {}, read)).toEqual([
+    expect(problems(found, {}, {}, {}, read, {})).toEqual([
       'echarts@6.1.0 is admitted for @formancy/report-render-pdf alone, and @formancy/report-builder-core depends on it (@formancy/report-builder-core > @formancy/report-render-pdf > echarts)',
     ])
   })
@@ -616,7 +621,8 @@ describe('confined packages', () => {
     expect([...new Set(charting.map((item) => `${item.name}@${item.version}`))].sort()).toEqual(Object.keys(CONFINED).sort())
     for (const item of charting) {
       expect(item.licenceTexts[CONFINED[`${item.name}@${item.version}`].licenceFile.path]).toBe(CONFINED[`${item.name}@${item.version}`].licenceFile.sha256)
-      expect(item.via[0]).toBe('@formancy/report-render-pdf')
+      // report-mcp reaches both through the renderer (0089), which 0058 allows: no route reaches either but through it.
+      expect(item.via).toContain('@formancy/report-render-pdf')
     }
   })
 })
@@ -676,7 +682,7 @@ describe('closure', () => {
       'host@1.0.0',
       'missing agpl-host',
     ])
-    expect(problems(found, {}, {}, {}, {})).toEqual([
+    expect(problems(found, {}, {}, {}, {}, {})).toEqual([
       'gone is a dependency of app and is not installed, so its licence cannot be read (app > gone)',
       'host@1.0.0 is AGPL-3.0-only by its package.json, which the policy refuses (app > host)',
       'agpl-host is a peer dependency of app and is not installed, so its licence cannot be read (app > agpl-host)',
@@ -698,7 +704,7 @@ describe('closure', () => {
       { 'packages/report-x/node_modules/@formancy/report-y': 'packages/report-y' },
     )
     const siblings = new Set([realpathSync(join(root, 'packages/report-x')), realpathSync(join(root, 'packages/report-y'))])
-    expect(problems(closure(join(root, 'packages/report-x'), siblings), {}, {}, {}, {})).toEqual([
+    expect(problems(closure(join(root, 'packages/report-x'), siblings), {}, {}, {}, {}, {})).toEqual([
       'copyleft@1.0.0 is GPL-2.0-only by its package.json, which the policy refuses (@formancy/report-x > @formancy/report-y > copyleft)',
     ])
   })
@@ -718,7 +724,7 @@ describe('closure', () => {
       { 'packages/report-x/node_modules/@formancy/vendored': 'packages/vendored' },
     )
     const siblings = new Set([realpathSync(join(root, 'packages/report-x')), realpathSync(join(root, 'packages/vendored'))])
-    expect(problems(closure(join(root, 'packages/report-x'), siblings), {}, {}, {}, {})).toEqual([
+    expect(problems(closure(join(root, 'packages/report-x'), siblings), {}, {}, {}, {}, {})).toEqual([
       '@formancy/vendored@0.1.0 is GPL-3.0-only by its package.json, which the policy refuses (@formancy/report-x > @formancy/vendored)',
     ])
   })
@@ -812,7 +818,7 @@ describe('fonts', () => {
       { path: 'fonts/Ok-Regular.ttf', licence: 'OFL-1.1' },
       { path: 'standard_fonts/Liberation-Regular.ttf', licence: undefined },
     ])
-    expect(problems(found, {}, {}, {}, {})).toEqual([
+    expect(problems(found, {}, {}, {}, {}, {})).toEqual([
       `app@1.0.0/standard_fonts/Liberation-Regular.ttf is a font whose name table names no licence the policy allows: "${LIBERATION}" (app)`,
     ])
   })
@@ -826,14 +832,14 @@ describe('fonts', () => {
       'app/standard_fonts/FoxitSans.pfb': '%!PS-AdobeFont-1.0',
     })
     const found = closure(join(root, 'app'))
-    expect(problems(found, {}, {}, {}, {})).toEqual([
+    expect(problems(found, {}, {}, {}, {}, {})).toEqual([
       'app@1.0.0/standard_fonts/FoxitSans.pfb is a font this guard cannot read a licence from; review it and record an exception (app)',
     ])
     expect(
-      problems(found, { 'app@1.0.0/standard_fonts/FoxitSans.pfb': { licence: 'BSD-3-Clause', evidence: 'standard_fonts/LICENSE_FOXIT' } }, {}, {}, {}),
+      problems(found, { 'app@1.0.0/standard_fonts/FoxitSans.pfb': { licence: 'BSD-3-Clause', evidence: 'standard_fonts/LICENSE_FOXIT' } }, {}, {}, {}, {}),
     ).toEqual([])
     // A font's exception is held to the policy as a package's is.
-    expect(problems(found, { 'app@1.0.0/standard_fonts/FoxitSans.pfb': { licence: 'GPL-2.0-only', evidence: 'LICENSE_LIBERATION' } }, {}, {}, {})).toEqual([
+    expect(problems(found, { 'app@1.0.0/standard_fonts/FoxitSans.pfb': { licence: 'GPL-2.0-only', evidence: 'LICENSE_LIBERATION' } }, {}, {}, {}, {})).toEqual([
       'app@1.0.0/standard_fonts/FoxitSans.pfb is GPL-2.0-only by its reviewed exception, which the policy refuses (app)',
     ])
   })
@@ -858,7 +864,7 @@ describe('fonts', () => {
       'fonts/Old.eot undefined',
       'fonts/Web.woff2 undefined',
     ])
-    expect(problems(found, {}, {}, {}, {}).map((problem) => problem.split(' is a font')[0])).toEqual([
+    expect(problems(found, {}, {}, {}, {}, {}).map((problem) => problem.split(' is a font')[0])).toEqual([
       'app@1.0.0/fonts/Family.ttc',
       'app@1.0.0/fonts/Old.eot',
       'app@1.0.0/fonts/Web.woff2',
@@ -897,9 +903,249 @@ describe('fonts', () => {
       'packages/report-x/fonts/Liberation-Regular.ttf': font({ 13: LIBERATION }),
     })
     const found = closure(join(root, 'packages/report-x'), new Set([realpathSync(join(root, 'packages/report-x'))]))
-    expect(problems(found, {}, {}, {}, {})).toEqual([
+    expect(problems(found, {}, {}, {}, {}, {})).toEqual([
       `@formancy/report-x@0.1.0/fonts/Liberation-Regular.ttf is a font whose name table names no licence the policy allows: "${LIBERATION}" (@formancy/report-x)`,
     ])
+  })
+})
+
+describe('fonts the package they are admitted for never loads', () => {
+  const MCP = '@formancy/report-mcp'
+  const FACE = 'standard_fonts/Sans-Regular.ttf'
+  const gpl = font({ 5: 'Version 1.07.4', 13: LIBERATION })
+  const admitted = (bytes) => ({
+    'viewer@6.4.299': { for: MCP, fonts: { [FACE]: digest(bytes) }, licence: 'GPL-2.0 with a font exception', heldBy: 'a test', evidence: 'this test' },
+  })
+  const viewer = (bytes, dependents = [MCP], more = {}) =>
+    entry('viewer', '6.4.299', 'Apache-2.0', {
+      via: [dependents[0]],
+      dependents,
+      fonts: [{ path: FACE, digest: digest(bytes), readable: true, description: LIBERATION }],
+      ...more,
+    })
+
+  // The one way a font under a licence the policy refuses is admitted: at
+  // the digest a review read, in the package admitted for, which a test
+  // shows never loads it (0089).
+  test('admits a font at the digest the review read, depended on by the package it is for', () => {
+    expect(problems([viewer(gpl)], {}, {}, {}, {}, admitted(gpl))).toEqual([])
+  })
+
+  // Another font of the same name is another font nobody read.
+  test('refuses it at another digest', () => {
+    const other = font({ 5: 'Version 1.07.5', 13: LIBERATION })
+    expect(problems([viewer(other)], {}, {}, {}, {}, admitted(gpl))).toEqual([
+      `viewer@6.4.299/${FACE} is ${digest(other)}, not the font the review read (${digest(gpl)}) (${MCP} > viewer)`,
+    ])
+  })
+
+  // What a package never loads is said of that package alone: another that
+  // depends on the same tarball may load the face, and nothing has shown
+  // it does not.
+  test('refuses it where another published package depends on its package', () => {
+    expect(problems([viewer(gpl, [MCP, '@formancy/report-render-pdf'])], {}, {}, {}, {}, admitted(gpl))).toEqual([
+      `viewer@6.4.299/${FACE} is admitted as never loaded by ${MCP} alone, and @formancy/report-render-pdf depends on viewer (${MCP} > viewer)`,
+    ])
+  })
+
+  // An admission outlives its package by no more than the release that
+  // drops it, as an exception does.
+  test('refuses an admission nothing installs', () => {
+    expect(problems([], {}, {}, {}, {}, admitted(gpl))).toEqual([
+      `never-loaded font viewer@6.4.299/${FACE} names nothing a published package installs; remove it`,
+    ])
+  })
+
+  // The admission names files, not the package: every other font of it is
+  // judged as any font is.
+  test('judges every other font of the package as any', () => {
+    const more = {
+      fonts: [
+        { path: FACE, digest: digest(gpl), readable: true, description: LIBERATION },
+        { path: 'standard_fonts/Other.ttf', digest: digest(gpl), readable: true, description: LIBERATION },
+      ],
+    }
+    expect(problems([viewer(gpl, [MCP], more)], {}, {}, {}, {}, admitted(gpl))).toEqual([
+      `viewer@6.4.299/standard_fonts/Other.ttf is a font whose name table names no licence the policy allows: "${LIBERATION}" (${MCP} > viewer)`,
+    ])
+  })
+
+  // The digest is the walk's, of the file on disk: a review read bytes,
+  // and the bytes a package ships are what is held to them.
+  test('reads the digest of each font the walk finds', () => {
+    const root = tree({ 'viewer/package.json': manifest('viewer', '6.4.299', 'Apache-2.0'), [`viewer/${FACE}`]: gpl })
+    expect(closure(join(root, 'viewer'))[0].fonts.map(({ path, digest: of }) => [path, of])).toEqual([[FACE, digest(gpl)]])
+  })
+})
+
+describe('the case an admission of fonts never loaded is held by', () => {
+  // An admission whose case is renamed or gone would admit GPL faces the
+  // package may by then read: the guard holds it to a case of its name.
+  test('is a case of that name in that file, and refused otherwise', () => {
+    const root = tree({ 'pkg/reads.test.ts': "test('reads no font file', () => {})\nit(\n  \"opens nothing\",\n  () => {},\n)\n// test('a comment, no case')" })
+    const held = (heldBy) => heldByProblems({ 'viewer@1.0.0': { heldBy } }, root)
+    expect(held('pkg/reads.test.ts#reads no font file')).toEqual([])
+    expect(held('pkg/reads.test.ts#opens nothing')).toEqual([])
+    expect(held('pkg/reads.test.ts#reads no file')).toEqual([
+      'never-loaded admission viewer@1.0.0 is held by pkg/reads.test.ts, which has no case named "reads no file"',
+    ])
+    expect(held('pkg/reads.test.ts#a comment, no case')).toEqual([
+      'never-loaded admission viewer@1.0.0 is held by pkg/reads.test.ts, which has no case named "a comment, no case"',
+    ])
+    expect(held('pkg/gone.test.ts#reads no font file')).toEqual([
+      'never-loaded admission viewer@1.0.0 is held by pkg/gone.test.ts, which the repository does not hold',
+    ])
+    expect(held('pkg/reads.test.ts')).toEqual(['never-loaded admission viewer@1.0.0 names no test as file#test name: pkg/reads.test.ts'])
+  })
+})
+
+describe('native builds', () => {
+  const MCP = '@formancy/report-mcp'
+  const FAMILY = 'addon'
+  const READ = `sha256:${'a'.repeat(64)}`
+  const beyond = { 'cssparser@0.38.0': 'MPL-2.0', 'own-crate@0.1.0': null }
+  const components = [
+    { name: 'cssparser', version: '0.38.0', licence: 'MPL-2.0' },
+    { name: 'own-crate', version: '0.1.0', licence: undefined },
+    { name: 'zlib', version: '1', licence: 'Zlib' },
+    { name: 'addon.linux.node', licence: undefined, purl: 'pkg:npm/addon-linux@1.0.0#addon.linux.node' },
+  ]
+  const WRAPPER = `sha512-${'w'.repeat(86)}==`
+  const TARBALL = `sha512-${'l'.repeat(86)}==`
+  const builds = {
+    [FAMILY]: {
+      version: '1.0.0',
+      for: MCP,
+      dependents: ['viewer'],
+      integrity: WRAPPER,
+      builds: { 'addon-linux': { sbom: READ, integrity: TARBALL } },
+      beyondPolicy: beyond,
+      evidence: 'this test',
+    },
+  }
+  const wrapper = (more = {}) => entry(FAMILY, '1.0.0', 'MIT', { via: [MCP, 'viewer'], dependents: ['viewer'], ...more })
+  const build = (more = {}) =>
+    entry('addon-linux', '1.0.0', 'MIT', {
+      via: [MCP, 'viewer', FAMILY],
+      dependents: [FAMILY],
+      natives: ['addon.linux.node'],
+      sbom: { path: 'sbom.cdx.json', sha256: READ, components },
+      ...more,
+    })
+
+  // The one way a package that ships a native addon passes: its family's
+  // version, a build the review read by its SBOM's digest, the components
+  // beyond the policy those the review recorded, reached through the
+  // package admitted for.
+  test('admits a build at its version and its SBOM, reached through the package it is for', () => {
+    expect(problems([wrapper(), build()], {}, {}, {}, {}, {}, builds)).toEqual([])
+  })
+
+  // Code built from sources its manifest's licence need not cover: a
+  // `.node` file no review read is refused, whatever the manifest says.
+  test('refuses a package that ships a native addon no review read', () => {
+    expect(problems([build()], {}, {}, {}, {}, {}, {})).toEqual([
+      `addon-linux@1.0.0 ships a native addon, addon.linux.node, whose build no review read: read its SBOM and record it in BUILDS_READ (${MCP} > viewer > addon > addon-linux)`,
+    ])
+  })
+
+  // Another release is another binary and another SBOM nobody read.
+  test('refuses another version, another build, and an SBOM of other bytes', () => {
+    expect(problems([build({ version: '1.0.1' })], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon-linux@1.0.1 is a version of addon, which a review read at 1.0.0 alone (${MCP} > viewer > addon > addon-linux)`,
+    ])
+    expect(problems([build({ name: 'addon-darwin' })], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon-darwin@1.0.0 is a build of addon no review read (${MCP} > viewer > addon > addon-darwin)`,
+    ])
+    const other = `sha256:${'b'.repeat(64)}`
+    expect(problems([build({ sbom: { path: 'sbom.cdx.json', sha256: other, components } })], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon-linux@1.0.0's sbom.cdx.json is ${other}, not the SBOM the review read (${READ}) (${MCP} > viewer > addon > addon-linux)`,
+    ])
+  })
+
+  // The digest holds the bytes; the components held to the review's list
+  // hold the list to what the SBOM says, so the record cannot drift from
+  // the file it quotes.
+  test('refuses a build whose SBOM lists other components beyond the policy than the review recorded', () => {
+    const more = [...components, { name: 'gpl-thing', version: '2', licence: 'GPL-2.0-only' }]
+    expect(problems([build({ sbom: { path: 'sbom.cdx.json', sha256: READ, components: more } })], {}, {}, {}, {}, {}, builds)[0]).toMatch(
+      /^addon-linux@1\.0\.0's SBOM lists .*"gpl-thing@2":"GPL-2\.0-only".* beyond the policy, not what the review recorded/,
+    )
+    expect(beyondPolicy({ components }, 'addon-linux', '1.0.0')).toEqual(beyond)
+  })
+
+  // Admitted for the one package whose reading loads it: another route to
+  // it is a package that loads it nobody asked.
+  test('refuses a build reached otherwise than through the package it is for', () => {
+    expect(problems([build({ via: ['@formancy/report-builder-core', FAMILY] })], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon-linux@1.0.0 is admitted for ${MCP} alone, and is reached otherwise (@formancy/report-builder-core > addon > addon-linux)`,
+    ])
+  })
+
+  // The walk records the first route to a package, and a package may be
+  // reached by more than one: a published package that depended on the
+  // family itself, behind a first route through report-mcp, would load a
+  // native build for a purpose no review read. Every dependent is held,
+  // as a confined package's and a never-loaded font's are.
+  test('refuses a family member another package depends on, though its first route passes the package it is for', () => {
+    const second = '@formancy/report-rasteriser'
+    expect(problems([wrapper({ dependents: ['viewer', second] }), build()], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon@1.0.0 is depended on by ${second} and viewer, where the review saw viewer alone (${MCP} > viewer > addon)`,
+    ])
+    expect(problems([wrapper(), build({ dependents: [FAMILY, second] })], {}, {}, {}, {}, {}, builds)).toEqual([
+      `addon-linux@1.0.0 is depended on by ${second} and addon, where the review saw addon alone (${MCP} > viewer > addon > addon-linux)`,
+    ])
+  })
+
+  // No machine installs every platform's build, so what the lockfile
+  // names is what the review must have read, every build and version.
+  test('refuses a build or a version the lockfile names and no review read, and a build it names no longer', () => {
+    const integrity = { 'addon@1.0.0': WRAPPER, 'addon-linux@1.0.0': TARBALL }
+    const lock = (lines, at = integrity) =>
+      `lockfileVersion: '9.0'\n\npackages:\n\n${lines.map((line) => `  ${line}:\n    resolution: {integrity: ${at[line.replaceAll("'", '')] ?? `sha512-${'x'.repeat(86)}==`}}\n`).join('\n')}`
+    expect(lockfileProblems(lock(['addon@1.0.0', 'addon-linux@1.0.0', 'other@2.0.0']), builds)).toEqual([])
+    expect(lockfileProblems(lock(['addon@1.0.0', 'addon-linux@1.0.0', "'addon-darwin@1.0.0'"]), builds)).toEqual([
+      'pnpm-lock.yaml names addon-darwin@1.0.0, a build of addon no review read',
+    ])
+    expect(lockfileProblems(lock(['addon@1.0.1', 'addon-linux@1.0.0']), builds)).toEqual([
+      'pnpm-lock.yaml names addon@1.0.1, a version of addon no review read, at 1.0.0 alone',
+    ])
+    expect(lockfileProblems(lock(['addon@1.0.0']), builds)).toEqual(['build addon-linux@1.0.0 names nothing pnpm-lock.yaml installs; remove it'])
+    // A build is the tarball pnpm installs: the SBOM a review read is held
+    // to the build's other bytes by the integrity the lockfile records.
+    const other = `sha512-${'o'.repeat(86)}==`
+    expect(lockfileProblems(lock(['addon@1.0.0', 'addon-linux@1.0.0'], { ...integrity, 'addon-linux@1.0.0': other }), builds)).toEqual([
+      `pnpm-lock.yaml installs addon-linux@1.0.0 as ${other}, not the tarball the review read (${TARBALL})`,
+    ])
+    expect(lockfileProblems(lock(['addon@1.0.0', 'addon-linux@1.0.0'], { ...integrity, 'addon@1.0.0': other }), builds)).toEqual([
+      `pnpm-lock.yaml installs addon@1.0.0 as ${other}, not the tarball the review read (${WRAPPER})`,
+    ])
+  })
+
+  // What the walk reads of a build: its addons by path and its SBOM by its
+  // bytes' digest and its components, at any depth.
+  test('reads a package’s native addons and its SBOM', () => {
+    const sbom = JSON.stringify({
+      bomFormat: 'CycloneDX',
+      components: [
+        { name: 'a', version: '1', licenses: [{ license: { id: 'MIT' } }], components: [{ name: 'b', version: '2', licenses: [{ expression: 'MPL-2.0' }] }] },
+      ],
+    })
+    const root = tree({
+      'addon-linux/package.json': manifest('addon-linux', '1.0.0', 'MIT'),
+      'addon-linux/addon.linux.node': 'ELF',
+      'addon-linux/sbom.cdx.json': sbom,
+    })
+    const [found] = closure(join(root, 'addon-linux'))
+    expect(found.natives).toEqual(['addon.linux.node'])
+    expect(found.sbom).toEqual({
+      path: 'sbom.cdx.json',
+      sha256: digest(Buffer.from(sbom)),
+      components: [
+        { name: 'a', version: '1', licence: 'MIT', purl: undefined },
+        { name: 'b', version: '2', licence: 'MPL-2.0', purl: undefined },
+      ],
+    })
   })
 })
 
@@ -915,10 +1161,10 @@ describe('ICC profiles', () => {
     const root = tree({ 'app/package.json': manifest('app', '1.0.0', 'MIT'), 'app/data/sRGB.icc': icc })
     const found = closure(join(root, 'app'))
     expect(found[0].profiles).toEqual([{ path: 'data/sRGB.icc', digest: digest(icc) }])
-    expect(problems(found, {}, {}, {}, {})).toEqual([
+    expect(problems(found, {}, {}, {}, {}, {})).toEqual([
       `app@1.0.0/data/sRGB.icc is an ICC profile nobody has reviewed (${digest(icc)}); read its licence and record it in ICC_PROFILES with the sentence that grants it (app)`,
     ])
-    expect(problems(found, {}, {}, reviewed(icc), {})).toEqual([])
+    expect(problems(found, {}, {}, reviewed(icc), {}, {})).toEqual([])
   })
 
   // A review is of bytes: a profile changed by one byte -- another
@@ -926,7 +1172,7 @@ describe('ICC profiles', () => {
   // nobody read, whatever its name.
   test('refuses a profile one byte off the reviewed one', () => {
     const root = tree({ 'app/package.json': manifest('app', '1.0.0', 'MIT'), 'app/data/sRGB.icc': profile(1) })
-    expect(problems(closure(join(root, 'app')), {}, {}, reviewed(profile(0)), {})).toEqual([
+    expect(problems(closure(join(root, 'app')), {}, {}, reviewed(profile(0)), {}, {})).toEqual([
       `app@1.0.0/data/sRGB.icc is an ICC profile nobody has reviewed (${digest(profile(1))}); read its licence and record it in ICC_PROFILES with the sentence that grants it (app)`,
       `reviewed ICC profile ${digest(profile(0))} names nothing a published package installs; remove it`,
     ])
@@ -965,7 +1211,7 @@ describe('ICC profiles', () => {
     })
     const found = closure(join(root, 'app'))
     expect(found[0].profiles.map(({ path }) => path)).toEqual(['c.icc', 'd.ICM'])
-    expect(problems(found, {}, {}, {}, {})).toEqual([
+    expect(problems(found, {}, {}, {}, {}, {})).toEqual([
       `app@1.0.0/c.icc is an ICC profile nobody has reviewed (${digest(notAHeader)}); read its licence and record it in ICC_PROFILES with the sentence that grants it (app)`,
       `app@1.0.0/d.ICM is an ICC profile nobody has reviewed (${digest(Buffer.concat([notAHeader, Buffer.from([1])]))}); read its licence and record it in ICC_PROFILES with the sentence that grants it (app)`,
     ])
@@ -974,12 +1220,12 @@ describe('ICC profiles', () => {
   // A review left behind after its profile left reads as one still in
   // force; and a review that records no licence sentence is no review.
   test('refuses a reviewed profile nothing installs, and a review without its licence sentence', () => {
-    expect(problems([], {}, {}, reviewed(profile()), {})).toEqual([
+    expect(problems([], {}, {}, reviewed(profile()), {}, {})).toEqual([
       `reviewed ICC profile ${digest(profile())} names nothing a published package installs; remove it`,
     ])
     const icc = profile()
     const root = tree({ 'app/package.json': manifest('app', '1.0.0', 'MIT'), 'app/sRGB.icc': icc })
-    expect(problems(closure(join(root, 'app')), {}, {}, { [digest(icc)]: { profile: 'a profile', licence: ' ', evidence: 'nowhere' } }, {})).toEqual([
+    expect(problems(closure(join(root, 'app')), {}, {}, { [digest(icc)]: { profile: 'a profile', licence: ' ', evidence: 'nowhere' } }, {}, {})).toEqual([
       `reviewed ICC profile ${digest(icc)} records no licence sentence; a review quotes the sentence that grants the profile`,
     ])
   })
@@ -992,7 +1238,7 @@ describe('ICC profiles', () => {
       'packages/report-x/profiles/print.icc': profile(7),
     })
     const found = closure(join(root, 'packages/report-x'), new Set([realpathSync(join(root, 'packages/report-x'))]))
-    expect(problems(found, {}, {}, {}, {})).toEqual([
+    expect(problems(found, {}, {}, {}, {}, {})).toEqual([
       `@formancy/report-x@0.1.0/profiles/print.icc is an ICC profile nobody has reviewed (${digest(profile(7))}); read its licence and record it in ICC_PROFILES with the sentence that grants it (@formancy/report-x)`,
     ])
   })
@@ -1018,6 +1264,50 @@ describe('this workspace', { timeout: 30_000 }, () => {
     const { published, entries } = realTree()
     expect(published).toContain('@formancy/report-spec')
     expect(problems(entries)).toEqual([])
+  })
+
+  // pdfjs-dist ships Liberation Sans 1 beside its code (0006), and
+  // report-mcp, the one published package that depends on it, never loads
+  // it (0089): admitted for it alone at the digests the review read, and
+  // refused without the admission, as 0006 found it.
+  test("admits pdfjs-dist's Liberation Sans 1 for report-mcp alone, never loaded, and refuses it without the admission", () => {
+    const { entries } = realTree()
+    const pdfjs = entries.find((item) => !item.missing && item.name === 'pdfjs-dist')
+    expect(pdfjs.dependents).toEqual(['@formancy/report-mcp'])
+    const liberation = pdfjs.fonts.filter(({ path }) => path.startsWith('standard_fonts/LiberationSans-'))
+    expect(Object.fromEntries(liberation.map(({ path, digest: of }) => [path, of]))).toEqual(NEVER_LOADED['pdfjs-dist@6.4.299'].fonts)
+    expect(liberation.every(({ version }) => version === 'Version 1.07.4')).toBe(true)
+    expect(
+      problems(entries, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES, CONFINED, {}).filter((problem) => problem.startsWith('pdfjs-dist@6.4.299/')),
+    ).toHaveLength(4)
+  })
+
+  // The canvas PDF.js loads in report-mcp's process is admitted by the
+  // SBOM of the build this machine installed, its components beyond the
+  // policy the review's, for report-mcp alone; refused with no review; and
+  // every build and version the lockfile names, on every platform, is one
+  // the review read (0089).
+  test('admits the canvas build installed here by its SBOM, for report-mcp alone, and every build the lockfile names', () => {
+    const { entries } = realTree()
+    const installed = entries.filter((item) => !item.missing && item.name.startsWith('@napi-rs/canvas-'))
+    expect(installed.length).toBeGreaterThan(0)
+    const canvas = BUILDS_READ['@napi-rs/canvas']
+    for (const build of installed) {
+      expect(build.sbom?.sha256, build.name).toBe(canvas.builds[build.name]?.sbom)
+      // Every dependent the walk saw, not its first route: the family itself alone.
+      expect(build.dependents, build.name).toEqual(['@napi-rs/canvas'])
+      expect(beyondPolicy(build.sbom, build.name, build.version), build.name).toEqual(canvas.beyondPolicy)
+      expect(build.via[0], build.name).toBe('@formancy/report-mcp')
+    }
+    expect(lockfileProblems(readFileSync(join(repo, 'pnpm-lock.yaml'), 'utf8'))).toEqual([])
+    expect(
+      problems(entries, EXCEPTIONS, FORMANCY_DATA, ICC_PROFILES, CONFINED, NEVER_LOADED, {}).filter((problem) => problem.includes('ships a native addon')),
+    ).toHaveLength(installed.length)
+  })
+
+  // The admission of pdfjs-dist's fonts is held by its case, which runs.
+  test('holds the never-loaded admission to the case it names', () => {
+    expect(heldByProblems()).toEqual([])
   })
 
   // The renderer ships fonts of its own, Liberation Sans 2.1.5 for the
@@ -1058,34 +1348,54 @@ describe('this workspace', { timeout: 30_000 }, () => {
   // renderer's tests pin on the profile both entries embed, admitted by
   // the review list with the ICC's licence. pdfjs-dist's profile is the
   // corpus's and the Studio's, never a published package's.
-  test("reads PDFKit's ICC profile as the one in the production tree, the reviewed sRGB2014", () => {
+  // Two profiles stand in the production tree: PDFKit's, which a PDF/A
+  // embeds, and pdfjs-dist's, which report-mcp's reading never loads
+  // (0089). Each is the one its review read.
+  test("reads the production tree's ICC profiles as the reviewed ones: PDFKit's sRGB2014 and pdfjs-dist's CMYK profile", () => {
     const { entries } = realTree()
     const profiles = entries.flatMap((item) => (item.profiles ?? []).map((each) => [`${item.name}@${item.version}/${each.path}`, each.digest]))
     const srgb2014 = 'sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a'
-    expect([...new Map(profiles).entries()]).toEqual([['pdfkit@0.19.1/js/data/sRGB_IEC61966_2_1.icc', srgb2014]])
-    expect(Object.keys(ICC_PROFILES)).toEqual([srgb2014])
+    const cmyk = 'sha256:73e1ba37d2bad5bab2a964f40a9eed96209666efc067c3322626214bbef234a0'
+    expect([...new Map(profiles).entries()].sort()).toEqual([
+      ['pdfjs-dist@6.4.299/iccs/CGATS001Compat-v2-micro.icc', cmyk],
+      ['pdfkit@0.19.1/js/data/sRGB_IEC61966_2_1.icc', srgb2014],
+    ])
+    expect(Object.keys(ICC_PROFILES).sort()).toEqual([srgb2014, cmyk].sort())
+    expect(ICC_PROFILES[cmyk].licence.startsWith('To the greatest extent permitted by, but not in contravention of, applicable law, Affirmer hereby')).toBe(
+      true,
+    )
     expect(ICC_PROFILES[srgb2014].licence).toBe(
       'This profile is made available by the International Color Consortium, and may be copied, distributed, embedded, made, used, and sold without restriction. Altered versions of this profile shall have the original identification and copyright information removed and shall not be misrepresented as the original profile.',
     )
   })
 
   // Watched failing on a profile nobody reviewed: the real tree with the
-  // review list emptied refuses PDFKit's profile, and pdfjs-dist's
-  // profile, which no review read, is refused as any would be.
-  test("refuses PDFKit's profile without its review, and pdfjs-dist's, which nobody reviewed", () => {
+  // review list emptied refuses PDFKit's profile and pdfjs-dist's, each
+  // where the walk reaches it, and pdfjs-dist's alone is refused as any
+  // would be.
+  test("refuses PDFKit's profile and pdfjs-dist's without their reviews", () => {
     const { entries } = realTree()
-    const unreviewed = problems(entries, EXCEPTIONS, FORMANCY_DATA, {}, CONFINED).filter((problem) => problem.includes('ICC profile'))
-    expect(unreviewed).toHaveLength(1)
+    const unreviewed = problems(entries, EXCEPTIONS, FORMANCY_DATA, {}, CONFINED, NEVER_LOADED).filter((problem) => problem.includes('ICC profile'))
+    // Each refusal names one of the two, PDFKit's once on each route the walk reaches it by, report-mcp's through the renderer among them.
+    expect([...new Set(unreviewed.map((problem) => problem.split(' is an ICC profile')[0]))].sort()).toEqual([
+      'pdfjs-dist@6.4.299/iccs/CGATS001Compat-v2-micro.icc',
+      'pdfkit@0.19.1/js/data/sRGB_IEC61966_2_1.icc',
+    ])
+    const pdfkit = unreviewed.find((problem) => problem.startsWith('pdfkit@'))
     expect(
-      unreviewed[0].startsWith(
+      pdfkit?.startsWith(
         'pdfkit@0.19.1/js/data/sRGB_IEC61966_2_1.icc is an ICC profile nobody has reviewed (sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a); ',
       ),
     ).toBe(true)
-    // The renderer pins PDFKit itself (0036), so the walk reaches it there first.
-    expect(unreviewed[0].endsWith(' (@formancy/report-render-pdf > pdfkit)')).toBe(true)
+    // The renderer pins PDFKit itself (0036), so the walk from the renderer reaches it there, and the walk from report-mcp through it.
+    expect(unreviewed.filter((problem) => problem.startsWith('pdfkit@')).map((problem) => problem.slice(problem.lastIndexOf(' (')))).toEqual([
+      ' (@formancy/report-mcp > @formancy/report-render-pdf > pdfkit)',
+      ' (@formancy/report-render-pdf > pdfkit)',
+    ])
+    expect(unreviewed.find((problem) => problem.startsWith('pdfjs-dist@'))?.endsWith(' (@formancy/report-mcp > pdfjs-dist)')).toBe(true)
     const corpus = createRequire(join(repo, 'packages', 'report-corpus', 'package.json'))
     const [pdfjs] = closure(dirname(corpus.resolve('pdfjs-dist/package.json')))
-    const refused = problems([pdfjs], {}, {}, {}, {}).filter((problem) => problem.includes('ICC profile'))
+    const refused = problems([pdfjs], {}, {}, {}, {}, {}).filter((problem) => problem.includes('ICC profile'))
     expect(refused).toHaveLength(1)
     expect(refused[0].startsWith('pdfjs-dist@6.4.299/iccs/CGATS001Compat-v2-micro.icc is an ICC profile nobody has reviewed (sha256:')).toBe(true)
   })
@@ -1170,7 +1480,8 @@ describe('this workspace', { timeout: 30_000 }, () => {
     const found = closure(dirname(corpus.resolve('pdfmake/package.json')))
     expect(found.filter((item) => item.missing)).toEqual([])
     expect(found.map(({ name }) => name)).toEqual(expect.arrayContaining(['pdfmake', 'pdfkit', 'fontkit', 'png-js']))
-    expect(problems(found, {}, {}, ICC_PROFILES, {})).toEqual(['png-js@1.1.0 declares no licence (pdfmake > pdfkit > png-js)'])
+    const srgb2014 = 'sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a'
+    expect(problems(found, {}, {}, { [srgb2014]: ICC_PROFILES[srgb2014] }, {}, {})).toEqual(['png-js@1.1.0 declares no licence (pdfmake > pdfkit > png-js)'])
     const roboto = found[0].fonts.filter(({ path }) => path.startsWith('fonts/Roboto/'))
     expect(roboto.map(({ path }) => path)).toEqual([
       'fonts/Roboto/Roboto-Italic.ttf',
@@ -1187,7 +1498,7 @@ describe('this workspace', { timeout: 30_000 }, () => {
     const corpus = createRequire(join(repo, 'packages', 'report-corpus', 'package.json'))
     const [pdfjs] = closure(dirname(corpus.resolve('pdfjs-dist/package.json')))
     expect(`${pdfjs.name}@${pdfjs.version} ${pdfjs.licence}`).toBe('pdfjs-dist@6.4.299 Apache-2.0')
-    const refused = problems([pdfjs], {}, {}, {}, {}).map((problem) => problem.split(' is a font')[0])
+    const refused = problems([pdfjs], {}, {}, {}, {}, {}).map((problem) => problem.split(' is a font')[0])
     expect(refused).toContain('pdfjs-dist@6.4.299/standard_fonts/LiberationSans-Regular.ttf')
     expect(refused).toContain('pdfjs-dist@6.4.299/standard_fonts/FoxitSerif.pfb')
   })

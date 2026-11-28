@@ -49,7 +49,17 @@ const manifests = new Map([
   ['@formancy/report-client', { dependencies: { '@formancy/report-server-core': '0.1.0', '@formancy/report-spec': '0.1.0' } }],
   [
     '@formancy/report-mcp',
-    { dependencies: { '@formancy/report-core': '0.1.0', '@formancy/report-spec': '0.1.0', '@modelcontextprotocol/sdk': '1.32.2', zod: '4.6.7' } },
+    {
+      dependencies: {
+        '@formancy/report-core': '0.1.0',
+        '@formancy/report-render-pdf': '0.1.0',
+        '@formancy/report-runtime': '0.1.0',
+        '@formancy/report-spec': '0.1.0',
+        '@modelcontextprotocol/sdk': '1.32.2',
+        'pdfjs-dist': '6.4.299',
+        zod: '4.6.7',
+      },
+    },
   ],
 ])
 const named = (name) => planProjects(manifests).find((project) => project.name === name)
@@ -133,13 +143,20 @@ describe('the projects the gate installs', () => {
   })
 
   // The MCP's host is a Node host with report-mcp and what it declares and
-  // nothing else, so an MCP that imported the runtime, the renderer or the
-  // client without declaring it fails there, where the Node host would pass
-  // it; and the SDK's client beside it is the release report-mcp declares,
-  // read from its manifest, so the client that launches the bin and the pin
-  // it was built against are one fact (0088).
+  // nothing else -- the runtime and the renderer, since its render check
+  // (0089) -- so an MCP that imported the client without declaring it
+  // fails there, where the Node host would pass it; and the SDK's client
+  // beside it is the release report-mcp declares, read from its manifest,
+  // so the client that launches the bin and the pin it was built against
+  // are one fact (0088).
   test('install the MCP with only the packages it declares, and the SDK’s client at the release it declares', () => {
-    expect(named('mcp')?.packages).toEqual(['@formancy/report-core', '@formancy/report-mcp', '@formancy/report-spec'])
+    expect(named('mcp')?.packages).toEqual([
+      '@formancy/report-core',
+      '@formancy/report-mcp',
+      '@formancy/report-render-pdf',
+      '@formancy/report-runtime',
+      '@formancy/report-spec',
+    ])
     expect(named('mcp')?.framework).toEqual({ '@modelcontextprotocol/sdk': '1.32.2' })
     expect(named('mcp')?.browser).toBe(false)
     expect(named('mcp')?.tsconfig.content.compilerOptions.types).toEqual(['node'])

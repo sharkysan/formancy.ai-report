@@ -109,14 +109,22 @@ const NOT_OPENED = /\.(c?js|mjs|d\.[cm]?ts|[cm]?ts|map|json|md|markdown|txt|html
 
 const byPath = (a, b) => (a.path < b.path ? -1 : 1)
 
+/** A Node native addon, by its extension: code built from sources the package's own licence may not cover, which a review reads in its build's SBOM. */
+const NATIVE_FILE = /\.node$/i
+
 /**
- * Every font file and every ICC profile in a package's directory, outside
- * its own node_modules, by path: each by its extension, or by its first
- * bytes. A font is read for its licence; a profile is known by its digest.
+ * Every font file, every ICC profile and every native addon in a
+ * package's directory, outside its own node_modules, by path: each font
+ * and profile by its extension, or by its first bytes, and an addon by its
+ * extension. A font is read for its licence, and known by its digest too,
+ * which a font admitted as never loaded is held to; a profile is known by
+ * its digest; an addon by its path alone, its build by its SBOM
+ * (`sbomIn`).
  */
 export function filesIn(directory) {
   const fonts = []
   const profiles = []
+  const natives = []
   const walk = (at) => {
     for (const item of readdirSync(at, { withFileTypes: true })) {
       if (item.name === 'node_modules') continue
@@ -126,17 +134,66 @@ export function filesIn(directory) {
         continue
       }
       if (!item.isFile()) continue
+      if (NATIVE_FILE.test(item.name)) natives.push(relative(directory, path).replaceAll('\\', '/'))
       const named = FONT_FILE.test(item.name) || PROFILE_FILE.test(item.name)
       const head = named || NOT_OPENED.test(item.name) ? undefined : headOf(path)
       const file = relative(directory, path).replaceAll('\\', '/')
-      if (FONT_FILE.test(item.name) || (head !== undefined && looksLikeFont(head, statSync(path).size)))
-        fonts.push({ path: file, ...fontLicence(readFileSync(path)) })
-      else if (PROFILE_FILE.test(item.name) || (head !== undefined && looksLikeProfile(head)))
+      if (FONT_FILE.test(item.name) || (head !== undefined && looksLikeFont(head, statSync(path).size))) {
+        const bytes = readFileSync(path)
+        fonts.push({ path: file, digest: `sha256:${createHash('sha256').update(bytes).digest('hex')}`, ...fontLicence(bytes) })
+      } else if (PROFILE_FILE.test(item.name) || (head !== undefined && looksLikeProfile(head)))
         profiles.push({ path: file, digest: `sha256:${createHash('sha256').update(readFileSync(path)).digest('hex')}` })
     }
   }
   walk(directory)
-  return { fonts: fonts.sort(byPath), profiles: profiles.sort(byPath) }
+  return { fonts: fonts.sort(byPath), profiles: profiles.sort(byPath), natives: natives.sort() }
+}
+
+/** A CycloneDX component's licence, as one string: an id, a name or an expression, several joined by AND; undefined where it states none. */
+function componentLicence(component) {
+  const each = (component.licenses ?? []).flatMap((entry) => {
+    const said = entry?.license?.id ?? entry?.license?.name ?? entry?.expression
+    return typeof said === 'string' ? [said] : []
+  })
+  return each.length === 0 ? undefined : each.join(' AND ')
+}
+
+/**
+ * The SBOM at a package's root, `sbom.cdx.json`, as a review reads it:
+ * the SHA-256 of its bytes, and each component it lists, at any depth,
+ * by name, version, licence and purl -- `components` undefined where the
+ * file is no CycloneDX JSON. Undefined where the package ships none.
+ * Nothing here judges a licence; the guard does.
+ */
+export function sbomIn(directory) {
+  let bytes
+  try {
+    bytes = readFileSync(join(directory, 'sbom.cdx.json'))
+  } catch (error) {
+    if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return undefined
+    throw error
+  }
+  const sha256 = `sha256:${createHash('sha256').update(bytes).digest('hex')}`
+  try {
+    const found = []
+    const walk = (list) => {
+      for (const component of Array.isArray(list) ? list : []) {
+        found.push({
+          name: String(component.name),
+          version: component.version === undefined ? undefined : String(component.version),
+          licence: componentLicence(component),
+          purl: component.purl,
+        })
+        walk(component.components)
+      }
+    }
+    const document = JSON.parse(bytes.toString('utf8'))
+    if (document?.bomFormat !== 'CycloneDX') return { path: 'sbom.cdx.json', sha256, components: undefined }
+    walk(document.components)
+    return { path: 'sbom.cdx.json', sha256, components: found }
+  } catch {
+    return { path: 'sbom.cdx.json', sha256, components: undefined }
+  }
 }
 
 /**

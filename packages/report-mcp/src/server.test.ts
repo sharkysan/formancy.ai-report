@@ -2,10 +2,13 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { wordExpressions } from '@formancy/report-core'
 import { QUOTATION, STARTERS } from '@formancy/report-corpus'
-import { reportHash, reportWords } from '@formancy/report-spec'
+import { STDIO_DEFAULT_MAX_BUFFER_SIZE } from '@modelcontextprotocol/sdk/shared/stdio.js'
+import { DATA_MODES } from '@formancy/report-runtime'
+import { MAX_REPORT_BYTES, reportHash, reportWords } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
 import { createReportMcpServer, PACKAGE_VERSION, PLACEHOLDERS, PROMPTS, TOOL_DEFINITIONS, translationSteps } from './server.js'
+import { quotationOf, STARTER_ASSETS } from './test-support.js'
 import { applyCommands } from './tools.js'
 
 /**
@@ -66,9 +69,9 @@ function addressesIn(schema: unknown): string[] {
 describe('the tools a client can see', () => {
   // A tool missing is one an agent never calls; one added without a
   // description is one it calls for the wrong reason.
-  test('are the four that need nothing, each with the description TOOL_DEFINITIONS holds', async () => {
+  test('are the five that need nothing, each with the description TOOL_DEFINITIONS holds', async () => {
     const { tools } = await (await connect()).listTools()
-    expect(tools.map(({ name }) => name).sort()).toEqual(['apply_commands', 'describe_commands', 'describe_format', 'validate_report'])
+    expect(tools.map(({ name }) => name).sort()).toEqual(['apply_commands', 'describe_commands', 'describe_format', 'render_check', 'validate_report'])
     for (const tool of tools) expect(tool.description, tool.name).toBe(TOOL_DEFINITIONS[tool.name as keyof typeof TOOL_DEFINITIONS])
   })
 
@@ -80,6 +83,7 @@ describe('the tools a client can see', () => {
     expect(TOOL_DEFINITIONS.validate_report).toContain('after every change')
     expect(TOOL_DEFINITIONS.describe_commands).toContain('before apply_commands')
     expect(TOOL_DEFINITIONS.apply_commands).toContain('expectedHash')
+    expect(TOOL_DEFINITIONS.render_check).toContain('once validate_report answers ok')
   })
 
   // validate_report checks what the validator, the draft's size and a
@@ -137,7 +141,7 @@ describe('the tools a client can see', () => {
   // authority, which one day refuses a report report-spec accepts.
   test('take a report as any JSON value, for report-spec to judge', async () => {
     const { tools } = await (await connect()).listTools()
-    for (const name of ['validate_report', 'apply_commands']) {
+    for (const name of ['validate_report', 'apply_commands', 'render_check']) {
       const report = (tools.find((tool) => tool.name === name)?.inputSchema.properties as Record<string, Record<string, unknown>> | undefined)?.report
       expect(report, name).toBeDefined()
       expect(
@@ -205,6 +209,88 @@ describe('calling them', () => {
     expect(stale.isError).toBe(true)
     expect(stale.structuredContent?.data).toMatchObject({ refusal: { code: 'stale-document' } })
   })
+
+  // An edit applied is no call that ended in an error, MCP's meaning of
+  // isError, though the report it made is past the bound a save takes: a
+  // client that folds an error's content away, or a model that retries
+  // what failed, would lose the report the agent has to bring back within
+  // the bound. Not ok, so the agent knows there is something to fix, and
+  // not isError, which 0088 keeps for a refusal (2026-11-27).
+  test('apply_commands answers an edit applied past MAX_REPORT_BYTES as not ok, and as no error', async () => {
+    const report = quotationOf(MAX_REPORT_BYTES - 1)
+    const grown = (await (
+      await connect()
+    ).callTool({
+      name: 'apply_commands',
+      arguments: { report, commands: [{ command: 'setTitle', args: [`${report.title}xx`] }] },
+    })) as Answer
+    expect(grown.isError).toBeUndefined()
+    expect(grown.structuredContent?.ok).toBe(false)
+    expect(grown.structuredContent?.data).toMatchObject({ changed: true, size: { code: 'report-too-large' }, report: { title: `${report.title}xx` } })
+  })
+})
+
+describe('render_check through the protocol', () => {
+  // Every argument survives the trip under the name a model is told: the
+  // report, its data, its parameters, the locale, the zone, the mode and
+  // the assets, each read back from what the runtime printed with.
+  test('takes the report, its data and what a render names, and answers each page’s lines', async () => {
+    const result = (await (
+      await connect()
+    ).callTool({
+      name: 'render_check',
+      arguments: {
+        report: QUOTATION.report,
+        data: QUOTATION.data,
+        parameters: QUOTATION.parameters,
+        locale: 'de-CH',
+        timeZone: 'Europe/Zurich',
+        mode: 'preview',
+        assets: STARTER_ASSETS,
+      },
+    })) as Answer
+    expect(result.isError).toBeUndefined()
+    const data = result.structuredContent?.data as { pages: { page: number; lines: string[] }[]; manifest: Record<string, unknown> } | undefined
+    expect(data?.pages.map(({ page }) => page)).toEqual([1])
+    expect(data?.pages[0]?.lines[0]).toBe('Offerte Q-2026-0415')
+    expect(data?.manifest).toMatchObject({ locale: 'de-CH', timeZone: 'Europe/Zurich', mode: 'preview' })
+    expect(textOf(result)).toContain('Offerte Q-2026-0415')
+  })
+
+  // A render refused is a call that ended in an error, structured: the
+  // runtime's codes are what the agent fixes the data by.
+  test('answers a refusal as isError, with the runtime’s errors structured', async () => {
+    const result = (await (
+      await connect()
+    ).callTool({
+      name: 'render_check',
+      arguments: { report: QUOTATION.report, data: { ...QUOTATION.data, header: {} }, assets: STARTER_ASSETS },
+    })) as Answer
+    expect(result.isError).toBe(true)
+    expect(result.structuredContent?.data).toMatchObject({
+      rendered: false,
+      runtime: expect.arrayContaining([expect.objectContaining({ code: 'missing-field' })]),
+    })
+  })
+
+  // A mode the tool does not take is the protocol's to refuse, by the
+  // schema a client is told, which is the runtime's own list: a mode the
+  // runtime gained would otherwise be refused here. render.ts refuses
+  // another again for a library's caller.
+  test('tells a client the modes it takes, the runtime’s', async () => {
+    const { tools } = await (await connect()).listTools()
+    const mode = (tools.find(({ name }) => name === 'render_check')?.inputSchema.properties as Record<string, { enum?: unknown }> | undefined)?.mode
+    expect(mode?.enum).toEqual([...DATA_MODES])
+  })
+
+  // The SDK's stdio transport reads at most this of one message and ends
+  // the server past it, with no answer (0088): a call of real data and a
+  // logo passes it long before the runtime's rows bound does, so the
+  // description says so, by the transport's own number.
+  test('tells a model the whole call must stay under the transport’s bound', () => {
+    expect(TOOL_DEFINITIONS.render_check).toContain(`under ${String(STDIO_DEFAULT_MAX_BUFFER_SIZE)} bytes`)
+    expect(TOOL_DEFINITIONS.render_check).toContain('the server ends without an answer')
+  })
 })
 
 describe('the prompts a client can see', () => {
@@ -212,7 +298,8 @@ describe('the prompts a client can see', () => {
   // value; named for what somebody is doing, never for a tool.
   test('are writing a report and translating one, each with a description', async () => {
     const { prompts } = await (await connect()).listPrompts()
-    expect(prompts.map(({ name }) => name).sort()).toEqual(['translate_a_report', 'write_a_report'])
+    // Held to the table the server registers them from, so that a prompt added to PROMPTS and not registered, or registered and not exported, fails here.
+    expect(prompts.map(({ name }) => name).sort()).toEqual(Object.keys(PROMPTS).sort())
     for (const prompt of prompts) expect(prompt.description ?? '', prompt.name).not.toBe('')
   })
 
@@ -249,6 +336,10 @@ describe('the prompts a client can see', () => {
     const said = promptText(messages)
     expect(said).toContain('fr-CH')
     expect(said).toContain('word-missing')
+    // The payment part's words are a person's (0088, 2026-11-28): the prompt tells the agent to leave out what validate_report lists for one, by the verdict's own key.
+    expect(said).toContain('forPerson')
+    expect(said).toContain('payment part')
+    expect(TOOL_DEFINITIONS.validate_report).toContain('forPerson')
     for (const step of translationSteps('fr-CH', PLACEHOLDERS)) expect(said).toContain(JSON.stringify(step))
   })
 

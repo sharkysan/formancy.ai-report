@@ -133,7 +133,7 @@ export interface ReadPdf {
 }
 
 /** How far below the baseline a text box reaches, as a fraction of the font size. See `PdfTextItem`. */
-const DESCENT = 0.2
+export const DESCENT = 0.2
 
 /** The baseline the text sits on, in points from the top of the page. */
 export function baselineOf(item: PdfTextItem): number {
