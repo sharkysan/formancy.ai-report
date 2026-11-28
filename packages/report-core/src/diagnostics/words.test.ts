@@ -12,7 +12,7 @@ import { thawed } from '../snapshot.js'
 import type { Mutable } from '../snapshot.js'
 import { eInvoiceSample, sampleReport, setAt } from '../test-support.js'
 import { diagnose } from './diagnose.js'
-import { languageDiagnostics, wordExpressions } from './words.js'
+import { inPaymentPart, languageDiagnostics, missingWords, wordExpressions } from './words.js'
 
 const INTRO = 'header.customer + " x" + string(params.copies)'
 const GROUP = '" (" + string(group.lines) + ")"'
@@ -326,6 +326,86 @@ describe("diagnose, in each language's", () => {
     )
     expect(said.findIndex(({ language }) => language === 'it-CH')).toBeGreaterThan(said.findLastIndex(({ language }) => language === 'fr-CH'))
     expect(said.every(({ language }) => language !== undefined)).toBe(true)
+  })
+})
+
+describe('missingWords', () => {
+  // The words a language lacks are read back to their sources from
+  // word-missing alone: a list of its own would ask for a word the
+  // diagnostics do not miss, or leave out one a render in that language is
+  // refused for.
+  test('gives each word and expression word-missing names, by its source, with every place it stands and the one the diagnostic stands at', () => {
+    const report = translated((edited) => ({ ...french(edited, [GROUP, MESSAGE]), words: french(edited).words.filter(({ word }) => word !== 'Qty') }))
+    const said = languageDiagnostics(report, 'fr-CH').flatMap(({ code, path }) => (code === 'word-missing' ? [path] : []))
+    const { paymentPart, rest } = missingWords(report, 'fr-CH')
+    expect(paymentPart).toEqual([])
+    expect(rest).toEqual([
+      { kind: 'word', source: 'Qty', paths: ['/regions/body/2/columns/1/header'], at: '/regions/body/2/columns/1/header' },
+      { kind: 'expression', source: INTRO, paths: ['/regions/body/0/content/2/expression/cel'], at: '/regions/body/0/content/2/expression/cel' },
+    ])
+    expect(rest.map(({ at }) => at)).toEqual(said)
+  })
+
+  // The QR-bill's message prints on the slip and is encoded in the code a
+  // bank reads, which no proposal changes (0039, 0048): a word standing
+  // there in any place is a person's to write, though it stands first
+  // elsewhere, since a word is translated once wherever it stands (0085,
+  // 0088).
+  test('gives what stands anywhere in the payment part apart, a word that stands first elsewhere among it', () => {
+    const report = translated(
+      (edited) => ({ ...french(edited, [INTRO, GROUP]), words: french(edited).words.filter(({ word }) => word !== 'Total') }),
+      (draft) => setAt(draft, '/paymentPart/message/0/text', 'Total'),
+    )
+    const { paymentPart, rest } = missingWords(report, 'fr-CH')
+    expect(paymentPart.map(({ kind, source, at }) => `${kind} ${source} ${at}`)).toEqual([
+      'word Total /regions/body/2/totals/0/cells/0/value/text',
+      `expression ${MESSAGE} /paymentPart/message/1/expression/cel`,
+    ])
+    expect(paymentPart[0]?.paths.at(-1)).toBe('/paymentPart/message/0/text')
+    expect(rest).toEqual([])
+  })
+
+  // word-missing names an expression at its first site that prints words,
+  // which need not be its first: one printed as a number in the report's
+  // body and as words in the slip's message is the payment part's all the
+  // same. Matched at its first site alone, it would be left out of both
+  // lists, and an agent would translate the slip's words.
+  test("gives an expression of the payment part's whose first site prints no words", () => {
+    const report = translated(
+      (edited) => french(edited, [INTRO, GROUP]),
+      (draft) => {
+        const content = draft.regions.body[0] as Mutable<{ content: unknown[] }>
+        content.content.push({ kind: 'expression', expression: { cel: MESSAGE }, format: { kind: 'number', scale: 2, grouping: true } })
+      },
+    )
+    const { paymentPart, rest } = missingWords(report, 'fr-CH')
+    expect(paymentPart).toEqual([
+      {
+        kind: 'expression',
+        source: MESSAGE,
+        paths: ['/regions/body/0/content/3/expression/cel', '/paymentPart/message/1/expression/cel'],
+        at: '/paymentPart/message/1/expression/cel',
+      },
+    ])
+    expect(rest).toEqual([])
+  })
+
+  // As languageDiagnostics: nothing of the report's own language, or of one
+  // it does not declare.
+  test("gives nothing of the report's own language, or of one it does not declare", () => {
+    const report = translated((edited) => ({ ...french(edited), words: [] }))
+    expect([missingWords(report, 'de-CH'), missingWords(report, 'it-CH')]).toEqual([
+      { paymentPart: [], rest: [] },
+      { paymentPart: [], rest: [] },
+    ])
+  })
+})
+
+describe('inPaymentPart', () => {
+  // The payment part is named by the definition's own key: a place under
+  // another key whose name begins the same is no part of it.
+  test('says a place under the payment part is in it, and no other', () => {
+    expect(['/paymentPart/message/0/text', '/paymentPartner/0', '/paymentPart', '/regions/body/0'].map(inPaymentPart)).toEqual([true, false, false, false])
   })
 })
 

@@ -179,6 +179,13 @@ reads an XRechnung's; the one place the writer writes it itself is the
 header of a slip's page, which no document has. The copy is proved on
 every header the file states
 ([0077](../decisions/0077-a-report-that-carries-an-e-invoice-is-written-into-a-word-file-as-the-copy-the-runtime-labels-on-every-page.md)).
+What a coding agent is told a report prints is held to the same rule:
+the MCP's render check renders the report with the data the agent passes
+in and reads the PDF back with PDF.js at the corpus's pin, each page's
+lines joined by the corpus's own rule, written again in a published
+package and held equal to the corpus's on the corpus's PDFs; never the
+resolved document's words, which know no page
+([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)).
 
 ## 6. Depend, never copy, and let the licence choose the dependencies
 

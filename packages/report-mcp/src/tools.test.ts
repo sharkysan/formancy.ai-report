@@ -1,8 +1,9 @@
 import { describeCommands, diagnose, languageDiagnostics, reportFacts } from '@formancy/report-core'
-import { STARTERS, QUOTATION } from '@formancy/report-corpus'
-import { MAX_REPORT_BYTES, reportHash } from '@formancy/report-spec'
-import type { Component, ReportDefinition } from '@formancy/report-spec'
+import { INVOICE, STARTERS, QUOTATION } from '@formancy/report-corpus'
+import { MAX_REPORT_BYTES, reportHash, reportWords, wordExpressionSites } from '@formancy/report-spec'
+import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
+import { quotationOf } from './test-support.js'
 import { applyCommands, checkReport, describeFormat, listCommands } from './tools.js'
 import type { ToolResult } from './tools.js'
 
@@ -34,29 +35,6 @@ interface Refused {
 
 const quotation = QUOTATION.report
 
-/** A report's size as report-spec states `MAX_REPORT_BYTES` is measured: the UTF-8 length of its JSON. */
-const bytesOf = (report: unknown): number => new TextEncoder().encode(JSON.stringify(report)).byteLength
-
-/**
- * The quotation grown to exactly `bytes` bytes by texts of plain letters
- * at the end of its body, each within the text's own bound: a valid report
- * of a size chosen to the byte.
- */
-function quotationOf(bytes: number): ReportDefinition {
-  const text = (id: string, length: number): Component => ({ kind: 'text', id, content: [{ kind: 'text', text: 'x'.repeat(length) }] })
-  const padded = (texts: readonly Component[]): ReportDefinition => ({
-    ...quotation,
-    regions: { ...quotation.regions, body: [...quotation.regions.body, ...texts] },
-  })
-  const texts: Component[] = []
-  while (bytesOf(padded([...texts, text(`pad-${String(texts.length)}`, 9000)])) < bytes) texts.push(text(`pad-${String(texts.length)}`, 9000))
-  const last = `pad-${String(texts.length)}`
-  const short = bytes - bytesOf(padded([...texts, text(last, 0)]))
-  const report = padded([...texts, text(last, short)])
-  expect(bytesOf(report)).toBe(bytes)
-  return report
-}
-
 describe('describe_format', () => {
   // Typed into the tool, the facts would describe the format one release
   // behind; they are report-core's, which reads report-spec's constants.
@@ -87,6 +65,51 @@ describe('validate_report', () => {
       // A warning prints as written, so a starter with no error is ok.
       expect(result.ok, id).toBe(diagnose(report).every(({ severity }) => severity !== 'error'))
     }
+  })
+
+  // The QR-bill's message is a word, and it prints on the slip and is
+  // encoded in the code a bank reads: no proposal changes what the payment
+  // part prints (0039, 0048), report-ai asks a model for none of its words
+  // (0085), and an agent is told which they are, by the same rule,
+  // report-core's missingWords, so that the words it is offered to
+  // translate hold none of them -- a word that also stands elsewhere among
+  // them, since a word is translated once.
+  test('lists what a language lacks in the payment part for a person, and offers an agent none of it', () => {
+    const french = dataOf<{ report: ReportDefinition }>(applyCommands(INVOICE.report, [{ command: 'addLanguage', args: ['fr-CH'] }])).report
+    const [language] = dataOf<{
+      languages: readonly {
+        readonly diagnostics: readonly { readonly code: string; readonly path: string }[]
+        readonly forPerson: readonly { readonly kind: string; readonly source: string; readonly paths: readonly string[]; readonly at: string }[]
+      }[]
+    }>(checkReport(french)).languages
+    if (language === undefined) throw new Error('the invoice in French declares no language')
+    expect(language.forPerson).toEqual([{ kind: 'word', source: 'Rechnung ', paths: ['/paymentPart/message/0/text'], at: '/paymentPart/message/0/text' }])
+    const inPart = new Set([
+      ...reportWords(french).flatMap(({ path, text }) => (path.startsWith('/paymentPart/') ? [text] : [])),
+      ...wordExpressionSites(french).flatMap(({ path, cel }) => (path.startsWith('/paymentPart/') ? [cel] : [])),
+    ])
+    const sourceAt = new Map([
+      ...reportWords(french).map(({ path, text }) => [path, text] as const),
+      ...wordExpressionSites(french).map(({ path, cel }) => [path, cel] as const),
+    ])
+    const person = new Set(language.forPerson.map(({ source }) => source))
+    const offered = language.diagnostics.flatMap(({ code, path }) =>
+      code === 'word-missing' && !person.has(sourceAt.get(path) ?? '') ? [sourceAt.get(path)] : [],
+    )
+    expect(offered.length).toBeGreaterThan(0)
+    expect(offered.filter((source) => inPart.has(source ?? ''))).toEqual([])
+  })
+
+  // forPerson is a request to the agent, and the person it acts for may
+  // choose the slip's text in another language: apply_commands applies a
+  // translation of the payment part's words, as a builder's field does, and
+  // the word is then listed for nobody (0088, 2026-11-28).
+  test('applies a translation of the payment part’s words, which forPerson then lists no longer', () => {
+    const french = dataOf<{ report: ReportDefinition }>(applyCommands(INVOICE.report, [{ command: 'addLanguage', args: ['fr-CH'] }])).report
+    const translated = applyCommands(french, [{ command: 'translateWord', args: ['fr-CH', 'Rechnung ', 'Facture '] }])
+    expect(dataOf<{ changed: boolean }>(translated).changed).toBe(true)
+    const [language] = dataOf<{ languages: readonly { readonly forPerson: readonly unknown[] }[] }>(translated).languages
+    expect(language?.forPerson).toEqual([])
   })
 
   // The three lists are the order a save, a render and a language's render
@@ -252,6 +275,9 @@ describe('the size a draft is held to', () => {
     expect(within.ok).toBe(true)
     const grown = applyCommands(report, [{ command: 'setTitle', args: [`${report.title}xx`] }])
     expect(grown.ok).toBe(false)
+    // Applied, which server.ts answers as no error (0088, 2026-11-27).
+    expect(grown.applied).toBe(true)
+    expect(within.applied).toBeUndefined()
     expect(dataOf<{ changed: boolean; size: unknown }>(grown)).toMatchObject({
       changed: true,
       size: { bytes: MAX_REPORT_BYTES + 1, max: MAX_REPORT_BYTES, code: 'report-too-large' },

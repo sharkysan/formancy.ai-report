@@ -34,7 +34,7 @@
       ]
     },
     "0003": {
-      "reviewed": "sha256:d167ba8fe1c0ca9a39536739761c4b5cf486d721244d3865814f38ee01e9ff0d",
+      "reviewed": "sha256:9ebac5853cb44ee04bececf346ab7e7335c06a5cfebf30d41c3cd1dc7eb70bbc",
       "limitations": [
         {
           "area": "testing",
@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:be062714137d74e4654071552e07b5ee18f07370c8c1690ebe683f765d356921",
+      "reviewed": "sha256:433bb0e01d2c57aef8776c14aee2858770c846a6665ea98c201e589081674fa4",
       "limitations": [
         {
           "area": "licence",
@@ -3635,7 +3635,7 @@
       ]
     },
     "0085": {
-      "reviewed": "sha256:d6fa1761a634d4667c1845c104b97498f0c5979426edc33a8d02d9ca4556d3a7",
+      "reviewed": "sha256:52b60a5e05a94b49b0aae785bc07634a27e7836192bda3e7b5cd534bd9529167",
       "limitations": [
         {
           "area": "editing",
@@ -3649,10 +3649,6 @@
           "area": "editing",
           "says": "A word that stands anywhere in a report's QR-bill message is never asked of a model by report-ai's request and stays for a person to write, so a report with a QR-bill is never translated whole by report-ai.",
           "heldBy": "packages/report-ai/src/translation/request.test.ts"
-        },
-        {
-          "area": "editing",
-          "says": "report-mcp's `translate_a_report` prompt asks an agent's own model for every `word-missing`, a QR-bill message's words among them, so an agent that follows it writes the slip's message, which report-ai's request keeps for a person, until that prompt leaves those words for a person."
         },
         {
           "area": "editing",
@@ -3701,7 +3697,7 @@
       ]
     },
     "0086": {
-      "reviewed": "sha256:8584bf92f2239dcdf31b612c8a9ddfb87f803585b467018b5fd97377222e4703",
+      "reviewed": "sha256:5de6b251ac758cabda01be99c52a8a78488c8e5ef5b17081711181fc4667ade5",
       "limitations": [
         {
           "area": "builders",
@@ -3739,7 +3735,7 @@
       ]
     },
     "0088": {
-      "reviewed": "sha256:dd9ec623d68b63306acd4556603e3fb9c3c7a2b2f7e59d1d2b0312e470b575d4",
+      "reviewed": "sha256:c06230b3bfd97f73f8cdc6bd3b8d23393d04e07e4044c308b3df4fb68b4d77d1",
       "limitations": [
         {
           "area": "release",
@@ -3761,8 +3757,18 @@
         },
         {
           "area": "editing",
-          "says": "No MCP tool reads or saves a draft on Report's server, or renders a PDF, yet: the tools check a report and apply commands to the one an agent hands over and keep nothing, so what an agent wrote reaches a builder or the server only as the host carries it there.",
+          "says": "No MCP tool reads or saves a draft on Report's server yet: the tools check, apply commands to and render the report an agent hands over and keep nothing, so what an agent wrote reaches a builder or the server only as the host carries it there.",
           "heldBy": "packages/report-mcp/src/server.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "An edit apply_commands applied whose report is past MAX_REPORT_BYTES is answered not ok and without isError, since the edit was made: a client that reads isError alone takes it for a report a save would take, where ok and the summary say it is not.",
+          "heldBy": "packages/report-mcp/src/server.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "validate_report's forPerson asks an agent to leave the payment part's words to a person, and nothing refuses it: apply_commands applies a translation of the QR-bill's message as a builder's field does, and the word is then listed for nobody, where report-ai's proposals drop such an entry.",
+          "heldBy": "packages/report-mcp/src/tools.test.ts"
         },
         {
           "area": "editing",
@@ -3786,6 +3792,62 @@
         {
           "area": "testing",
           "says": "The MCP's bin has been launched by the SDK's stdio client alone, in the install gate and by hand on Windows, and by no agent's client, so whether a given client launches it is that client's."
+        }
+      ]
+    },
+    "0089": {
+      "reviewed": "sha256:c9520a515997a1600ce9ac126bbd8e6212460051803f2fa4928f29f073603eda",
+      "limitations": [
+        {
+          "area": "licence",
+          "says": "@formancy/report-mcp depends on pdfjs-dist 6.4.299, which ships four faces of Liberation Sans 1.07.4 under GPL-2.0 with a font-embedding exception beside its Apache-2.0 code: the licence guard admits those files for report-mcp alone as never loaded, which the owner decided on 28 November 2026, and report-mcp never reads them, but every agent's install holds them.",
+          "heldBy": "packages/report-mcp/src/pdf-text.test.ts"
+        },
+        {
+          "area": "licence",
+          "says": "report-mcp's render check loads @napi-rs/canvas, which pdfjs-dist requires in Node: each of its 1.0.11 builds links code its SBOM lists under licences the policy refuses -- MPL-2.0 (cssparser 0.38.0, cssparser-color 0.6.0, cssparser-macros 0.7.0, dtoa-short 0.3.5), the FTL (FreeType), ICU, IJG (libjpeg-turbo), libpng-2.0 and Unicode-3.0 (unicode-ident) -- which the owner admitted for report-mcp alone on 28 November 2026, by each build's SBOM; MPL-2.0 is file-level and asks nothing of a use that does not modify those files.",
+          "heldBy": "scripts/dependency-licences.test.mjs"
+        },
+        {
+          "area": "licence",
+          "says": "pdfjs-dist asks for @napi-rs/canvas at ^1.0.10, so an integrator's own install may resolve a later 1.x build whose SBOM nobody here read: the licence guard holds the builds this repository's lockfile names, not an integrator's."
+        },
+        {
+          "area": "licence",
+          "says": "The licence guard reads a native addon's build by its SBOM, and no other compiled code: pdfjs-dist's four WebAssembly files, which report-mcp loads none of, and a shared library or a .node file in a workspace package are not seen."
+        },
+        {
+          "area": "release",
+          "says": "report-mcp's install carries the renderer and PDF.js since its render check: its third-party closure was 127 packages and 194 MB on one Windows machine on 27 November 2026, ECharts, the native @napi-rs/canvas binary and pdfjs-dist the largest, for an agent that may never render."
+        },
+        {
+          "area": "rendering",
+          "says": "render_check answers each page's lines of text, read from the PDF with PDF.js, and never the PDF's bytes or where a line stands on its page: text drawn over text, clipping, colour, an image and a code are not seen, and a chart's words are read as runs.",
+          "heldBy": "packages/report-mcp/src/render.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "render_check refuses whole a report past 40 pages, and an answer whose data is past MAX_REPORT_BYTES, 256 KiB, with its page count, so a long report is checked with fewer rows; a client may show an answer's data twice, as text and as structure.",
+          "heldBy": "packages/report-mcp/src/render.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "render_check's data is the runtime's envelope, completeness and consistency beside header and detail, which the runtime refuses data without: an agent's sample data of header and detail alone is refused by those codes until it carries them.",
+          "heldBy": "packages/report-mcp/src/render.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "One render_check call through stdio carries at most the SDK's 10 MiB -- the report, the data and every asset's base64 together -- and past it the server ends without an answer: the quotation with its logo carries at most 78,013 of its lines in one call (measured 28 November 2026), short of the runtime's 100,000 rows, so an agent checks a sample of rows.",
+          "heldBy": "packages/report-mcp/src/server.test.ts"
+        },
+        {
+          "area": "rendering",
+          "says": "A render check runs on the MCP server's one thread and can take seconds within every bound, 3.3 s at 100,000 detail rows on one machine; a client's cancel reaching it through the protocol is not tested."
+        },
+        {
+          "area": "testing",
+          "says": "render_check's line reader is a second copy of the corpus's pageLines, held equal to it on the corpus's PDFs and by each fraction it is written with, and not on every report: one that lines up otherwise than any of the corpus's can read differently in the two.",
+          "heldBy": "packages/report-mcp/src/pdf-text.test.ts"
         }
       ]
     },

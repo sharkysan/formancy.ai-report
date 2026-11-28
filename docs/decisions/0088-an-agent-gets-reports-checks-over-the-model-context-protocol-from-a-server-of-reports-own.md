@@ -1,6 +1,6 @@
 # 0088 — An agent gets Report's checks over the Model Context Protocol, from a server of Report's own
 
-- **Status:** accepted for the tools that need nothing, the prompts and report-core's two derivations; its server half, the tools that read and save a template's draft and the identity they ask with, is decided and not yet built, and no test holds it until the pull request that builds it states its own here; extends [0008](0008-edits-are-commands-and-a-refused-edit-changes-nothing.md); follows formancy.ai 0056 and 0112
+- **Status:** accepted for the tools that need nothing, the prompts and report-core's two derivations; its server half, the tools that read and save a template's draft and the identity they ask with, is decided and not yet built, and no test holds it until the pull request that builds it states its own here; its render check is [0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)'s; an edit applied past the size bound answered as no error, 2026-11-27; a language's words in the payment part listed for a person and left out by the translate prompt, 2026-11-28; extends [0008](0008-edits-are-commands-and-a-refused-edit-changes-nothing.md); follows formancy.ai 0056 and 0112
 - **Date:** 2026-11-27
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -50,9 +50,20 @@
     command run on it; and a report of exactly `MAX_REPORT_BYTES`, measured
     as report-spec states the bound is, passes, one a byte past it is not
     `ok` and names `report-too-large`, and an edit that grows a report
-    past it is applied and not `ok`.
+    past it is applied and not `ok`, and says it was `applied`; and, on
+    the invoice in French, the slip's message listed in the language's
+    `forPerson`, and none of the `word-missing` an agent is left to
+    translate standing in the payment part. The rule `forPerson` is
+    listed by is report-core's `missingWords`, held by
+    `packages/report-core/src/diagnostics/words.test.ts`: each
+    `word-missing` read back to its source, a word that stands first
+    elsewhere and in the payment part among the payment part's, and an
+    expression printed as a number in the body and as words in the slip's
+    message among them too, which failed first on 28 November 2026 matched
+    at its first place alone, as report-mcp's own copy of the rule
+    matched it.
   - **Through the protocol.** `packages/report-mcp/src/server.test.ts`,
-    with the SDK's own `Client` over its `InMemoryTransport`: the four
+    with the SDK's own `Client` over its `InMemoryTransport`: the five
     tools listed, each with the description `TOOL_DEFINITIONS` holds and
     saying when to call it; every tool annotated read-only and
     closed-world, none named for publishing, saving, sending or fetching;
@@ -61,28 +72,39 @@
     of format `uri`, and no prompt an argument so named, the walk shown to
     find each; a report taken as any JSON value; the server's version the
     manifest's; arguments surviving the round trip, and a refusal arriving
-    as `isError` with its structure; `validate_report`'s description
+    as `isError` with its structure, and an edit applied past
+    `MAX_REPORT_BYTES` arriving not `ok`, with the report it made, and no
+    `isError`; `validate_report`'s description
     saying what a save asks of the server that it does not check; the two
     prompts, each naming only tools the server registers, writing in the
     order the format, the report, the checks, and translating from
-    `word-missing` through descriptors `translationSteps` makes, typed by
+    `word-missing`, leaving out what `validate_report` lists in
+    `forPerson`, through descriptors `translationSteps` makes, typed by
     report-core's `StepDescriptor`, which the case applies through the
     registry to a starter that prints words by an expression.
   - **The composition root.** `packages/report-mcp/src/composition.test.ts`,
-    read with TypeScript's parser: each module imports only the
+    read with TypeScript's parser, every directory of `src/` read and a
+    module named by its path in it: each module imports only the
     specifiers its list names -- `tools.ts` report-core and report-spec;
-    `server.ts` `node:module`, the SDK's `server/mcp.js` and `types.js`,
-    report-core for types, zod and `./tools.js`; `main.ts` the SDK's
-    `server/stdio.js` and `./server.js`; `index.ts` its two modules -- and
+    `server.ts` `node:module`, the SDK's `server/mcp.js`, `shared/stdio.js`
+    and `types.js`, report-core for types, the runtime for its modes, zod,
+    `./render.js` and `./tools.js`; `main.ts` the SDK's `server/stdio.js` and
+    `./server.js`; `index.ts` its three modules; `render.ts` and
+    `pdf-text.ts` as 0089 says -- and
     a module with no list fails; `main.ts` alone names `process`;
-    `server.ts` alone calls `createRequire`, once, its result called at
-    once with `'../package.json'` alone; no module names `console`,
+    `server.ts` alone takes `createRequire`, as `import { createRequire }
+    from 'node:module'` and in no other way, and calls it once, its result
+    called at once with `'../package.json'` alone, and no module names it
+    by a string; no module names `console`,
     `fetch`, `WebSocket`, `XMLHttpRequest` or `EventSource`. The guard is
     shown to find, planted, Express, Hono, cross-spawn, the SDK's HTTP
     server transport and its stdio client, `node:fs` imported, required
     or loaded through `createRequire`, a `require` kept and called later,
     `console` by name and by index, `process` outside `main.ts`, `fetch`,
-    and a module of its own.
+    and a module of its own; and, after the re-review, `createRequire`
+    imported under an alias, called by a namespace's string index,
+    re-exported and imported as a type, each of which had passed, and a
+    module in a directory of `src/`, which the walk had not read.
   - **The licences.** `scripts/dependency-licences.mjs` over the
     SDK's and zod's production closure, as this repository's lockfile
     installs it, every package permissive, judged as any package is.
@@ -147,8 +169,8 @@ Protocol, on the SDK at exactly 1.32.2 and zod at exactly 4.6.7, and its
 tools check before they act.**
 
 - **Where.** `packages/report-mcp`, Node, over stdio. It depends on
-  report-spec and report-core; a render check, a record of its own,
-  brings the runtime and the renderer, and the server half the client.
+  report-spec and report-core; the render check, 0089's, brings the
+  runtime, the renderer and PDF.js, and the server half the client.
   The sketch draws it in a row above the L3 packages, where it stands once
   it depends on them.
 - **The tools that need nothing**, built:
@@ -198,12 +220,54 @@ tools check before they act.**
   validator or a render would refuse -- an edit applied is `ok` though its
   report has a diagnostic error, since a language just added lacks every
   word until the next edit, but not past the bound, which no save takes
-  -- and a refusal `isError`, never a thrown error.
+  -- and a refusal `isError`, never a thrown error; an edit applied is
+  never `isError`, below.
   The text's JSON has no indentation, since a report is the largest thing
   in it. `TOOL_DEFINITIONS` is exported and asserted. Every tool built is
   annotated read-only and closed-world, `apply_commands` among them, which
   answers a new report and keeps none. The server's name is
   `formancy-report`, its version the manifest's.
+- **Added 2026-11-27: an edit applied is no error.** B1's re-review
+  (N-D) found an edit that grows a report past `MAX_REPORT_BYTES`
+  answered `isError: true`, though it was applied and its answer holds
+  the report it made. MCP's `isError` says the call ended in an error,
+  and formancy.ai 0112 sets it for a refusal, "an answer the model should
+  read and act on"; neither is an edit made. A client may fold an error's
+  content away, or a model retry what failed, and either loses the report
+  the agent has to bring back within the bound. So such an answer is
+  `ok: false` -- something to fix before a save -- and `applied`, which
+  `server.ts` answers with no `isError`; every refusal, and
+  `validate_report`'s verdict of a report a save or a render refuses, as
+  upstream's `validate_form`, stays `isError`. `server.test.ts` holds it
+  through the protocol, and failed first on the answer as it was.
+- **Added 2026-11-28: the payment part's words are a person's.** The
+  translate prompt told an agent to translate every `word-missing` a
+  language lists, and report-core's `missing()` walks the QR-bill's
+  message, a word (0063) that prints on the slip and is encoded in the
+  code a bank reads: on the invoice starter an agent would have written
+  French into it, which no proposal may change (0039, 0048) and report-ai
+  never asks a model for (0085). `validate_report` now lists, for each
+  language, what it lacks that stands anywhere in the payment part,
+  `forPerson` -- a word that also stands elsewhere among them, since a
+  word is translated once -- by report-core's `missingWords`, the one rule
+  report-ai's request reads too (0085): each `word-missing` read back to
+  its source through report-spec's one walk of a report's words and
+  expressions, and matched at any place it stands, since an expression's
+  stands at its first site that prints words, which need not be its
+  first. Each package held a copy of the rule while 0085 was on a branch
+  of its own, and report-mcp's matched an expression at its first site
+  alone, so that one printed as a number in the body and as words in the
+  slip's message was offered to the agent to translate; both copies are
+  gone. The prompt tells the agent to leave those out and name them to
+  the person, and the description says so; an e-invoice's texts are no
+  words in that walk. `tools.test.ts`
+  holds it on the invoice, and failed first on the verdict without it.
+  It is a request to the agent and no refusal: the agent acts for a
+  person, who may choose the slip's text in another language, so
+  `apply_commands` applies a `translateWord` of the payment part's words
+  as a builder's field does, and the word is then listed for nobody --
+  where report-ai, which asks a model, drops such an entry from its
+  proposal (0085). `tools.test.ts` holds that too.
 - **Two prompts** arrive with the server, exported as `PROMPTS`:
   `write_a_report`, the format first, then the report, then
   `validate_report` until it answers ok, every later change through

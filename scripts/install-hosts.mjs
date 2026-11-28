@@ -151,11 +151,11 @@ export const HOSTS = {
     ],
   },
   // A coding agent's client launching Report's MCP server (0088): Node's
-  // types, report-mcp and what it declares, and the SDK's client
-  // `alongside` it at the release report-mcp declares, as a client holds
-  // one, so an MCP that imported a package it never declared -- the
-  // runtime, the renderer -- fails here, where the Node host would pass
-  // it. mcp.ts launches the bin npm linked, as a client's configuration
+  // types, report-mcp and what it declares -- the runtime and the renderer
+  // since its render check (0089) -- and the SDK's client `alongside` it at
+  // the release report-mcp declares, as a client holds one, so an MCP that
+  // imported a package it never declared -- the client, the server --
+  // fails here, where the Node host would pass it. mcp.ts launches the bin npm linked, as a client's configuration
   // names it, and speaks to it over stdio; `mcp-globals.d.ts` declares the
   // one name the SDK's declarations need beyond Node's types.
   mcp: {

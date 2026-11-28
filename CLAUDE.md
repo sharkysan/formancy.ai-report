@@ -78,7 +78,25 @@ An ICC profile, which a PDF/A embeds as its output intent and which states
 no terms of its own, is admitted by the SHA-256 of its bytes alone, with
 the licence sentence a review read (`ICC_PROFILES`, 0006 as 0031 extends
 it): a profile it finds by its name or its header that no review holds is
-refused. What it cannot see -- whether a licence's terms are what its
+refused. pdfjs-dist 6.4.299, which `report-mcp` reads its render
+check's PDF with, is the first package that ships fonts under a licence
+the policy refuses -- four faces of Liberation Sans 1, GPL-2.0 with a
+font-embedding exception -- in a published closure: they are admitted
+for `report-mcp` alone as never loaded, by the SHA-256 of each file, held
+by the case that shows nothing reads them, `file#test name`, which the
+guard finds in that file (`NEVER_LOADED`); its Foxit faces are
+exceptions, file by file, and its CMYK profile is in `ICC_PROFILES`. A
+package that ships a native addon, a `.node` file, is refused unless a
+review read its build's SBOM: `@napi-rs/canvas` 1.0.11, which PDF.js
+loads, is admitted for `report-mcp` alone by the SHA-256 of each of its
+eleven builds' `sbom.cdx.json`, the components beyond the policy that
+SBOM lists -- MPL-2.0's cssparser crates and dtoa-short, FreeType, ICU,
+libjpeg-turbo, libpng, unicode-ident -- the review's, every package that
+depends on it one the review saw, and every build and version
+`pnpm-lock.yaml` names one it read, by the integrity the lockfile records
+(`BUILDS_READ`). Both
+are the owner's decisions of 28 November 2026, 0006 as
+[0089](docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md) extends it. What it cannot see -- whether a licence's terms are what its
 identifier says, code a package vendors, a font or a profile inside a
 script -- is held by review, and 0006 lists it.
 
@@ -609,13 +627,29 @@ Model Context Protocol, a published package whose bin,
 `reportFacts()` and `describeCommands()`, derived from report-spec's
 constants and the registry; `validate_report` answers the validator's
 errors, the report's size against `MAX_REPORT_BYTES` and its diagnostics
-and each language's; and `apply_commands` a session's batch through the
-registry, with an optional `expectedHash`. It stands on report-spec,
-report-core, the SDK at exactly 1.32.2 and zod at exactly 4.6.7; `main.ts`
-alone touches the process, and `src/composition.test.ts` holds each module
-to the specifiers it may import; it publishes, saves, renders and fetches
-nothing, and the tools that read and save a draft are decided and not yet
-built
+and each language's; `apply_commands` a session's batch through the
+registry, with an optional `expectedHash`, an edit applied past the size
+bound not `ok` and never `isError`; and `render_check`, in `render.ts`,
+the report resolved by the runtime with the data, the parameters, the
+locale, the zone and the mode an agent passes in, its assets as base64
+bytes each held to its digest first, drawn by `renderPdf` within
+`MAX_CHECK_PAGES`, and each page's lines read back by `pdf-text.ts` with
+pdfjs-dist at the corpus's pin, by the corpus's `pageLines` rule written
+again and held equal to it and to its fractions in `pdf-text.test.ts`,
+the answer's data held to `MAX_ANSWER_BYTES` and never the PDF, the
+renderer and PDF.js imported with the first check, and the whole call
+under the SDK's 10 MiB stdio bound, which the description names; a
+language's words in the payment part are listed for a person,
+`forPerson`, by report-core's `missingWords`, and the translate prompt
+leaves them out
+([0089](docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)). It stands on report-spec,
+report-core, the runtime, the renderer, the SDK at exactly 1.32.2, zod at
+exactly 4.6.7 and pdfjs-dist at exactly 6.4.299, which
+`scripts/mirrored-pdfjs.test.mjs` holds to the corpus's; `main.ts`
+alone touches the process, and `src/composition.test.ts` reads every
+directory of `src/` and holds each module to the specifiers it may
+import; it publishes, saves and fetches nothing, and the tools that read
+and save a draft are decided and not yet built
 ([0088](docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
 `@formancy/report-ai` holds a model's turn, formancy 0.14.0's own,
 generic over the kind: `askChecked`, `readAnswer`, `createStop`,
@@ -643,9 +677,9 @@ keeps what is still missing and fits in the report as it stands, holds
 each text by `texts.ts` -- `refusedCharacter`, an expression's escapes, a
 word's spaces at either end -- then the validator through `tryEdit` and
 `languageDiagnostics`, refusing an entry alone, and gives one batch against
-the report's hash. That payment-part rule is report-ai's request's:
-report-mcp's translate prompt to an agent's model differs, which
-`docs/architecture/11-risks-and-debt.md` carries. The recorded answers
+the report's hash. That payment-part rule is report-core's
+`missingWords`, which report-mcp's verdict reads too, so its translate
+prompt leaves the same words to a person. The recorded answers
 are `fixtures/answers/`
 ([0085](docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
 report-builder-core holds that proposal for a person's review, and no
@@ -774,10 +808,11 @@ before it:
    report-runtime and `@formancy/spec` at the exact release the repository
    pins, and never Formancy Data's contracts.
 9. `report-mcp` -- Report's checks for a coding agent, a published bin
-   speaking the Model Context Protocol over stdio (0088): on report-spec
-   and report-core, and on the runtime, the renderer and the client once
-   its render check and its server half are built; the SDK and zod at
-   exact releases; no server over HTTP, no address taken.
+   speaking the Model Context Protocol over stdio (0088): on report-spec,
+   report-core, the runtime and the renderer, the last two for its render
+   check (0089), and on the client once its server half is built; the
+   SDK, zod and pdfjs-dist at exact releases, pdfjs-dist the corpus's; no
+   server over HTTP, no address taken.
 
 A package arrives with the decision record that says what it may import. When
 this map goes stale, the rename is the edit to make here.
@@ -1395,7 +1430,8 @@ Locally, run the same commands for what you changed.
   `mcp.ts`, in a host of its own beside the SDK's client at the release
   report-mcp declares, the packed bin launched by the command npm linked
   through that client's stdio transport, its tools listed, a report
-  validated, a command applied and a stale hash refused (0088);
+  validated, a command applied and a stale hash refused (0088), and the
+  quotation render-checked, its title read back from page 1 (0089);
   `react.tsx` drawn by React's server renderer in its development and
   production builds; `angular.ts` compiled
   ahead of time, linked and bundled by `build.mjs`, and drawn by

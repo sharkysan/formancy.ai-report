@@ -42,6 +42,59 @@ of either builder; `EDITOR_REFUSAL_CODES` gains `not-answered`. The start
 page's guard of "No changes described in words in the builders" now holds
 report-builder-core to report-ai's translation alone.
 
+**A coding agent can render a report with sample data and read what its
+PDF prints, page by page, through `@formancy/report-mcp`'s new
+`render_check`**
+([0089](docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)).
+What an agent most needs to know of a report -- on which page a line
+landed, what a table prints where, what stands on the last page -- only
+the PDF knows, and Report proves every claim about output on the PDF. The
+tool renders the report as a host does, with the data, the parameters,
+the locale, the zone and the mode passed in, and answers each page's
+lines read back with PDF.js, or the validator's, the runtime's or the
+renderer's refusal by its codes; never the PDF itself. Images and fonts
+come as base64 bytes with their digests, each held to its digest before
+anything resolves. One call is bounded: the report by `MAX_REPORT_BYTES`,
+the data by the runtime's rows and string length, the PDF by 40 pages,
+and the answer's data by `MAX_REPORT_BYTES` again, refused whole past it;
+and through stdio the whole call by the SDK's 10 MiB, which ends the
+server past it and which the tool's description names: about 78,000 of
+the quotation's lines at most, so an agent checks a sample.
+report-mcp now depends on the runtime, the renderer and `pdfjs-dist` at
+exactly 6.4.299, the corpus's, Apache-2.0, with its optional native
+`@napi-rs/canvas`: an agent's install had 127 third-party packages and
+194 MB on one Windows machine on 27 November 2026, beside the Formancy
+packages, the renderer and PDF.js loaded only with the first check.
+pdfjs-dist ships Liberation Sans 1 under GPL-2.0 with a font-embedding
+exception, which report-mcp never loads; and the canvas, MIT by its
+manifest, is a native build whose SBOM lists code under MPL-2.0 -- four
+Rust crates -- the FTL, ICU, IJG, libpng-2.0 and Unicode-3.0, and which
+PDF.js loads. The owner admitted both for report-mcp alone on
+28 November 2026: the four faces as never loaded, held by the case that
+shows it, and the canvas's eleven builds by their SBOMs' digests, every
+build and version the lockfile names one a review read. The licence
+guard now refuses any package that ships a native addon whose build no
+review read, and reads pdfjs-dist's Foxit faces and its CMYK profile by
+reviews of their own. pdfjs-dist asks for the canvas at `^1.0.10`, so an
+integrator's own install may take a later build nobody here read.
+`validate_report` lists, for each language, what it lacks in the
+payment part, `forPerson`, and the translate prompt tells an agent to
+leave those words to a person: the QR-bill's message prints on the slip
+and in the code a bank reads. report-core's new `missingWords(report,
+locale)` is the one rule that list and report-ai's request read, each
+`word-missing` matched at any place its word or expression stands, so
+that an expression the body prints as a number and the slip's message
+as words is the slip's; report-mcp's own copy had matched it at its
+first place alone. report-ai's `forPerson` entries are report-core's
+`MissingWord`, and its own `Lacking` type is gone.
+Besides: an edit `apply_commands` applied whose report is past
+`MAX_REPORT_BYTES` is answered not `ok` and no longer `isError`, since
+the edit was made and its report is the one to fix; the composition
+guard reads every directory of the package and holds `createRequire` to
+its one unaliased import; and report-core's note on `/` says it is
+refused as inexact on integers and as no operation on decimals, as the
+compiler refuses it.
+
 **A model can be asked for the words a report's language lacks, and its
 answer is held to the format and the compiler before a person sees it**
 ([0085](docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
@@ -71,9 +124,7 @@ model's key gives `askThrough(complete)` a `complete` of its own, which
 sends the kind, the user part and the briefing's digest, never the
 briefing; the server owes the comparison of the digest with its own. No
 model is asked in CI: the answers are recorded. No builder draws a
-proposal yet. report-mcp's translate prompt to an agent's own model still
-lists the payment part's words with the rest, which the architecture's
-known debt carries until that prompt leaves them for a person. The start
+proposal yet. The start
 page's "No changes proposed by an AI" is narrowed to "No changes described
 in words in the builders", whose last clause names the agent a host may
 bring through report-mcp. report-ai now depends on report-core and
@@ -107,8 +158,8 @@ runs them as one edit through the builders' own registry and session,
 refused whole, where the agent passes the hash it last checked, when the
 report is not that one. What a save asks of Report's server -- the
 report's id, the images it keeps, no font -- the server alone answers. It
-needs no server and reads no setting; it saves, publishes, renders and
-fetches nothing, and no input takes a URL, a path or a file.
+needs no server and reads no setting; it saves, publishes and fetches
+nothing, and no input takes a URL, a path or a file.
 report-core now exports what the tools answer, `reportFacts()` and
 `describeCommands()`, read from the format's constants and the registry.
 It depends on the MCP SDK, `@modelcontextprotocol/sdk`, at exactly
@@ -116,8 +167,7 @@ It depends on the MCP SDK, `@modelcontextprotocol/sdk`, at exactly
 was 92 packages on 27 November 2026, all permissive, Express and Hono
 among them, since the
 SDK ships its HTTP transports in the same package. The tools that read
-and save a draft on Report's server, and a render check, are still to
-come.
+and save a draft on Report's server are still to come.
 
 **The product pages name PDF and Word, and pages for invoices, Word
 files and each report designer join them; every published package names

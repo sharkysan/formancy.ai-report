@@ -173,6 +173,85 @@ export function inLanguage(report: ReportDefinition, locale: string, own: Diagno
   return [...missing(report, translation, sites, own), ...differences, ...added, ...unused]
 }
 
+/** Where the payment part stands in a report's JSON, by the definition's own key. */
+const PAYMENT_PART = `/${'paymentPart' satisfies keyof ReportDefinition}/`
+
+/**
+ * Whether the place `path`, a JSON Pointer into a report, stands in its
+ * payment part: what the QR-bill's slip prints and its code encodes, which
+ * no proposal changes (0039, 0048), so that a word standing there is a
+ * person's to write in every language (0085, 0088).
+ */
+export const inPaymentPart = (path: string): boolean => path.startsWith(PAYMENT_PART)
+
+/** A word or an expression a language lacks, by its source, and every place it stands. */
+export interface MissingWord {
+  readonly kind: 'word' | 'expression'
+  /** A word's exact text in the report's own language, or an expression's exact source: what a translation keys it by (0063). */
+  readonly source: string
+  /** The JSON Pointer to each place it stands, in document order: an expression's every site, whether or not it prints words there. */
+  readonly paths: readonly [string, ...string[]]
+  /** Where `word-missing` stands: a word's first place, and an expression's first site that prints words, which need not be its first. */
+  readonly at: string
+}
+
+/** What a language lacks, by where it stands. */
+export interface MissingWords {
+  /**
+   * Each that stands anywhere in the payment part, a word that also stands
+   * elsewhere among them, since a word is translated once wherever it
+   * stands: a person's to write, and no model's or agent's to translate.
+   */
+  readonly paymentPart: readonly MissingWord[]
+  /** Every other. */
+  readonly rest: readonly MissingWord[]
+}
+
+/** Each source in `places`, with every place it stands, in the order of its first. */
+function bySource(places: readonly { readonly path: string; readonly source: string }[]): Map<string, [string, ...string[]]> {
+  const found = new Map<string, [string, ...string[]]>()
+  for (const { path, source } of places) {
+    const known = found.get(source)
+    if (known === undefined) found.set(source, [path])
+    else known.push(path)
+  }
+  return found
+}
+
+/**
+ * Every word and expression `locale` lacks in `report` -- a report the
+ * validator accepts -- as `word-missing` names each, in document order,
+ * words first: by its source, with every place it stands, read back
+ * through report-spec's one walk of a report's words, and matched at any
+ * of them, since an expression's diagnostic stands at its first site that
+ * prints words; those standing anywhere in the payment part apart. The one
+ * rule report-ai's request and report-mcp's verdict leave the payment part
+ * to a person by (0085, 0088). Nothing for the report's own language, or
+ * one it does not declare.
+ */
+export function missingWords(report: ReportDefinition, locale: string): MissingWords {
+  const translation = report.translations?.find((held) => held.locale === locale)
+  if (translation === undefined) return { paymentPart: [], rest: [] }
+  const sites = wordExpressionSites(report)
+  const missingAt = new Set(missing(report, translation, sites, diagnosis(report)).map(({ path }) => path))
+  const of = (kind: MissingWord['kind'], places: readonly { readonly path: string; readonly source: string }[]): MissingWord[] =>
+    [...bySource(places)].flatMap(([source, paths]) => {
+      const at = paths.find((path) => missingAt.has(path))
+      return at === undefined ? [] : [{ kind, source, paths, at }]
+    })
+  const all = [
+    ...of(
+      'word',
+      reportWords(report).map(({ path, text }) => ({ path, source: text })),
+    ),
+    ...of(
+      'expression',
+      sites.map(({ path, cel }) => ({ path, source: cel })),
+    ),
+  ]
+  return { paymentPart: all.filter(({ paths }) => paths.some(inPaymentPart)), rest: all.filter(({ paths }) => !paths.some(inPaymentPart)) }
+}
+
 /**
  * Every expression run of `report` -- a report the validator accepts --
  * where a word stands that prints words, in document order: what a

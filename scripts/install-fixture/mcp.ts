@@ -1,8 +1,9 @@
 /*
- * The MCP's host (0088): a consumer that knows nothing about the
+ * The MCP's host (0088, 0089): a consumer that knows nothing about the
  * workspace, with Node's types, the packed report-mcp and what it
- * declares, and the SDK's client at the release report-mcp declares, as
- * a coding agent's client holds one -- no runtime, no renderer, no server.
+ * declares -- the runtime, the renderer and PDF.js among it since its
+ * render check -- and the SDK's client at the release report-mcp
+ * declares, as a coding agent's client holds one; no server.
  *
  * Copied into a temporary npm project by install-test.mjs, installed from
  * the packed tarballs, type-checked with skipLibCheck OFF and run under
@@ -14,8 +15,12 @@
  * packed library exports; a report report-spec makes is validated with
  * the packed report-core's diagnostics; a command is applied through the
  * packed registry and session, answering the new report and its hash;
- * a stale hash is refused as isError; and the server says the version
- * the tarball carries. Nothing else checks a published bin.
+ * a stale hash is refused as isError; the quotation is render-checked,
+ * its firm's mark passed as base64 bytes with its digest, and its title
+ * read back from page 1 of the PDF the packed renderer drew and the
+ * packed PDF.js read, no byte of the PDF in the answer; and the server
+ * says the version the tarball carries. Nothing else checks a published
+ * bin.
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -23,6 +28,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { TOOL_DEFINITIONS } from '@formancy/report-mcp'
 import { emptyReport, reportHash } from '@formancy/report-spec'
+import { logo, quotation, quotationData } from './quotation.js'
 
 const installed = join('node_modules', '@formancy', 'report-mcp')
 const manifest = JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8')) as {
@@ -78,8 +84,20 @@ try {
   if (stale.isError !== true || (stale.structuredContent?.data?.refusal as { readonly code?: string } | undefined)?.code !== 'stale-document')
     throw new Error('apply_commands did not refuse a stale hash as isError')
 
+  // The quotation, rendered by the packed renderer from the data passed in
+  // and read back by the packed PDF.js: its title on page 1, as a reader
+  // sees it, and nothing of the PDF itself in the answer.
+  const mark = { asset: 'logo', digest: logo.digest, mediaType: 'image/svg+xml', base64: Buffer.from(logo.bytes).toString('base64') }
+  const rendered = (await client.callTool({ name: 'render_check', arguments: { report: quotation, data: quotationData, assets: [mark] } })) as Answer & {
+    readonly content?: readonly { readonly text?: string }[]
+  }
+  const pages = rendered.structuredContent?.data?.pages as readonly { readonly page: number; readonly lines: readonly string[] }[] | undefined
+  if (rendered.isError === true || pages?.length !== 1 || pages[0]?.lines[0] !== 'Offerte Q-2026-0415' || !pages[0].lines.includes('Offerte'))
+    throw new Error(`render_check did not read the quotation's title back from page 1 of its PDF: ${JSON.stringify(rendered.structuredContent).slice(0, 400)}`)
+  if ((rendered.content ?? []).some(({ text }) => text?.includes('%PDF') === true)) throw new Error("render_check answered the PDF's bytes")
+
   console.log(
-    `the packed bin ${bin}, launched over stdio as ${manifest.version}: ${names.join(', ')}, each read-only; an empty report validated and a title applied, a stale hash refused`,
+    `the packed bin ${bin}, launched over stdio as ${manifest.version}: ${names.join(', ')}, each read-only; an empty report validated and a title applied, a stale hash refused, the quotation render-checked to ${String(pages.length)} page reading "${pages[0].lines[0]}"`,
   )
 } finally {
   await client.close()

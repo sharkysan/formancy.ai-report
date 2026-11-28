@@ -13,9 +13,28 @@
  *   PDFKit, and its package.json has no `license` field, as decision 0005
  *   predicted. The LICENSE file it ships is the MIT License, read on
  *   2026-10-15.
+ * - `pdfjs-dist@6.4.299` reaches `@formancy/report-mcp` (0089) and ships
+ *   ten of Foxit's Type 1 faces in `standard_fonts/`, which have no name
+ *   table to read. Beside them, `standard_fonts/LICENSE_FOXIT` (sha256
+ *   b578cdd2345840ada550bd12519533812320d5f1d21cf4c1c7e1b1b0a31c98b7) is
+ *   PDFium's BSD 3-Clause licence, "Copyright 2014 PDFium Authors", read
+ *   on 2026-11-27. PDF.js reads one only for a PDF that does not embed its
+ *   Courier, Times, Symbol or Zapf Dingbats, and only from the
+ *   `standardFontDataUrl` it is given, which report-mcp gives none.
  */
+const FOXIT_EVIDENCE = 'standard_fonts/LICENSE_FOXIT in the tarball: BSD 3-Clause, Copyright 2014 PDFium Authors, read 2026-11-27'
 export const EXCEPTIONS = Object.freeze({
   'png-js@1.1.0': { licence: 'MIT', evidence: 'LICENSE in the tarball: MIT License, Copyright (c) 2017 Devon Govett' },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitDingbats.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitFixed.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitFixedBold.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitFixedBoldItalic.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitFixedItalic.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitSerif.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitSerifBold.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitSerifBoldItalic.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitSerifItalic.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
+  'pdfjs-dist@6.4.299/standard_fonts/FoxitSymbol.pfb': { licence: 'BSD-3-Clause', evidence: FOXIT_EVIDENCE },
 })
 
 /**
@@ -89,8 +108,22 @@ export const FORMANCY_DATA = Object.freeze({
  *   build carries the same 3,024 bytes as base64 inside a script, where
  *   this walk does not look; the renderer's browser test holds that copy to
  *   this digest.
+ * - pdfjs-dist 6.4.299's `iccs/CGATS001Compat-v2-micro.icc` (0089): 8,464
+ *   bytes of an ICC v2.1 input-class CMYK profile to Lab, `desc` "uCMY",
+ *   `cprt` "CC0", which PDF.js reads only from the `iccUrl` it is given,
+ *   to draw a CMYK image, and report-mcp gives none. Its terms are in the
+ *   file, `cprt`, and beside it, `iccs/LICENSE` (sha256
+ *   286e4fd7b447330b2c88e23890e3cd0a9d38cb398d4a59cb247f578ccbda3213),
+ *   Creative Commons' CC0 1.0 Universal, read on 2026-11-27; not compared
+ *   with the file it was made from.
  */
 export const ICC_PROFILES = Object.freeze({
+  'sha256:73e1ba37d2bad5bab2a964f40a9eed96209666efc067c3322626214bbef234a0': {
+    profile: 'CGATS001Compat-v2-micro.icc, an ICC v2.1 input-class CMYK profile to Lab (desc "uCMY", cprt "CC0"), as pdfjs-dist 6.4.299 ships it',
+    licence:
+      'To the greatest extent permitted by, but not in contravention of, applicable law, Affirmer hereby overtly, fully, permanently, irrevocably and unconditionally waives, abandons, and surrenders all of Affirmer\'s Copyright and Related Rights and associated claims and causes of action, whether now known or unknown (including existing as well as future claims and causes of action), in the Work (i) in all territories worldwide, (ii) for the maximum duration provided by applicable law or treaty (including future time extensions), (iii) in any current or future medium and for any number of copies, and (iv) for any purpose whatsoever, including without limitation commercial, advertising or promotional purposes (the "Waiver").',
+    evidence: 'iccs/LICENSE in the tarball, CC0 1.0 Universal, its section 2, read 2026-11-27, and the cprt tag of the profile itself, "CC0"',
+  },
   'sha256:384b832de3412066743b52a75ee906b6fb9fb8d9e09e936fc2c43223815c6e0a': {
     profile: 'sRGB2014.icc, the International Color Consortium\'s ICC v2 sRGB profile (desc "sRGB2014", cprt "Copyright International Color Consortium, 2015")',
     licence:
@@ -144,4 +177,157 @@ export const CONFINED = Object.freeze({
     for: '@formancy/report-render-pdf',
     evidence: 'LICENSE in the tarball: BSD 3-Clause License, Copyright (c) 2017, Baidu Inc., read 2026-11-12',
   },
+})
+
+/**
+ * Fonts a package ships that the one published package admitted for never
+ * loads, at one version, each by the SHA-256 of its bytes, with the
+ * licence the review read and the test that shows it is never loaded
+ * (0089, extending 0006 as 0058 did): `name@version` to the package it is
+ * for, its fonts by path, the licence, `heldBy` and the evidence. The
+ * policy refuses the licence; a package that never reads a file neither
+ * embeds it in a customer's document nor draws with it, and what a
+ * customer installs is the dependency's tarball, which npm fetches from
+ * the registry with the licence beside the file. Refused at another
+ * digest, depended on by any other published package, where nothing
+ * installs it, and where `heldBy`, `file#test name`, names no case the
+ * repository holds (`heldByProblems`). It admits, for the first time,
+ * files under a licence the policy refuses: the owner admitted these four
+ * on 28 November 2026, narrowly, as 0089 proposed them.
+ *
+ * - pdfjs-dist 6.4.299's `standard_fonts/LiberationSans-*.ttf`, Liberation
+ *   Sans 1.07.4, whose name tables say "Licensed under the Liberation
+ *   Fonts license" and whose `standard_fonts/LICENSE_LIBERATION` (sha256
+ *   d2c4d5b3e115a519cb58eb691aa64538397e2611f9ebe801392cf9667997e7dc) is
+ *   Red Hat's GPL-2.0 with a font-embedding exception, read on 2026-11-27,
+ *   as 0006 read it on 2026-10-14. PDF.js reads one in place of a
+ *   Helvetica or an Arial a PDF does not embed, only from the
+ *   `standardFontDataUrl` it is given; report-mcp gives none, and
+ *   `pdf-text.test.ts` reads a page in Helvetica, never embedded, with no
+ *   file read.
+ */
+export const NEVER_LOADED = Object.freeze({
+  'pdfjs-dist@6.4.299': Object.freeze({
+    for: '@formancy/report-mcp',
+    fonts: Object.freeze({
+      'standard_fonts/LiberationSans-Bold.ttf': 'sha256:361c61b82d575c5c35fd9157fda8b0194bcfcd0d88ea8521a4fb5dd53d33dddc',
+      'standard_fonts/LiberationSans-BoldItalic.ttf': 'sha256:a224075ac17495ad0a3af3bc0a419ac0704a8b3fd1095456201fb9b095fc281d',
+      'standard_fonts/LiberationSans-Italic.ttf': 'sha256:832b4406dbef23628800d3aaad21048534ac84d7e3ad955be83b8172ed8ef512',
+      'standard_fonts/LiberationSans-Regular.ttf': 'sha256:f8ace1f892b2bd9dc1792ba7f097fa7588f84fed48321480e04de5390828221f',
+    }),
+    licence: "GPL-2.0 with Red Hat's font-embedding exception: Liberation Sans 1.07.4",
+    heldBy: 'packages/report-mcp/src/pdf-text.test.ts#fetches nothing and reads no file, pdfjs-dist’s own standard fonts among them',
+    evidence: "standard_fonts/LICENSE_LIBERATION in the tarball, and each face's name table, read 2026-11-27",
+  }),
+})
+
+/**
+ * Native builds a review read by the SBOM each ships, admitted for one
+ * published package alone (0089, extending 0006 as 0058 did; the owner
+ * admitted them on 28 November 2026): a family's name to the version a
+ * review read, the package it is for, each build by the SHA-256 of its
+ * `sbom.cdx.json`, and the components every build's SBOM lists whose
+ * licence the policy refuses or that state none, each with its licence as
+ * the SBOM writes it; the packages the review saw depend on the family,
+ * `dependents`; and each build's tarball, and the family's, by the
+ * integrity `pnpm-lock.yaml` records, which pnpm installs by. A package
+ * that ships a `.node` file and is of no family here is refused; so is one
+ * of a family at another version, a build no review read, an SBOM of other
+ * bytes or of other components beyond the policy, a route that does not
+ * pass the package it is for, a dependent the review did not see, and, by
+ * the lockfile, a build or a version of the family that no review read or
+ * a tarball of other bytes (`lockfileProblems`). Every tarball the SBOMs
+ * were read from is the one the lockfile records, compared on 28 November
+ * 2026.
+ *
+ * - `@napi-rs/canvas` 1.0.11, which pdfjs-dist 6.4.299 requires in Node
+ *   where it is installed, and so loads in report-mcp's process from its
+ *   first render check: its wrapper is MIT, judged as any package, and
+ *   each of its eleven platform builds ships `skia.<platform>.node` and
+ *   `sbom.cdx.json`, CycloneDX 1.6, which the review read from the
+ *   registry's tarballs on 28 November 2026 -- 107 components each, 105
+ *   for `linux-riscv64-gnu`, which lacks highway and libjxl, Apache-2.0
+ *   and BSD-3-Clause. Beyond the policy, the same twelve in every build:
+ *   four Rust crates under MPL-2.0 -- cssparser 0.38.0, cssparser-color
+ *   0.6.0, cssparser-macros 0.7.0, dtoa-short 0.3.5 -- MPL-2.0 being
+ *   file-level, asking nothing of a use that does not modify those files;
+ *   FreeType under the FTL; ICU under the ICU licence, whose data the
+ *   Windows builds ship beside as `icudtl.dat`; libjpeg-turbo under
+ *   BSD-3-Clause, IJG and Zlib; libpng under libpng-2.0; unicode-ident
+ *   under (MIT OR Apache-2.0) AND Unicode-3.0; fnv and siphasher, whose
+ *   "Apache-2.0 / MIT" and "MIT/Apache-2.0" are no SPDX expressions; and
+ *   the canvas crate itself, which states none and the package's manifest
+ *   calls MIT. The SBOM names no Skia component, though the binary is
+ *   Skia's build. pdfjs-dist asks for `^1.0.10`, so an integrator's
+ *   install may resolve a later 1.x, which nobody here read.
+ */
+const CANVAS_BEYOND_POLICY = Object.freeze({
+  'canvas@0.1.0': null,
+  'cssparser-color@0.6.0': 'MPL-2.0',
+  'cssparser-macros@0.7.0': 'MPL-2.0',
+  'cssparser@0.38.0': 'MPL-2.0',
+  'dtoa-short@0.3.5': 'MPL-2.0',
+  'fnv@1.0.7': 'Apache-2.0 / MIT',
+  'freetype@264b5fbf5b912b39f98d038bf75d39be0a73f21b': 'FTL',
+  'icu@d578f2e8b7bd5938e21cfb6bf15c079e0aa5b738': 'ICU',
+  'libjpeg-turbo@e14cbfaa85529d47f9f55b0f104a579c1061f9ad': 'BSD-3-Clause AND IJG AND Zlib',
+  'libpng@d5515b5b8be3901aac04e5bd8bd5c89f287bcd33': 'libpng-2.0',
+  'siphasher@1.0.3': 'MIT/Apache-2.0',
+  'unicode-ident@1.0.24': '(MIT OR Apache-2.0) AND Unicode-3.0',
+})
+export const BUILDS_READ = Object.freeze({
+  '@napi-rs/canvas': Object.freeze({
+    version: '1.0.11',
+    for: '@formancy/report-mcp',
+    dependents: Object.freeze(['pdfjs-dist']),
+    integrity: 'sha512-vt5tog1cr+QKadIddGe+3LrcX0EmjEd0izF717Uwf92mBmgYfq2XRmL2r4bZU40spB69exxhrBn9I91HYEr/7w==',
+    builds: Object.freeze({
+      '@napi-rs/canvas-android-arm64': Object.freeze({
+        sbom: 'sha256:42b4aabaa377371df36a5fc80b5886572906780622a82152dce50f201048ef2b',
+        integrity: 'sha512-dtJS4FQEfH9OwSYLtMrEnj7T8DzBbJc/97LI/OkiWOYpW/iW5t6R/gcxVrUXS8l45gCVpwMufgucRe/pe0ISqA==',
+      }),
+      '@napi-rs/canvas-darwin-arm64': Object.freeze({
+        sbom: 'sha256:fef97515c7a723fb72bdf087adde78d6897ac69b7211b5221a7093799a7395a1',
+        integrity: 'sha512-J/JylWoJTG8OQqZaiqly4IODyAxNofUlZo0wtSBJtHk6AdymbdIkPynAM1JvQaZpPaG5h+msk9QuK8y4i1ooqw==',
+      }),
+      '@napi-rs/canvas-darwin-x64': Object.freeze({
+        sbom: 'sha256:263001c3a829b9e2b407b5b05e6835aa44dd079693d2b166cba149f1750faf7e',
+        integrity: 'sha512-nlecCk3xy06eAGC7krZtzNDm9UNTHKuHQYK8ZYegdjzgSL8anGt/eLJZm86OWaNgZkwQwvDqfSmG8Nqe6MPZNQ==',
+      }),
+      '@napi-rs/canvas-linux-arm-gnueabihf': Object.freeze({
+        sbom: 'sha256:2f0fdd1f8eabe4e46e74cf91f4e568a68a656af27237dbb3735252f9e27c8cdd',
+        integrity: 'sha512-DKImmG+sTPolE0kGPsYPBxTtOjb3INALp32O2lW2CfSr0bAzSEKKuu+GrQbtilClyoPOahUErS3OrznFDraoWA==',
+      }),
+      '@napi-rs/canvas-linux-arm64-gnu': Object.freeze({
+        sbom: 'sha256:19ba0c193ca252822e955a7a08ee701a3b20cacbb84134b3378f17a4813a09b2',
+        integrity: 'sha512-55sykACGENj5j1rhj+81AO8JbR9HYgGjRZ7/H+pNr4VE1DvINKYNMTcutk8ZmWxk276jAQvUKJ3+Kdj9GXU3lQ==',
+      }),
+      '@napi-rs/canvas-linux-arm64-musl': Object.freeze({
+        sbom: 'sha256:0958322e992b7f581543956f04c452403ab5b04f05995eb30d0eeb8f331d60ad',
+        integrity: 'sha512-6Jz6jys17yXydO+WdJgu7JhoB4K7/w9sWHByzzTmLjQghUx3TDMWvLv+UcCdnWhg4oprET67EMymnrETdeGNAg==',
+      }),
+      '@napi-rs/canvas-linux-riscv64-gnu': Object.freeze({
+        sbom: 'sha256:53f7a479f7765fa0efbd46e886de2529703b26564d8a6bc4cc5de662d9e61ac9',
+        integrity: 'sha512-lf2XeEebWiUYVOVEjLXxF7dfXrBBSEOBn9AqBh39VYXrPt5cDqI+1t58IFSjn8npqkg5jIOs8TQbjKABbFW1gQ==',
+      }),
+      '@napi-rs/canvas-linux-x64-gnu': Object.freeze({
+        sbom: 'sha256:d9fdfe49bbc314cccce604ac3947866132539a0f76ebc0798c95b1ecb8c787f8',
+        integrity: 'sha512-iDapw7nFSE5tsmQxcH2+KotJhyfVPmHd6vUOQN/Em+8WNbkZJwJ/rDowlJMFnMl0SYSDSfgKCNUGi6Sn5++Smg==',
+      }),
+      '@napi-rs/canvas-linux-x64-musl': Object.freeze({
+        sbom: 'sha256:54bc147b24708142fa7ef855c2c521cbdc87091991768d8daa1a37d63a208a61',
+        integrity: 'sha512-26q26AyITo3CGZX4HWFIMgBMA1lu3YN07gxzBm4tW6Hglq/OVyTP50kDrmWuKybCX6dh3m8Ly+c7YhI+sqCgCQ==',
+      }),
+      '@napi-rs/canvas-win32-arm64-msvc': Object.freeze({
+        sbom: 'sha256:4bbe84478b9238821fedc9c97c3ba33bde81a0caf2a39d26fff606c907f59b44',
+        integrity: 'sha512-cUO96IdsfvIj2S+2PNcDSkTcLhjPj8pIOEWRV1Kj70MOP4wnE9zSk7N4C1EKHlFGRcgdR5AkbnBZj0dfHK9nbQ==',
+      }),
+      '@napi-rs/canvas-win32-x64-msvc': Object.freeze({
+        sbom: 'sha256:af0b3af01a73d229ffabb515a7d6c0857784e359df39b0da59949e946415bf71',
+        integrity: 'sha512-DFYp/ZQRdKunI/LPc0UkRXG1vlNjJKOJf8O8Ctb8+wm2Nt2ELg9Eamc31D2VoakkfGo8L+z0Iejz6WtFbQwyGw==',
+      }),
+    }),
+    beyondPolicy: CANVAS_BEYOND_POLICY,
+    evidence: "sbom.cdx.json of each build, read from the registry's 1.0.11 tarballs on 2026-11-28; the owner admitted them for report-mcp that day",
+  }),
 })

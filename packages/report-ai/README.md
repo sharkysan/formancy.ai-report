@@ -48,10 +48,10 @@ const applied = session.apply(batch, { expectedHash: proposal.expectedHash, labe
   parameter value, asset or font can reach it.
 - **The payment part is never sent.** A word or an expression standing in
   it anywhere is `forPerson`, for a person to write, and none of the
-  language's words so far that stand in it is sent either. That is this
-  request's rule: report-mcp's translate prompt to an agent's own model
-  lists the payment part's words with the rest, until it is changed to
-  leave them for a person. Nor is any
+  language's words so far that stand in it is sent either. The rule is
+  report-core's `missingWords`, which report-mcp's verdict for an agent's
+  own model reads too, so its translate prompt leaves the same words to a
+  person. Nor is any
   string report-spec's `NOT_WORDS` names but the ids and kinds a place is
   told by: no condition, no parameter's value, no dataset's label, no QR
   code's content, no e-invoice.

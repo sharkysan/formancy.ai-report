@@ -388,6 +388,14 @@ one.
   every render. `wordExpressions(report)` gives those expressions, every
   place each stands, by the same verdict: what the builders mark and edit
   as words, so that they ask for no translation the diagnostics do not.
+  `missingWords(report, locale)` reads the `word-missing` back to their
+  sources, each with every place it stands and the one the diagnostic
+  stands at, which for an expression is its first site that prints
+  words, and gives apart those standing anywhere in the payment part,
+  `inPaymentPart` of a place: the QR-bill's message prints on the slip
+  and in the code a bank reads, so it is a person's to write, and
+  report-ai's request and report-mcp's verdict both leave it so by this
+  one rule (0085, 0088).
 
 Every member read is checked as its type. `@formancy/expressions` 0.5.0 to
 0.12.0 declared a variable only by its whole name, so each read of `row.amount` is
