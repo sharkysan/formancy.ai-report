@@ -99,6 +99,18 @@ describe('validate_report', () => {
     expect(offered.filter((source) => inPart.has(source ?? ''))).toEqual([])
   })
 
+  // forPerson is a request to the agent, and the person it acts for may
+  // choose the slip's text in another language: apply_commands applies a
+  // translation of the payment part's words, as a builder's field does, and
+  // the word is then listed for nobody (0088, 2026-11-28).
+  test('applies a translation of the payment part’s words, which forPerson then lists no longer', () => {
+    const french = dataOf<{ report: ReportDefinition }>(applyCommands(INVOICE.report, [{ command: 'addLanguage', args: ['fr-CH'] }])).report
+    const translated = applyCommands(french, [{ command: 'translateWord', args: ['fr-CH', 'Rechnung ', 'Facture '] }])
+    expect(dataOf<{ changed: boolean }>(translated).changed).toBe(true)
+    const [language] = dataOf<{ languages: readonly { readonly forPerson: readonly unknown[] }[] }>(translated).languages
+    expect(language?.forPerson).toEqual([])
+  })
+
   // The three lists are the order a save, a render and a language's render
   // judge in: a language's errors listed among the report's own would read
   // as refusing every render, when they refuse that language's alone.

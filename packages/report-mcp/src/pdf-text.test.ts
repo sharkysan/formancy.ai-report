@@ -4,7 +4,7 @@ import type { Starter } from '@formancy/report-corpus'
 import { renderPdf } from '@formancy/report-render-pdf'
 import { RenderRefusal, resolveReport } from '@formancy/report-runtime'
 import type { ResolvedDocument } from '@formancy/report-runtime'
-import { describe, expect, test, vi } from 'vitest'
+import { beforeAll, describe, expect, test, vi } from 'vitest'
 import * as reader from './pdf-text.js'
 import { pdfLines } from './pdf-text.js'
 
@@ -85,6 +85,16 @@ function helvetica(text: string): Uint8Array {
  * no comparison without failing; a run set off the line only where the
  * corpus expects it refused.
  */
+/**
+ * How long warming the renderer may take, and the guard on the guard below,
+ * which renders every document at once: the sales report's first render,
+ * ECharts loaded with it, took 2.0 s in a bare Node 24.21 on an i9-10900K,
+ * three runs of three, and the guard took 6.2 s under coverage beside
+ * another build (28 November 2026). After the warming, the slowest
+ * comparison took 0.80 s under coverage, inside vitest's own 5 s.
+ */
+const WARMING = 30_000
+
 const documents: readonly (readonly [string, () => ResolvedDocument, boolean])[] = [
   ...STARTERS.map((starter) => [starter.id, () => resolved(starter), false] as const),
   ...EURO_INVOICE_SAMPLES.filter(({ id }) => !STARTERS.some((starter) => starter.id === id)).map(
@@ -94,27 +104,28 @@ const documents: readonly (readonly [string, () => ResolvedDocument, boolean])[]
 ]
 
 describe('the lines a render check answers', () => {
+  // The renderer loads ECharts with the first chart it draws: loaded here,
+  // once, so that no comparison pays it inside its own bound.
+  beforeAll(async () => {
+    const sales = STARTERS.find(({ id }) => id === 'sales-report')
+    if (sales === undefined) throw new Error('the corpus has no sales report')
+    await printed(resolved(sales))
+  }, WARMING)
+
   // A reader that joined runs otherwise than the corpus's -- another gap
   // for a word, a lowered run left a line of its own, a turned caption
   // read among the lines -- would tell an agent of lines no check here
-  // proves; each PDF is read by both and the two held equal. The bound is
-  // the guard on the guard's below: the sales report's first chart loads
-  // ECharts, 2.2 s alone, and passed vitest's 5 s under coverage beside
-  // another build (28 November 2026).
-  test.each(documents)(
-    'are the corpus’s pageLines of the same PDF: %s',
-    async (_id, document, mayRefuse) => {
-      const pdf = await printed(document())
-      if (pdf === undefined) {
-        expect(mayRefuse, 'the renderer refused a document the corpus expects printed').toBe(true)
-        return
-      }
-      const lines = await pdfLines(pdf)
-      expect(lines).toEqual(await corpusLines(pdf))
-      expect(lines.flat().length).toBeGreaterThan(0)
-    },
-    60_000,
-  )
+  // proves; each PDF is read by both and the two held equal.
+  test.each(documents)('are the corpus’s pageLines of the same PDF: %s', async (_id, document, mayRefuse) => {
+    const pdf = await printed(document())
+    if (pdf === undefined) {
+      expect(mayRefuse, 'the renderer refused a document the corpus expects printed').toBe(true)
+      return
+    }
+    const lines = await pdfLines(pdf)
+    expect(lines).toEqual(await corpusLines(pdf))
+    expect(lines.flat().length).toBeGreaterThan(0)
+  })
 
   // The fractions the rule is written with are the corpus's, each: a gap
   // for a word moved in one reader alone would read the corpus's PDFs
@@ -127,14 +138,18 @@ describe('the lines a render check answers', () => {
   // A guard on the guard: the documents compared hold what makes the rule
   // more than baselines -- a run set off its line, a run turned off the
   // horizontal -- and every starter prints.
-  test('compare every starter, a run set off its line and a caption turned up the side', async () => {
-    const pdfs = await Promise.all(documents.map(async ([id, document]) => [id, await printed(document())] as const))
-    expect(EURO_INVOICE_SAMPLES.every(({ id }) => pdfs.some(([printedId, pdf]) => printedId === id && pdf !== undefined))).toBe(true)
-    const read = await Promise.all(pdfs.flatMap(([id, pdf]) => (pdf === undefined ? [] : [readPdf(pdf).then((reading) => [id, reading] as const)])))
-    expect(STARTERS.every(({ id }) => read.some(([printedId]) => printedId === id))).toBe(true)
-    expect(read.some(([, { pages }]) => pages.some((page) => pageLines(page).some(({ shifted }) => shifted.length > 0)))).toBe(true)
-    expect(read.some(([, { pages }]) => pages.some(({ items }) => items.some(({ angle }) => angle !== 0)))).toBe(true)
-  }, 60_000)
+  test(
+    'compare every starter, a run set off its line and a caption turned up the side',
+    async () => {
+      const pdfs = await Promise.all(documents.map(async ([id, document]) => [id, await printed(document())] as const))
+      expect(EURO_INVOICE_SAMPLES.every(({ id }) => pdfs.some(([printedId, pdf]) => printedId === id && pdf !== undefined))).toBe(true)
+      const read = await Promise.all(pdfs.flatMap(([id, pdf]) => (pdf === undefined ? [] : [readPdf(pdf).then((reading) => [id, reading] as const)])))
+      expect(STARTERS.every(({ id }) => read.some(([printedId]) => printedId === id))).toBe(true)
+      expect(read.some(([, { pages }]) => pages.some((page) => pageLines(page).some(({ shifted }) => shifted.length > 0)))).toBe(true)
+      expect(read.some(([, { pages }]) => pages.some(({ items }) => items.some(({ angle }) => angle !== 0)))).toBe(true)
+    },
+    WARMING,
+  )
 })
 
 describe('what reading a PDF reaches', () => {

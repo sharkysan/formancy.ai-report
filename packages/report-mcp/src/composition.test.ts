@@ -32,7 +32,9 @@ import { describe, expect, test } from 'vitest'
  *   object literal of `READ_OPTIONS` and nothing else: no address of a
  *   standard font, a CMap, a profile or a decoder, no URL, no worker
  *   fetch and no factory, which is what keeps pdfjs-dist's own fonts
- *   unread, as the licence guard's admission of them says (0089).
+ *   unread, as the licence guard's admission of them says (0089); and
+ *   its verbosity `VerbosityLevel.ERRORS`, since at a louder one PDF.js
+ *   writes an `Info:` line to standard output, the protocol's.
  *
  * Read from the sources with TypeScript's parser, as report-server's
  * composition test reads its own, so an import is found however it is
@@ -93,6 +95,8 @@ const LAZY: Readonly<Record<string, readonly string[]>> = { 'render.ts': ['@form
 const READER = 'pdf-text.ts'
 const OPEN = 'getDocument'
 const READ_OPTIONS = ['data', 'disableFontFace', 'useSystemFonts', 'verbosity']
+/** The one verbosity it may give: PDF.js's `info` writes to console.info, standard output in Node, which is the protocol's; at ERRORS it writes nothing. */
+const QUIET = 'VerbosityLevel.ERRORS'
 
 /** Whether `node` is a string literal with `text`. */
 const literal = (node: ts.Node | undefined, text?: string): boolean =>
@@ -144,6 +148,8 @@ function openedOtherwise(call: ts.CallExpression): string | undefined {
     if (!(ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) || !ts.isIdentifier(property.name))
       return `calls ${OPEN} with an option it does not write out`
     if (!READ_OPTIONS.includes(property.name.text)) return `calls ${OPEN} with ${property.name.text}`
+    if (property.name.text === 'verbosity' && !(ts.isPropertyAssignment(property) && property.initializer.getText() === QUIET))
+      return `calls ${OPEN} with a verbosity other than ${QUIET}`
   }
   return undefined
 }
@@ -253,6 +259,9 @@ describe('what each module may reach', () => {
       ['pdf-text.ts', "import { getDocument as open } from 'pdfjs-dist/legacy/build/pdf.mjs'"],
       ['pdf-text.ts', 'const read = getDocument'],
       ['pdf-text.ts', "const task = getDocument({ data, ['cMapUrl']: '/cmaps/' })"],
+      ['pdf-text.ts', 'const task = getDocument({ data, verbosity: VerbosityLevel.INFOS })'],
+      ['pdf-text.ts', 'const task = getDocument({ data, verbosity: 5 })'],
+      ['pdf-text.ts', 'const task = getDocument({ data, verbosity })'],
       ['server.ts', "import express from 'express'"],
       ['server.ts', "import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'"],
       ['main.ts', "import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'"],

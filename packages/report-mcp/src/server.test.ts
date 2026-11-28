@@ -298,7 +298,8 @@ describe('the prompts a client can see', () => {
   // value; named for what somebody is doing, never for a tool.
   test('are writing a report and translating one, each with a description', async () => {
     const { prompts } = await (await connect()).listPrompts()
-    expect(prompts.map(({ name }) => name).sort()).toEqual(['translate_a_report', 'write_a_report'])
+    // Held to the table the server registers them from, so that a prompt added to PROMPTS and not registered, or registered and not exported, fails here.
+    expect(prompts.map(({ name }) => name).sort()).toEqual(Object.keys(PROMPTS).sort())
     for (const prompt of prompts) expect(prompt.description ?? '', prompt.name).not.toBe('')
   })
 

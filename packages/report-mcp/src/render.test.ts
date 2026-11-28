@@ -366,9 +366,12 @@ describe('what it reaches', () => {
 })
 
 describe('a fault', () => {
-  // A load of the renderer that failed once -- a file not opened on a busy
-  // machine -- is forgotten: kept, it would fail every check for the rest
-  // of the session, which only a restart would end.
+  // A load of the renderer that failed once is forgotten and asked for
+  // again: kept, it would fail every check for the rest of the session,
+  // whatever the failure was. The case holds that render.ts asks again; a
+  // module that threw as Node evaluated it Node itself keeps errored,
+  // which no ask recovers (0089), and vitest's mock registry, not Node's
+  // loader, is what answers here.
   test('loads the renderer again after a load that failed', async () => {
     vi.resetModules()
     let loads = 0

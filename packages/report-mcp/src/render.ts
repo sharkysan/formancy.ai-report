@@ -186,8 +186,12 @@ export function bounded(pages: readonly CheckedPage[], warnings: readonly Runtim
 /**
  * The renderer and PDF.js, loaded with the first render check: most of a
  * client's sessions never render. A load that fails is forgotten, so the
- * next check loads them again rather than failing for the rest of the
- * session; concurrent first checks share the one load.
+ * next check asks for it again; concurrent first checks share the one
+ * load. What that recovers is Node's to say: a module it could not find or
+ * read is looked up again and loads once it is there, but one that threw
+ * as it was evaluated Node keeps errored, and answers the next import with
+ * the same error, unevaluated, until the server restarts (both seen on
+ * Node 24.21, 28 November 2026).
  */
 let engines: Promise<readonly [typeof import('@formancy/report-render-pdf'), typeof import('./pdf-text.js')]> | undefined
 const loaded = () =>

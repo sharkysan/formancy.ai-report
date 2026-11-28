@@ -29,7 +29,7 @@
     not base64 and a mode that is neither are refused; no byte of the PDF,
     raw or in base64, in any answer; nothing fetched; what the renderer
     throws that is no refusal is thrown on; and a load of the renderer
-    that failed is tried again by the next check.
+    that failed is asked for again by the next check.
   - **Its bounds, each at the bound and one past it.** The same file: a
     report of `MAX_REPORT_BYTES` reaches the renderer, one a byte past it
     is `report-too-large` before anything resolves; `MAX_DETAIL_ROWS` rows
@@ -73,7 +73,9 @@
     `pdf-text.ts` calls `getDocument` by that name alone, with an object
     literal of `data`, `disableFontFace`, `useSystemFonts` and `verbosity`
     and nothing else -- no address of a font, a CMap, a profile or a
-    decoder, no URL, no worker fetch, no factory.
+    decoder, no URL, no worker fetch, no factory -- its verbosity
+    `VerbosityLevel.ERRORS`, since at a louder one PDF.js writes an
+    `Info:` line to standard output, the protocol's.
   - **Through the protocol.** `src/server.test.ts`: `render_check` listed
     with its description and read-only, closed-world annotations; its
     seven arguments surviving the round trip, the zone and the mode read
@@ -88,9 +90,11 @@
     `file#test name`, is not in that file (`heldByProblems`); every
     package that ships a native addon refused unless `BUILDS_READ` names
     its build by its SBOM's digest, the components beyond the policy the
-    SBOM lists the review's, reached through report-mcp; and every build
-    and version of `@napi-rs/canvas` that `pnpm-lock.yaml` names, on any
-    platform, one the review read (`lockfileProblems`).
+    SBOM lists the review's, reached through report-mcp and depended on by
+    no package but what the review saw -- every dependent, not the first
+    route -- and every build and version of `@napi-rs/canvas` that
+    `pnpm-lock.yaml` names, on any platform, one the review read, its
+    tarball by the integrity the lockfile records (`lockfileProblems`).
   - **From outside.** The `mcp` install host render-checks the quotation
     through the packed bin, its firm's mark passed as bytes, and reads
     its title back from page 1, no `%PDF` in the answer.
@@ -109,7 +113,10 @@
     kept; a Euro sample refused and skipped; a static import of the
     renderer, `getDocument` given a font's address, a spread or another
     name, each past the guard before its rule; and the guard's rules for
-    native builds, the lockfile and `heldBy` each switched off.
+    native builds, the lockfile and `heldBy` each switched off; and, at
+    the re-review, a second dependent of the family behind a first route
+    through report-mcp, a tarball of other bytes, and `getDocument` at
+    `VerbosityLevel.INFOS`, each past the guards before their rules.
 
 ## Context
 
@@ -231,7 +238,13 @@ decision of 28 November 2026.**
   renderer's import took 0.20 s and PDF.js's 0.26 s, the native canvas
   among it, against 0.45 s for the server's own, so a session that never
   renders starts in half the time and never maps the canvas. A load that
-  fails is forgotten, and the next check loads them again.
+  fails is forgotten, and the next check asks for it again; what that
+  recovers is Node's to say. A module Node could not find or read is
+  looked up again and loads once it is there; one that threw as Node
+  evaluated it stays errored in Node's loader, and the next import answers
+  the same error without evaluating it again, so the server answers every
+  check with it until it restarts. Both were seen on Node 24.21 on 28
+  November 2026.
 - **The licences.** `scripts/dependency-licences.mjs` walks pdfjs-dist as
   any package: its Foxit faces are recorded as exceptions, file by file,
   under `standard_fonts/LICENSE_FOXIT`, PDFium's BSD 3-Clause; its profile,
@@ -256,10 +269,15 @@ decision of 28 November 2026.**
     native addon, a `.node` file, is refused unless the table names its
     family, its version and its build by the SHA-256 of the SBOM it
     ships, the components beyond the policy that SBOM lists are the
-    twelve the review recorded, and it is reached through report-mcp;
-    and every build and version of the family the lockfile names, on
-    every platform, is one the review read, since no machine installs
-    them all. The case for it: the components beyond the policy are
+    twelve the review recorded, it is reached through report-mcp, and
+    every package that depends on it is one the review saw -- the
+    family pdfjs-dist alone, a build its family alone; and every build
+    and version of the family the lockfile names, on every platform, is
+    one the review read, each tarball by the integrity the lockfile
+    records and pnpm installs by, since no machine installs them all.
+    Each tarball the SBOMs were read from is the one the lockfile
+    records, compared on 28 November 2026, so a build's binary is held
+    with its SBOM. The case for it: the components beyond the policy are
     linked into a binary nobody modifies; MPL-2.0 is file-level, asking
     nothing of a use that does not modify those files; and what an agent
     installs is the build's tarball, from the registry, with its SBOM.

@@ -247,6 +247,12 @@ tools check before they act.**
   to leave those out and name them to the person, and the description
   says so; an e-invoice's texts are no words in that walk. `tools.test.ts`
   holds it on the invoice, and failed first on the verdict without it.
+  It is a request to the agent and no refusal: the agent acts for a
+  person, who may choose the slip's text in another language, so
+  `apply_commands` applies a `translateWord` of the payment part's words
+  as a builder's field does, and the word is then listed for nobody --
+  where report-ai, which asks a model, drops such an entry from its
+  proposal (0085). `tools.test.ts` holds that too.
 - **Two prompts** arrive with the server, exported as `PROMPTS`:
   `write_a_report`, the format first, then the report, then
   `validate_report` until it answers ok, every later change through

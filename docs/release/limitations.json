@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:c8a70d0e75fe1b903982d64c2d3bd7b0ff9a410e34dd28615a2a8c16c28ddc18",
+      "reviewed": "sha256:433bb0e01d2c57aef8776c14aee2858770c846a6665ea98c201e589081674fa4",
       "limitations": [
         {
           "area": "licence",
@@ -3635,7 +3635,7 @@
       ]
     },
     "0088": {
-      "reviewed": "sha256:506a04ce8c92cd90592563cf12fed9e896c6dbe401e1028fda04b42dd5d582c8",
+      "reviewed": "sha256:ef12687b1294b06bc6217a532a04900f4538dd92a958196e7d385a422c07d7c0",
       "limitations": [
         {
           "area": "release",
@@ -3667,6 +3667,11 @@
         },
         {
           "area": "editing",
+          "says": "validate_report's forPerson asks an agent to leave the payment part's words to a person, and nothing refuses it: apply_commands applies a translation of the QR-bill's message as a builder's field does, and the word is then listed for nobody, where report-ai's proposals drop such an entry.",
+          "heldBy": "packages/report-mcp/src/tools.test.ts"
+        },
+        {
+          "area": "editing",
           "says": "describe_commands names each command's arguments by their shape alone, a string, an object, a location, and not by what each is for, so which string of updateComponent is the component's id is report-core's declarations' and README's to say, and a model that guesses is refused.",
           "heldBy": "packages/report-core/src/facts.test.ts"
         },
@@ -3691,7 +3696,7 @@
       ]
     },
     "0089": {
-      "reviewed": "sha256:020f745ff78c488e9559133c6b4e8d3fb1f1ec684b54ba8d31d2fee203238bc1",
+      "reviewed": "sha256:c9520a515997a1600ce9ac126bbd8e6212460051803f2fa4928f29f073603eda",
       "limitations": [
         {
           "area": "licence",
@@ -3706,6 +3711,10 @@
         {
           "area": "licence",
           "says": "pdfjs-dist asks for @napi-rs/canvas at ^1.0.10, so an integrator's own install may resolve a later 1.x build whose SBOM nobody here read: the licence guard holds the builds this repository's lockfile names, not an integrator's."
+        },
+        {
+          "area": "licence",
+          "says": "The licence guard reads a native addon's build by its SBOM, and no other compiled code: pdfjs-dist's four WebAssembly files, which report-mcp loads none of, and a shared library or a .node file in a workspace package are not seen."
         },
         {
           "area": "release",

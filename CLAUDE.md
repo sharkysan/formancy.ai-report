@@ -91,8 +91,10 @@ review read its build's SBOM: `@napi-rs/canvas` 1.0.11, which PDF.js
 loads, is admitted for `report-mcp` alone by the SHA-256 of each of its
 eleven builds' `sbom.cdx.json`, the components beyond the policy that
 SBOM lists -- MPL-2.0's cssparser crates and dtoa-short, FreeType, ICU,
-libjpeg-turbo, libpng, unicode-ident -- the review's, and every build
-and version `pnpm-lock.yaml` names one it read (`BUILDS_READ`). Both
+libjpeg-turbo, libpng, unicode-ident -- the review's, every package that
+depends on it one the review saw, and every build and version
+`pnpm-lock.yaml` names one it read, by the integrity the lockfile records
+(`BUILDS_READ`). Both
 are the owner's decisions of 28 November 2026, 0006 as
 [0089](docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md) extends it. What it cannot see -- whether a licence's terms are what its
 identifier says, code a package vendors, a font or a profile inside a

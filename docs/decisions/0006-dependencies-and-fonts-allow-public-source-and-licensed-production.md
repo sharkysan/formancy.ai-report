@@ -89,7 +89,12 @@
   - a font inside a script rather than in a font file, a font in a file
     named as code, text or an image, and a compressed font such as
     `.ttf.br`;
-  - code a package vendors under a licence of its own;
+  - code a package vendors under a licence of its own, but for a native
+    addon, a `.node` file, whose build's SBOM the guard reads (0089):
+    compiled WebAssembly and a shared library loaded otherwise are not
+    seen -- pdfjs-dist ships four `.wasm` files, of which report-mcp loads
+    none, since it gives PDF.js no `wasmUrl`, and `quickjs-eval.wasm` has
+    no licence file beside it -- nor a `.node` file in a workspace package;
   - whether a dependency is used at all.
 
 ## Context
@@ -424,13 +429,17 @@ of their own, `BUILDS_READ`
 - a package that ships a `.node` file is refused unless the table names
   its family, its version and its build by the SHA-256 of the SBOM it
   ships; the walk reads that SBOM, and the components beyond the policy
-  it lists must be those the review recorded; and it is reached through
-  report-mcp;
+  it lists must be those the review recorded; it is reached through
+  report-mcp; and every package that depends on it is one the review saw,
+  every dependent and not the first route the walk found, as a confined
+  package's are;
 - every build and every version of the family that `pnpm-lock.yaml`
   names, on any platform, must be one the review read, since a machine
-  installs its own platform's build alone, and a build the table names
-  that the lockfile no longer does is refused as unused
-  (`lockfileProblems`).
+  installs its own platform's build alone, each tarball by the integrity
+  the lockfile records, which ties every build's binary, on every
+  platform, to the SBOM the review read from that very tarball; and a
+  build the table names that the lockfile no longer does is refused as
+  unused (`lockfileProblems`).
 pdfjs-dist asks for the canvas at `^1.0.10`, so an integrator's own
 install may resolve a later 1.x that nobody here read: the guard holds
 this repository's lockfile. `dependency-licences.test.mjs` holds each
