@@ -21,15 +21,17 @@
 import { fieldWords } from './field-specs.js'
 import type { FieldWords } from './field-specs.js'
 import { kindLabel } from './labels.js'
+import { languageName } from './languages.js'
 import type { PartKind } from './model.js'
 import { editorText } from './text.js'
-import type { EditorText, MessageId } from './text.js'
+import type { EditorLocale, EditorText, MessageId } from './text.js'
 
 /**
  * One step this package made, as data. An image's steps name no image: an
  * id in the label would make a sentence per image ever added. A step said
  * in one sentence of its own -- a QR-bill added or removed, its debtor
- * added or removed -- names its message.
+ * added or removed -- names its message. A model's translation applied
+ * names its language and how many words it wrote (0086).
  */
 export type Step =
   | { readonly do: 'insert' | 'delete' | 'move' | 'duplicate' | 'indent' | 'outdent'; readonly kind: PartKind }
@@ -37,35 +39,39 @@ export type Step =
   | { readonly do: 'addImage' }
   | { readonly do: 'removeImage' }
   | { readonly do: 'said'; readonly id: MessageId }
+  | { readonly do: 'translate'; readonly locale: string; readonly count: number }
 
 /** The language of the label the session keeps. */
-const KEPT = editorText('en')
+const KEPT = { t: editorText('en'), locale: 'en' } as const
 
 /**
  * Every label this package wrote, and the step it stands for. It holds one
- * entry per distinct sentence -- a verb and a kind, or a property's words --
- * so it is bounded by the catalogue, not by how many edits were made.
+ * entry per distinct sentence -- a verb and a kind, a property's words, or
+ * a translation's language and count, which a batch bounds -- so it is
+ * bounded by the catalogue and the languages translated into, not by how
+ * many edits were made.
  */
 const WRITTEN = new Map<string, Step>()
 
-/** `step` in the words of `t`. */
-function said(step: Step, t: EditorText): string {
+/** `step` in the words of `t`, an editor's in `locale`. */
+function said(step: Step, t: EditorText, locale: EditorLocale): string {
   if (step.do === 'change') return t('history.change', { field: fieldWords(step.field, t) })
   if (step.do === 'addImage' || step.do === 'removeImage') return t(`history.${step.do}`)
   if (step.do === 'said') return t(step.id)
+  if (step.do === 'translate') return t('history.translate', { language: languageName(step.locale, locale), count: step.count })
   return t(`history.${step.do}` as MessageId, { kind: kindLabel(step.kind, t) })
 }
 
 /** The label a session keeps for `step`: an English sentence, remembered as the step it stands for. */
 export function stepLabel(step: Step): string {
-  const label = said(step, KEPT)
+  const label = said(step, KEPT.t, KEPT.locale)
   WRITTEN.set(label, step)
   return label
 }
 
-/** A session's step label as this editor shows it: a step this package labelled in the editor's language, anyone else's as written. */
-export function shownLabel(label: string | undefined, t: EditorText): string | null {
+/** A session's step label as an editor in `locale` shows it: a step this package labelled in the editor's language, anyone else's as written. */
+export function shownLabel(label: string | undefined, t: EditorText, locale: EditorLocale): string | null {
   if (label === undefined) return null
   const step = WRITTEN.get(label)
-  return step === undefined ? label : said(step, t)
+  return step === undefined ? label : said(step, t, locale)
 }

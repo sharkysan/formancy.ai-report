@@ -290,8 +290,22 @@ briefing is measured nowhere.
 | The proposal: a word a person wrote meanwhile never overwritten, a changed source dropped, an expression that prints words no longer dropped as one, what no longer fits the room dropped at its entries; an expression that does not compile, reads another member or gives another type refused with report-core's sentence; a character no report prints, written or by an escape, a word's spaces not its source's, a header past its bound and a text past `MAX_TEXT_LENGTH` refused at their entries, the rest kept; every entry left refused where a finding stands at none; one undo step against the report's hash, any subset, `stale-document` once it moved, the same answer read again | `report-ai/src/translation/proposal.test.ts`, `texts.test.ts` |
 | The bounds: the bound held to the corpus by the factors its comment states, each entry's bytes without the body's own, one byte past it refused before anything is asked, no body a run hands a host past it, counted as a server counts the JSON it reads, at most `MAX_BATCH_COMMANDS` entries and the room `MAX_WORDS` leaves, and a language with no room left said so | `report-ai/src/translation/bounds.test.ts` |
 | Through a host's server: the kind, the user part and the digest sent, never the briefing; a prompt briefed otherwise, a kind Report does not ask and a body past the bound, by its JSON, refused before `complete`; a decline, one with no reason, an error and a stop | `report-ai/src/ask-through.test.ts` |
-| The start page's "No changes described in words in the builders", held to the built `REQUEST_KINDS` being the translation alone, to no published package but report-ai taking it, and to report-mcp's built `PROMPTS` being the two the sentence names | `apps/pages/src/limits.test.ts` |
+| The start page's "No changes described in words in the builders", held to the built `REQUEST_KINDS` being the translation alone, to report-builder-core being the one published package beside report-ai that takes it, calling of it the translation's run, its proposal and a stop alone (0086), and to report-mcp's built `PROMPTS` being the two the sentence names | `apps/pages/src/limits.test.ts` |
 | The packed package | The install gate's `scripts/install-fixture/translation.ts`: the quotation's French asked of a scripted server through `askThrough`, proposed, applied as one step and refused stale after an edit, from the packed report-ai; the package README's example is its lines (`scripts/readme-example.test.mjs`) |
+
+**A model's translation, reviewed in the editor.** report-builder-core
+holds the run for the language it was asked for, the rows a person
+accepts and the one undo step that applies them, so that both builders
+draw the same review ([0086](../decisions/0086-a-person-reviews-a-models-translation-word-by-word-in-either-builder-and-applies-what-they-accepted-as-one-undo-step.md)).
+The model is held alone, against a model scripted to answer when a case
+says so, from the request it was sent; no builder draws the review yet.
+
+| Where | What holds it |
+|---|---|
+| Ask offered where the language edited lacks words and refused elsewhere; the run waiting with Stop; held for its language and only said under another, every action refused there; a language removed taking its run and its review; rows accepted one at a time and all; Apply one undo step, labelled with the language and the count, against the proposal's hash; refused once the report moved, and Review again leaving out what a person wrote; Discard forgetting a waiting run; only the run in flight landing; each ending said as itself, a removal and a dispose among them; a host's `onCancel` and a relay's subscriber that throw, the state holding no run; what was refused, dropped, a person's, left and roomless said outside the rows; the rows kept while nothing they are made of changed | `report-builder-core/src/translation-review.test.ts` |
+| A proposal that throws, the run and its waiting let go of before the throw is handed on | `report-builder-core/src/translation-landing.test.ts`, report-ai's `proposeTranslation` replaced by one that throws |
+| Every word of it in each of the three catalogues, in each language's own words, with English's placeholders | `report-builder-core/src/text.test.ts` |
+| The packed package | The install gate's `scripts/install-fixture/translation.ts`: the editor, given `askThrough` over the scripted server, holding the quotation's French for review and applying every row as one labelled step, from the packed report-builder-core |
 
 **A group header and the rows it keeps, at every layer that reads the
 count.** The count is the format's, resolved against its group once, by

@@ -680,8 +680,26 @@ word's spaces at either end -- then the validator through `tryEdit` and
 the report's hash. That payment-part rule is report-core's
 `missingWords`, which report-mcp's verdict reads too, so its translate
 prompt leaves the same words to a person. The recorded answers
-are `fixtures/answers/`; no builder draws a proposal yet
+are `fixtures/answers/`
 ([0085](docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
+report-builder-core holds that proposal for a person's review, and no
+builder draws it yet: `ReportEditorOptions.model`, `{ ask }`, and
+`editor.askTranslation()`, no action, as `addImage` is none, run
+report-ai's `translateMissing` for the language edited, held by the editor
+for that language and only said under another, a language removed taking
+its run and its review, each run with a stop of its own and only the one
+in flight landing (`translation-review.ts`); the state's `translation`
+holds Ask, counting the language's `word-missing`, the part's status, the
+review's rows, each where its word stands in the editor's words, what its
+focus selects and a toggle named by both texts, and the notes outside the
+rows, the answer's `later` and `noRoom` among them (`translation-words.ts`,
+`model-translation.ts`); `acceptTranslation`, `acceptAllTranslations`,
+`applyTranslation` -- one report-core `batch` of the accepted rows against
+the proposal's hash, labelled with the language and the count --
+`reviewTranslationAgain`, `discardTranslation` and `stopTranslation` are
+actions; and every word is in `text-model-*.ts`, spread into the three
+catalogues
+([0086](docs/decisions/0086-a-person-reviews-a-models-translation-word-by-word-in-either-builder-and-applies-what-they-accepted-as-one-undo-step.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the starter reports, the reader and
 checks that prove a rendered PDF against them, a rasteriser for page images,
@@ -741,7 +759,9 @@ held by `limits.test.ts` to report-spec's, report-ai's and report-mcp's built `d
 devDependencies no page imports (the absence of changes described in
 words in the builders to report-ai's `REQUEST_KINDS` being the
 translation alone and report-mcp's `PROMPTS` the two the sentence names,
-0085), and to the published packages' manifests
+0085, and to report-builder-core being the one package beside report-ai
+that takes it, calling its translation's run, its proposal and a stop
+alone, 0086), and to the published packages' manifests
 ([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md));
 and `src/groups.ts` is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
 before it:
@@ -760,7 +780,8 @@ before it:
    architecture draws it between report-core and L2.
 3. `report-builder-core` -- selection, palette, properties, geometry, review
    state, the images a person adds, a report's QR-bill and e-invoice edited
-   as parts of its own level; then `report-builder-react` and
+   as parts of its own level, a model's translation reviewed on report-ai's
+   run and proposal (0086); then `report-builder-react` and
    `report-builder-angular`, native, never depending on each other.
 4. `report-runtime` -- typed datasets, expressions, grouping, exact aggregates,
    a renderer-neutral output.

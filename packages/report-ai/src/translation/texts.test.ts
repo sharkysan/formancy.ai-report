@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import type { WrittenEntry } from './reader.js'
-import { textRefusal } from './texts.js'
+import { escapedPoints, textRefusal } from './texts.js'
 
 /**
  * What a model's text is held to before the format reads it (0085): the
@@ -31,6 +31,23 @@ describe('a text held before the format reads it', () => {
     expect(textRefusal(expression('"Total "', `"Total ${BACKSLASH}U0001F600"`))?.message).toMatch(/^it writes U\+1F600 by an escape, of a script/)
     expect(textRefusal(expression('"Total "', `"Total ${BACKSLASH}x7f ${BACKSLASH}342 ${BACKSLASH}n"`))).toBeUndefined()
     expect(textRefusal(expression('"Total "', `"Total ${BACKSLASH}${BACKSLASH}u202e"`))).toBeUndefined()
+  })
+
+  // Each escape is held by what it writes, as CEL decodes it, and never by
+  // what report-spec happens to print: a byte written with an upper-case
+  // X, or a control written by its name, would pass unread the day
+  // `refusedCharacter` refused C0 or C1 controls (#113's N-C), as an
+  // escaped quote or backslash would were it read as nothing. An escape
+  // CEL refuses writes nothing, for the compiler to refuse.
+  test('reads every escape CEL decodes as the character it writes, a named control and an upper-case byte among them', () => {
+    const named = ['a', 'b', 'f', 'n', 'r', 't', 'v'].map((name) => `${BACKSLASH}${name}`).join('')
+    expect(escapedPoints(`"${named}"`)).toEqual([0x07, 0x08, 0x0c, 0x0a, 0x0d, 0x09, 0x0b])
+    expect(escapedPoints(`"${BACKSLASH}X1b ${BACKSLASH}x1B ${BACKSLASH}033"`)).toEqual([0x1b, 0x1b, 0x1b])
+    const quotes = [BACKSLASH, '?', '"', "'", '`'].map((each) => `${BACKSLASH}${each}`).join('')
+    expect(escapedPoints(`"${quotes}"`)).toEqual([0x5c, 0x3f, 0x22, 0x27, 0x60])
+    expect(escapedPoints(`"${BACKSLASH}q ${BACKSLASH}u12"`)).toEqual([])
+    // Past the last code point, an escape writes no character, and the compiler refuses it.
+    expect(textRefusal(expression('"Total "', `"Total ${BACKSLASH}U00110000"`))).toBeUndefined()
   })
 
   // A word's spaces at either end part it from the runs beside it; a text

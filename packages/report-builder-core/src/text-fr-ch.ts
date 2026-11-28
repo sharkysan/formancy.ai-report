@@ -3,6 +3,7 @@
  * (text-en.ts). Swiss French puts a no-break space before a colon.
  */
 import type { Catalogue } from './text-en.js'
+import { MODEL_FR_CH } from './text-model-fr-ch.js'
 
 /** A no-break space: French puts one before a colon, so the colon never starts a line. */
 const NB = ' '
@@ -443,4 +444,5 @@ export const FR_CH: Catalogue = {
   'status.baselineUnchanged': '{name} est déjà ainsi.',
   'status.baselineInOwnLanguage': `Une partie de {name} se met en indice ou en exposant dans la langue propre du rapport${NB}: passez-y, ou ne sélectionnez rien pour mettre {name} entier.`,
   'status.notOptionalRun': `{name} fait partie du texte${NB}: il se modifie dans son champ, sans ajout ni retrait.`,
+  ...MODEL_FR_CH,
 }

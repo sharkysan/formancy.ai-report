@@ -2465,7 +2465,7 @@
       ]
     },
     "0056": {
-      "reviewed": "sha256:49030d72db687bd677a4aa44964d63f2fe75f1a6d6be910f0709379a361de56e",
+      "reviewed": "sha256:dd8331e8b560aae1ca93fc46af3a197c558bc7811b30bdea564fcb4e5c64375f",
       "limitations": [
         {
           "area": "release",
@@ -3601,7 +3601,7 @@
       ]
     },
     "0083": {
-      "reviewed": "sha256:1ae49df6fb2fea6d8d5b30ca734e30ac039191b555d40ea71764a0bd286056f7",
+      "reviewed": "sha256:88657941f56afc396e81fc2d3daf24e6c99a4088e9b88bdec4cfdb66dc1bfa30",
       "limitations": [
         {
           "area": "editing",
@@ -3611,6 +3611,11 @@
         {
           "area": "editing",
           "says": "A stop ends a run at once and discards the answer that arrives after it, but a host whose `AskModel` ignores `turn.onCancel` keeps paying for the request the person abandoned.",
+          "heldBy": "packages/report-ai/src/turn/ask.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A host's model that resolves with no text -- `undefined` from a host that forgot its `return` -- ends the run unreachable with no reason, so a person reads that the model could not be reached where the host's code is at fault.",
           "heldBy": "packages/report-ai/src/turn/ask.test.ts"
         },
         {
@@ -3635,7 +3640,7 @@
       ]
     },
     "0085": {
-      "reviewed": "sha256:0bb429b5b2e9b0424704a721017afab3e58e55ff58e0a5b03f9f45bd7c276211",
+      "reviewed": "sha256:52b60a5e05a94b49b0aae785bc07634a27e7836192bda3e7b5cd534bd9529167",
       "limitations": [
         {
           "area": "editing",
@@ -3693,6 +3698,52 @@
         {
           "area": "release",
           "says": "`@formancy/report-ai` now installs report-core and report-spec, with `@formancy/expressions`, and `@noble/hashes` at exactly 2.4.0, for a briefing's digest and a request's bytes."
+        }
+      ]
+    },
+    "0086": {
+      "reviewed": "sha256:07c17d798dc1c18b7344a8f6d9d477cfb4786433048af4575611a45f37e6cab8",
+      "limitations": [
+        {
+          "area": "builders",
+          "says": "No builder draws a model's translation yet: report-builder-core holds the run, the review and its actions, and a host that wants one on screen now draws the editor state's `translation` itself and calls `askTranslation` and the translation's actions.",
+          "heldBy": "packages/report-builder-core/src/translation-review.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "Nothing edits a proposed word in a model's review: a person accepts it and corrects it in its field afterwards, two steps rather than one, and a long review is one table, grouped by nothing."
+        },
+        {
+          "area": "editing",
+          "says": "A refused entry's reason in a model's review is report-ai's English sentence -- the text rules', the validator's or a diagnostic's -- in every editor language, Swiss German and Swiss French among them, until report-spec's and report-core's sentences are translated by their codes."
+        },
+        {
+          "area": "builders",
+          "says": "Moving the focus into a row of a model's review selects where its word stands, as any selection does, so a refused value left typed in a property field of what was selected before is let go of."
+        },
+        {
+          "area": "editing",
+          "says": "One model's translation is held at a time: while one language's run waits or its review is held, Ask is refused in every other language until it is applied or discarded.",
+          "heldBy": "packages/report-builder-core/src/translation-review.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A language removed, or its adding undone, while a model translates into it or its review is held takes the run and the review with it, and undoing the removal brings neither back: the person asks again, and a turn carried by hand is carried again.",
+          "heldBy": "packages/report-builder-core/src/translation-review.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "An Apply refused because the report changed since the model answered keeps the review and offers Review again, which reads the same answer against the report as it is, leaving out what a person wrote meanwhile and never asking the model again; the review is not read again by itself as the report changes.",
+          "heldBy": "packages/report-builder-core/src/translation-review.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "A model's run in an editor ends when its host disposes of the editor, its model told to stop, and nothing it answers afterwards is held.",
+          "heldBy": "packages/report-builder-core/src/translation-review.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "`@formancy/report-builder-core` now installs `@formancy/report-ai`, and with it `@formancy/spec` and `@noble/hashes` at exactly 2.4.0, in every host of either builder, whether or not it gives the editor a model."
         }
       ]
     },

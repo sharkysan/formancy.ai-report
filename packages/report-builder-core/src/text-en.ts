@@ -2,8 +2,11 @@
  * The editor's words in English: the source every other language
  * translates, grouped by where the words appear, and so the list of
  * messages, `MessageId`, that every catalogue has. text.ts says what the
- * catalogue is for.
+ * catalogue is for. What the editor says about a model is text-model-en.ts's,
+ * spread in last.
  */
+import { MODEL_EN } from './text-model-en.js'
+
 export const EN = {
   // The editor and its panes.
   'editor.label': 'Report editor',
@@ -485,9 +488,13 @@ export const EN = {
   'status.baselineInOwnLanguage':
     "Part of {name} is set below or above the line in the report's own language: switch to it, or select nothing to set all of {name}.",
   'status.notOptionalRun': '{name} is part of the text: it is edited in its field, never added or removed.',
+  ...MODEL_EN,
 } as const
 
 export type MessageId = keyof typeof EN
 
 /** One language's words: a message for every one English has, and no other. */
 export type Catalogue = { readonly [Id in MessageId]: string }
+
+/** One language's words about a model: a message for every one text-model-en.ts has, and no other. */
+export type ModelCatalogue = { readonly [Id in keyof typeof MODEL_EN]: string }

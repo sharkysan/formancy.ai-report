@@ -56,6 +56,31 @@ const declared = (name: string): Readonly<Record<string, string>> => {
   return { ...manifest.dependencies, ...manifest.peerDependencies }
 }
 
+/**
+ * The names the source files of packages/`directory`/src import or export
+ * as values from `specifier`, tests aside, each by the name it is exported
+ * under: what that package can call of the other. A type imports nothing a
+ * program runs, so `import type` and a `type` name are left out. A
+ * namespace import, `import * as ai`, and a re-export of everything,
+ * `export *`, can call or hand on any value, and are named `*`, so that
+ * the list holds them too. A dynamic `import()` is review's. `specifier` is
+ * a package's name, which holds no character a pattern reads otherwise.
+ */
+function valuesFrom(directory: string, specifier: string): readonly string[] {
+  const source = join(repo, 'packages', directory, 'src')
+  const statement = new RegExp(String.raw`^(?:import|export) \{([^}]*)\} from '${specifier}'`, 'gm')
+  const everything = new RegExp(String.raw`^(?:import \* as \w+|export \*(?: as \w+)?) from '${specifier}'`, 'm')
+  const names = new Set<string>()
+  for (const file of readdirSync(source, { recursive: true, encoding: 'utf8' })) {
+    if (!file.endsWith('.ts') || file.endsWith('.test.ts')) continue
+    if (everything.test(readFileSync(join(source, file), 'utf8'))) names.add('*')
+    for (const [, list = ''] of readFileSync(join(source, file), 'utf8').matchAll(statement))
+      for (const name of list.split(',').map((each) => each.trim()))
+        if (name !== '' && !name.startsWith('type ')) names.add(name.split(/\s+as\s+/)[0] as string)
+  }
+  return [...names].sort()
+}
+
 /** What installing `name` installs: what its manifest declares, and what each package of packages/ among them declares in turn. */
 function installs(name: string): ReadonlySet<string> {
   const found = new Set<string>()
@@ -184,23 +209,31 @@ describe('what the start page says Formancy Report does not do yet', () => {
   })
 
   // "No changes described in words in the builders" is true while neither
-  // builder asks a model anything -- no published package but report-ai
-  // takes report-ai, the builders among them -- and report-ai asks a model
-  // for a language's missing words and nothing else: its REQUEST_KINDS,
-  // read from its built dist, is the translation alone (0085), and holds
-  // no request for a change a person describes -- an `edit`, or any kind
-  // added after it -- so a kind added fails here until the sentence is read
-  // again (0083 held the list empty). The sentence's last clause says what
-  // is outside the builders: report-mcp's prompts, which an agent's own
-  // model reads (0088), to write a template from a description and to
-  // translate one. They are read from its built dist too, so a prompt
-  // added fails here until the sentence is read again. A package that
-  // asked a model through code of its own is review's.
-  test('says no change is described in words in the builders while report-ai asks for missing words alone, no other package takes it, and report-mcp offers the prompts the sentence names', () => {
+  // builder asks a model for anything but a language's missing words. The
+  // one published package that takes report-ai is the builders' editor
+  // model, report-builder-core (0086), and what its source calls of
+  // report-ai is the translation's run and proposal and a stop, never the
+  // turn itself, `askChecked`, with which it could ask a kind of its own;
+  // and report-ai asks a model for a language's missing words and nothing
+  // else: its REQUEST_KINDS, read from its built dist, is the translation
+  // alone (0085), and holds no request for a change a person describes --
+  // an `edit`, or any kind added after it -- so a kind added, another
+  // package taking report-ai, or another of its values called fails here
+  // until the sentence is read again (0083 held the list empty). The
+  // sentence's last clause says what is outside the builders: report-mcp's
+  // prompts, which an agent's own model reads (0088), to write a template
+  // from a description and to translate one. They are read from its built
+  // dist too, so a prompt added fails here until the sentence is read
+  // again. A package that asked a model through code of its own is
+  // review's.
+  test("says no change is described in words in the builders while their editor model takes report-ai's translation alone, report-ai asks for missing words alone, and report-mcp offers the prompts the sentence names", () => {
     expect(inputs.packages).toEqual(expect.arrayContaining(['@formancy/report-ai', '@formancy/report-mcp']))
     expect(REQUEST_KINDS).toEqual(['translation'])
     expect(Object.keys(PROMPTS).sort()).toEqual(['translate_a_report', 'write_a_report'])
-    expect(inputs.packages.filter((name) => name !== '@formancy/report-ai' && Object.hasOwn(declared(name), '@formancy/report-ai'))).toEqual([])
+    expect(inputs.packages.filter((name) => name !== '@formancy/report-ai' && Object.hasOwn(declared(name), '@formancy/report-ai'))).toEqual([
+      '@formancy/report-builder-core',
+    ])
+    expect(valuesFrom('report-builder-core', '@formancy/report-ai')).toEqual(['createStop', 'proposeTranslation', 'translateMissing'])
   })
 
   // "No consistent read from Formancy Data" is true while the one package
@@ -212,6 +245,10 @@ describe('what the start page says Formancy Report does not do yet', () => {
   // page, so can every row between its old place and its new, while a row
   // read twice refuses the read (0016): a later client, or another package
   // reading Data through one, fails here until the sentence is read again.
+  // That is the half the sentence says of the source on GitHub; the half
+  // it says of the newest release, 0.3.0, which reads Data 0.1.0 by
+  // offset, is that release's and changes with none of this checkout's
+  // code, so START_STATUS sends it back at the next release.
   test("says a read from Formancy Data is best-effort while the data provider alone reads it, through Data's 0.5.0 client", () => {
     const readers = inputs.packages.flatMap((name) => {
       const range = declared(name)['@formancy/data-client']
@@ -227,7 +264,11 @@ describe('what the start page says Formancy Report does not do yet', () => {
   // fails here, naming it, until the sentence is read again. A server
   // published under another name is review's, and so is one that prints
   // with a library the renderer does not take -- pdf-lib, a headless
-  // browser -- which passes here.
+  // browser -- which passes here. report-mcp, "a server of Report's own"
+  // (0088), prints a PDF for its render check in the process an agent's
+  // client launches, and hands it to no application, only its lines
+  // (0089): the sentence says "for your application", read again on 28
+  // November 2026, which review holds of it.
   test('says no PDF is printed on a server of its own while the server installs neither the runtime nor the renderer', () => {
     const drawsWith = Object.keys(declared('@formancy/report-render-pdf')).filter((name) => !manifests.has(name))
     const printing = ['@formancy/report-runtime', '@formancy/report-render-pdf', ...drawsWith]

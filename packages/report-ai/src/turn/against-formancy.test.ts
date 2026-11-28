@@ -296,6 +296,21 @@ const TEXTS = [
   `{"${DECLINE_KEY}": "ünïcödé, \\"quoted\\", and a\\nnewline"}`,
 ]
 
+describe('where Report departs from formancy', () => {
+  // formancy 0.14.0 reads whatever its host resolves with as the model's
+  // text, and a host in plain JavaScript that resolves none rejects the
+  // run from inside the reader; Report's turn ends such a turn unreachable
+  // and resolves, as a run is promised to on every ending (0083). Held
+  // here, so that a formancy release that changes either side is read
+  // again.
+  test('a host that answers no text rejects formancy’s run and ends Report’s unreachable', async () => {
+    const nothing = () => Promise.resolve(undefined)
+    await expect(formancy.authorForm(nothing as unknown as FormancyAskModel, 'a contact form')).rejects.toThrow(TypeError)
+    const build = () => ({ kind: 'test', system: 'the briefing', user: 'the request' })
+    expect(await askChecked(nothing as unknown as AskModel, build, checkLikeFormancy)).toMatchObject({ ok: false, ended: 'unreachable', attempts: 1 })
+  })
+})
+
 describe('a run of each ends alike', () => {
   // Each ending is a different sentence to a person (formancy.ai 0157,
   // 0158): a run that ended otherwise here than in formancy would tell a
