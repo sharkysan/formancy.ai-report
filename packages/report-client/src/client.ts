@@ -100,6 +100,14 @@ function isBaseUrl(server: unknown): server is string {
  */
 const BEARER = /^[A-Za-z0-9\-._~+/]+=*$/
 
+/**
+ * Whether `token` is a bearer token as RFC 6750 writes one, the rule the
+ * client holds the host's token to before every request: exported, so a
+ * host that reads a token once can refuse one at its start by the same
+ * rule, rather than learn of it at its first request.
+ */
+export const isBearerToken = (token: unknown): token is string => typeof token === 'string' && BEARER.test(token)
+
 const TOKEN_RULE = 'The token the host answered is no bearer token: letters, digits and - . _ ~ + /, with = only at its end, and nothing else.'
 
 /**
@@ -129,15 +137,16 @@ function digitsOf(digest: string): string {
 }
 
 /**
- * The field each of the four refusals that carry one must hold, as
- * `ServerRefusal` types it; every other code carries none.
+ * The field each of the four refusals that carry one holds, as
+ * `ServerRefusal` types it, and what it must be; every other code carries
+ * none.
  */
 const FIELDS = {
-  'report-invalid': ({ errors }) => Array.isArray(errors),
-  'draft-changed': ({ revision }) => revision === null || isRevision(revision),
-  'asset-not-kept': ({ assets }) => Array.isArray(assets) && assets.every((asset) => typeof asset === 'string'),
-  'image-refused': ({ reason }) => typeof reason === 'string',
-} satisfies Partial<Record<RefusalCode, (refusal: Readonly<Record<string, unknown>>) => boolean>>
+  'report-invalid': ['errors', (errors) => Array.isArray(errors)],
+  'draft-changed': ['revision', (revision) => revision === null || isRevision(revision)],
+  'asset-not-kept': ['assets', (assets) => Array.isArray(assets) && assets.every((asset) => typeof asset === 'string')],
+  'image-refused': ['reason', (reason) => typeof reason === 'string'],
+} satisfies Partial<Record<RefusalCode, readonly [string, (field: unknown) => boolean]>>
 
 /** The JSON object `text` holds, or undefined where it holds none. */
 function objectIn(text: string): Readonly<Record<string, unknown>> | undefined {
@@ -151,15 +160,21 @@ function objectIn(text: string): Readonly<Record<string, unknown>> | undefined {
 }
 
 /**
- * `body` as a refusal the API gives: a code `REFUSALS` holds as its own --
- * an inherited name such as `toString` is none -- its sentence, and the
- * field one of the four carries; undefined for anything else.
+ * `body` as a refusal the API gives -- a code `REFUSALS` holds as its own,
+ * an inherited name such as `toString` being none, a sentence, and the
+ * field one of the four carries -- rebuilt from its code: the fixed
+ * sentence `REFUSALS` holds for it, and that one field, never the body's
+ * own sentence or any other key it held, which a gateway in front of the
+ * server may have filled with what the request carried. Undefined for
+ * anything else.
  */
 function refusalIn(body: Readonly<Record<string, unknown>> | undefined): ServerRefusal | undefined {
   const code = body?.['code']
   if (body === undefined || typeof code !== 'string' || !Object.hasOwn(REFUSALS, code) || typeof body['message'] !== 'string') return undefined
-  const field = Object.hasOwn(FIELDS, code) ? FIELDS[code as keyof typeof FIELDS] : undefined
-  return field === undefined || field(body) ? (body as unknown as ServerRefusal) : undefined
+  const fixed = REFUSALS[code as RefusalCode]
+  if (!Object.hasOwn(FIELDS, code)) return { ...fixed } as ServerRefusal
+  const [name, holds] = FIELDS[code as keyof typeof FIELDS]
+  return holds(body[name]) ? ({ ...fixed, [name]: body[name] } as ServerRefusal) : undefined
 }
 
 /** An answer that is no answer of the API's: named by the route's pattern and the status, never by a path that holds an id or a digest. */
@@ -219,7 +234,7 @@ export function createReportClient(options: ReportClientOptions): ReportClient {
     // ParametersOf makes every `:name` of the route a key of `parameters`.
     const path = pattern.replace(/:([a-z]+)/g, (_, name: string) => encodeURIComponent((parameters as Record<string, string>)[name] as string))
     const bearer: unknown = await token()
-    if (typeof bearer !== 'string' || !BEARER.test(bearer)) throw new Error(TOKEN_RULE)
+    if (!isBearerToken(bearer)) throw new Error(TOKEN_RULE)
     const response = await fetching(`${server}${path}`, { method, redirect: 'error', ...sent, headers: { authorization: `Bearer ${bearer}`, ...sent.headers } })
     return read(route, response)
   }

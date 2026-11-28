@@ -77,13 +77,21 @@ written, and `mine.refusal.revision` is the revision that stands.
   where they are not a SHA-256's. `readImage` answers the bytes and the
   media type they were kept as.
 
+- **`isBearerToken(token)`** -- the rule a token is held to before every
+  request, RFC 6750's bearer token, so that a host that reads a token once
+  can refuse one at its start by the same rule.
+
 Each answers an **`Answered<T>`**: `{ ok: true, value }`, the route's
 answer as report-server-core's wire types say -- `WhoAmI`,
 `TemplateList`, `Draft`, `DraftSaved`, `ImageKept`, `StoredImage` -- or `{ ok: false, status,
 refusal }`, a `ServerRefusal`: a code `REFUSALS` holds, its fixed sentence,
 and the field one of the four carries. Narrowing on `code` gives the field.
-This package exports `createReportClient`, `ReportClientOptions`,
-`ReportClient` and `Answered`, and no wire type: a host that names one
+The refusal is rebuilt from its code: the sentence is `REFUSALS`' own and
+the field the one that code carries, never the body's own sentence or any
+other key it held, which a gateway in front of the server may have filled
+with what the request carried, the token among it.
+This package exports `createReportClient`, `isBearerToken`,
+`ReportClientOptions`, `ReportClient` and `Answered`, and no wire type: a host that names one
 imports it from `@formancy/report-server-core`, and `ReportDefinition` and
 `AssetMediaType` from `@formancy/report-spec`, where each is defined.
 

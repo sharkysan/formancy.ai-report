@@ -10,7 +10,7 @@ import { REFUSALS } from '@formancy/report-server-core'
 import { assetDigest, emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { createReportClient } from './client.js'
+import { createReportClient, isBearerToken } from './client.js'
 import type { Answered, ReportClientOptions } from './client.js'
 
 /**
@@ -254,6 +254,35 @@ describe('against what is not report-server', () => {
       expect((thrown as Error).message).toContain('GET /v1/templates/:template/draft')
       expect((thrown as Error).message).not.toContain(template)
     }
+  })
+
+  // A gateway in front of the server can answer with a body that takes a
+  // refusal's code and quotes what the request carried: the token in its
+  // sentence, or in a key of its own. Handed on as it came, the host would
+  // show or log the token with the refusal. Rebuilt from its code -- the
+  // fixed sentence, and the one field that code carries -- nothing else of
+  // the body leaves the client.
+  test('answers a refusal by its code’s own sentence and field, and nothing else the body held', async () => {
+    const token = 'eyJ-a-token-planted-in-the-client-suite'
+    const { fetch } = answering(() =>
+      Response.json({ code: 'unauthenticated', message: `invalid token ${token}`, request: { authorization: `Bearer ${token}` } }, { status: 401 }),
+    )
+    const refused = await client(fetch).listTemplates()
+    expect(refused).toEqual({ ok: false, status: 401, refusal: REFUSALS.unauthenticated })
+    expect(JSON.stringify(refused)).not.toContain(token)
+    const { fetch: stale } = answering(() => Response.json({ code: 'draft-changed', message: token, revision: 2, echo: token }, { status: 412 }))
+    const lost = await client(stale).saveDraft('invoice', report(), null)
+    expect(lost).toEqual({ ok: false, status: 412, refusal: { ...REFUSALS['draft-changed'], revision: 2 } })
+    expect(JSON.stringify(lost)).not.toContain(token)
+  })
+
+  // The rule a bearer token is held to before anything is sent, exported
+  // so that a host that reads a token once can refuse one at its start
+  // by the same rule, rather than learn of it at its first request.
+  test('says what is a bearer token by the rule it sends one by', () => {
+    for (const token of ['eyJ-a.b_c~d+e/f', 'abc==']) expect(isBearerToken(token), token).toBe(true)
+    for (const token of ['eyJ secret', 'eyJ-secret' + String.fromCharCode(10), 'a=b', '', undefined, 7])
+      expect(isBearerToken(token), JSON.stringify(token)).toBe(false)
   })
 
   // The four refusals that carry a field are typed with it, and a host
