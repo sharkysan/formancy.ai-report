@@ -41,10 +41,46 @@ function unprinted(text: string): { readonly point: number; readonly why: Charac
 /**
  * Every escape in a CEL source, left to right, each consumed whole, so
  * that an escaped backslash is never read as the start of another: a
- * Unicode escape of four or eight hex digits, a byte of two, an octal of
- * three, or a backslash before any one character.
+ * Unicode escape of four or eight hex digits, a byte of two after `x` or
+ * `X`, an octal of three, or a backslash before any one character.
  */
-const ESCAPE = /\\(?:u([0-9a-fA-F]{4})|U([0-9a-fA-F]{8})|x([0-9a-fA-F]{2})|([0-3][0-7]{2})|[\s\S])/g
+const ESCAPE = /\\(?:u([0-9a-fA-F]{4})|U([0-9a-fA-F]{8})|[xX]([0-9a-fA-F]{2})|([0-3][0-7]{2})|([\s\S]))/g
+
+/**
+ * What each escape of one character writes, as cel-js 8.0.0's
+ * `STRING_ESCAPES` decodes it: a quote, a backslash or a question mark as
+ * itself, and the seven controls C names. Read by what it writes, so that
+ * a control written by its name is held as one written by its digits,
+ * whatever `refusedCharacter` prints.
+ */
+const NAMED: Readonly<Record<string, number>> = {
+  '\\': 0x5c,
+  '?': 0x3f,
+  '"': 0x22,
+  "'": 0x27,
+  '`': 0x60,
+  a: 0x07,
+  b: 0x08,
+  f: 0x0c,
+  n: 0x0a,
+  r: 0x0d,
+  t: 0x09,
+  v: 0x0b,
+}
+
+/**
+ * The code point each escape in `cel` writes, left to right, as CEL
+ * decodes a string literal's; an escape CEL refuses writes none. Exported
+ * for its suite; the package exports `proposeTranslation` alone.
+ */
+export function escapedPoints(cel: string): number[] {
+  return [...cel.matchAll(ESCAPE)].flatMap(([, four, eight, byte, octal, one]) => {
+    const digits = four ?? eight ?? byte
+    if (digits !== undefined) return [Number.parseInt(digits, 16)]
+    if (octal !== undefined) return [Number.parseInt(octal, 8)]
+    return one !== undefined && Object.hasOwn(NAMED, one) ? [NAMED[one] as number] : []
+  })
+}
 
 /**
  * The first character an expression's escapes write that a report does not
@@ -54,11 +90,9 @@ const ESCAPE = /\\(?:u([0-9a-fA-F]{4})|U([0-9a-fA-F]{8})|x([0-9a-fA-F]{2})|([0-3
  * it would not print one, the safe side.
  */
 function unprintedEscape(cel: string): { readonly point: number; readonly why: CharacterRefusal } | undefined {
-  for (const [, four, eight, byte, octal] of cel.matchAll(ESCAPE)) {
-    const digits = four ?? eight ?? byte
-    const point = digits !== undefined ? Number.parseInt(digits, 16) : octal !== undefined ? Number.parseInt(octal, 8) : undefined
-    const why = point === undefined || point > 0x10ffff ? undefined : refusedCharacter(point)
-    if (point !== undefined && why !== undefined) return { point, why }
+  for (const point of escapedPoints(cel)) {
+    const why = point > 0x10ffff ? undefined : refusedCharacter(point)
+    if (why !== undefined) return { point, why }
   }
   return undefined
 }

@@ -2,7 +2,9 @@
  * What Formancy Report does not do yet, in each language: the start page's
  * list of the absences a reader meets first, each said as an absence
  * today and never as a plan, true of the newest release and of main when
- * it was read, which `intro` says, dated by START_STATUS's `asOf`; and a
+ * it was read, which `intro` says, dated by START_STATUS's `asOf`, and a
+ * clause about what main holds and no release has published yet saying
+ * so, as `ai` says it of report-ai and report-mcp; and a
  * link to the roadmap, which says what comes next and is not restated
  * here. A file of its own because the absences change as what they name
  * is built, a reason to change of their own.
@@ -48,7 +50,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
       viewer:
         'Kein veröffentlichter PDF-Viewer: Der Viewer, in dem das Studio seine Vorschau zeichnet, steckt in keinem Paket, das Formancy Report veröffentlicht; Ihre Anwendung zeigt ein PDF in einem eigenen Viewer.',
       jobs: 'Keine Render-Jobs: Formancy Report erzeugt kein PDF auf einem eigenen Server; Ihre Anwendung ruft für jedes PDF den Renderer auf, auf Ihrem Server oder im Browser.',
-      ai: 'Keine in Worten beschriebenen Änderungen in den Buildern: Keiner der beiden Builder lässt eine Person eine Änderung an einem Bericht in Worten beschreiben, damit eine KI sie vorschlägt, und report-ai fragt eine KI nur nach den Wörtern, die einer Sprache eines Berichts fehlen; ein Coding-Agent, den Sie mitbringen, arbeitet über report-mcp an einer Vorlage, ausserhalb der Builder.',
+      ai: 'Keine in Worten beschriebenen Änderungen in den Buildern: Keiner der beiden Builder lässt eine Person eine Änderung an einem Bericht in Worten beschreiben, damit eine KI sie vorschlägt. Im Quellcode auf GitHub, noch in keinem Release, fragt report-ai eine KI nur nach den Wörtern, die einer Sprache eines Berichts fehlen, und ein Coding-Agent, den Sie mitbringen, arbeitet über report-mcp an einer Vorlage, ausserhalb der Builder.',
     },
     roadmap: 'Die Roadmap lesen (Englisch)',
   },
@@ -68,7 +70,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
       viewer:
         "Pas de visualiseur PDF publié : celui dans lequel le Studio dessine son aperçu ne fait partie d'aucun paquet que Formancy Report publie ; votre application affiche un PDF dans son propre visualiseur.",
       jobs: 'Pas de tâches de rendu : Formancy Report ne génère aucun PDF sur un serveur qui lui soit propre ; votre application appelle le moteur de rendu pour chaque PDF, sur votre serveur ou dans le navigateur.',
-      ai: "Pas de modifications décrites en mots dans les builders : aucun des deux builders ne laisse une personne décrire en mots une modification d'un rapport pour qu'une IA la propose, et report-ai n'interroge une IA que sur les mots qui manquent à une langue d'un rapport ; un agent de codage que vous apportez travaille sur un modèle via report-mcp, hors des builders.",
+      ai: "Pas de modifications décrites en mots dans les builders : aucun des deux builders ne laisse une personne décrire en mots une modification d'un rapport pour qu'une IA la propose. Dans le code source sur GitHub, et dans aucune version encore, report-ai n'interroge une IA que sur les mots qui manquent à une langue d'un rapport, et un agent de codage que vous apportez travaille sur un modèle via report-mcp, hors des builders.",
     },
     roadmap: 'Lire la feuille de route (en anglais)',
   },
@@ -88,7 +90,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
       viewer:
         'Nessun visualizzatore PDF pubblicato: quello in cui lo Studio disegna la sua anteprima non fa parte di alcun pacchetto che Formancy Report pubblica; la vostra applicazione mostra un PDF in un visualizzatore proprio.',
       jobs: 'Nessun job di rendering: Formancy Report non genera alcun PDF su un server proprio; la vostra applicazione chiama il renderer per ogni PDF, sul vostro server o nel browser.',
-      ai: "Nessuna modifica descritta a parole nei builder: nessuno dei due builder fa descrivere a parole a una persona una modifica a un report perché un'IA la proponga, e report-ai chiede a un'IA solo le parole che mancano a una lingua di un report; un agente di programmazione che portate voi lavora su un modello tramite report-mcp, fuori dai builder.",
+      ai: "Nessuna modifica descritta a parole nei builder: nessuno dei due builder fa descrivere a parole a una persona una modifica a un report perché un'IA la proponga. Nel codice sorgente su GitHub, e in nessuna versione ancora, report-ai chiede a un'IA solo le parole che mancano a una lingua di un report, e un agente di programmazione che portate voi lavora su un modello tramite report-mcp, fuori dai builder.",
     },
     roadmap: 'Leggere la roadmap (in inglese)',
   },
@@ -107,7 +109,7 @@ export const LIMITS_COPY: Readonly<Record<Language, LimitsCopy>> = {
       viewer:
         'No published PDF viewer: the one the Studio draws its preview in is in no package Formancy Report publishes, and your application shows a PDF in a viewer of its own.',
       jobs: 'No render jobs: Formancy Report prints no PDF on a server of its own; your application calls the renderer for each PDF, on your server or in the browser.',
-      ai: "No changes described in words in the builders: neither builder has a person describe a change to a report in words for an AI to propose, and report-ai asks an AI only for the words a report's language lacks; a coding agent you bring works on a template through report-mcp, outside the builders.",
+      ai: "No changes described in words in the builders: neither builder has a person describe a change to a report in words for an AI to propose. In the source on GitHub, and in no release yet, report-ai asks an AI only for the words a report's language lacks, and a coding agent you bring works on a template through report-mcp, outside the builders.",
     },
     roadmap: 'Read the roadmap',
   },

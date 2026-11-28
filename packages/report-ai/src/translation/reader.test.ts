@@ -134,9 +134,10 @@ describe('reading an answer', () => {
   })
 
   // A model may write a key an object holds by its prototype, or one key
-  // twice: neither may land on anything. The prototype's names are keys
-  // nobody asked, dropped as any other, and JSON keeps the last of a key
-  // written twice, which is the one read.
+  // twice. A prototype's key never lands on anything: its names are keys
+  // nobody asked, dropped as any other. A key written twice lands as JSON
+  // keeps it, the last, which is the one read: that half holds
+  // `JSON.parse`'s own rule, which no fault of the reader's can change.
   test("drops a prototype's keys as keys not asked, and reads the last of a key written twice", async () => {
     const proto = await translateMissing(scripted('keys-of-the-prototype').ask, report, locale)
     expect(proto.ok && proto.answer.written.map(({ key, text }) => [key, text])).toEqual([['w1', 'Rapport des ventes']])
