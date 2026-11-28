@@ -395,7 +395,14 @@ one.
   `inPaymentPart` of a place: the QR-bill's message prints on the slip
   and in the code a bank reads, so it is a person's to write, and
   report-ai's request and report-mcp's verdict both leave it so by this
-  one rule (0085, 0088).
+  one rule (0085, 0088). `diagnoseByLanguage(report)` gives both at once,
+  from one diagnosis of the report: `diagnose`'s diagnostics split into
+  the report's own, `DiagnosisByLanguage`'s `diagnostics`, and each
+  declared language's, a `LanguageDiagnosis` -- its `locale`, its
+  `diagnostics` as `languageDiagnostics` gives them and what it lacks,
+  `missing`, as `missingWords` gives it -- where asking each of those of
+  every language diagnoses the report again for each; report-mcp's
+  verdict reads it (0088).
 
 Every member read is checked as its type. `@formancy/expressions` 0.5.0 to
 0.12.0 declared a variable only by its whole name, so each read of `row.amount` is

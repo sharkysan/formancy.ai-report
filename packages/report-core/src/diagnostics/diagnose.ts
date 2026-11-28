@@ -4,11 +4,26 @@
  * own language and in each language its translations declare.
  */
 import { wordExpressionSites } from '@formancy/report-spec'
-import type { ReportDefinition } from '@formancy/report-spec'
+import type { ReportDefinition, Translation } from '@formancy/report-spec'
 import type { Diagnostic } from './codes.js'
 import { diagnosis } from './diagnosis.js'
+import type { Diagnosis } from './diagnosis.js'
 import { inLanguage, lackedIn } from './words.js'
 import type { MissingWords } from './words.js'
+
+/**
+ * `report`'s diagnosis in its own language, and each language its
+ * translations declare with that language's diagnostics, in their order:
+ * what `diagnose` and `diagnoseByLanguage` both give, read here once, so
+ * that a rule added to either is added to both.
+ */
+function byLanguage(report: ReportDefinition): {
+  readonly own: Diagnosis
+  readonly languages: readonly { readonly translation: Translation; readonly diagnostics: Diagnostic[] }[]
+} {
+  const own = diagnosis(report)
+  return { own, languages: (report.translations ?? []).map((translation) => ({ translation, diagnostics: inLanguage(report, translation.locale, own) })) }
+}
 
 /**
  * Every diagnostic for `report`, a report the validator accepts -- a
@@ -19,8 +34,8 @@ import type { MissingWords } from './words.js'
  * language alone.
  */
 export function diagnose(report: ReportDefinition): Diagnostic[] {
-  const own = diagnosis(report)
-  return [...own.diagnostics, ...(report.translations ?? []).flatMap(({ locale }) => inLanguage(report, locale, own))]
+  const { own, languages } = byLanguage(report)
+  return [...own.diagnostics, ...languages.flatMap(({ diagnostics }) => diagnostics)]
 }
 
 /** A language a report declares, as `diagnoseByLanguage` gives it: its diagnostics, as `languageDiagnostics` gives them, and what it lacks, as `missingWords` does. */
@@ -44,17 +59,19 @@ export interface DiagnosisByLanguage {
  * lacks -- `languageDiagnostics` and `missingWords` for every language --
  * from one diagnosis of the report: each of those diagnoses the report
  * again, so a verdict that asked both of every language diagnosed a
- * report in twenty-three languages twenty-four times more than it needed
+ * report in twenty-three languages twenty-three times more than it needed
  * (0088). Each language's written report is diagnosed once, as
  * `diagnose` diagnoses it.
  */
 export function diagnoseByLanguage(report: ReportDefinition): DiagnosisByLanguage {
-  const own = diagnosis(report)
+  const { own, languages } = byLanguage(report)
   const sites = wordExpressionSites(report)
-  const languages = (report.translations ?? []).map((translation) => ({
-    locale: translation.locale,
-    diagnostics: inLanguage(report, translation.locale, own),
-    missing: lackedIn(report, translation, sites, own),
-  }))
-  return { diagnostics: own.diagnostics, languages }
+  return {
+    diagnostics: own.diagnostics,
+    languages: languages.map(({ translation, diagnostics }) => ({
+      locale: translation.locale,
+      diagnostics,
+      missing: lackedIn(report, translation, sites, own),
+    })),
+  }
 }
