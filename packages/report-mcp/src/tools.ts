@@ -18,8 +18,8 @@
  * of its arguments, and the report an agent works on is the one it hands
  * over, which nothing here keeps.
  */
-import { describeCommands, diagnose, missingWords, openReportSession, reportFacts } from '@formancy/report-core'
-import type { CommandDescriptor, Diagnostic, MissingWord, Refusal } from '@formancy/report-core'
+import { describeCommands, diagnoseByLanguage, inPaymentPart, openReportSession, reportFacts } from '@formancy/report-core'
+import type { CommandDescriptor, Diagnostic, DiagnosticCode, MissingWord, Refusal } from '@formancy/report-core'
 import { MAX_REPORT_BYTES, reportHash, validateReport } from '@formancy/report-spec'
 import type { ReportDefinition, ReportError } from '@formancy/report-spec'
 
@@ -92,23 +92,22 @@ const sizeSaid = (verdict: Verdict): string =>
   `It is ${String(verdict.size.bytes)} bytes as JSON, past MAX_REPORT_BYTES, ${String(verdict.size.max)}: a save refuses it as report-too-large before reading it.`
 
 /**
- * `report`'s diagnostics, split as a render judges them: `diagnose` gives
- * the report's own first and then each declared language's, each naming
- * its language, so the split is by that name and nothing is diagnosed
- * twice.
+ * `report`'s diagnostics, split as a render judges them, by report-core's
+ * `diagnoseByLanguage`: the report's own, and each declared language's
+ * with what it lacks, from one diagnosis of the report, so nothing is
+ * diagnosed twice -- asked of `missingWords` once a language, the verdict
+ * diagnosed the report again for each, 76 to 92 % more on a starter in
+ * twenty-three languages, measured (0088, 2026-11-28).
  */
 function verdictOf(report: ReportDefinition): Verdict {
-  const found = diagnose(report)
+  const { diagnostics, languages } = diagnoseByLanguage(report)
   const bytes = bytesOf(report)
   return {
     valid: true,
     hash: reportHash(report),
     size: { bytes, max: MAX_REPORT_BYTES, ...(bytes > MAX_REPORT_BYTES ? { code: 'report-too-large' as const } : {}) },
-    diagnostics: found.filter(({ language }) => language === undefined),
-    languages: (report.translations ?? []).map(({ locale }) => {
-      const diagnostics = found.filter(({ language }) => language === locale)
-      return { locale, diagnostics, forPerson: missingWords(report, locale).paymentPart }
-    }),
+    diagnostics,
+    languages: languages.map(({ locale, diagnostics: found, missing }) => ({ locale, diagnostics: found, forPerson: missing.paymentPart })),
   }
 }
 
@@ -122,7 +121,7 @@ export function invalid(errors: readonly ReportError[], what: string): ToolResul
 }
 
 /** The verdict in a sentence: the report's own counts, then each language's. */
-function said(verdict: Verdict): string {
+function saidOf(verdict: Verdict): string {
   const languages = verdict.languages.map(({ locale, diagnostics }) => `in ${locale}, ${counted(diagnostics)}, an error refusing a render in ${locale} alone`)
   return [`${counted(verdict.diagnostics)} of its own, an error refusing every render`, ...languages].join('; ')
 }
@@ -155,16 +154,66 @@ export function describeFormat(): ToolResult {
  * answered with its errors alone.
  */
 export function checkReport(report: unknown): ToolResult {
+  return judged(report).result
+}
+
+/** `report` judged as `checkReport` judges it, with the report the validator returned and its verdict where it accepted it. */
+function judged(report: unknown): { readonly result: ToolResult; readonly accepted?: { readonly report: ReportDefinition; readonly verdict: Verdict } } {
   const validation = validateReport(report)
-  if (!validation.valid) return invalid(validation.errors, 'The document')
+  if (!validation.valid) return { result: invalid(validation.errors, 'The document') }
   const verdict = verdictOf(validation.report)
   const renders = !hasError(verdict.diagnostics) && verdict.languages.every(({ diagnostics }) => !hasError(diagnostics))
-  const judged = `${renders ? 'Valid, and nothing refuses a render' : 'Valid, but a render is refused'}: ${said(verdict)}.`
+  const said = `${renders ? 'Valid, and nothing refuses a render' : 'Valid, but a render is refused'}: ${saidOf(verdict)}.`
   return {
-    ok: renders && !tooLarge(verdict),
-    summary: tooLarge(verdict) ? `${sizeSaid(verdict)} ${judged}` : judged,
-    data: verdict,
+    result: { ok: renders && !tooLarge(verdict), summary: tooLarge(verdict) ? `${sizeSaid(verdict)} ${said}` : said, data: verdict },
+    accepted: { report: validation.report, verdict },
   }
+}
+
+/** Where the e-invoice stands in a report's JSON, by the definition's own key: a person's to write, as the payment part is (0044). */
+const E_INVOICE = `/${'eInvoice' satisfies keyof ReportDefinition}/`
+
+/** The diagnostic a language gives for each word it lacks: an error of a draft being translated, which a save takes. */
+const WORD_MISSING = 'word-missing' satisfies DiagnosticCode
+
+/** A declared language a report saved still lacks words in: how many `word-missing` it gives, and of them, those a person writes. */
+export interface Lacking {
+  readonly locale: string
+  readonly missing: number
+  readonly forPerson: readonly MissingWord[]
+}
+
+/**
+ * `report` judged for a save (0088, after #116's review): a draft is
+ * unfinished by nature, so it is refused, with `checkReport`'s answer, only
+ * for what an agent can and should fix before saving -- the validator's
+ * errors, the size bound, an error of the report's own, and a declared
+ * language's error other than a word it lacks, as `translation-differs`.
+ * A word missing refuses that language's render and no save, as a builder
+ * and the server hold a report being translated (0063): gated on it, an
+ * agent that left the payment part's words to a person, as it is told to,
+ * could never save. Otherwise the report the validator returned, and each
+ * language that still lacks words, with those a person writes.
+ */
+export function judgedForSave(
+  report: unknown,
+): { readonly refused: ToolResult; readonly forPerson: readonly Diagnostic[] } | { readonly report: ReportDefinition; readonly lacking: readonly Lacking[] } {
+  const { result, accepted } = judged(report)
+  if (accepted === undefined) return { refused: result, forPerson: [] }
+  const { verdict } = accepted
+  const toFix =
+    tooLarge(verdict) ||
+    hasError(verdict.diagnostics) ||
+    verdict.languages.some(({ diagnostics }) => diagnostics.some(({ severity, code }) => severity === 'error' && code !== WORD_MISSING))
+  if (toFix) {
+    const forPerson = verdict.diagnostics.filter(({ severity, path }) => severity === 'error' && (inPaymentPart(path) || path.startsWith(E_INVOICE)))
+    return { refused: result, forPerson }
+  }
+  const lacking = verdict.languages.flatMap(({ locale, diagnostics, forPerson }) => {
+    const missing = diagnostics.filter(({ code }) => code === WORD_MISSING).length
+    return missing === 0 ? [] : [{ locale, missing, forPerson }]
+  })
+  return { report: accepted.report, lacking }
 }
 
 /** Every command report-core has, as the data a descriptor is, by its registry. */
@@ -225,8 +274,8 @@ export function applyCommands(report: unknown, commands: readonly unknown[], exp
   const changed = session.revision() !== before
   const verdict = verdictOf(session.document())
   const applied = changed
-    ? `Applied ${plural(commands.length, 'command')} as one edit. The report now has ${said(verdict)}.`
-    : `The ${plural(commands.length, 'command')} changed nothing: the report is as it was given, with ${said(verdict)}.`
+    ? `Applied ${plural(commands.length, 'command')} as one edit. The report now has ${saidOf(verdict)}.`
+    : `The ${plural(commands.length, 'command')} changed nothing: the report is as it was given, with ${saidOf(verdict)}.`
   return {
     ok: !tooLarge(verdict),
     ...(tooLarge(verdict) ? { applied: true as const } : {}),

@@ -7,11 +7,15 @@ the format described, a report validated and diagnosed as the validator
 and a render judge it and held to the size a draft may have, and
 report-core's commands applied as the builders apply them, and the
 report rendered with the data an agent passes in, each page's lines read
-back from the PDF with PDF.js. The tools need
+back from the PDF with PDF.js. Those tools need
 nothing but their arguments: no server, no file, no network; the server
 reads one file, its own manifest, for the version it reports, and the
-renderer and PDF.js read their own. Nothing here publishes, saves or
-takes an address, no PDF leaves it, and
+renderer and PDF.js read their own. Given Report's server and the
+person's token at their host, four more ask the server through
+`@formancy/report-client`, as that person: who they are, the tenant's
+templates, a template's draft, and a save, sent only once the checks
+pass. Nothing here publishes, keeps an image or takes an address, no PDF
+leaves it, and
 no input names a URL, a path or a file. Decisions
 [0088](../../docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)
 and [0089](../../docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)
@@ -39,8 +43,44 @@ it as a command, as it names any MCP server:
 
 `--no` keeps npx to the project's own install: without it, npx fetches a
 package of that name from the registry when the project has none. The
-bin reads no setting and no environment variable, and writes nothing to
-standard output but the protocol.
+bin writes nothing to standard output but the protocol.
+
+## Give it Report's server
+
+The four tools that read and save a draft are registered only where the
+client's configuration gives the bin two settings, both or neither:
+
+```json
+{
+  "mcpServers": {
+    "formancy-report": {
+      "command": "npx",
+      "args": ["--no", "formancy-report-mcp"],
+      "env": { "FORMANCY_REPORT_URL": "https://reports.example", "FORMANCY_REPORT_TOKEN": "file:/home/me/.config/reports/token" }
+    }
+  }
+}
+```
+
+| Setting | What it is |
+| --- | --- |
+| `FORMANCY_REPORT_URL` | Report's server's base URL, `http:` or `https:`, with no credentials, query, fragment or trailing slash, as report-client takes one; it follows no redirect |
+| `FORMANCY_REPORT_TOKEN` | A secret reference to the person's token at their host, never the token: `env:NAME`, a variable outside `FORMANCY_REPORT_` that holds a bearer token, read once when the bin starts; or `file:/absolute/path`, on Windows from a drive or a share, read again before every request to the server, its one line ending taken off |
+
+The token is the person's who runs the agent, as their host's identity
+provider issues it, with the tenant claim the server's operator maps and
+a role that gives the author's capacity: what the agent saves is saved as
+them, `savedBy` their subject, and the agent can do whatever their roles
+allow. Its lifetime and its tenant are the host's; the bin mints,
+refreshes, writes and logs none. A file lets the host's own tool write the
+next token before the last expires; a variable's token is the one the bin
+started with. One setting without the other, a token pasted where its
+reference goes, a variable unset or under `FORMANCY_REPORT_`, a relative
+file or a URL report-client refuses stops the bin at start, with a line on
+standard error naming the setting and no value, and exit 1. With neither,
+the five tools that need nothing are the bin's only ones, and the
+instructions the server hands a client say which four are missing and
+why.
 
 ## The tools
 
@@ -50,14 +90,26 @@ standard output but the protocol.
 | `validate_report` | report-spec's `validateReport`, whose errors a save refuses; the report's size against `MAX_REPORT_BYTES`, the UTF-8 length of its JSON, past which a save refuses it as `report-too-large`; then report-core's `diagnose`, the report's own diagnostics, whose errors refuse every render, and each declared language's, whose errors refuse a render in that language alone, and of what each lacks, what stands in the payment part, `forPerson`, which a person writes and no agent translates; with the report's `reportHash`. What a save asks of the server's own state it leaves to the server: the report's id being the template's, every image it declares kept there, and no font |
 | `describe_commands` | report-core's `describeCommands()`: every command of its registry, each written as the descriptor `{ "command", "args" }` is, its arguments in the words a refusal names them in; how many one edit holds; and `PART_COMMANDS`, the commands that may change whom a payment reaches |
 | `apply_commands` | a session opened on the report given, and the commands applied as one batch through the registry the builders use: the new report, its hash, its size and its diagnostics, or the refusal's code, sentence and path, nothing applied; with `expectedHash`, an edit made against another report is refused `stale-document`, and the agent told to validate the report it means to edit; an edit that grows the report past `MAX_REPORT_BYTES` is applied and answered not `ok`, and not `isError`, since it was made |
+| `whoami` | report-client's `whoami()`: who the server takes the token's holder to be -- subject, tenant, roles -- and the capacities and actions the operator's role policy gives them, and whether `draft.save`, which `save_draft` needs, is among them |
+| `list_templates` | the tenant's templates, each by its id with its newest draft's revision and title |
+| `read_draft` | a template's newest draft: its report, its version `{ revision, digest }`, which `save_draft` takes as `from`, who saved it, and the report's hash, which `apply_commands` takes as `expectedHash`; a draft of another format, or whose report this release's validator refuses, is said as such |
+| `save_draft` | a report judged first as `validate_report` judges it and sent unless it holds what an agent can fix -- the validator's errors, `MAX_REPORT_BYTES`, an error of its own, a language's other than `word-missing` -- as the template's next draft; a draft whose languages still lack words is saved, and the answer's `lacking` names each such language, how many words it lacks and, in `forPerson`, the payment part's, which a person writes; an error of its own in the payment part or the e-invoice refuses it and is named for the person, `forPerson` in the refusal. It is sent from `from`, the version it replaces, with `If-Match`, or with no `from` as its first, with `If-None-Match: *`; a save from a draft somebody has saved over since is refused `draft-changed`, `standing` the revision that stands, nothing written. The server's own refusals -- an id that is not the template's, an image it does not keep, a role that does not save -- come back by their codes, with what to do; it keeps no image and never publishes |
 | `render_check` | the report rendered as a host renders it: report-spec's validator, the runtime's `resolveReport` with the `data`, `parameters`, `locale`, `timeZone` and `mode` given, a final render unless `preview` is asked for, and the renderer's `renderPdf`; then the PDF read back with pdfjs-dist 6.4.299, the corpus's pin, its runs joined into lines by the corpus's `pageLines` rule: `{ rendered, pages: [{ page, lines }], warnings, manifest }`, or the first refusal by its package's codes. Each image or font the report or its data names comes in `assets` as `{ asset, digest, mediaType, base64 }`, held to its digest before anything resolves. The report is held to `MAX_REPORT_BYTES`, the data to the runtime's `MAX_DETAIL_ROWS` and `MAX_STRING_LENGTH`, the PDF to `MAX_CHECK_PAGES`, 40, and the answer to `MAX_ANSWER_BYTES`, the report's own bound, refused whole past it. The PDF is never answered |
 
 Every answer is one envelope, `{ ok, summary, data }`, as text for the
 model and as structured content for the client; a refusal is `isError`,
-never a thrown error, and an edit applied is never `isError`. Every tool is annotated read-only and closed-world,
-so a host may run it without asking. Two prompts come with the server:
+never a thrown error, and an edit applied is never `isError`. The five tools that need nothing are annotated read-only and closed-world,
+so a host may run them without asking; `whoami`, `list_templates` and
+`read_draft` read-only and open-world; `save_draft` writing, never
+destructively -- every revision is kept beside the ones before it -- and
+not idempotently. The routes the four ask are `MCP_ROUTES`, none a
+version's. What the server answered that is not its route's wire type is
+said, naming the route, and never read into; what report-client throws is
+said in its own sentence, a network that failed by Node's code alone, and
+a save with no answer is said not known to be written. Two prompts come with the server:
 `write_a_report`, which starts from `describe_format` and ends with
-`validate_report` and `render_check`, and `translate_a_report`, which works from the
+`validate_report` -- until it answers ok, or nothing is left but the words
+it lists in `forPerson`, named to the person -- and `render_check`, and `translate_a_report`, which works from the
 `word-missing` diagnostics through `addLanguage`, `translateWord` and
 `translateExpression`, leaving what `validate_report` lists in
 `forPerson` -- the QR-bill's message, which prints on the slip and in
@@ -68,8 +120,11 @@ the rule report-ai's request reads too.
 
 `describeFormat`, `checkReport`, `listCommands`, `applyCommands` and
 `renderCheck` are the tools as plain functions from JSON to JSON, and
-`createReportMcpServer()` is the server, to connect to a transport of
-the host's; `TOOL_DEFINITIONS` and `PROMPTS` are what a client is told.
+`whoAmI`, `listTemplates`, `readDraft` and `saveDraft` the server's, each
+of the one method of a report-client it asks; `createReportMcpServer({ client? })` is the server,
+to connect to a transport of the host's, the four registered where a
+client is given; `TOOL_DEFINITIONS`, `SERVER_TOOLS`, `MCP_ROUTES` and
+`PROMPTS` are what a client is told and asked.
 The package's declarations name the SDK's `McpServer`, whose own
 declarations name the DOM's `HeadersInit`: a host that type-checks them
 with `skipLibCheck` off and Node's types alone declares that one name, as
@@ -77,8 +132,15 @@ the install gate's MCP host does (`scripts/install-fixture/mcp-globals.d.ts`).
 
 ## What it does not do yet
 
-No tool reads or saves a draft on Report's server; the tools that need a
-server are planned ([the roadmap](../../docs/roadmap.md)). `render_check`
+No tool keeps an image or maps a font, so a report that declares an
+image the server does not keep is refused `asset-not-kept` until a person
+adds it in a builder; `save_draft` saves a draft whose languages still
+lack words, so a draft it saved may still be refused a render in such a
+language until somebody writes them, the payment part's being a
+person's; and no tool publishes
+([the roadmap](../../docs/roadmap.md)). The four have asked report-server
+in the suites' process and the install gate's alone, through no
+gateway or identity provider of a host's. `render_check`
 answers a page's lines and not where each stands on it, nor the PDF
 itself; its line reader is the corpus's rule written again, held equal
 to the corpus's on the corpus's PDFs and not on every report; and a
@@ -96,7 +158,10 @@ of the commands it was.
 ## Dependencies
 
 `@formancy/report-spec`, `@formancy/report-core`,
-`@formancy/report-runtime` and `@formancy/report-render-pdf`; the MCP SDK,
+`@formancy/report-runtime` and `@formancy/report-render-pdf`;
+`@formancy/report-client`, which the four tools ask the server through,
+and `@formancy/report-server-core`, whose routes and wire types they
+read; the MCP SDK,
 `@modelcontextprotocol/sdk`, at exactly 1.32.2, and `zod`, its peer, at
 exactly 4.6.7, both MIT. The SDK brings its HTTP transports in the same
 package, so its production closure -- Express, Hono, CORS and a JSON

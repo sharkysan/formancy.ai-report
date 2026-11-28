@@ -1,11 +1,12 @@
 import { draftTag, isRevision, REFUSALS } from '@formancy/report-server-core'
-import type { Draft, DraftSaved, ImageKept, RefusalCode, Route, ServerRefusal, StoredImage, TemplateList } from '@formancy/report-server-core'
-import { ASSET_MEDIA_TYPES, isDigest } from '@formancy/report-spec'
-import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
+import type { Draft, DraftSaved, ImageKept, Refusal, RefusalCode, Route, ServerRefusal, StoredImage, TemplateList, WhoAmI } from '@formancy/report-server-core'
+import { ASSET_MEDIA_TYPES, IMAGE_REFUSAL_CODES, isDigest, isIdentifier, REPORT_ERROR_CODES, SVG_REFUSAL_CODES } from '@formancy/report-spec'
+import type { AssetMediaType, ReportDefinition, ReportError, ReportErrorCode } from '@formancy/report-spec'
 
 /**
  * Report's client (0049): what a host's page, or its own server, calls to
- * keep a template's draft and the images it declares on report-server. It
+ * keep a template's draft and the images it declares on report-server, and
+ * to ask who the server takes the token's holder to be (0046). It
  * asks the routes `ROUTES` names, by their own keys, so a route renamed
  * there fails to compile here; it sends the token the host answers with
  * before every request, and nothing else of the host's. It reaches the
@@ -36,6 +37,13 @@ export interface ReportClientOptions {
 export type Answered<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly status: number; readonly refusal: ServerRefusal }
 
 export interface ReportClient {
+  /**
+   * Who the server takes the token's holder to be: their subject and tenant,
+   * the roles the token carries, and the capacities and actions the
+   * operator's role policy gives those roles (0046), so a wrong tenant claim
+   * or role mapping shows before anything is saved.
+   */
+  whoami(): Promise<Answered<WhoAmI>>
   /** The tenant's templates, by id, each with its newest draft's revision and title. */
   listTemplates(): Promise<Answered<TemplateList>>
   /** The template's newest draft, with the version, its revision and its digest, a save from it names. */
@@ -92,6 +100,14 @@ function isBaseUrl(server: unknown): server is string {
  */
 const BEARER = /^[A-Za-z0-9\-._~+/]+=*$/
 
+/**
+ * Whether `token` is a bearer token as RFC 6750 writes one, the rule the
+ * client holds the host's token to before every request: exported, so a
+ * host that reads a token once can refuse one at its start by the same
+ * rule, rather than learn of it at its first request.
+ */
+export const isBearerToken = (token: unknown): token is string => typeof token === 'string' && BEARER.test(token)
+
 const TOKEN_RULE = 'The token the host answered is no bearer token: letters, digits and - . _ ~ + /, with = only at its end, and nothing else.'
 
 /**
@@ -120,16 +136,63 @@ function digitsOf(digest: string): string {
   return digest.slice(DIGEST_PREFIX.length)
 }
 
+/** Each member of `ServerRefusal` that carries a field beside its code and its sentence, read from the type itself. */
+type FieldedRefusal = ServerRefusal extends infer R
+  ? R extends ServerRefusal
+    ? [Exclude<keyof R, keyof Refusal>] extends [never]
+      ? never
+      : R
+    : never
+  : never
+
+/** The codes that carry a field, and the field each carries, as `ServerRefusal` types them. */
+type FieldedCode = FieldedRefusal['code']
+type FieldOf<C extends FieldedCode> = Exclude<keyof Extract<FieldedRefusal, { readonly code: C }>, keyof Refusal>
+
+/** What the validator's errors are coded by. */
+const ERROR_CODES: ReadonlySet<string> = new Set(REPORT_ERROR_CODES)
+
 /**
- * The field each of the four refusals that carry one must hold, as
- * `ServerRefusal` types it; every other code carries none.
+ * Why the server keeps no image, as report-server-core's `keepImage` says
+ * it: report-spec's codes for a raster's header and an SVG, and
+ * `not-an-image` for bytes no sniffer reads, which the server writes as
+ * itself and `client.test.ts` holds the server to.
+ */
+const IMAGE_REASONS: ReadonlySet<string> = new Set(['not-an-image', ...IMAGE_REFUSAL_CODES, ...SVG_REFUSAL_CODES])
+
+/**
+ * An error of the validator's as the server lists it: its code one of
+ * `REPORT_ERROR_CODES`, its path and its sentence strings, and its
+ * component's id where it is one; rebuilt of those alone, or undefined.
+ */
+function errorOf(entry: unknown): ReportError | undefined {
+  if (typeof entry !== 'object' || entry === null) return undefined
+  const { code, path, message, componentId } = entry as Readonly<Record<string, unknown>>
+  if (typeof code !== 'string' || !ERROR_CODES.has(code) || typeof path !== 'string' || typeof message !== 'string') return undefined
+  return { code: code as ReportErrorCode, path, message, ...(isIdentifier(componentId) ? { componentId } : {}) }
+}
+
+/**
+ * The field each of the four refusals that carry one holds, as
+ * `ServerRefusal` types it, read as what the server writes there -- the
+ * validator's errors, a revision or none, assets by their ids, an image's
+ * reason by its code -- or undefined, so that nothing a gateway put under
+ * one of these codes rides in the field; every other code carries none
+ * (#116's re-review, N12).
  */
 const FIELDS = {
-  'report-invalid': ({ errors }) => Array.isArray(errors),
-  'draft-changed': ({ revision }) => revision === null || isRevision(revision),
-  'asset-not-kept': ({ assets }) => Array.isArray(assets) && assets.every((asset) => typeof asset === 'string'),
-  'image-refused': ({ reason }) => typeof reason === 'string',
-} satisfies Partial<Record<RefusalCode, (refusal: Readonly<Record<string, unknown>>) => boolean>>
+  'report-invalid': [
+    'errors',
+    (errors) => {
+      const read = Array.isArray(errors) ? errors.map(errorOf) : undefined
+      return read?.every((error) => error !== undefined) === true ? read : undefined
+    },
+  ],
+  'draft-changed': ['revision', (revision) => (revision === null || isRevision(revision) ? revision : undefined)],
+  'asset-not-kept': ['assets', (assets) => (Array.isArray(assets) && assets.every(isIdentifier) ? [...assets] : undefined)],
+  'image-refused': ['reason', (reason) => (typeof reason === 'string' && IMAGE_REASONS.has(reason) ? reason : undefined)],
+  // Every code `ServerRefusal` gives a field, each by that field's name: a code a release gives one and not read here does not compile, where its field would be dropped.
+} satisfies { readonly [C in FieldedCode]: readonly [FieldOf<C>, (field: unknown) => unknown] }
 
 /** The JSON object `text` holds, or undefined where it holds none. */
 function objectIn(text: string): Readonly<Record<string, unknown>> | undefined {
@@ -143,15 +206,22 @@ function objectIn(text: string): Readonly<Record<string, unknown>> | undefined {
 }
 
 /**
- * `body` as a refusal the API gives: a code `REFUSALS` holds as its own --
- * an inherited name such as `toString` is none -- its sentence, and the
- * field one of the four carries; undefined for anything else.
+ * `body` as a refusal the API gives -- a code `REFUSALS` holds as its own,
+ * an inherited name such as `toString` being none, a sentence, and the
+ * field one of the four carries -- rebuilt from its code: the fixed
+ * sentence `REFUSALS` holds for it, and that one field as `FIELDS` reads
+ * it, never the body's own sentence or any other key it held, which a
+ * gateway in front of the server may have filled with what the request
+ * carried. Undefined for anything else.
  */
 function refusalIn(body: Readonly<Record<string, unknown>> | undefined): ServerRefusal | undefined {
   const code = body?.['code']
   if (body === undefined || typeof code !== 'string' || !Object.hasOwn(REFUSALS, code) || typeof body['message'] !== 'string') return undefined
-  const field = Object.hasOwn(FIELDS, code) ? FIELDS[code as keyof typeof FIELDS] : undefined
-  return field === undefined || field(body) ? (body as unknown as ServerRefusal) : undefined
+  const fixed = REFUSALS[code as RefusalCode]
+  if (!Object.hasOwn(FIELDS, code)) return { ...fixed } as ServerRefusal
+  const [name, read] = FIELDS[code as keyof typeof FIELDS]
+  const field = read(body[name])
+  return field === undefined ? undefined : ({ ...fixed, [name]: field } as ServerRefusal)
 }
 
 /** An answer that is no answer of the API's: named by the route's pattern and the status, never by a path that holds an id or a digest. */
@@ -211,12 +281,13 @@ export function createReportClient(options: ReportClientOptions): ReportClient {
     // ParametersOf makes every `:name` of the route a key of `parameters`.
     const path = pattern.replace(/:([a-z]+)/g, (_, name: string) => encodeURIComponent((parameters as Record<string, string>)[name] as string))
     const bearer: unknown = await token()
-    if (typeof bearer !== 'string' || !BEARER.test(bearer)) throw new Error(TOKEN_RULE)
+    if (!isBearerToken(bearer)) throw new Error(TOKEN_RULE)
     const response = await fetching(`${server}${path}`, { method, redirect: 'error', ...sent, headers: { authorization: `Bearer ${bearer}`, ...sent.headers } })
     return read(route, response)
   }
 
   return {
+    whoami: async () => ask('GET /v1/whoami', {}, json<WhoAmI>),
     listTemplates: async () => ask('GET /v1/templates', {}, json<TemplateList>),
     readDraft: async (template) => ask('GET /v1/templates/:template/draft', { template }, json<Draft>),
     saveDraft: async (template, report, from) =>

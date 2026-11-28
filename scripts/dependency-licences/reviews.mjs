@@ -229,12 +229,17 @@ export const NEVER_LOADED = Object.freeze({
  * `sbom.cdx.json`, and the components every build's SBOM lists whose
  * licence the policy refuses or that state none, each with its licence as
  * the SBOM writes it; the packages the review saw depend on the family,
- * `dependents`; and each build's tarball, and the family's, by the
+ * `dependents`, and each package the family is reached through from the
+ * one it is for, with exactly the packages the review saw depend on it,
+ * `through` -- pdfjs-dist, by report-mcp alone, held by this table and by
+ * no font's admission (#112's re-review, N-G); and each build's tarball,
+ * and the family's, by the
  * integrity `pnpm-lock.yaml` records, which pnpm installs by. A package
  * that ships a `.node` file and is of no family here is refused; so is one
  * of a family at another version, a build no review read, an SBOM of other
  * bytes or of other components beyond the policy, a route that does not
- * pass the package it is for, a dependent the review did not see, and, by
+ * pass the package it is for, a dependent the review did not see, of the
+ * family or of a package it is reached through, and, by
  * the lockfile, a build or a version of the family that no review read or
  * a tarball of other bytes (`lockfileProblems`). Every tarball the SBOMs
  * were read from is the one the lockfile records, compared on 28 November
@@ -280,6 +285,7 @@ export const BUILDS_READ = Object.freeze({
     version: '1.0.11',
     for: '@formancy/report-mcp',
     dependents: Object.freeze(['pdfjs-dist']),
+    through: Object.freeze({ 'pdfjs-dist': Object.freeze(['@formancy/report-mcp']) }),
     integrity: 'sha512-vt5tog1cr+QKadIddGe+3LrcX0EmjEd0izF717Uwf92mBmgYfq2XRmL2r4bZU40spB69exxhrBn9I91HYEr/7w==',
     builds: Object.freeze({
       '@napi-rs/canvas-android-arm64': Object.freeze({

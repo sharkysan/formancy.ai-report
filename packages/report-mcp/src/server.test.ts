@@ -1,14 +1,19 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
+import { createReportClient } from '@formancy/report-client'
 import { wordExpressions } from '@formancy/report-core'
 import { QUOTATION, STARTERS } from '@formancy/report-corpus'
 import { STDIO_DEFAULT_MAX_BUFFER_SIZE } from '@modelcontextprotocol/sdk/shared/stdio.js'
 import { DATA_MODES } from '@formancy/report-runtime'
-import { MAX_REPORT_BYTES, reportHash, reportWords } from '@formancy/report-spec'
+import { REFUSALS } from '@formancy/report-server-core'
+import { emptyReport, MAX_REPORT_BYTES, reportHash, reportWords } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
-import { describe, expect, test } from 'vitest'
-import { createReportMcpServer, PACKAGE_VERSION, PLACEHOLDERS, PROMPTS, TOOL_DEFINITIONS, translationSteps } from './server.js'
-import { quotationOf, STARTER_ASSETS } from './test-support.js'
+import { afterAll, beforeAll, describe, expect, test } from 'vitest'
+import { createReportMcpServer, PACKAGE_VERSION, PLACEHOLDERS, PROMPTS, SERVER_TOOLS, TOOL_DEFINITIONS, translationSteps } from './server.js'
+import type { ReportMcpOptions } from './server.js'
+import { SETTINGS } from './settings.js'
+import { quotationOf, recordingFetch, STARTER_ASSETS, startReportServer } from './test-support.js'
+import type { RunningServer } from './test-support.js'
 import { applyCommands } from './tools.js'
 
 /**
@@ -22,8 +27,8 @@ import { applyCommands } from './tools.js'
  * registered under another argument name is invisible to a unit test and
  * fatal in use: the model's call never matches.
  */
-async function connect(): Promise<Client> {
-  const server = createReportMcpServer()
+async function connect(options: ReportMcpOptions = {}): Promise<Client> {
+  const server = createReportMcpServer(options)
   const client = new Client({ name: 'test', version: '0' })
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair()
   await Promise.all([server.connect(serverSide), client.connect(clientSide)])
@@ -66,13 +71,54 @@ function addressesIn(schema: unknown): string[] {
   return found
 }
 
+/** The tools that need nothing, which every server registers. */
+const LOCAL_TOOLS = Object.keys(TOOL_DEFINITIONS).filter((name) => !(SERVER_TOOLS as readonly string[]).includes(name))
+
+/** Report's server for the cases that ask it through the protocol. */
+let reports: RunningServer
+beforeAll(async () => {
+  reports = await startReportServer()
+})
+afterAll(async () => {
+  await reports.close()
+})
+/** A server half that asks that server as its author, through `fetch` where a case records what is asked. */
+const withServer = (fetch?: typeof globalThis.fetch): ReportMcpOptions => ({
+  client: createReportClient({ server: reports.at, token: () => reports.sign(), ...(fetch === undefined ? {} : { fetch }) }),
+})
+
 describe('the tools a client can see', () => {
   // A tool missing is one an agent never calls; one added without a
-  // description is one it calls for the wrong reason.
+  // description is one it calls for the wrong reason. Without a server,
+  // the four that need one are not there to be called and refused.
   test('are the five that need nothing, each with the description TOOL_DEFINITIONS holds', async () => {
     const { tools } = await (await connect()).listTools()
     expect(tools.map(({ name }) => name).sort()).toEqual(['apply_commands', 'describe_commands', 'describe_format', 'render_check', 'validate_report'])
+    expect(tools.map(({ name }) => name).sort()).toEqual([...LOCAL_TOOLS].sort())
     for (const tool of tools) expect(tool.description, tool.name).toBe(TOOL_DEFINITIONS[tool.name as keyof typeof TOOL_DEFINITIONS])
+  })
+
+  // Given Report's server, the four that ask it are registered beside the
+  // five: whoami, the list, a draft's read and its save, and nothing that
+  // publishes.
+  test('are the nine, given a server, the four that ask it among them', async () => {
+    const { tools } = await (await connect(withServer())).listTools()
+    expect(tools.map(({ name }) => name).sort()).toEqual(Object.keys(TOOL_DEFINITIONS).sort())
+    expect([...SERVER_TOOLS].sort()).toEqual(['list_templates', 'read_draft', 'save_draft', 'whoami'])
+    for (const tool of tools) expect(tool.description, tool.name).toBe(TOOL_DEFINITIONS[tool.name as keyof typeof TOOL_DEFINITIONS])
+  })
+
+  // A tool not registered says nothing of itself, so the server says why
+  // it is missing in the instructions a client may hand its model: an agent
+  // asked to save would otherwise say it cannot, and the person would not
+  // learn the two settings that give it the tool.
+  test('say, without a server, which tools are missing and the settings that bring them', async () => {
+    const without = (await connect()).getInstructions() ?? ''
+    for (const name of [...SERVER_TOOLS, ...Object.keys(SETTINGS)]) expect(without, name).toContain(name)
+    expect(without).toContain('not registered')
+    const given = (await connect(withServer())).getInstructions() ?? ''
+    expect(given).not.toContain('not registered')
+    expect(given).toContain('as the person whose token')
   })
 
   // The description is the prompt: one that names the moment is a tool a
@@ -84,6 +130,13 @@ describe('the tools a client can see', () => {
     expect(TOOL_DEFINITIONS.describe_commands).toContain('before apply_commands')
     expect(TOOL_DEFINITIONS.apply_commands).toContain('expectedHash')
     expect(TOOL_DEFINITIONS.render_check).toContain('once validate_report answers ok')
+    expect(TOOL_DEFINITIONS.whoami).toContain('first')
+    expect(TOOL_DEFINITIONS.read_draft).toContain('before changing a template')
+    expect(TOOL_DEFINITIONS.save_draft).toContain('validate_report first')
+    expect(TOOL_DEFINITIONS.save_draft).toContain('never publishes')
+    // A word a language lacks is saved and named, the payment part's for a person: told it refuses the save, an agent would translate the slip.
+    expect(TOOL_DEFINITIONS.save_draft).toContain('other than word-missing')
+    expect(TOOL_DEFINITIONS.save_draft).toContain('forPerson')
   })
 
   // validate_report checks what the validator, the draft's size and a
@@ -100,29 +153,36 @@ describe('the tools a client can see', () => {
 
   // Unannotated, a tool reads as destructive and open-world, so a host that
   // runs read-only tools without asking would ask about every check, and
-  // one that trusts annotations could not tell a check from a save.
-  test('each say they change nothing and reach nowhere, so no tool publishes or saves', async () => {
-    const { tools } = await (await connect()).listTools()
-    for (const tool of tools) {
-      expect(tool.annotations?.readOnlyHint, tool.name).toBe(true)
-      expect(tool.annotations?.openWorldHint, tool.name).toBe(false)
-      expect(tool.name, tool.name).not.toMatch(/publish|save|send|fetch/)
-    }
+  // one that trusts annotations could not tell a check from a save. The
+  // five that need nothing change nothing and reach nowhere; the three
+  // that read the server reach it and change nothing; save_draft alone
+  // writes, a new revision beside the old (0049), so never destructively,
+  // and twice is not once.
+  test('each say what they change and what they reach, and none publishes', async () => {
+    const { tools } = await (await connect(withServer())).listTools()
+    const said = Object.fromEntries(tools.map(({ name, annotations }) => [name, annotations]))
+    for (const name of LOCAL_TOOLS) expect(said[name], name).toEqual({ readOnlyHint: true, openWorldHint: false })
+    for (const name of ['whoami', 'list_templates', 'read_draft']) expect(said[name], name).toEqual({ readOnlyHint: true, openWorldHint: true })
+    expect(said['save_draft']).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true })
+    for (const tool of tools) expect(tool.name, tool.name).not.toMatch(/publish|send|fetch/)
   })
 
   // One envelope for all, declared, so a client learns it once; a schema
-  // per tool would be four places for `data` to drift.
+  // per tool would be nine places for `data` to drift.
   test('each declare the one result envelope', async () => {
-    const { tools } = await (await connect()).listTools()
+    const { tools } = await (await connect(withServer())).listTools()
+    expect(tools).toHaveLength(Object.keys(TOOL_DEFINITIONS).length)
     for (const tool of tools) expect(Object.keys(tool.outputSchema?.properties ?? {}).sort(), tool.name).toEqual(['data', 'ok', 'summary'])
   })
 
   // An input that took an address or a path would let a model point the
   // server at a file or a host; none does, at any depth, and the walk is
-  // shown to find each kind it looks for.
+  // shown to find each kind it looks for. The server's address is the
+  // bin's setting, never a tool's argument.
   test('take no URL, path or file name, in any input or any prompt’s argument', async () => {
-    const client = await connect()
+    const client = await connect(withServer())
     const { tools } = await client.listTools()
+    expect(tools).toHaveLength(Object.keys(TOOL_DEFINITIONS).length)
     for (const tool of tools) expect(addressesIn(tool.inputSchema), tool.name).toEqual([])
     const { prompts } = await client.listPrompts()
     for (const prompt of prompts)
@@ -140,8 +200,8 @@ describe('the tools a client can see', () => {
   // the one authority: a schema of the format here would be a second
   // authority, which one day refuses a report report-spec accepts.
   test('take a report as any JSON value, for report-spec to judge', async () => {
-    const { tools } = await (await connect()).listTools()
-    for (const name of ['validate_report', 'apply_commands', 'render_check']) {
+    const { tools } = await (await connect(withServer())).listTools()
+    for (const name of ['validate_report', 'apply_commands', 'render_check', 'save_draft']) {
       const report = (tools.find((tool) => tool.name === name)?.inputSchema.properties as Record<string, Record<string, unknown>> | undefined)?.report
       expect(report, name).toBeDefined()
       expect(
@@ -157,6 +217,53 @@ describe('the tools a client can see', () => {
     const client = await connect()
     expect(client.getServerVersion()).toEqual({ name: 'formancy-report', version: PACKAGE_VERSION })
     expect(PACKAGE_VERSION).toMatch(/^\d+\.\d+\.\d+/)
+  })
+})
+
+describe('the tools that ask Report’s server, through the protocol', () => {
+  // Each argument survives the trip under the name a model is told -- the
+  // template, the report and the version it replaces -- and a refusal is
+  // isError with its structure: a save whose `from` were dropped would
+  // create, and be refused draft-changed for good; one whose report were
+  // renamed would send nothing.
+  test('save a draft as the person, read it back, and answer a stale save draft-changed, as isError, with the revision that stands', async () => {
+    const recording = recordingFetch()
+    const client = await connect(withServer(recording.fetch))
+    const report = emptyReport('memo', 'Memo', 'en')
+    const created = (await client.callTool({ name: 'save_draft', arguments: { template: 'memo', report } })) as Answer
+    expect(created.isError).toBeUndefined()
+    const { revision, digest } = created.structuredContent?.data as { revision: number; digest: string }
+    const version = { revision, digest }
+    expect(version.revision).toBe(1)
+    const read = (await client.callTool({ name: 'read_draft', arguments: { template: 'memo' } })) as Answer
+    expect(read.structuredContent?.data).toMatchObject({ template: 'memo', ...version, hash: reportHash(report), report })
+    const theirs = (await client.callTool({ name: 'save_draft', arguments: { template: 'memo', report, from: version } })) as Answer
+    expect(theirs.structuredContent?.data).toMatchObject({ revision: 2 })
+    const mine = (await client.callTool({ name: 'save_draft', arguments: { template: 'memo', report, from: version } })) as Answer
+    expect(mine.isError).toBe(true)
+    expect(mine.structuredContent?.data).toEqual({ status: 412, refusal: { ...REFUSALS['draft-changed'], revision: 2 }, standing: 2 })
+    const tag = `"1-${version.digest.slice('sha256:'.length)}"`
+    expect(recording.asked.filter(({ route }) => route.startsWith('PUT')).map(({ headers }) => headers['if-match'] ?? headers['if-none-match'])).toEqual([
+      '*',
+      tag,
+      tag,
+    ])
+    const me = (await client.callTool({ name: 'whoami', arguments: {} })) as Answer
+    expect(me.structuredContent?.data).toMatchObject({ tenant: 'acme', capacities: ['author'] })
+    const listed = (await client.callTool({ name: 'list_templates', arguments: {} })) as Answer
+    expect(listed.structuredContent?.data).toEqual({ templates: [{ template: 'memo', revision: 2, title: 'Memo' }] })
+  })
+
+  // A report the validator refuses is refused before anything is sent, and
+  // arrives as isError: a save the server refused after the fact is the
+  // 422 an agent's checks are there to spare it.
+  test('refuse to send a report the validator refuses, as isError', async () => {
+    const recording = recordingFetch()
+    const client = await connect(withServer(recording.fetch))
+    const refused = (await client.callTool({ name: 'save_draft', arguments: { template: 'memo', report: { reportSpecVersion: '9' } } })) as Answer
+    expect(refused.isError).toBe(true)
+    expect(refused.structuredContent?.data).toMatchObject({ valid: false })
+    expect(recording.asked).toEqual([])
   })
 })
 
@@ -326,6 +433,24 @@ describe('the prompts a client can see', () => {
     expect(said).toContain('a delivery note with its lines')
     expect(said.indexOf('`describe_format`')).toBeGreaterThan(-1)
     expect(said.indexOf('`describe_format`')).toBeLessThan(said.indexOf('`validate_report`'))
+  })
+
+  // Where a report's payment part holds words, validate_report never
+  // answers ok and its language never lists nothing, until somebody writes
+  // the slip's words, which the prompts keep for a person: a prompt that
+  // stopped only there would have an agent loop, or write the slip itself.
+  // Each stops once nothing is left but what forPerson names, and has the
+  // agent name those to the person (#116's re-review, F11).
+  test('tell a model to stop once nothing is left but the words forPerson names, and to name those to the person', async () => {
+    const client = await connect()
+    const write = promptText((await client.getPrompt({ name: 'write_a_report', arguments: { description: 'an invoice' } })).messages)
+    const translate = promptText((await client.getPrompt({ name: 'translate_a_report', arguments: { language: 'fr-CH' } })).messages)
+    expect(write).not.toContain('Call it again until it answers ok.')
+    expect(write).toContain('until it answers ok, or nothing is left but the words it lists in forPerson')
+    expect(write).toContain('name those to the person')
+    expect(translate).not.toContain('Stop when nothing is listed under fr-CH.')
+    expect(translate).toContain('Stop when nothing is listed under fr-CH but what forPerson names')
+    expect(translate).toContain('name those to the person')
   })
 
   // A translation is keyed by the word's exact text, the one thing a model

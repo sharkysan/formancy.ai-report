@@ -91,7 +91,7 @@
       ]
     },
     "0006": {
-      "reviewed": "sha256:433bb0e01d2c57aef8776c14aee2858770c846a6665ea98c201e589081674fa4",
+      "reviewed": "sha256:8715d66ebbbc8d338219847850dcdd89278596aa45f57ed1d9c75d079d139e82",
       "limitations": [
         {
           "area": "licence",
@@ -3748,7 +3748,7 @@
       ]
     },
     "0088": {
-      "reviewed": "sha256:c06230b3bfd97f73f8cdc6bd3b8d23393d04e07e4044c308b3df4fb68b4d77d1",
+      "reviewed": "sha256:20e8fe2a221dec8a52fabcd84edbfe85053bd0e18ed096b213bf91868ff10f53",
       "limitations": [
         {
           "area": "release",
@@ -3769,9 +3769,41 @@
           "says": "One message past the SDK's stdio bound of 10 MiB closes the MCP server's transport and ends the process without an answer, so an agent that sends one loses the server for the rest of its session; maxToolInputElements is left unset."
         },
         {
+          "area": "server",
+          "says": "The MCP's tools that ask Report's server act with the token of the person who runs the agent, as their host issues it: the agent can do whatever that person may, a save over a colleague's draft from the version it read among it, at the person's name, and how long that token lives and in which tenant is the host's to decide."
+        },
+        {
+          "area": "server",
+          "says": "A token FORMANCY_REPORT_TOKEN names as env:NAME is read once when the bin starts, so one that expires leaves the agent refused unauthenticated until its client starts the bin again; one named as file:/absolute/path is read again before every request, which costs a read of the file each time.",
+          "heldBy": "packages/report-mcp/src/main.test.ts"
+        },
+        {
           "area": "editing",
-          "says": "No MCP tool reads or saves a draft on Report's server yet: the tools check, apply commands to and render the report an agent hands over and keep nothing, so what an agent wrote reaches a builder or the server only as the host carries it there.",
+          "says": "save_draft saves a draft whose declared languages still lack words, naming each and the payment part's words a person writes, so a draft an agent saved may still be refused a render in such a language until somebody writes them; a draft with an error of its own, or a language's error that is no word missing, is not sent until the agent fixes it.",
+          "heldBy": "packages/report-mcp/src/drafts.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "No MCP tool keeps an image or maps a font: a report that declares an image Report's server does not keep is refused asset-not-kept until a person adds the image in a builder, and one that maps a font is refused as every draft that maps one is.",
+          "heldBy": "packages/report-mcp/src/drafts.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "Without both FORMANCY_REPORT_URL and FORMANCY_REPORT_TOKEN the four tools that ask Report's server are not registered, and only the server's MCP instructions say why, so an agent whose client does not hand its model those instructions is not told how to get them.",
           "heldBy": "packages/report-mcp/src/server.test.ts"
+        },
+        {
+          "area": "editing",
+          "says": "read_draft answers the whole report, in the text a model reads and again in the structured answer, so a draft near MAX_REPORT_BYTES costs a model's context up to twice that, as apply_commands does."
+        },
+        {
+          "area": "server",
+          "says": "An answer of Report's server the MCP cannot read -- a gateway's page, a body of another shape -- is said by the route and the status alone, a failure of the network by Node's code alone, and of a save with no answer it is not known whether it was written, which read_draft settles.",
+          "heldBy": "packages/report-mcp/src/drafts.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "The MCP's tools that ask Report's server have run against report-server in their suites' own process and in the install gate's host, over a socket on the same machine, and against no host's identity provider, gateway or deployed server."
         },
         {
           "area": "editing",
@@ -3809,7 +3841,7 @@
       ]
     },
     "0089": {
-      "reviewed": "sha256:c9520a515997a1600ce9ac126bbd8e6212460051803f2fa4928f29f073603eda",
+      "reviewed": "sha256:342806e0f951d5c0d00999a74f97236e26eec6453c334afceffb2642fb00bc4e",
       "limitations": [
         {
           "area": "licence",

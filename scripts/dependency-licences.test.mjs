@@ -1017,6 +1017,7 @@ describe('native builds', () => {
       version: '1.0.0',
       for: MCP,
       dependents: ['viewer'],
+      through: { viewer: [MCP] },
       integrity: WRAPPER,
       builds: { 'addon-linux': { sbom: READ, integrity: TARBALL } },
       beyondPolicy: beyond,
@@ -1094,6 +1095,26 @@ describe('native builds', () => {
     ])
     expect(problems([wrapper(), build({ dependents: [FAMILY, second] })], {}, {}, {}, {}, {}, builds)).toEqual([
       `addon-linux@1.0.0 is depended on by ${second} and addon, where the review saw addon alone (${MCP} > viewer > addon > addon-linux)`,
+    ])
+  })
+
+  // The family's dependents are held, and so is each package it is
+  // reached through from the one admitted for: pdfjs-dist, by report-mcp
+  // alone. Without it, that held only while a font of pdfjs-dist's was
+  // admitted as never loaded, whose check asks the same of its package; a
+  // release without those fonts would empty that admission, and a
+  // published package that depended on pdfjs-dist itself, behind a first
+  // route through report-mcp, would load the canvas unseen (#112's
+  // re-review, N-G).
+  test('refuses a package the family is reached through that another package depends on, with no font admitted to say so', () => {
+    const viewer = (more = {}) => entry('viewer', '2.0.0', 'Apache-2.0', { via: [MCP], dependents: [MCP], ...more })
+    expect(problems([viewer(), wrapper(), build()], {}, {}, {}, {}, {}, builds)).toEqual([])
+    const second = '@formancy/report-rasteriser'
+    expect(problems([viewer({ dependents: [MCP, second] }), wrapper(), build()], {}, {}, {}, {}, {}, builds)).toEqual([
+      `viewer@2.0.0 is depended on by ${MCP} and ${second}, where the review saw ${MCP} alone: addon, which it loads, is admitted for ${MCP} alone (${MCP} > viewer)`,
+    ])
+    expect(problems([viewer({ via: [second] }), wrapper(), build()], {}, {}, {}, {}, {}, builds)).toEqual([
+      `viewer@2.0.0 is how addon is reached from ${MCP} alone, and is reached otherwise (${second} > viewer)`,
     ])
   })
 
@@ -1292,6 +1313,9 @@ describe('this workspace', { timeout: 30_000 }, () => {
     const installed = entries.filter((item) => !item.missing && item.name.startsWith('@napi-rs/canvas-'))
     expect(installed.length).toBeGreaterThan(0)
     const canvas = BUILDS_READ['@napi-rs/canvas']
+    // pdfjs-dist, which loads the canvas, is depended on by report-mcp alone, whatever its fonts.
+    expect(entries.find((item) => item.name === 'pdfjs-dist')?.dependents).toEqual(canvas.through['pdfjs-dist'])
+    expect(canvas.through).toEqual({ 'pdfjs-dist': ['@formancy/report-mcp'] })
     for (const build of installed) {
       expect(build.sbom?.sha256, build.name).toBe(canvas.builds[build.name]?.sbom)
       // Every dependent the walk saw, not its first route: the family itself alone.

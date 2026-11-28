@@ -11,6 +11,31 @@ function familyOf(name, builds) {
   return Object.entries(builds).find(([family]) => name === family || name.startsWith(`${family}-`))
 }
 
+/** The admission in `builds` whose family is reached through `name` from the package admitted for: [family, admission], or undefined. */
+function linkOf(name, builds) {
+  return Object.entries(builds).find(([, admitted]) => Object.hasOwn(admitted.through ?? {}, name))
+}
+
+/**
+ * What is wrong with a package a family is reached through, `through`
+ * names: reached from the package admitted for, and depended on by exactly
+ * what the review saw -- every dependent, not the first route -- so that
+ * whether the family is loaded for that package alone rests on no other
+ * admission, a font's that its package's dependents are held by among
+ * them (#112's re-review, N-G).
+ */
+function linkProblems(item, id, route, [family, admitted]) {
+  const found = []
+  if (!item.via.includes(admitted.for)) found.push(`${id} is how ${family} is reached from ${admitted.for} alone, and is reached otherwise (${route})`)
+  const dependents = [...(item.dependents ?? [item.via.at(-1)])].sort()
+  const saw = [...admitted.through[item.name]].sort()
+  if (JSON.stringify(dependents) !== JSON.stringify(saw))
+    found.push(
+      `${id} is depended on by ${dependents.join(' and ')}, where the review saw ${saw.join(' and ')} alone: ${family}, which it loads, is admitted for ${admitted.for} alone (${route})`,
+    )
+  return found
+}
+
 /** A component's place and licence as a review records it: `name@version`, and its licence or null. */
 const componentKey = ({ name, version }) => (version === undefined ? name : `${name}@${version}`)
 
@@ -40,9 +65,16 @@ export function beyondPolicy(sbom, name, version, allows) {
  * read, by its SBOM's digest and the components beyond the policy that SBOM
  * lists. Every dependent, not the first route the walk found: a package
  * that depends on the family itself would hide behind a route through the
- * package admitted for, as `confinement` says of a confined one.
+ * package admitted for, as `confinement` says of a confined one. A package
+ * the family is reached through is held the same way, by `through`.
  */
 export function buildProblems(item, id, route, builds, allows) {
+  const link = linkOf(item.name, builds)
+  return [...(link === undefined ? [] : linkProblems(item, id, route, link)), ...familyProblems(item, id, route, builds, allows)]
+}
+
+/** What is wrong with a package of a family `builds` admits, or with one that ships a native addon no admission names, as `buildProblems` says. */
+function familyProblems(item, id, route, builds, allows) {
   const family = familyOf(item.name, builds)
   if (family === undefined) {
     return (item.natives ?? []).length === 0

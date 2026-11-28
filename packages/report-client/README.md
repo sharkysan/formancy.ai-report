@@ -4,7 +4,8 @@ Formancy Report's client for its server: what a host's page, or its own
 server, calls to keep a template's draft and the images it declares on
 [`@formancy/report-server`](../report-server/README.md). It lists the
 tenant's templates, reads a template's draft, saves one from the version
-it was opened at, and keeps and reads an image by its digest, through the
+it was opened at, keeps and reads an image by its digest, and asks who
+the server takes the token's holder to be, through the
 routes report-server-core's `ROUTES` names, by their own keys, so a route
 renamed there does not compile here. No framework and no Node: the DOM's
 globals and no `@types/node`, so a `node:` import does not compile, and
@@ -45,6 +46,13 @@ written, and `mine.refusal.revision` is the revision that stands.
   does not -- a newline, a space -- is thrown before anything is sent.
   `fetch` is the host's, or the global one, and is called as a function, as
   a browser's own fetch must be.
+- **`whoami()`** -- who the server takes the token's holder to be: their
+  subject, their tenant, the roles the token carries, and the capacities
+  and actions the operator's role policy gives those roles, report-server-core's
+  `WhoAmI` ([0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)),
+  so a wrong tenant claim or role mapping shows before anything is saved;
+  report-mcp's `whoami` asks it
+  ([0088](../../docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
 - **`listTemplates()`** and **`readDraft(template)`** -- the tenant's
   templates by id, and a template's newest draft with its version, its
   revision and its digest.
@@ -69,13 +77,28 @@ written, and `mine.refusal.revision` is the revision that stands.
   where they are not a SHA-256's. `readImage` answers the bytes and the
   media type they were kept as.
 
+- **`isBearerToken(token)`** -- the rule a token is held to before every
+  request, RFC 6750's bearer token, so that a host that reads a token once
+  can refuse one at its start by the same rule.
+
 Each answers an **`Answered<T>`**: `{ ok: true, value }`, the route's
-answer as report-server-core's wire types say -- `TemplateList`, `Draft`,
-`DraftSaved`, `ImageKept`, `StoredImage` -- or `{ ok: false, status,
+answer as report-server-core's wire types say -- `WhoAmI`,
+`TemplateList`, `Draft`, `DraftSaved`, `ImageKept`, `StoredImage` -- or `{ ok: false, status,
 refusal }`, a `ServerRefusal`: a code `REFUSALS` holds, its fixed sentence,
 and the field one of the four carries. Narrowing on `code` gives the field.
-This package exports `createReportClient`, `ReportClientOptions`,
-`ReportClient` and `Answered`, and no wire type: a host that names one
+The refusal is rebuilt from its code: the sentence is `REFUSALS`' own and
+the field the one that code carries, never the body's own sentence or any
+other key it held, which a gateway in front of the server may have filled
+with what the request carried, the token among it. The field is read as
+what the server writes there: each of `report-invalid`'s errors a code of
+report-spec's `REPORT_ERROR_CODES` with its path, its sentence and, where
+it is an identifier, its component's id, and nothing else of it;
+`asset-not-kept`'s assets identifiers; `image-refused`'s reason one of
+report-spec's image and SVG refusal codes or `not-an-image`; anything else
+is thrown as no answer of the API. An error's sentence is the validator's
+own about the report sent, and is not held further.
+This package exports `createReportClient`, `isBearerToken`,
+`ReportClientOptions`, `ReportClient` and `Answered`, and no wire type: a host that names one
 imports it from `@formancy/report-server-core`, and `ReportDefinition` and
 `AssetMediaType` from `@formancy/report-spec`, where each is defined.
 

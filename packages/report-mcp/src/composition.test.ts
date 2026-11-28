@@ -15,7 +15,11 @@ import { describe, expect, test } from 'vitest'
  * next import of any of them; each module is held instead to the
  * specifiers it may import, and a module with no list fails. Besides:
  *
- * - `process` is main.ts's alone, the composition root and the bin;
+ * - `process` is main.ts's alone, the composition root and the bin, which
+ *   hands the environment and Node's reader of files to settings.ts;
+ * - report-client is made in settings.ts alone, at the server the setting
+ *   names, and named for its types alone anywhere else, so that no tool
+ *   asks a server but the configured one;
  * - `createRequire` is server.ts's alone, taken from `node:module` as
  *   `import { createRequire } from 'node:module'` and in no other way --
  *   not aliased, not re-exported, not by a namespace or a string -- and
@@ -24,7 +28,8 @@ import { describe, expect, test } from 'vitest'
  * - `console` is no module's: standard output is the protocol's, and a
  *   line written there corrupts the stream a client reads;
  * - `fetch`, `WebSocket`, `XMLHttpRequest` and `EventSource` are no
- *   module's, main.ts's among them;
+ *   module's, main.ts's among them: the server half reaches the network
+ *   through report-client alone, whose own default is the global fetch;
  * - render.ts reaches the renderer and pdf-text.ts only through
  *   `import()`, and a type, so that a session that never renders never
  *   loads them, nor the native canvas PDF.js requires (0089);
@@ -63,8 +68,9 @@ const modules = modulesIn(here)
 
 /** The specifiers each module may import, and nothing else. */
 const ALLOWED: Readonly<Record<string, readonly string[]>> = {
-  'index.ts': ['./tools.js', './render.js', './server.js'],
-  'main.ts': ['@modelcontextprotocol/sdk/server/stdio.js', './server.js'],
+  'drafts.ts': ['@formancy/report-client', '@formancy/report-server-core', '@formancy/report-spec', './settings.js', './tools.js'],
+  'index.ts': ['./tools.js', './render.js', './drafts.js', './server.js'],
+  'main.ts': ['node:fs/promises', '@modelcontextprotocol/sdk/server/stdio.js', './server.js', './settings.js'],
   'pdf-text.ts': ['@formancy/report-runtime', 'pdfjs-dist/legacy/build/pdf.mjs', 'pdfjs-dist/types/src/display/api.js'],
   'render.ts': ['@formancy/report-runtime', '@formancy/report-spec', '@formancy/report-render-pdf', './pdf-text.js', './tools.js'],
   'server.ts': [
@@ -72,12 +78,16 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
     '@modelcontextprotocol/sdk/server/mcp.js',
     '@modelcontextprotocol/sdk/shared/stdio.js',
     '@modelcontextprotocol/sdk/types.js',
+    '@formancy/report-client',
     '@formancy/report-core',
     '@formancy/report-runtime',
     'zod',
+    './drafts.js',
     './render.js',
+    './settings.js',
     './tools.js',
   ],
+  'settings.ts': ['node:path', '@formancy/report-client'],
   'tools.ts': ['@formancy/report-core', '@formancy/report-spec'],
 }
 
@@ -91,6 +101,8 @@ const REQUIRE = 'createRequire'
 const NETWORK = ['fetch', 'WebSocket', 'XMLHttpRequest', 'EventSource']
 /** What a module may load only when it is first asked for, through `import()`, or name as a type. */
 const LAZY: Readonly<Record<string, readonly string[]>> = { 'render.ts': ['@formancy/report-render-pdf', './pdf-text.js'] }
+/** What a module may name for its types alone: report-client, which settings.ts alone makes, at the server the setting names. */
+const TYPES_ONLY: Readonly<Record<string, readonly string[]>> = { 'drafts.ts': ['@formancy/report-client'], 'server.ts': ['@formancy/report-client'] }
 /** The module that reads a PDF, the one function it reads with, and the options it may give it: none that names where to fetch or read anything from. */
 const READER = 'pdf-text.ts'
 const OPEN = 'getDocument'
@@ -165,10 +177,11 @@ function problemsOf(name: string, source: string): string[] {
     else if (node.text === MODULE && (declaration === undefined || !takesTheRequire(declaration)))
       problems.add(`${name} takes ${MODULE} otherwise than as import { ${REQUIRE} } from '${MODULE}'`)
   }
-  /** A lazy module named anywhere but in `import()` or for types alone is loaded with `name`. */
+  /** A lazy module named anywhere but in `import()` or for types alone is loaded with `name`; one for types alone, named for a value anywhere. */
   const eager = (node: ts.Node | undefined, declaration?: ts.ImportDeclaration | ts.ExportDeclaration) => {
-    if (node !== undefined && ts.isStringLiteralLike(node) && (LAZY[name] ?? []).includes(node.text) && (declaration === undefined || !typesAlone(declaration)))
-      problems.add(`${name} loads ${node.text} with itself, where it may load it only through import()`)
+    if (node === undefined || !ts.isStringLiteralLike(node) || (declaration !== undefined && typesAlone(declaration))) return
+    if ((LAZY[name] ?? []).includes(node.text)) problems.add(`${name} loads ${node.text} with itself, where it may load it only through import()`)
+    if ((TYPES_ONLY[name] ?? []).includes(node.text)) problems.add(`${name} takes a value of ${node.text}, which it may name for its types alone`)
   }
   const visit = (node: ts.Node): void => {
     if (ts.isImportDeclaration(node)) {
@@ -183,7 +196,12 @@ function problemsOf(name: string, source: string): string[] {
       specifier(node.moduleReference.expression)
       eager(node.moduleReference.expression)
     }
-    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) specifier(node.arguments[0])
+    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+      specifier(node.arguments[0])
+      const loaded = node.arguments[0]
+      if (loaded !== undefined && ts.isStringLiteralLike(loaded) && (TYPES_ONLY[name] ?? []).includes(loaded.text))
+        problems.add(`${name} takes a value of ${loaded.text}, which it may name for its types alone`)
+    }
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'require') {
       specifier(node.arguments[0])
       eager(node.arguments[0])
@@ -280,6 +298,14 @@ describe('what each module may reach', () => {
       ['main.ts', 'await fetch(at)'],
       ['tools.ts', 'new WebSocket(at)'],
       ['report.ts', 'export const x = 1'],
+      ['drafts.ts', "import { createReportClient } from '@formancy/report-client'"],
+      ['drafts.ts', "export { createReportClient } from '@formancy/report-client'"],
+      ['server.ts', "const { createReportClient } = await import('@formancy/report-client')"],
+      ['drafts.ts', 'const answer = await globalThis.fetch(at)'],
+      ['settings.ts', "const token = process.env['HOST_TOKEN']"],
+      ['settings.ts', "import { readFile } from 'node:fs/promises'"],
+      ['settings.ts', "console.error('the token is', token)"],
+      ['drafts.ts', "import { readFile } from 'node:fs/promises'"],
     ]
     // Every way that gets past, named at once, rather than the first.
     expect(planted.filter(([name, way]) => problemsOf(name, way).length === 0).map(([name, way]) => `${name}: ${way}`)).toEqual([])
@@ -291,6 +317,10 @@ describe('what each module may reach', () => {
       ['tools.ts', "import { reportHash } from '@formancy/report-spec'"],
       ['render.ts', "const engines = Promise.all([import('@formancy/report-render-pdf'), import('./pdf-text.js')])"],
       ['render.ts', "import type { CheckedLines } from './pdf-text.js'"],
+      ['drafts.ts', "import type { Answered, ReportClient } from '@formancy/report-client'"],
+      ['server.ts', "import type { ReportClient } from '@formancy/report-client'"],
+      ['settings.ts', "import { createReportClient } from '@formancy/report-client'"],
+      ['main.ts', "import { readFile } from 'node:fs/promises'\nconst settings = readSettings(process.env, (path) => readFile(path, 'utf8'))"],
       [
         'pdf-text.ts',
         'const task = getDocument({ data: new Uint8Array(bytes), disableFontFace: true, useSystemFonts: false, verbosity: VerbosityLevel.ERRORS })',

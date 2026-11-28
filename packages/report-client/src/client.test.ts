@@ -10,7 +10,7 @@ import { REFUSALS } from '@formancy/report-server-core'
 import { assetDigest, emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { createReportClient } from './client.js'
+import { createReportClient, isBearerToken } from './client.js'
 import type { Answered, ReportClientOptions } from './client.js'
 
 /**
@@ -139,6 +139,48 @@ describe('against report-server', () => {
     expect(valueOf(await reports.saveDraft('invoice', declaring, null))).toMatchObject({ template: 'invoice', revision: 1 })
   })
 
+  // Before a host or an agent saves anything, it asks who the server takes
+  // the token's holder to be: a wrong tenant claim, issuer or role mapping
+  // shows there, before a save is refused for it (0046). A client without
+  // the route would leave a host asking it by hand, outside the token and
+  // the redirect rule every other request keeps; and a holder whose roles
+  // give no capacity is answered, as the server answers them, never
+  // refused.
+  test('asks who the token’s holder is, with the tenant, the roles, and the capacities and actions their roles give', async () => {
+    expect(await client().whoami()).toEqual({
+      ok: true,
+      value: {
+        subject: SUBJECT,
+        tenant: 'acme',
+        roles: ['report-authors'],
+        capacities: ['author'],
+        actions: ['template.list', 'draft.read', 'draft.save', 'asset.keep', 'asset.read', 'version.read', 'version.restore'],
+      },
+    })
+    expect(await client({ token: () => signed({ roles: ['readers'] }) }).whoami()).toEqual({
+      ok: true,
+      value: { subject: SUBJECT, tenant: 'acme', roles: ['readers'], capacities: [], actions: [] },
+    })
+    expect(await client({ token: () => signed({ exp: Math.floor(Date.now() / 1000) - 60 }) }).whoami()).toEqual({
+      ok: false,
+      status: 401,
+      refusal: REFUSALS.unauthenticated,
+    })
+  })
+
+  // The reason the server gives an image it does not keep is one the client
+  // takes, so a host is answered the refusal and is not thrown at: held to
+  // report-spec's codes and the server's own 'not-an-image', a reason the
+  // server writes that the client did not know would be thrown (N12).
+  test('answers an image the server does not keep image-refused, with the reason it gives', async () => {
+    const text = new TextEncoder().encode('no image at all')
+    expect(await client().keepImage(text, assetDigest(text), 'image/png')).toEqual({
+      ok: false,
+      status: 422,
+      refusal: { ...REFUSALS['image-refused'], reason: 'not-an-image' },
+    })
+  })
+
   // A token expires while a person edits. The host's next token must be
   // the one the next request carries: a client that asked once would send
   // the expired one for good, and every save after it would be refused.
@@ -227,6 +269,106 @@ describe('against what is not report-server', () => {
     }
   })
 
+  // A gateway in front of the server can answer with a body that takes a
+  // refusal's code and quotes what the request carried: the token in its
+  // sentence, or in a key of its own. Handed on as it came, the host would
+  // show or log the token with the refusal. Rebuilt from its code -- the
+  // fixed sentence, and the one field that code carries -- nothing else of
+  // the body leaves the client.
+  test('answers a refusal by its code’s own sentence and field, and nothing else the body held', async () => {
+    const token = 'eyJ-a-token-planted-in-the-client-suite'
+    const { fetch } = answering(() =>
+      Response.json({ code: 'unauthenticated', message: `invalid token ${token}`, request: { authorization: `Bearer ${token}` } }, { status: 401 }),
+    )
+    const refused = await client(fetch).listTemplates()
+    expect(refused).toEqual({ ok: false, status: 401, refusal: REFUSALS.unauthenticated })
+    expect(JSON.stringify(refused)).not.toContain(token)
+    const { fetch: stale } = answering(() => Response.json({ code: 'draft-changed', message: token, revision: 2, echo: token }, { status: 412 }))
+    const lost = await client(stale).saveDraft('invoice', report(), null)
+    expect(lost).toEqual({ ok: false, status: 412, refusal: { ...REFUSALS['draft-changed'], revision: 2 } })
+    expect(JSON.stringify(lost)).not.toContain(token)
+  })
+
+  // A gateway that answered under one of the four fielded codes could put
+  // the token in the field itself. Each field is held to what the server
+  // writes there -- an error of report-spec's, its code one of
+  // REPORT_ERROR_CODES and nothing beside its code, path, message and
+  // component's id; an asset by an id; an image's reason one of
+  // report-spec's refusal codes -- and what is none is thrown as no answer
+  // of the API, quoting nothing (#116's re-review, N12).
+  test('holds each field a refusal carries to what the server writes there, so no token rides in it', async () => {
+    const token = 'eyJ-a-token-planted-in-a-field'
+    const thrown: readonly Record<string, unknown>[] = [
+      { ...REFUSALS['report-invalid'], errors: [{ code: token, path: '', message: 'm' }] },
+      { ...REFUSALS['report-invalid'], errors: [{ code: 'not-a-report', path: 7, message: 'm' }] },
+      { ...REFUSALS['report-invalid'], errors: [token] },
+      { ...REFUSALS['asset-not-kept'], assets: ['logo', token] },
+      { ...REFUSALS['image-refused'], reason: token },
+    ]
+    for (const body of thrown) {
+      const { fetch } = answering(() => Response.json(body, { status: 422 }))
+      const answer = await client(fetch)
+        .saveDraft('invoice', report(), null)
+        .then(
+          (answered) => answered,
+          (error: unknown) => error,
+        )
+      expect(answer, JSON.stringify(body)).toBeInstanceOf(Error)
+      expect((answer as Error).message, JSON.stringify(body)).not.toContain(token)
+    }
+    // An error held to its four members, the rest of it dropped.
+    const error = { code: 'not-a-report', path: '', message: 'This is no report.', componentId: 'intro' }
+    const { fetch } = answering(() =>
+      Response.json(
+        {
+          ...REFUSALS['report-invalid'],
+          errors: [
+            { ...error, echo: token },
+            { ...error, componentId: token },
+          ],
+        },
+        { status: 422 },
+      ),
+    )
+    const answered = await client(fetch).saveDraft('invoice', report(), null)
+    const { componentId: _componentId, ...withoutComponent } = error
+    expect(answered).toEqual({ ok: false, status: 422, refusal: { ...REFUSALS['report-invalid'], errors: [error, withoutComponent] } })
+    expect(JSON.stringify(answered)).not.toContain(token)
+  })
+
+  // Every code REFUSALS holds comes through the rebuild: answered as its
+  // fixed sentence, or, for a code that carries a field and was sent
+  // none, thrown -- never as the body sent it. A code a later release adds
+  // is read by the same rule; one that carries a field is read by FIELDS,
+  // which does not compile without it, and is listed here.
+  test('rebuilds every code REFUSALS holds, and quotes nothing else of the body', async () => {
+    const token = 'eyJ-a-token-planted-under-every-code'
+    const thrown: string[] = []
+    for (const code of Object.keys(REFUSALS) as (keyof typeof REFUSALS)[]) {
+      const { fetch } = answering(() => Response.json({ code, message: token, echo: token }, { status: 400 }))
+      const answer = await client(fetch)
+        .listTemplates()
+        .then(
+          (answered) => answered,
+          (error: unknown) => error,
+        )
+      if (answer instanceof Error) {
+        thrown.push(code)
+        expect(answer.message, code).not.toContain(token)
+      } else expect(answer, code).toEqual({ ok: false, status: 400, refusal: REFUSALS[code] })
+    }
+    expect(thrown.sort()).toEqual(['asset-not-kept', 'draft-changed', 'image-refused', 'report-invalid'])
+  })
+
+  // The rule a bearer token is held to before anything is sent, exported
+  // so that a host that reads a token once can refuse one at its start
+  // by the same rule, rather than learn of it at its first request.
+  test('says what is a bearer token by the rule it sends one by', () => {
+    for (const token of ['eyJ-a.b_c~d+e/f', 'abc==']) expect(isBearerToken(token), token).toBe(true)
+    for (const token of ['eyJ secret', 'eyJ-secret' + String.fromCharCode(10), 'a=b', '', undefined, 7])
+      expect(isBearerToken(token), JSON.stringify(token)).toBe(false)
+  })
+
   // The four refusals that carry a field are typed with it, and a host
   // branching on the code reads it: `draft-changed`'s revision is what its
   // reload offers. A body naming one of the four without its field is not
@@ -293,17 +435,19 @@ describe('against what is not report-server', () => {
   // the header the server names -- the draft's version as the tag the
   // server answered it with, the revision and the digest's 64 digits --
   // a body under its own media type, a digest's digits in the path, and
-  // the method the route is answered by. A tag that left the digest out
-  // is one the server refuses as malformed.
+  // the method the route is answered by, whoami's a GET with no body. A
+  // tag that left the digest out is one the server refuses as malformed.
   test('sends each route its method, its path under the base URL, the token as a bearer and a save’s precondition', async () => {
     const { fetch, asked } = answering(() => Response.json({}))
     const reports = client(fetch)
+    await reports.whoami()
     await reports.saveDraft('invoice', report(), null)
     await reports.saveDraft('invoice', report(), { revision: 12, digest: assetDigest(PNG) })
     await reports.keepImage(PNG, assetDigest(PNG), 'image/png')
     const sent = asked.map(({ url, init }) => ({ url, method: init?.method, headers: init?.headers, redirect: init?.redirect }))
     const hex = assetDigest(PNG).slice('sha256:'.length)
     expect(sent).toEqual([
+      { url: 'https://reports.example/v1/whoami', method: 'GET', headers: { authorization: 'Bearer a-token' }, redirect: 'error' },
       {
         url: 'https://reports.example/v1/templates/invoice/draft',
         method: 'PUT',
@@ -323,10 +467,11 @@ describe('against what is not report-server', () => {
         redirect: 'error',
       },
     ])
-    const saved = asked[0]?.init?.body
+    expect(asked[0]?.init?.body).toBeUndefined()
+    const saved = asked[1]?.init?.body
     expect(typeof saved).toBe('string')
     expect(JSON.parse(saved as string)).toEqual(report())
-    expect(asked[2]?.init?.body).toEqual(PNG)
+    expect(asked[3]?.init?.body).toEqual(PNG)
   })
 
   // A token that holds a character no bearer token carries never reaches

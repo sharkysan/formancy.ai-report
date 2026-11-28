@@ -2,18 +2,22 @@
  * The tools and the prompts, wired to the Model Context Protocol (0088).
  *
  * Thin on purpose, as formancy's (formancy.ai 0056): every tool is a call
- * into `tools.ts` and the answer put in the protocol's shape. What a tool
- * decides is tested without a transport; what is tested here is that it
- * is reachable, under its name, with its arguments.
+ * into `tools.ts`, `render.ts` or `drafts.ts` and the answer put in the
+ * protocol's shape. What a tool decides is tested without a transport;
+ * what is tested here is that it is reachable, under its name, with its
+ * arguments.
  */
 import { createRequire } from 'node:module'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { STDIO_DEFAULT_MAX_BUFFER_SIZE } from '@modelcontextprotocol/sdk/shared/stdio.js'
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
+import type { ReportClient } from '@formancy/report-client'
 import type { DiagnosticCode, StepDescriptor } from '@formancy/report-core'
 import { DATA_MODES } from '@formancy/report-runtime'
 import { z } from 'zod'
+import { listTemplates, readDraft, saveDraft, whoAmI } from './drafts.js'
 import { MAX_ANSWER_BYTES, MAX_CHECK_PAGES, renderCheck } from './render.js'
+import { SETTINGS } from './settings.js'
 import { applyCommands, checkReport, describeFormat, listCommands } from './tools.js'
 import type { LanguageVerdict, ToolResult } from './tools.js'
 
@@ -58,7 +62,40 @@ export const TOOL_DEFINITIONS = {
     `whole call -- the report, its data and every asset's base64 -- must stay under ${String(STDIO_DEFAULT_MAX_BUFFER_SIZE)} bytes of ` +
     'JSON, or the server ends without an answer: send a sample of the rows, a few hundred, never the whole data. Call it once ' +
     'validate_report answers ok, with data shaped like the real data, before you show a report to anyone.',
+  whoami:
+    'Ask Report’s server who it takes this server’s token’s holder to be: their subject, their tenant, their roles, and the capacities ' +
+    'and actions the operator’s role policy gives those roles. Call it first, before reading or saving a template: save_draft needs ' +
+    'draft.save among the actions. The token is the person’s at their host, and what save_draft saves is saved as them.',
+  list_templates:
+    'List the tenant’s templates on Report’s server, each by its id -- its report’s id -- with its newest draft’s revision and title. ' +
+    'Call it to find the template to read; read_draft reads one.',
+  read_draft:
+    'Read a template’s newest draft from Report’s server: its report, its version { revision, digest }, which save_draft takes as ' +
+    'from, who saved it, and the report’s hash, which apply_commands takes as expectedHash. Call it before changing a template, ' +
+    'and again whenever save_draft is refused draft-changed.',
+  save_draft:
+    'Save a report as a template’s next draft on Report’s server, as the person whose token this server holds. It runs validate_report first ' +
+    'and sends nothing with what you can fix: the validator’s errors, a report past MAX_REPORT_BYTES, a diagnostic error of its own, or a ' +
+    'declared language’s error other than word-missing. A draft whose languages still lack words is saved, and the answer names each ' +
+    'such language and, in forPerson, the words of the payment part, which a person writes: ask the person for those, and never write ' +
+    'them yourself. Pass from, the { revision, digest } read_draft or the last save_draft answered, to replace that ' +
+    'draft; leave it out for a template not yet saved. A save from a draft that is no longer the newest -- somebody saved since -- is ' +
+    'refused draft-changed with the revision that stands, and writes nothing: read the draft again and make the change on it. It ' +
+    'keeps no image and maps no font, so a report that declares an image the server does not keep is refused asset-not-kept. It ' +
+    'saves a draft, which a person reviews and publishes, and never publishes.',
 } as const
+
+/**
+ * The tools that ask Report's server, registered only where the server is
+ * given one: without it, they are not there to be called and refused, and
+ * the instructions say why they are missing.
+ */
+export const SERVER_TOOLS = Object.freeze([
+  'whoami',
+  'list_templates',
+  'read_draft',
+  'save_draft',
+] as const) satisfies readonly (keyof typeof TOOL_DEFINITIONS)[]
 
 /**
  * The version this server reports, from the manifest and never typed: the
@@ -105,8 +142,8 @@ function respond({ ok, applied, summary, data }: ToolResult): {
 }
 
 /**
- * Every tool here: it changes nothing anywhere and reaches nothing but its
- * arguments -- no server and no network, and no file but its packages'
+ * Every tool that needs nothing: it changes nothing anywhere and reaches
+ * nothing but its arguments -- no server and no network, and no file but its packages'
  * own: the manifest, and for `render_check` the renderer's faces, PDFKit's
  * profile and PDF.js's worker module -- so a host may run it without
  * asking. `apply_commands` among them: it answers a new report and keeps
@@ -114,6 +151,17 @@ function respond({ ok, applied, summary, data }: ToolResult): {
  * keeps neither the PDF nor anything read of it.
  */
 const LOCAL_CHECK: ToolAnnotations = { readOnlyHint: true, openWorldHint: false }
+
+/** whoami, the list and a draft's read: they reach Report's server, and change nothing there. */
+const SERVER_READ: ToolAnnotations = { readOnlyHint: true, openWorldHint: true }
+
+/**
+ * save_draft, which writes. Never destructive: every revision a save
+ * writes is kept beside the ones before it, and nothing a save does
+ * removes one (0049). Not idempotent: a second save from the version the
+ * first replaced is refused, and one from the newest writes another.
+ */
+const SERVER_WRITE: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
 
 /**
  * A report arrives as any JSON value, on purpose: report-spec's validator
@@ -151,6 +199,16 @@ const EXPECTED_HASH = z
   .describe(
     'The hash of the report the commands were written against, from validate_report or the last apply_commands. Given, the edit is refused when the report is not that one.',
   )
+/** A template, by the id it is kept under; report-server judges it, and report-client puts it in the path as one segment. */
+const TEMPLATE = z.string().describe('The template’s id, its report’s id, as list_templates names it.')
+/** A draft's version as read_draft and save_draft answer it; drafts.ts holds each part to report-server-core's and report-spec's own tests. */
+const FROM = z
+  .object({
+    revision: z.number().describe('The draft’s revision, as answered.'),
+    digest: z.string().describe('The draft’s digest, sha256: and 64 hexadecimal digits, as answered.'),
+  })
+  .optional()
+  .describe('The version of the draft this report replaces, as read_draft or the last save_draft answered it. Leave it out for a template not yet saved.')
 
 /** What a translation's descriptors are made of: a word as the report prints it and its translation, an expression's source and its translation's. */
 export interface TranslationOf {
@@ -214,7 +272,9 @@ export const PROMPTS = {
       '   call it, and a decimal is written as a string of its digits, never as a JSON number.',
       '2. Write the report: its datasets and their fields first, then what each region prints.',
       '3. Call `validate_report`. Fix what the validator gives first, by each error’s path; then each diagnostic error, which',
-      '   refuses every render; then each language’s. Call it again until it answers ok.',
+      '   refuses every render; then each language’s.',
+      `   Call it again until it answers ok, or nothing is left but the words it lists in ${FOR_PERSON}: they stand in the payment part,`,
+      '   which a person writes, so name those to the person and write none of them.',
       '4. For every change after that, call `describe_commands` once, then `apply_commands` with the commands and the hash the',
       '   last answer gave, rather than writing the report again: a command changes only what it names.',
       '5. Call `render_check` with a sample of rows shaped like the real data, a few hundred and never the whole data, and read each',
@@ -244,16 +304,45 @@ export const PROMPTS = {
         `   ${String(word)},`,
         `   and for an expression, ${String(expression)}.`,
         `4. Call \`validate_report\` again. A ${TRANSLATION_DIFFERS} error means a translated expression prints another type or reads`,
-        `   other members than its source: write it again. Stop when nothing is listed under ${language}.`,
+        `   other members than its source: write it again. Stop when nothing is listed under ${language} but what ${FOR_PERSON} names,`,
+        '   and name those to the person.',
         '5. Show the person the translations before the report is used.',
       ]
     },
   },
 } as const
 
-/** Formancy Report's MCP server: the tools that need nothing, and the prompts. Connect it to a transport to serve it. */
-export function createReportMcpServer(): McpServer {
-  const server = new McpServer({ name: 'formancy-report', version: PACKAGE_VERSION })
+/** What a server is made with. */
+export interface ReportMcpOptions {
+  /**
+   * Report's server, asked through report-client as the person whose token
+   * the client sends: given, the four tools that ask it are registered
+   * beside the five that need nothing; absent, they are not, and the
+   * instructions say why.
+   */
+  readonly client?: ReportClient
+}
+
+/**
+ * What a client may hand its model before any tool is called: the order the
+ * tools are used in, and whether the tools that ask Report's server are
+ * there -- and, where they are not, why, by the bin's own settings.
+ */
+function instructionsFor(client: ReportClient | undefined): string {
+  const [last, ...rest] = [...SERVER_TOOLS].reverse()
+  const named = `${rest.reverse().join(', ')} and ${String(last)}`
+  const [url, token] = Object.keys(SETTINGS)
+  const server =
+    client === undefined
+      ? `The tools that read and save a template’s draft on Report’s server -- ${named} -- are not registered: this server was started without ${String(url)} and ${String(token)}. Set both, Report’s server’s base URL and a secret reference to the person’s token at their host, env:NAME or file:/absolute/path, and start it again; the tools above need neither.`
+      : `${named} ask Report’s server as the person whose token this server was given: what save_draft saves is saved as them, and nothing here publishes.`
+  return `Formancy Report’s own checks for a report template: call describe_format before writing one, validate_report after every change, and render_check before showing it to anyone. ${server}`
+}
+
+/** Formancy Report's MCP server: the tools that need nothing, those that ask Report's server where `options` give one, and the prompts. Connect it to a transport to serve it. */
+export function createReportMcpServer(options: ReportMcpOptions = {}): McpServer {
+  const { client } = options
+  const server = new McpServer({ name: 'formancy-report', version: PACKAGE_VERSION }, { instructions: instructionsFor(client) })
 
   server.registerTool('describe_format', { description: TOOL_DEFINITIONS.describe_format, outputSchema: RESULT_SHAPE, annotations: LOCAL_CHECK }, () =>
     respond(describeFormat()),
@@ -287,6 +376,7 @@ export function createReportMcpServer(): McpServer {
     async ({ report, data, parameters, locale, timeZone, mode, assets }, { signal }) =>
       respond(await renderCheck({ report, data, parameters, locale, timeZone, mode, assets }, signal)),
   )
+  if (client !== undefined) registerServerTools(server, client)
 
   const { write_a_report: write, translate_a_report: translate } = PROMPTS
   server.registerPrompt('write_a_report', { title: write.title, description: write.description, argsSchema: write.args }, ({ description }) =>
@@ -297,6 +387,31 @@ export function createReportMcpServer(): McpServer {
   )
 
   return server
+}
+
+/** The four tools that ask Report's server through `client`, each with its arguments, the envelope and what it says it changes and reaches. */
+function registerServerTools(server: McpServer, client: ReportClient): void {
+  server.registerTool('whoami', { description: TOOL_DEFINITIONS.whoami, outputSchema: RESULT_SHAPE, annotations: SERVER_READ }, async () =>
+    respond(await whoAmI(client)),
+  )
+  server.registerTool('list_templates', { description: TOOL_DEFINITIONS.list_templates, outputSchema: RESULT_SHAPE, annotations: SERVER_READ }, async () =>
+    respond(await listTemplates(client)),
+  )
+  server.registerTool(
+    'read_draft',
+    { description: TOOL_DEFINITIONS.read_draft, inputSchema: { template: TEMPLATE }, outputSchema: RESULT_SHAPE, annotations: SERVER_READ },
+    async ({ template }) => respond(await readDraft(client, template)),
+  )
+  server.registerTool(
+    'save_draft',
+    {
+      description: TOOL_DEFINITIONS.save_draft,
+      inputSchema: { template: TEMPLATE, report: REPORT, from: FROM },
+      outputSchema: RESULT_SHAPE,
+      annotations: SERVER_WRITE,
+    },
+    async ({ template, report, from }) => respond(await saveDraft(client, template, report, from)),
+  )
 }
 
 /** A prompt's lines as the one message a person sends. */
