@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@formancy/report-ai": "workspace:*",
+    "@formancy/report-mcp": "workspace:*",
     "@formancy/report-spec": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "^19.3.0",

@@ -263,6 +263,9 @@ importers:
       '@formancy/report-ai':
         specifier: workspace:*
         version: link:../../packages/report-ai
+      '@formancy/report-mcp':
+        specifier: workspace:*
+        version: link:../../packages/report-mcp
       '@formancy/report-spec':
         specifier: workspace:*
         version: link:../../packages/report-spec

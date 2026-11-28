@@ -38,13 +38,17 @@ const applied = session.apply(batch, { expectedHash: proposal.expectedHash, labe
   `languageDiagnostics` names `word-missing`, each under a key of the
   request's own (`w1`, `e1`), with up to three places it stands in, and an
   expression with the type it gives and the members it reads; beside them
-  the language's words so far. At most `MAX_BATCH_COMMANDS` entries a turn,
-  and no more than the language has room for under `MAX_WORDS`; the rest
-  is `later`. `translationRequest` takes a report and a locale, so no data,
+  the language's words so far that the report still holds. At most
+  `MAX_BATCH_COMMANDS` entries a turn, and no more than the language has
+  room for under `MAX_WORDS`; the rest is `later`, and a list with no room
+  left is named in `noRoom`, in the request and in the answer. `translationRequest` takes a report and a locale, so no data,
   parameter value, asset or font can reach it.
 - **The payment part is never sent.** A word or an expression standing in
   it anywhere is `forPerson`, for a person to write, and none of the
-  language's words so far that stand in it is sent either. Nor is any
+  language's words so far that stand in it is sent either. That is this
+  request's rule: report-mcp's translate prompt to an agent's own model
+  lists the payment part's words with the rest, until it is changed to
+  leave them for a person. Nor is any
   string report-spec's `NOT_WORDS` names but the ids and kinds a place is
   told by: no condition, no parameter's value, no dataset's label, no QR
   code's content, no e-invoice.
@@ -57,19 +61,27 @@ const applied = session.apply(batch, { expectedHash: proposal.expectedHash, labe
 - **`proposeTranslation` holds the answer before anything is shown**,
   against the report as it stands: an entry is kept only where its word is
   still missing, so a word a person translated meanwhile is never
-  overwritten and a word whose text changed is dropped; each text is held
-  to report-spec's `refusedCharacter`, then the batch's report to the
-  validator through `tryEdit`, then to `languageDiagnostics`, and an entry
-  an error or a new diagnostic stands at is refused with that sentence,
-  the rest kept. Its `rows` are one batch, and so is any subset of them,
+  overwritten and a word whose text changed is dropped, and what the
+  language has no room for is dropped too; each text is held to report-spec's
+  `refusedCharacter`, an expression's escapes as CEL decodes them, and a
+  word to its source's white space at either end, then the batch's report
+  to the validator through `tryEdit`, then to `languageDiagnostics`, and an
+  entry an error or a new diagnostic stands at is refused with that
+  sentence, the rest kept. Its `rows` are one batch, and so is any subset of them,
   applied with `expectedHash`, which the session refuses as
   `stale-document` once the report moved; read again on the report as it
   stands, the same answer is a proposal again, with no new turn.
-- **Bounds.** A request whose longest turn is past
-  `MAX_MODEL_REQUEST_BYTES` is refused before anything is asked, and
-  `askThrough` refuses a prompt past it, one not briefed as report-ai
-  briefs its kind, and a kind `REQUEST_KINDS` does not hold, before
-  `complete` is called.
+- **Bounds.** `MAX_MODEL_REQUEST_BYTES` bounds a turn's body,
+  `{ kind, user, briefing }` as JSON, as `askThrough` hands it to
+  `complete`: a request whose longest turn is past it is refused before
+  anything is asked, and `askThrough` refuses a body past it, a prompt not
+  briefed as report-ai briefs its kind, and a kind `REQUEST_KINDS` does
+  not hold, before `complete` is called. A host that sends the object as
+  JSON, as it is, sends a body no longer than the bound.
+- **What a host's server owes.** It writes the system part from
+  `modelBriefing` by the kind, reads none a page sent, and refuses a
+  digest that is not `briefingDigest` of its own briefing. Nothing in this
+  package holds a server to that.
 
 The install gate runs the example's lines from the packed package
 (`scripts/install-fixture/translation.ts`).

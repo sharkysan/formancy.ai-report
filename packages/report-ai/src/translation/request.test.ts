@@ -1,6 +1,6 @@
 import { STARTERS } from '@formancy/report-corpus'
 import type { Starter } from '@formancy/report-corpus'
-import { insertComponent, languageDiagnostics } from '@formancy/report-core'
+import { insertComponent, languageDiagnostics, translateWord, updateColumn } from '@formancy/report-core'
 import { reportWords, walkComponents, wordExpressionSites } from '@formancy/report-spec'
 import type { ReportDefinition, TextComponent } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
@@ -31,12 +31,18 @@ const VARIANTS: readonly Variant[] = STARTERS.flatMap((starter) => {
   ]
 })
 
-/** The request `variant` makes, refused nowhere in the corpus. */
-function requestOf({ report, locale }: Variant): TranslationRequest {
+/** The request `report` makes into `locale`, refused nowhere here. */
+function requestOfReport(report: ReportDefinition, locale: string): TranslationRequest {
   const made = translationRequest(report, locale)
   if (!made.ok) throw new Error(`refused: ${made.bytes} bytes`)
   return made.request
 }
+
+/** The request `variant` makes. */
+const requestOf = ({ report, locale }: Variant): TranslationRequest => requestOfReport(report, locale)
+
+/** The monthly sales report, whose expressions print words in its table's group header and footer. */
+const salesReport = (): ReportDefinition => (STARTERS.find(({ id }) => id === 'sales-report') as Starter).report
 
 interface Payload {
   readonly from: string
@@ -161,7 +167,7 @@ describe('what a translation request asks for', () => {
     const missing = missingOf(variant)
     expect(request.asked.map(({ kind, source }) => `${kind} ${source}`)).toEqual(missing.asked)
     expect(request.forPerson.map(({ kind, source }) => `${kind} ${source}`)).toEqual(missing.forPerson)
-    expect(request.later).toBe(0)
+    expect([request.later, request.noRoom]).toEqual([0, []])
   })
 
   // The keys are the request's own, and the payload is what the answer is
@@ -196,6 +202,20 @@ describe('what a translation request asks for', () => {
       ...(translation?.expressions ?? []).filter(({ cel }) => !touching.has(cel)).map(({ cel, expression }) => ({ source: cel, text: expression.cel })),
     ]
     expect(payloadOf(requestOf(variant)).translated).toEqual(expected)
+  })
+
+  // A translation kept for a word the report no longer prints is no
+  // register of the report, and a request that sent it would carry what a
+  // person replaced -- the old text of a header -- and grow toward its
+  // bound with nothing anybody asked for.
+  test('sends no translation of a word the report no longer prints', () => {
+    const { report, locale } = withLanguage(salesReport())
+    const written = translateWord(report, locale, 'Datum', 'Date')
+    const replaced = written.ok ? updateColumn(written.report, 'lines', 'date', { header: 'Belegdatum' }) : written
+    if (!replaced.ok) throw new Error(replaced.message)
+    const request = requestOfReport(replaced.report, locale)
+    expect(payloadOf(request).translated).toEqual([])
+    expect(request.asked.map(({ source }) => source)).toEqual(expect.arrayContaining(['Belegdatum']))
   })
 })
 
@@ -309,6 +329,23 @@ describe('where a request says each word stands', () => {
         expect(names.filter((name) => !ids.has(name))).toEqual([])
       }
     }
+  })
+
+  // word-missing names an expression at its first site that prints words,
+  // which need not be its first site: one that cannot compile where it
+  // first stands -- a group's key in the report header -- and prints words
+  // in a table's group header is lacking all the same, and asked with what
+  // it gives and reads where it prints them.
+  test('asks for an expression at the site word-missing names, where its first site does not compile', () => {
+    const { report, locale } = withLanguage(salesReport())
+    const source = 'group.key + " (" + string(group.documents) + " Belege)"'
+    const paragraph: TextComponent = { id: 'misplaced', kind: 'text', content: [{ kind: 'expression', expression: { cel: source } }] }
+    const inserted = insertComponent(report, { region: 'reportHeader', index: 0 }, paragraph)
+    if (!inserted.ok) throw new Error(inserted.message)
+    const request = requestOfReport(inserted.report, locale)
+    expect(request.asked.filter((entry) => entry.source === source).map(({ kind }) => kind)).toEqual(['expression'])
+    const told = payloadOf(request).expressions.find((entry) => entry.source === source)
+    expect([told?.gives, told?.reads]).toEqual(['string', ['group.documents', 'group.key']])
   })
 
   // An expression's translation must give what its source gives and read

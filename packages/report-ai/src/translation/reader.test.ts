@@ -79,8 +79,10 @@ describe('reading an answer', () => {
   test.each([
     ['other-locale', 'wrong-locale', TRANSLATION_COMPLAINTS.wrongLocale('fr-CH')],
     ['no-locale', 'no-locale', TRANSLATION_COMPLAINTS.noLocale('fr-CH')],
+    ['locale-a-number', 'no-locale', TRANSLATION_COMPLAINTS.noLocale('fr-CH')],
     ['words-not-an-object', 'not-strings', TRANSLATION_COMPLAINTS.notStrings('words')],
     ['words-not-strings', 'not-strings', TRANSLATION_COMPLAINTS.notStrings('words')],
+    ['expressions-not-strings', 'not-strings', TRANSLATION_COMPLAINTS.notStrings('expressions')],
     ['prose', 'not-json', TRANSLATION_COMPLAINTS.notJson],
     ['decline-without-reason', 'unexplained-decline', TRANSLATION_COMPLAINTS.unexplainedDecline],
   ])('asks again, with that problem alone, after an answer %s', async (name, kind, detail) => {
@@ -131,6 +133,21 @@ describe('reading an answer', () => {
     ])
   })
 
+  // A model may write a key an object holds by its prototype, or one key
+  // twice: neither may land on anything. The prototype's names are keys
+  // nobody asked, dropped as any other, and JSON keeps the last of a key
+  // written twice, which is the one read.
+  test("drops a prototype's keys as keys not asked, and reads the last of a key written twice", async () => {
+    const proto = await translateMissing(scripted('keys-of-the-prototype').ask, report, locale)
+    expect(proto.ok && proto.answer.written.map(({ key, text }) => [key, text])).toEqual([['w1', 'Rapport des ventes']])
+    expect(proto.ok && proto.answer.dropped).toEqual([
+      { member: 'words', key: '__proto__' },
+      { member: 'words', key: 'constructor' },
+    ])
+    const twice = await translateMissing(scripted('duplicate-keys').ask, report, locale)
+    expect(twice.ok && twice.answer.written.map(({ key, text }) => [key, text])).toEqual([['w1', 'Rapport des ventes']])
+  })
+
   // A partial answer is work done, and refusing it would ask a model told
   // to leave what it is unsure of empty to guess instead (formancy.ai
   // 0161); a text of nothing but white space is one left empty, which the
@@ -156,7 +173,7 @@ describe('a run with nothing to ask, or stopped', () => {
   test('asks nothing when the language lacks nothing', async () => {
     const { ask, prompts } = scripted('whole')
     const run = await translateMissing(ask, allWritten(report, locale), locale)
-    expect(run).toEqual({ ok: true, attempts: 0, answer: { locale, asked: [], forPerson: [], written: [], dropped: [], leftEmpty: [] } })
+    expect(run).toEqual({ ok: true, attempts: 0, answer: { locale, asked: [], forPerson: [], written: [], dropped: [], leftEmpty: [], later: 0, noRoom: [] } })
     expect(prompts).toEqual([])
   })
 

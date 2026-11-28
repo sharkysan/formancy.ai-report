@@ -46,9 +46,10 @@ export async function translatedByModel(): Promise<string> {
   const applied = session.apply(batch, { expectedHash: proposal.expectedHash, label: 'Translate into French' })
   if (!applied.ok) throw new Error(`the proposal was refused: ${applied.message}`)
 
+  if (sent.join() !== 'translation') throw new Error(`the server was sent ${String(sent.length)} requests, not the one translation`)
+  if (proposal.refused.length !== 0) throw new Error(`the proposal refused ${proposal.refused.map(({ key, reason }) => `${key} (${reason})`).join(', ')}`)
   const lacking = languageDiagnostics(session.document(), 'fr-CH').filter(({ code }) => code === 'word-missing')
-  if (lacking.length !== 0 || proposal.refused.length !== 0 || sent.join() !== 'translation')
-    throw new Error(`the French still lacks ${String(lacking.length)} words`)
+  if (lacking.length !== 0) throw new Error(`the French still lacks ${String(lacking.length)} words`)
   const french = reportIn(session.document(), 'fr-CH').title
   if (french !== 'Offre') throw new Error(`the French title is ${french}`)
   session.undo()

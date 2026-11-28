@@ -8,21 +8,24 @@ import {
   STARTERS,
   XRECHNUNG_SAMPLES,
 } from '@formancy/report-corpus'
-import { insertComponent, MAX_BATCH_COMMANDS, translateWord } from '@formancy/report-core'
-import { MAX_INLINES, MAX_TEXT_LENGTH, MAX_WORDS } from '@formancy/report-spec'
-import type { ReportDefinition, TextComponent } from '@formancy/report-spec'
+import { MAX_BATCH_COMMANDS } from '@formancy/report-core'
+import { MAX_TEXT_LENGTH, MAX_WORDS } from '@formancy/report-spec'
+import type { ReportDefinition } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
+import { askThrough } from '../ask-through.js'
+import type { ModelCompletion } from '../ask-through.js'
 import { MAX_MODEL_REQUEST_BYTES, requestBytes } from '../limits.js'
 import type { AskModel } from '../turn/ask.js'
 import { declinedAnswer } from '../turn/ask.js'
 import { translateMissing } from './reader.js'
-import { translationRequest } from './request.js'
+import { longestBody, translationRequest } from './request.js'
 import type { TranslationRequest } from './request.js'
-import { withLanguage } from './test-support.js'
+import { numbered, withLanguage, withWords, writtenAsThemselves } from './test-support.js'
 
 /**
  * The bounds a translation's turn is held to (0085): the bytes of a turn's
- * request, measured on the corpus and held to the factors
+ * body, `{ kind, user, briefing }` as JSON as `askThrough` hands it to a
+ * host, measured on the corpus and held to the factors
  * `MAX_MODEL_REQUEST_BYTES`'s comment states, refused one past it before
  * anything is asked; and the entries of a turn, one answer one batch.
  */
@@ -36,7 +39,7 @@ const REPORTS = new Map<string, ReportDefinition>([
   [INVOICE_LANGUAGES.id, INVOICE_LANGUAGES],
 ])
 
-/** The factor the bound's comment states over the largest request the corpus makes. */
+/** The factor the bound's comment states over the largest body the corpus makes. */
 const MARGIN = 16
 
 function requestOf(report: ReportDefinition, locale: string): TranslationRequest {
@@ -45,39 +48,28 @@ function requestOf(report: ReportDefinition, locale: string): TranslationRequest
   return made.request
 }
 
-/** `report` with paragraphs of `words` appended to its body, `MAX_INLINES` runs a paragraph, each run one word. */
-function withWords(report: ReportDefinition, words: readonly string[]): ReportDefinition {
-  let working = report
-  for (let start = 0; start < words.length; start += MAX_INLINES) {
-    const paragraph: TextComponent = {
-      id: `words-${String(start)}`,
-      kind: 'text',
-      content: words.slice(start, start + MAX_INLINES).map((text) => ({ kind: 'text', text })),
-    }
-    const inserted = insertComponent(working, { region: 'body', index: 0 }, paragraph)
-    if (!inserted.ok) throw new Error(inserted.message)
-    working = inserted.report
-  }
-  return working
+/** The bytes `request`'s entries add to its body: its longest body less that of the same request with no entry, its members, the digest and the longest complaint. */
+function entryBytes(request: TranslationRequest): number {
+  const payload = JSON.parse(request.user) as Record<string, unknown>
+  const none = longestBody(JSON.stringify({ ...payload, words: [], expressions: [] }, null, 2), request.locale)
+  return request.bytes - none
 }
-
-/** `count` words, each told from the others by its number. */
-const numbered = (count: number, length = 0): string[] =>
-  Array.from({ length: count }, (_, index) => `Wort ${String(index).padStart(4, '0')} ${'a'.repeat(length)}`)
 
 describe('the bytes of a turn', () => {
   // The bound's comment states what it holds: a turn of MAX_BATCH_COMMANDS
-  // entries as large as the corpus's largest, and sixteen times its
-  // largest request. A starter grown toward it, or a bound lowered toward
-  // the starters, would refuse a report the Studio offers, and one
-  // raised past the least power of two would state a number nobody chose.
-  test("holds a full turn of entries like the corpus's, and sixteen times its largest request, at the least power of two that does", () => {
+  // entries each as costly as the corpus's costliest, and sixteen times its
+  // largest body. A starter grown toward it, or a bound lowered toward the
+  // starters, would refuse a report the Studio offers, and one raised past
+  // the least power of two would state a number nobody chose. An entry's
+  // cost leaves out what a body costs with none, which a starter of few
+  // words would otherwise count many times over.
+  test("holds a full turn of entries like the corpus's, and sixteen times its largest body, at the least power of two that does", () => {
     const measured = [...REPORTS.values()].map((each) => {
       const { report, locale } = withLanguage(each)
       return requestOf(report, locale)
     })
     const largest = Math.max(...measured.map(({ bytes }) => bytes))
-    const perEntry = Math.max(...measured.map(({ bytes, asked }) => bytes / asked.length))
+    const perEntry = Math.max(...measured.map((request) => entryBytes(request) / request.asked.length))
     expect(MAX_MODEL_REQUEST_BYTES).toBeGreaterThanOrEqual(largest * MARGIN)
     expect(MAX_MODEL_REQUEST_BYTES).toBeGreaterThanOrEqual(MAX_BATCH_COMMANDS * perEntry)
     expect(MAX_MODEL_REQUEST_BYTES / 2).toBeLessThan(MAX_BATCH_COMMANDS * perEntry)
@@ -131,11 +123,12 @@ describe('the bytes of a turn', () => {
     expect(await translateMissing(ask, bound, base.locale)).toMatchObject({ ok: false, ended: 'declined', attempts: 1 })
     expect(asked).toHaveLength(1)
 
-    // A request measured by its first turn alone would pass here and have
-    // its second turn, the complaint after it, refused by a server bounded
-    // by the same number. Every answer that is none is answered, in turn,
-    // and no turn a run sends is past the bound.
-    const turns: number[] = []
+    // A request measured by its first turn alone, or by its user part and
+    // not the body a server reads, would pass here and have a later turn
+    // refused by a server bounded by the same number. Every answer that is
+    // none is answered, in turn, through askThrough, and the body each turn
+    // hands the host, as JSON, is never past the bound.
+    const bodies: { readonly sent: number; readonly counted: number }[] = []
     for (const wrong of [
       'prose',
       '{"words": {}}',
@@ -144,14 +137,18 @@ describe('the bytes of a turn', () => {
       '{"into": "fr-CH", "expressions": []}',
       '{"declined": ""}',
     ]) {
-      const answers = [wrong, declinedAnswer('scripted')]
-      const once: AskModel<'translation'> = (prompt) => {
-        turns.push(requestBytes(prompt.user))
-        return Promise.resolve(answers[prompt.attempt - 1] ?? '')
-      }
-      await translateMissing(once, bound, base.locale)
+      const answers: ModelCompletion[] = [{ text: wrong }, { declined: 'scripted' }]
+      let turn = 0
+      const through = askThrough((request) => {
+        bodies.push({ sent: new TextEncoder().encode(JSON.stringify(request)).byteLength, counted: requestBytes(request) })
+        turn += 1
+        return Promise.resolve(answers[turn - 1] as ModelCompletion)
+      })
+      await translateMissing(through, bound, base.locale)
     }
-    expect(Math.max(...turns)).toBe(MAX_MODEL_REQUEST_BYTES)
+    expect(bodies).toHaveLength(12)
+    expect(bodies.filter(({ sent, counted }) => sent !== counted)).toEqual([])
+    expect(Math.max(...bodies.map(({ sent }) => sent))).toBe(MAX_MODEL_REQUEST_BYTES)
   })
 })
 
@@ -164,25 +161,34 @@ describe('the entries of a turn', () => {
     const lacking = requestOf(report, locale).asked.length
     const request = requestOf(withWords(report, numbered(MAX_BATCH_COMMANDS)), locale)
     expect(request.asked).toHaveLength(MAX_BATCH_COMMANDS)
-    expect(request.later).toBe(lacking)
+    expect([request.later, request.noRoom]).toEqual([lacking, []])
     expect(request.asked.at(-1)?.key).toBe(`w${String(MAX_BATCH_COMMANDS)}`)
   })
 
   // A translation holds at most MAX_WORDS words (0063): asking a language
   // with no room left for more would bring back words the format refuses
-  // to keep, every one of them.
-  test('asks no more words than the language has room for, and the rest later', () => {
+  // to keep, every one of them, and a language with none left would look,
+  // asked for nothing, like one that lacks nothing.
+  test('asks no more words than the language has room for, says so, and asks nothing of one with no room left', async () => {
     const { report, locale } = withLanguage(SERVICE_INSPECTION.report)
     const words = numbered(MAX_WORDS + 10)
-    let working = withWords(report, words)
-    for (const word of words.slice(0, MAX_WORDS - 4)) {
-      const written = translateWord(working, locale, word, word)
-      if (!written.ok) throw new Error(written.message)
-      working = written.report
-    }
-    const request = requestOf(working, locale)
+    const grown = withWords(report, words)
     const lacking = requestOf(report, locale).asked.length + 14
+    const request = requestOf(writtenAsThemselves(grown, locale, words.slice(0, MAX_WORDS - 4)), locale)
     expect(request.asked).toHaveLength(4)
-    expect(request.later).toBe(lacking - 4)
+    expect([request.later, request.noRoom]).toEqual([lacking - 4, ['word']])
+
+    const full = writtenAsThemselves(grown, locale, words.slice(0, MAX_WORDS))
+    const asked: string[] = []
+    const run = await translateMissing(
+      (prompt) => {
+        asked.push(prompt.user)
+        return Promise.resolve('{}')
+      },
+      full,
+      locale,
+    )
+    expect(run.ok && [run.attempts, run.answer.asked, run.answer.later, run.answer.noRoom]).toEqual([0, [], lacking - 4, ['word']])
+    expect(asked).toEqual([])
   })
 })

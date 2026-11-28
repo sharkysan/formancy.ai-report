@@ -1,10 +1,11 @@
 import { languageDiagnostics, tryEdit } from '@formancy/report-core'
 import type { Diagnostic, StepDescriptor } from '@formancy/report-core'
-import { refusedCharacter, reportHash, reportWords, wordExpressionSites } from '@formancy/report-spec'
+import { reportHash, reportWords, wordExpressionSites } from '@formancy/report-spec'
 import type { ReportDefinition, Translation } from '@formancy/report-spec'
 import type { TranslationAnswer, WrittenEntry } from './reader.js'
-import { lacking } from './request.js'
+import { lacking, withinRoom } from './request.js'
 import type { EntryKind, Lacking } from './request.js'
+import { textRefusal } from './texts.js'
 
 /**
  * A model's translation, held to the format and the compiler before a
@@ -23,13 +24,16 @@ import type { EntryKind, Lacking } from './request.js'
  * its source is still one the language lacks in the report as it stands:
  * a word a person translated while the model answered is never
  * overwritten (formancy.ai 0161), and a word whose text changed meanwhile
- * is, under 0063, another word, and dropped.
+ * is, under 0063, another word, and dropped. What is kept is sized to the
+ * room the language has as it stands, by the rule the request sized its
+ * turn by (`withinRoom`), so that a list past `MAX_WORDS`, which the format
+ * refuses at no entry of it, is never what a batch makes.
  *
- * **Held before it is shown**, in the order a report is held: each text's
- * characters by report-spec's `refusedCharacter`, the rule the renderers
- * print by; then the report the batch leaves by the validator, through
- * `tryEdit`, which reports a translation's error at the entry that broke
- * it; then by report-core's `languageDiagnostics`, a diagnostic the
+ * **Held before it is shown**, in the order a report is held: each text
+ * by `texts.ts` -- its characters, an expression's escapes, a word's spaces
+ * at either end; then the report the batch leaves by the validator,
+ * through `tryEdit`, which reports a translation's error at the entry that
+ * broke it; then by report-core's `languageDiagnostics`, a diagnostic the
  * language did not give before -- `translation-differs`, a compile error
  * -- refusing the entry it stands at. Each refused entry is taken out with
  * the sentence that refused it, and the rest held again, until what is
@@ -49,8 +53,8 @@ export interface TranslationRow {
   readonly step: StepDescriptor
 }
 
-/** Why an entry the model wrote is no row. */
-export type RefusalReason = 'character' | 'invalid' | 'diagnostic'
+/** Why an entry the model wrote is no row: a character a report does not print, its spaces at either end, the validator, or a diagnostic. */
+export type RefusalReason = 'character' | 'spaces' | 'invalid' | 'diagnostic'
 
 /** An entry the format, the compiler or the characters a report prints refused, with the sentence that refused it. */
 export interface RefusedEntry {
@@ -59,12 +63,17 @@ export interface RefusedEntry {
   readonly source: string
   readonly text: string
   readonly reason: RefusalReason
-  /** The validator's, the diagnostic's or report-spec's character rule's words, for a person. */
+  /** The validator's, the diagnostic's or `texts.ts`'s words, for a person. */
   readonly message: string
 }
 
-/** Why an entry the model wrote was never held at all. */
-export type DropReason = 'not-asked' | 'written-meanwhile' | 'no-longer-in-report' | 'for-person' | 'language-removed'
+/**
+ * Why an entry the model wrote was never held at all: not asked; the
+ * language has it now; its source is no longer the report's; an expression
+ * that no longer prints words; a person's, in the payment part; no room
+ * left in its list; or a language removed.
+ */
+export type DropReason = 'not-asked' | 'written-meanwhile' | 'no-longer-in-report' | 'prints-no-words' | 'for-person' | 'no-room' | 'language-removed'
 
 export interface DroppedEntry {
   readonly key: string
@@ -89,7 +98,7 @@ export interface TranslationProposal {
 }
 
 /** An entry being held: what the model wrote, every place its source stands, and the command that writes it. */
-interface Held {
+export interface Held {
   readonly entry: WrittenEntry
   readonly paths: readonly string[]
   readonly step: StepDescriptor
@@ -103,20 +112,6 @@ function stepOf(locale: string, { kind, source, text }: WrittenEntry): StepDescr
   return kind === 'word'
     ? { command: 'translateWord', args: [locale, source, text] }
     : { command: 'translateExpression', args: [locale, source, { cel: text }] }
-}
-
-/** Why `text` does not print, in report-spec's terms for its first character that does not, or undefined where every one does. */
-function unprintable(text: string): string | undefined {
-  for (const character of text) {
-    const point = character.codePointAt(0) as number
-    const refused = refusedCharacter(point)
-    if (refused === undefined) continue
-    const code = `U+${point.toString(16).toUpperCase().padStart(4, '0')}`
-    return refused === 'bidi-control'
-      ? `it holds ${code}, a bidirectional control, which a report never prints: nothing here reorders a line`
-      : `it holds ${code}, of a script a report does not print: a report prints Latin, Greek and Cyrillic, with the punctuation and the symbols written with them`
-  }
-  return undefined
 }
 
 /** An error or a diagnostic the batch gives, where it stands, and in whose words. */
@@ -177,11 +172,16 @@ function judged(
  * `held` taken through the validator and the diagnostics until what is left
  * stands, with the candidate's diagnostics in the language: each round
  * refuses what an error or a new diagnostic stands at, and holds the rest
- * again. A finding standing at no step left refuses
- * every one of them, with its sentence: none of them can be shown to leave
- * a report the format and the compiler accept.
+ * again. A finding standing at no step left refuses every one of them,
+ * with its sentence: none of them can be shown to leave a report the
+ * format and the compiler accept. That is the guard, not the rule: the
+ * validator reports a translation's error at its entry, and an error near
+ * no replaced string at the translation, or over the whole report at its
+ * first, which may be a person's; a step its command refuses stands at
+ * none. Exported for its suite, which forces it; the package exports
+ * `proposeTranslation` alone.
  */
-function hold(
+export function hold(
   report: ReportDefinition,
   { locale, index, translation }: { readonly locale: string; readonly index: number; readonly translation: Translation },
   held: readonly Held[],
@@ -231,29 +231,39 @@ export function proposeTranslation(report: ReportDefinition, answer: Translation
   const now = lacking(report, answer.locale)
   const askable = new Map(now.ask.map((entry) => [`${entry.kind} ${entry.source}`, entry]))
   const personal = new Set(now.forPerson.map(({ kind, source }) => `${kind} ${source}`))
-  const printed = new Set([...reportWords(report).map(({ text }) => `word ${text}`), ...wordExpressionSites(report).map(({ cel }) => `expression ${cel}`)])
+  const translated = new Set([...translation.words.map(({ word }) => `word ${word}`), ...translation.expressions.map(({ cel }) => `expression ${cel}`)])
+  const sited = new Set([...reportWords(report).map(({ text }) => `word ${text}`), ...wordExpressionSites(report).map(({ cel }) => `expression ${cel}`)])
   const dropped: DroppedEntry[] = [...notAsked]
-  const characters: RefusedEntry[] = []
-  const held: Held[] = []
+  const texts: RefusedEntry[] = []
+  const kept: Held[] = []
   for (const entry of answer.written) {
     const id = `${entry.kind} ${entry.source}`
+    const lacks = askable.get(id)
+    const refusal = textRefusal(entry)
     if (personal.has(id)) dropped.push({ key: entry.key, why: 'for-person' })
-    else {
-      const lacks = askable.get(id)
-      const message = unprintable(entry.text)
-      if (lacks === undefined) dropped.push({ key: entry.key, why: printed.has(id) ? 'written-meanwhile' : 'no-longer-in-report' })
-      else if (message === undefined) held.push({ entry, paths: lacks.paths, step: stepOf(answer.locale, entry) })
-      else characters.push({ ...withoutPlaces(entry), reason: 'character', message })
-    }
+    else if (lacks === undefined) {
+      const why = translated.has(id) ? 'written-meanwhile' : entry.kind === 'expression' && sited.has(id) ? 'prints-no-words' : 'no-longer-in-report'
+      dropped.push({ key: entry.key, why })
+    } else if (refusal === undefined) kept.push({ entry, paths: lacks.paths, step: stepOf(answer.locale, entry) })
+    else texts.push({ ...withoutPlaces(entry), ...refusal })
   }
+  const room = withinRoom(
+    kept.map((held) => ({ kind: held.entry.kind, held })),
+    translation,
+  )
+  for (const { held } of room.left) dropped.push({ key: held.entry.key, why: 'no-room' })
 
-  const { standing, refused, candidate, diagnostics } = hold(report, { locale: answer.locale, index, translation }, held)
+  const { standing, refused, candidate, diagnostics } = hold(
+    report,
+    { locale: answer.locale, index, translation },
+    room.taken.map(({ held }) => held),
+  )
   const rows = standing.map(({ entry, step }): TranslationRow => ({ ...entry, step }))
   return {
     locale: answer.locale,
     expectedHash,
     rows,
-    refused: [...characters, ...refused],
+    refused: [...texts, ...refused],
     dropped,
     stillMissing: diagnostics.filter(({ code }) => code === 'word-missing'),
     forPerson: now.forPerson,

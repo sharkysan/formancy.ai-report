@@ -627,19 +627,26 @@ Its `REQUEST_KINDS` is the translation alone: `translationRequest` asks
 for exactly what report-core's `languageDiagnostics` names `word-missing`,
 read back to each source through report-spec's walk, under keys of its own
 (`w1`, `e1`), with three places a word (`places.ts`), an expression's type
-and reads, and the language's words so far, never data, a string
-report-spec's `NOT_WORDS` names but a place's ids and kinds, the
-e-invoice, or the payment part, whose every word is `forPerson`; at most
-`MAX_BATCH_COMMANDS` entries a turn and the room `MAX_WORDS` leaves, and
-refused past `MAX_MODEL_REQUEST_BYTES`, measured in `limits.ts`; the
-briefing, `briefing.ts`, pinned beside `briefingDigest`; `askThrough`
-sends a host's `complete` the kind, the user part and the digest, never
-the briefing; `checkTranslation` reads an answer back by key, and
-`proposeTranslation` keeps what is still missing in the report as it
-stands, holds each text to `refusedCharacter`, the validator through
-`tryEdit` and `languageDiagnostics`, refusing an entry alone, and gives
-one batch against the report's hash. The recorded answers are
-`fixtures/answers/`; no builder draws a proposal yet
+and reads where the diagnostic stands, and the language's words so far
+that the report still holds, never data, a string report-spec's
+`NOT_WORDS` names but a place's ids and kinds, the e-invoice, or the
+payment part, whose every word is `forPerson`; `withinRoom`, the one rule
+of what fits a turn and a batch, at most `MAX_BATCH_COMMANDS` entries and
+the room `MAX_WORDS` leaves, the rest `later` and a full list `noRoom`;
+refused past `MAX_MODEL_REQUEST_BYTES`, the body `{ kind, user, briefing }`
+as JSON as `askThrough` sends it, measured in `limits.ts`; the briefing,
+`briefing.ts`, pinned beside `briefingDigest`; `askThrough` sends a host's
+`complete` the kind, the user part and the digest, never the briefing,
+what the host's server does with it being the host's to build;
+`checkTranslation` reads an answer back by key, and `proposeTranslation`
+keeps what is still missing and fits in the report as it stands, holds
+each text by `texts.ts` -- `refusedCharacter`, an expression's escapes, a
+word's spaces at either end -- then the validator through `tryEdit` and
+`languageDiagnostics`, refusing an entry alone, and gives one batch against
+the report's hash. That payment-part rule is report-ai's request's:
+report-mcp's translate prompt to an agent's model differs, which
+`docs/architecture/11-risks-and-debt.md` carries. The recorded answers
+are `fixtures/answers/`; no builder draws a proposal yet
 ([0085](docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:
 the adversarial report fixtures, the starter reports, the reader and
@@ -696,10 +703,11 @@ holds, and what Formancy Report does not do yet, is said under a page's
 status, which stops the build once the changelog names a later release;
 every card names the tests it rests on; every absence on the start page
 but one detail table and one level of grouping, which review holds, is
-held by `limits.test.ts` to report-spec's and report-ai's built `dist`,
+held by `limits.test.ts` to report-spec's, report-ai's and report-mcp's built `dist`,
 devDependencies no page imports (the absence of changes described in
-words to report-ai's `REQUEST_KINDS` being the translation alone, 0085),
-and to the published packages' manifests
+words in the builders to report-ai's `REQUEST_KINDS` being the
+translation alone and report-mcp's `PROMPTS` the two the sentence names,
+0085), and to the published packages' manifests
 ([0056](docs/decisions/0056-the-start-page-leads-with-a-card-for-each-topic-report-is-built-around-every-card-on-the-site-names-the-tests-it-rests-on-and-no-page-compares-report-with-another-product.md));
 and `src/groups.ts` is the list of pages. That is all the product code there is. The package path the plan proposes, each package depending only on those
 before it:

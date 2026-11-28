@@ -1411,11 +1411,14 @@ translateMissing(ask, report, locale)                 report-ai's reader.ts
 translationRequest(report, locale)                    request.ts
    │  word-missing, report-core's languageDiagnostics, read back to each
    │  source by report-spec's walk; keys w1, e1; three places a word;
-   │  an expression's type and reads, the compiler's; the words so far
+   │  an expression's type and reads where word-missing stands, the
+   │  compiler's; the words so far the report still holds
    ├─ a word standing anywhere in the payment part ──▶ forPerson, never sent
-   ├─ past MAX_BATCH_COMMANDS, or the room MAX_WORDS leaves ──▶ later
-   ├─ its longest turn past MAX_MODEL_REQUEST_BYTES ──▶ too-large; nothing asked
-   ├─ nothing lacking ──▶ an empty answer; nothing asked
+   ├─ past MAX_BATCH_COMMANDS, or the room MAX_WORDS leaves (withinRoom)
+   │  ──▶ later; a list with no room left named in noRoom
+   ├─ its longest body, { kind, user, briefing } as JSON, past
+   │  MAX_MODEL_REQUEST_BYTES ──▶ too-large; nothing asked
+   ├─ nothing to ask ──▶ an empty answer, its later and noRoom; nothing asked
    ▼
 askChecked: the briefing and the request ──▶ the host's AskModel, or
    │                                         askThrough(complete): { kind, user,
@@ -1428,8 +1431,12 @@ checkTranslation: each asked key's text, by the source the request held
    │  a key not asked dropped and listed; a blank text still missing
    ▼
 proposeTranslation(the report as it stands, answer)   proposal.ts
-   ├─ a word written, changed, or put into the payment part meanwhile ──▶ dropped
-   ├─ a character refusedCharacter refuses ──▶ refused, that entry alone
+   ├─ a word written, changed, or put into the payment part meanwhile, an
+   │  expression that prints no words now ──▶ dropped
+   ├─ a character refusedCharacter refuses, written or by an escape, or a
+   │  word's spaces at either end not its source's ──▶ refused, that entry
+   │                                                 alone (texts.ts)
+   ├─ no room left in its list, as the report stands (withinRoom) ──▶ dropped
    ▼
 tryEdit(the batch) ──▶ the validator, every language written out (0063)
    ├─ an error at an entry ──▶ that entry refused, the rest held again
@@ -1437,6 +1444,7 @@ tryEdit(the batch) ──▶ the validator, every language written out (0063)
 languageDiagnostics(candidate) ──▶ an error the language did not give before
    ├─ at an entry: translation-differs, a compile error ──▶ that entry refused,
    │                                                       the rest held again
+   ├─ a finding at no entry left ──▶ every entry left refused, with its sentence
    ▼
 { rows, refused, dropped, stillMissing, forPerson, candidate, expectedHash }
    │  a person accepts some rows (no builder draws them yet)
@@ -1454,10 +1462,12 @@ commands the session itself applies: the reader names no source the model
 wrote, the proposal keeps an entry only where its word is still missing in
 the report as it stands, so a person's word is never written over, and
 every row it gives is one the validator and the compiler accepted, in
-characters a report prints. One bad entry costs its own row. The proposal
-is bound to the report's hash, so a person's later edit refuses it by the
-session's own rule, and the answer, held, is proposed again with no new
-turn. Where the model is, its key and its provider are the host's; a
-host's server takes the request's kind and its user part, writes the
-briefing itself by the kind, and compares the digest it is sent with its
-own ([0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
+characters a report prints, a word with its spaces. One bad entry costs its
+own row. The proposal is bound to the report's hash, so a person's later
+edit refuses it by the session's own rule, and the answer, held, is
+proposed again with no new turn. Where the model is, its key and its
+provider are the host's. A host's server owes the rest: to take the
+request's kind and its user part, write the briefing itself by the kind,
+and compare the digest it is sent with its own; nothing here holds it to
+that, and Report's own server's route is 0084's, a record still to come
+([0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).

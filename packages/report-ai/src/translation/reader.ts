@@ -55,6 +55,10 @@ export interface TranslationAnswer {
   readonly dropped: readonly NotAsked[]
   /** Keys asked that came back with no text, or with nothing but white space: left for a person, or another turn. */
   readonly leftEmpty: readonly string[]
+  /** How many entries the language lacked past the request's bounds, never asked: what another turn asks once these land. */
+  readonly later: number
+  /** The lists the language had no room left in for what it lacks: a run asks nothing of them until a person makes room, and says so here rather than as a language that lacks nothing. */
+  readonly noRoom: readonly EntryKind[]
 }
 
 const isObject = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -107,6 +111,8 @@ export function checkTranslation(answer: Checkable, request: TranslationRequest)
       written,
       dropped,
       leftEmpty: request.asked.flatMap(({ key }) => (answered.has(key) ? [] : [key])),
+      later: request.later,
+      noRoom: request.noRoom,
     },
   }
 }
@@ -121,7 +127,8 @@ export type TranslationResult =
  * Ask `ask` for every word `locale` lacks in `report`, up to a turn's
  * bound, and keep what it answers. With nothing to ask, nothing is asked:
  * a turn is paid for -- through a relay, two pastes by hand -- and would
- * translate nothing. A request past `MAX_MODEL_REQUEST_BYTES` ends the run
+ * translate nothing; the answer's `later` and `noRoom` tell a language
+ * that lacks nothing from one with no room left for what it lacks. A request past `MAX_MODEL_REQUEST_BYTES` ends the run
  * before any turn. Resolves however the run ends, as `askChecked` does.
  */
 export async function translateMissing(
@@ -134,7 +141,8 @@ export async function translateMissing(
   if (!made.ok) return { ok: false, ended: 'too-large', attempts: 0, bytes: made.bytes, max: made.max }
   const { request } = made
   if (request.asked.length === 0) {
-    return { ok: true, attempts: 0, answer: { locale, asked: [], forPerson: request.forPerson, written: [], dropped: [], leftEmpty: [] } }
+    const answer = { locale, asked: [], forPerson: request.forPerson, written: [], dropped: [], leftEmpty: [], later: request.later, noRoom: request.noRoom }
+    return { ok: true, attempts: 0, answer }
   }
   const asked = await askChecked(
     ask,

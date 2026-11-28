@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
-import { INVOICE, SALES_REPORT } from '@formancy/report-corpus'
+import { INVOICE, SALES_REPORT, SERVICE_INSPECTION } from '@formancy/report-corpus'
 import {
+  insertComponent,
   languageDiagnostics,
   openReportSession,
   removeLanguage,
@@ -8,19 +9,20 @@ import {
   translateExpression,
   translateWord,
   updateColumn,
+  updateComponent,
   updatePaymentPart,
 } from '@formancy/report-core'
 import type { CommandDescriptor, ReportSession } from '@formancy/report-core'
-import { reportHash, reportWords } from '@formancy/report-spec'
-import type { ReportDefinition } from '@formancy/report-spec'
+import { MAX_TEXT_LENGTH, MAX_WORDS, reportHash, reportWords } from '@formancy/report-spec'
+import type { ReportDefinition, Translation } from '@formancy/report-spec'
 import { describe, expect, test } from 'vitest'
-import { proposeTranslation } from './proposal.js'
-import type { TranslationProposal } from './proposal.js'
+import { hold, proposeTranslation } from './proposal.js'
+import type { Held, TranslationProposal } from './proposal.js'
 import { checkTranslation } from './reader.js'
 import type { TranslationAnswer } from './reader.js'
 import { translationRequest } from './request.js'
 import type { TranslationRequest } from './request.js'
-import { checkable, withLanguage } from './test-support.js'
+import { checkable, numbered, withLanguage, withWords, writtenAsThemselves } from './test-support.js'
 
 /**
  * A model's translation held to the format and the compiler before a
@@ -261,5 +263,119 @@ describe('applying a proposal', () => {
     const proposal = proposeTranslation(session.document(), answer('partial'))
     expect(session.apply({ command: 'setTitle', args: ['Umsatzbericht Oktober'] }).ok).toBe(true)
     expect(session.apply(batchOf(proposal), { expectedHash: proposal.expectedHash })).toMatchObject({ ok: false, code: 'stale-document' })
+  })
+})
+
+describe('what a proposal holds a text to besides the format', () => {
+  // A run's text prints between the runs beside it: " bis " written "au"
+  // prints "1. Oktoberau31. Oktober", which no reviewer sees in a row of
+  // its own. The format holds no space, so the proposal does.
+  test("refuses a word that does not keep its source's spaces at either end, at its own entry, and keeps the rest", () => {
+    const proposal = proposeTranslation(report, answer('spaces-not-kept'))
+    expect(proposal.refused.map(({ key, reason, message }) => [key, reason, message])).toEqual([
+      [
+        'w4',
+        'spaces',
+        `it begins with "" and ends with "", where its source begins with " " and ends with " ": a word's spaces at either end part it from the words beside it`,
+      ],
+      [
+        'w5',
+        'spaces',
+        `it begins with "" and ends with "", where its source begins with "" and ends with " ": a word's spaces at either end part it from the words beside it`,
+      ],
+    ])
+    expect(proposal.rows).toHaveLength(27)
+  })
+
+  // CEL decodes a string literal's escapes, so an expression of plain
+  // ASCII can print a control the renderers refuse at the first render in
+  // that language: held as the characters a word is.
+  test('refuses an expression whose escape writes a character no report prints, and keeps the rest', () => {
+    const proposal = proposeTranslation(report, answer('expression-escapes-a-control'))
+    expect(proposal.refused.map(({ key, reason, message }) => [key, reason, message])).toEqual([
+      ['e2', 'character', expect.stringMatching(/^it writes U\+202E by an escape, a bidirectional control/)],
+    ])
+    expect(proposal.rows).toHaveLength(28)
+  })
+
+  // A text past the format's bound on a run is the validator's to refuse,
+  // and it stands at that entry alone.
+  test("refuses a text past MAX_TEXT_LENGTH at its own entry with the validator's sentence, and keeps the rest", () => {
+    const request = requestOf(report, locale)
+    const long = checkTranslation(
+      { kind: 'object', value: { into: locale, words: { w1: 'Rapport des ventes', w27: `Montants ${'a'.repeat(MAX_TEXT_LENGTH)}` } } },
+      request,
+    )
+    const proposal = proposeTranslation(report, long.ok ? long.value : (undefined as never))
+    expect(proposal.refused.map(({ key, reason }) => [key, reason])).toEqual([['w27', 'invalid']])
+    expect(proposal.refused[0]?.message).toBe(`is ${String(MAX_TEXT_LENGTH + 9)} characters long; at most ${String(MAX_TEXT_LENGTH)} are allowed`)
+    expect(proposal.rows.map(({ key }) => key)).toEqual(['w1'])
+  })
+
+  // A person who changed what an expression prints while the model
+  // answered -- a number format on it -- made it no word, and saying it was
+  // written meanwhile would send a reviewer to look for a translation that
+  // is not there.
+  test('drops an expression that no longer prints words as one, not as one written meanwhile', () => {
+    const cel = "'Gesamt'"
+    const inserted = edited(
+      insertComponent(report, { region: 'body', index: 0 }, { id: 'say', kind: 'text', content: [{ kind: 'expression', expression: { cel } }] }),
+    )
+    const request = requestOf(inserted, locale)
+    const key = request.asked.find(({ source }) => source === cel)?.key ?? ''
+    const read = checkTranslation({ kind: 'object', value: { into: locale, expressions: { [key]: "'Total'" } } }, request)
+    const asNumber = [{ kind: 'expression' as const, expression: { cel }, format: { kind: 'number' as const, scale: 2, grouping: true } }]
+    const meanwhile = edited(updateComponent(inserted, 'say', 'text', { content: asNumber }))
+    const proposal = proposeTranslation(meanwhile, read.ok ? read.value : (undefined as never))
+    expect([proposal.rows, proposal.dropped]).toEqual([[], [{ key, why: 'prints-no-words' }]])
+  })
+})
+
+describe('what a proposal holds to the room its language has', () => {
+  // A translation past MAX_WORDS is refused by the format at the list,
+  // which no entry stands at, so every row would go. The turn was sized to
+  // the room when it was asked; a person who writes a word while the model
+  // answers takes some of it, and what no longer fits is dropped at its own
+  // entry, by the rule the turn was sized by.
+  test('drops what the language has no room left for as it stands, at its own entries, and keeps what fits', () => {
+    const base = withLanguage(SERVICE_INSPECTION.report)
+    const words = numbered(MAX_WORDS + 10)
+    const asked = writtenAsThemselves(withWords(base.report, words), base.locale, words.slice(0, MAX_WORDS - 4))
+    const request = requestOf(asked, base.locale)
+    expect([request.asked.length, request.noRoom]).toEqual([4, ['word']])
+    const read = checkTranslation(
+      { kind: 'object', value: { into: base.locale, words: Object.fromEntries(request.asked.map(({ key, source }) => [key, source])) } },
+      request,
+    )
+    const askedFor = new Set(request.asked.map(({ source }) => source))
+    const other = words.slice(MAX_WORDS - 4).find((word) => !askedFor.has(word)) as string
+    const meanwhile = writtenAsThemselves(asked, base.locale, [other])
+    const proposal = proposeTranslation(meanwhile, read.ok ? read.value : (undefined as never))
+    expect(proposal.rows.map(({ key }) => key)).toEqual(request.asked.slice(0, 3).map(({ key }) => key))
+    expect([proposal.dropped, proposal.refused]).toEqual([[{ key: request.asked[3]?.key, why: 'no-room' }], []])
+  })
+
+  // The guard under every rule above: a finding that stands at no entry
+  // left -- here a step its command refuses, which stands at none --
+  // refuses every entry left with its sentence, since none of them can be
+  // shown to leave a report the format and the compiler accept.
+  test('refuses every entry left where a finding stands at none of them', () => {
+    const translation = report.translations?.[0] as Translation
+    const entry = (key: string, source: string, text: string): Held['entry'] => ({ key, kind: 'word', source, text, places: [] })
+    const held: Held[] = [
+      {
+        entry: entry('w1', 'Umsatzbericht', 'Rapport des ventes'),
+        paths: ['/title'],
+        step: { command: 'translateWord', args: [locale, 'Umsatzbericht', 'Rapport des ventes'] },
+      },
+      { entry: entry('w2', 'Kein Wort', 'Aucun mot'), paths: [], step: { command: 'translateWord', args: [locale, 'Kein Wort', 'Aucun mot'] } },
+    ]
+    const outcome = hold(report, { locale, index: 0, translation }, held)
+    expect(outcome.standing).toEqual([])
+    expect(outcome.refused.map(({ key, reason, message }) => [key, reason, message])).toEqual([
+      ['w1', 'invalid', 'the report prints no word "Kein Wort" to translate'],
+      ['w2', 'invalid', 'the report prints no word "Kein Wort" to translate'],
+    ])
+    expect(outcome.candidate).toBe(report)
   })
 })

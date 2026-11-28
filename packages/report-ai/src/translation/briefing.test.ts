@@ -45,6 +45,7 @@ const EXAMPLE_REQUEST: TranslationRequest = {
     },
   ],
   later: 0,
+  noRoom: [],
   forPerson: [],
   system: translationBriefing(),
   user: '{}',

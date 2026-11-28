@@ -20,22 +20,31 @@ model for exactly those, `REQUEST_KINDS` being `['translation']`:
 `word-missing` names, under keys of its own, with where each word stands
 and an expression's type and reads, and the language's words so far, and
 never the report's data, a parameter's value, the e-invoice, or any word
-of a QR-bill's message, which is a person's to write. The answer is read
-back by key, and `proposeTranslation(report, answer)` keeps only what the
-language still lacks in the report as it stands, so a word a person
-translated meanwhile is never written over, holds each text to the
-characters a report prints, the validator and the diagnostics, refusing a
+of a QR-bill's message, which report-ai leaves for a person to write. The
+answer is read back by key, and `proposeTranslation(report, answer)` keeps
+only what the language still lacks in the report as it stands, so a word a
+person translated meanwhile is never written over, and only what its room
+under `MAX_WORDS` holds; it holds each text to the characters a report
+prints, an expression's escapes among them, and a word to its source's
+spaces at either end, then to the validator and the diagnostics, refusing a
 bad entry alone with the sentence that refused it, and gives one batch of
-`translateWord` and `translateExpression` against the report's hash,
-which a session applies as one undo step or refuses as `stale-document`
-once the report moved. A turn asks at most `MAX_BATCH_COMMANDS` entries
-and is refused before anything is asked past `MAX_MODEL_REQUEST_BYTES`,
-256 KiB, measured on the corpus. A host whose server holds the model's key
-gives `askThrough(complete)` a `complete` of its own, which sends the kind,
-the user part and the briefing's digest, never the briefing. No model is
-asked in CI: the answers are recorded. No builder draws a proposal yet,
-and the start page's "No changes proposed by an AI" is narrowed to "No
-changes described in words". report-ai now depends on report-core and
+`translateWord` and `translateExpression` against the report's hash, which
+a session applies as one undo step or refuses as `stale-document` once the
+report moved. A turn asks at most `MAX_BATCH_COMMANDS` entries, says in
+`later` and `noRoom` what it left for another, and is refused before
+anything is asked past `MAX_MODEL_REQUEST_BYTES`, 256 KiB of the body
+`{ kind, user, briefing }` as JSON, so that a host's server can read a
+request's body under that one number. A host whose server holds the
+model's key gives `askThrough(complete)` a `complete` of its own, which
+sends the kind, the user part and the briefing's digest, never the
+briefing; the server owes the comparison of the digest with its own. No
+model is asked in CI: the answers are recorded. No builder draws a
+proposal yet. report-mcp's translate prompt to an agent's own model still
+lists the payment part's words with the rest, which the architecture's
+known debt carries until that prompt leaves them for a person. The start
+page's "No changes proposed by an AI" is narrowed to "No changes described
+in words in the builders", whose last clause names the agent a host may
+bring through report-mcp. report-ai now depends on report-core and
 report-spec, and on `@noble/hashes` at exactly 2.4.0, MIT, which
 report-spec already takes; report-spec exports `NOT_WORDS`.
 

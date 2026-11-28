@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest'
 import { askThrough } from './ask-through.js'
 import type { Complete, ModelCompletion, ModelRequest } from './ask-through.js'
 import { briefingDigest, modelBriefing } from './kinds.js'
-import { MAX_MODEL_REQUEST_BYTES } from './limits.js'
+import { MAX_MODEL_REQUEST_BYTES, requestBytes } from './limits.js'
 import { translateMissing } from './translation/reader.js'
 import { withLanguage } from './translation/test-support.js'
 import { createStop } from './turn/ask.js'
@@ -48,6 +48,9 @@ const prompt = (overrides: Partial<ModelPrompt<'translation'>> = {}): ModelPromp
 
 const whole = readFileSync(new URL('../fixtures/answers/whole.txt', import.meta.url), 'utf8')
 
+/** The bytes a body has around its user part: the kind, the digest and the JSON's own. */
+const around = requestBytes({ kind: 'translation', user: '', briefing: briefingDigest('translation') })
+
 describe("what leaves for a host's server", () => {
   // A briefing sent by the page is one a server would have to trust, and a
   // server that read it would be a way to ask its operator's model
@@ -74,9 +77,14 @@ describe("what leaves for a host's server", () => {
       /^this prompt names no request Formancy Report makes/,
     ],
     [
-      'a user part past the bound',
-      prompt({ user: 'a'.repeat(MAX_MODEL_REQUEST_BYTES + 1) }),
-      /^this request is 262145 bytes, past the 262144 a request may have/,
+      'a body one byte past the bound',
+      prompt({ user: 'a'.repeat(MAX_MODEL_REQUEST_BYTES - around + 1) }),
+      /^this request is 262145 bytes as JSON, past the 262144 a request may have/,
+    ],
+    [
+      'a user part whose UTF-8 is under the bound and whose JSON, every quote escaped, is past it',
+      prompt({ user: '"'.repeat(Math.ceil((MAX_MODEL_REQUEST_BYTES - around) / 2) + 1) }),
+      /^this request is \d+ bytes as JSON, past the 262144 a request may have/,
     ],
   ])('refuses %s before complete is called', async (_name, refused, why) => {
     const { complete, sent } = recording(() => Promise.resolve({ text: 'answered' }))
@@ -84,12 +92,15 @@ describe("what leaves for a host's server", () => {
     expect(sent).toEqual([])
   })
 
-  // The bound is a request's like any other, and a server bounded by it
-  // takes a body at it.
-  test('sends a user part at the bound', async () => {
+  // The bound is a body's, counted as a server counts what it reads: the
+  // request as JSON, in UTF-8. A server bounded by it takes a body at it.
+  test('sends a body at the bound, as long as a server counts it', async () => {
     const { complete, sent } = recording(() => Promise.resolve({ text: 'answered' }))
-    await askThrough(complete)(prompt({ user: 'é'.repeat(MAX_MODEL_REQUEST_BYTES / 2) }), idle)
-    expect(sent).toHaveLength(1)
+    await askThrough(complete)(
+      prompt({ user: `${'é'.repeat(Math.floor((MAX_MODEL_REQUEST_BYTES - around) / 2))}${'a'.repeat((MAX_MODEL_REQUEST_BYTES - around) % 2)}` }),
+      idle,
+    )
+    expect(sent.map((request) => new TextEncoder().encode(JSON.stringify(request)).byteLength)).toEqual([MAX_MODEL_REQUEST_BYTES])
   })
 })
 
@@ -118,6 +129,19 @@ describe("how a host's server's answer ends a run", () => {
     expect(failing).toMatchObject({ ok: false, ended: 'unreachable', attempts: 1, reason: 'the model is not configured' })
     const shapeless = await translateMissing(askThrough(recording(() => Promise.resolve({} as ModelCompletion)).complete), report, locale)
     expect(shapeless).toMatchObject({ ok: false, ended: 'unreachable', attempts: 1, reason: "the host's complete answered neither a text nor a decline" })
+  })
+
+  // A decline with no reason gives a person nothing to act on, and handed
+  // on it would end the run with formancy's sentence for a host wired
+  // wrongly; said as the server's, it names who gave no reason.
+  test('ends the run unreachable on a decline with no reason, in a sentence of its own', async () => {
+    const blank = await translateMissing(askThrough(recording(() => Promise.resolve({ declined: '  ' })).complete), report, locale)
+    expect(blank).toMatchObject({
+      ok: false,
+      ended: 'unreachable',
+      attempts: 1,
+      reason: "the host's server declined the request and gave no reason to show the person who asked",
+    })
   })
 
   // A person who pressed Stop has walked away from the request; the host

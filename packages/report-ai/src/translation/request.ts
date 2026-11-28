@@ -2,6 +2,7 @@ import { compileReport, languageDiagnostics, MAX_BATCH_COMMANDS } from '@formanc
 import type { CompiledExpression } from '@formancy/report-core'
 import { MAX_WORDS, reportWords, wordExpressionSites } from '@formancy/report-spec'
 import type { ReportDefinition, Translation, WordExpressionSite, WordPlace } from '@formancy/report-spec'
+import { briefingDigest } from '../kinds.js'
 import { MAX_MODEL_REQUEST_BYTES, requestBytes } from '../limits.js'
 import { translationBriefing, translationProblems, translationTurn } from './briefing.js'
 import { placesOf } from './places.js'
@@ -25,7 +26,9 @@ import { placesOf } from './places.js'
  * expression that stands in it anywhere -- the same word elsewhere among
  * them, since a word is translated once, wherever it stands -- is listed
  * for a person to write and never asked, and the language's words so far
- * are sent without any of the payment part's.
+ * are sent without any of the payment part's. That is this request's rule:
+ * report-mcp's prompt to an agent's own model (0088) is another way to a
+ * model, and 0085 says where the two differ.
  */
 
 /** Which of a language's two lists an entry belongs to. */
@@ -36,8 +39,10 @@ export interface Lacking {
   readonly kind: EntryKind
   /** A word's exact text in the report's own language, or an expression's exact source: what a translation keys it by (0063). */
   readonly source: string
-  /** The JSON Pointer to each place it stands, in document order; the first is where `word-missing` stands. */
-  readonly paths: readonly [string, ...string[]]
+  /** The JSON Pointer to each place it stands, in document order. */
+  readonly paths: readonly string[]
+  /** The place `word-missing` stands at: a word's first, an expression's first site that prints words, which the compiler's verdict decides. */
+  readonly at: string
 }
 
 /** One entry a request asks for, under the key the answer writes back. */
@@ -60,15 +65,17 @@ export interface TranslationRequest {
   readonly locale: string
   /** What is asked, in document order: words first, then expressions, each keyed in its own list. */
   readonly asked: readonly AskedEntry[]
-  /** What the language lacks past this turn's bound, asked for in a turn of its own once these land. */
+  /** How many entries the language lacks past this turn's bounds, asked for in a turn of its own once these land. */
   readonly later: number
+  /** The lists the language has no room left in under `MAX_WORDS` for what it still lacks: until a person makes room, no turn asks for those. */
+  readonly noRoom: readonly EntryKind[]
   /** What the language lacks that stands in the payment part, for a person to write and never asked. */
   readonly forPerson: readonly Lacking[]
   /** The briefing. */
   readonly system: string
   /** The request itself, as JSON. */
   readonly user: string
-  /** The UTF-8 length of the longest user part any turn of a run sends: the request, and the longest complaint after it. */
+  /** The UTF-8 length of the longest body any turn of a run hands a host: `{ kind, user, briefing }` as JSON, its user part the request and the longest complaint after it. */
   readonly bytes: number
 }
 
@@ -90,65 +97,96 @@ function translationOf(report: ReportDefinition, locale: string): Translation {
 }
 
 /** Each source in `places`, with every place it stands, in the order of its first. */
-function bySource(places: readonly { readonly path: string; readonly source: string }[], kind: EntryKind): Map<string, Lacking> {
-  const found = new Map<string, Lacking>()
-  for (const { path, source } of places) {
-    const known = found.get(source)
-    found.set(source, { kind, source, paths: known === undefined ? [path] : [...known.paths, path] })
-  }
+function bySource(places: readonly { readonly path: string; readonly source: string }[]): Map<string, readonly string[]> {
+  const found = new Map<string, readonly string[]>()
+  for (const { path, source } of places) found.set(source, [...(found.get(source) ?? []), path])
   return found
 }
 
 /**
  * Every word and expression `locale` lacks in `report`: those `word-missing`
- * names, at the place it stands at, each by its source and with every place
- * it stands; and of them, those standing anywhere in the payment part,
- * which are a person's.
+ * names, each by its source, with every place it stands and the one the
+ * diagnostic stands at, which for an expression is its first site that
+ * prints words and not always its first; and of them, those standing
+ * anywhere in the payment part, which are a person's.
  */
 export function lacking(report: ReportDefinition, locale: string): { readonly ask: readonly Lacking[]; readonly forPerson: readonly Lacking[] } {
   translationOf(report, locale)
   const missingAt = new Set(languageDiagnostics(report, locale).flatMap(({ code, path }) => (code === 'word-missing' ? [path] : [])))
-  const words = bySource(
-    reportWords(report).map(({ path, text }) => ({ path, source: text })),
-    'word',
-  )
-  const expressions = bySource(
-    wordExpressionSites(report).map(({ path, cel }) => ({ path, source: cel })),
-    'expression',
-  )
-  const all = [...words.values(), ...expressions.values()].filter((entry) => missingAt.has(entry.paths[0]))
+  const of = (kind: EntryKind, places: ReadonlyMap<string, readonly string[]>): Lacking[] =>
+    [...places].flatMap(([source, paths]) => {
+      const at = paths.find((path) => missingAt.has(path))
+      return at === undefined ? [] : [{ kind, source, paths, at }]
+    })
+  const all = [
+    ...of('word', bySource(reportWords(report).map(({ path, text }) => ({ path, source: text })))),
+    ...of('expression', bySource(wordExpressionSites(report).map(({ path, cel }) => ({ path, source: cel })))),
+  ]
   return { ask: all.filter((entry) => !entry.paths.some(inPaymentPart)), forPerson: all.filter((entry) => entry.paths.some(inPaymentPart)) }
 }
 
-/** The language's words and expressions so far that stand nowhere in the payment part, as its register: each source beside its text. */
+/**
+ * The language's words and expressions so far, as its register: each
+ * source beside its text, of those the report still holds and holds
+ * nowhere in the payment part. A translation kept for a word the report no
+ * longer prints is no register, and one of a payment part's word is the
+ * payment part's.
+ */
 function translatedSoFar(report: ReportDefinition, translation: Translation): readonly { readonly source: string; readonly text: string }[] {
-  const touching = new Set([
-    ...reportWords(report).flatMap(({ path, text }) => (inPaymentPart(path) ? [text] : [])),
-    ...wordExpressionSites(report).flatMap(({ path, cel }) => (inPaymentPart(path) ? [cel] : [])),
-  ])
+  const places = [
+    ...reportWords(report).map(({ path, text }) => ({ path, source: text })),
+    ...wordExpressionSites(report).map(({ path, cel }) => ({ path, source: cel })),
+  ]
+  const touching = new Set(places.flatMap(({ path, source }) => (inPaymentPart(path) ? [source] : [])))
+  const held = new Set(places.flatMap(({ source }) => (touching.has(source) ? [] : [source])))
   return [
-    ...translation.words.flatMap(({ word, text }) => (touching.has(word) ? [] : [{ source: word, text }])),
-    ...translation.expressions.flatMap(({ cel, expression }) => (touching.has(cel) ? [] : [{ source: cel, text: expression.cel }])),
+    ...translation.words.flatMap(({ word, text }) => (held.has(word) ? [{ source: word, text }] : [])),
+    ...translation.expressions.flatMap(({ cel, expression }) => (held.has(cel) ? [{ source: cel, text: expression.cel }] : [])),
   ]
 }
 
 /**
- * What one turn may ask: at most `MAX_BATCH_COMMANDS` entries, so that one
- * answer is one batch, and no more of each list than the language still has
- * room for under `MAX_WORDS`, which a translation past would be refused
- * whole by the format for. Words first, then expressions, each in document
- * order.
+ * Of `entries`, in their order, those one batch may write into
+ * `translation`: at most `MAX_BATCH_COMMANDS`, so that one answer is one
+ * batch, and no more of each list than the translation has room for under
+ * `MAX_WORDS`, past which the format refuses the list whole, at no entry of
+ * it. The request sizes a turn by it and the proposal its rows, each
+ * against the report as it stands when it runs, so that the two cannot
+ * disagree about what fits. Also the lists that ran out of room for what is
+ * left.
  */
-function thisTurn(ask: readonly Lacking[], translation: Translation): readonly Lacking[] {
+export function withinRoom<T extends { readonly kind: EntryKind }>(
+  entries: readonly T[],
+  translation: Translation,
+): { readonly taken: readonly T[]; readonly left: readonly T[]; readonly noRoom: readonly EntryKind[] } {
   const room = { word: MAX_WORDS - translation.words.length, expression: MAX_WORDS - translation.expressions.length }
-  const taken: Lacking[] = []
-  for (const entry of ask) {
-    if (taken.length === MAX_BATCH_COMMANDS) break
-    if (room[entry.kind] <= 0) continue
+  const taken: T[] = []
+  const left: T[] = []
+  const noRoom = new Set<EntryKind>()
+  for (const entry of entries) {
+    const full = taken.length === MAX_BATCH_COMMANDS
+    if (full || room[entry.kind] <= 0) {
+      if (!full) noRoom.add(entry.kind)
+      left.push(entry)
+      continue
+    }
     room[entry.kind] -= 1
     taken.push(entry)
   }
-  return taken
+  return { taken, left, noRoom: (['word', 'expression'] as const).filter((kind) => noRoom.has(kind)) }
+}
+
+/**
+ * The UTF-8 length of the longest body a run of the request `user` into
+ * `locale` hands a host, as `askThrough` hands it: `{ kind, user, briefing }`
+ * as JSON, its user part the request alone or with any complaint the reader
+ * can give after it. What `MAX_MODEL_REQUEST_BYTES` bounds.
+ */
+export function longestBody(user: string, locale: string): number {
+  const briefing = briefingDigest('translation')
+  return Math.max(
+    ...[undefined, ...translationProblems(locale)].map((problem) => requestBytes({ kind: 'translation', user: translationTurn(user, problem).user, briefing })),
+  )
 }
 
 /**
@@ -166,7 +204,7 @@ function thisTurn(ask: readonly Lacking[], translation: Translation): readonly L
 export function translationRequest(report: ReportDefinition, locale: string): TranslationRequesting {
   const translation = translationOf(report, locale)
   const { ask, forPerson } = lacking(report, locale)
-  const taken = thisTurn(ask, translation)
+  const { taken, left, noRoom } = withinRoom(ask, translation)
   const phrase = placesOf(report)
   // Every path of an entry is one of the walk's, so each has its owner here.
   const owners = new Map([...reportWords(report), ...wordExpressionSites(report)].map((place) => [place.path, place]))
@@ -185,8 +223,8 @@ export function translationRequest(report: ReportDefinition, locale: string): Tr
     }
     const told = { key: asked.key, source: asked.source, places: asked.places, ...(asked.otherPlaces === 0 ? {} : { otherPlaces: asked.otherPlaces }) }
     if (entry.kind === 'word') return { asked, told }
-    // An expression word-missing names is one that compiled where it first stands: that it prints words is the compiler's verdict.
-    const program = compiled.get(entry.paths[0]) as CompiledExpression
+    // An expression word-missing names compiled where the diagnostic stands: that it prints words is the compiler's verdict.
+    const program = compiled.get(entry.at) as CompiledExpression
     return { asked, told: { ...told, gives: program.program.resultType, reads: program.reads.map(({ name, member }) => `${name}.${member}`).sort() } }
   })
   const asked = entries.map((each) => each.asked)
@@ -198,10 +236,10 @@ export function translationRequest(report: ReportDefinition, locale: string): Tr
     translated: translatedSoFar(report, translation),
   }
   const user = JSON.stringify(payload, null, 2)
-  const bytes = Math.max(...[undefined, ...translationProblems(locale)].map((problem) => requestBytes(translationTurn(user, problem).user)))
+  const bytes = longestBody(user, locale)
   if (bytes > MAX_MODEL_REQUEST_BYTES) return { ok: false, code: 'request-too-large', bytes, max: MAX_MODEL_REQUEST_BYTES }
   return {
     ok: true,
-    request: { from: report.locale, locale, asked, later: ask.length - taken.length, forPerson, system: translationBriefing(), user, bytes },
+    request: { from: report.locale, locale, asked, later: left.length, noRoom, forPerson, system: translationBriefing(), user, bytes },
   }
 }

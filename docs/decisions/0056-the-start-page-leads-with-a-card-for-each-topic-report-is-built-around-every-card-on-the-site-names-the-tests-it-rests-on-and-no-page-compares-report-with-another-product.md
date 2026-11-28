@@ -19,8 +19,9 @@
   in place of no published package named `report-ai`, and narrowed by
   [0085](0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md),
   under which a model is asked for a language's missing words, to "No
-  changes described in words", held by `REQUEST_KINDS` being the
-  translation alone
+  changes described in words in the builders", held by `REQUEST_KINDS`
+  being the translation alone and by report-mcp's `PROMPTS` being the two
+  its last clause names
 - **Date:** 2026-11-11
 - **Deciders:** Daniel Bacher
 - **Verified by:** the pages' suite, which CI's `test` job runs,

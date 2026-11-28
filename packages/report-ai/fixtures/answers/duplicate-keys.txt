@@ -1,0 +1,7 @@
+{
+  "into": "fr-CH",
+  "words": {
+    "w1": "Premier jet",
+    "w1": "Rapport des ventes"
+  }
+}
