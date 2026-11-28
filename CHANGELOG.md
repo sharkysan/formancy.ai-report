@@ -33,9 +33,17 @@ the report as it is, leaving out what a person wrote; `discardTranslation`
 forgets a waiting run, and only the run in flight ever lands. The run is
 held by the editor for its language, so a builder switched or drawn again
 draws the same run, and under another language it is only said; a
-language removed takes its run and its review with it. Every word is in
-English, German (Switzerland) and French (Switzerland). No builder draws
-it yet; both builders' review and its scenarios come next.
+language removed takes a run waiting and a review held with it, said
+under every language until Discard dismisses it, and a host's stop that
+throws is thrown once the state holds no run. Every word is in English,
+German (Switzerland) and French (Switzerland); a refused entry's reason is
+report-ai's, in English. No builder draws it yet; both builders' review
+and its scenarios come next. The start page is dated 28 November 2026:
+its AI item says that report-ai and report-mcp are the source on GitHub's
+and in no release yet, and its render-jobs item that Formancy Report
+prints no PDF for your application on a server of its own, which
+report-mcp's render check, printing for an agent and handing over no PDF,
+leaves true.
 report-builder-core now depends on report-ai, and through it on
 `@formancy/spec` and `@noble/hashes` at exactly 2.4.0, MIT, in every host
 of either builder; `EDITOR_REFUSAL_CODES` gains `not-answered`. The start

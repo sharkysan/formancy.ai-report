@@ -49,7 +49,7 @@ import { buildState, derive, viewOf } from './state.js'
 import type { Derived, Local } from './state.js'
 import { editorText } from './text.js'
 import type { EditorLocale } from './text.js'
-import { modelOf, translationActions, translationState } from './translation-review.js'
+import { modelOf, translationActions } from './translation-review.js'
 import type { EditorModel } from './translation-review.js'
 import { translationWords } from './translation-words.js'
 import { hostViewOf, viewActions } from './views.js'
@@ -218,15 +218,24 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     // A language removed, or its adding undone, gives the view back to the report's own.
     const declared = (tag: string | null): boolean => report.translations?.some((translation) => translation.locale === tag) === true
     const language = declared(local.language) ? local.language : null
+    const held = local.translation
+    const translation = translating.followed(held, declared)
     local = {
       ...local,
       language,
       selection: gone ? null : selection,
       errors: local.errors.size === 0 ? local.errors : new Map(),
       drag: drag === null || subjectGone ? null : { ...drag, over: null },
-      translation: translating.followed(local.translation, declared),
+      translation,
     }
-    changed()
+    // A run its language took with it is stopped once the state no longer
+    // holds it, and the listeners hear of the change whatever its host's
+    // stop throws, which surfaces from the call that made the change.
+    try {
+      if (translation !== held) translating.removed()
+    } finally {
+      changed()
+    }
   }
 
   const unsubscribe = session.subscribe(onSession)
@@ -511,7 +520,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
           undoLabel: shownLabel(session.undoLabel(), t, locale),
           redoLabel: shownLabel(session.redoLabel(), t, locale),
         }
-        const translation = translationState(model, now, local.translation, words)
+        const translation = translating.view(now, local.translation)
         cached = buildState(now, { revision: session.revision(), history }, local, locale, t, dragging.targets, images, translation)
       }
       return cached
@@ -540,7 +549,7 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
       disposed = true
       unsubscribe()
       listeners.clear()
-      translating.forget()
+      translating.dispose()
     },
   }
 }

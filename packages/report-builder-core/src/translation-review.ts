@@ -14,8 +14,15 @@
  * held. Asking, applying or discarding there is refused, so that nothing of
  * one language's review is drawn or applied under another. A language
  * removed while its run waits stops the run, and one removed while its
- * review is held forgets the review, said under every language: the editor
- * sees the session's edits, which formancy's holder does not.
+ * review is held forgets the review, said under every language until it is
+ * discarded or another run is asked; one whose run came to nothing says
+ * nothing of it. The editor sees the session's edits, which formancy's
+ * holder does not.
+ *
+ * **The state first, the host after.** A run is ended by changing what the
+ * editor holds and only then stopping the run, whose stop tells the host:
+ * a host's `onCancel`, or a relay's subscriber, that throws is thrown once
+ * the state no longer holds the run, never in place of the change (0008).
  *
  * **One run at a time, and only it lands.** A run gets a stop of its own,
  * and what it comes to is taken only while it is still the run in flight,
@@ -41,7 +48,7 @@ import { stepLabel } from './history.js'
 import { languageName, missingIn } from './languages.js'
 import { DONE } from './model-actions.js'
 import type { EditorOutcome, EditorRefusalCode } from './model-actions.js'
-import type { TranslationState } from './model-translation.js'
+import type { TranslationReviewRow, TranslationState } from './model-translation.js'
 import { refusalMessage } from './properties.js'
 import type { Derived, Local } from './state.js'
 import { answerSentence, endedSentence, notesOf, rowsOf } from './translation-words.js'
@@ -78,8 +85,8 @@ export interface AnsweredTranslation {
 /**
  * What the editor holds of a model's translation, for the language it was
  * asked for: a run waiting; how one ended without an answer, until another
- * is asked; an answer and its proposal; or a language removed with its
- * run, said until another is asked.
+ * is asked; an answer and its proposal; or a language removed with its run
+ * or its review, said until it is discarded or another is asked.
  */
 export type HeldTranslation =
   | { readonly locale: string; readonly state: 'asking' }
@@ -121,23 +128,27 @@ function askRefusal(
 /**
  * What the state shows of a model's translation under the language
  * edited, or null for an editor given no model: the run as it is under
- * its own language, and elsewhere only where it waits or is held.
+ * its own language, and elsewhere only where it waits or is held. `rows`
+ * gives a proposal's rows as the state shows them, which the editor keeps
+ * while the report, the language and the review are the same.
  */
-export function translationState(
+function translationState(
   model: EditorModel | undefined,
   derived: Derived,
   held: HeldTranslation | null,
   words: TranslationWords,
+  rows: (proposal: TranslationProposal, accepted: ReadonlySet<string>) => readonly TranslationReviewRow[],
 ): TranslationState | null {
   if (model === undefined) return null
   const { t, locale } = words
   const { edited } = derived
   const missing = edited.translation === undefined ? 0 : missingIn(derived.diagnostics, edited.locale)
   const ask = missing === 0 ? null : { label: t('translation.ask', { count: missing }), available: askRefusal(model, derived, held, words) === undefined }
-  const idle: TranslationState = { ask, busy: false, stop: t('translation.stop'), status: '', review: null, notes: [] }
+  const idle: TranslationState = { ask, busy: false, stop: t('translation.stop'), discard: null, status: '', review: null, notes: [] }
   if (held === null) return idle
   const language = languageName(held.locale, locale)
-  if (held.state === 'removed') return { ...idle, status: t('translation.status.removed', { language }) }
+  const discard = { label: t('translation.discard'), available: true }
+  if (held.state === 'removed') return { ...idle, discard, status: t('translation.status.removed', { language }) }
   if (elsewhere(held, derived)) {
     // A run that came to nothing to review is over, and drawn elsewhere as though there were none.
     if (held.state === 'asking') return { ...idle, status: t('translation.status.elsewhereAsking', { language }) }
@@ -149,18 +160,17 @@ export function translationState(
   const notes = notesOf(proposal, answer, language, words)
   const status = refusal ?? answerSentence(proposal, answer, language, words)
   if (proposal.rows.length === 0) return { ...idle, status, notes }
-  const rows = rowsOf(proposal, accepted, derived, words)
-  const count = rows.filter((row) => row.accepted).length
+  const shown = rows(proposal, accepted)
+  const count = shown.filter((row) => row.accepted).length
   const review = {
-    heading: t('translation.heading', { language, count: rows.length }),
+    heading: t('translation.heading', { language, count: shown.length }),
     columns: { source: languageName(derived.report.locale, locale), where: t('translation.where'), text: language, accepted: t('translation.accepted') },
-    rows,
-    acceptAll: { label: t('translation.acceptAll'), available: count < rows.length },
+    rows: shown,
+    acceptAll: { label: t('translation.acceptAll'), available: count < shown.length },
     apply: { label: t('translation.apply', { count }), available: count > 0 },
-    discard: { label: t('translation.discard'), available: true },
     reviewAgain: refusal === undefined ? null : { label: t('translation.reviewAgain'), available: true },
   }
-  return { ...idle, status, review, notes }
+  return { ...idle, discard, status, review, notes }
 }
 
 /** What the editor lends its translation's actions: its document and its own state, and its one way each of acting, committing and refusing. */
@@ -180,18 +190,50 @@ export interface TranslationLent {
 
 const NONE: ReadonlySet<string> = new Set()
 
+/** Why a run was forgotten before it answered: what `askTranslation` says of it. */
+type Forgotten = 'discarded' | 'removed' | 'disposed'
+
 /** The editor's translation actions over `lent`, asking `model`. */
 export function translationActions(model: EditorModel | undefined, lent: TranslationLent, words: TranslationWords) {
   const { t, locale } = words
   /** The stop of the run in flight: a run that finds another here, or none, was forgotten, and lands nothing. */
   let running: Stop | undefined
+  /** Why each run no longer in flight was forgotten, by its stop. */
+  const forgotten = new WeakMap<Stop, Forgotten>()
+  /** The rows last shown, kept while the derivations, the review and what is accepted are the same. */
+  let shown:
+    | {
+        readonly derived: Derived
+        readonly proposal: TranslationProposal
+        readonly accepted: ReadonlySet<string>
+        readonly rows: readonly TranslationReviewRow[]
+      }
+    | undefined
   const named = (tag: string): string => languageName(tag, locale)
 
-  /** Forgets the run in flight, and tells its model: whatever it answers later lands nowhere. */
-  function forget(): void {
+  /**
+   * Forgets the run in flight, and tells its model: whatever it answers
+   * later lands nowhere. Called once the state no longer holds the run,
+   * since the stop runs the host's callbacks, which may throw.
+   */
+  function forget(why: Forgotten): void {
     const stop = running
     running = undefined
-    stop?.stop()
+    if (stop === undefined) return
+    forgotten.set(stop, why)
+    stop.stop()
+  }
+
+  /** What `askTranslation` says of a run forgotten before it answered: discarded, its language removed, or its editor disposed. */
+  function forgottenOutcome(stop: Stop, tag: string): EditorOutcome {
+    // Every run no longer in flight was forgotten, and why kept.
+    const why = forgotten.get(stop) as Forgotten
+    if (why === 'disposed') return { ok: false, code: 'disposed', message: t('status.disposed') }
+    return {
+      ok: false,
+      code: 'not-answered',
+      message: why === 'removed' ? t('translation.forgottenRemoved', { language: named(tag) }) : t('translation.forgotten'),
+    }
   }
 
   /**
@@ -225,21 +267,45 @@ export function translationActions(model: EditorModel | undefined, lent: Transla
     return { stop, locale: derived.edited.locale, derived }
   }
 
-  /** What the run of `stop` came to, held while it is still the run in flight; an answer proposed against the report as it stands now. */
+  /**
+   * What the run of `stop` came to, held while it is still the run in
+   * flight; an answer proposed against the report as it stands now, the run
+   * in flight until the proposal is made. A proposal that throws lets go of
+   * the run, and of the state that said it waits, before the throw is
+   * handed on.
+   */
   function land(stop: Stop, tag: string, result: TranslationResult): EditorOutcome {
-    if (running !== stop) return { ok: false, code: 'not-answered', message: t('translation.forgotten') }
-    running = undefined
+    if (running !== stop) return forgottenOutcome(stop, tag)
     if (!result.ok) {
+      running = undefined
       lent.setLocal({ translation: { locale: tag, state: 'ended', result } })
       return { ok: false, code: 'not-answered', message: endedSentence(result, named(tag), words) }
     }
-    const proposal = proposeTranslation(lent.current().report, result.answer)
+    let proposal: TranslationProposal
+    try {
+      proposal = proposeTranslation(lent.current().report, result.answer)
+    } catch (error) {
+      running = undefined
+      lent.setLocal({ translation: null })
+      throw error
+    }
+    running = undefined
     lent.setLocal({ translation: { locale: tag, state: 'answered', answer: result.answer, proposal, accepted: NONE } })
     return DONE
   }
 
   return {
-    forget,
+    /** The editor disposed: the run in flight forgotten, its model told. */
+    dispose: () => forget('disposed'),
+
+    /** What the state shows of what is held, under the language `derived` edits, the rows kept while nothing they are made of changed. */
+    view(derived: Derived, held: HeldTranslation | null): TranslationState | null {
+      return translationState(model, derived, held, words, (proposal, accepted) => {
+        if (shown?.derived !== derived || shown.proposal !== proposal || shown.accepted !== accepted)
+          shown = { derived, proposal, accepted, rows: rowsOf(proposal, accepted, derived, words) }
+        return shown.rows
+      })
+    },
 
     /** `ReportEditor.askTranslation`. */
     async ask(): Promise<EditorOutcome> {
@@ -312,10 +378,15 @@ export function translationActions(model: EditorModel | undefined, lent: Transla
     },
 
     discard(): EditorOutcome {
+      // A removal said is dismissed from any language: its language is in none the switch offers.
+      if (lent.local().translation?.state === 'removed') {
+        lent.setLocal({ translation: null })
+        return DONE
+      }
       const held = heldHere(['asking', 'ended', 'answered'], 'translation.nothingHeld')
       if ('ok' in held) return held
-      forget()
       lent.setLocal({ translation: null, ...lent.announce(t('translation.discarded', { language: named(held.locale) })) })
+      forget('discarded')
       return DONE
     },
 
@@ -328,11 +399,19 @@ export function translationActions(model: EditorModel | undefined, lent: Transla
       return DONE
     },
 
-    /** What `held` comes to once the session changed: a language removed takes its run and its review with it, said under every language. */
+    /**
+     * What `held` comes to once the session changed, and nothing else: a
+     * language removed takes a run waiting and a review held with it, said
+     * under every language, and anything else held for it, a run that came
+     * to nothing, goes unsaid. The editor forgets the run once it holds
+     * what this returns (`forget`).
+     */
     followed(held: HeldTranslation | null, declared: (tag: string) => boolean): HeldTranslation | null {
       if (held === null || held.state === 'removed' || declared(held.locale)) return held
-      forget()
-      return { locale: held.locale, state: 'removed' }
+      return held.state === 'asking' || reviewable(held) ? { locale: held.locale, state: 'removed' } : null
     },
+
+    /** The run in flight forgotten for a language removed, once the state no longer holds it. */
+    removed: () => forget('removed'),
   }
 }

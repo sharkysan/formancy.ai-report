@@ -38,6 +38,13 @@ export interface TranslationState {
   /** Stop's label. */
   readonly stop: string
   /**
+   * Discard what the part holds: offered with a review held under this
+   * language, and with the sentence a language's removal left, under every
+   * language, which it dismisses; null otherwise. While a run waits, Stop
+   * is drawn, and `discardTranslation` forgets the run all the same.
+   */
+  readonly discard: TranslationButton | null
+  /**
    * The part's one sentence, for a polite live region of its own, in
    * formancy.ai 0161's order: a run waiting, an Apply refused, a run that
    * ended without an answer, then what is ready and what would still be
@@ -51,7 +58,8 @@ export interface TranslationState {
   /**
    * What a person should know of the answer outside its rows, a sentence
    * each, under the table or, with no rows, alone: each entry refused and
-   * why, what was dropped and why, what stands in the payment part for a
+   * why, the why in report-ai's English whatever the editor's language;
+   * what was dropped and why, what stands in the payment part for a
    * person to write, how many entries were left for another run, a list
    * with no room left, and how many the model left untranslated.
    */
@@ -68,7 +76,6 @@ export interface TranslationReview {
   readonly acceptAll: TranslationButton
   /** Applies the rows accepted as one undo step, counting them. */
   readonly apply: TranslationButton
-  readonly discard: TranslationButton
   /** Offered once Apply was refused: the held answer read again against the report as it stands, with no new turn. */
   readonly reviewAgain: TranslationButton | null
 }

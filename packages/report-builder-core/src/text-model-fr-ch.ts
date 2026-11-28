@@ -47,7 +47,6 @@ export const MODEL_FR_CH: ModelCatalogue = {
   'translation.dropped.writtenMeanwhile': `Non écrits, parce qu’une personne les a écrits depuis${NB}: {list}`,
   'translation.dropped.gone': `Non écrits, parce que le rapport ne les imprime plus${NB}: {list}`,
   'translation.dropped.printsNoWords': `Non écrits, parce que l’expression n’imprime plus de mots${NB}: {list}`,
-  'translation.dropped.forPerson': `Non écrits, parce qu’ils figurent désormais dans la section paiement, à écrire par une personne${NB}: {list}`,
   'translation.dropped.noRoom': `Non écrits, parce que la langue {language} n’a plus de place pour eux${NB}: {list}`,
   'translation.forPerson': `À écrire par une personne, puisqu’ils figurent dans la section paiement${NB}: {list}`,
   'translation.later': `Laissés pour une autre demande, une fois ceux-ci appliqués, mots${NB}: {count}`,
@@ -68,4 +67,5 @@ export const MODEL_FR_CH: ModelCatalogue = {
   'translation.appliedAll': `Traduit en {language}, mots${NB}: {count}. Il n’y manque plus aucun mot.`,
   'translation.discarded': 'Traduction en {language} d’un modèle abandonnée. Rien n’a été appliqué.',
   'translation.forgotten': 'La demande a été abandonnée avant la réponse du modèle, et rien de ce qu’il répond n’est tenu.',
+  'translation.forgottenRemoved': 'La langue {language} a été retirée avant la réponse du modèle, et rien de ce qu’il répond n’est tenu.',
 }

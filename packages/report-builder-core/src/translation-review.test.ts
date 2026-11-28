@@ -11,7 +11,7 @@
  * script that answers when the test says so, and reads the request it was
  * sent, so every word it writes is one it was asked for.
  */
-import { ModelBusyError } from '@formancy/report-ai'
+import { createRelay, ModelBusyError } from '@formancy/report-ai'
 import type { AskModel, ModelPrompt, RequestKind } from '@formancy/report-ai'
 import type { EditOptions, ReportSession } from '@formancy/report-core'
 import { MAX_BATCH_COMMANDS } from '@formancy/report-core'
@@ -125,6 +125,7 @@ describe('asking a model for the words a language lacks', () => {
       ask: { label: `Ask a model for the missing words: ${String(missing(editor))}`, available: true },
       busy: false,
       stop: 'Stop asking',
+      discard: null,
       status: '',
       review: null,
       notes: [],
@@ -197,6 +198,37 @@ describe('asking a model for the words a language lacks', () => {
     expect(rows.get('Orders')).toMatchObject({ where: 'Title', target: null })
   })
 
+  // A row's focus selects where its word stands, and the review is no part
+  // of what is selected: selecting each row's target, as a builder does
+  // when the focus moves into it, leaves every row, its acceptance and the
+  // heading as they were.
+  test('stays as it was while each row’s target is selected in turn', async () => {
+    const held = heldModel()
+    const { editor } = editing(held.model)
+    await answered(editor, held)
+    editor.dispatch({ type: 'acceptTranslation', key: translation(editor).review?.rows[0]?.key as string, accepted: true })
+    const before = translation(editor).review
+    for (const { target } of before?.rows ?? []) {
+      expect(editor.dispatch(target === null ? { type: 'select', id: null } : { type: 'select', ...target })).toEqual({ ok: true })
+      expect(translation(editor).review).toEqual(before)
+    }
+    expect(editor.state().selection).not.toBeNull()
+  })
+
+  // A drag or a zoom step builds the state again, and a review of many rows
+  // would walk the report's words again each time: the rows are the same
+  // while the report, the review and what is accepted are.
+  test('keeps its rows while the report and the review stay as they were', async () => {
+    const held = heldModel()
+    const { editor } = editing(held.model)
+    await answered(editor, held)
+    const rows = translation(editor).review?.rows
+    expect(editor.dispatch({ type: 'zoomIn' })).toEqual({ ok: true })
+    expect(translation(editor).review?.rows).toBe(rows)
+    editor.dispatch({ type: 'acceptAllTranslations' })
+    expect(translation(editor).review?.rows).not.toBe(rows)
+  })
+
   // A row is drawn against the report as it stands: once the component its
   // word stood in is deleted, it stands nowhere and selects nothing, rather
   // than select what is gone, and Apply then meets the moved report.
@@ -248,10 +280,34 @@ describe('the run held for its language', () => {
     const removed = `${FRENCH} was removed from the report, and the model’s translation into it with it. Nothing has been applied.`
     expect(translation(editor)).toMatchObject({ busy: false, status: removed })
     ;(held.turns[0] as Turn).answer(answerTo((held.turns[0] as Turn).prompt))
-    expect(await run).toEqual({ ok: false, code: 'not-answered', message: 'The run was discarded before the model answered, and nothing it answers is held.' })
+    expect(await run).toEqual({ ok: false, code: 'not-answered', message: `${FRENCH} was removed before the model answered, and nothing it answers is held.` })
     expect(editor.dispatch({ type: 'undo' })).toEqual({ ok: true })
     expect(editor.dispatch({ type: 'setLanguage', locale: 'fr-CH' })).toEqual({ ok: true })
     expect(translation(editor)).toMatchObject({ status: removed, review: null, ask: { available: true } })
+  })
+
+  // A run that came to nothing is over, and its language's removal says
+  // nothing of it; a removal said is dismissed by Discard, from any
+  // language, so that a report left with no other language is not left
+  // with the sentence for good.
+  test('says nothing of a run that came to nothing when its language is removed, and a removal said goes with Discard', async () => {
+    const held = heldModel()
+    const { editor } = editing(held.model)
+    const declined = editor.askTranslation()
+    ;(held.turns.at(-1) as Turn).answer('{"declined": "No."}')
+    await declined
+    expect(editor.dispatch({ type: 'removeLanguage', locale: 'fr-CH' })).toEqual({ ok: true })
+    expect(translation(editor).status).toBe('')
+    expect(editor.dispatch({ type: 'undo' })).toEqual({ ok: true })
+    editor.dispatch({ type: 'setLanguage', locale: 'fr-CH' })
+    void editor.askTranslation()
+    expect(editor.dispatch({ type: 'removeLanguage', locale: 'fr-CH' })).toEqual({ ok: true })
+    expect(translation(editor)).toMatchObject({
+      status: expect.stringContaining('was removed from the report'),
+      discard: { label: 'Discard', available: true },
+    })
+    expect(editor.dispatch({ type: 'discardTranslation' })).toEqual({ ok: true })
+    expect(translation(editor)).toMatchObject({ status: '', discard: null })
   })
 
   // A review held for a language removed would be applied into none.
@@ -542,14 +598,59 @@ describe('a run that ends, or is ended', () => {
     expect(held.turns).toEqual([])
   })
 
+  // A host's onCancel, or a relay's subscriber, that throws while the
+  // editor ends a run must not leave the run said as waiting with nothing
+  // behind it, every action refused: the editor changes its state first
+  // and tells the host after, and what the host threw surfaces once the
+  // action is done, as a session listener's does (0008).
+  test('a language removed while its run waits ends the run even when the host’s stop throws', async () => {
+    const turns: Turn[] = []
+    const ask: AskModel<RequestKind> = (prompt, turn) =>
+      new Promise<string>((answer, fail) => {
+        turns.push({ prompt, answer, fail })
+        turn.onCancel(() => {
+          throw new Error('the host failed to cancel')
+        })
+      })
+    const { editor } = editing({ ask })
+    const run = editor.askTranslation()
+    expect(() => editor.dispatch({ type: 'removeLanguage', locale: 'fr-CH' })).toThrow('the host failed to cancel')
+    expect(editor.state().languages.edited).toBe('de-CH')
+    expect(translation(editor).status).toBe(`${FRENCH} was removed from the report, and the model’s translation into it with it. Nothing has been applied.`)
+    expect(await run).toMatchObject({ ok: false, code: 'not-answered' })
+    expect(editor.dispatch({ type: 'setLanguage', locale: 'it-CH' })).toEqual({ ok: true })
+    expect(translation(editor).ask?.available).toBe(true)
+  })
+
+  // The same through a relay, whose turn a stop clears and whose
+  // subscriber throws as it hears so: Discard leaves nothing held, and Stop
+  // ends the run as stopped.
+  test('Discard and Stop end the run when a relay’s subscriber throws as its turn is cleared', async () => {
+    const relay = createRelay<RequestKind>()
+    relay.subscribe(() => {
+      if (relay.waiting() === undefined) throw new Error('the subscriber failed')
+    })
+    const { editor } = editing({ ask: relay.ask })
+    const discarded = editor.askTranslation()
+    expect(relay.waiting()).toBeDefined()
+    expect(() => editor.dispatch({ type: 'discardTranslation' })).toThrow('the subscriber failed')
+    expect(translation(editor)).toMatchObject({ busy: false, status: '', ask: { available: true } })
+    expect(await discarded).toMatchObject({ ok: false, code: 'not-answered' })
+    const stopped = editor.askTranslation()
+    expect(() => editor.dispatch({ type: 'stopTranslation' })).toThrow('the subscriber failed')
+    expect(await stopped).toEqual({ ok: false, code: 'not-answered', message: 'Stopped. Nothing has been applied.' })
+    expect(translation(editor)).toMatchObject({ busy: false, status: 'Stopped. Nothing has been applied.', ask: { available: true } })
+  })
+
   // A run waiting in an editor the host disposed would be paid for, for
   // an answer nothing will show.
-  test('is stopped when the editor is disposed', () => {
+  test('is stopped when the editor is disposed, and says so', async () => {
     const held = heldModel()
     const { editor } = editing(held.model)
-    void editor.askTranslation()
+    const run = editor.askTranslation()
     editor.dispose()
     expect(held.cancelled).toHaveBeenCalledTimes(1)
+    expect(await run).toMatchObject({ ok: false, code: 'disposed' })
   })
 })
 
@@ -573,6 +674,36 @@ describe('what an answer says outside its rows', () => {
       'Not written, because nobody asked for them: “w99”',
       'For a person to write, since they stand in the payment part: “Orders”',
     ])
+  })
+
+  // A key a model wrote under the other member names no source: quoted by
+  // what the request asked under it, the note would say a word nobody
+  // asked for is one that stands in the review as a row.
+  test('quotes a key written under the wrong member as the key it is', async () => {
+    const held = heldModel()
+    const { editor } = editing(held.model)
+    const run = editor.askTranslation()
+    const turn = held.turns[0] as Turn
+    const answer = JSON.parse(answerTo(turn.prompt)) as { words: Record<string, string>; expressions: Record<string, string> }
+    turn.answer(JSON.stringify({ ...answer, expressions: { w1: '"fr"' } }))
+    await run
+    expect(translation(editor).notes).toEqual(['Not written, because nobody asked for them: “w1”'])
+    expect(translation(editor).review?.rows.map((row) => row.key)).toContain('w1')
+  })
+
+  // A word a person put into the payment part while the model answered is
+  // a person's to write, said once with the payment part's other words,
+  // not again as a word dropped.
+  test('says a word put into the payment part meanwhile once, with the payment part’s words', async () => {
+    const held = heldModel()
+    const { editor, session } = editing(held.model, inTwoLanguages(billedReport()))
+    const run = editor.askTranslation()
+    expect(session.apply({ command: 'updatePaymentPart', args: [{ message: [{ kind: 'text', text: 'Introduction' }] }] }).ok).toBe(true)
+    ;(held.turns[0] as Turn).answer(answerTo((held.turns[0] as Turn).prompt))
+    await run
+    const { notes, review } = translation(editor)
+    expect(review?.rows.map((row) => row.source)).not.toContain('Introduction')
+    expect(notes.filter((note) => note.includes('“Introduction”'))).toEqual(['For a person to write, since they stand in the payment part: “Introduction”'])
   })
 
   // A language with no room left that still lacks words is not one that

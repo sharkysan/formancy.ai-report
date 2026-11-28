@@ -2,9 +2,10 @@
  * The editor's words about a model, in English: a model asked for the
  * words the language edited lacks, and its answer reviewed word by word
  * (0086). A part of text-en.ts's catalogue, in a file of its own because a
- * model's words change for reasons of their own. A count is said after a
- * colon, as every count of the catalogue is, so that no language needs a
- * plural; a quotation's marks are each language's own.
+ * model's words change for reasons of their own. A count of words or of
+ * attempts is said after a colon, as the catalogue's counts are, so that no
+ * language needs a plural; a request's bytes and a list's bound, never one,
+ * stand in their sentence. A quotation's marks are each language's own.
  */
 export const MODEL_EN = {
   'translation.ask': 'Ask a model for the missing words: {count}',
@@ -48,7 +49,6 @@ export const MODEL_EN = {
   'translation.dropped.writtenMeanwhile': 'Not written, because a person has written them since: {list}',
   'translation.dropped.gone': 'Not written, because the report no longer prints them: {list}',
   'translation.dropped.printsNoWords': 'Not written, because the expression no longer prints words: {list}',
-  'translation.dropped.forPerson': 'Not written, because they stand in the payment part now, for a person to write: {list}',
   'translation.dropped.noRoom': 'Not written, because {language} has no room left for them: {list}',
   'translation.forPerson': 'For a person to write, since they stand in the payment part: {list}',
   'translation.later': 'Left for another run, once these are applied, words: {count}',
@@ -70,4 +70,5 @@ export const MODEL_EN = {
   'translation.appliedAll': 'Translated into {language}, words: {count}. It lacks no word now.',
   'translation.discarded': 'Discarded the model’s translation into {language}. Nothing has been applied.',
   'translation.forgotten': 'The run was discarded before the model answered, and nothing it answers is held.',
+  'translation.forgottenRemoved': '{language} was removed before the model answered, and nothing it answers is held.',
 } as const

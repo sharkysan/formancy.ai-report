@@ -37,7 +37,19 @@
     person's to write said outside the rows; a model that wrote nothing
     told from one whose every word was refused; and the answer's `later`
     and `noRoom` said, a language with no room left never said as one that
-    lacks nothing. `text.test.ts` holds every word of it to each of the
+    lacks nothing; and, from the review of the pull request, a host's
+    `onCancel` and a relay's subscriber that throw while a removal, Discard
+    or Stop ends the run, the state left holding no run and the throw
+    surfacing after; a run that came to nothing said nowhere once its
+    language is removed, and a removal said dismissed by Discard; the
+    removal and the dispose each said as itself by `askTranslation`; a key
+    written under the wrong member quoted as the key it is; a word put into
+    the payment part meanwhile said once; the rows kept while nothing they
+    are made of changed; and the review as it was while each row's target
+    is selected. `translation-landing.test.ts` replaces report-ai's
+    `proposeTranslation` with one that throws, and holds that the run and
+    its waiting are let go of before the throw is handed on.
+    `text.test.ts` holds every word of it to each of the
     three catalogues, in each language's own words and with English's
     placeholders, and Swiss French's colons and guillemets to their
     no-break spaces.
@@ -46,7 +58,8 @@
     one published package beside report-ai that takes it, and to what its
     source calls of it being `translateMissing`, `proposeTranslation` and
     `createStop`, never the turn itself, with which it could ask a kind of
-    its own.
+    its own, and to none of its sources importing all of report-ai, `import
+    * as` or `export *`.
   - **The packed package.** The install gate's
     `scripts/install-fixture/translation.ts`: report-builder-core's editor,
     given `askThrough` over the scripted server, asks for the quotation's
@@ -71,7 +84,14 @@
     French's no-break space written as a plain one (one each, in
     `text.test.ts`); and the start page's guard, with report-builder-core
     taking report-ai under the old predicate, and with `askChecked`
-    imported under the new.
+    imported under the new; and after the review, a run forgotten in place
+    of the change that ended it and Discard forgetting before it clears
+    (one each), every held state said removed and a removal Discard does
+    not dismiss (one each), the rows walked again (one), a made-up key
+    quoted by another member's source and a for-person drop said twice
+    (one each), a removal said as a discard (one), a proposal that throws
+    leaving the run waiting (one), and the start page's guard with `import
+    * as` and `export *` planted in turn (one each).
   - **The builders' half, to come**, with the builders that draw it: the
     scenarios of `scenario-translation.ts`, run by `report-builder-react`
     and `report-builder-angular` with axe over the end of each in three
@@ -144,15 +164,22 @@ review is report-builder-core's, so that both builders draw the same one.**
   texts and never the text alone. **One word at a time**: each row names
   what the focus moving into it selects, the first component or column its
   word stands in, so that the design view shows its place; the builders
-  draw the part in the properties pane whatever is selected, since that
-  selection would otherwise replace the report's own properties the part
-  stands in. *Accept all*, *Apply the accepted words: 3* and *Discard*.
+  draw the part at the top of the properties pane, above what is
+  selected's own fields and whatever is selected, so that a row's focus,
+  which changes what is selected, reflows nothing above the row and leaves
+  the review where it is. Moving the focus into a row is a selection like
+  any other, so it lets go of a refused value typed into a field of what
+  was selected, as selecting another outline row does: the value belongs
+  to a field the pane no longer draws. *Accept all*, *Apply the accepted
+  words: 3*, and the part's *Discard*.
   An answer with no row to apply is held for its status and its notes, not
   for review, and Ask is offered again (formancy.ai 0161).
 - **Outside the rows**, a sentence each: an entry refused and the
-  sentence that refused it, as report-ai gives it; the entries dropped,
-  by reason, each by its source; the payment part's words, for a person to
-  write; how many the model left untranslated; how many were left for
+  sentence that refused it, as report-ai gives it, which is English in
+  every editor language; the entries dropped, by reason, each by its
+  source, but a key nobody asked, quoted as the key it is; the payment
+  part's words, for a person to write, a word put there meanwhile among
+  them and said nowhere else; how many the model left untranslated; how many were left for
   another run, or, where a list has no room left, not asked; and each list
   that has no room left for more, so that a language with no room left is
   never said as one that lacks nothing (0085's `later` and `noRoom`).
@@ -174,10 +201,19 @@ review is report-builder-core's, so that both builders draw the same one.**
   came to nothing is said under its own language alone. **A language
   removed** while its run waits, or while its review is held, takes the
   run and the review with it, its model told to stop, and the part says so
-  under every language until another run is asked; the removal undone
-  brings neither back.
+  under every language, beside a Discard that dismisses it, until it is
+  dismissed or another run is asked; anything else held for it, a run that
+  came to nothing, goes unsaid; the removal undone brings neither back.
+  **The state first, the host after**: the editor ends a run by changing
+  what it holds, and only then stops the run, whose stop runs the host's
+  callbacks, so that a host's `onCancel`, or a relay's subscriber, that
+  throws is thrown once nothing holds the run, from the call that made the
+  change (0008).
 - **Discard** forgets what is held under its language and a run that
   waits, its model told; an answer arriving later is held for nobody.
+  `askTranslation` then says the run was discarded, its language removed,
+  or, with code `disposed`, its editor disposed. A proposal that throws
+  lets go of the run and of its waiting before the throw is handed on.
   **Only the run in flight lands**: each run has a stop of its own, and
   what it came to is taken only while it is still the run in flight, so
   that an answer to a run discarded, removed or stopped is never held as
@@ -190,9 +226,10 @@ review is report-builder-core's, so that both builders draw the same one.**
   `MAX_MODEL_REQUEST_BYTES` never sent -- then what is ready and what would
   still be missing with every row applied; elsewhere, where the run is.
   Every word from the editor's catalogue, in English, German (Switzerland)
-  and French (Switzerland), in `text-model-*.ts`, each count after a colon
-  as every count of the catalogue is, so that no language needs a plural;
-  each language's name by Intl.
+  and French (Switzerland), in `text-model-*.ts`, each count of words or
+  of attempts after a colon, as the catalogue's counts are, so that no
+  language needs a plural, and a request's bytes and a list's bound, which
+  are never one, in their sentence; each language's name by Intl.
 - **Decided once.** The run, the rows and their acceptance, the
   sentences, `askTranslation` and the actions `stopTranslation`,
   `acceptTranslation`, `acceptAllTranslations`, `applyTranslation`,
@@ -228,7 +265,12 @@ which keeps a held translation and says its language has gone: the editor
 sees the removal, so the run ends there rather than wait under no
 language; a person who removes a language by mistake, or undoes its
 adding too far, and redoes it, asks again, and a turn carried by hand is
-carried again. **Nothing edits a proposed word in the review**: a person
+carried again. **A refused entry's reason is report-ai's English** in
+every editor language -- `texts.ts`'s, the validator's or a diagnostic's
+sentence -- so a Swiss German or Swiss French note reads "Abgelehnt,
+«…» für «…»: it holds U+05D4, …", until report-spec's and report-core's
+sentences are translated by their codes, a step of its own. **Nothing
+edits a proposed word in the review**: a person
 accepts it and corrects it in its field, two steps rather than one. A
 review of many rows is long, and nothing groups them by component. The
 part stands in the properties pane, narrow on a small screen, where the
@@ -271,9 +313,15 @@ it (formancy.ai 0163, 0164) for a person carrying a turn while they look
 elsewhere; the editor is already the host-held object here.
 
 **Keep a run whose language was removed, said as gone, as formancy.ai
-0164.** Lost because the editor sees the removal: a run kept waiting under
-no language is one no builder draws but in a sentence, for a language a
-person may never add again, and every run after it waits behind it.
+0164**, with its Stop and its Discard under every language, so that the
+language added again is the run's once more. Lost for simplicity: one run
+for one language, ended where its language ends, rather than a run held
+for a language the switch no longer offers, drawn in every language with
+buttons of its own until a person ends it there or adds the language
+again. The trade is the case 0164 kept the run for: an Undo past adding a
+language, or a removal by mistake, costs the turn, which a person
+carrying it by hand carries again. What is left is the removal's sentence
+alone, with a Discard of its own.
 
 **Ask as an action, through `dispatch`.** Lost because a run takes time
 and `dispatch` returns at once (0008): a run's ending would land with no

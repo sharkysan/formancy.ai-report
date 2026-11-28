@@ -63,22 +63,28 @@ export function answerSentence(proposal: TranslationProposal, answer: Translatio
   return answer.written.length === 0 ? t('translation.status.none') : t('translation.status.noneHeld')
 }
 
-/** Why an entry was dropped, in the editor's words: a language removed meanwhile is a word the report no longer prints in it. */
-const DROPPED: { readonly [R in DropReason]: MessageId } = {
+/**
+ * Why an entry was dropped, in the editor's words: a language removed
+ * meanwhile is a word the report no longer prints in it. A word a person
+ * put into the payment part meanwhile is said with the payment part's
+ * words, once (`forPerson`), and never as a word dropped.
+ */
+const DROPPED: { readonly [R in Exclude<DropReason, 'for-person'>]: MessageId } = {
   'not-asked': 'translation.dropped.notAsked',
   'written-meanwhile': 'translation.dropped.writtenMeanwhile',
   'no-longer-in-report': 'translation.dropped.gone',
   'prints-no-words': 'translation.dropped.printsNoWords',
-  'for-person': 'translation.dropped.forPerson',
   'no-room': 'translation.dropped.noRoom',
   'language-removed': 'translation.dropped.gone',
 }
 
 /**
  * The notes under the table, a sentence each: every entry refused, with
- * the sentence that refused it, as report-ai gives it; the entries dropped,
- * a sentence a reason, each by its source, or by the key a model made up;
- * what stands in the payment part, for a person; how many entries the
+ * the sentence that refused it, as report-ai gives it, in English in every
+ * editor language; the entries dropped, a sentence a reason, each by its
+ * source, but a key nobody asked, which is quoted as the key it is: a key
+ * written under the other member names no source of its own; what stands
+ * in the payment part, for a person, a word put there meanwhile among it; how many entries the
  * model left untranslated; how many were left for another run, or, where
  * a list has no room left, not asked; and each list that has no room left
  * for more, so that a language with no room is never said as one that
@@ -88,8 +94,9 @@ export function notesOf(proposal: TranslationProposal, answer: TranslationAnswer
   const quoted = (text: string): string => t('translation.quoted', { text })
   const sources = new Map(answer.written.map(({ key, source }) => [key, source]))
   const notes = proposal.refused.map(({ text, source, message }) => t('translation.refused', { text, source, reason: message }))
-  for (const why of Object.keys(DROPPED) as DropReason[]) {
-    const dropped = proposal.dropped.filter((entry) => entry.why === why).map(({ key }) => quoted(sources.get(key) ?? key))
+  for (const why of Object.keys(DROPPED) as (keyof typeof DROPPED)[]) {
+    // A drop for any other reason is of an entry written for a key asked, whose source the answer holds.
+    const dropped = proposal.dropped.filter((entry) => entry.why === why).map(({ key }) => quoted(why === 'not-asked' ? key : (sources.get(key) as string)))
     if (dropped.length > 0) notes.push(t(DROPPED[why], { list: list.format(dropped), language }))
   }
   if (proposal.forPerson.length > 0) notes.push(t('translation.forPerson', { list: list.format(proposal.forPerson.map(({ source }) => quoted(source))) }))
@@ -111,7 +118,9 @@ export function notesOf(proposal: TranslationProposal, answer: TranslationAnswer
 export function rowsOf(proposal: TranslationProposal, accepted: ReadonlySet<string>, derived: Derived, { t, list }: TranslationWords): TranslationReviewRow[] {
   const places = new Map<string, { readonly path: string; readonly componentId?: string; readonly columnId?: string }[]>()
   const at = (key: string, place: { readonly path: string; readonly componentId?: string; readonly columnId?: string }): void => {
-    places.set(key, [...(places.get(key) ?? []), place])
+    const known = places.get(key)
+    if (known === undefined) places.set(key, [place])
+    else known.push(place)
   }
   for (const place of reportWords(derived.report)) at(`word ${place.text}`, place)
   for (const place of wordExpressionSites(derived.report)) at(`expression ${place.cel}`, place)

@@ -60,16 +60,20 @@ const declared = (name: string): Readonly<Record<string, string>> => {
  * The names the source files of packages/`directory`/src import or export
  * as values from `specifier`, tests aside, each by the name it is exported
  * under: what that package can call of the other. A type imports nothing a
- * program runs, so `import type` and a `type` name are left out; a dynamic
- * `import()` is review's. `specifier` is a package's name, which holds no
- * character a pattern reads otherwise.
+ * program runs, so `import type` and a `type` name are left out. A
+ * namespace import, `import * as ai`, and a re-export of everything,
+ * `export *`, can call or hand on any value, and are named `*`, so that
+ * the list holds them too. A dynamic `import()` is review's. `specifier` is
+ * a package's name, which holds no character a pattern reads otherwise.
  */
 function valuesFrom(directory: string, specifier: string): readonly string[] {
   const source = join(repo, 'packages', directory, 'src')
   const statement = new RegExp(String.raw`^(?:import|export) \{([^}]*)\} from '${specifier}'`, 'gm')
+  const everything = new RegExp(String.raw`^(?:import \* as \w+|export \*(?: as \w+)?) from '${specifier}'`, 'm')
   const names = new Set<string>()
   for (const file of readdirSync(source, { recursive: true, encoding: 'utf8' })) {
     if (!file.endsWith('.ts') || file.endsWith('.test.ts')) continue
+    if (everything.test(readFileSync(join(source, file), 'utf8'))) names.add('*')
     for (const [, list = ''] of readFileSync(join(source, file), 'utf8').matchAll(statement))
       for (const name of list.split(',').map((each) => each.trim()))
         if (name !== '' && !name.startsWith('type ')) names.add(name.split(/\s+as\s+/)[0] as string)
@@ -256,7 +260,11 @@ describe('what the start page says Formancy Report does not do yet', () => {
   // fails here, naming it, until the sentence is read again. A server
   // published under another name is review's, and so is one that prints
   // with a library the renderer does not take -- pdf-lib, a headless
-  // browser -- which passes here.
+  // browser -- which passes here. report-mcp, "a server of Report's own"
+  // (0088), prints a PDF for its render check in the process an agent's
+  // client launches, and hands it to no application, only its lines
+  // (0089): the sentence says "for your application", read again on 28
+  // November 2026, which review holds of it.
   test('says no PDF is printed on a server of its own while the server installs neither the runtime nor the renderer', () => {
     const drawsWith = Object.keys(declared('@formancy/report-render-pdf')).filter((name) => !manifests.has(name))
     const printing = ['@formancy/report-runtime', '@formancy/report-render-pdf', ...drawsWith]

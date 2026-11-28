@@ -23,7 +23,7 @@ export const MODEL_DE_CH: ModelCatalogue = {
   'translation.status.elsewhereAsking': 'Ein Modell übersetzt gerade auf {language}. Wählen Sie {language}, um es zu verfolgen oder anzuhalten.',
   'translation.status.elsewhereHeld':
     'Die Übersetzung eines Modells auf {language} wartet auf Prüfung. Wählen Sie {language}, um sie zu prüfen. Nichts wurde übernommen.',
-  'translation.status.removed': '{language} wurde aus dem Bericht entfernt, mitsamt der Übersetzung eines Modells darauf. Nichts wurde übernommen.',
+  'translation.status.removed': '{language} wurde aus dem Bericht entfernt, mitsamt der Übersetzung eines Modells in diese Sprache. Nichts wurde übernommen.',
   'translation.status.stale':
     'Nicht übernommen: Der Bericht hat sich geändert, seit das Modell geantwortet hat. Prüfen Sie erneut, um seine Antwort am Bericht zu lesen, wie er jetzt ist.',
   'translation.status.notApplied': 'Nicht übernommen: {reason}',
@@ -32,7 +32,7 @@ export const MODEL_DE_CH: ModelCatalogue = {
   'translation.status.none': 'Das Modell hat kein Wort übersetzt. Nichts wurde übernommen.',
   'translation.status.noneHeld':
     'Das Modell hat Wörter geschrieben, und keines davon lässt sich übernehmen: Jedes steht unten, mit dem Grund. Nichts wurde übernommen.',
-  'translation.status.nothingAsked': 'Nichts wurde gefragt: Kein Wort, das {language} fehlt, darf ein Modell gefragt werden, wie unten steht.',
+  'translation.status.nothingAsked': 'Nichts wurde gefragt: Nach keinem Wort, das {language} fehlt, darf ein Modell gefragt werden, wie unten steht.',
   'translation.status.stopped': 'Angehalten. Nichts wurde übernommen.',
   'translation.status.unreachable': 'Nichts wurde übernommen. Das Modell war nicht erreichbar: {reason}',
   'translation.status.unreachableNoReason': 'Nichts wurde übernommen. Das Modell war nicht erreichbar.',
@@ -47,7 +47,6 @@ export const MODEL_DE_CH: ModelCatalogue = {
   'translation.dropped.writtenMeanwhile': 'Nicht geschrieben, weil eine Person sie inzwischen geschrieben hat: {list}',
   'translation.dropped.gone': 'Nicht geschrieben, weil der Bericht sie nicht mehr druckt: {list}',
   'translation.dropped.printsNoWords': 'Nicht geschrieben, weil der Ausdruck keine Wörter mehr druckt: {list}',
-  'translation.dropped.forPerson': 'Nicht geschrieben, weil sie jetzt im Zahlteil stehen, von einer Person zu schreiben: {list}',
   'translation.dropped.noRoom': 'Nicht geschrieben, weil {language} keinen Platz mehr für sie hat: {list}',
   'translation.forPerson': 'Von einer Person zu schreiben, weil sie im Zahlteil stehen: {list}',
   'translation.later': 'Für einen weiteren Lauf gelassen, sobald diese übernommen sind, Wörter: {count}',
@@ -70,4 +69,5 @@ export const MODEL_DE_CH: ModelCatalogue = {
   'translation.appliedAll': 'Auf {language} übersetzt, Wörter: {count}. Jetzt fehlt kein Wort mehr.',
   'translation.discarded': 'Die Übersetzung eines Modells auf {language} verworfen. Nichts wurde übernommen.',
   'translation.forgotten': 'Der Lauf wurde verworfen, bevor das Modell antwortete, und nichts von seiner Antwort wird gehalten.',
+  'translation.forgottenRemoved': '{language} wurde entfernt, bevor das Modell antwortete, und nichts von seiner Antwort wird gehalten.',
 }

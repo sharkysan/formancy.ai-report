@@ -3697,7 +3697,7 @@
       ]
     },
     "0086": {
-      "reviewed": "sha256:5de6b251ac758cabda01be99c52a8a78488c8e5ef5b17081711181fc4667ade5",
+      "reviewed": "sha256:7304e6f6b03df2c3fe1c97251eab2aa83d090f3ab124bd7bae46b71bf2eb7c50",
       "limitations": [
         {
           "area": "builders",
@@ -3707,6 +3707,14 @@
         {
           "area": "editing",
           "says": "Nothing edits a proposed word in a model's review: a person accepts it and corrects it in its field afterwards, two steps rather than one, and a long review is one table, grouped by nothing."
+        },
+        {
+          "area": "editing",
+          "says": "A refused entry's reason in a model's review is report-ai's English sentence -- the text rules', the validator's or a diagnostic's -- in every editor language, Swiss German and Swiss French among them, until report-spec's and report-core's sentences are translated by their codes."
+        },
+        {
+          "area": "builders",
+          "says": "Moving the focus into a row of a model's review selects where its word stands, as any selection does, so a refused value left typed in a property field of what was selected before is let go of."
         },
         {
           "area": "editing",
