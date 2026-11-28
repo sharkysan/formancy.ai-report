@@ -622,6 +622,34 @@ describe('a run that ends, or is ended', () => {
     expect(translation(editor).ask?.available).toBe(true)
   })
 
+  // A removal made outside the editor -- a host's own edit, another
+  // editor's -- reaches the editor as the session's listener, where a
+  // listener of the editor that throws as it hears of the change must not
+  // hide what the host's stop threw: both are thrown, together.
+  test('keeps the host’s error beside a listener’s that throws as the change is heard', async () => {
+    const ask: AskModel<RequestKind> = (_prompt, turn) =>
+      new Promise<string>(() => {
+        turn.onCancel(() => {
+          throw new Error('the host failed to cancel')
+        })
+      })
+    const { editor, session } = editing({ ask })
+    const run = editor.askTranslation()
+    editor.subscribe(() => {
+      throw new Error('a listener failed')
+    })
+    let thrown: unknown
+    try {
+      session.apply({ command: 'removeLanguage', args: ['fr-CH'] })
+    } catch (error) {
+      thrown = error
+    }
+    expect(thrown).toBeInstanceOf(AggregateError)
+    expect((thrown as AggregateError).errors.map((error: Error) => error.message)).toEqual(['the host failed to cancel', 'a listener failed'])
+    expect(translation(editor).status).toContain('was removed from the report')
+    expect(await run).toMatchObject({ ok: false, code: 'not-answered' })
+  })
+
   // The same through a relay, whose turn a stop clears and whose
   // subscriber throws as it hears so: Discard leaves nothing held, and Stop
   // ends the run as stopped.

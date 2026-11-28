@@ -245,6 +245,10 @@ describe('what the start page says Formancy Report does not do yet', () => {
   // page, so can every row between its old place and its new, while a row
   // read twice refuses the read (0016): a later client, or another package
   // reading Data through one, fails here until the sentence is read again.
+  // That is the half the sentence says of the source on GitHub; the half
+  // it says of the newest release, 0.3.0, which reads Data 0.1.0 by
+  // offset, is that release's and changes with none of this checkout's
+  // code, so START_STATUS sends it back at the next release.
   test("says a read from Formancy Data is best-effort while the data provider alone reads it, through Data's 0.5.0 client", () => {
     const readers = inputs.packages.flatMap((name) => {
       const range = declared(name)['@formancy/data-client']

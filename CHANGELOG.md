@@ -43,7 +43,14 @@ its AI item says that report-ai and report-mcp are the source on GitHub's
 and in no release yet, and its render-jobs item that Formancy Report
 prints no PDF for your application on a server of its own, which
 report-mcp's render check, printing for an agent and handing over no PDF,
-leaves true.
+leaves true; its Formancy Data item says apart what the newest release
+reads, Data 0.1.0, a row added or removed between two requests printed
+twice or not at all, and what the source on GitHub reads, Data 0.5.0, a
+row read twice refusing the report. report-ai's turn now ends a turn
+unreachable where a host's `ask` resolves with no text, `undefined` from
+a host that forgot its `return` among it, where it rejected the run from
+inside its reader: a run resolves on every ending, as `askChecked`
+promises, a departure from formancy 0.14.0's turn that 0083 states.
 report-builder-core now depends on report-ai, and through it on
 `@formancy/spec` and `@noble/hashes` at exactly 2.4.0, MIT, in every host
 of either builder; `EDITOR_REFUSAL_CODES` gains `not-answered`. The start

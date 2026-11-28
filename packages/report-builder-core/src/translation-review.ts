@@ -318,10 +318,23 @@ export function translationActions(model: EditorModel | undefined, lent: Transla
       }
       const { stop, locale: tag, derived } = started
       // The model, the report and the language as they were when Ask was
-      // pressed, whatever a listener did since; translateMissing resolves on
-      // every ending, a host's error and a stop among them.
-      const result = await translateMissing((model as EditorModel).ask, derived.report, tag, { stop })
-      const outcome = lent.act(() => land(stop, tag, result), errors)
+      // pressed, whatever a listener did since. translateMissing resolves on
+      // every ending, a host's error, an answer that is no text and a stop
+      // among them; a run that throws all the same lets go of the run, and
+      // of the state that says it waits, before the throw is handed on, as
+      // `land` does of a proposal.
+      let result: TranslationResult | undefined
+      try {
+        result = await translateMissing((model as EditorModel).ask, derived.report, tag, { stop })
+      } catch (error) {
+        if (running === stop) {
+          running = undefined
+          lent.act(() => lent.setLocal({ translation: null }), errors)
+        }
+        errors.push(error)
+      }
+      const landed = result
+      const outcome = landed === undefined ? undefined : lent.act(() => land(stop, tag, landed), errors)
       lent.raise(errors)
       return outcome as EditorOutcome
     },

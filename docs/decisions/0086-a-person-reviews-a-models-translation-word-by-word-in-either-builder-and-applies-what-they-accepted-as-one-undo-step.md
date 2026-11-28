@@ -46,9 +46,14 @@
     written under the wrong member quoted as the key it is; a word put into
     the payment part meanwhile said once; the rows kept while nothing they
     are made of changed; and the review as it was while each row's target
-    is selected. `translation-landing.test.ts` replaces report-ai's
-    `proposeTranslation` with one that throws, and holds that the run and
-    its waiting are let go of before the throw is handed on.
+    is selected; and, from its re-review, a removal made outside the
+    editor whose host's stop throws beside an editor listener that throws,
+    both thrown together. `translation-landing.test.ts` wraps report-ai's
+    `translateMissing` and `proposeTranslation` and has each throw once,
+    and holds that the run and its waiting are let go of before the throw
+    is handed on. report-ai's own turn now resolves, unreachable, where a
+    host's model answers no text (0083), so the first throw needs a fault
+    of report-ai's to reach.
     `text.test.ts` holds every word of it to each of the
     three catalogues, in each language's own words and with English's
     placeholders, and Swiss French's colons and guillemets to their
@@ -91,7 +96,9 @@
     quoted by another member's source and a for-person drop said twice
     (one each), a removal said as a discard (one), a proposal that throws
     leaving the run waiting (one), and the start page's guard with `import
-    * as` and `export *` planted in turn (one each).
+    * as` and `export *` planted in turn (one each); and after the
+    re-review, a run that throws in its turns leaving the run waiting
+    (one), and a listener's error thrown in place of the host's (one).
   - **The builders' half, to come**, with the builders that draw it: the
     scenarios of `scenario-translation.ts`, run by `report-builder-react`
     and `report-builder-angular` with axe over the end of each in three

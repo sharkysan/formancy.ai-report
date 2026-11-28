@@ -230,12 +230,20 @@ export function createReportEditor(session: ReportSession, options: ReportEditor
     }
     // A run its language took with it is stopped once the state no longer
     // holds it, and the listeners hear of the change whatever its host's
-    // stop throws, which surfaces from the call that made the change.
+    // stop throws; what either throws surfaces from the call that made the
+    // change, both together where both throw.
+    const thrown: unknown[] = []
     try {
       if (translation !== held) translating.removed()
-    } finally {
-      changed()
+    } catch (error) {
+      thrown.push(error)
     }
+    try {
+      changed()
+    } catch (error) {
+      thrown.push(error)
+    }
+    raise(thrown)
   }
 
   const unsubscribe = session.subscribe(onSession)
