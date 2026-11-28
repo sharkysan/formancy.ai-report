@@ -80,8 +80,12 @@ const applied = session.apply(batch, { expectedHash: proposal.expectedHash, labe
   JSON, as it is, sends a body no longer than the bound.
 - **What a host's server owes.** It writes the system part from
   `modelBriefing` by the kind, reads none a page sent, and refuses a
-  digest that is not `briefingDigest` of its own briefing. Nothing in this
-  package holds a server to that.
+  digest that is not `briefingDigest` of its own briefing. Report's own
+  server does
+  ([0084](../../docs/decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md)),
+  and `@formancy/report-client`'s `completeModel` is a `complete` that
+  asks it: `askThrough(reports.completeModel)`. A host's own server owes
+  the same, and nothing in this package holds it to that.
 
 The install gate runs the example's lines from the packed package
 (`scripts/install-fixture/translation.ts`).

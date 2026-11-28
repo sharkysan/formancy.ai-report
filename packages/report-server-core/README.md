@@ -2,13 +2,16 @@
 
 Formancy Report's server core: who may do what to a tenant's reports, as one
 actions table over the host's verified identity, the audit port a server
-writes its trail through, the wire types a client compiles against, and the
-use cases that decide a tenant's drafts and images over a store's port. No
+writes its trail through, the wire types a client compiles against, the
+use cases that decide a tenant's drafts and images over a store's port, and
+those that decide what an author's request asks the embedder's model, over
+a completer's port. No
 framework and no Node: ES2023's library and no `@types/node`, so a `node:`
 import or a `fetch` does not compile. `@formancy/report-server` is the
 server over it. What it decides, and why, is decision
 [0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
-and for the drafts and images, decision [0049](../../docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md).
+for the drafts and images, decision [0049](../../docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md),
+and for the model, decision [0084](../../docs/decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md).
 
 ## Who may do what
 
@@ -29,10 +32,11 @@ actionsOf(person, policy) // what GET /v1/whoami answers
 - **`ACTIONS`** -- every action, with the capacities that may take it:
   listing templates, reading and saving a draft, keeping and reading an
   image, reading, publishing, withdrawing and restoring a version, reading
-  and setting a template's policy. Frozen; an action not in it is denied to
-  everybody, an inherited name such as `toString` among them. The draft
-  slice's routes take listing, a draft's read and save and an image's keep
-  and read; the routes that take a version's and a policy's arrive with the releases that build them, and
+  and setting a template's policy, and being told of the server's model
+  and asking it, `model.read` and `model.ask`, an author's alone. Frozen;
+  an action not in it is denied to everybody, an inherited name such as
+  `toString` among them. The draft slice's routes take listing, a draft's
+  read and save and an image's keep and read, the model's its two; the routes that take a version's and a policy's arrive with the releases that build them, and
   rendering and downloading are a template's own policy's to grant, and
   join with it.
 - **`can(identity, action, policy)`**, **`capacitiesOf`** and
@@ -56,7 +60,8 @@ carries but that token contributes to it.
   (`template.list`), `GET /v1/templates/:template/draft` (`draft.read`),
   `PUT /v1/templates/:template/draft` (`draft.save`),
   `PUT /v1/assets/:digest` (`asset.keep`) and `GET /v1/assets/:digest`
-  (`asset.read`).
+  (`asset.read`); and the model's two, `GET /v1/model` (`model.read`) and
+  `POST /v1/model/complete` (`model.ask`).
 - **`WhoAmI`**, **`Health`** -- what those answer.
 - **`DRAFT_FORMAT`** -- the stored draft's format number, `1`, which a
   reader compares and refuses another of.
@@ -65,6 +70,11 @@ carries but that token contributes to it.
   answer: a template by its report's own id, its revision and its title; a
   draft with the report, its version and the subject that saved it; the
   version a save wrote; the digest an image is kept under.
+- **`ServerModel`**, **`ModelRequest`**, **`ModelCompletion`** -- what the
+  model's routes say: the model's `provider` and `model`, or `null` and
+  `null` for none, and the digest of each briefing by kind; a request's
+  `kind`, `user` and `briefing`, the digest the page reads the answer
+  against, sent as that object's JSON; and `{ text }` or `{ declined }`.
 - **`DraftVersion`** -- which draft a read or a save answered, and so
   which one a save from it replaces: its `revision` and its `digest`,
   `sha256:` and the SHA-256 of its report's text as the store wrote it.
@@ -86,7 +96,12 @@ carries but that token contributes to it.
   `no-asset`, `template-id-invalid`, `template-id-mismatch`,
   `digest-invalid`, `precondition-required`, `draft-changed`,
   `report-too-large`, `image-too-large`, `unsupported-media-type`,
-  `report-invalid`, `asset-not-kept`, `image-refused` and `digest-mismatch`.
+  `report-invalid`, `asset-not-kept`, `image-refused` and `digest-mismatch`;
+  and the model's `model-not-configured`, `unknown-request-kind`,
+  `request-empty`, `briefing-differs`, `request-too-large`,
+  `model-rate-limited`, `model-truncated`, `model-unavailable`,
+  `model-timed-out` and `model-cancelled`, none of which quotes the request
+  or the provider.
 - **`ServerRefusal`** -- a refusal as that slice gives it: four codes carry
   a field beside the sentence, to the requester alone and never to a log or
   an audit event -- `report-invalid` the `ReportError`s of the report sent,
@@ -159,6 +174,39 @@ image exists.
 - **`readImage(asking, digestHex)`** -- the image as it was kept, `404
   no-asset` where the tenant has none.
 
+- **`readModel(asking)`** -- the model or none, 200 either way, and each
+  kind's briefing digest; 403 `forbidden` but to an author.
+- **`askModel(asking, body, ending)`** -- checks, in this order, and asks
+  nothing unless all pass: the capacity (403); a model (404
+  `model-not-configured`); the kind, one the briefing table holds as its
+  own (400 `unknown-request-kind`); a user part with something in it (400
+  `request-empty`); the digest, the table's for the kind (409
+  `briefing-differs`). Nothing else of the body is read, a `system` above
+  all. Then it asks the completer under the table's system part, until it
+  answers or `ending` says the asker went (499 `model-cancelled`) or the
+  time is up (504 `model-timed-out`), which the completer is told of once
+  and which is answered whether or not it listens; a request already ended
+  is never asked. The text is answered 200 `{ text }`, a provider's refusal
+  200 `{ declined }`, a truncated answer and a provider not reached 502; a
+  completer that throws, answers no completion or says it was cancelled
+  when nothing cancelled it is a model that could not be asked. Beside the
+  answer, `asked`, a **`ModelAsked`**, for a request that passed every
+  check: the kind as the table names it, the user part's length and how it
+  ended, and the provider's status where it gave one.
+
+**`Completer`** is the model's port, the embedder's over its provider's
+SDK: `complete(prompt, cancellation)`, a **`CompletionPrompt`** of one
+system part and one user part, a **`Cancellation`** told once when the
+request is abandoned, resolving a **`Completion`** -- the text, or
+`refused`, `truncated`, `unavailable` with the provider's status, or
+`cancelled` -- and never throwing for a provider's failure. The four are
+formancy's server-core's shapes member for member. **`DeploymentModel`**
+is the embedder's provider, model and completer; **`ModelBriefings`** the
+table of each kind's system part and digest, which report-server builds
+from report-ai and hands in, so that this package needs no report-ai; and
+**`ModelEnding`** how the route says a request ended early, at once where
+it already has.
+
 **`TemplateStore`** is the port, and decides nothing: `list`, `newest`,
 `save`, `keepImage`, `readImage` and `imageKind`, each taking the tenant
 first and a digest in its `sha256:` form. `imageKind` answers the kind an
@@ -177,15 +225,18 @@ memory. `StoredDraft`, `SaveOutcome` and `StoredImage` are its records.
 
 `AuditEvent` is one request an API route answered: when, which route, its
 status, its outcome code, whether it carried a verified identity, and the
-tenant and the actor by keyed hash, or `null`. Never a value. `AuditSink`
+tenant and the actor by keyed hash, or `null`; and for a request to the
+model, `model`, its `ModelAsked`. Never a value: never what a model was
+asked, what it answered or what its provider said. `AuditSink`
 is where it goes; the server's own writes a log line.
 
 ## What it does not do
 
 - **Verify a token.** The server does, with Formancy Data's verifier; this
   package holds only what it derives.
-- **Read anything.** No store, no file, no network, no setting: the store
-  is a port the host gives it.
+- **Read anything.** No store, no file, no network, no setting, no timer:
+  the store and the completer are ports the host gives it, and when a
+  request is abandoned is the route's to say.
 - **Depend on anything but the format.** `@formancy/report-spec` is its one
   dependency: its types, and the functions the use cases judge a draft and
   an image with -- `validateReport`, `isIdentifier`, `isDigest`,

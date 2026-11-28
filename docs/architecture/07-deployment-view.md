@@ -36,8 +36,10 @@ packages/report-server/Dockerfile, built from the repository root
    │
    ├─ build    node:26.12.1-alpine3.24@sha256:40cd011b…, pnpm 12.4.2 by npm;
    │           the lockfile installed for report-server and what it declares,
-   │           no install script run; built, LICENSE.md and NOTICE copied in;
-   │           `pnpm deploy --prod` into /app
+   │           by production dependencies, report-ai and report-core among
+   │           them, the corpus's and the runtime's manifests alone beside
+   │           them, no install script run; built, LICENSE.md and NOTICE
+   │           copied in; `pnpm deploy --prod` into /app
    ▼
    runtime  the same base, by digest; /app root's, read-only to node;
             /var/lib/formancy-report made and given to node, and named to the
@@ -60,7 +62,12 @@ reference to a variable that is unset -- stops it the same way, with one
 sentence; SIGHUP reads a key set file again, and SIGTERM stops it after
 the requests in flight, with exit 0. It runs with `docker run --read-only`
 too, the store's directory then a volume the operator mounts; the
-container gate runs each of these.
+container gate runs each of these. **It asks no model**: its composition
+root gives the server none, it reads no model setting, a
+`FORMANCY_REPORT_MODEL_*` variable stops it at start as every setting it
+does not read does, and `GET /v1/model` answers an author none, which the
+container gate checks, until formancy releases its providers' adapters in
+a package of their own ([0084](../decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md)).
 
 What it does not do, and what the operator therefore owns:
 - **One instance.** Nothing here shares a rate limit or a store between
@@ -441,6 +448,11 @@ serve the Studio under the same function of their own address
   tokens carry a tenant claim; and, to run it in production, a production
   licence for Formancy Data as well, whose verifier it depends on
   ([0046](../decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0047](../decisions/0047-report-server-verifies-the-hosts-token-with-formancy-datas-data-identity-0-3-0.md)).
+  For its builders to ask a model, an embedder gives `createReportServer`
+  `model`: the provider's and the model's names, which an author is told,
+  and a completer over the provider's SDK, built by its composition root
+  with the key it holds; the image has none
+  ([0084](../decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md)).
 - **For an agent's MCP server:** `@formancy/report-mcp` installed in a
   project under Node 22.13 or later, and a client that speaks the Model
   Context Protocol configured to launch its bin there, by the command npm

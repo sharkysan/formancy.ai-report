@@ -37,7 +37,7 @@ Taken by a script from the built Studio and held to the text it shows, as every 
 - **Lay it out**: several tables over one list of lines, group headers kept with their rows, a first page of its own, text set above or below the line, fonts your application approves, pinned by digest, and SVG logos made of shapes alone -- no text, no embedded picture ([0062](./docs/decisions/0062-a-report-holds-several-tables-over-its-detail-rows-each-printing-and-totalling-the-rows-its-condition-selects.md), [0060](./docs/decisions/0060-a-reports-first-page-may-print-a-header-of-its-own-or-none-in-place-of-the-page-header.md), [0061](./docs/decisions/0061-a-paragraphs-run-may-be-set-below-or-above-the-line-in-any-character-its-face-draws-and-prints-only-beside-a-run-on-the-line.md), [0043](./docs/decisions/0043-a-report-maps-its-font-tokens-to-fonts-the-host-approved-pinned-by-digest-and-the-renderer-embeds-them.md), [0030](./docs/decisions/0030-an-image-asset-may-be-an-svg-of-drawing-elements-alone-cleaned-once-and-refused-at-print-in-any-other-form.md)).
 - **Read your data where it lives**: your application's JSON, a formancy form's submissions, each against the form version that collected it, or a Formancy Data 0.5.0 server, best-effort ([0042](./docs/decisions/0042-a-report-reads-a-formancy-forms-submissions-against-the-exact-version-that-collected-them-as-the-host-hands-them-over.md), [0016](./docs/decisions/0016-the-data-provider-reads-formancy-data-0-1-0-best-effort.md)).
 - **Let a coding agent work against Report's checks**: an MCP server, run by the agent's client, that describes the format and the commands, judges a report as the validator and a render would, within the size a draft may have, applies commands as the builders do, and renders a report with sample data and reads each page's lines back from its PDF; it needs no server, and saves, publishes and fetches nothing ([0088](./docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md), [0089](./docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)).
-- **Keep drafts on a server**: it verifies your application's token offline and keeps each tenant's template drafts and images; it renders nothing yet ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
+- **Keep drafts on a server**: it verifies your application's token offline and keeps each tenant's template drafts and images, and asks the model your application gives it for an author's builder, under its own briefing; it renders nothing yet ([0046](./docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md), [0049](./docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md), [0084](./docs/decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md)).
 
 What is planned next, and what is not planned at all, is in
 [the roadmap](./docs/roadmap.md).
@@ -77,7 +77,7 @@ writes
 Every starter's page, the invoice in four languages and the euro invoice
 from six countries are in [What the starters print](./docs/starters.md).
 
-> **Status, 27 November 2026:** 0.3.0, a developer preview, is published
+> **Status, 28 November 2026:** 0.3.0, a developer preview, is published
 > on npm, and [its release](https://github.com/sharkysan/formancy.ai-report/releases/tag/v0.3.0)
 > carries the report of the run that gated it.
 > What 0.3.0 holds and leaves out is
@@ -89,7 +89,10 @@ from six countries are in [What the starters print](./docs/starters.md).
 > which asks a model for the words a report's language lacks and holds
 > the answer to the format and the compiler as one batch of commands,
 > and which no builder draws yet
-> ([0085](./docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)). The
+> ([0085](./docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)),
+> and a server that asks the model its embedder gives under report-ai's
+> briefings, whose container has none
+> ([0084](./docs/decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md)). The
 > report format is still version "0", the draft: a report written now is
 > not promised to be read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
@@ -238,9 +241,9 @@ The install gate runs these lines from the packed packages
 | [`@formancy/report-render-docx`](./packages/report-render-docx/README.md) | Writes that document as a Word file, the same bytes for the same document, and refuses what belongs to its PDF |
 | [`@formancy/report-data-provider`](./packages/report-data-provider/README.md) | Reads a report's data from a Formancy Data 0.5.0 server, best-effort |
 | [`@formancy/report-forms`](./packages/report-forms/README.md) | Reads a formancy form's submissions against the version that collected each, starts a report from a version, and reviews a new one |
-| [`@formancy/report-server-core`](./packages/report-server-core/README.md) | Who may do what to a tenant's reports, the wire, and the use cases for drafts and images; no framework, no Node |
-| [`@formancy/report-server`](./packages/report-server/README.md) | The server, on Fastify: your application's token verified offline, a template's draft and its images |
-| [`@formancy/report-client`](./packages/report-client/README.md) | What your page asks that server with |
+| [`@formancy/report-server-core`](./packages/report-server-core/README.md) | Who may do what to a tenant's reports, the wire, and the use cases for drafts, images and the model; no framework, no Node |
+| [`@formancy/report-server`](./packages/report-server/README.md) | The server, on Fastify: your application's token verified offline, a template's draft and its images, and the model your application gives it, asked under Report's briefings |
+| [`@formancy/report-client`](./packages/report-client/README.md) | What your page asks that server with, the model among it |
 | [`@formancy/report-mcp`](./packages/report-mcp/README.md) | Report's checks for a coding agent, over the Model Context Protocol: the format described, a report validated and diagnosed, report-core's commands applied, and a render's lines read back from its PDF, with nothing deployed |
 | [`@formancy/report-builder-core`](./packages/report-builder-core/README.md) | The editor model both builders render; `BUILDER_SCENARIOS` is what each must do |
 | [`@formancy/report-builder-react`](./packages/report-builder-react/README.md) | The builder for React 19 |
