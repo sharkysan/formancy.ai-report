@@ -6,7 +6,7 @@
  * package that is no builder (0046); the client is installed beside it,
  * to be asked of it, and in a browser's host of its own (0049). The MCP
  * server has a Node host of its own too, with the SDK's client that
- * launches its bin (0088).
+ * launches its bin and the server its bin saves a draft to (0088).
  *
  * Each kind of host gets a project of its own, holding what that host would
  * hold and nothing else, because one shared project lets a package resolve
@@ -152,14 +152,21 @@ export const HOSTS = {
   },
   // A coding agent's client launching Report's MCP server (0088): Node's
   // types, report-mcp and what it declares -- the runtime and the renderer
-  // since its render check (0089) -- and the SDK's client `alongside` it at
-  // the release report-mcp declares, as a client holds one, so an MCP that
-  // imported a package it never declared -- the client, the server --
-  // fails here, where the Node host would pass it. mcp.ts launches the bin npm linked, as a client's configuration
-  // names it, and speaks to it over stdio; `mcp-globals.d.ts` declares the
-  // one name the SDK's declarations need beyond Node's types.
+  // since its render check (0089), the client and server-core since its
+  // server half -- the server `with` it, with what that declares, as the
+  // server a person's host runs, and the SDK's client `alongside` it at the
+  // release report-mcp declares, as a client holds one, so an MCP that
+  // imported a package nothing here declares -- a builder, the data
+  // provider -- fails here, where the Node host would pass it; one that
+  // imported the server would pass, as the server's host passes a server
+  // that imported its client. mcp.ts launches the bin npm linked, as a
+  // client's configuration names it, and speaks to it over stdio, then
+  // with both settings beside the packed server on a socket;
+  // `mcp-globals.d.ts` declares the one name the SDK's declarations need
+  // beyond Node's types.
   mcp: {
     serves: '@formancy/report-mcp',
+    with: ['@formancy/report-server'],
     alongside: ['@modelcontextprotocol/sdk'],
     consumer: 'mcp.ts',
     tools: { '@types/node': '^22.10.0', typescript: TYPESCRIPT, tsx: TSX },
@@ -379,8 +386,8 @@ function alongsideOf(kind, host, manifests) {
  * The projects to install, from the packed manifests (`name` to manifest):
  * the Node host with every package that is no host's own, the server's
  * host with the server and the client and what they declare, the client's
- * host with the client and what it declares, the MCP's with the MCP, what
- * it declares and the SDK at its release, and each builder's host at
+ * host with the client and what it declares, the MCP's with the MCP and
+ * the server, what they declare and the SDK at its release, and each builder's host at
  * the newest release its peers admit and at their floor.
  */
 export function planProjects(manifests) {

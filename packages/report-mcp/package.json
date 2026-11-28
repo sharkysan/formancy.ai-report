@@ -1,7 +1,7 @@
 {
   "name": "@formancy/report-mcp",
   "version": "0.3.0",
-  "description": "Formancy Report for a coding agent, over the Model Context Protocol: the format described, a report validated and diagnosed as the validator and a render judge it and held to a draft's size, and report-core's commands described and applied as one batch, each checked before it acts. Speaks stdio, publishes nothing, takes no address. Source-available, as every Formancy Report package.",
+  "description": "Formancy Report for a coding agent, over the Model Context Protocol: the format described, a report validated and diagnosed as the validator and a render judge it and held to a draft's size, report-core's commands described and applied as one batch, each checked before it acts, and a render's lines read back from its PDF; given Report's server and a person's token, a template's draft read and saved as that person, only once it passes the checks. Speaks stdio, publishes nothing, takes no address. Source-available, as every Formancy Report package.",
   "keywords": [
     "formancy",
     "report",
@@ -35,9 +35,11 @@
     "check:pkg": "publint && attw --pack . --profile esm-only"
   },
   "dependencies": {
+    "@formancy/report-client": "workspace:*",
     "@formancy/report-core": "workspace:*",
     "@formancy/report-render-pdf": "workspace:*",
     "@formancy/report-runtime": "workspace:*",
+    "@formancy/report-server-core": "workspace:*",
     "@formancy/report-spec": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.2",
     "pdfjs-dist": "6.4.299",
@@ -46,6 +48,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
     "@formancy/report-corpus": "workspace:*",
+    "@formancy/report-server": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "publint": "catalog:",

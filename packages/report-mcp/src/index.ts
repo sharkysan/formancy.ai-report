@@ -8,14 +8,18 @@
  * render judge it and held to a draft's size, report-core's commands
  * applied as the builders apply them, and the report rendered with the
  * data an agent passes in, what its PDF prints read back with PDF.js
- * (0089).
- * The tools need nothing but their arguments: no server, no file, no
- * network. Nothing here publishes, saves or takes an address, and no PDF
- * leaves it.
+ * (0089). Those tools need nothing but their arguments: no server, no
+ * file, no network. Given Report's server and the person's token at their
+ * host, four more ask it through report-client, as that person: who they
+ * are, the tenant's templates, a template's draft, and a save from the
+ * version it names, sent only once the report passes the checks. Nothing
+ * here publishes or takes an address, and no PDF leaves it.
  */
 export { applyCommands, checkReport, describeFormat, listCommands } from './tools.js'
 export type { ToolResult, Verdict } from './tools.js'
 export { MAX_ANSWER_BYTES, MAX_CHECK_PAGES, RENDER_CHECK_REFUSALS, renderCheck } from './render.js'
 export type { CheckedPage, RenderCheckInput, RenderCheckRefusal } from './render.js'
+export { listTemplates, MCP_ROUTES, readDraft, saveDraft, whoAmI } from './drafts.js'
 
-export { createReportMcpServer, PACKAGE_VERSION, PROMPTS, TOOL_DEFINITIONS } from './server.js'
+export { createReportMcpServer, PACKAGE_VERSION, PROMPTS, SERVER_TOOLS, TOOL_DEFINITIONS } from './server.js'
+export type { ReportMcpOptions } from './server.js'

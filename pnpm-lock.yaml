@@ -873,6 +873,9 @@ importers:
 
   packages/report-mcp:
     dependencies:
+      '@formancy/report-client':
+        specifier: workspace:*
+        version: link:../report-client
       '@formancy/report-core':
         specifier: workspace:*
         version: link:../report-core
@@ -882,6 +885,9 @@ importers:
       '@formancy/report-runtime':
         specifier: workspace:*
         version: link:../report-runtime
+      '@formancy/report-server-core':
+        specifier: workspace:*
+        version: link:../report-server-core
       '@formancy/report-spec':
         specifier: workspace:*
         version: link:../report-spec
@@ -901,6 +907,9 @@ importers:
       '@formancy/report-corpus':
         specifier: workspace:*
         version: link:../report-corpus
+      '@formancy/report-server':
+        specifier: workspace:*
+        version: link:../report-server
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.5
