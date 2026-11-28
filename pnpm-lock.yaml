@@ -643,6 +643,9 @@ importers:
       '@arethetypeswrong/cli':
         specifier: 'catalog:'
         version: 0.18.5
+      '@formancy/report-ai':
+        specifier: workspace:*
+        version: link:../report-ai
       '@formancy/report-server':
         specifier: workspace:*
         version: link:../report-server
@@ -1066,6 +1069,9 @@ importers:
       '@formancy/data-identity':
         specifier: 0.5.0
         version: 0.5.0
+      '@formancy/report-ai':
+        specifier: workspace:*
+        version: link:../report-ai
       '@formancy/report-server-core':
         specifier: workspace:*
         version: link:../report-server-core

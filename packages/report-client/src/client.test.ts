@@ -5,8 +5,12 @@ import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { askThrough, briefingDigest, declinedAnswer, modelBriefing, REQUEST_KINDS, requestBytes } from '@formancy/report-ai'
+import type { ModelPrompt } from '@formancy/report-ai'
 import { createReportServer, createReportVerifier, openFileTemplateStore } from '@formancy/report-server'
+import type { ReportServerModel } from '@formancy/report-server'
 import { REFUSALS } from '@formancy/report-server-core'
+import type { Completer, Completion, ModelRequest } from '@formancy/report-server-core'
 import { assetDigest, emptyReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
@@ -183,6 +187,130 @@ describe('against report-server', () => {
   })
 })
 
+describe('the model, against report-server', () => {
+  let directory: string
+  const servers: Awaited<ReturnType<typeof createReportServer>>[] = []
+  beforeEach(async () => {
+    directory = await mkdtemp(join(tmpdir(), 'formancy-report-client-model-'))
+  })
+  afterEach(async () => {
+    for (const server of servers.splice(0)) await server.close()
+    await rm(directory, { recursive: true, force: true })
+  })
+
+  /** A server of this case's, given `model` or none, listening, and a client of it with an author's token. */
+  async function served(model?: ReportServerModel) {
+    const opened = await openFileTemplateStore(directory)
+    if (!opened.ok) throw new Error(opened.problem)
+    const verifyIdentity = await createReportVerifier({
+      key: { kind: 'secret', secret: HOST.secret },
+      issuer: HOST.issuer,
+      audience: HOST.audience,
+      tenantClaim: 'tid',
+    })
+    const server = await createReportServer({
+      verifyIdentity,
+      roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] },
+      store: opened.store,
+      ...(model === undefined ? {} : { model }),
+    })
+    servers.push(server)
+    await server.listen({ host: '127.0.0.1', port: 0 })
+    return createReportClient({ server: `http://127.0.0.1:${String((server.server.address() as AddressInfo).port)}`, token: () => signed() })
+  }
+  const model = (complete: Completer['complete']): ReportServerModel => ({ provider: 'anthropic', model: 'a-model', completer: { complete } })
+
+  /** A prompt as report-ai's run builds one for a translation. */
+  const prompt = (user = '{"into":"fr-CH"}'): ModelPrompt<'translation'> => ({
+    kind: 'translation',
+    system: modelBriefing('translation'),
+    user,
+    attempt: 1,
+    limit: 3,
+  })
+  const idle = { onCancel: () => undefined }
+
+  // A builder's host reads this before it draws anything that asks a
+  // model: which model, or none, which is an answer, and the digest of
+  // each briefing the server asks under, report-ai's.
+  test('says whether the server has a model, which, and the digest of each briefing it asks under', async () => {
+    const briefings = Object.fromEntries(REQUEST_KINDS.map((kind) => [kind, briefingDigest(kind)]))
+    expect(await (await served()).model()).toEqual({ ok: true, value: { provider: null, model: null, briefings } })
+    expect(await (await served(model(async () => ({ ok: true, text: '{}' })))).model()).toEqual({
+      ok: true,
+      value: { provider: 'anthropic', model: 'a-model', briefings },
+    })
+  })
+
+  // The host's AskModel is report-ai's askThrough over this client's
+  // completeModel (0084): what the server's model answers is the run's
+  // answer, a provider's refusal a decline the run ends on, and a
+  // refusal of the server's the error the run ends unreachable with, in
+  // the server's own sentence, which quotes nothing.
+  test('is asked through report-ai’s askThrough as a host asks it: a text, a decline, and a refusal in the server’s sentence', async () => {
+    const answered = await served(model(async (asked) => ({ ok: true, text: asked.system === modelBriefing('translation') ? asked.user : 'another briefing' })))
+    expect(await askThrough(answered.completeModel)(prompt('{"into":"fr-CH","words":[]}'), idle)).toBe('{"into":"fr-CH","words":[]}')
+    const declining = await served(model(async () => ({ ok: false, failure: 'refused', reason: 'The provider declined.' })))
+    expect(await askThrough(declining.completeModel)(prompt(), idle)).toBe(declinedAnswer('The provider declined.'))
+    await expect(askThrough((await served()).completeModel)(prompt(), idle)).rejects.toThrow(REFUSALS['model-not-configured'].message)
+  })
+
+  // A page of another release reads the answer against another briefing:
+  // the server compares the digest it is sent with its own and refuses it
+  // before its model is asked, and the client throws its sentence, the
+  // refusal as it came beside it (0085).
+  test('throws the server’s refusal of a digest that is not its briefing’s, and nothing is asked', async () => {
+    let asked = 0
+    const client = await served(
+      model(async () => {
+        asked += 1
+        return { ok: true, text: '{}' }
+      }),
+    )
+    const thrown = await client.completeModel({ kind: 'translation', user: '{}', briefing: `sha256:${'00'.repeat(32)}` }, idle).then(
+      () => undefined,
+      (error: unknown) => error,
+    )
+    expect((thrown as Error).message).toBe(REFUSALS['briefing-differs'].message)
+    expect((thrown as Error).cause).toEqual({ ok: false, status: 409, refusal: REFUSALS['briefing-differs'] })
+    expect(asked).toBe(0)
+  })
+
+  // A person who pressed Stop has walked away: the request is abandoned,
+  // and the server, seeing its client go, tells the provider's adapter,
+  // so nobody pays for an answer nobody reads.
+  test('abandons the request when the turn is cancelled, and the server tells its completer', async () => {
+    let cancelled = false
+    let started: () => void = () => undefined
+    const asking = new Promise<void>((resolve) => (started = resolve))
+    const client = await served(
+      model(
+        (_prompt, cancellation) =>
+          new Promise<Completion>((resolve) => {
+            cancellation.onCancel(() => {
+              cancelled = true
+              resolve({ ok: false, failure: 'cancelled' })
+            })
+            started()
+          }),
+      ),
+    )
+    let stop: () => void = () => undefined
+    const pending = client.completeModel(
+      { kind: 'translation', user: '{}', briefing: briefingDigest('translation') },
+      {
+        onCancel: (listener) => {
+          stop = listener
+        },
+      },
+    )
+    await asking
+    stop()
+    await expect(pending).rejects.toThrow()
+    await expect.poll(() => cancelled, { timeout: 2_000 }).toBe(true)
+  })
+})
+
 describe('against what is not report-server', () => {
   /** A fetch that answers `response` to every request, and records each URL and init it was given. */
   const answering = (response: () => Response) => {
@@ -267,6 +395,34 @@ describe('against what is not report-server', () => {
     await expect(client(untyped).readImage(assetDigest(PNG))).rejects.toThrow(/200/)
     const { fetch } = answering(() => new Response(PNG, { status: 200, headers: { 'content-type': 'Image/SVG+XML; charset=utf-8' } }))
     expect(valueOf(await client(fetch).readImage(assetDigest(PNG))).mediaType).toBe('image/svg+xml')
+  })
+
+  // The body is report-ai's request as JSON, as it is, and nothing else:
+  // its length is `requestBytes`, the measure the server's limit and the
+  // request builder are set in (0085), so a request the page let through is
+  // never one the server refuses for its size.
+  test('sends a model’s request as its JSON alone, as long as report-ai measures it, under its own media type', async () => {
+    const { fetch, asked } = answering(() => Response.json({ text: '{}' }))
+    const request = { kind: 'translation' as const, user: 'a "quoted" word\nand a line', briefing: briefingDigest('translation') }
+    expect(await client(fetch).completeModel({ ...request, extra: 'never sent' } as ModelRequest)).toEqual({ text: '{}' })
+    const [sent] = asked
+    expect(sent?.url).toBe('https://reports.example/v1/model/complete')
+    expect(sent?.init?.method).toBe('POST')
+    expect(sent?.init?.headers).toMatchObject({ 'content-type': 'application/json' })
+    expect(sent?.init?.body).toBe(JSON.stringify(request))
+    expect(Buffer.byteLength(sent?.init?.body as string)).toBe(requestBytes(request))
+  })
+
+  // A 200 that is neither a text nor a decline is no answer of the API's,
+  // and handed to the run it would be read as a model's answer of neither
+  // shape; it is thrown, naming the route.
+  test('throws on a model’s answer that is neither a text nor a decline', async () => {
+    for (const body of [{}, { text: 7 }, { declined: null }, { answer: 'x' }]) {
+      const { fetch } = answering(() => Response.json(body))
+      await expect(client(fetch).completeModel({ kind: 'translation', user: '{}', briefing: 'x' }), JSON.stringify(body)).rejects.toThrow(
+        'POST /v1/model/complete was answered 200 with neither a text nor a decline',
+      )
+    }
   })
 
   // A network that fails is the host's to retry or to report, as fetch

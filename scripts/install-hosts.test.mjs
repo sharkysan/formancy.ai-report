@@ -44,8 +44,9 @@ const manifests = new Map([
     '@formancy/report-builder-angular',
     { dependencies: { '@formancy/report-builder-core': '0.1.0', tslib: '^2.8.0' }, peerDependencies: { '@angular/core': '^22.0.0' } },
   ],
+  ['@formancy/report-ai', { dependencies: { '@formancy/report-core': '0.1.0', '@formancy/report-spec': '0.1.0' } }],
   ['@formancy/report-server-core', { dependencies: {} }],
-  ['@formancy/report-server', { dependencies: { '@formancy/report-server-core': '0.1.0', fastify: '5.12.7' } }],
+  ['@formancy/report-server', { dependencies: { '@formancy/report-ai': '0.1.0', '@formancy/report-server-core': '0.1.0', fastify: '5.12.7' } }],
   ['@formancy/report-client', { dependencies: { '@formancy/report-server-core': '0.1.0', '@formancy/report-spec': '0.1.0' } }],
   [
     '@formancy/report-mcp',
@@ -101,6 +102,7 @@ describe('the projects the gate installs', () => {
       '@formancy/report-spec',
     ])
     expect(named('node')?.packages).toEqual([
+      '@formancy/report-ai',
       '@formancy/report-builder-core',
       '@formancy/report-core',
       '@formancy/report-render-pdf',
@@ -115,9 +117,17 @@ describe('the projects the gate installs', () => {
   // or any package it never declared fails there, where the Node host,
   // which installs them all, would pass it (0046). The client is beside
   // it, with what it declares, so that the packed client is asked of the
-  // packed server over a socket (0049).
+  // packed server over a socket (0049), and report-ai, with which a host's
+  // page asks the server's model through the client (0084).
   test('install the server and its client with only the packages they declare, transitively, and no framework', () => {
-    expect(named('server')?.packages).toEqual(['@formancy/report-client', '@formancy/report-server', '@formancy/report-server-core', '@formancy/report-spec'])
+    expect(named('server')?.packages).toEqual([
+      '@formancy/report-ai',
+      '@formancy/report-client',
+      '@formancy/report-core',
+      '@formancy/report-server',
+      '@formancy/report-server-core',
+      '@formancy/report-spec',
+    ])
     expect(named('server')?.framework).toEqual({})
     expect(named('server')?.at).toBeNull()
     expect(named('node')?.packages).not.toContain('@formancy/report-server')

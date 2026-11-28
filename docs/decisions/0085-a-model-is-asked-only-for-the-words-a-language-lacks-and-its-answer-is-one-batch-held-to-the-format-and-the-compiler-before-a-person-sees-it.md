@@ -1,6 +1,6 @@
 # 0085 — A model is asked only for the words a language lacks, and its answer is one batch held to the format and the compiler before a person sees it
 
-- **Status:** accepted; numbered while 0084 was held for a branch not yet merged, and merged after [0090](0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md) and [0088](0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md), whose translate prompt to an agent's own model keeps the payment part's words for a person by the same rule, report-core's `missingWords`, since 0088's paragraph of 2026-11-28; extends [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md), whose words and `word-missing` it reads, and [0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md), whose commands as data against a hash it follows with a model as the proposer; gives [0083](0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)'s `REQUEST_KINDS` its first kind; follows formancy.ai 0158 and 0161, and departs from 0161 where the Consequences say
+- **Status:** accepted; numbered while 0084 was held for a branch not yet merged, which has merged since, its server comparing the digest this record sends, and merged after [0090](0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md) and [0088](0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md), whose translate prompt to an agent's own model keeps the payment part's words for a person by the same rule, report-core's `missingWords`, since 0088's paragraph of 2026-11-28; extends [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md), whose words and `word-missing` it reads, and [0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md), whose commands as data against a hash it follows with a model as the proposer; gives [0083](0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)'s `REQUEST_KINDS` its first kind; follows formancy.ai 0158 and 0161, and departs from 0161 where the Consequences say
 - **Date:** 2026-11-27
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -235,8 +235,11 @@ format and the compiler have accepted before a person sees it.**
   and a body past the bound. What the host's server does is the host's to
   build and owed: write the system part from `modelBriefing` by the kind,
   read no system part a page sent, and refuse a digest that is not its own
-  briefing's. Nothing here holds a server to that; Report's own server's
-  route is 0084's, a record still to come. A server's decline ends the run
+  briefing's. Report's own server does, under
+  [0084](0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md),
+  which compares the digest where it writes the briefing and refuses one
+  that differs before its model is asked; a host's own server owes the
+  same, and nothing here holds it to that. A server's decline ends the run
   on its turn, and one with no reason ends it unreachable in a sentence of
   its own; a host's error ends it unreachable with its words.
 - **The answer** is `{ into, words: { key: text }, expressions: { key:

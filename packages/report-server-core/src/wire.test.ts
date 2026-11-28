@@ -26,8 +26,9 @@ describe('the wire', () => {
   // cross-origin grant, which offers each: a route missing here would be
   // refused at start, and one added here unasked would be granted across
   // origins. Two routes under one audit name would be one operation in the
-  // trail, so a save could not be told from a read.
-  test('is whoami and the draft slice’s five routes, under /v1, each with an audit name of its own', () => {
+  // trail, so a save could not be told from a read, nor a question whether
+  // there is a model from a request the operator pays for (0084).
+  test('is whoami, the draft slice’s five routes and the model’s two, under /v1, each with an audit name of its own', () => {
     expect(API_PREFIX).toBe('/v1')
     expect(ROUTES).toEqual({
       'GET /v1/whoami': 'whoami',
@@ -36,6 +37,8 @@ describe('the wire', () => {
       'PUT /v1/templates/:template/draft': 'draft.save',
       'PUT /v1/assets/:digest': 'asset.keep',
       'GET /v1/assets/:digest': 'asset.read',
+      'GET /v1/model': 'model.read',
+      'POST /v1/model/complete': 'model.ask',
     })
     for (const route of Object.keys(ROUTES)) expect(route).toMatch(/^(GET|PUT|POST|DELETE) \/v1\/[a-z/:-]+$/)
     expect(new Set(Object.values(ROUTES)).size).toBe(Object.keys(ROUTES).length)
@@ -70,6 +73,7 @@ describe('the wire', () => {
     expect(Object.keys(REFUSALS).sort()).toEqual([
       'asset-not-kept',
       'bad-request',
+      'briefing-differs',
       'cross-origin-refused',
       'digest-invalid',
       'digest-mismatch',
@@ -78,6 +82,12 @@ describe('the wire', () => {
       'image-refused',
       'image-too-large',
       'internal',
+      'model-cancelled',
+      'model-not-configured',
+      'model-rate-limited',
+      'model-timed-out',
+      'model-truncated',
+      'model-unavailable',
       'no-asset',
       'no-draft',
       'not-found',
@@ -86,9 +96,12 @@ describe('the wire', () => {
       'rate-limited',
       'report-invalid',
       'report-too-large',
+      'request-empty',
+      'request-too-large',
       'template-id-invalid',
       'template-id-mismatch',
       'unauthenticated',
+      'unknown-request-kind',
       'unsupported-media-type',
     ])
     expect(Object.isFrozen(REFUSALS)).toBe(true)
@@ -224,6 +237,7 @@ describe('the entry', () => {
       'REFUSALS',
       'ROUTES',
       'actionsOf',
+      'askModel',
       'can',
       'capacitiesOf',
       'draftTag',
@@ -233,6 +247,7 @@ describe('the entry', () => {
       'listTemplates',
       'readDraft',
       'readImage',
+      'readModel',
       'saveDraft',
     ])
   })

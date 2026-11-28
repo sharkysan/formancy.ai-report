@@ -1,5 +1,17 @@
 import { draftTag, isRevision, REFUSALS } from '@formancy/report-server-core'
-import type { Draft, DraftSaved, ImageKept, RefusalCode, Route, ServerRefusal, StoredImage, TemplateList } from '@formancy/report-server-core'
+import type {
+  Draft,
+  DraftSaved,
+  ImageKept,
+  ModelCompletion,
+  ModelRequest,
+  RefusalCode,
+  Route,
+  ServerModel,
+  ServerRefusal,
+  StoredImage,
+  TemplateList,
+} from '@formancy/report-server-core'
 import { ASSET_MEDIA_TYPES, isDigest } from '@formancy/report-spec'
 import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
 
@@ -22,6 +34,12 @@ import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
  * -- a token no bearer header carries, a save from what is no draft's
  * version, a digest that does not begin with `sha256:` -- is thrown before
  * anything is sent, by a fixed sentence that quotes none of it.
+ *
+ * `completeModel` is the one call that throws a refusal (0084): it is the
+ * `complete` report-ai's `askThrough` takes, whose run ends unreachable
+ * with the words of what it throws, and the refusal's fixed sentence is
+ * the one to show; the refusal itself rides beside it as the error's
+ * `cause`.
  */
 
 export interface ReportClientOptions {
@@ -34,6 +52,12 @@ export interface ReportClientOptions {
 
 /** What a route answered: its value, or the refusal the API gave, with the status it came under. */
 export type Answered<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly status: number; readonly refusal: ServerRefusal }
+
+/** What a turn of report-ai's run tells the request it waits on: its `AskTurn`, by shape, so the client needs no report-ai. */
+export interface ModelTurn {
+  /** Called at most once, when the person stops the run while the request waits. */
+  onCancel(stop: () => void): void
+}
 
 export interface ReportClient {
   /** The tenant's templates, by id, each with its newest draft's revision and title. */
@@ -54,6 +78,18 @@ export interface ReportClient {
   keepImage(bytes: Uint8Array, digest: string, mediaType: AssetMediaType): Promise<Answered<ImageKept>>
   /** The image kept under `digest`, written as `keepImage` takes it: its bytes and the media type they were kept as. */
   readImage(digest: string): Promise<Answered<StoredImage>>
+  /** Whether the server asks a model, which, and the digest of each briefing it asks under; none is `provider` and `model` both null. */
+  model(): Promise<Answered<ServerModel>>
+  /**
+   * Asks the server's model `request`, `{ kind, user, briefing }`, sent as
+   * that object's JSON and nothing else, and abandons it where `turn` is
+   * cancelled: the `complete` report-ai's `askThrough` takes. Resolves with
+   * the model's text or the provider's decline; a refusal of the API's is
+   * thrown, its sentence the message and the `Answered` it was beside it as
+   * `cause`. A function of its own, never a method that needs the client:
+   * a host passes `reports.completeModel` as it is.
+   */
+  readonly completeModel: (request: ModelRequest, turn?: ModelTurn) => Promise<ModelCompletion>
 }
 
 /** The `:name` parameters of a route's path. */
@@ -67,6 +103,7 @@ type ParametersOf<Path extends string> = Path extends `${string}:${infer Name}/$
 interface Sent {
   readonly headers?: Readonly<Record<string, string>>
   readonly body?: BodyInit
+  readonly signal?: AbortSignal
 }
 
 const SERVER_RULE =
@@ -173,6 +210,16 @@ async function json<T>(route: Route, response: Response): Promise<Answered<T>> {
   return { ok: true, value: body as T }
 }
 
+/** The model's answer: a 2xx's text or decline, each a string, or thrown as no answer of the API's. */
+async function completion(route: Route, response: Response): Promise<Answered<ModelCompletion>> {
+  const answered = await json<Record<string, unknown>>(route, response)
+  if (!answered.ok) return answered
+  const { text, declined } = answered.value
+  if (typeof text === 'string') return { ok: true, value: { text } }
+  if (typeof declined === 'string') return { ok: true, value: { declined } }
+  throw unanswered(route, response.status, 'with neither a text nor a decline')
+}
+
 const isImageMediaType = (type: string): type is AssetMediaType => (ASSET_MEDIA_TYPES as readonly string[]).includes(type)
 
 /** An image's route: a 2xx's bytes are the image, under the media type its `Content-Type` names. */
@@ -228,5 +275,23 @@ export function createReportClient(options: ReportClientOptions): ReportClient {
     keepImage: async (bytes, digest, mediaType) =>
       ask('PUT /v1/assets/:digest', { digest: digitsOf(digest) }, json<ImageKept>, { headers: { 'content-type': mediaType }, body: new Uint8Array(bytes) }),
     readImage: async (digest) => ask('GET /v1/assets/:digest', { digest: digitsOf(digest) }, image),
+    model: async () => ask('GET /v1/model', {}, json<ServerModel>),
+    completeModel: async (request, turn) => {
+      const stopped = new AbortController()
+      turn?.onCancel(() => {
+        stopped.abort()
+      })
+      // The three members, in this order and nothing else: the body
+      // report-ai's requestBytes measures, and the server's limit is set in.
+      const body = JSON.stringify({ kind: request.kind, user: request.user, briefing: request.briefing })
+      const answered = await ask('POST /v1/model/complete', {}, completion, {
+        headers: { 'content-type': 'application/json' },
+        body,
+        signal: stopped.signal,
+      })
+      // Thrown, not answered: askThrough's run ends unreachable in these words, which quote nothing.
+      if (!answered.ok) throw new Error(answered.refusal.message, { cause: answered })
+      return answered.value
+    },
   }
 }

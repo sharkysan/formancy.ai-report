@@ -10,11 +10,14 @@ mapping shows before any template depends on it; and a template's draft:
 the tenant's templates listed (`GET /v1/templates`), a template's newest
 draft read and saved (`GET` and `PUT /v1/templates/{template}/draft`), and
 the images a draft declares kept and read by their digest (`PUT` and
-`GET /v1/assets/{digest}`), in files on one volume. Publication, render
-jobs and artifacts arrive with the releases that build them, each a route
-of its own under `/v1`. What it decides, and why, is decision
+`GET /v1/assets/{digest}`), in files on one volume; and the model its
+embedder gives it, for an author's builder to ask, under the briefing the
+server writes (`GET /v1/model` and `POST /v1/model/complete`). Publication,
+render jobs and artifacts arrive with the releases that build them, each a
+route of its own under `/v1`. What it decides, and why, is decision
 [0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md),
-and for the drafts and images, decision [0049](../../docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md);
+for the drafts and images, decision [0049](../../docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md),
+and for the model, decision [0084](../../docs/decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md);
 `@formancy/report-client` is what a host asks it with.
 
 **Identity is the host's.** The host signs a short-lived JWT for a person;
@@ -72,7 +75,39 @@ none, and one of a media type the route does not read is 415
 `unsupported-media-type`, unread. No body is read before the request's
 origin and its token are: the cross-origin refusal and the one 401 come
 first, and a refusal answered before a body closes the connection that
-carried it.
+carried it. A request whose client went while its token was checked took
+its body with it, and is answered 400 `bad-request` where its token is, to
+nobody, so that the trail has its event.
+
+**The model is the embedder's, and the briefing the server's** ([0084](../../docs/decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md)).
+`GET /v1/model` tells an author `{ provider, model, briefings }`: the names
+the embedder gave, or `null` and `null` where it gave none -- a 200, since
+none is how a deployment ships (formancy.ai 0183) -- and, either way, the
+digest of each briefing the server asks under, report-ai's
+`briefingDigest` of each of its `REQUEST_KINDS`. `POST /v1/model/complete`
+takes `{ kind, user, briefing }` as JSON, as report-ai's `askThrough` and
+report-client's `completeModel` send it, and asks the completer under
+report-ai's `modelBriefing` for the kind; a `system` in the body is never
+read. Both routes are an author's alone, by the actions `model.read` and
+`model.ask`. Before anything is asked, it refuses: no model, 404
+`model-not-configured`; a kind report-ai does not ask, `constructor` among
+them, 400 `unknown-request-kind`; no user part, 400 `request-empty`; a
+digest that is not the server's for the kind, a page of another release,
+409 `briefing-differs`; a body past report-ai's `MAX_MODEL_REQUEST_BYTES`,
+measured as it is sent, 413 `request-too-large`; and past ten requests a
+minute per person, the token's tenant and subject, counted after the token
+beside the per-address limit, 429 `model-rate-limited`. It answers the
+model's text `{ text }`, the provider's refusal `{ declined }`, an answer
+cut off 502 `model-truncated`, a provider not reached 502
+`model-unavailable`, its status in the log and its words nowhere, and,
+after `MODEL_TIMEOUT_MS`, 300 s chosen and not measured, 504
+`model-timed-out`, the completer told to cancel; a client that goes away
+has the completer told at once. Its audit event carries `model`: the kind,
+the user part's length and how it ended, never the text, the answer or the
+provider's words. That narrows the endpoint and does not close it: an
+author can ask the model anything under Report's briefing, and the
+capacity, the limit, the size, the time and the trail bound and record
+that.
 
 ## Run it
 
@@ -141,6 +176,13 @@ value.
 | `FORMANCY_REPORT_STORE_DIR` | Required: the absolute path of the directory the server keeps its templates' drafts and images in; the image sets `/var/lib/formancy-report`. The directory must exist and be one the process can write: the server does not make it, and stops at start, naming this setting, where it is not one |
 | `PORT` | The port it listens on. Unset, 4392: beside formancy's 4380 and Data's 4390, a choice and not a measurement |
 
+**No model setting.** The image gives the server no model until formancy
+releases its providers' adapters in a package of their own, so
+`FORMANCY_REPORT_MODEL_PROVIDER`, `FORMANCY_REPORT_MODEL_API_KEY` and
+`FORMANCY_REPORT_MODEL` stop it at start, as every variable it does not read
+does, and its `GET /v1/model` says none ([0084](../../docs/decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md)). A model is given
+by an embedder, below.
+
 **Who may do what** is the actions table in `@formancy/report-server-core`:
 three capacities, author, publisher and administrator, and each action with
 the capacities that may take it. The three role settings say which of the
@@ -177,6 +219,7 @@ const server = await createReportServer({
   roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] },
   audit,
   store: opened.store,
+  model: { provider: 'my-provider', model: 'my-model', completer },
 })
 await server.listen({ host: '127.0.0.1', port: 0 })
 ```
@@ -206,6 +249,22 @@ that would be refused as a setting does not start the server. `logger` is
 `{ stream }`, whose `write` takes each JSON line, or absent for no log;
 anything else, Fastify's own `false` among them, does not start the server
 either, since it would turn the log on.
+
+`model` is the embedder's, or absent for none: `provider` and `model`, the
+names `GET /v1/model` tells an author, and `completer`, report-server-core's
+`Completer`, which the embedder's composition root builds over its
+provider's SDK with the key it holds. Its shapes are formancy's
+server-core's member for member, so a completer formancy's adapters make
+fits: `complete({ system, user }, cancellation)` resolves the text or a
+failure it names -- `refused` with a reason, `truncated`, `unavailable` with
+the provider's status, `cancelled` -- and never throws for a provider's
+failure; one that throws all the same is a model that could not be asked.
+`cancellation.onCancel` is told once, when the client goes or the time is
+up: wire it to the SDK's abort. What the SDK reads from the environment --
+a base URL, an organisation, a second credential, a log level -- is the
+embedder's to override, as formancy's adapters do. `rateLimit`, `{ max,
+timeWindowMs }`, changes the per-person limit; a model that is no `{
+provider, model, completer }` does not start the server.
 
 ## What it does not do
 
@@ -240,6 +299,14 @@ either, since it would turn the log on.
   save goes through.
 - **Stop a client that leaves from having asked.** A request whose client
   left while the route ran is still one event in the trail.
+- **Ask a model of its own, or cap what one costs.** The image has none,
+  and an embedder writes its completer over its provider's SDK until
+  formancy releases its adapters; nothing caps spending but the provider's
+  own limits, and the per-person count is held in memory, for the 5,000
+  people who asked last.
+- **Keep what a model was asked.** Nothing of a request to the model or its
+  answer is logged, audited or stored: the trail has its kind, its length
+  and how it ended.
 
 **Licence.** Source-available, not open source: see
 [`LICENSE.md`](../../LICENSE.md). It depends on Formancy Data's

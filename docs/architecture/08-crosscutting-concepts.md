@@ -703,12 +703,18 @@ The server's one answer to both questions
   each with the capacities that may take it. A route that takes an action
   asks `can` with it -- the draft slice's five do, each through its use
   case and before it reads the request or asks the store, and whoami takes
-  none (0049) -- an action the table does not hold is nobody's, and no
+  none (0049); the model's two take `model.read` and `model.ask`, an
+  author's alone, before a model, a kind or a digest is looked at
+  ([0084](../decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md))
+  -- an action the table does not hold is nobody's, and no
   capacity implies another. whoami answers `actionsOf`, which agrees with
   `can` action by action, so the host's wiring shows before anything
   depends on it. A malformed precondition, a body past its route's limit
   and a media type the route does not read are answered before the use
-  case, so before `can`.
+  case, so before `can`, and so is the model's count per person, the
+  token's tenant and subject, 10 requests a minute unless the embedder
+  says otherwise, which a publisher's 403 spends and a forged token's 401
+  does not.
 - **From which page.** A page on an origin the operator lists may send the
   headers the routes read and nothing more, `CROSS_ORIGIN_REQUEST_HEADERS`
   -- the token, the body's media type, `If-Match` and `If-None-Match` --
@@ -732,7 +738,17 @@ The server's one answer to both questions
   only in the line about a stored file the store did not write and in the
   line about the file system failing the store, each by the file's path
   inside the tenant's directory (0049) -- and never evidence: Data's
-  limits, formancy.ai-data 0023.
+  limits, formancy.ai-data 0023. A request to the model that passed every
+  check adds `model`: the kind, as the server's table names it, the user
+  part's length and how it ended, and the provider's status where it gave
+  one; never what was asked, what the model answered or what the provider
+  said of an error (0084). A request whose body went with a client gone
+  while its token was checked is answered `bad-request` where its token is,
+  so it is one event too.
+- **Whose model.** The embedder's, given to `createReportServer` with the
+  completer its composition root built; the server writes the briefing by
+  the kind and reads none a request carries, and the container gives none
+  (0084).
 
 ## 8.13 The code's own rules
 

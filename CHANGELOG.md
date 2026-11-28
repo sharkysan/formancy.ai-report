@@ -10,6 +10,53 @@ later.
 
 ## Unreleased
 
+**An author's builder can ask a model through Report's own server, which
+writes the briefing and asks the completer its embedder gives**
+([0084](docs/decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md)).
+report-ai's `askThrough` needed a host's server that writes the briefing by
+the kind, reads none a page sends and compares the digest with its own
+(0085), and every host had to write one. `createReportServer` now takes
+`model: { provider, model, completer, rateLimit? }`, the completer the
+embedder's composition root builds over its provider's SDK with the key it
+keeps, in formancy's server-core's `Completer` shape, so that a completer
+formancy's adapters make fits. Two routes: `GET /v1/model` says the model,
+or none -- a 200, `provider` and `model` both `null`, since none is how a
+deployment ships -- and the digest of each briefing; `POST /v1/model/complete`
+takes `{ kind, user, briefing }` and asks under report-ai's
+`modelBriefing` for the kind, a `system` in the body never read, answering
+the model's text, the provider's decline, or a refusal of its own:
+`model-not-configured` 404, `unknown-request-kind` and `request-empty` 400,
+`briefing-differs` 409 for a page of another release, `request-too-large`
+413 past report-ai's `MAX_MODEL_REQUEST_BYTES` of the body as sent,
+`model-rate-limited` 429 past ten a minute per person, counted after the
+token beside the per-address limit, `model-truncated` and
+`model-unavailable` 502, `model-timed-out` 504 after `MODEL_TIMEOUT_MS`,
+300 s, chosen and not measured, and `model-cancelled` 499 for a client
+gone, whose completer is told at once. Only authors ask: `model.read` and
+`model.ask` are an author's actions alone, so whoami lists them for an
+author. The trail's event for a request to the model gains `model`, the
+kind, the user part's length and how it ended, and the provider's status
+where it gave one; never the text, the answer or the provider's words.
+report-client gains `model()` and `completeModel(request, turn?)`, the
+`complete` report-ai's `askThrough` takes: `askThrough(reports.completeModel)`
+is the `AskModel` a builder's host gives its editor; it throws a refusal,
+its sentence the run's reason. The container gives the server no model,
+reads no model setting, stops on `FORMANCY_REPORT_MODEL_PROVIDER`,
+`FORMANCY_REPORT_MODEL_API_KEY` and `FORMANCY_REPORT_MODEL` as on any
+setting it does not read, and answers `GET /v1/model` none, until formancy
+releases its providers' adapters. The endpoint is narrowed, not closed: an
+author can still ask the model anything under Report's briefing, which the
+capacity, the limit, the size, the time and the trail bound and record.
+report-server now depends on report-ai, and through it on report-core and
+`@formancy/expressions`, for the briefing table, and its image copies
+both, the corpus's and the runtime's manifests beside them, and installs
+and builds by production dependencies, since pnpm runs no script where a
+package report-ai's suite takes is missing. Besides: a request with a body
+whose client went while its token was checked is answered 400
+`bad-request` where its token is, and so is one event in the trail, where
+Fastify's reader waited for the body for good and the request was neither
+answered nor recorded, on the draft slice's routes too.
+
 **A coding agent can render a report with sample data and read what its
 PDF prints, page by page, through `@formancy/report-mcp`'s new
 `render_check`**

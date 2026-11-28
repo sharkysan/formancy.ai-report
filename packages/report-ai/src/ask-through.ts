@@ -11,14 +11,15 @@ import type { AskModel, AskTurn } from './turn/ask.js'
  * The host gives `complete`: it sends one request -- its kind, its user part
  * and the digest of the briefing the page reads the answer against -- to
  * wherever its model is, and resolves with what came back. The briefing
- * itself never travels. What the host's server does with it is the host's
- * to build, and owed: it writes the system part from `modelBriefing` by the
- * kind, reads no system part a page sent, and refuses a digest that is not
- * its own briefing's, so that a page and a server of different versions
- * refuse rather than brief a model one way and read its answer another.
- * Nothing here holds a server to that; Report's own server's route is a
- * later record's (0084, to come). Nothing here reaches the network, reads a
- * setting or knows a provider; the host's `complete` does all three.
+ * itself never travels. What the server does with it is owed: it writes the
+ * system part from `modelBriefing` by the kind, reads no system part a page
+ * sent, and refuses a digest that is not its own briefing's, so that a page
+ * and a server of different versions refuse rather than brief a model one
+ * way and read its answer another. Report's own server does all three
+ * (0084), and report-client's `completeModel` is a `complete` that asks it;
+ * a host's own server owes the same, and nothing here holds it to that.
+ * Nothing here reaches the network, reads a setting or knows a provider;
+ * the host's `complete` does all three.
  */
 
 /** What a page sends a host's server: never the briefing, only which one, by its kind and its digest. */

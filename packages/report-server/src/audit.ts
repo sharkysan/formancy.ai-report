@@ -119,6 +119,8 @@ export function auditRequests(app: FastifyInstance, options: AuditOptions | unde
       identified: identity !== undefined,
       tenant: identity === undefined ? null : auditReference(key, 'tenant', identity.tenant),
       actor: identity === undefined ? null : auditReference(key, 'actor', identity.tenant, identity.subject),
+      // The model's route's account of what it asked, set before it answers, and never a string of the request.
+      ...(request.modelAsked === undefined ? {} : { model: request.modelAsked }),
     }
     try {
       await sink(event)

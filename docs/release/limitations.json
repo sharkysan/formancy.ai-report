@@ -1951,7 +1951,7 @@
       ]
     },
     "0046": {
-      "reviewed": "sha256:ccb898160639468828855b0d343580ea55d136a62541005f09876ed95cd2cf42",
+      "reviewed": "sha256:87257c130bc160eaed53c4c0b26245372589a6bb77007b869caf37e4cf318c9c",
       "limitations": [
         {
           "area": "server",
@@ -2149,7 +2149,7 @@
       ]
     },
     "0049": {
-      "reviewed": "sha256:c569a3b2a81d6cf75729e284ddaa81125553758cef16ab4a1c21f451a3dab9b6",
+      "reviewed": "sha256:0198f1d8708fde317d20c5255caf776e502fe83d1e1a4fd3f760da4d75504935",
       "limitations": [
         {
           "area": "server",
@@ -3634,8 +3634,64 @@
         }
       ]
     },
+    "0084": {
+      "reviewed": "sha256:1e1cb57af856cd0155d8a64cbc9295fb5207bd8525fd417d21db931cb659bc78",
+      "limitations": [
+        {
+          "area": "server",
+          "says": "Report's container asks no model: its composition root gives the server none and reads no model setting, FORMANCY_REPORT_MODEL_PROVIDER, FORMANCY_REPORT_MODEL_API_KEY or FORMANCY_REPORT_MODEL set on it stops it at start, and an operator of the image cannot give its builders a model until formancy releases its providers' adapters in a package of their own.",
+          "heldBy": "packages/report-server/src/settings.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "An embedder who gives the server a model writes its completer over its provider's SDK itself, and what that SDK reads from the environment -- a base URL, an organisation, a second credential, a log level -- is the embedder's to find and override."
+        },
+        {
+          "area": "server",
+          "says": "The model's endpoint is narrowed, not closed: the briefing is the server's, but an author can ask the model anything under it and read the answer, which the author's capacity, ten requests a minute per person, the body's 256 KiB, 300 seconds and the trail bound and record and do not prevent; nothing caps what it costs but the provider's own limits.",
+          "heldBy": "packages/report-server/src/model-route.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "The model's per-person limit is counted in the process's memory, for the 5,000 people who asked last, and starts again with the process, and a request refused for want of the author's capacity counts against its person too."
+        },
+        {
+          "area": "server",
+          "says": "The server waits 300 seconds for a model's answer, MODEL_TIMEOUT_MS, a choice not measured against any provider, so a long answer a provider would have finished is cut and answered 504 model-timed-out, and a completer that ignores its cancellation runs on after it, paid for.",
+          "heldBy": "packages/report-server/src/model-route.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A page whose report-ai is of another release than the server's is refused 409 briefing-differs on every request to the model, until the two are of one release.",
+          "heldBy": "packages/report-server/src/model-route.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "The audit event of a request to the model carries a member of its own, model, its kind, the user part's length and how it ended, which a collector reading the trail by its shape meets.",
+          "heldBy": "packages/report-server/src/audit.test.ts"
+        },
+        {
+          "area": "server",
+          "says": "A request with a body whose client went while its token was checked is recorded as 400 bad-request, the sentence for a request that could not be read, though it was its client that went.",
+          "heldBy": "packages/report-server/src/audit.test.ts"
+        },
+        {
+          "area": "release",
+          "says": "@formancy/report-server now installs @formancy/report-ai, @formancy/report-core and @formancy/expressions, for the table of briefings it asks a model under, whether or not it is given a model."
+        },
+        {
+          "area": "release",
+          "says": "The server's image now copies the corpus's and the runtime's manifests, which it neither installs nor builds, and selects by production dependencies, so a workspace package added to report-ai's suite needs its manifest copied there too.",
+          "heldBy": "packages/report-server/src/dockerfile.test.ts"
+        },
+        {
+          "area": "testing",
+          "says": "No provider is asked anywhere: every suite's completer and the install gate's are scripted, and the model's port is formancy's server-core's shape by reading, held to it by no test."
+        }
+      ]
+    },
     "0085": {
-      "reviewed": "sha256:0bb429b5b2e9b0424704a721017afab3e58e55ff58e0a5b03f9f45bd7c276211",
+      "reviewed": "sha256:3fe55b8321cca1cad6e0a2642b7c96b0ba942258a9ad7f498a334176b5303ae1",
       "limitations": [
         {
           "area": "editing",
@@ -3688,7 +3744,7 @@
         },
         {
           "area": "server",
-          "says": "A host whose server asks the model writes `askThrough`'s `complete` itself, and that server must write the system part from `modelBriefing` by the kind and refuse a briefing digest that is not its own, since Report's own server answers no request of a model yet."
+          "says": "A host whose own server asks the model writes `askThrough`'s `complete` itself, and that server must write the system part from `modelBriefing` by the kind and refuse a briefing digest that is not its own, as Report's server does since 0084, and nothing holds a host's own to that."
         },
         {
           "area": "release",

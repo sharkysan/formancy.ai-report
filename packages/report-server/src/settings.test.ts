@@ -99,6 +99,23 @@ describe('readSettings', () => {
       'https://host.example',
     )
   })
+
+  // The container has no model of its own until formancy releases its
+  // providers' adapters (0084): an operator who set a model's provider, key
+  // or model on it would otherwise start a server without the model they
+  // believe they gave it. Formancy's own names, which a later release here
+  // may read, stop it as any other unread setting does.
+  test('refuses a model’s provider, key and model, which the container does not read', () => {
+    const model = { FORMANCY_REPORT_MODEL_PROVIDER: 'anthropic', FORMANCY_REPORT_MODEL_API_KEY: 'env:MODEL_KEY', FORMANCY_REPORT_MODEL: 'a-model' }
+    expect(problems({ ...configured, ...model })).toEqual(
+      Object.keys(model)
+        .sort()
+        .map(
+          (name) =>
+            `${name} is not a setting this server reads: its settings are listed in packages/report-server/README.md, and a variable a secret reference names is one outside FORMANCY_REPORT_, such as HOST_SECRET.`,
+        ),
+    )
+  })
 })
 
 describe('the identity key (formancy.ai-data 0014, 0059)', () => {

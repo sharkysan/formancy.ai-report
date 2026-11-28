@@ -596,6 +596,28 @@ refused (formancy.ai-data 0101). The
 image is built from the repository and not published; its base layer's
 packages are read by no guard here.
 
+### A model asked through the server: narrowed, not closed
+
+An embedder who gives Report's server a model pays for what its authors
+ask: the server writes the briefing by the kind, reads none a request
+carries, and refuses a page of another release by its digest, but the user
+part is the author's, and an author can ask the model anything under
+Report's briefing and read the answer. The author's capacity, ten requests
+a minute per person, the body's bound, `MODEL_TIMEOUT_MS` and the trail
+bound and record that, and do not prevent it; there is no spending cap but
+the provider's own. The count lives in the process, for the 5,000 people
+who asked last, as the rest of its limit does. The completer is the
+embedder's own, over its provider's SDK, until formancy releases its
+adapters, so what that SDK reads from the environment is the embedder's to
+find, and the port's shapes are formancy's server-core's by reading, held to
+them by no test. The timeout is chosen, 300 s, not measured against any
+provider; a completer that does not listen to its cancellation runs on
+after the 504, paid for. What a request carries -- the template's words,
+where they stand, the language's words so far -- leaves for that provider
+under its terms
+([0084](../decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md),
+[0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
+
 ### A draft kept on the server: every revision, and who saved it
 
 The server keeps every revision of every draft and prunes none, so a

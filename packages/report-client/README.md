@@ -4,7 +4,8 @@ Formancy Report's client for its server: what a host's page, or its own
 server, calls to keep a template's draft and the images it declares on
 [`@formancy/report-server`](../report-server/README.md). It lists the
 tenant's templates, reads a template's draft, saves one from the version
-it was opened at, and keeps and reads an image by its digest, through the
+it was opened at, keeps and reads an image by its digest, and asks the
+server's model, through the
 routes report-server-core's `ROUTES` names, by their own keys, so a route
 renamed there does not compile here. No framework and no Node: the DOM's
 globals and no `@types/node`, so a `node:` import does not compile, and
@@ -12,7 +13,8 @@ the install gate bundles what it exports for a browser. The server it
 talks to is decision
 [0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)'s;
 the draft it keeps there, and this client, decision
-[0049](../../docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)'s.
+[0049](../../docs/decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)'s;
+the model, decision [0084](../../docs/decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md)'s.
 
 ## Save and reopen a draft
 
@@ -69,27 +71,62 @@ written, and `mine.refusal.revision` is the revision that stands.
   where they are not a SHA-256's. `readImage` answers the bytes and the
   media type they were kept as.
 
-Each answers an **`Answered<T>`**: `{ ok: true, value }`, the route's
+- **`model()`** -- whether the server asks a model: `{ provider, model,
+  briefings }`, the first two `null` for none, and the digest of each
+  briefing it asks under, by kind.
+- **`completeModel(request, turn?)`** -- the `complete` report-ai's
+  `askThrough` takes: it sends `{ kind, user, briefing }` as that object's
+  JSON and nothing else, so the body is as long as report-ai's
+  `requestBytes` says and the server's limit is set in the same bytes, and
+  hands a turn's cancellation to fetch. It resolves the model's text or the
+  provider's decline, and throws a refusal, below. A property, never a
+  method that needs the client, so a host passes `reports.completeModel`
+  as it is.
+
+Each but `completeModel` answers an **`Answered<T>`**: `{ ok: true, value }`, the route's
 answer as report-server-core's wire types say -- `TemplateList`, `Draft`,
 `DraftSaved`, `ImageKept`, `StoredImage` -- or `{ ok: false, status,
 refusal }`, a `ServerRefusal`: a code `REFUSALS` holds, its fixed sentence,
 and the field one of the four carries. Narrowing on `code` gives the field.
 This package exports `createReportClient`, `ReportClientOptions`,
-`ReportClient` and `Answered`, and no wire type: a host that names one
+`ReportClient`, `Answered` and `ModelTurn`, the shape of report-ai's
+`AskTurn` it takes, and no wire type: a host that names one
 imports it from `@formancy/report-server-core`, and `ReportDefinition` and
 `AssetMediaType` from `@formancy/report-spec`, where each is defined.
 
+## Ask the server's model
+
+```ts
+import { askThrough } from '@formancy/report-ai'
+const offered = await reports.model()
+if (!offered.ok || offered.value.provider === null) throw new Error('this server asks no model')
+const ask = askThrough(reports.completeModel) // the AskModel a builder's host gives its editor
+```
+
+The install gate runs these lines from the packed packages, against the
+packed server made with a scripted completer, in the server's host, and
+they are held to it (`scripts/readme-example.test.mjs`). `ask` is the
+`AskModel` report-ai's runs take, `translateMissing` among them, and a
+builder's host gives its editor; the server writes the briefing by the
+kind, compares the digest `askThrough` sends with its own, and asks the
+completer its embedder gave, for an author alone. Where `model()` says
+none, the host draws nothing that asks.
+
 ## What it throws
 
-A refusal the API gives is answered, never thrown: a stale save, an
+A refusal the API gives is answered, never thrown -- a stale save, an
 expired token, a report the format refuses and an image not kept are each
-the host's to show. Thrown:
+the host's to show -- but by `completeModel`, whose caller is report-ai's
+run: it throws the refusal, its fixed sentence the error's message, which
+the run ends unreachable with, and the `Answered` it came in as the error's
+`cause`. Thrown:
 
 - **An answer that is not the API's** -- a status outside 2xx whose body is
   no refusal `REFUSALS` holds as its own (a gateway's page, an inherited
   name such as `toString`, one of the four without its field), a 2xx whose
   body is no JSON object, an image under a media type no image asset is, or
-  under none. The `Error` names the route by its pattern --
+  under none, and a model's answer that is neither a text nor a decline.
+  The `Error` names the route by its pattern --
   `GET /v1/templates/:template/draft` -- and the status, never the id or
   the digest the request carried.
 - **What the host gave that no request could carry as it means it** -- a

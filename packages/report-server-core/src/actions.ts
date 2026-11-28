@@ -5,9 +5,10 @@ import type { ReportIdentity } from './identity.js'
  *
  * Three capacities, which the operator gives to the host's roles in the
  * server's settings, and one table of actions, each with the capacities that
- * may take it. A route that takes an action is to ask `can` with it, so two
- * routes cannot disagree about one action; no route takes one yet, and
- * whoami, which takes none, lists exactly what `can` would allow. No
+ * may take it. A route that takes an action asks `can` with it, through
+ * its use case, so two routes cannot disagree about one action -- the
+ * draft slice's (0049) and the model's (0084) do -- and whoami, which
+ * takes none, lists exactly what `can` would allow. No
  * capacity implies another: a deployment where one person authors and
  * publishes gives one role both.
  *
@@ -56,6 +57,18 @@ export const ACTIONS = Object.freeze({
   'policy.read': row('publisher', 'admin'),
   /** Set who may render and download a template. */
   'policy.set': row('admin'),
+  /**
+   * Be told whether the server asks a model, which, and the digest of each
+   * briefing it asks under: what a builder reads before it draws anything
+   * that asks one (0084).
+   */
+  'model.read': row('author'),
+  /**
+   * Ask the server's model one of Report's requests, under the briefing
+   * the server writes: authoring, as a draft's save is, and paid for by
+   * the operator (0084).
+   */
+  'model.ask': row('author'),
 })
 
 export type Action = keyof typeof ACTIONS

@@ -10,11 +10,13 @@ import { crossOrigin, originsProblem } from './cors.js'
 import { registerDraftRoutes } from './drafts.js'
 import { StoredRecordError, StoreFileSystemError } from './file-store.js'
 import type { ReportVerifier } from './identity.js'
+import { modelProblem, registerModelRoutes } from './model.js'
+import type { ReportServerModel } from './model.js'
 import { plainPath } from './paths.js'
 import { clientAddress, trustedProxiesProblem } from './proxies.js'
 import { DEFAULT_RATE_LIMIT, rateLimitProblem } from './rate-limit.js'
 import type { RateLimit } from './rate-limit.js'
-import { closingUnread } from './unread.js'
+import { carriesBody, closingUnread } from './unread.js'
 
 export interface ReportServerOptions {
   /**
@@ -54,12 +56,25 @@ export interface ReportServerOptions {
   trustedProxies?: readonly string[]
   /** The origins whose pages may call the API, by formancy.ai-data 0060's rule (cors.ts). Absent, none. */
   origins?: readonly string[]
+  /**
+   * The model an author's builder asks through `POST /v1/model/complete`
+   * (0084): its provider and its model, by the names `GET /v1/model` says,
+   * the completer the embedder's composition root built over its
+   * provider's SDK, and how often a person may ask it, 10 a minute unless
+   * `rateLimit` says otherwise. Absent, there is none, and `GET /v1/model`
+   * says so; the container's composition root gives none.
+   */
+  model?: ReportServerModel
 }
 
 declare module 'fastify' {
   interface FastifyRequest {
     /** Who is asking, once the API's preParsing hook verified the token; absent before, and for a request that carried none. */
     identity?: ReportIdentity
+  }
+  interface FastifyContextConfig {
+    /** The refusal a body past the route's `bodyLimit` is answered with: a route that reads a body names its own. */
+    tooLarge?: 'report-too-large' | 'image-too-large' | 'request-too-large'
   }
 }
 
@@ -140,7 +155,8 @@ function bearer(request: FastifyRequest): string | undefined {
 
 /**
  * Report's server (0046): `GET /health`, `GET /v1/whoami`, the draft
- * slice's routes (0049, drafts.ts), and nothing else. Every API route
+ * slice's routes (0049, drafts.ts), the model's (0084, model.ts), and
+ * nothing else. Every API route
  * verifies the host's token before its body is read, and a request without
  * a verified identity and its tenant is the one 401.
  */
@@ -164,6 +180,7 @@ export async function createReportServer(options: ReportServerOptions): Promise<
     rateLimitProblem(limit),
     auditKeyProblem,
     loggerProblem(options.logger),
+    modelProblem(options.model),
   ]) {
     if (problem !== undefined) throw new Error(problem)
   }
@@ -173,6 +190,17 @@ export async function createReportServer(options: ReportServerOptions): Promise<
     publisher: frozen(options.roles.publisher),
     admin: frozen(options.roles.admin),
   })
+  // A copy, so a model changed after it was checked is never asked unchecked.
+  const given = options.model
+  const model: ReportServerModel | undefined =
+    given === undefined
+      ? undefined
+      : Object.freeze({
+          provider: given.provider,
+          model: given.model,
+          completer: given.completer,
+          ...(given.rateLimit === undefined ? {} : { rateLimit: Object.freeze({ ...given.rateLimit }) }),
+        })
 
   const logger = options.logger
   const app = Fastify({
@@ -309,6 +337,12 @@ export async function createReportServer(options: ReportServerOptions): Promise<
       const identity = await authenticate(request)
       if (identity === undefined) return closingUnread(request, reply).code(401).header('www-authenticate', 'Bearer').send(REFUSALS.unauthenticated)
       request.identity = identity
+      // A body whose client went while its token was checked went with it:
+      // Node destroyed the request, and Fastify's reader, which comes next,
+      // would wait for it for good, so the request would be neither
+      // answered nor in the trail. It is answered here, to nobody, as a
+      // request that could not be read; nothing of it was.
+      if (request.raw.destroyed && carriesBody(request)) return reply.code(400).send(REFUSALS['bad-request'])
       return undefined
     })
 
@@ -324,6 +358,7 @@ export async function createReportServer(options: ReportServerOptions): Promise<
     })
 
     registerDraftRoutes(api, { store, roles })
+    registerModelRoutes(api, { model, roles })
   })
 
   return app

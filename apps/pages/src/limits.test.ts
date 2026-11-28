@@ -185,7 +185,9 @@ describe('what the start page says Formancy Report does not do yet', () => {
 
   // "No changes described in words in the builders" is true while neither
   // builder asks a model anything -- no published package but report-ai
-  // takes report-ai, the builders among them -- and report-ai asks a model
+  // takes report-ai, the builders among them, but report-server, which
+  // takes it for the briefings it asks its embedder's model under, by
+  // REQUEST_KINDS' kinds alone (0084) -- and report-ai asks a model
   // for a language's missing words and nothing else: its REQUEST_KINDS,
   // read from its built dist, is the translation alone (0085), and holds
   // no request for a change a person describes -- an `edit`, or any kind
@@ -196,11 +198,13 @@ describe('what the start page says Formancy Report does not do yet', () => {
   // translate one. They are read from its built dist too, so a prompt
   // added fails here until the sentence is read again. A package that
   // asked a model through code of its own is review's.
-  test('says no change is described in words in the builders while report-ai asks for missing words alone, no other package takes it, and report-mcp offers the prompts the sentence names', () => {
+  test('says no change is described in words in the builders while report-ai asks for missing words alone, no package but the server takes it, and report-mcp offers the prompts the sentence names', () => {
     expect(inputs.packages).toEqual(expect.arrayContaining(['@formancy/report-ai', '@formancy/report-mcp']))
     expect(REQUEST_KINDS).toEqual(['translation'])
     expect(Object.keys(PROMPTS).sort()).toEqual(['translate_a_report', 'write_a_report'])
-    expect(inputs.packages.filter((name) => name !== '@formancy/report-ai' && Object.hasOwn(declared(name), '@formancy/report-ai'))).toEqual([])
+    expect(inputs.packages.filter((name) => name !== '@formancy/report-ai' && Object.hasOwn(declared(name), '@formancy/report-ai'))).toEqual([
+      '@formancy/report-server',
+    ])
   })
 
   // "No consistent read from Formancy Data" is true while the one package

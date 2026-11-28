@@ -1492,6 +1492,69 @@ edit refuses it by the session's own rule, and the answer, held, is
 proposed again with no new turn. Where the model is, its key and its
 provider are the host's. A host's server owes the rest: to take the
 request's kind and its user part, write the briefing itself by the kind,
-and compare the digest it is sent with its own; nothing here holds it to
-that, and Report's own server's route is 0084's, a record still to come
+and compare the digest it is sent with its own
 ([0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
+Report's own server does all three, and 6.24 is that request's way to its
+model.
+
+## 6.24 A model's turn, from the builder to the completer
+
+```
+a builder's host: GET /v1/model through report-client's model(), as an author
+   │  { provider, model, briefings }; none is provider and model null, a 200,
+   │  and the host draws nothing that asks
+   ▼
+the run (6.23): askChecked ──▶ askThrough(reports.completeModel)    report-ai
+   ├─ the prompt's system part not report-ai's briefing for its kind, or its
+   │  body past MAX_MODEL_REQUEST_BYTES ──▶ refused; nothing sent
+   ▼
+completeModel: POST /v1/model/complete, { kind, user, briefing } as JSON and
+   │  nothing else, the turn's cancellation handed to fetch    report-client
+   ▼
+6.16's hooks: the path, the per-address limit, the origin, the token, before
+   │  any body is read
+   ├─ the client gone while its token was checked, its body with it ──▶ 400
+   │  bad-request, to nobody; nothing read, nothing asked
+   ├─ JSON alone, up to MAX_MODEL_REQUEST_BYTES ──▶ 413 request-too-large, 415
+   ├─ preHandler: the person's count, the token's tenant and subject
+   │       past model.rateLimit, 10 a minute ──▶ 429 model-rate-limited
+   ▼
+askModel (report-server-core), nothing asked until the last:
+   ├─ can(identity, 'model.ask', policy) ── no ──▶ 403 forbidden
+   ├─ a model the embedder gave ── no ──▶ 404 model-not-configured
+   ├─ the kind, one the briefing table holds as its own ── no ──▶ 400
+   │  unknown-request-kind (constructor and __proto__ among them)
+   ├─ a user part with something in it ── no ──▶ 400 request-empty
+   ├─ the digest, the table's for the kind ── no ──▶ 409 briefing-differs
+   ▼
+the embedder's completer: { system: report-ai's briefing, user: as sent }
+   │  a system part in the body never read
+   ├─ the client's response closes before the answer ──▶ the completer told
+   │  to cancel; 499 model-cancelled, which nobody reads
+   ├─ MODEL_TIMEOUT_MS, 300 s ──▶ the completer told to cancel; 504
+   │  model-timed-out
+   ├─ refused ──▶ 200 { declined }: the run ends on its turn
+   ├─ truncated ──▶ 502 model-truncated; unavailable, thrown or no
+   │  completion ──▶ 502 model-unavailable, the provider's status in the log
+   ▼
+200 { text } ──▶ the run's reader and proposal (6.23)
+   ▼
+one audit event: model.ask, the status, the outcome's code, and model: the
+kind, the user part's length and how it ended, the provider's status where
+it gave one; never a string of the request or the answer
+```
+
+The server writes the briefing and pays for the answer, so it decides both
+what is asked and who may ask: the system part is report-ai's for the
+kind, from the table report-server builds once from report-ai's
+`modelBriefing` and `briefingDigest`, and the digest the page sends beside
+the request is compared with the table's before the completer is asked, so
+a page of another release is refused rather than read against another
+briefing. An ending is answered at once, whether or not the completer
+listens, and outranks whatever it answers to the cancellation it is told
+of; an answer that came first is kept
+([0084](../decisions/0084-a-model-is-asked-through-the-host-and-reports-server-asks-the-completer-its-embedder-gives-under-the-briefing-it-writes.md)).
+The per-address limit counts the route before any token, as everywhere, and
+the per-person one after it, so a forged token spends nobody's budget. The
+container's composition root gives no model, so the image answers
+`GET /v1/model` none and a request to complete 404.

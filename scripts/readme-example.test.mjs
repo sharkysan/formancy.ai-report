@@ -161,6 +161,28 @@ describe('the client\'s README, "Save and reopen a draft"', () => {
   })
 })
 
+describe('the client\'s README, "Ask the server\'s model"', () => {
+  // A reader copies it into a builder's host whose server asks its model
+  // (0084), so every line of it is a line the install gate runs, from the
+  // packed client and report-ai against the packed server, made with a
+  // scripted completer, in the server's host
+  // (scripts/install-fixture/server.ts): an example that drifted from what
+  // the packages export, or from how the AskModel is made, would compile
+  // nowhere a reader could see it fail.
+  test('is code the install gate runs, line for line', () => {
+    const readme = readFileSync(join(root, 'packages/report-client/README.md'), 'utf8').replaceAll('\r\n', '\n')
+    const lines = exampleLines(readme, "Ask the server's model")
+    const consumer = new Set(
+      readFileSync(join(root, 'scripts/install-fixture/server.ts'), 'utf8')
+        .replaceAll('\r\n', '\n')
+        .split('\n')
+        .map((line) => line.trim()),
+    )
+    expect(lines?.length).toBeGreaterThan(3)
+    expect(lines?.filter((line) => !consumer.has(line))).toEqual([])
+  })
+})
+
 describe('the Word writer\'s README, "Write a report as a Word file"', () => {
   // A reader copies it into a host that hands a person a report to go on
   // writing in (0068). The getting-started guide writes no Word file, so

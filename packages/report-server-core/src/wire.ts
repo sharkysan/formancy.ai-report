@@ -29,6 +29,8 @@ export const ROUTES = Object.freeze({
   'PUT /v1/templates/:template/draft': 'draft.save',
   'PUT /v1/assets/:digest': 'asset.keep',
   'GET /v1/assets/:digest': 'asset.read',
+  'GET /v1/model': 'model.read',
+  'POST /v1/model/complete': 'model.ask',
 } as const)
 
 export type Route = keyof typeof ROUTES
@@ -153,6 +155,38 @@ export interface ImageKept {
   readonly digest: string
 }
 
+/**
+ * `GET /v1/model`: the model this server asks, by the names its embedder
+ * gave it, or none, both `null` -- none is an answer (formancy.ai 0183) --
+ * and, either way, the digest of the briefing it asks each kind under,
+ * `sha256:` and 64 lower-case hexadecimal digits of its UTF-8, by kind
+ * (0084).
+ */
+export type ServerModel =
+  | { readonly provider: string; readonly model: string; readonly briefings: { readonly [kind: string]: string } }
+  | { readonly provider: null; readonly model: null; readonly briefings: { readonly [kind: string]: string } }
+
+/**
+ * `POST /v1/model/complete`'s body, as a page sends it (0085, 0084): the
+ * kind of request, one of report-ai's `REQUEST_KINDS`; the user part; and
+ * the digest of the briefing the page reads the answer against, never the
+ * briefing itself, which the server writes. Sent as this object's JSON, as
+ * it is, so that its length is report-ai's `requestBytes`, the measure the
+ * route's limit is set in.
+ */
+export interface ModelRequest {
+  readonly kind: string
+  readonly user: string
+  readonly briefing: string
+}
+
+/**
+ * What `POST /v1/model/complete` answers with 200: the model's text, for
+ * the page to read and check, or the reason the provider refused the
+ * request in its response rather than in its text (formancy.ai 0158).
+ */
+export type ModelCompletion = { readonly text: string } | { readonly declined: string }
+
 const refusal = <Code extends string>(code: Code, message: string) => Object.freeze({ code, message })
 
 /**
@@ -168,7 +202,10 @@ const refusal = <Code extends string>(code: Code, message: string) => Object.fre
  * that arrives while the server closes, which quotes nothing either. The
  * draft slice's refusals are the same: a template's content, an id or a
  * digest the request carried is never in a sentence, and the four that
- * answer with a field of their own are `ServerRefusal`'s.
+ * answer with a field of their own are `ServerRefusal`'s. The model's
+ * routes' (0084) quote neither the request nor the provider: what a model
+ * was asked, what it answered and what its provider said of an error are
+ * no refusal's.
  */
 export const REFUSALS = Object.freeze({
   unauthenticated: refusal('unauthenticated', 'A valid host token is required.'),
@@ -205,6 +242,19 @@ export const REFUSALS = Object.freeze({
   ),
   'image-refused': refusal('image-refused', 'This image is not one this server keeps; the reason listed with this refusal says why.'),
   'digest-mismatch': refusal('digest-mismatch', 'The digest in this path is not the SHA-256 of this body.'),
+  'model-not-configured': refusal('model-not-configured', 'This server was given no model to ask.'),
+  'unknown-request-kind': refusal('unknown-request-kind', 'This request names no kind of request Formancy Report makes of a model.'),
+  'request-empty': refusal('request-empty', 'This request carries no text to ask a model: its user part is missing or blank.'),
+  'briefing-differs': refusal(
+    'briefing-differs',
+    'The briefing this request names is not the one this server asks a model under for its kind, so the page and the server are of different releases; nothing was asked.',
+  ),
+  'request-too-large': refusal('request-too-large', 'This request is larger than a request to a model may be.'),
+  'model-rate-limited': refusal('model-rate-limited', 'Too many requests to the model came from this person; wait a minute and ask again.'),
+  'model-truncated': refusal('model-truncated', 'The model’s answer reached its length limit and was cut off, so it was not used.'),
+  'model-unavailable': refusal('model-unavailable', 'The model could not be asked: its service was not reached, or answered with an error.'),
+  'model-timed-out': refusal('model-timed-out', 'The model did not answer in the time this server waits for an answer, so the request was abandoned.'),
+  'model-cancelled': refusal('model-cancelled', 'The request was abandoned before the model answered, because whoever asked went away.'),
 })
 
 export type RefusalCode = keyof typeof REFUSALS
