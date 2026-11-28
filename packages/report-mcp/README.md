@@ -65,7 +65,7 @@ client's configuration gives the bin two settings, both or neither:
 | Setting | What it is |
 | --- | --- |
 | `FORMANCY_REPORT_URL` | Report's server's base URL, `http:` or `https:`, with no credentials, query, fragment or trailing slash, as report-client takes one; it follows no redirect |
-| `FORMANCY_REPORT_TOKEN` | A secret reference to the person's token at their host, never the token: `env:NAME`, a variable outside `FORMANCY_REPORT_`, read once when the bin starts; or `file:/absolute/path`, read again before every request to the server, its one line ending taken off |
+| `FORMANCY_REPORT_TOKEN` | A secret reference to the person's token at their host, never the token: `env:NAME`, a variable outside `FORMANCY_REPORT_` that holds a bearer token, read once when the bin starts; or `file:/absolute/path`, on Windows from a drive or a share, read again before every request to the server, its one line ending taken off |
 
 The token is the person's who runs the agent, as their host's identity
 provider issues it, with the tenant claim the server's operator maps and
@@ -93,7 +93,7 @@ why.
 | `whoami` | report-client's `whoami()`: who the server takes the token's holder to be -- subject, tenant, roles -- and the capacities and actions the operator's role policy gives them, and whether `draft.save`, which `save_draft` needs, is among them |
 | `list_templates` | the tenant's templates, each by its id with its newest draft's revision and title |
 | `read_draft` | a template's newest draft: its report, its version `{ revision, digest }`, which `save_draft` takes as `from`, who saved it, and the report's hash, which `apply_commands` takes as `expectedHash`; a draft of another format, or whose report this release's validator refuses, is said as such |
-| `save_draft` | a report judged first as `validate_report` judges it and sent only where that is `ok`, as the template's next draft: from `from`, the version it replaces, with `If-Match`, or with no `from` as its first, with `If-None-Match: *`; a save from a draft somebody has saved over since is refused `draft-changed`, `standing` the revision that stands, nothing written. The server's own refusals -- an id that is not the template's, an image it does not keep, a role that does not save -- come back by their codes, with what to do; it keeps no image and never publishes |
+| `save_draft` | a report judged first as `validate_report` judges it and sent unless it holds what an agent can fix -- the validator's errors, `MAX_REPORT_BYTES`, an error of its own, a language's other than `word-missing` -- as the template's next draft; a draft whose languages still lack words is saved, and the answer's `lacking` names each such language, how many words it lacks and, in `forPerson`, the payment part's, which a person writes. It is sent from `from`, the version it replaces, with `If-Match`, or with no `from` as its first, with `If-None-Match: *`; a save from a draft somebody has saved over since is refused `draft-changed`, `standing` the revision that stands, nothing written. The server's own refusals -- an id that is not the template's, an image it does not keep, a role that does not save -- come back by their codes, with what to do; it keeps no image and never publishes |
 | `render_check` | the report rendered as a host renders it: report-spec's validator, the runtime's `resolveReport` with the `data`, `parameters`, `locale`, `timeZone` and `mode` given, a final render unless `preview` is asked for, and the renderer's `renderPdf`; then the PDF read back with pdfjs-dist 6.4.299, the corpus's pin, its runs joined into lines by the corpus's `pageLines` rule: `{ rendered, pages: [{ page, lines }], warnings, manifest }`, or the first refusal by its package's codes. Each image or font the report or its data names comes in `assets` as `{ asset, digest, mediaType, base64 }`, held to its digest before anything resolves. The report is held to `MAX_REPORT_BYTES`, the data to the runtime's `MAX_DETAIL_ROWS` and `MAX_STRING_LENGTH`, the PDF to `MAX_CHECK_PAGES`, 40, and the answer to `MAX_ANSWER_BYTES`, the report's own bound, refused whole past it. The PDF is never answered |
 
 Every answer is one envelope, `{ ok, summary, data }`, as text for the
@@ -120,7 +120,7 @@ the rule report-ai's request reads too.
 `describeFormat`, `checkReport`, `listCommands`, `applyCommands` and
 `renderCheck` are the tools as plain functions from JSON to JSON, and
 `whoAmI`, `listTemplates`, `readDraft` and `saveDraft` the server's, each
-of a report-client; `createReportMcpServer({ client? })` is the server,
+of the one method of a report-client it asks; `createReportMcpServer({ client? })` is the server,
 to connect to a transport of the host's, the four registered where a
 client is given; `TOOL_DEFINITIONS`, `SERVER_TOOLS`, `MCP_ROUTES` and
 `PROMPTS` are what a client is told and asked.
@@ -133,9 +133,10 @@ the install gate's MCP host does (`scripts/install-fixture/mcp-globals.d.ts`).
 
 No tool keeps an image or maps a font, so a report that declares an
 image the server does not keep is refused `asset-not-kept` until a person
-adds it in a builder; `save_draft` sends only what `validate_report`
-answers ok, so a draft a render would refuse -- a language just added,
-its words not yet written -- is a person's to save; and no tool publishes
+adds it in a builder; `save_draft` saves a draft whose languages still
+lack words, so a draft it saved may still be refused a render in such a
+language until somebody writes them, the payment part's being a
+person's; and no tool publishes
 ([the roadmap](../../docs/roadmap.md)). The four have asked report-server
 in the suites' process and the install gate's alone, through no
 gateway or identity provider of a host's. `render_check`

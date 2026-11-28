@@ -75,8 +75,10 @@ export const TOOL_DEFINITIONS = {
     'and again whenever save_draft is refused draft-changed.',
   save_draft:
     'Save a report as a template’s next draft on Report’s server, as the person whose token this server holds. It runs validate_report first ' +
-    'and sends nothing that call would not answer ok: the validator’s errors, a report past MAX_REPORT_BYTES, or a diagnostic error, its ' +
-    'own or a declared language’s. Pass from, the { revision, digest } read_draft or the last save_draft answered, to replace that ' +
+    'and sends nothing with what you can fix: the validator’s errors, a report past MAX_REPORT_BYTES, a diagnostic error of its own, or a ' +
+    'declared language’s error other than word-missing. A draft whose languages still lack words is saved, and the answer names each ' +
+    'such language and, in forPerson, the words of the payment part, which a person writes: ask the person for those, and never write ' +
+    'them yourself. Pass from, the { revision, digest } read_draft or the last save_draft answered, to replace that ' +
     'draft; leave it out for a template not yet saved. A save from a draft that is no longer the newest -- somebody saved since -- is ' +
     'refused draft-changed with the revision that stands, and writes nothing: read the draft again and make the change on it. It ' +
     'keeps no image and maps no font, so a report that declares an image the server does not keep is refused asset-not-kept. It ' +

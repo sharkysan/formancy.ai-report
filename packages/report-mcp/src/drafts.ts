@@ -19,12 +19,12 @@
  * publishes, and the routes they ask are `MCP_ROUTES`.
  */
 import type { Answered, ReportClient } from '@formancy/report-client'
-import { DRAFT_FORMAT, isRevision } from '@formancy/report-server-core'
+import { DRAFT_FORMAT, isRevision, REFUSALS } from '@formancy/report-server-core'
 import type { Action, Draft, DraftSaved, DraftVersion, RefusalCode, Route, ServerRefusal, TemplateSummary, WhoAmI } from '@formancy/report-server-core'
-import { isDigest, reportHash, validateReport } from '@formancy/report-spec'
-import { TOKEN_SETTING } from './settings.js'
-import { invalid, judged, plural } from './tools.js'
-import type { ToolResult } from './tools.js'
+import { isDigest, isIdentifier, reportHash, validateReport } from '@formancy/report-spec'
+import { TOKEN_SETTING, TokenUnavailable } from './settings.js'
+import { invalid, judgedForSave, plural } from './tools.js'
+import type { Lacking, ToolResult } from './tools.js'
 
 /**
  * Every route the tools here ask, by `ROUTES`' own keys, so that a route
@@ -42,8 +42,13 @@ export const MCP_ROUTES = Object.freeze([
 
 type McpRoute = (typeof MCP_ROUTES)[number]
 
-/** What the client answered, or why nothing the API answers came back: what it threw, in its own sentence. */
-type Asked<T> = Answered<T> | { readonly ok: 'unanswered'; readonly why: string }
+/**
+ * What the client answered, or why nothing the API answers came back --
+ * what it threw, in its own sentence -- and whether anything was sent:
+ * nothing, where the token could not be had, or not known, where a
+ * request went out and no answer of the API came back.
+ */
+type Asked<T> = Answered<T> | { readonly ok: 'unanswered'; readonly why: string; readonly sent: 'nothing' | 'unknown' }
 
 /** A code Node gives a failure of the network, as `ECONNREFUSED`: what alone is said of one. */
 const NETWORK_CODE = /^[A-Z][A-Z0-9_]*$/
@@ -66,21 +71,50 @@ function whyOf(error: unknown): string {
   return 'the request ended in a throw of what is no error'
 }
 
-/** `call`'s answer, or what it threw, said: report-client's own sentences quote no token and no id, and fetch is handed no token it would quote. */
+/**
+ * `call`'s answer, or what it threw, said: report-client's own sentences
+ * quote no token and no id, and fetch is handed no token it would quote. A
+ * token the bin's settings could not give is thrown before anything is
+ * sent, `TokenUnavailable`; anything else may have been sent.
+ */
 async function asking<T>(call: () => Promise<Answered<T>>): Promise<Asked<T>> {
   try {
     return await call()
   } catch (error) {
-    return { ok: 'unanswered', why: whyOf(error) }
+    return { ok: 'unanswered', why: whyOf(error), sent: error instanceof TokenUnavailable ? 'nothing' : 'unknown' }
   }
 }
 
 /** Where a save's answer is not known: whether it was written is not, and read_draft says. */
 const UNKNOWN_SAVE = 'Whether the draft was written is not known: call read_draft to see which revision stands before saving again.'
 
-/** Nothing the API answers came back to `route`: why, and nothing read into it. */
-function unanswered(route: McpRoute, why: string, then = 'Nothing was read into it.'): ToolResult {
+/**
+ * Nothing the API answers came back to `route`: where nothing was sent,
+ * said so; else why, `then` -- for a save, that whether it was written is
+ * not known -- and nothing read into it.
+ */
+function unanswered(
+  route: McpRoute,
+  { why, sent }: { readonly why: string; readonly sent: 'nothing' | 'unknown' },
+  then = 'Nothing was read into it.',
+): ToolResult {
+  if (sent === 'nothing') return { ok: false, summary: `Nothing was sent to Report’s server for ${route}: ${why}.`, data: { sent: false, route } }
   return { ok: false, summary: `No answer of report-server’s API came back to ${route}: ${why}. ${then}`, data: { answered: false, route } }
+}
+
+/**
+ * A template the format allows no report to be named by, refused before
+ * anything is sent, as the server refuses one (report-server-core's
+ * `template-id-invalid`): `..` and `.` are segments fetch resolves away,
+ * asking another route, and a lone surrogate no path carries.
+ */
+function notATemplate(): ToolResult {
+  const refusal = REFUSALS['template-id-invalid']
+  return {
+    ok: false,
+    summary: `Nothing was sent: refused ${refusal.code}, as the server refuses it. ${refusal.message} A template is named by its report’s id, as list_templates names it.`,
+    data: { sent: false, refusal },
+  }
 }
 
 /** `route` answered a 2xx that is not the wire type report-server-core says it answers: said, and nothing of it handed on. */
@@ -142,10 +176,10 @@ const SAVE: Action = 'draft.save'
  * role policy gives them, and whether `draft.save`, which save_draft needs,
  * is among them.
  */
-export async function whoAmI(client: ReportClient): Promise<ToolResult> {
+export async function whoAmI(client: Pick<ReportClient, 'whoami'>): Promise<ToolResult> {
   const route = 'GET /v1/whoami' satisfies McpRoute
   const answered = await asking(() => client.whoami())
-  if (answered.ok === 'unanswered') return unanswered(route, answered.why)
+  if (answered.ok === 'unanswered') return unanswered(route, answered)
   if (!answered.ok) return refusedBy(answered)
   const me: unknown = answered.value
   if (!isWhoAmI(me)) return unreadable(route, 'WhoAmI')
@@ -159,10 +193,10 @@ export async function whoAmI(client: ReportClient): Promise<ToolResult> {
 }
 
 /** The tenant's templates on Report's server, each by its id, with its newest draft's revision and title. */
-export async function listTemplates(client: ReportClient): Promise<ToolResult> {
+export async function listTemplates(client: Pick<ReportClient, 'listTemplates'>): Promise<ToolResult> {
   const route = 'GET /v1/templates' satisfies McpRoute
   const answered = await asking(() => client.listTemplates())
-  if (answered.ok === 'unanswered') return unanswered(route, answered.why)
+  if (answered.ok === 'unanswered') return unanswered(route, answered)
   if (!answered.ok) return refusedBy(answered)
   // report-client answers a 2xx only as the JSON object it holds, and throws any other body.
   const templates: unknown = (answered.value as unknown as Readonly<Record<string, unknown>>)['templates']
@@ -182,10 +216,11 @@ export async function listTemplates(client: ReportClient): Promise<ToolResult> {
  * another template, or whose report this release's validator refuses is
  * said as such: an agent that edited it would save what no builder opens.
  */
-export async function readDraft(client: ReportClient, template: string): Promise<ToolResult> {
+export async function readDraft(client: Pick<ReportClient, 'readDraft'>, template: string): Promise<ToolResult> {
   const route = 'GET /v1/templates/:template/draft' satisfies McpRoute
+  if (!isIdentifier(template)) return notATemplate()
   const answered = await asking(() => client.readDraft(template))
-  if (answered.ok === 'unanswered') return unanswered(route, answered.why)
+  if (answered.ok === 'unanswered') return unanswered(route, answered)
   if (!answered.ok) return refusedBy(answered)
   const draft: unknown = answered.value
   if (!isDraftOf(draft, template)) return unreadable(route, 'Draft')
@@ -211,17 +246,37 @@ function changed(status: number, refusal: ServerRefusal & { readonly code: 'draf
 }
 
 /**
- * A report saved as a template's next draft, as the person whose token
- * the client sends: judged first as validate_report judges it, and sent
- * only where that is `ok` -- never a report the validator, the size bound,
- * its own diagnostics or a declared language's refuse (formancy.ai 0056)
- * -- from `from`, the version of the draft it replaces, with `If-Match`,
- * or, with none, as the template's first, with `If-None-Match: *` (0049).
- * A save from a draft no longer the newest is refused `draft-changed`,
- * answered with the revision that stands. A save is never a publish.
+ * Each language a saved report still lacks words in, in a sentence: how
+ * many, that a render in it is refused until it has them, and those that
+ * stand in the payment part, which a person writes, so the agent asks the
+ * person rather than writing them (0039, 0085, 0088).
  */
-export async function saveDraft(client: ReportClient, template: string, report: unknown, from?: unknown): Promise<ToolResult> {
+function lackingSaid(lacking: readonly Lacking[]): string {
+  return lacking
+    .map(({ locale, missing, forPerson }) => {
+      const still = `${locale} still lacks ${plural(missing, 'word')}, and a render in ${locale} is refused until it has them`
+      if (forPerson.length === 0) return ` ${still}: translate them with apply_commands, or leave them for later.`
+      const words = forPerson.map(({ source }) => JSON.stringify(source)).join(', ')
+      return ` ${still}; of them, the payment part's ${words}, which a person writes: ask the person, and write none of it yourself.`
+    })
+    .join('')
+}
+
+/**
+ * A report saved as a template's next draft, as the person whose token
+ * the client sends: judged first by `judgedForSave`, and sent unless it
+ * holds what an agent can fix -- the validator's errors, the size bound,
+ * an error of its own, a declared language's other than a word missing
+ * (formancy.ai 0056) -- a draft whose languages lack words being saved,
+ * and each named with the words a person writes; from `from`, the version
+ * of the draft it replaces, with `If-Match`, or, with none, as the
+ * template's first, with `If-None-Match: *` (0049). A save from a draft no
+ * longer the newest is refused `draft-changed`, answered with the revision
+ * that stands. A save is never a publish.
+ */
+export async function saveDraft(client: Pick<ReportClient, 'saveDraft'>, template: string, report: unknown, from?: unknown): Promise<ToolResult> {
   const route = 'PUT /v1/templates/:template/draft' satisfies McpRoute
+  if (!isIdentifier(template)) return notATemplate()
   if (from !== undefined && !isVersion(from)) {
     return {
       ok: false,
@@ -230,18 +285,25 @@ export async function saveDraft(client: ReportClient, template: string, report: 
       data: { sent: false },
     }
   }
-  const { result, report: checked } = judged(report)
-  if (!result.ok || checked === undefined)
-    return { ok: false, summary: `Nothing was sent: save_draft sends only a report validate_report answers ok. ${result.summary}`, data: result.data }
+  const judged = judgedForSave(report)
+  if ('refused' in judged) {
+    const { summary, data } = judged.refused
+    return {
+      ok: false,
+      summary: `Nothing was sent: save_draft sends a report once nothing an agent can fix is left -- the validator's errors, MAX_REPORT_BYTES, an error of its own, a language's other than a word it lacks. ${summary}`,
+      data,
+    }
+  }
+  const { report: checked, lacking } = judged
   const answered = await asking(() => client.saveDraft(template, checked, from === undefined ? null : { revision: from.revision, digest: from.digest }))
-  if (answered.ok === 'unanswered') return unanswered(route, answered.why, UNKNOWN_SAVE)
+  if (answered.ok === 'unanswered') return unanswered(route, answered, UNKNOWN_SAVE)
   if (!answered.ok) return answered.refusal.code === 'draft-changed' ? changed(answered.status, answered.refusal) : refusedBy(answered)
   const saved: unknown = answered.value
   if (!isSavedAs(saved, template)) return unreadable(route, 'DraftSaved', UNKNOWN_SAVE)
   const { revision, digest } = saved
   return {
     ok: true,
-    summary: `Saved as revision ${String(revision)} of ${template}, as the person whose token this server was given. Save the next change from { revision, digest } as answered here.`,
-    data: { template, revision, digest },
+    summary: `Saved as revision ${String(revision)} of ${template}, as the person whose token this server was given. Save the next change from { revision, digest } as answered here.${lackingSaid(lacking)}`,
+    data: { template, revision, digest, lacking },
   }
 }

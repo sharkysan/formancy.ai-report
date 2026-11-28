@@ -153,12 +153,19 @@ describe('the settings, both or neither', () => {
 
   // What a setting may not be is refused at start, each by a sentence of
   // its own that quotes no value: a token pasted where its reference goes,
-  // a variable unset or the bin's own, a relative file, and a URL that
-  // carries a password. Started, the bin would answer every call refused.
+  // or after env: as though it were a variable's name, a variable unset or
+  // the bin's own, a variable's token no bearer header carries -- it is
+  // read once, so every request would be refused -- a relative file, and a
+  // URL that carries a password. Started, the bin would answer every call
+  // refused.
   test('stops on a setting it refuses, by a sentence that quotes no value', async () => {
+    const pasted = PLANTED.toUpperCase().replaceAll('-', '_')
     const refused: readonly (readonly [Readonly<Record<string, string>>, RegExp])[] = [
       [{ FORMANCY_REPORT_TOKEN: PLANTED }, /never the token itself/],
-      [{ FORMANCY_REPORT_TOKEN: 'env:HOST_TOKEN' }, /HOST_TOKEN, which is unset or empty/],
+      [{ FORMANCY_REPORT_TOKEN: 'env:HOST_TOKEN' }, /a variable that is unset or empty/],
+      [{ FORMANCY_REPORT_TOKEN: `env:${pasted}` }, /a variable that is unset or empty/],
+      [{ FORMANCY_REPORT_TOKEN: 'env:HOST_TOKEN', HOST_TOKEN: `${PLANTED}\n` }, /holds no bearer token/],
+      [{ FORMANCY_REPORT_TOKEN: 'env:HOST_TOKEN', HOST_TOKEN: `${PLANTED} second` }, /holds no bearer token/],
       [{ FORMANCY_REPORT_TOKEN: 'env:host-token' }, /upper case/],
       [{ FORMANCY_REPORT_TOKEN: 'env:FORMANCY_REPORT_URL' }, /holds a setting and never a token/],
       [{ FORMANCY_REPORT_TOKEN: `file:token.txt` }, /absolute path/],
@@ -171,6 +178,7 @@ describe('the settings, both or neither', () => {
       expect(written.join(''), JSON.stringify(env)).toMatch(said)
       // The token pasted where its reference goes is the commonest mistake, and the one a sentence that quoted it would publish.
       expect(written.join(''), JSON.stringify(env)).not.toContain(PLANTED)
+      expect(written.join(''), JSON.stringify(env)).not.toContain(pasted)
     }
     written = []
     process.exitCode = exitCode
@@ -200,7 +208,9 @@ describe('a token in a file', () => {
 
   // A file gone, empty, or holding what no bearer header carries sends
   // nothing, and the agent is told so by a sentence that names the
-  // setting, not the path, nor anything the file held.
+  // setting, not the path, nor anything the file held -- and of a save,
+  // that nothing was sent, where "not known whether it was written" would
+  // send the agent to read_draft, which meets the same token.
   test('that cannot be read, is empty, or holds what is no token sends nothing, and says so', async () => {
     const file = join(directory, 'token')
     const client = await start({ FORMANCY_REPORT_URL: AT, FORMANCY_REPORT_TOKEN: `file:${file}` })
@@ -208,11 +218,19 @@ describe('a token in a file', () => {
     const gone = await call(client, 'whoami')
     expect(gone.isError).toBe(true)
     expect(gone.structuredContent?.summary).toContain('The file FORMANCY_REPORT_TOKEN names could not be read')
+    expect(gone.structuredContent?.summary).toContain('Nothing was sent')
     expect(gone.structuredContent?.summary).not.toContain(directory)
+    const save = await call(client, 'save_draft', { template: 'invoice', report: emptyReport('invoice', 'Invoice', 'en') })
+    expect(save.structuredContent?.summary).toContain('Nothing was sent')
+    expect(save.structuredContent?.summary).not.toContain('not known')
     await writeFile(file, '\n')
     expect((await call(client, 'whoami')).structuredContent?.summary).toContain('is empty')
     await writeFile(file, `${PLANTED}\nsecond line`)
     expect((await call(client, 'whoami')).structuredContent?.summary).toContain('no bearer token')
+    const unusable = await call(client, 'save_draft', { template: 'invoice', report: emptyReport('invoice', 'Invoice', 'en') })
+    expect(unusable.structuredContent?.summary).toContain('no bearer token')
+    expect(unusable.structuredContent?.summary).toContain('Nothing was sent')
+    expect(unusable.structuredContent?.summary).not.toContain('not known')
     expect(asked).toEqual([])
   })
 })
@@ -235,6 +253,12 @@ describe('no token in any output', () => {
     const paths: readonly (readonly [() => Response | Promise<Response>, string, Record<string, unknown>])[] = [
       [() => Response.json(ME), 'whoami', {}],
       [() => Response.json(REFUSALS.unauthenticated, { status: 401 }), 'whoami', {}],
+      // A gateway's refusal under the API's own code, quoting the token in its sentence and in a key of its own.
+      [
+        () => Response.json({ code: 'unauthenticated', message: `invalid token ${PLANTED}`, echo: { authorization: `Bearer ${PLANTED}` } }, { status: 401 }),
+        'whoami',
+        {},
+      ],
       [() => new Response(`<html>Bad gateway: Bearer ${PLANTED}</html>`, { status: 502 }), 'list_templates', {}],
       [() => Promise.reject(new TypeError(`fetch failed for Bearer ${PLANTED}`, { cause: { code: 'ECONNREFUSED' } })), 'read_draft', { template: 'invoice' }],
       [() => Response.json({ ...REFUSALS['draft-changed'], revision: 4 }, { status: 412 }), 'save_draft', { template: 'invoice', report }],
@@ -249,9 +273,11 @@ describe('no token in any output', () => {
       }
     }
     expect(thrown).toEqual([])
-    expect(answers.map((each) => each.isError === true)).toEqual([false, true, true, true, true, false])
+    expect(answers.map((each) => each.isError === true)).toEqual([false, true, true, true, true, true, false])
     // A network that failed is said by its code, and never by what a fetch's message holds.
-    expect(answers[3]?.structuredContent?.summary).toContain('ECONNREFUSED')
+    expect(answers[4]?.structuredContent?.summary).toContain('ECONNREFUSED')
+    // The gateway's refusal is answered by its code's own sentence, as the server's would be.
+    expect(answers[2]?.structuredContent?.data).toEqual({ status: 401, refusal: REFUSALS.unauthenticated })
     expect(asked).toHaveLength(paths.length)
     expect(bearers().every((bearer) => bearer === `Bearer ${PLANTED}`)).toBe(true)
     expect(await told(client, answers)).not.toContain(PLANTED)

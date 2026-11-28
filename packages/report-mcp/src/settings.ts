@@ -14,15 +14,15 @@
  * commonest mistake is a token pasted where its reference goes, and a URL
  * may carry a password.
  */
-import { isAbsolute } from 'node:path'
-import { createReportClient } from '@formancy/report-client'
+import { posix, sep } from 'node:path'
+import { createReportClient, isBearerToken } from '@formancy/report-client'
 import type { ReportClient } from '@formancy/report-client'
 
 /** Every setting the bin reads, with what it is for: both, or neither. */
 export const SETTINGS = Object.freeze({
   FORMANCY_REPORT_URL: 'Report’s server’s base URL, http: or https:, with no credentials, query, fragment or trailing slash',
   FORMANCY_REPORT_TOKEN:
-    'a secret reference to the person’s token at their host: env:NAME, read once when the bin starts, or file:/absolute/path, read again before each request to the server',
+    'a secret reference to the person’s token at their host: env:NAME, read once when the bin starts, or file:/absolute/path -- on Windows a drive’s or a share’s -- read again before each request to the server',
 })
 
 /** The setting that names the server, and the one that names the token, each checked to be a key of SETTINGS. */
@@ -44,9 +44,33 @@ const ENV_NAME = /^[A-Z_][A-Z0-9_]*$/
 /** The prefix of this bin's own settings, and of report-server's: a variable under it holds a setting, never a token. */
 const PREFIX = 'FORMANCY_REPORT_'
 
+/** What a bearer token is, as report-client holds one to it. */
+const BEARER_SAID = 'letters, digits and - . _ ~ + /, with = only at its end, on one line'
+
 /** Why a token file gave no token, said without its path or anything it held. */
-export const TOKEN_FILE_UNREAD = `The file ${TOKEN_SETTING} names could not be read, so nothing was sent to Report’s server: the host’s own tool writes the person’s token there.`
-export const TOKEN_FILE_EMPTY = `The file ${TOKEN_SETTING} names is empty, so nothing was sent to Report’s server: the host’s own tool writes the person’s token there.`
+const TOKEN_FILE_UNREAD = `The file ${TOKEN_SETTING} names could not be read: the host’s own tool writes the person’s token there`
+const TOKEN_FILE_EMPTY = `The file ${TOKEN_SETTING} names is empty: the host’s own tool writes the person’s token there`
+const TOKEN_FILE_NO_BEARER = `The file ${TOKEN_SETTING} names holds no bearer token: ${BEARER_SAID}`
+
+/**
+ * A token the bin's settings could not give, thrown by the token function
+ * before report-client sends anything: so the tool that asked can say that
+ * nothing was sent, where a request that went out with no answer is not
+ * known to have been written.
+ */
+export class TokenUnavailable extends Error {}
+
+/**
+ * Whether `path` names one file wherever the bin runs, which a token's
+ * file must, since it is read again before every request: absolute on a
+ * POSIX system; on Windows, from a drive and its root, `C:\`, or a share,
+ * `\\server\share` -- not from the root alone, `\token`, which Node
+ * calls absolute and reads from whichever drive the bin runs on, nor from
+ * a drive alone, `C:token`, relative to that drive's current directory.
+ */
+export function isFilePath(path: string, windows = sep === '\\'): boolean {
+  return windows ? /^(?:[A-Za-z]:[\\/]|[\\/]{2}[^\\/])/.test(path) : posix.isAbsolute(path)
+}
 
 /**
  * The token `reference` names, as report-client asks for it before every
@@ -56,28 +80,32 @@ export const TOKEN_FILE_EMPTY = `The file ${TOKEN_SETTING} names is empty, so no
  */
 function tokenOf(reference: string, env: Environment, readFile: ReadFile): (() => string | Promise<string>) | string {
   if (reference.startsWith('env:')) {
+    // What follows env: is named in no sentence: a token pasted there in capitals is a name to ENV_NAME.
     const name = reference.slice('env:'.length)
     if (!ENV_NAME.test(name)) return `${TOKEN_SETTING} names a variable as env:NAME, its name in upper case, digits and underscores.`
     if (name.startsWith(PREFIX))
       return `${TOKEN_SETTING} names a variable under ${PREFIX}, which holds a setting and never a token: put the token in a variable outside it, such as HOST_TOKEN, or in a file, and name that.`
     const value = env[name]
-    if (value === undefined || value === '') return `${TOKEN_SETTING} names the variable ${name}, which is unset or empty.`
+    if (value === undefined || value === '') return `${TOKEN_SETTING} names a variable that is unset or empty.`
+    // Read once, so a token no request could carry is refused now rather than at every request.
+    if (!isBearerToken(value)) return `${TOKEN_SETTING} names a variable that holds no bearer token: ${BEARER_SAID}.`
     return () => value
   }
   if (reference.startsWith('file:')) {
     const path = reference.slice('file:'.length)
-    if (!isAbsolute(path))
-      return `${TOKEN_SETTING} names a file by its absolute path, file:/absolute/path: it is read again before each request, from wherever the bin then runs.`
+    if (!isFilePath(path))
+      return `${TOKEN_SETTING} names a file by its absolute path, file:/absolute/path, on Windows from a drive or a share: it is read again before each request, from wherever the bin then runs.`
     return async () => {
       let text: string
       try {
         text = await readFile(path)
       } catch {
         // Node's own error names the path, and a reader of the agent's answer need not.
-        throw new Error(TOKEN_FILE_UNREAD)
+        throw new TokenUnavailable(TOKEN_FILE_UNREAD)
       }
       const token = text.endsWith('\r\n') ? text.slice(0, -2) : text.endsWith('\n') ? text.slice(0, -1) : text
-      if (token === '') throw new Error(TOKEN_FILE_EMPTY)
+      if (token === '') throw new TokenUnavailable(TOKEN_FILE_EMPTY)
+      if (!isBearerToken(token)) throw new TokenUnavailable(TOKEN_FILE_NO_BEARER)
       return token
     }
   }

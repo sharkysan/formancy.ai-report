@@ -1,6 +1,8 @@
 import { createReportClient } from '@formancy/report-client'
 import type { ReportClient } from '@formancy/report-client'
-import { INVOICE, QUOTATION } from '@formancy/report-corpus'
+import { missingWords } from '@formancy/report-core'
+import type { MissingWord, MissingWords } from '@formancy/report-core'
+import { INVOICE, QUOTATION, STARTER_IMAGES } from '@formancy/report-corpus'
 import { draftTag, REFUSALS, ROUTES } from '@formancy/report-server-core'
 import { emptyReport, MAX_REPORT_BYTES, reportHash, validateReport } from '@formancy/report-spec'
 import type { ReportDefinition } from '@formancy/report-spec'
@@ -51,6 +53,27 @@ function report(title = 'Invoice', content: readonly unknown[] = [{ kind: 'text'
   const outcome = validateReport({ ...blank, regions: { ...blank.regions, body: [{ kind: 'text', id: 'note', content }] } })
   if (!outcome.valid) throw new Error(`the case's report is invalid: ${outcome.errors.map(({ code, path }) => `${code} ${path}`).join(', ')}`)
   return outcome.report
+}
+
+/** A word expression: it prints a string and holds a quote, so a language translates it. */
+const WORDS = '"Thank" + " you"'
+
+/** `report` held to the validator, as the case's own reports are. */
+function valid(report: unknown): ReportDefinition {
+  const outcome = validateReport(report)
+  if (!outcome.valid) throw new Error(`the case's report is invalid: ${outcome.errors.map(({ code, path }) => `${code} ${path}`).join(', ')}`)
+  return outcome.report
+}
+
+/** Keeps every image `report` declares on the case's server, as a person's builder keeps one, through a client the case does not record. */
+async function keepImagesOf(report: ReportDefinition): Promise<void> {
+  const builder = createReportClient({ server: server.at, token: () => server.sign() })
+  for (const { digest } of report.assets) {
+    const image = STARTER_IMAGES.find((each) => each.digest === digest)
+    if (image === undefined) throw new Error(`no starter image is kept under ${digest}`)
+    const kept = await builder.keepImage(image.bytes, image.digest, image.mediaType)
+    if (!kept.ok) throw new Error(`the image ${digest} was refused: ${kept.refusal.code}`)
+  }
 }
 
 /** The version a save answered, as the next save names it. */
@@ -161,7 +184,7 @@ describe('save_draft', () => {
     const client = clientAs()
     const created = await saveDraft(client, 'invoice', report())
     expect(created.ok).toBe(true)
-    expect(created.data).toEqual({ template: 'invoice', revision: 1, digest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/) as unknown })
+    expect(created.data).toEqual({ template: 'invoice', revision: 1, digest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/) as unknown, lacking: [] })
     const replaced = await saveDraft(client, 'invoice', report('Changed'), versionOf(created))
     expect(replaced.ok).toBe(true)
     expect(dataOf<{ revision: number }>(replaced).revision).toBe(2)
@@ -169,19 +192,23 @@ describe('save_draft', () => {
     expect(dataOf<{ report: unknown }>(await readDraft(client, 'invoice')).report).toEqual(report('Changed'))
   })
 
-  // Saves only what was checked (0088, formancy.ai 0056): a report the
-  // validator refuses, one past the size a draft may have, one whose own
-  // diagnostics refuse every render and one a declared language's refuse
-  // are answered as validate_report answers them, and nothing is sent.
-  test('never sends a report the format refuses, or one validate_report would refuse', async () => {
+  // Saves only what was checked, of what an agent can fix (0088,
+  // formancy.ai 0056): a report the validator refuses, one past the size a
+  // draft may have, one whose own diagnostics refuse every render, and one
+  // with a language's error that is no word missing -- a translation that
+  // prints another type than its source -- are answered as validate_report
+  // answers them, and nothing is sent.
+  test('never sends a report with what an agent can fix: the validator’s errors, the size, its own errors, a language’s other than a word missing', async () => {
     const client = clientAs()
-    const french = dataOf<{ report: ReportDefinition }>(applyCommands(report(), [{ command: 'addLanguage', args: ['fr-CH'] }])).report
     const broken = report('Invoice', [{ kind: 'expression', expression: { cel: 'params.nope' } }])
+    const words = report('Invoice', [{ kind: 'expression', expression: { cel: WORDS } }])
+    const differs = valid({ ...words, translations: [{ locale: 'fr-CH', words: [], expressions: [{ cel: WORDS, expression: { cel: '1 + 2' } }] }] })
+    expect(checkReport(differs).summary).toContain('fr-CH')
     for (const [what, refused] of [
       ['no report', { reportSpecVersion: '9' }],
       ['past MAX_REPORT_BYTES', quotationOf(MAX_REPORT_BYTES + 1)],
       ['a render refused', broken],
-      ['a language’s render refused', french],
+      ['a translation that differs', differs],
     ] as const) {
       const checked = checkReport(refused)
       expect(checked.ok, what).toBe(false)
@@ -191,6 +218,57 @@ describe('save_draft', () => {
       expect(answer.summary, what).toContain('Nothing was sent')
     }
     expect(asked).toEqual([])
+  })
+
+  // A draft is unfinished by nature, and a language is translated word by
+  // word: a word missing refuses that language's render and no save. Gated
+  // on it, an agent that left the QR-bill's message to a person, as the
+  // translate prompt tells it, could never save the invoice, or would write
+  // French into the slip. Saved, and the answer names the word for the
+  // person to write.
+  test('saves the French invoice that lacks the slip’s message alone, and names that word for the person', async () => {
+    await keepImagesOf(INVOICE.report)
+    /** `report` with `locale` added and every word in `words` of it translated. */
+    const writing = (report: ReportDefinition, locale: string, words: (lacking: MissingWords) => readonly MissingWord[]): ReportDefinition => {
+      const added = dataOf<{ report: ReportDefinition }>(applyCommands(report, [{ command: 'addLanguage', args: [locale] }])).report
+      const steps = words(missingWords(added, locale)).map(({ kind, source }) =>
+        kind === 'word'
+          ? { command: 'translateWord', args: [locale, source, `${locale}:${source}`] }
+          : { command: 'translateExpression', args: [locale, source, { cel: source }] },
+      )
+      const translated = applyCommands(added, steps)
+      expect(translated.ok, locale).toBe(true)
+      return dataOf<{ report: ReportDefinition }>(translated).report
+    }
+    // French lacks the slip's message alone; Italian, whose person wrote the slip's words too, lacks nothing and is not named.
+    const french = writing(INVOICE.report, 'fr-CH', ({ rest }) => rest)
+    const report = writing(french, 'it-CH', ({ rest, paymentPart }) => [...rest, ...paymentPart])
+    const saved = await saveDraft(clientAs(), 'invoice', report)
+    expect(saved.ok).toBe(true)
+    expect(saved.data).toMatchObject({
+      template: 'invoice',
+      revision: 1,
+      lacking: [{ locale: 'fr-CH', missing: 1, forPerson: [{ kind: 'word', source: 'Rechnung ', at: '/paymentPart/message/0/text' }] }],
+    })
+    expect(saved.summary).toContain('"Rechnung "')
+    expect(saved.summary).toContain('ask the person')
+    expect(dataOf<{ report: unknown }>(await readDraft(clientAs(), 'invoice')).report).toEqual(report)
+  })
+
+  // A person saved a draft in a builder with a language not yet written;
+  // the agent asked to fix one word of the title would otherwise have to
+  // write that whole language first, or save nothing.
+  test('takes an agent’s one-word fix of a draft a person saved with a language unfinished', async () => {
+    const unfinished = dataOf<{ report: ReportDefinition }>(applyCommands(report(), [{ command: 'addLanguage', args: ['fr-CH'] }])).report
+    // The person's builder saves through a client of its own, which the case does not record.
+    const person = createReportClient({ server: server.at, token: () => server.sign() })
+    expect((await person.saveDraft('invoice', unfinished, null)).ok).toBe(true)
+    const read = dataOf<{ report: ReportDefinition; hash: string; revision: number; digest: string }>(await readDraft(clientAs(), 'invoice'))
+    const fixed = dataOf<{ report: ReportDefinition }>(applyCommands(read.report, [{ command: 'setTitle', args: ['Rechnung'] }], read.hash)).report
+    const saved = await saveDraft(clientAs(), 'invoice', fixed, { revision: read.revision, digest: read.digest })
+    expect(saved.ok).toBe(true)
+    expect(saved.data).toMatchObject({ revision: 2, lacking: [{ locale: 'fr-CH', forPerson: [] }] })
+    expect(saved.summary).toContain('fr-CH')
   })
 
   // Two people save from one draft: the second hears that someone saved
@@ -239,6 +317,23 @@ describe('save_draft', () => {
     expect(asked).toEqual([])
   })
 
+  // A template is named by a report's id, report-server-core's rule. Not
+  // held to it, `..` is one path segment that fetch's URL parser resolves
+  // away, asking GET /v1/draft, a route no tool means, and a lone
+  // surrogate throws from encodeURIComponent before anything is sent,
+  // which a save would answer as not known to be written. Refused here as
+  // the server refuses it, and nothing sent.
+  test('refuses a template that is no report id before anything is sent, as the server would', async () => {
+    for (const template of ['..', '.', `in${String.fromCharCode(0xd800)}valid`, '']) {
+      for (const answer of [await readDraft(clientAs(), template), await saveDraft(clientAs(), template, report())]) {
+        expect(answer.ok, JSON.stringify(template)).toBe(false)
+        expect(answer.data, JSON.stringify(template)).toEqual({ sent: false, refusal: REFUSALS['template-id-invalid'] })
+        expect(answer.summary, JSON.stringify(template)).toContain('Nothing was sent')
+      }
+    }
+    expect(asked).toEqual([])
+  })
+
   // What only the server knows of a save is its to refuse, by its code:
   // an id that is not the template's, an image it does not keep -- no tool
   // keeps one -- and a person whose roles do not save. Each said with what
@@ -269,6 +364,21 @@ describe('save_draft', () => {
       summary: `Refused rate-limited, 429: ${REFUSALS['rate-limited'].message}`,
       data: { status: 429, refusal: REFUSALS['rate-limited'] },
     })
+  })
+})
+
+describe('what a tool may ask', () => {
+  // Each tool is given the client's one method it asks, and nothing else:
+  // a tool that reached for another -- an image's keep or read -- would
+  // throw here, and would not compile (0088, MCP_ROUTES).
+  test('is each tool’s one method of the client, which it asks alone', async () => {
+    const me = { subject: SUBJECT, tenant: 'acme', roles: [], capacities: [], actions: [] }
+    expect((await whoAmI({ whoami: async () => ({ ok: true, value: me }) })).ok).toBe(true)
+    expect((await listTemplates({ listTemplates: async () => ({ ok: true, value: { templates: [] } }) })).ok).toBe(true)
+    const draft = { format: 1 as const, template: 'invoice', revision: 1, digest: `sha256:${'a'.repeat(64)}`, savedBy: SUBJECT, report: report() }
+    expect((await readDraft({ readDraft: async () => ({ ok: true, value: draft }) }, 'invoice')).ok).toBe(true)
+    const saved = { template: 'invoice', revision: 1, digest: draft.digest }
+    expect((await saveDraft({ saveDraft: async () => ({ ok: true, value: saved }) }, 'invoice', report())).ok).toBe(true)
   })
 })
 

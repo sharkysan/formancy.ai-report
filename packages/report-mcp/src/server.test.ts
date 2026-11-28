@@ -134,6 +134,9 @@ describe('the tools a client can see', () => {
     expect(TOOL_DEFINITIONS.read_draft).toContain('before changing a template')
     expect(TOOL_DEFINITIONS.save_draft).toContain('validate_report first')
     expect(TOOL_DEFINITIONS.save_draft).toContain('never publishes')
+    // A word a language lacks is saved and named, the payment part's for a person: told it refuses the save, an agent would translate the slip.
+    expect(TOOL_DEFINITIONS.save_draft).toContain('other than word-missing')
+    expect(TOOL_DEFINITIONS.save_draft).toContain('forPerson')
   })
 
   // validate_report checks what the validator, the draft's size and a
@@ -229,7 +232,8 @@ describe('the tools that ask Report’s server, through the protocol', () => {
     const report = emptyReport('memo', 'Memo', 'en')
     const created = (await client.callTool({ name: 'save_draft', arguments: { template: 'memo', report } })) as Answer
     expect(created.isError).toBeUndefined()
-    const version = created.structuredContent?.data as { revision: number; digest: string }
+    const { revision, digest } = created.structuredContent?.data as { revision: number; digest: string }
+    const version = { revision, digest }
     expect(version.revision).toBe(1)
     const read = (await client.callTool({ name: 'read_draft', arguments: { template: 'memo' } })) as Answer
     expect(read.structuredContent?.data).toMatchObject({ template: 'memo', ...version, hash: reportHash(report), report })
