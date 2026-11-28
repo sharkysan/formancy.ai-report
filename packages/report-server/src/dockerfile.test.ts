@@ -24,6 +24,8 @@ const read = (...path: string[]) => readFileSync(join(repo, ...path), 'utf8').re
 interface Manifest {
   name: string
   dependencies?: Record<string, string>
+  devDependencies?: Record<string, string>
+  peerDependencies?: Record<string, string>
 }
 
 const manifestOf = (directory: string) => JSON.parse(read('packages', directory, 'package.json')) as Manifest
@@ -40,15 +42,21 @@ function directoryOf(name: string): string {
   throw new Error(`no workspace package is called ${name}`)
 }
 
-/** Every workspace package directory `from` needs at run time, itself included, transitively. */
-function workspaceClosure(from: string): Set<string> {
+/**
+ * Every workspace package directory `from` names, itself included,
+ * transitively: what it needs at run time by default, and with `every`,
+ * what any of those names as a dependency of any kind as well.
+ */
+function workspaceClosure(from: string, every = false): Set<string> {
   const found = new Set<string>()
   const pending = [from]
   while (pending.length > 0) {
     const directory = pending.pop()
     if (directory === undefined || found.has(directory)) continue
     found.add(directory)
-    for (const [name, range] of Object.entries(manifestOf(directory).dependencies ?? {})) {
+    const manifest = manifestOf(directory)
+    const named = every ? { ...manifest.dependencies, ...manifest.devDependencies, ...manifest.peerDependencies } : (manifest.dependencies ?? {})
+    for (const [name, range] of Object.entries(named)) {
       // `workspace:` is what makes it this repository's; a published dependency needs no COPY.
       if (range.startsWith('workspace:')) pending.push(directoryOf(name))
     }
@@ -81,11 +89,31 @@ describe('the container build', () => {
     expect([manifests < install, install < sources]).toEqual([true, true])
   })
 
+  // pnpm refuses to run a script in a workspace where a package names a
+  // `workspace:` dependency of any kind that is not there: report-ai's
+  // suite takes the corpus, which takes the runtime, and without their
+  // manifests the image's build stopped on ERR_PNPM_WORKSPACE_PKG_NOT_FOUND
+  // (seen on 28 November 2026, with the build stage's commands run from a
+  // copy of what it copies). Their manifests are copied, early, and their
+  // sources are not: the install and the build select by production
+  // dependencies alone, `--filter-prod`, so nothing a suite takes is
+  // installed or built.
+  test('copies the manifest of every workspace package one it copies names, a suite’s among them, and selects by production dependencies', () => {
+    const named = [...workspaceClosure('report-server', true)].sort()
+    expect(named.filter((directory) => !instructions.includes(`COPY packages/${directory}/package.json packages/${directory}/`))).toEqual([])
+    const sources = instructions.filter((line) => /^COPY packages\/[\w-]+\/ /.test(line)).map((line) => line.split(' ')[1])
+    expect(sources.sort()).toEqual([...workspaceClosure('report-server')].map((directory) => `packages/${directory}/`).sort())
+    expect(instructions.find((line) => line.startsWith('RUN pnpm install'))).toContain('--filter-prod @formancy/report-server...')
+  })
+
   // A guard on the guard: a closure that silently came back empty, or
   // lost the server, would make the test above pass forever.
   test('reads the closure from the manifests', () => {
-    expect(workspaceClosure('report-server')).toEqual(new Set(['report-server', 'report-server-core', 'report-spec']))
+    expect(workspaceClosure('report-server')).toEqual(new Set(['report-ai', 'report-core', 'report-server', 'report-server-core', 'report-spec']))
     expect(workspaceClosure('report-server-core')).toEqual(new Set(['report-server-core', 'report-spec']))
+    expect(workspaceClosure('report-server', true)).toEqual(
+      new Set(['report-ai', 'report-core', 'report-corpus', 'report-runtime', 'report-server', 'report-server-core', 'report-spec']),
+    )
   })
 
   // SV-Q5: Node 26, whose permission model has a network scope the
@@ -113,7 +141,7 @@ describe('the container build', () => {
   test('is built with the licence in place', () => {
     expect(instructions).toContain('COPY LICENSE.md NOTICE tsconfig.base.json ./')
     expect(instructions).toContain('COPY scripts/sync-licenses.mjs scripts/')
-    expect(instructions).toContain('RUN pnpm --filter @formancy/report-server... build && node scripts/sync-licenses.mjs')
+    expect(instructions).toContain('RUN pnpm --filter-prod @formancy/report-server... build && node scripts/sync-licenses.mjs')
     expect(instructions).toContain('RUN pnpm --filter @formancy/report-server --prod deploy /app')
   })
 

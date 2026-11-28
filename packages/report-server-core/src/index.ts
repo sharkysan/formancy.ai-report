@@ -1,11 +1,25 @@
 export { ACTIONS, CAPACITIES, actionsOf, can, capacitiesOf } from './actions.js'
 export type { Action, Capacity, RolePolicy } from './actions.js'
 export type { Answer, RefusalAnswer } from './answer.js'
-export type { AuditEvent, AuditSink } from './audit.js'
+export type { AuditEvent, AuditSink, ModelAsked, ModelOutcome } from './audit.js'
 export { listTemplates, readDraft, saveDraft } from './drafts.js'
 export type { Asking, Precondition } from './drafts.js'
 export type { ReportIdentity } from './identity.js'
 export { keepImage, readImage } from './images.js'
+export { askModel, readModel } from './model.js'
+export type {
+  Cancellation,
+  Completer,
+  Completion,
+  CompletionPrompt,
+  DeploymentModel,
+  ModelAnswered,
+  ModelAsking,
+  ModelBriefing,
+  ModelBriefings,
+  ModelEnd,
+  ModelEnding,
+} from './model.js'
 export type { SaveOutcome, StoredDraft, StoredImage, TemplateStore } from './store.js'
 export {
   API_PREFIX,
@@ -24,10 +38,13 @@ export type {
   DraftVersion,
   Health,
   ImageKept,
+  ModelCompletion,
+  ModelRequest,
   Operation,
   Refusal,
   RefusalCode,
   Route,
+  ServerModel,
   ServerRefusal,
   TemplateList,
   TemplateSummary,

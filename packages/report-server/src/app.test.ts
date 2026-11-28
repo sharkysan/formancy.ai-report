@@ -83,10 +83,11 @@ describe('whoami', () => {
 
   // ROUTES is what a client compiles against and what the cross-origin
   // grant offers; an entry no route answers would be granted across
-  // origins and answered 404, and nothing else would notice. Whoami and the
-  // draft slice's five routes, each by the method and pattern it names.
+  // origins and answered 404, and nothing else would notice. Whoami, the
+  // draft slice's five routes and the model's two, each by the method and
+  // pattern it names, the model's whether or not the embedder gave one.
   test('answers every route ROUTES names', async () => {
-    expect(Object.keys(ROUTES)).toHaveLength(6)
+    expect(Object.keys(ROUTES)).toHaveLength(8)
     const listening = await server()
     for (const route of Object.keys(ROUTES)) {
       const [method = '', url = ''] = route.split(' ')

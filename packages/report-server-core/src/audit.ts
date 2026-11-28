@@ -31,6 +31,37 @@ export interface AuditEvent {
   readonly tenant: string | null
   /** The subject within its tenant, by keyed hash: `null` likewise. */
   readonly actor: string | null
+  /**
+   * For a request to the model that passed every check, so one the
+   * operator's key was spent on or would have been but for its asker
+   * leaving first: how much was asked and how it ended (0084). Absent for
+   * every other request, a model's refused before it was asked among them.
+   */
+  readonly model?: ModelAsked
+}
+
+/**
+ * How a request to the model ended: an answer, the provider's decline, an
+ * answer cut off at its output limit, a provider that could not be asked
+ * -- a completer that broke its contract among them -- the asker gone, or
+ * the server's time for an answer up.
+ */
+export type ModelOutcome = 'answered' | 'declined' | 'truncated' | 'unavailable' | 'cancelled' | 'timed-out'
+
+/**
+ * What the trail says of a request to the model, and all it says (0084,
+ * after formancy.ai 0165's `model.asked`): never the text that was sent,
+ * the model's answer, or what the provider said of an error, which can
+ * name the operator's account (formancy's SAFETY-ANALYSIS C3).
+ */
+export interface ModelAsked {
+  /** The kind, as the server's briefing table names it: one of the server's own words, not the request's. */
+  readonly kind: string
+  /** The user part's length in UTF-16 code units, as JavaScript counts a string: how much was asked at the operator's cost. */
+  readonly characters: number
+  readonly outcome: ModelOutcome
+  /** The provider's HTTP status, where it could not be asked and gave one: what an operator has to go on. */
+  readonly status?: number
 }
 
 /**

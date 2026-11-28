@@ -22,7 +22,7 @@ export type Answer<T> = { readonly ok: true; readonly status: 200 | 201; readonl
  */
 export type RefusalAnswer = {
   readonly ok: false
-  readonly status: 400 | 403 | 404 | 412 | 413 | 415 | 422 | 428
+  readonly status: 400 | 403 | 404 | 409 | 412 | 413 | 415 | 422 | 428 | 499 | 502 | 504
   readonly body: ServerRefusal
 }
 

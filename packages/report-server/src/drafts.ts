@@ -23,13 +23,6 @@ import type { Answer, Asking, Precondition, RefusalAnswer, ReportIdentity, RoleP
 import { ASSET_MEDIA_TYPES, MAX_ASSET_BYTES, MAX_REPORT_BYTES } from '@formancy/report-spec'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 
-declare module 'fastify' {
-  interface FastifyContextConfig {
-    /** The refusal a body past the route's `bodyLimit` is answered with: a route that reads a body names its own. */
-    tooLarge?: 'report-too-large' | 'image-too-large'
-  }
-}
-
 /**
  * What a save's headers say it stands on: `If-None-Match: *` alone, a
  * template not yet saved; `If-Match` alone holding exactly one tag a

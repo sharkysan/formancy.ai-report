@@ -3,11 +3,13 @@ import { EventEmitter } from 'node:events'
 import { request as httpRequest } from 'node:http'
 import { connect } from 'node:net'
 import type { AddressInfo, Socket } from 'node:net'
-import type { AuditEvent } from '@formancy/report-server-core'
+import { briefingDigest } from '@formancy/report-ai'
+import type { AuditEvent, Completer } from '@formancy/report-server-core'
 import Fastify from 'fastify'
 import { describe, expect, test } from 'vitest'
 import type { ReportServerOptions } from './app.js'
 import { auditReference, auditRequests, logAuditSink } from './audit.js'
+import type { ReportServerModel } from './model.js'
 import type { ReportVerifier } from './identity.js'
 import { eachCase } from './test-support.js'
 
@@ -235,6 +237,75 @@ describe('the audit trail', () => {
   })
 })
 
+describe('a request to the model', () => {
+  /** A completer that answers `text`, or fails as it was told, quoting the provider's words. */
+  const answering = (text: string): Completer => ({ complete: async () => ({ ok: true, text }) })
+  const unavailable: Completer = {
+    complete: async () => ({ ok: false, failure: 'unavailable', status: 401, cause: 'key sk-live-the-provider-said for account acme-billing' }),
+  }
+  const model = (completer: Completer): ReportServerModel => ({ provider: 'anthropic', model: 'a-model', completer })
+  const ask = (user: string, kind = 'translation') => ({
+    method: 'POST' as const,
+    url: '/v1/model/complete',
+    headers: { authorization: 'Bearer good', 'content-type': 'application/json' },
+    payload: JSON.stringify({ kind, user, briefing: briefingDigest('translation'), system: 'a system part the page wrote' }),
+  })
+
+  // The operator pays for every request, and the trail is where they see
+  // what was asked: the kind, how much and how it ended, and nothing of
+  // what was asked or answered, which is a template's words and a model's,
+  // written where the server's log goes (0084, formancy.ai 0165's
+  // `model.asked`).
+  test('is one event, its model member the kind, the length and how it ended, holding no string of the request or the answer', async () => {
+    const lines: string[] = []
+    const audited = await server({
+      model: model(answering('the model’s own words, Rechnung als Facture')),
+      logger: { stream: { write: (line) => void lines.push(line) } },
+    })
+    const user = '{"words":[{"key":"w1","source":"Rechnung"}]}'
+    await audited.inject(ask(user))
+    expect(events).toEqual([
+      {
+        at,
+        operation: 'model.ask',
+        status: 200,
+        outcome: 'ok',
+        identified: true,
+        tenant: auditReference(KEY, 'tenant', 'acme'),
+        actor: auditReference(KEY, 'actor', 'acme', 'u-1'),
+        model: { kind: 'translation', characters: user.length, outcome: 'answered' },
+      },
+    ])
+    const written = `${JSON.stringify(events)}${lines.join('')}`
+    for (const part of ['Rechnung', 'w1', 'Facture', 'model’s own', 'a system part', briefingDigest('translation')]) expect(written, part).not.toContain(part)
+  })
+
+  // A provider's words about an error can name the operator's account, so
+  // they go nowhere; its status is what an operator has to go on, in the
+  // event and in the line the log gives the failure.
+  test('records a provider’s status, and never its words, in the event or the log', async () => {
+    const lines: string[] = []
+    const audited = await server({ model: model(unavailable), logger: { stream: { write: (line) => void lines.push(line) } } })
+    await audited.inject(ask('{}'))
+    expect(events.map((event) => [event.status, event.outcome, event.model])).toEqual([
+      [502, 'model-unavailable', { kind: 'translation', characters: 2, outcome: 'unavailable', status: 401 }],
+    ])
+    expect(lines.some((line) => line.includes('the model could not be asked') && line.includes('"status":401'))).toBe(true)
+    const written = `${JSON.stringify(events)}${lines.join('')}`
+    for (const part of ['sk-live', 'acme-billing', 'the provider said']) expect(written, part).not.toContain(part)
+  })
+
+  // A request refused before it was asked spent nothing of the operator's:
+  // it is an event like any refusal, by its code, and has no model member,
+  // since there is nothing of a model's to say of it.
+  test('writes a request refused before it was asked by its code alone, with no model member', async () => {
+    const audited = await server({ model: model(answering('{}')) })
+    await audited.inject(ask('{}', 'edit'))
+    expect(events).toEqual([expect.not.objectContaining({ model: expect.anything() as unknown })])
+    expect(events.map((event) => [event.operation, event.status, event.outcome])).toEqual([['model.ask', 400, 'unknown-request-kind']])
+  })
+})
+
 describe('a client that leaves', () => {
   // A client whose connection closes while its route still runs gets no
   // answer, and Fastify runs no onResponse for it (formancy.ai-data
@@ -264,6 +335,46 @@ describe('a client that leaves', () => {
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect(events).toHaveLength(1)
     expect(events[0]).toMatchObject({ operation: 'whoami', identified: true })
+  })
+
+  // A body whose client went while its token was checked went with it:
+  // Node destroys the request, and Fastify's reader, which comes after
+  // the token, waited for it for good, so the request was neither answered
+  // nor in the trail. It is answered where its token is, to nobody, as a
+  // request that could not be read, and so recorded once.
+  test('is still one event when it carried a body and went while its token was checked', async () => {
+    let release: () => void = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    let arrived: () => void = () => {}
+    const asked = new Promise<void>((resolve) => (arrived = resolve))
+    const slow: ReportVerifier = async (token) => {
+      arrived()
+      await held
+      return verifyIdentity(token)
+    }
+    const audited = await server({ verifyIdentity: slow })
+    await audited.listen({ host: '127.0.0.1', port: 0 })
+    const { port } = audited.server.address() as AddressInfo
+    const closed = new Promise<void>((resolve) => audited.server.once('request', (_request, response) => response.once('close', () => resolve())))
+    const payload = '{"id":"invoice"}'
+    const request = httpRequest({
+      host: '127.0.0.1',
+      port,
+      method: 'PUT',
+      path: '/v1/templates/invoice/draft',
+      headers: { authorization: 'Bearer good', 'content-type': 'application/json', 'if-none-match': '*', 'content-length': Buffer.byteLength(payload) },
+    })
+    request.on('error', () => {})
+    request.end(payload)
+    await asked
+    request.destroy()
+    await closed
+    release()
+    for (let wait = 0; wait < 40 && events.length === 0; wait += 1) await new Promise((resolve) => setTimeout(resolve, 25))
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect(events.map(({ operation, status, outcome, identified }) => ({ operation, status, outcome, identified }))).toEqual([
+      { operation: 'draft.save', status: 400, outcome: 'bad-request', identified: true },
+    ])
   })
 })
 

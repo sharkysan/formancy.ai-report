@@ -1,7 +1,7 @@
 {
   "name": "@formancy/report-client",
   "version": "0.3.0",
-  "description": "Formancy Report's client for its server: lists a tenant's templates, reads and saves a template's draft from the version it was opened at, and keeps and reads the images a draft declares, over the fetch and the token a host gives it. No framework, no Node. Source-available, as every Formancy Report package.",
+  "description": "Formancy Report's client for its server: lists a tenant's templates, reads and saves a template's draft from the version it was opened at, keeps and reads the images a draft declares, and asks the server's model as report-ai's askThrough takes it, over the fetch and the token a host gives it. No framework, no Node. Source-available, as every Formancy Report package.",
   "keywords": [
     "formancy",
     "report",
@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
+    "@formancy/report-ai": "workspace:*",
     "@formancy/report-server": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",

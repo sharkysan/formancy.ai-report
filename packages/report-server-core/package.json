@@ -1,7 +1,7 @@
 {
   "name": "@formancy/report-server-core",
   "version": "0.3.0",
-  "description": "Formancy Report's server core: who may do what to a tenant's reports, as one actions table over the host's verified identity, the wire types its client compiles against, the audit port a server writes its trail through, and the use cases that decide a tenant's drafts and images over a store's port. No framework, no Node.",
+  "description": "Formancy Report's server core: who may do what to a tenant's reports, as one actions table over the host's verified identity, the wire types its client compiles against, the audit port a server writes its trail through, the use cases that decide a tenant's drafts and images over a store's port, and those that decide what an author's request asks the embedder's model, over a completer's port. No framework, no Node.",
   "keywords": [
     "formancy",
     "report",

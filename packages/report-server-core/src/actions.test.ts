@@ -44,8 +44,11 @@ describe('the actions table', () => {
 
   // The authoring half of R14: an author saves drafts and keeps images, a
   // publisher publishes, withdraws and reads what it publishes, an
-  // administrator sets who renders a template. Written out here, row by
-  // row, so a change to who may do what is a change to this test too.
+  // administrator sets who renders a template. An author alone asks the
+  // server's model, and alone is told whether there is one, since asking
+  // is authoring and the operator pays for every request (0084). Written
+  // out here, row by row, so a change to who may do what is a change to
+  // this test too.
   test('gives each capacity the actions R14 needs, and no more', () => {
     expect(ACTIONS).toEqual({
       'template.list': ['author', 'publisher', 'admin'],
@@ -59,6 +62,8 @@ describe('the actions table', () => {
       'version.restore': ['author'],
       'policy.read': ['publisher', 'admin'],
       'policy.set': ['admin'],
+      'model.read': ['author'],
+      'model.ask': ['author'],
     })
   })
 })
