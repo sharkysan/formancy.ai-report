@@ -89,7 +89,14 @@ and the field one of the four carries. Narrowing on `code` gives the field.
 The refusal is rebuilt from its code: the sentence is `REFUSALS`' own and
 the field the one that code carries, never the body's own sentence or any
 other key it held, which a gateway in front of the server may have filled
-with what the request carried, the token among it.
+with what the request carried, the token among it. The field is read as
+what the server writes there: each of `report-invalid`'s errors a code of
+report-spec's `REPORT_ERROR_CODES` with its path, its sentence and, where
+it is an identifier, its component's id, and nothing else of it;
+`asset-not-kept`'s assets identifiers; `image-refused`'s reason one of
+report-spec's image and SVG refusal codes or `not-an-image`; anything else
+is thrown as no answer of the API. An error's sentence is the validator's
+own about the report sent, and is not held further.
 This package exports `createReportClient`, `isBearerToken`,
 `ReportClientOptions`, `ReportClient` and `Answered`, and no wire type: a host that names one
 imports it from `@formancy/report-server-core`, and `ReportDefinition` and

@@ -168,6 +168,19 @@ describe('against report-server', () => {
     })
   })
 
+  // The reason the server gives an image it does not keep is one the client
+  // takes, so a host is answered the refusal and is not thrown at: held to
+  // report-spec's codes and the server's own 'not-an-image', a reason the
+  // server writes that the client did not know would be thrown (N12).
+  test('answers an image the server does not keep image-refused, with the reason it gives', async () => {
+    const text = new TextEncoder().encode('no image at all')
+    expect(await client().keepImage(text, assetDigest(text), 'image/png')).toEqual({
+      ok: false,
+      status: 422,
+      refusal: { ...REFUSALS['image-refused'], reason: 'not-an-image' },
+    })
+  })
+
   // A token expires while a person edits. The host's next token must be
   // the one the next request carries: a client that asked once would send
   // the expired one for good, and every save after it would be refused.
@@ -274,6 +287,77 @@ describe('against what is not report-server', () => {
     const lost = await client(stale).saveDraft('invoice', report(), null)
     expect(lost).toEqual({ ok: false, status: 412, refusal: { ...REFUSALS['draft-changed'], revision: 2 } })
     expect(JSON.stringify(lost)).not.toContain(token)
+  })
+
+  // A gateway that answered under one of the four fielded codes could put
+  // the token in the field itself. Each field is held to what the server
+  // writes there -- an error of report-spec's, its code one of
+  // REPORT_ERROR_CODES and nothing beside its code, path, message and
+  // component's id; an asset by an id; an image's reason one of
+  // report-spec's refusal codes -- and what is none is thrown as no answer
+  // of the API, quoting nothing (#116's re-review, N12).
+  test('holds each field a refusal carries to what the server writes there, so no token rides in it', async () => {
+    const token = 'eyJ-a-token-planted-in-a-field'
+    const thrown: readonly Record<string, unknown>[] = [
+      { ...REFUSALS['report-invalid'], errors: [{ code: token, path: '', message: 'm' }] },
+      { ...REFUSALS['report-invalid'], errors: [{ code: 'not-a-report', path: 7, message: 'm' }] },
+      { ...REFUSALS['report-invalid'], errors: [token] },
+      { ...REFUSALS['asset-not-kept'], assets: ['logo', token] },
+      { ...REFUSALS['image-refused'], reason: token },
+    ]
+    for (const body of thrown) {
+      const { fetch } = answering(() => Response.json(body, { status: 422 }))
+      const answer = await client(fetch)
+        .saveDraft('invoice', report(), null)
+        .then(
+          (answered) => answered,
+          (error: unknown) => error,
+        )
+      expect(answer, JSON.stringify(body)).toBeInstanceOf(Error)
+      expect((answer as Error).message, JSON.stringify(body)).not.toContain(token)
+    }
+    // An error held to its four members, the rest of it dropped.
+    const error = { code: 'not-a-report', path: '', message: 'This is no report.', componentId: 'intro' }
+    const { fetch } = answering(() =>
+      Response.json(
+        {
+          ...REFUSALS['report-invalid'],
+          errors: [
+            { ...error, echo: token },
+            { ...error, componentId: token },
+          ],
+        },
+        { status: 422 },
+      ),
+    )
+    const answered = await client(fetch).saveDraft('invoice', report(), null)
+    const { componentId: _componentId, ...withoutComponent } = error
+    expect(answered).toEqual({ ok: false, status: 422, refusal: { ...REFUSALS['report-invalid'], errors: [error, withoutComponent] } })
+    expect(JSON.stringify(answered)).not.toContain(token)
+  })
+
+  // Every code REFUSALS holds comes through the rebuild: answered as its
+  // fixed sentence, or, for a code that carries a field and was sent
+  // none, thrown -- never as the body sent it. A code a later release adds
+  // is read by the same rule; one that carries a field is read by FIELDS,
+  // which does not compile without it, and is listed here.
+  test('rebuilds every code REFUSALS holds, and quotes nothing else of the body', async () => {
+    const token = 'eyJ-a-token-planted-under-every-code'
+    const thrown: string[] = []
+    for (const code of Object.keys(REFUSALS) as (keyof typeof REFUSALS)[]) {
+      const { fetch } = answering(() => Response.json({ code, message: token, echo: token }, { status: 400 }))
+      const answer = await client(fetch)
+        .listTemplates()
+        .then(
+          (answered) => answered,
+          (error: unknown) => error,
+        )
+      if (answer instanceof Error) {
+        thrown.push(code)
+        expect(answer.message, code).not.toContain(token)
+      } else expect(answer, code).toEqual({ ok: false, status: 400, refusal: REFUSALS[code] })
+    }
+    expect(thrown.sort()).toEqual(['asset-not-kept', 'draft-changed', 'image-refused', 'report-invalid'])
   })
 
   // The rule a bearer token is held to before anything is sent, exported
