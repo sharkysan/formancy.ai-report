@@ -694,12 +694,12 @@ since the compared PDFs read alike for any word gap from 0.15 to
 
 **What an agent saves.** Given Report's server and a reference to the
 person's token, the MCP's four server tools ask it through report-client
-as that person, and send a save only once the checks pass
+as that person, and send a save once nothing an agent can fix is left
 ([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)):
 
 | Where | What holds it |
 |---|---|
-| The routes asked exactly `MCP_ROUTES`, none a version's; a save from `If-Match` or with `If-None-Match: *`; a report validate_report would refuse never sent; `draft-changed` answered with the revision that stands; a refusal by its code with what to do; an answer of another shape, a gateway's page and a lost save said and never read into -- against report-server itself through a recording fetch | `report-mcp/src/drafts.test.ts` |
+| The routes asked exactly `MCP_ROUTES`, none a version's; a save from `If-Match` or with `If-None-Match: *`; a report with what an agent can fix never sent, and one whose language lacks words saved, the payment part's named for the person; a template that is no report id refused before anything is sent; `draft-changed` answered with the revision that stands; a refusal by its code with what to do; an answer of another shape, a gateway's page and a lost save said and never read into -- against report-server itself through a recording fetch | `report-mcp/src/drafts.test.ts` |
 | Both settings or neither; a variable's token read once and a file's before each request; a setting refused at start in a sentence that quotes no value; a planted token in no answer, instruction or line the bin writes, on every path | `report-mcp/src/main.test.ts` |
 | Without a server the five and the instructions naming the four; with one the nine, their annotations, and a save, a read and a stale save through the protocol | `report-mcp/src/server.test.ts` |
 | report-client made in `settings.ts` alone, named for its types elsewhere, and the network named by no module | `report-mcp/src/composition.test.ts` |

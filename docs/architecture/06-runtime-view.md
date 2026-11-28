@@ -1514,26 +1514,31 @@ createReportMcpServer({ client }): the five and the four
    │
    ▼
 save_draft { template, report, from? }                drafts.ts
+   ├─ a template no report id ──▶ template-id-invalid; nothing sent
    ├─ from no version { revision, digest } ──▶ refused; nothing sent
-   ├─ validate_report would not answer ok -- the validator, MAX_REPORT_BYTES,
-   │  a diagnostic error of its own or a declared language's ──▶ its
+   ├─ what an agent can fix -- the validator, MAX_REPORT_BYTES, a diagnostic
+   │  error of its own, a language's other than word-missing ──▶ its
    │  verdict; nothing sent
+   ├─ a language that lacks words ──▶ sent all the same; named in the answer
    ▼
 report-client: token() ── env: the value read at start
    │                   └─ file: the file read now, its line ending off
-   │                        unread or empty ──▶ said, the setting named; nothing sent
-   ├─ no bearer token ──▶ report-client's fixed sentence; nothing sent
+   │                        unread, empty or no bearer token ──▶ said, the
+   │                        setting named; nothing sent
    ▼
 PUT /v1/templates/{template}/draft, If-Match: draftTag(from), or
 If-None-Match: * with no from; Authorization: Bearer <the token>  (6.16, 6.17)
    ├─ 412 draft-changed ──▶ the revision that stands, standing; nothing written:
    │                        read_draft, the change made again, saved from its version
-   ├─ another refusal ──▶ its status, its code, its sentence, and what to do
+   ├─ another refusal ──▶ its status, its code, REFUSALS' sentence rebuilt by
+   │                      report-client, and what to do
    ├─ no answer of the API, a network that failed ──▶ said, by report-client's
    │  sentence or Node's code; whether it was written not known
    ├─ a 2xx not a DraftSaved of this template ──▶ said; nothing of it handed on
    ▼
-{ template, revision, digest }: saved as the token's holder, savedBy its subject
+{ template, revision, digest, lacking }: saved as the token's holder, savedBy
+its subject; lacking each language still lacking words, the payment part's
+named for the person to write
 ```
 
 The agent saves as the person whose token the host gave it, and the

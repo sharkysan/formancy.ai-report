@@ -1,6 +1,6 @@
 # 0088 — An agent gets Report's checks over the Model Context Protocol, from a server of Report's own
 
-- **Status:** accepted for the tools that need nothing, the prompts and report-core's two derivations; its server half, the four tools that read and save a template's draft through report-client as the person whose token the host gives, and the two settings they ask with, built on 2026-11-28; a verdict's languages diagnosed from one diagnosis of the report, 2026-11-28; its render check is [0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)'s; an edit applied past the size bound answered as no error, 2026-11-27; a language's words in the payment part listed for a person and left out by the translate prompt, 2026-11-28; extends [0008](0008-edits-are-commands-and-a-refused-edit-changes-nothing.md); follows formancy.ai 0056 and 0112
+- **Status:** accepted for the tools that need nothing, the prompts and report-core's two derivations; its server half, the four tools that read and save a template's draft through report-client as the person whose token the host gives, and the two settings they ask with, built on 2026-11-28, and after its review the same day a save gated on what an agent can fix, a language that lacks words saved and its payment-part words named for a person, a refusal rebuilt from its code by report-client, and a template held to the id rule; a verdict's languages diagnosed from one diagnosis of the report, 2026-11-28; its render check is [0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)'s; an edit applied past the size bound answered as no error, 2026-11-27; a language's words in the payment part listed for a person and left out by the translate prompt, 2026-11-28; extends [0008](0008-edits-are-commands-and-a-refused-edit-changes-nothing.md); follows formancy.ai 0056 and 0112
 - **Date:** 2026-11-27
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -135,8 +135,17 @@
     save sends `If-None-Match: *` for no version and `If-Match` from the
     version given, as `draftTag` writes it; a report the validator refuses,
     one past `MAX_REPORT_BYTES`, one whose own diagnostics refuse a render
-    and one a declared language's refuse are answered as validate_report
-    answers them and never sent; a save from a version since replaced, and
+    and one with a language's error that is no word missing, a translation
+    of another type, are answered as validate_report answers them and
+    never sent; the French invoice, every word translated but the slip's
+    message, `'Rechnung '`, is saved, its answer naming that word for the
+    person, which failed first while the gate was validate_report's `ok`;
+    a draft a person saved in a builder with a language unfinished takes
+    an agent's one-word fix; a template that is no report id -- `..`,
+    `.`, a lone surrogate, nothing -- is refused `template-id-invalid`
+    before anything is sent, where `..` had asked `GET /v1/draft`; each
+    tool works given the one method of the client it asks, which its
+    parameter's type is; a save from a version since replaced, and
     a first save of a template that has a draft, are `draft-changed` with
     the revision that stands, and one from a version of a template with
     none with none standing, nothing written; a `from` that is no version is
@@ -159,17 +168,28 @@
     the other stops with one line naming both and quoting neither, exit 1;
     both register the four, asking the URL's server with the token a
     variable held at start, though the variable changes after; a token
-    pasted where its reference goes, a variable unset, misnamed or under
-    `FORMANCY_REPORT_`, a relative file and a URL with a password each stop
-    the bin by a sentence that quotes no value; a file's token is read
-    again before each request, its one line ending taken off; a file gone,
-    empty or holding no bearer token sends nothing and says so, naming the
-    setting and not the path; and a token planted in the file, carried by
-    every request, is in no answer, no instruction, no tool's description
-    and nothing written, on every path -- answered, refused 401, a
-    gateway's page that quotes it, a network failure whose message quotes
-    it, a save refused `draft-changed` and one saved -- a network failure
-    said by Node's code alone.
+    pasted where its reference goes, or in capitals after `env:`, a
+    variable unset, misnamed, under `FORMANCY_REPORT_` or holding no bearer
+    token, a relative file and a URL with a password each stop the bin by a
+    sentence that quotes no value; a file's token is read again before each
+    request, its one line ending taken off; a file gone, empty or holding
+    no bearer token sends nothing and says that nothing was sent, of a
+    save too, naming the setting and not the path; and a token planted in
+    the file, carried by every request, is in no answer, no instruction, no
+    tool's description and nothing written, on every path -- answered,
+    refused 401, a gateway's 401 under the API's code that quotes it in its
+    sentence and in a key of its own, a gateway's page that quotes it, a
+    network failure whose message quotes it, a save refused
+    `draft-changed` and one saved -- a network failure said by Node's code
+    alone. `src/settings.test.ts`: a token's file named, on POSIX, by an
+    absolute path, and on Windows by a drive and its root or a share,
+    never by the root alone or a drive alone.
+  - **A refusal rebuilt from its code.** `packages/report-client/src/client.test.ts`:
+    a 401 whose JSON body quotes a planted token in its sentence and in a
+    key of its own, and a 412 that quotes it beside its revision, are
+    answered with `REFUSALS`' fixed sentence and the one field the code
+    carries, the token in neither; `isBearerToken` the rule a request is
+    held to.
   - **The client's whoami.** `packages/report-client/src/client.test.ts`:
     `whoami()` against report-server answers the token's holder with the
     tenant, the roles, and the capacities and actions the policy gives
@@ -233,7 +253,17 @@
     read-only and the guard's rule that report-client is named for its
     types alone dropped, each caught by its case; and a pasted token quoted
     in the sentence that refuses it, which passed until the case that
-    refuses it looked for the token in what the bin wrote.
+    refuses it looked for the token in what the bin wrote. After #116's
+    review: the French invoice lacking the slip's message alone, and a
+    person's draft with a language unfinished, each refused while the gate
+    was validate_report's `ok`; `..` asking `GET /v1/draft`; a 401 whose
+    body quoted the token in its sentence and a key of its own handed on,
+    through report-client and through the MCP's answer; a save whose token
+    file was gone said not known to be written; a variable's token with a
+    line ending, and a token pasted in capitals after `env:`, which the
+    sentence quoted, each starting the bin or quoted; `isBearerToken` and
+    `isFilePath` before they were exported; and each tool given the one
+    method it asks, which did not compile while it took the whole client.
 
 ## Context
 
@@ -284,10 +314,10 @@ tools check before they act.**
     judge it: the validator's errors, which a save refuses; the report's
     size as report-spec measures `MAX_REPORT_BYTES`, the UTF-8 length of
     its JSON, past which a save refuses the body as `report-too-large`
-    before reading it; then `diagnose`'s, which gives the report's own and
-    each declared language's, each of the latter naming its language,
-    split by that name, so that nothing is diagnosed twice; and the
-    report's `reportHash`. What a save asks of the server's own state
+    before reading it; then report-core's `diagnoseByLanguage`, the
+    report's own diagnostics and each declared language's with what it
+    lacks, from one diagnosis of the report, so that nothing is diagnosed
+    twice; and the report's `reportHash`. What a save asks of the server's own state
     stays on the server, and the tool's description says so, as
     formancy.ai 0056 asks of a check that stays there: the report's id
     being the template's, `template-id-mismatch`; every image it declares
@@ -312,13 +342,25 @@ tools check before they act.**
   `list_templates`, the tenant's templates by id; `read_draft`, a
   template's newest draft with its version `{ revision, digest }`, who
   saved it, and its report's `reportHash`, which `apply_commands` takes;
-  and `save_draft`, a report judged first as `validate_report` judges it
-  and sent only where that is `ok` -- never a report the validator, the
-  size bound, its own diagnostics or a declared language's refuse
-  (formancy.ai 0056) -- from `from`, the version it replaces, with
-  `If-Match`, or with none, as the template's first, with
+  and `save_draft`, a report judged first by tools.ts's `judgedForSave`
+  and sent unless it holds what an agent can and should fix: the
+  validator's errors, the size bound, a diagnostic error of its own, and a
+  declared language's error other than a word it lacks, as
+  `translation-differs` (formancy.ai 0056). A draft is unfinished by
+  nature, and a word missing refuses that language's render and no save,
+  as a builder and the server hold a report being translated (0063): a
+  report whose languages still lack words is saved, and the answer names
+  each such language, how many words it lacks, and of them those that
+  stand in the payment part, `forPerson`, which a person writes, so the
+  agent asks the person. It is sent from `from`, the version it replaces,
+  with `If-Match`, or with none, as the template's first, with
   `If-None-Match: *` (0049); a `draft-changed` answered with the revision
-  that stands, `standing`, and what to do. The routes they ask are
+  that stands, `standing`, and what to do. A template is held to
+  report-spec's `isIdentifier`, the server's own `template-id-invalid`
+  rule, before anything is sent, since `..` would be resolved by fetch's
+  URL parser into another route. Each tool takes the one method of the
+  client it asks, a `Pick` of `ReportClient`, so that no other route can be
+  asked from `drafts.ts`. The routes they ask are
   `MCP_ROUTES`, typed by `ROUTES`' own keys: whoami, the list, a draft's
   read and its save, and no image's keep or read and no version's.
   Registered only where the server is given a client: without one, they
@@ -338,13 +380,19 @@ tools check before they act.**
   the route, and nothing of it handed on. A refusal is answered with its
   status, its code and its sentence, and, for those an agent can act on
   -- `unauthenticated`, `forbidden`, `no-draft`, `asset-not-kept`,
-  `template-id-mismatch` -- what to do. What report-client throws is said
+  `template-id-mismatch` -- what to do; report-client rebuilds every
+  refusal from its code, `REFUSALS`' fixed sentence and the one field the
+  code carries, never the body's own sentence or any other key, which a
+  gateway in front of the server may fill with what the request carried
+  (#116's review, F2). What report-client throws is said
   by its own sentence, which names a route by its pattern and quotes no
   token, or the token reader's; a failure of the network, which fetch
   throws as a `TypeError`, by a sentence of this package's and Node's code
-  alone, since fetch's message is not this package's to vouch for; and a
-  save with no answer is said not known to be written, with read_draft to
-  see which revision stands.
+  alone, since fetch's message is not this package's to vouch for. A
+  token the settings could not give, `TokenUnavailable`, is said with
+  nothing sent; any other throw, and a save with no answer above all, is
+  said not known to be written, with read_draft to see which revision
+  stands.
 - **Documents arrive unchecked**, `z.unknown()`, and are judged by
   report-spec's `validateReport`, the one authority; commands by
   `describedCommand`, a list of them by zod alone.
@@ -412,12 +460,18 @@ tools check before they act.**
   each language's and what each lacks from one diagnosis of the report,
   each language's written report diagnosed once as `diagnose` diagnoses
   it, and the verdict reads it. Measured on 28 November 2026 under Node
-  24.21 on an Intel i9-10900K on Windows, report-core's built `dist`, the
-  mean of five runs after one, each starter given twenty-three empty
-  translations: the invoice's verdict took 99 ms by the old way and 52 ms
-  by the new, `diagnose` alone 62 ms; the sales report's 72 and 40, 43;
-  the quotation's 127 and 75, 71 -- so what the languages cost is now
-  within the runs' own spread of `diagnose` alone.
+  24.21 on an Intel i9-10900K on Windows, against report-core's built
+  `dist`, each starter given twenty-three empty translations, the three
+  ways interleaved, ten runs of each after two, by a script kept outside
+  the repository whose method this is: `diagnose` alone, the old way -- `diagnose`,
+  then `missingWords` once a language -- and the new, `diagnoseByLanguage`,
+  each as minimum, mean and maximum in ms. The invoice: 40, 46, 56; 74,
+  81, 103; 42, 46, 50. The sales report: 33, 35, 44; 59, 65, 78; 33, 37,
+  40. The quotation: 58, 61, 67; 110, 117, 134; 59, 63, 73. The old way
+  cost 75 to 90 % more than `diagnose`, every run of it above every run of
+  `diagnose`; the new way's runs lie within `diagnose`'s spread, so what
+  the record claims is the extra diagnoses gone, and not a cost below
+  `diagnose`'s.
 - **Two prompts** arrive with the server, exported as `PROMPTS`:
   `write_a_report`, the format first, then the report, then
   `validate_report` until it answers ok, every later change through
@@ -452,13 +506,18 @@ tools check before they act.**
   sentence, which quotes none. The token is a secret reference, as
   report-server's are: `env:NAME`, its name in upper case, digits and
   underscores and never under `FORMANCY_REPORT_`, read once when the bin
-  starts and refused there where it is unset or empty; or
-  `file:/absolute/path`, read again before each request, its one line
-  ending taken off, so that a host's own tool can write the next token
-  there before the last expires; anything else, a token pasted where its
-  reference goes among it, is refused at start by a sentence that quotes
-  none of it. A file that cannot be read or is empty sends nothing, and is
-  said naming the setting, not the path. The token is the person's who
+  starts and refused there where it is unset or empty or no bearer token
+  by report-client's own rule, `isBearerToken`, a sentence naming neither
+  the variable nor its value, since a token pasted there in capitals is a
+  name to that rule; or `file:/absolute/path` -- on Windows from a drive
+  and its root or a share, since a path from the root alone is read from
+  whichever drive the bin runs on -- read again before each request, its
+  one line ending taken off, so that a host's own tool can write the next
+  token there before the last expires; anything else, a token pasted
+  where its reference goes among it, is refused at start by a sentence
+  that quotes none of it. A file that cannot be read, is empty or holds no
+  bearer token sends nothing, and is said naming the setting, not the
+  path. The token is the person's who
   runs the agent, as their host's identity provider issues it, its
   lifetime and its tenant the host's, and what the agent saves is saved as
   them, `savedBy` the token's subject. Nothing here mints, refreshes, logs
@@ -537,10 +596,13 @@ whether its identity provider issues one for a coding agent at all.
 **A token in a variable is read once**, so one that expires leaves the
 agent refused `unauthenticated` until its client starts the bin again; a
 token in a file costs a read of it before every request. **An agent
-saves only what validate_report answers ok**: a draft whose own
-diagnostics or a declared language's refuse a render -- a language just
-added, its words not yet written -- is a person's to save, in a builder,
-until the agent has fixed it. **No tool keeps an image**, so a report
+saves a draft a render would refuse in a language that lacks words**:
+the save is gated on what an agent can fix, and a language's words are
+written over turns, so a saved draft may still be refused a render in
+that language until somebody writes them -- the payment part's by a
+person, whom the answer names them to. A draft with an error of its own,
+or a language's error that is no word missing, is not saved until the
+agent fixes it. **No tool keeps an image**, so a report
 that declares one the server does not keep is refused `asset-not-kept`
 until a person adds it in a builder, and one that maps a font is refused
 as every draft that maps one is (0049). **read_draft answers the whole
@@ -589,11 +651,21 @@ read-only tools without asking would see open-world tools where nothing
 reaches the world, and the refusal would be learnt one call at a time;
 the instructions say it once, before any call.
 
+**save_draft sending only what validate_report answers ok**, as first
+built. A word a language lacks is a diagnostic error, so an agent that
+left the slip's message to a person, as the translate prompt tells it,
+could never save the invoice in French, and one asked to fix a title in a
+draft a person saved with a language unfinished could save nothing until
+it wrote that language: the gate pushed an agent to invent translations,
+or to write into the payment part. #116's review found it, and the gate
+is now what an agent can fix.
+
 **save_draft sending what the validator alone accepts**, the design's
-first wording: a draft with a render's error is a draft, and a builder
-saves one. The owner's ask was that an agent saves only what was checked,
-so the agent's save is held to every check validate_report makes, and a
-person's in a builder is not.
+first wording: a draft with an error of its own is a draft, and a builder
+saves one. The owner's ask was that an agent saves only what was checked:
+an error of its own, or a translation that differs, is the agent's to
+fix before it saves, and a word a language lacks is not always its to
+write.
 
 **fetch's own message in the answer.** It names what failed more
 precisely, and it is not this package's to vouch for: a fetch a host

@@ -456,9 +456,10 @@ serve the Studio under the same function of their own address
   slash, reachable from the machine the agent runs on, by no redirect;
   and `FORMANCY_REPORT_TOKEN`, a secret reference to the person's token at
   their host, never the token: `env:NAME`, a variable outside
-  `FORMANCY_REPORT_`, read once when the bin starts, or
-  `file:/absolute/path`, read again before each request, where a host's
-  own tool writes the next token before the last expires. The token is
+  `FORMANCY_REPORT_` that holds a bearer token, read once when the bin
+  starts, or `file:/absolute/path`, on Windows from a drive or a share,
+  read again before each request, where a host's own tool writes the
+  next token before the last expires. The token is
   the person's, as the host's identity provider issues it, its tenant
   claim the one the server's operator maps and its roles giving the
   author's capacity to save; its lifetime and its tenant -- ideally a test

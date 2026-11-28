@@ -659,8 +659,9 @@ host's identity provider issues one for an agent at all are the host's;
 nothing here mints or refreshes one, so a token in a variable that
 expires leaves the agent refused until its client starts the bin again,
 and one in a file is as fresh as the host's own tool keeps it. A save is
-sent only once `validate_report` answers ok, so a draft a render would
-refuse is a person's to save, and no tool keeps an image, so a report
+sent once nothing an agent can fix is left, so a saved draft may still
+be refused a render in a language that lacks words, the payment part's
+being a person's to write, and no tool keeps an image, so a report
 that declares a new one is refused until a person adds it. Without both
 settings the four are not registered, and only the server's MCP
 instructions say why. The tools have asked report-server in their

@@ -23,11 +23,16 @@ own tool can renew the token -- the bin registers four more tools, each
 asking through `@formancy/report-client`: `whoami`, who the server takes
 the person to be and whether they may save; `list_templates`;
 `read_draft`, a template's draft with its version, who saved it and the
-hash `apply_commands` takes; and `save_draft`, which sends a report only
-once `validate_report` would answer it ok, from `If-Match` and the version
-read, or `If-None-Match: *` for a template's first, and answers a save
-from a draft somebody has saved over since `draft-changed` with the
-revision that stands, nothing written. What the agent saves is saved as
+hash `apply_commands` takes; and `save_draft`, which sends a report once
+nothing an agent can fix is left -- the validator's errors, the size
+bound, an error of its own, a language's other than a word it lacks --
+from `If-Match` and the version read, or `If-None-Match: *` for a
+template's first, and answers a save from a draft somebody has saved over
+since `draft-changed` with the revision that stands, nothing written. A
+draft is unfinished by nature: one whose languages still lack words is
+saved, and the answer names each such language and the payment part's
+words in it, which the agent asks the person for rather than writing
+them. A template is held to the id rule before anything is sent. What the agent saves is saved as
 the person, `savedBy` their subject, with whatever their roles allow. It
 mints, refreshes, writes and logs no token, keeps no image, and never
 publishes; the routes it asks are `MCP_ROUTES`. Both settings or neither:
@@ -36,13 +41,17 @@ the bin with one line that quotes no value; with neither, the five tools
 that need nothing are the only ones, and the server's instructions say
 why the four are missing. An answer of the server it cannot read is said,
 by its route and its status, and never guessed at. report-mcp now depends
-on report-client and report-server-core; `@formancy/report-client` gains
-`whoami()`. Besides: report-core's new `diagnoseByLanguage(report)` gives
+on report-client and report-server-core. `@formancy/report-client` gains
+`whoami()` and `isBearerToken`, the rule it holds a token to, and now
+answers every refusal rebuilt from its code -- the fixed sentence
+`REFUSALS` holds and the one field the code carries -- never the body's
+own sentence or any other key, which a gateway in front of the server
+could fill with the token the request carried. Besides: report-core's new `diagnoseByLanguage(report)` gives
 a report's own diagnostics, each declared language's and what each lacks
 from one diagnosis, which `validate_report` and `apply_commands` now read,
-where they diagnosed the report again for every language: 60 to 80 % more
-on a starter in twenty-three languages, measured on 28 November 2026,
-now within the runs' spread of `diagnose` alone. And the licence guard
+where they diagnosed the report again for every language: 75 to 90 % more
+than `diagnose` on a starter in twenty-three languages, measured on
+28 November 2026, and now within the spread of `diagnose`'s own runs. And the licence guard
 holds pdfjs-dist, through which report-mcp loads the native canvas, to
 report-mcp as its one dependent in its builds' table, where that rested
 on the admission of pdfjs-dist's fonts, which a release without them

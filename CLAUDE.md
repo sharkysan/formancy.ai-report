@@ -654,7 +654,8 @@ reference to the person's token, `FORMANCY_REPORT_URL` and
 what `main.ts` hands it -- `env:NAME` once, `file:/absolute/path` before
 each request -- `drafts.ts`'s `whoami`, `list_templates`, `read_draft`
 and `save_draft` ask it through report-client as that person, a save
-sent only once `validate_report` answers ok, from `If-Match` or
+sent once nothing an agent can fix is left -- a language that lacks words
+saved, its payment-part words named for a person -- from `If-Match` or
 `If-None-Match: *`, `draft-changed` answered with the revision that
 stands, and `MCP_ROUTES` the routes they ask; without both, the four are
 not registered and the instructions say why

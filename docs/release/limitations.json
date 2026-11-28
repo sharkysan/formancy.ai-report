@@ -3697,7 +3697,7 @@
       ]
     },
     "0088": {
-      "reviewed": "sha256:2ed45e6942ed7a3a2fd14a9ce1c8a892f4c202dd9d8e3ec3ca4e0f9ea4181c91",
+      "reviewed": "sha256:2526b1be8a9bbec44d138a486a1d85b2045f8c699db3cac1cd4049e8003662bf",
       "limitations": [
         {
           "area": "release",
@@ -3728,7 +3728,7 @@
         },
         {
           "area": "editing",
-          "says": "save_draft sends only a report validate_report answers ok, so a draft whose own diagnostics or a declared language's refuse a render -- a language just added, its words not yet written -- is a person's to save in a builder until the agent has fixed it.",
+          "says": "save_draft saves a draft whose declared languages still lack words, naming each and the payment part's words a person writes, so a draft an agent saved may still be refused a render in such a language until somebody writes them; a draft with an error of its own, or a language's error that is no word missing, is not sent until the agent fixes it.",
           "heldBy": "packages/report-mcp/src/drafts.test.ts"
         },
         {
