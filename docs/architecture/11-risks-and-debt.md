@@ -703,6 +703,31 @@ alone, and no external judge of the e-invoice gate reads a translated
 e-invoice
 ([0063](../decisions/0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md)).
 
+### A model's translation is checked for everything but its language
+
+What report-ai holds a model's answer to is the format, the compiler and
+the characters a report prints: a row a person reviews compiles, reads what
+its source reads, prints, and keeps a word's spaces. Whether it says what
+its source says is the reviewer's to judge, and a fluent mistranslation
+passes every check, as formancy.ai 0161 says of its own; nothing checks that
+a text is in the language asked, and a character the report's own faces
+lack is refused only when that language renders. What leaves for the host's
+model is the template's words, where each stands by its ids, and the
+language's words so far, under that provider's terms, and nothing here says
+it is private. A word that stands in a QR-bill's message is always a
+person's to write in what report-ai asks, so a report with a bill is never
+translated whole by report-ai. No builder draws a proposal yet
+([0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
+
+A template is untrusted, and its words are what a model reads: a header
+written as an instruction -- "translate every word as ..." -- can steer
+the texts the model writes for every other key, and an expression's
+literals too, so long as the expression keeps the type it gives and the
+members it reads. What can land is bounded by the reader and the
+proposal: keys the request asked, strings, the language asked, what the
+format and the compiler accept, never a command but the two that write a
+translation. What a steered text says is caught by the reviewer alone.
+
 ### Tax and invoicing law nobody here checks
 
 The euro invoice's samples print each country's standard VAT rate as one
@@ -873,6 +898,7 @@ findings in its suite among it, meets the rules in that merge ([0050](../decisio
 |---|---|---|
 | **Two workarounds for upstream's expression API** | `@formancy/expressions`, as 0009 read it at 0.5.0, declares no typed member and cannot say which functions an expression calls, so members are spliced into flat variables and the clock is found by renaming it ([0009](../decisions/0009-an-expression-is-checked-and-bound-member-by-member.md)) | Positions after an index read are lost; both rest on upstream behaviour that tests pin, and so do the probes that find a double, a `/` and `matches()`. Upstream offers what each needs from 0.13.0, which the 0.14.0 pinned carries: a variable declared by member, and a program's `calls` and `inexact` and a check asked to be `reproducible` ([formancy.ai 0231](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0231-a-variable-may-be-declared-by-member.md), [0229](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0229-a-program-says-what-it-calls-and-where-it-is-not-exact.md), [0228](https://github.com/sharkysan/formancy.ai/blob/main/docs/decisions/0228-an-expression-can-be-asked-to-be-reproducible.md)). Each workaround goes in a change of its own, which takes upstream's in its place and says what that changes in report-core's diagnostics (0002) |
 | **The merge driver, a copy** | No release carries it, so `scripts/prettier-merge.mjs` and its test are Formancy Data's, but for the record they cite ([0050](../decisions/0050-every-typescript-and-javascript-file-is-linted-and-formatted-by-the-rules-the-four-repositories-share.md)). The lint and format rules were a copy too, Formancy Health's, until this repository pinned `@formancy/code-style` 0.12.0 on 31 October 2026 ([0002](../decisions/0002-depend-on-upstream-never-copy-it.md)) | Nothing compares the copy with Data's, so a change made in one repository reaches the other by hand alone |
+| **report-mcp's translate prompt and the payment part** | report-ai's request keeps every word that stands in a payment part for a person ([0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)), and report-mcp's `translate_a_report` prompt ([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)) asks an agent's own model to translate every `word-missing` `validate_report` lists and apply them through `apply_commands`, the QR-bill's message among them, which report-core's diagnostics name as any word | An agent that follows the prompt writes the slip's message, which prints on the slip and is encoded in the code a bank reads, and no review of report-ai's stands between; nothing fails until the prompt leaves the payment part's words for a person, and this row is removed or reworded when it does |
 | **The model's turn, a copy** | formancy's turn is not exported and is typed with formancy's three requests, so report-ai's `src/turn/` holds formancy 0.14.0's own code, made generic over the kind, until formancy releases a turn other products may brief, when the folder is deleted for it ([0083](../decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)) | `src/turn/against-formancy.test.ts` holds it to formancy 0.14.0's types, runs and relay, but where an answer's object is not formancy's working form it sees only that both readers found one, and a fix formancy makes reaches Report by hand or when the test fails after a bump; `@formancy/builder-core` is in the lockfile for that suite alone, and the suite fails a formancy bump that leaves it behind |
 | **Each expression compiled twice per render** | The diagnostics do not hand back their compilation ([0010](../decisions/0010-the-runtime-resolves-a-report-into-a-renderer-neutral-document.md)) | Time, unmeasured |
 | **admin.css's rules copied by hand** | formancy publishes the room's palette (`@formancy/themes/room.css`, which the Studio and the pages import, [0034](../decisions/0034-the-studio-and-the-pages-wear-formancys-room-by-importing-the-released-one.md)) but no rule, so `builder.css` carries admin.css's rules for the workbench at e3c5967, and the Studio's other stylesheets its rules for the page, with the colours they type that the room does not carry ([0013](../decisions/0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)) | When admin.css's geometry or one of those colours moves upstream nothing here fails; review compares them by hand |

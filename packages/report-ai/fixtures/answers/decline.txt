@@ -1,0 +1,1 @@
+{"declined": "I do not write French well enough for a document a customer reads."}

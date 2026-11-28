@@ -84,9 +84,12 @@ from six countries are in [What the starters print](./docs/starters.md).
 > [its section of the changelog](./CHANGELOG.md#030--2026-11-23), and
 > what `main` gains after it is under *Unreleased* there, among it
 > `@formancy/report-mcp`, which no release has published yet, and
-> `@formancy/report-ai`, a model's turn in formancy's shapes, which asks a
-> model for nothing yet
-> ([0083](./docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)). The
+> `@formancy/report-ai`, a model's turn in formancy's shapes
+> ([0083](./docs/decisions/0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)),
+> which asks a model for the words a report's language lacks and holds
+> the answer to the format and the compiler as one batch of commands,
+> and which no builder draws yet
+> ([0085](./docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)). The
 > report format is still version "0", the draft: a report written now is
 > not promised to be read by a later release
 > ([0004](./docs/decisions/0004-three-version-lines-each-refused-when-unknown.md)).
@@ -229,7 +232,7 @@ The install gate runs these lines from the packed packages
 | [`@formancy/report-spec`](./packages/report-spec/README.md) | The report format, version 0 (a draft): its types, validation, a canonical hash, and the rules of payment codes, e-invoices, SVGs and fonts |
 | [`@formancy/report-documents`](./packages/report-documents/README.md) | The one PDF reader: a PDF read whole or refused, within measured bounds; nothing calls it yet |
 | [`@formancy/report-core`](./packages/report-core/README.md) | Commands over a report, a session with exact undo, and one compilation of every expression |
-| [`@formancy/report-ai`](./packages/report-ai/README.md) | A model's turn, in formancy's shapes: ask, read the answer, ask again with the latest complaint, stop, decline, or a person carries it by hand; it asks a model for nothing yet |
+| [`@formancy/report-ai`](./packages/report-ai/README.md) | A language's missing words asked of a model and its answer held to the format and the compiler as one batch of commands, on a model's turn in formancy's shapes: ask, read the answer, ask again with the latest complaint, stop, decline, or a person carries it by hand; no builder draws it yet |
 | [`@formancy/report-runtime`](./packages/report-runtime/README.md) | Resolves a report against its data into a renderer-neutral document, every value decided once, and writes an e-invoice's XML |
 | [`@formancy/report-render-pdf`](./packages/report-render-pdf/README.md) | Draws that document with pdfmake, in Node and in a browser, or refuses it whole |
 | [`@formancy/report-render-docx`](./packages/report-render-docx/README.md) | Writes that document as a Word file, the same bytes for the same document, and refuses what belongs to its PDF |
@@ -338,6 +341,7 @@ and every run ends in a release report
 | `@formancy/spec` (transitive) | 0.13.0 |  |
 | `@formancy/spec` | 0.14.0 | `0.14.0` |
 | `@formancy/themes` | 0.14.0 | `0.14.0` |
+| `@noble/hashes`, by `@formancy/report-ai` | 2.4.0 | `2.4.0` |
 | `tslib`, by `@formancy/report-builder-angular` | 2.9.1 | `^2.8.0` |
 | `@pdfme/pdf-lib`, by `@formancy/report-documents` | 6.2.4 | `6.2.4` |
 | `pako`, by `@formancy/report-documents` | 3.0.2 | `3.0.2` |

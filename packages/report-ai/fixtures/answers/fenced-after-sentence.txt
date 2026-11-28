@@ -1,0 +1,40 @@
+Here is the translation into French. I kept every key as given.
+
+```json
+{
+  "into": "fr-CH",
+  "words": {
+    "w1": "Rapport des ventes",
+    "w2": "Rapport des ventes ",
+    "w3": "Période : ",
+    "w4": " au ",
+    "w5": "Établi le : ",
+    "w6": "Chiffre d'affaires ",
+    "w7": " sur ",
+    "w8": " pièces",
+    "w9": "Formancy Haustechnik AG · Industriestrasse 7 · 3052 Zollikofen · CHE-123.456.789 TVA",
+    "w10": " · Formancy Haustechnik AG",
+    "w11": "Chiffre d'affaires",
+    "w12": "Aucune vente pendant la période.",
+    "w13": "Chiffre d'affaires par secteur",
+    "w14": "CHF",
+    "w15": "Chiffre d'affaires par région",
+    "w16": "Pièces par secteur",
+    "w17": "Pièce",
+    "w18": "Date",
+    "w19": "Région",
+    "w20": "Description",
+    "w21": "Quantité",
+    "w22": "Unité",
+    "w23": "Montant",
+    "w24": "Total des ventes",
+    "w25": "Page ",
+    "w26": " sur ",
+    "w27": "Montants en francs suisses hors TVA ; un avoir réduit le chiffre d'affaires de son secteur et de sa région."
+  },
+  "expressions": {
+    "e1": "group.key + \" (\" + string(group.documents) + \" pièces)\"",
+    "e2": "\"Total \" + group.key"
+  }
+}
+```
