@@ -1,6 +1,6 @@
 # 0089 — The MCP's render check reads the PDF back with PDF.js at the corpus's pin, the first published package that carries it
 
-- **Status:** accepted when its pull request merges; its two licence admissions, pdfjs-dist's Liberation Sans 1 as never loaded and `@napi-rs/canvas`'s builds by their SBOMs, each for report-mcp alone, are the owner's, made on 28 November 2026; numbered while 0083 to 0087 were held for the branches that bring a model's turn; extends [0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md), whose rule it applies to what an agent is told, [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md), whose guard now walks PDF.js and reads a native build's SBOM, and [0088](0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md), whose render check it builds; [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)'s viewer stays the Studio's alone
+- **Status:** accepted when its pull request merges; its two licence admissions, pdfjs-dist's Liberation Sans 1 as never loaded and `@napi-rs/canvas`'s builds by their SBOMs, each for report-mcp alone, are the owner's, made on 28 November 2026; pdfjs-dist's own dependents held by the builds' table and not by its fonts' admission, 2026-11-28; numbered while 0083 to 0087 were held for the branches that bring a model's turn; extends [0003](0003-a-rendered-report-is-proved-on-the-pdf-it-produced.md), whose rule it applies to what an agent is told, [0006](0006-dependencies-and-fonts-allow-public-source-and-licensed-production.md), whose guard now walks PDF.js and reads a native build's SBOM, and [0088](0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md), whose render check it builds; [0013](0013-the-studio-is-the-same-room-and-its-pictures-are-taken-by-a-script.md)'s viewer stays the Studio's alone
 - **Date:** 2026-11-27, its licence admissions decided and its review's findings answered on 2026-11-28
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -92,7 +92,11 @@
     its build by its SBOM's digest, the components beyond the policy the
     SBOM lists the review's, reached through report-mcp and depended on by
     no package but what the review saw -- every dependent, not the first
-    route -- and every build and version of `@napi-rs/canvas` that
+    route -- and pdfjs-dist, which the canvas is reached through,
+    depended on by report-mcp alone, by the table's own `through` and
+    whatever pdfjs-dist ships, a second dependent behind a first route
+    through report-mcp refused in a fixture with no font admitted; and
+    every build and version of `@napi-rs/canvas` that
     `pnpm-lock.yaml` names, on any platform, one the review read, its
     tarball by the integrity the lockfile records (`lockfileProblems`).
   - **From outside.** The `mcp` install host render-checks the quotation
@@ -116,7 +120,10 @@
     native builds, the lockfile and `heldBy` each switched off; and, at
     the re-review, a second dependent of the family behind a first route
     through report-mcp, a tarball of other bytes, and `getDocument` at
-    `VerbosityLevel.INFOS`, each past the guards before their rules.
+    `VerbosityLevel.INFOS`, each past the guards before their rules; and,
+    after the second re-review (N-G), a second dependent of pdfjs-dist
+    behind a first route through report-mcp, with no font of its admitted
+    to hold its dependents, past the builds' guard before `through`.
 
 ## Context
 
@@ -271,7 +278,12 @@ decision of 28 November 2026.**
     ships, the components beyond the policy that SBOM lists are the
     twelve the review recorded, it is reached through report-mcp, and
     every package that depends on it is one the review saw -- the
-    family pdfjs-dist alone, a build its family alone; and every build
+    family pdfjs-dist alone, a build its family alone, and pdfjs-dist,
+    which it is reached through, report-mcp alone, `through`, held by the
+    table itself: before, that last rested on the admission of
+    pdfjs-dist's fonts, whose check holds their package's dependents, and
+    a pdfjs-dist without those fonts would have emptied it (#112's second
+    re-review, N-G); and every build
     and version of the family the lockfile names, on every platform, is
     one the review read, each tarball by the integrity the lockfile
     records and pnpm installs by, since no machine installs them all.

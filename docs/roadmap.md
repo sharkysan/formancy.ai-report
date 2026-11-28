@@ -155,11 +155,10 @@ that lands it.
    data, and a person sees what each would change and applies them in one
    undo step, or none
    ([0008](decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md));
-   and, for the MCP server whose checks need nothing, the tools that need
-   Report's server -- who is asking, a tenant's templates, a draft read
-   and saved from the version it was read at, never published
-   ([0088](decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md));
-   and a render check's PDF returned to the agent as a resource, which
+   and, for the MCP server, which already reads and saves a draft as the
+   person whose token it holds
+   ([0088](decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)),
+   a render check's PDF returned to the agent as a resource, which
    its render check does not return today
    ([0089](decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)).
 

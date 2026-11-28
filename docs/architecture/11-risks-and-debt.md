@@ -648,6 +648,25 @@ tools tell a model is asserted for what it says, and nothing runs a model
 against them; the bin has been launched by the SDK's client alone
 ([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
 
+### An agent saves a draft as a person, with that person's token
+
+Given Report's server and a reference to the person's token, the MCP's
+four server tools ask as that person: whatever their roles allow, the
+agent may do, a save over a colleague's draft from the version it read
+among it, at the person's name, and the server cannot tell the agent from
+the person. How long the token lives, in which tenant, and whether a
+host's identity provider issues one for an agent at all are the host's;
+nothing here mints or refreshes one, so a token in a variable that
+expires leaves the agent refused until its client starts the bin again,
+and one in a file is as fresh as the host's own tool keeps it. A save is
+sent only once `validate_report` answers ok, so a draft a render would
+refuse is a person's to save, and no tool keeps an image, so a report
+that declares a new one is refused until a person adds it. Without both
+settings the four are not registered, and only the server's MCP
+instructions say why. The tools have asked report-server in their
+suites' process and in the install gate's host alone, never through a
+host's gateway or identity provider (0088).
+
 ### The MCP's render check carries PDF.js, a second line reader, GPL fonts it never loads and a canvas whose build links code under copyleft
 
 `render_check` reads the PDF it rendered with pdfjs-dist, so every
@@ -989,11 +1008,8 @@ its images today; fonts kept beside the images, a retention of a draft's
 older revisions, and a Save in both builders (0049); reviewed AI changes,
 whose groundwork is commands as data ([0008](../decisions/0008-edits-are-commands-and-a-refused-edit-changes-nothing.md));
 a published PDF viewer; a consistent read from Formancy Data, which
-waits for Data's snapshot export; and, for the MCP server whose tools need
-nothing, the tools that read and save a draft on Report's server, with a
-person's token
-([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)),
-and a render check's PDF returned as a resource
+waits for Data's snapshot export; and, for the MCP server, a render
+check's PDF returned as a resource
 ([0089](../decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)). Whether the runtime checks the bytes a
 host hands it against the digest that names them, which report-spec can now
 take, is a decision of its own, not taken (0033). The format's own plan names positioned

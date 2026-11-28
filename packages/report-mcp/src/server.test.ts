@@ -109,7 +109,7 @@ describe('the tools a client can see', () => {
   })
 
   // A tool not registered says nothing of itself, so the server says why
-  // it is missing in the instructions a client hands its model: an agent
+  // it is missing in the instructions a client may hand its model: an agent
   // asked to save would otherwise say it cannot, and the person would not
   // learn the two settings that give it the tool.
   test('say, without a server, which tools are missing and the settings that bring them', async () => {

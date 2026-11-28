@@ -648,9 +648,19 @@ exactly 4.6.7 and pdfjs-dist at exactly 6.4.299, which
 `scripts/mirrored-pdfjs.test.mjs` holds to the corpus's; `main.ts`
 alone touches the process, and `src/composition.test.ts` reads every
 directory of `src/` and holds each module to the specifiers it may
-import; it publishes, saves and fetches nothing, and the tools that read
-and save a draft are decided and not yet built
+import; it publishes and fetches nothing. Given Report's server and a
+reference to the person's token, `FORMANCY_REPORT_URL` and
+`FORMANCY_REPORT_TOKEN`, both or neither, which `settings.ts` reads from
+what `main.ts` hands it -- `env:NAME` once, `file:/absolute/path` before
+each request -- `drafts.ts`'s `whoami`, `list_templates`, `read_draft`
+and `save_draft` ask it through report-client as that person, a save
+sent only once `validate_report` answers ok, from `If-Match` or
+`If-None-Match: *`, `draft-changed` answered with the revision that
+stands, and `MCP_ROUTES` the routes they ask; without both, the four are
+not registered and the instructions say why
 ([0088](docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
+A verdict reads report-core's `diagnoseByLanguage`, every declared
+language's diagnostics and missing words from one diagnosis.
 `@formancy/report-ai` holds a model's turn, formancy 0.14.0's own,
 generic over the kind: `askChecked`, `readAnswer`, `createStop`,
 `declinedAnswer`, `ModelBusyError`, `createRelay` and `relayMessage`,
@@ -789,7 +799,7 @@ before it:
 9. `report-mcp` -- Report's checks for a coding agent, a published bin
    speaking the Model Context Protocol over stdio (0088): on report-spec,
    report-core, the runtime and the renderer, the last two for its render
-   check (0089), and on the client once its server half is built; the
+   check (0089), and on the client and server-core for its server half; the
    SDK, zod and pdfjs-dist at exact releases, pdfjs-dist the corpus's; no
    server over HTTP, no address taken.
 
@@ -1410,7 +1420,10 @@ Locally, run the same commands for what you changed.
   report-mcp declares, the packed bin launched by the command npm linked
   through that client's stdio transport, its tools listed, a report
   validated, a command applied and a stale hash refused (0088), and the
-  quotation render-checked, its title read back from page 1 (0089);
+  quotation render-checked, its title read back from page 1 (0089), and,
+  beside the packed server, a draft saved and read back as the token's
+  holder, saved again as the holder of the token the file holds by then,
+  and a stale save refused `draft-changed`;
   `react.tsx` drawn by React's server renderer in its development and
   production builds; `angular.ts` compiled
   ahead of time, linked and bundled by `build.mjs`, and drawn by

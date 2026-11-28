@@ -444,10 +444,29 @@ serve the Studio under the same function of their own address
 - **For an agent's MCP server:** `@formancy/report-mcp` installed in a
   project under Node 22.13 or later, and a client that speaks the Model
   Context Protocol configured to launch its bin there, by the command npm
-  links; nothing to configure, since its tools need no server, and nothing
-  it reaches but its own pipes and, once, its own manifest, its
+  links. Nothing to configure for the five tools that need no server, and
+  nothing they reach but its own pipes and, once, its own manifest, its
   dependencies reading their own files -- the renderer its faces, PDF.js
-  its worker module. One message
+  its worker module. For the four that ask Report's server, the client's
+  configuration gives the bin two variables, both or neither, and the bin
+  stops at start, one line on standard error naming the setting and no
+  value, where one is set without the other or either is refused:
+  `FORMANCY_REPORT_URL`, the server's base URL as report-client takes one,
+  `http:` or `https:` with no credentials, query, fragment or trailing
+  slash, reachable from the machine the agent runs on, by no redirect;
+  and `FORMANCY_REPORT_TOKEN`, a secret reference to the person's token at
+  their host, never the token: `env:NAME`, a variable outside
+  `FORMANCY_REPORT_`, read once when the bin starts, or
+  `file:/absolute/path`, read again before each request, where a host's
+  own tool writes the next token before the last expires. The token is
+  the person's, as the host's identity provider issues it, its tenant
+  claim the one the server's operator maps and its roles giving the
+  author's capacity to save; its lifetime and its tenant -- ideally a test
+  tenant -- are the host's, and nothing here mints, refreshes or writes
+  one. What the agent saves is saved as that person, `savedBy` the
+  token's subject. The server is the one 0046 and 0049 deploy, unchanged:
+  it answers the MCP as it answers a host's backend, with no cross-origin
+  setting, since the bin is no page ([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)). One message
   past the SDK's stdio bound, 10 MiB, ends the process without an answer. The SDK it depends on, at exactly 1.32.2,
   brings its HTTP transports and their closure, 92 packages with it on 27
   November 2026, into that project for a server that speaks stdio alone,

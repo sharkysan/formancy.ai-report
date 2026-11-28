@@ -10,6 +10,44 @@ later.
 
 ## Unreleased
 
+**A coding agent can read a template's draft on Report's server and save
+one, as the person whose token their host gives it, through
+`@formancy/report-mcp`'s server half**
+([0088](docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
+An agent that wrote and checked a template still had to hand it to a
+person to carry to the server. Started with `FORMANCY_REPORT_URL`, the
+server's base URL, and `FORMANCY_REPORT_TOKEN`, a reference to the
+person's token -- `env:NAME`, read once when the bin starts, or
+`file:/absolute/path`, read again before every request, so that a host's
+own tool can renew the token -- the bin registers four more tools, each
+asking through `@formancy/report-client`: `whoami`, who the server takes
+the person to be and whether they may save; `list_templates`;
+`read_draft`, a template's draft with its version, who saved it and the
+hash `apply_commands` takes; and `save_draft`, which sends a report only
+once `validate_report` would answer it ok, from `If-Match` and the version
+read, or `If-None-Match: *` for a template's first, and answers a save
+from a draft somebody has saved over since `draft-changed` with the
+revision that stands, nothing written. What the agent saves is saved as
+the person, `savedBy` their subject, with whatever their roles allow. It
+mints, refreshes, writes and logs no token, keeps no image, and never
+publishes; the routes it asks are `MCP_ROUTES`. Both settings or neither:
+one without the other, or a token pasted where its reference goes, stops
+the bin with one line that quotes no value; with neither, the five tools
+that need nothing are the only ones, and the server's instructions say
+why the four are missing. An answer of the server it cannot read is said,
+by its route and its status, and never guessed at. report-mcp now depends
+on report-client and report-server-core; `@formancy/report-client` gains
+`whoami()`. Besides: report-core's new `diagnoseByLanguage(report)` gives
+a report's own diagnostics, each declared language's and what each lacks
+from one diagnosis, which `validate_report` and `apply_commands` now read,
+where they diagnosed the report again for every language: 60 to 80 % more
+on a starter in twenty-three languages, measured on 28 November 2026,
+now within the runs' spread of `diagnose` alone. And the licence guard
+holds pdfjs-dist, through which report-mcp loads the native canvas, to
+report-mcp as its one dependent in its builds' table, where that rested
+on the admission of pdfjs-dist's fonts, which a release without them
+would have emptied.
+
 **A coding agent can render a report with sample data and read what its
 PDF prints, page by page, through `@formancy/report-mcp`'s new
 `render_check`**
@@ -125,9 +163,9 @@ render would and holds it to the size a draft may have,
 runs them as one edit through the builders' own registry and session,
 refused whole, where the agent passes the hash it last checked, when the
 report is not that one. What a save asks of Report's server -- the
-report's id, the images it keeps, no font -- the server alone answers. It
-needs no server and reads no setting; it saves, publishes and fetches
-nothing, and no input takes a URL, a path or a file.
+report's id, the images it keeps, no font -- the server alone answers.
+These tools need no server and read no setting; they save, publish and
+fetch nothing, and no input takes a URL, a path or a file.
 report-core now exports what the tools answer, `reportFacts()` and
 `describeCommands()`, read from the format's constants and the registry.
 It depends on the MCP SDK, `@modelcontextprotocol/sdk`, at exactly
@@ -135,7 +173,7 @@ It depends on the MCP SDK, `@modelcontextprotocol/sdk`, at exactly
 was 92 packages on 27 November 2026, all permissive, Express and Hono
 among them, since the
 SDK ships its HTTP transports in the same package. The tools that read
-and save a draft on Report's server are still to come.
+and save a draft on Report's server are the server half, above.
 
 **The product pages name PDF and Word, and pages for invoices, Word
 files and each report designer join them; every published package names

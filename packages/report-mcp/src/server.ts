@@ -319,7 +319,7 @@ export interface ReportMcpOptions {
 }
 
 /**
- * What a client hands its model before any tool is called: the order the
+ * What a client may hand its model before any tool is called: the order the
  * tools are used in, and whether the tools that ask Report's server are
  * there -- and, where they are not, why, by the bin's own settings.
  */

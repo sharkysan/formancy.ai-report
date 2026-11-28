@@ -432,7 +432,10 @@ of their own, `BUILDS_READ`
   it lists must be those the review recorded; it is reached through
   report-mcp; and every package that depends on it is one the review saw,
   every dependent and not the first route the walk found, as a confined
-  package's are;
+  package's are, and so is every package that depends on what the family
+  is reached through, `through` -- pdfjs-dist, report-mcp alone -- held by
+  the table and not by the admission of pdfjs-dist's fonts (#112's second
+  re-review, N-G);
 - every build and every version of the family that `pnpm-lock.yaml`
   names, on any platform, must be one the review read, since a machine
   installs its own platform's build alone, each tarball by the integrity

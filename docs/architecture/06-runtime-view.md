@@ -1495,3 +1495,52 @@ request's kind and its user part, write the briefing itself by the kind,
 and compare the digest it is sent with its own; nothing here holds it to
 that, and Report's own server's route is 0084's, a record still to come
 ([0085](../decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
+
+## 6.24 An agent's save, from the token's file to the revision that stands
+
+```
+an agent's client launches the bin, FORMANCY_REPORT_URL and FORMANCY_REPORT_TOKEN set
+   │
+   ▼
+main.ts: the environment, read once ──▶ settings.ts's readSettings
+   ├─ one without the other, a token pasted where its reference goes, a
+   │  variable unset or under FORMANCY_REPORT_, a relative file, a URL
+   │  report-client refuses ──▶ one line on standard error, no value; exit 1
+   ├─ neither ──▶ the five tools that need nothing; the instructions say
+   │              which four are missing and the settings that bring them
+   ▼
+createReportClient({ server: the URL, token }), the one client;
+createReportMcpServer({ client }): the five and the four
+   │
+   ▼
+save_draft { template, report, from? }                drafts.ts
+   ├─ from no version { revision, digest } ──▶ refused; nothing sent
+   ├─ validate_report would not answer ok -- the validator, MAX_REPORT_BYTES,
+   │  a diagnostic error of its own or a declared language's ──▶ its
+   │  verdict; nothing sent
+   ▼
+report-client: token() ── env: the value read at start
+   │                   └─ file: the file read now, its line ending off
+   │                        unread or empty ──▶ said, the setting named; nothing sent
+   ├─ no bearer token ──▶ report-client's fixed sentence; nothing sent
+   ▼
+PUT /v1/templates/{template}/draft, If-Match: draftTag(from), or
+If-None-Match: * with no from; Authorization: Bearer <the token>  (6.16, 6.17)
+   ├─ 412 draft-changed ──▶ the revision that stands, standing; nothing written:
+   │                        read_draft, the change made again, saved from its version
+   ├─ another refusal ──▶ its status, its code, its sentence, and what to do
+   ├─ no answer of the API, a network that failed ──▶ said, by report-client's
+   │  sentence or Node's code; whether it was written not known
+   ├─ a 2xx not a DraftSaved of this template ──▶ said; nothing of it handed on
+   ▼
+{ template, revision, digest }: saved as the token's holder, savedBy its subject
+```
+
+The agent saves as the person whose token the host gave it, and the
+server decides as it decides for that person's own page: who they are,
+what their roles allow, and whether the draft named is the newest
+([0049](../decisions/0049-a-templates-draft-is-kept-by-the-report-server-one-per-tenant-saved-by-compare-and-swap.md)).
+What the bin adds is that it sends only what the checks pass, reads its
+token where the setting names it before every request when that is a
+file, and hands on of an answer only what it can read as its route's
+wire type ([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).

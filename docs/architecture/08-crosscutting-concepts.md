@@ -722,6 +722,15 @@ The server's one answer to both questions
   with that tenant first and never reads across tenants; a draft and an
   image are the tenant's, and a template's id names a template within it
   (0049).
+- **For an agent.** report-mcp's four server tools ask as the person
+  whose token the host gives the bin, through report-client, so the
+  server takes an agent for that person and nothing else: no claim of the
+  agent's own, no role it holds apart, and every action the table gives
+  the person's roles is the agent's, a save over a colleague's draft from
+  the version it read among them. The bin reads the token from where its
+  setting names -- a variable once, a file before each request -- and
+  mints, refreshes, logs and writes none
+  ([0088](../decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
 - **What is said of it.** One audit event per answered request: the route,
   the status, the outcome's code, whether it was identified, and the tenant
   and the person by HMAC-SHA-256 under the operator's audit key, over a
