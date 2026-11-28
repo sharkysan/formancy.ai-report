@@ -48,7 +48,13 @@ integrator's own install may take a later build nobody here read.
 `validate_report` lists, for each language, what it lacks in the
 payment part, `forPerson`, and the translate prompt tells an agent to
 leave those words to a person: the QR-bill's message prints on the slip
-and in the code a bank reads.
+and in the code a bank reads. report-core's new `missingWords(report,
+locale)` is the one rule that list and report-ai's request read, each
+`word-missing` matched at any place its word or expression stands, so
+that an expression the body prints as a number and the slip's message
+as words is the slip's; report-mcp's own copy had matched it at its
+first place alone. report-ai's `forPerson` entries are report-core's
+`MissingWord`, and its own `Lacking` type is gone.
 Besides: an edit `apply_commands` applied whose report is past
 `MAX_REPORT_BYTES` is answered not `ok` and no longer `isError`, since
 the edit was made and its report is the one to fix; the composition

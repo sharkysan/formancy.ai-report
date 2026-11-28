@@ -640,7 +640,8 @@ the answer's data held to `MAX_ANSWER_BYTES` and never the PDF, the
 renderer and PDF.js imported with the first check, and the whole call
 under the SDK's 10 MiB stdio bound, which the description names; a
 language's words in the payment part are listed for a person,
-`forPerson`, and the translate prompt leaves them out
+`forPerson`, by report-core's `missingWords`, and the translate prompt
+leaves them out
 ([0089](docs/decisions/0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)). It stands on report-spec,
 report-core, the runtime, the renderer, the SDK at exactly 1.32.2, zod at
 exactly 4.6.7 and pdfjs-dist at exactly 6.4.299, which
@@ -676,9 +677,9 @@ keeps what is still missing and fits in the report as it stands, holds
 each text by `texts.ts` -- `refusedCharacter`, an expression's escapes, a
 word's spaces at either end -- then the validator through `tryEdit` and
 `languageDiagnostics`, refusing an entry alone, and gives one batch against
-the report's hash. That payment-part rule is report-ai's request's:
-report-mcp's translate prompt to an agent's model differs, which
-`docs/architecture/11-risks-and-debt.md` carries. The recorded answers
+the report's hash. That payment-part rule is report-core's
+`missingWords`, which report-mcp's verdict reads too, so its translate
+prompt leaves the same words to a person. The recorded answers
 are `fixtures/answers/`; no builder draws a proposal yet
 ([0085](docs/decisions/0085-a-model-is-asked-only-for-the-words-a-language-lacks-and-its-answer-is-one-batch-held-to-the-format-and-the-compiler-before-a-person-sees-it.md)).
 Beside them, `@formancy/report-corpus` is test support and is never published:

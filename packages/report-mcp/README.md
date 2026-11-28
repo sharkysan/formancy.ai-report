@@ -61,7 +61,8 @@ so a host may run it without asking. Two prompts come with the server:
 `word-missing` diagnostics through `addLanguage`, `translateWord` and
 `translateExpression`, leaving what `validate_report` lists in
 `forPerson` -- the QR-bill's message, which prints on the slip and in
-the code a bank reads -- to a person.
+the code a bank reads -- to a person, by report-core's `missingWords`,
+the rule report-ai's request reads too.
 
 ## As a library
 

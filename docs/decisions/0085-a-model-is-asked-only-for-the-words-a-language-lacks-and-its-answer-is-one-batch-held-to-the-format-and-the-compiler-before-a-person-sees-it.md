@@ -1,6 +1,6 @@
 # 0085 — A model is asked only for the words a language lacks, and its answer is one batch held to the format and the compiler before a person sees it
 
-- **Status:** accepted; numbered while 0084 was held for a branch not yet merged, and merged after [0090](0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md) and [0088](0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md), whose translate prompt to an agent's own model does not keep the payment part's words for a person as report-ai's request does, which [§11.3](../architecture/11-risks-and-debt.md#113-known-technical-debt) carries until that prompt does; extends [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md), whose words and `word-missing` it reads, and [0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md), whose commands as data against a hash it follows with a model as the proposer; gives [0083](0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)'s `REQUEST_KINDS` its first kind; follows formancy.ai 0158 and 0161, and departs from 0161 where the Consequences say
+- **Status:** accepted; numbered while 0084 was held for a branch not yet merged, and merged after [0090](0090-a-preview-opens-a-report-that-carries-a-qr-bill-with-its-slip-in-view-and-nothing-moves-the-paper-after.md) and [0088](0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md), whose translate prompt to an agent's own model keeps the payment part's words for a person by the same rule, report-core's `missingWords`, since 0088's paragraph of 2026-11-28; extends [0063](0063-a-reports-own-words-are-written-in-each-language-it-declares-and-a-render-names-the-one-it-prints-in.md), whose words and `word-missing` it reads, and [0048](0048-a-form-version-that-removes-moves-or-retypes-a-field-a-report-reads-blocks-that-reports-submissions-of-it-until-reviewed-anything-else-prints.md), whose commands as data against a hash it follows with a model as the proposer; gives [0083](0083-the-models-turn-is-held-in-report-ai-in-formancys-shapes-until-formancy-releases-one-other-products-may-brief.md)'s `REQUEST_KINDS` its first kind; follows formancy.ai 0158 and 0161, and departs from 0161 where the Consequences say
 - **Date:** 2026-11-27
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -314,11 +314,11 @@ lands. Missing-only: a model never improves a word that exists, and a
 person empties one to have it redone. **The QR-bill's message is always a
 person's to write in what report-ai asks**, and so is any word that also
 stands in it, so a report with a bill is never translated whole by
-report-ai. **report-mcp's translate prompt asks an agent's model for every
-`word-missing`, the slip's message among them**, so on that path the rule
-does not hold until the prompt leaves those words for a person;
-[§11.3](../architecture/11-risks-and-debt.md#113-known-technical-debt)
-carries it. **The template's words, their places and the language's words so
+report-ai. **report-mcp's translate prompt leaves the same words to a
+person**, listed by the same rule, report-core's `missingWords` (0088,
+2026-11-28), but asks it of the agent and refuses nothing: an agent's
+`apply_commands` writes a translation of the slip's message as a builder's
+field does, where a proposal drops one. **The template's words, their places and the language's words so
 far leave** for whichever model the host chose. A request names component
 and column ids, which a template's author may have written in a language of
 their own. A model that writes a text in another language than the one

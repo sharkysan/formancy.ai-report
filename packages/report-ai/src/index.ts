@@ -19,7 +19,7 @@ export type { Complete, ModelCompletion, ModelRequest } from './ask-through.js'
 // A language's missing words: asked for, read back by key, and held to the
 // format and the compiler as one batch before a person sees it (0085).
 export { MAX_PLACES, translationRequest } from './translation/request.js'
-export type { AskedEntry, EntryKind, Lacking, TranslationRequest, TranslationRequesting } from './translation/request.js'
+export type { AskedEntry, EntryKind, TranslationRequest, TranslationRequesting } from './translation/request.js'
 export { TRANSLATION_COMPLAINTS, translationBriefing } from './translation/briefing.js'
 export type { TranslationProblem, TranslationProblemKind } from './translation/briefing.js'
 export { checkTranslation, translateMissing } from './translation/reader.js'

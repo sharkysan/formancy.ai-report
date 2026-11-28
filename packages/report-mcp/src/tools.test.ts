@@ -70,19 +70,20 @@ describe('validate_report', () => {
   // The QR-bill's message is a word, and it prints on the slip and is
   // encoded in the code a bank reads: no proposal changes what the payment
   // part prints (0039, 0048), report-ai asks a model for none of its words
-  // (0085), and an agent is told which they are, by the same walk, so that
-  // the words it is offered to translate hold none of them -- a word that
-  // also stands elsewhere among them, since a word is translated once.
+  // (0085), and an agent is told which they are, by the same rule,
+  // report-core's missingWords, so that the words it is offered to
+  // translate hold none of them -- a word that also stands elsewhere among
+  // them, since a word is translated once.
   test('lists what a language lacks in the payment part for a person, and offers an agent none of it', () => {
     const french = dataOf<{ report: ReportDefinition }>(applyCommands(INVOICE.report, [{ command: 'addLanguage', args: ['fr-CH'] }])).report
     const [language] = dataOf<{
       languages: readonly {
         readonly diagnostics: readonly { readonly code: string; readonly path: string }[]
-        readonly forPerson: readonly { readonly kind: string; readonly source: string; readonly paths: readonly string[] }[]
+        readonly forPerson: readonly { readonly kind: string; readonly source: string; readonly paths: readonly string[]; readonly at: string }[]
       }[]
     }>(checkReport(french)).languages
     if (language === undefined) throw new Error('the invoice in French declares no language')
-    expect(language.forPerson).toEqual([{ kind: 'word', source: 'Rechnung ', paths: ['/paymentPart/message/0/text'] }])
+    expect(language.forPerson).toEqual([{ kind: 'word', source: 'Rechnung ', paths: ['/paymentPart/message/0/text'], at: '/paymentPart/message/0/text' }])
     const inPart = new Set([
       ...reportWords(french).flatMap(({ path, text }) => (path.startsWith('/paymentPart/') ? [text] : [])),
       ...wordExpressionSites(french).flatMap(({ path, cel }) => (path.startsWith('/paymentPart/') ? [cel] : [])),

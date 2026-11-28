@@ -53,7 +53,15 @@
     past it is applied and not `ok`, and says it was `applied`; and, on
     the invoice in French, the slip's message listed in the language's
     `forPerson`, and none of the `word-missing` an agent is left to
-    translate standing in the payment part.
+    translate standing in the payment part. The rule `forPerson` is
+    listed by is report-core's `missingWords`, held by
+    `packages/report-core/src/diagnostics/words.test.ts`: each
+    `word-missing` read back to its source, a word that stands first
+    elsewhere and in the payment part among the payment part's, and an
+    expression printed as a number in the body and as words in the slip's
+    message among them too, which failed first on 28 November 2026 matched
+    at its first place alone, as report-mcp's own copy of the rule
+    matched it.
   - **Through the protocol.** `packages/report-mcp/src/server.test.ts`,
     with the SDK's own `Client` over its `InMemoryTransport`: the five
     tools listed, each with the description `TOOL_DEFINITIONS` holds and
@@ -240,12 +248,19 @@ tools check before they act.**
   French into it, which no proposal may change (0039, 0048) and report-ai
   never asks a model for (0085). `validate_report` now lists, for each
   language, what it lacks that stands anywhere in the payment part,
-  `forPerson`, by report-spec's one walk of a report's words and
-  expressions and report-core's `word-missing`, the walk and the rule
-  report-ai's request reads it by -- a word that also stands elsewhere
-  among them, since a word is translated once. The prompt tells the agent
-  to leave those out and name them to the person, and the description
-  says so; an e-invoice's texts are no words in that walk. `tools.test.ts`
+  `forPerson` -- a word that also stands elsewhere among them, since a
+  word is translated once -- by report-core's `missingWords`, the one rule
+  report-ai's request reads too (0085): each `word-missing` read back to
+  its source through report-spec's one walk of a report's words and
+  expressions, and matched at any place it stands, since an expression's
+  stands at its first site that prints words, which need not be its
+  first. Each package held a copy of the rule while 0085 was on a branch
+  of its own, and report-mcp's matched an expression at its first site
+  alone, so that one printed as a number in the body and as words in the
+  slip's message was offered to the agent to translate; both copies are
+  gone. The prompt tells the agent to leave those out and name them to
+  the person, and the description says so; an e-invoice's texts are no
+  words in that walk. `tools.test.ts`
   holds it on the invoice, and failed first on the verdict without it.
   It is a request to the agent and no refusal: the agent acts for a
   person, who may choose the slip's text in another language, so

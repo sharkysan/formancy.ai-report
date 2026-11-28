@@ -18,9 +18,9 @@
  * of its arguments, and the report an agent works on is the one it hands
  * over, which nothing here keeps.
  */
-import { describeCommands, diagnose, openReportSession, reportFacts } from '@formancy/report-core'
-import type { CommandDescriptor, Diagnostic, Refusal } from '@formancy/report-core'
-import { MAX_REPORT_BYTES, reportHash, reportWords, validateReport, wordExpressionSites } from '@formancy/report-spec'
+import { describeCommands, diagnose, missingWords, openReportSession, reportFacts } from '@formancy/report-core'
+import type { CommandDescriptor, Diagnostic, MissingWord, Refusal } from '@formancy/report-core'
+import { MAX_REPORT_BYTES, reportHash, validateReport } from '@formancy/report-spec'
 import type { ReportDefinition, ReportError } from '@formancy/report-spec'
 
 /** A tool's answer: whether there is nothing to fix, one or two sentences for the model, and the part an agent acts on, which every tool gives. */
@@ -55,60 +55,19 @@ export interface Verdict {
   readonly languages: readonly LanguageVerdict[]
 }
 
-/** What a language lacks that stands in the payment part: a word or an expression, by its source, and every place it stands. */
-export interface ForPerson {
-  readonly kind: 'word' | 'expression'
-  readonly source: string
-  /** The JSON Pointer to each place it stands, in document order; the first is where `word-missing` stands. */
-  readonly paths: readonly [string, ...string[]]
-}
-
 /** A declared language's verdict: its diagnostics, and of what it lacks, what a person writes and no agent translates. */
 export interface LanguageVerdict {
   readonly locale: string
   readonly diagnostics: readonly Diagnostic[]
   /**
    * Each word or expression the language lacks, among its `word-missing`,
-   * that stands anywhere in the payment part: printed on the QR-bill's slip
-   * and encoded in the code a bank reads, so a person's to write, and never
-   * an agent's to translate (0039, 0048; 0088, 2026-11-28).
+   * that stands anywhere in the payment part, by report-core's
+   * `missingWords`, the rule report-ai's request reads too (0085): printed
+   * on the QR-bill's slip and encoded in the code a bank reads, so a
+   * person's to write, and never an agent's to translate (0039, 0048; 0088,
+   * 2026-11-28). An e-invoice's texts are no words.
    */
-  readonly forPerson: readonly ForPerson[]
-}
-
-/** Where the payment part stands in a report's JSON, by the definition's own key. */
-const PAYMENT_PART = `/${'paymentPart' satisfies keyof ReportDefinition}/`
-
-/**
- * What `locale` lacks in `report` that stands in the payment part: of the
- * `word-missing` among `found`, each word and expression by report-spec's
- * one walk of a report's words, with every place it stands, whose places
- * include one under `/paymentPart/` -- a word that also stands elsewhere
- * among them, since a word is translated once, wherever it stands. The
- * rule report-ai's request leaves the payment part to a person by (0085),
- * by the same walk. An e-invoice's texts are no words in it.
- */
-function forPersonOf(report: ReportDefinition, found: readonly Diagnostic[]): ForPerson[] {
-  const missingAt = new Set(found.filter(({ code }) => code === 'word-missing').map(({ path }) => path))
-  const bySource = (places: readonly { readonly path: string; readonly source: string }[], kind: ForPerson['kind']): ForPerson[] => {
-    const grouped = new Map<string, [string, ...string[]]>()
-    for (const { path, source } of places) {
-      const known = grouped.get(source)
-      if (known === undefined) grouped.set(source, [path])
-      else known.push(path)
-    }
-    return [...grouped].map(([source, paths]) => ({ kind, source, paths }))
-  }
-  return [
-    ...bySource(
-      reportWords(report).map(({ path, text }) => ({ path, source: text })),
-      'word',
-    ),
-    ...bySource(
-      wordExpressionSites(report).map(({ path, cel }) => ({ path, source: cel })),
-      'expression',
-    ),
-  ].filter(({ paths }) => missingAt.has(paths[0]) && paths.some((path) => path.startsWith(PAYMENT_PART)))
+  readonly forPerson: readonly MissingWord[]
 }
 
 /** How many of `found` are errors, and how many warnings, in words. */
@@ -148,7 +107,7 @@ function verdictOf(report: ReportDefinition): Verdict {
     diagnostics: found.filter(({ language }) => language === undefined),
     languages: (report.translations ?? []).map(({ locale }) => {
       const diagnostics = found.filter(({ language }) => language === locale)
-      return { locale, diagnostics, forPerson: forPersonOf(report, diagnostics) }
+      return { locale, diagnostics, forPerson: missingWords(report, locale).paymentPart }
     }),
   }
 }
