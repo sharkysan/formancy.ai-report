@@ -44,14 +44,20 @@ by its route and its status, and never guessed at. report-mcp now depends
 on report-client and report-server-core. `@formancy/report-client` gains
 `whoami()` and `isBearerToken`, the rule it holds a token to, and now
 answers every refusal rebuilt from its code -- the fixed sentence
-`REFUSALS` holds and the one field the code carries -- never the body's
+`REFUSALS` holds and the one field the code carries, read as what the
+server writes there: the validator's errors by their codes, assets by
+their ids, an image's reason by report-spec's codes -- never the body's
 own sentence or any other key, which a gateway in front of the server
-could fill with the token the request carried. Besides: report-core's new `diagnoseByLanguage(report)` gives
+could fill with the token the request carried. Both of report-mcp's
+prompts now stop once nothing is left but the payment part's words, which
+the agent names to the person, and a save refused for an error of its
+own in the payment part or the e-invoice names it for the person too. Besides: report-core's new `diagnoseByLanguage(report)` gives
 a report's own diagnostics, each declared language's and what each lacks
 from one diagnosis, which `validate_report` and `apply_commands` now read,
-where they diagnosed the report again for every language: 75 to 90 % more
+where they diagnosed the report again for every language: 76 to 92 % more
 than `diagnose` on a starter in twenty-three languages, measured on
-28 November 2026, and now within the spread of `diagnose`'s own runs. And the licence guard
+28 November 2026, and now overlapping the spread of `diagnose`'s own
+runs, their means 0 to 2 ms above it. And the licence guard
 holds pdfjs-dist, through which report-mcp loads the native canvas, to
 report-mcp as its one dependent in its builds' table, where that rested
 on the admission of pdfjs-dist's fonts, which a release without them

@@ -1,6 +1,6 @@
 # 0088 — An agent gets Report's checks over the Model Context Protocol, from a server of Report's own
 
-- **Status:** accepted for the tools that need nothing, the prompts and report-core's two derivations; its server half, the four tools that read and save a template's draft through report-client as the person whose token the host gives, and the two settings they ask with, built on 2026-11-28, and after its review the same day a save gated on what an agent can fix, a language that lacks words saved and its payment-part words named for a person, a refusal rebuilt from its code by report-client, and a template held to the id rule; a verdict's languages diagnosed from one diagnosis of the report, 2026-11-28; its render check is [0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)'s; an edit applied past the size bound answered as no error, 2026-11-27; a language's words in the payment part listed for a person and left out by the translate prompt, 2026-11-28; extends [0008](0008-edits-are-commands-and-a-refused-edit-changes-nothing.md); follows formancy.ai 0056 and 0112
+- **Status:** accepted for the tools that need nothing, the prompts and report-core's two derivations; its server half, the four tools that read and save a template's draft through report-client as the person whose token the host gives, and the two settings they ask with, built on 2026-11-28, and after its review the same day a save gated on what an agent can fix, a language that lacks words saved and its payment-part words named for a person, a refusal rebuilt from its code by report-client, its field held to what the server writes there, a template held to the id rule, an error of its own where a person writes named for the person, and both prompts stopping once nothing but the payment part's words is left; a verdict's languages diagnosed from one diagnosis of the report, 2026-11-28; its render check is [0089](0089-the-mcps-render-check-reads-the-pdf-back-with-pdfjs-at-the-corpuss-pin-the-first-published-package-that-carries-it.md)'s; an edit applied past the size bound answered as no error, 2026-11-27; a language's words in the payment part listed for a person and left out by the translate prompt, 2026-11-28; extends [0008](0008-edits-are-commands-and-a-refused-edit-changes-nothing.md); follows formancy.ai 0056 and 0112
 - **Date:** 2026-11-27
 - **Deciders:** Daniel Bacher
 - **Verified by:**
@@ -157,7 +157,12 @@
     what is no error as such, and a 2xx of another shape -- a whoami, a
     list, a draft of another format or template, a save that answers
     another template or revision 0 -- and a draft whose report this release
-    refuses are each said and handed on in nothing.
+    refuses are each said and handed on in nothing; an `asset-not-kept`
+    naming an asset the report sent does not declare is no answer of the
+    API, its ids handed on in nothing; and an error of the report's own in
+    the payment part, an amount reading a field that is not there, refuses
+    the save and is named for the person, in the summary and as
+    `forPerson`, which failed first named for nobody.
   - **The settings.** `packages/report-mcp/src/main.test.ts`, `main.ts`
     itself imported afresh for each start, the environment stubbed, its
     standard streams watched and the stdio transport replaced by one end of
@@ -183,13 +188,31 @@
     `draft-changed` and one saved -- a network failure said by Node's code
     alone. `src/settings.test.ts`: a token's file named, on POSIX, by an
     absolute path, and on Windows by a drive and its root or a share,
-    never by the root alone or a drive alone.
+    never by the root alone or a drive alone, nor by a share whose server
+    holds a colon, as `file://C:/token` gives, which had passed as a share
+    on a server `C:`.
   - **A refusal rebuilt from its code.** `packages/report-client/src/client.test.ts`:
     a 401 whose JSON body quotes a planted token in its sentence and in a
     key of its own, and a 412 that quotes it beside its revision, are
     answered with `REFUSALS`' fixed sentence and the one field the code
-    carries, the token in neither; `isBearerToken` the rule a request is
-    held to.
+    carries, the token in neither; that field read as what the server
+    writes there -- each error of `report-invalid` a code of report-spec's
+    `REPORT_ERROR_CODES` with a path, a sentence and a component's id, and
+    nothing else of it; each asset of `asset-not-kept` an identifier; the
+    reason of `image-refused` one of report-spec's image and SVG refusal
+    codes or the server's own `not-an-image` -- a token riding in an
+    error's code, an asset or a reason thrown as no answer of the API, and
+    in an error's key of its own dropped, which had all been handed on;
+    and the server's own `not-an-image` answered as the refusal it is;
+    every code `REFUSALS` holds, sent with a token in its sentence and a
+    key of its own, answered as its fixed sentence, or thrown for the four
+    that carry a field and were sent none, which the case lists; `FIELDS`
+    typed over every code `ServerRefusal` gives a field, so that a code a
+    release gives one and the rebuild does not read fails to compile,
+    which it did with `image-refused`'s entry taken out;
+    `isBearerToken` the rule a request is held to. What it cannot hold is
+    an error's sentence, the validator's own words about the requester's
+    report, which a gateway answering under `report-invalid` could fill.
   - **The client's whoami.** `packages/report-client/src/client.test.ts`:
     `whoami()` against report-server answers the token's holder with the
     tenant, the roles, and the capacities and actions the policy gives
@@ -264,6 +287,13 @@
     sentence quoted, each starting the bin or quoted; `isBearerToken` and
     `isFilePath` before they were exported; and each tool given the one
     method it asks, which did not compile while it took the whole client.
+    After the re-review: both prompts' stop conditions, which could be met
+    only by writing the payment part's words; a token riding in an
+    error's code, an asset and an image's reason, and an error's key of
+    its own, each handed on by report-client; an `asset-not-kept` naming
+    an asset the report did not declare, handed on by the MCP; an error of
+    the report's own in the payment part named for nobody; and
+    `//C:/token` read as a share.
 
 ## Context
 
@@ -352,7 +382,11 @@ tools check before they act.**
   report whose languages still lack words is saved, and the answer names
   each such language, how many words it lacks, and of them those that
   stand in the payment part, `forPerson`, which a person writes, so the
-  agent asks the person. It is sent from `from`, the version it replaces,
+  agent asks the person. An error of the report's own that stands in the
+  payment part or the e-invoice, which a person's draft can bring -- an
+  amount reading a field since removed -- refuses the save as any error
+  of its own does, and is named for the person, `forPerson` in the
+  refusal's data. It is sent from `from`, the version it replaces,
   with `If-Match`, or with none, as the template's first, with
   `If-None-Match: *` (0049); a `draft-changed` answered with the revision
   that stands, `standing`, and what to do. A template is held to
@@ -468,17 +502,21 @@ tools check before they act.**
   each as minimum, mean and maximum in ms. The invoice: 40, 46, 56; 74,
   81, 103; 42, 46, 50. The sales report: 33, 35, 44; 59, 65, 78; 33, 37,
   40. The quotation: 58, 61, 67; 110, 117, 134; 59, 63, 73. The old way
-  cost 75 to 90 % more than `diagnose`, every run of it above every run of
-  `diagnose`; the new way's runs lie within `diagnose`'s spread, so what
-  the record claims is the extra diagnoses gone, and not a cost below
-  `diagnose`'s.
+  cost 76 to 92 % more than `diagnose` by its means, every run of it
+  above every run of `diagnose`; the new way's runs overlap `diagnose`'s
+  spread, their means 0 to 2 ms above it, so what the record claims is
+  the extra diagnoses gone, and not a cost of `diagnose`'s alone.
 - **Two prompts** arrive with the server, exported as `PROMPTS`:
   `write_a_report`, the format first, then the report, then
-  `validate_report` until it answers ok, every later change through
-  `apply_commands`; and `translate_a_report`, from the `word-missing`
-  diagnostics a language lists, through `addLanguage`, `translateWord`
-  and `translateExpression`, printed from the descriptors
-  `translationSteps` makes. Every tool a prompt names is one the server
+  `validate_report` until it answers ok, or nothing is left but the words
+  it lists in `forPerson`, which the agent names to the person, every
+  later change through `apply_commands`; and `translate_a_report`, from
+  the `word-missing` diagnostics a language lists, through `addLanguage`,
+  `translateWord` and `translateExpression`, printed from the descriptors
+  `translationSteps` makes, stopping once nothing is listed but what
+  `forPerson` names, which the agent names to the person: a stop on
+  nothing listed at all could only be met by writing the slip's words
+  (#116's re-review, F11). Every tool a prompt names is one the server
   registers, which formancy.ai 0112 left unchecked.
 - **The composition root.** `main.ts` is the bin and the only module that
   touches the process: it reads the environment once and hands it, with
@@ -510,8 +548,9 @@ tools check before they act.**
   by report-client's own rule, `isBearerToken`, a sentence naming neither
   the variable nor its value, since a token pasted there in capitals is a
   name to that rule; or `file:/absolute/path` -- on Windows from a drive
-  and its root or a share, since a path from the root alone is read from
-  whichever drive the bin runs on -- read again before each request, its
+  and its root or a share whose server holds no colon, since a path from
+  the root alone is read from whichever drive the bin runs on and
+  `file://C:/token` would name a server `C:` -- read again before each request, its
   one line ending taken off, so that a host's own tool can write the next
   token there before the last expires; anything else, a token pasted
   where its reference goes among it, is refused at start by a sentence
