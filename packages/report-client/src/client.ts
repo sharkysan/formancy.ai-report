@@ -1,11 +1,12 @@
 import { draftTag, isRevision, REFUSALS } from '@formancy/report-server-core'
-import type { Draft, DraftSaved, ImageKept, RefusalCode, Route, ServerRefusal, StoredImage, TemplateList } from '@formancy/report-server-core'
+import type { Draft, DraftSaved, ImageKept, RefusalCode, Route, ServerRefusal, StoredImage, TemplateList, WhoAmI } from '@formancy/report-server-core'
 import { ASSET_MEDIA_TYPES, isDigest } from '@formancy/report-spec'
 import type { AssetMediaType, ReportDefinition } from '@formancy/report-spec'
 
 /**
  * Report's client (0049): what a host's page, or its own server, calls to
- * keep a template's draft and the images it declares on report-server. It
+ * keep a template's draft and the images it declares on report-server, and
+ * to ask who the server takes the token's holder to be (0046). It
  * asks the routes `ROUTES` names, by their own keys, so a route renamed
  * there fails to compile here; it sends the token the host answers with
  * before every request, and nothing else of the host's. It reaches the
@@ -36,6 +37,13 @@ export interface ReportClientOptions {
 export type Answered<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly status: number; readonly refusal: ServerRefusal }
 
 export interface ReportClient {
+  /**
+   * Who the server takes the token's holder to be: their subject and tenant,
+   * the roles the token carries, and the capacities and actions the
+   * operator's role policy gives those roles (0046), so a wrong tenant claim
+   * or role mapping shows before anything is saved.
+   */
+  whoami(): Promise<Answered<WhoAmI>>
   /** The tenant's templates, by id, each with its newest draft's revision and title. */
   listTemplates(): Promise<Answered<TemplateList>>
   /** The template's newest draft, with the version, its revision and its digest, a save from it names. */
@@ -217,6 +225,7 @@ export function createReportClient(options: ReportClientOptions): ReportClient {
   }
 
   return {
+    whoami: async () => ask('GET /v1/whoami', {}, json<WhoAmI>),
     listTemplates: async () => ask('GET /v1/templates', {}, json<TemplateList>),
     readDraft: async (template) => ask('GET /v1/templates/:template/draft', { template }, json<Draft>),
     saveDraft: async (template, report, from) =>

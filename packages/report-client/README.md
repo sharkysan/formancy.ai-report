@@ -4,7 +4,8 @@ Formancy Report's client for its server: what a host's page, or its own
 server, calls to keep a template's draft and the images it declares on
 [`@formancy/report-server`](../report-server/README.md). It lists the
 tenant's templates, reads a template's draft, saves one from the version
-it was opened at, and keeps and reads an image by its digest, through the
+it was opened at, keeps and reads an image by its digest, and asks who
+the server takes the token's holder to be, through the
 routes report-server-core's `ROUTES` names, by their own keys, so a route
 renamed there does not compile here. No framework and no Node: the DOM's
 globals and no `@types/node`, so a `node:` import does not compile, and
@@ -45,6 +46,13 @@ written, and `mine.refusal.revision` is the revision that stands.
   does not -- a newline, a space -- is thrown before anything is sent.
   `fetch` is the host's, or the global one, and is called as a function, as
   a browser's own fetch must be.
+- **`whoami()`** -- who the server takes the token's holder to be: their
+  subject, their tenant, the roles the token carries, and the capacities
+  and actions the operator's role policy gives those roles, report-server-core's
+  `WhoAmI` ([0046](../../docs/decisions/0046-report-has-a-server-of-its-own-over-the-hosts-verified-identity.md)),
+  so a wrong tenant claim or role mapping shows before anything is saved;
+  report-mcp's `whoami` asks it
+  ([0088](../../docs/decisions/0088-an-agent-gets-reports-checks-over-the-model-context-protocol-from-a-server-of-reports-own.md)).
 - **`listTemplates()`** and **`readDraft(template)`** -- the tenant's
   templates by id, and a template's newest draft with its version, its
   revision and its digest.
@@ -70,8 +78,8 @@ written, and `mine.refusal.revision` is the revision that stands.
   media type they were kept as.
 
 Each answers an **`Answered<T>`**: `{ ok: true, value }`, the route's
-answer as report-server-core's wire types say -- `TemplateList`, `Draft`,
-`DraftSaved`, `ImageKept`, `StoredImage` -- or `{ ok: false, status,
+answer as report-server-core's wire types say -- `WhoAmI`,
+`TemplateList`, `Draft`, `DraftSaved`, `ImageKept`, `StoredImage` -- or `{ ok: false, status,
 refusal }`, a `ServerRefusal`: a code `REFUSALS` holds, its fixed sentence,
 and the field one of the four carries. Narrowing on `code` gives the field.
 This package exports `createReportClient`, `ReportClientOptions`,

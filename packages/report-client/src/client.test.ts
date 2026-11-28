@@ -139,6 +139,35 @@ describe('against report-server', () => {
     expect(valueOf(await reports.saveDraft('invoice', declaring, null))).toMatchObject({ template: 'invoice', revision: 1 })
   })
 
+  // Before a host or an agent saves anything, it asks who the server takes
+  // the token's holder to be: a wrong tenant claim, issuer or role mapping
+  // shows there, before a save is refused for it (0046). A client without
+  // the route would leave a host asking it by hand, outside the token and
+  // the redirect rule every other request keeps; and a holder whose roles
+  // give no capacity is answered, as the server answers them, never
+  // refused.
+  test('asks who the token’s holder is, with the tenant, the roles, and the capacities and actions their roles give', async () => {
+    expect(await client().whoami()).toEqual({
+      ok: true,
+      value: {
+        subject: SUBJECT,
+        tenant: 'acme',
+        roles: ['report-authors'],
+        capacities: ['author'],
+        actions: ['template.list', 'draft.read', 'draft.save', 'asset.keep', 'asset.read', 'version.read', 'version.restore'],
+      },
+    })
+    expect(await client({ token: () => signed({ roles: ['readers'] }) }).whoami()).toEqual({
+      ok: true,
+      value: { subject: SUBJECT, tenant: 'acme', roles: ['readers'], capacities: [], actions: [] },
+    })
+    expect(await client({ token: () => signed({ exp: Math.floor(Date.now() / 1000) - 60 }) }).whoami()).toEqual({
+      ok: false,
+      status: 401,
+      refusal: REFUSALS.unauthenticated,
+    })
+  })
+
   // A token expires while a person edits. The host's next token must be
   // the one the next request carries: a client that asked once would send
   // the expired one for good, and every save after it would be refused.
@@ -293,17 +322,19 @@ describe('against what is not report-server', () => {
   // the header the server names -- the draft's version as the tag the
   // server answered it with, the revision and the digest's 64 digits --
   // a body under its own media type, a digest's digits in the path, and
-  // the method the route is answered by. A tag that left the digest out
-  // is one the server refuses as malformed.
+  // the method the route is answered by, whoami's a GET with no body. A
+  // tag that left the digest out is one the server refuses as malformed.
   test('sends each route its method, its path under the base URL, the token as a bearer and a save’s precondition', async () => {
     const { fetch, asked } = answering(() => Response.json({}))
     const reports = client(fetch)
+    await reports.whoami()
     await reports.saveDraft('invoice', report(), null)
     await reports.saveDraft('invoice', report(), { revision: 12, digest: assetDigest(PNG) })
     await reports.keepImage(PNG, assetDigest(PNG), 'image/png')
     const sent = asked.map(({ url, init }) => ({ url, method: init?.method, headers: init?.headers, redirect: init?.redirect }))
     const hex = assetDigest(PNG).slice('sha256:'.length)
     expect(sent).toEqual([
+      { url: 'https://reports.example/v1/whoami', method: 'GET', headers: { authorization: 'Bearer a-token' }, redirect: 'error' },
       {
         url: 'https://reports.example/v1/templates/invoice/draft',
         method: 'PUT',
@@ -323,10 +354,11 @@ describe('against what is not report-server', () => {
         redirect: 'error',
       },
     ])
-    const saved = asked[0]?.init?.body
+    expect(asked[0]?.init?.body).toBeUndefined()
+    const saved = asked[1]?.init?.body
     expect(typeof saved).toBe('string')
     expect(JSON.parse(saved as string)).toEqual(report())
-    expect(asked[2]?.init?.body).toEqual(PNG)
+    expect(asked[3]?.init?.body).toEqual(PNG)
   })
 
   // A token that holds a character no bearer token carries never reaches
