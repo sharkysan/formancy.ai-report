@@ -74,4 +74,13 @@ describe('the container gate', () => {
       ]),
     )
   })
+
+  // The container has no model of its own (0084), and says so: a 404 or
+  // a model the image named would pass every suite in the workspace, which
+  // makes the server with whatever the case gives it. The gate must plan
+  // the check, or the release report would count a gate that never asked
+  // the image as one that did.
+  test('plans the model’s check, the image answering none', () => {
+    expect(CHECKS).toContain('GET /v1/model answers an author none, with a digest for each briefing')
+  })
 })

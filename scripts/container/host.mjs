@@ -1,6 +1,6 @@
 /**
- * The host's side of the container gate (0046, 0049): the tokens a host
- * signs with nothing but its secret, and the requests an author's host
+ * The host's side of the container gate (0046, 0049, 0084): the tokens a
+ * host signs with nothing but its secret, and the requests an author's host
  * sends, each held to what the server must answer. It changes with the
  * server's routes and its tokens, where container.mjs changes with the
  * image and how Docker runs it; the waits it keeps are the choices
@@ -111,6 +111,27 @@ export async function expectFirstDraft(base, bearer) {
     `the draft read back was ${draft.template} at revision ${String(draft.revision)} under ${String(draft.digest)}`,
   )
   expect(isDeepStrictEqual(draft.report, DRAFT_REPORT), 'the report read back is not the report saved')
+}
+
+/**
+ * What `GET /v1/model` answered, `{ status, body }`, held to none, since the
+ * image's composition root gives the server no model until formancy
+ * releases its providers' adapters (0084): a 200, none being an answer,
+ * naming neither a provider nor a model, beside a digest of each briefing
+ * the server would ask under. Answers how many digests there were.
+ */
+export function expectNoModel({ status, body }) {
+  const offered = status === 200 ? JSON.parse(body) : {}
+  const digests = Object.values(offered.briefings ?? {})
+  expect(
+    status === 200 &&
+      offered.provider === null &&
+      offered.model === null &&
+      digests.length > 0 &&
+      digests.every((digest) => typeof digest === 'string' && /^sha256:[0-9a-f]{64}$/.test(digest)),
+    `GET /v1/model answered ${String(status)} ${body}`,
+  )
+  return digests.length
 }
 
 /** Keeps `bytes` as a PNG under the digest of its own bytes, then reads it back; throws unless the answer is those bytes, byte for byte, as `image/png`. */

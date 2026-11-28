@@ -108,10 +108,13 @@ export const HOSTS = {
   // -- fails here, where the Node host, which installs them all, would pass
   // it. `serves` is the package it is apart for, as a builder's host is for
   // its builder. The client is beside it, with what it declares, and
-  // server.ts asks the server through it over a socket (0049).
+  // server.ts asks the server through it over a socket (0049); and
+  // report-ai, with which a host's page makes its AskModel over the
+  // client, so the server's model is asked as a builder's host asks it
+  // (0084).
   server: {
     serves: '@formancy/report-server',
-    with: ['@formancy/report-client'],
+    with: ['@formancy/report-client', '@formancy/report-ai'],
     consumer: 'server.ts',
     tools: { '@types/node': '^22.10.0', typescript: TYPESCRIPT, tsx: TSX },
     tsconfig: {

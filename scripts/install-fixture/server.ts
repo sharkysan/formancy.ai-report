@@ -16,6 +16,13 @@
  * declares (0049), a draft is saved, read back at the version it was saved
  * at, and a save from the draft read refused draft-changed once another has
  * saved since, with the revision that stands.
+ * And the server's model (0084): the server made with a completer of this
+ * check's own, which answers what it was asked under the briefing it was
+ * asked under, says which model it asks and report-ai's briefing digest,
+ * and is asked through report-ai's askThrough over the packed client's
+ * completeModel, as a builder's host asks it; the trail records each
+ * request, the request to complete with its kind, its length and how it
+ * ended, and nothing of what was asked or answered.
  * The tokens are signed with node:crypto alone, as a host on any stack can
  * sign one, and their secrets are this check's own.
  */
@@ -24,9 +31,12 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { askThrough } from '@formancy/report-ai'
+import { briefingDigest, modelBriefing } from '@formancy/report-ai'
+import type { ModelPrompt } from '@formancy/report-ai'
 import { createReportClient } from '@formancy/report-client'
 import { ACTIONS, REFUSALS } from '@formancy/report-server-core'
-import type { AuditEvent, Health, Refusal, WhoAmI } from '@formancy/report-server-core'
+import type { AuditEvent, Completer, Health, Refusal, WhoAmI } from '@formancy/report-server-core'
 import { createReportServer, createReportVerifier, openFileTemplateStore } from '@formancy/report-server'
 import type { ReportServerOptions } from '@formancy/report-server'
 import { emptyReport } from '@formancy/report-spec'
@@ -48,6 +58,15 @@ const forged = sign(claims, 'a-forgers-secret-that-is-not-the-hosts-of-32-bytes'
 const events: AuditEvent[] = []
 const audit: ReportServerOptions['audit'] = { sink: (event) => void events.push(event) }
 
+/** The embedder's completer, scripted: it answers the user part it was asked, and records the system part it was asked under. */
+const briefed: string[] = []
+const completer: Completer = {
+  complete: async (prompt) => {
+    briefed.push(prompt.system)
+    return { ok: true, text: prompt.user }
+  },
+}
+
 // The store's directory is the host's to make, and the store never makes it (0049): this check's own, removed at the end.
 const storeDirectory = await mkdtemp(join(tmpdir(), 'formancy-report-install-'))
 
@@ -64,6 +83,7 @@ const server = await createReportServer({
   roles: { author: ['report-authors'], publisher: ['report-publishers'], admin: ['report-admins'] },
   audit,
   store: opened.store,
+  model: { provider: 'my-provider', model: 'my-model', completer },
 })
 await server.listen({ host: '127.0.0.1', port: 0 })
 
@@ -127,8 +147,31 @@ try {
   if (JSON.stringify(trail) !== JSON.stringify(['draft.save ok', 'draft.read ok', 'draft.save ok', 'draft.save draft-changed']))
     throw new Error(`the trail holds ${JSON.stringify(trail)} for the client's four requests`)
 
+  // A builder's host asks the server's model as its page would (0084):
+  // whether there is one, then report-ai's AskModel over the client, a
+  // prompt as report-ai's run builds one, and the trail's two events, the
+  // second saying what was asked by its kind and its length alone.
+  const offered = await reports.model()
+  if (!offered.ok || offered.value.provider === null) throw new Error('this server asks no model')
+  const ask = askThrough(reports.completeModel) // the AskModel a builder's host gives its editor
+  if (offered.value.briefings['translation'] !== briefingDigest('translation'))
+    throw new Error(`the server names the translation's briefing ${String(offered.value.briefings['translation'])}, not report-ai's`)
+  const user = '{"into":"fr-CH","words":[{"key":"w1","source":"Offerte"}]}'
+  const prompt: ModelPrompt<'translation'> = { kind: 'translation', system: modelBriefing('translation'), user, attempt: 1, limit: 1 }
+  const modelSaid = await ask(prompt, { onCancel: () => undefined })
+  if (modelSaid !== user || JSON.stringify(briefed) !== JSON.stringify([modelBriefing('translation')]))
+    throw new Error(`the server's model answered ${modelSaid}, asked under ${String(briefed.length)} briefings`)
+  const asked = events.slice(9)
+  const said = asked.map((event) => `${event.operation} ${event.outcome} ${JSON.stringify(event.model ?? null)}`)
+  if (
+    JSON.stringify(said) !==
+    JSON.stringify(['model.read ok null', `model.ask ok {"kind":"translation","characters":${String(user.length)},"outcome":"answered"}`])
+  )
+    throw new Error(`the trail holds ${JSON.stringify(said)} for the model's two requests`)
+  if (JSON.stringify(asked).includes('Offerte')) throw new Error('the trail holds a word of what the model was asked')
+
   console.log(
-    `ok: report-server listened on a socket of its own; /health answered, whoami refused no token, a tenantless one, a forgery and a malformed one with the one 401, and answered the host's token as tenant ${me.tenant} with ${String(me.actions.length)} actions; nothing else answered; through report-client a draft was saved at revision ${String(saved.value.revision)} and read back, and a save from it after revision ${String(theirs.value.revision)} was refused ${mine.refusal.code}; the trail held one event for each request the API answered`,
+    `ok: report-server listened on a socket of its own; /health answered, whoami refused no token, a tenantless one, a forgery and a malformed one with the one 401, and answered the host's token as tenant ${me.tenant} with ${String(me.actions.length)} actions; nothing else answered; through report-client a draft was saved at revision ${String(saved.value.revision)} and read back, and a save from it after revision ${String(theirs.value.revision)} was refused ${mine.refusal.code}; the server named ${offered.value.provider}'s ${offered.value.model} and report-ai's briefing digest, and its model was asked through askThrough over the client under report-ai's briefing; the trail held one event for each request the API answered, and nothing of what the model was asked`,
   )
 } finally {
   await server.close()

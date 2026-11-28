@@ -29,20 +29,30 @@ RUN npm install -g --ignore-scripts pnpm@12.4.2
 # from the dependency graph and fails when this file forgets one.
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY packages/report-spec/package.json packages/report-spec/
+COPY packages/report-core/package.json packages/report-core/
+COPY packages/report-ai/package.json packages/report-ai/
 COPY packages/report-server-core/package.json packages/report-server-core/
 COPY packages/report-server/package.json packages/report-server/
+# A manifest alone, never a source: report-ai's suite takes the corpus, and
+# the corpus the runtime, and pnpm runs no script in a workspace where a
+# package names one that is not there. Nothing of either is installed or
+# built: the install and the build below select by production dependencies.
+COPY packages/report-runtime/package.json packages/report-runtime/
+COPY packages/report-corpus/package.json packages/report-corpus/
 
 # --ignore-scripts: nothing the server needs runs an install script, and a
 # build that runs them from the network is supply-chain surface for nothing.
-RUN pnpm install --frozen-lockfile --ignore-scripts --filter @formancy/report-server...
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter-prod @formancy/report-server...
 
 COPY LICENSE.md NOTICE tsconfig.base.json ./
 COPY scripts/sync-licenses.mjs scripts/
 COPY packages/report-spec/ packages/report-spec/
+COPY packages/report-core/ packages/report-core/
+COPY packages/report-ai/ packages/report-ai/
 COPY packages/report-server-core/ packages/report-server-core/
 COPY packages/report-server/ packages/report-server/
 
-RUN pnpm --filter @formancy/report-server... build && node scripts/sync-licenses.mjs
+RUN pnpm --filter-prod @formancy/report-server... build && node scripts/sync-licenses.mjs
 
 # A self-contained tree, so the runtime stage needs neither pnpm nor the
 # repository: the server's dist, its LICENSE.md and NOTICE, and its

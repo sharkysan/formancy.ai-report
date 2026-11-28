@@ -19,10 +19,12 @@
  * sentence, no stack trace. Configured, it must answer /health; refuse whoami without a token, with
  * a forgery and without a tenant, with the one 401; answer whoami for a
  * token signed here, with its tenant and the actions its roles give; answer
- * nothing else; say no-store; run as `node`; carry the repository's own
+ * an author's GET /v1/model with none, since its composition root gives no
+ * model (0084), and a digest for each briefing; answer nothing else; say
+ * no-store; run as `node`; carry the repository's own
  * LICENSE.md and NOTICE; write its store directory and not its own code;
  * run on a read-only root file system; write one audit line per request
- * whoami answered, holding no token; live through SIGHUP and stop on
+ * the API answered, holding no token; live through SIGHUP and stop on
  * SIGTERM; and, given a key set file, name its kids when it starts and
  * read it again on SIGHUP; keep an author's draft and image in its store
  * across a restart on the same volume, and save a draft on a read-only
@@ -67,6 +69,7 @@ import {
   authorClaims,
   expect,
   expectFirstDraft,
+  expectNoModel,
   ISSUER,
   keepAndReadImage,
   request,
@@ -100,13 +103,14 @@ export const CHECKS = [
   'whoami without a token is the one 401',
   'whoami answers a token the host signed, with its tenant and the actions its roles give',
   'a forgery and a token without its tenant are the same 401',
+  'GET /v1/model answers an author none, with a digest for each briefing',
   'nothing else answers, with a 404 that quotes nothing',
   'every answer says Cache-Control: no-store',
   'it runs as node',
   'it carries the repository’s LICENSE.md and NOTICE',
   'it can write its store directory',
   'it cannot write its own code',
-  'its log holds one audit line per request whoami answered, and no token',
+  'its log holds one audit line per request the API answered, and no token',
   'SIGHUP leaves a server with one key running',
   'SIGTERM stops it, exit 0',
   'it runs on a read-only root file system',
@@ -324,6 +328,11 @@ async function gate() {
       expect(answer.status === 401 && answer.body === unauthenticated, `whoami with a bad token answered ${String(answer.status)} ${answer.body}`)
     }
   })
+  // The image's composition root gives the server no model (0084).
+  await check('GET /v1/model answers an author none, with a digest for each briefing', async () => {
+    const digests = expectNoModel(await ask('/v1/model', { authorization: `Bearer ${tokens.good}` }))
+    return `${String(digests)} briefing digest(s)`
+  })
   await check('nothing else answers, with a 404 that quotes nothing', async () => {
     for (const path of ['/v1/versions', '/v1/whoami/extra', '/v2/whoami']) {
       const answer = await ask(path, { authorization: `Bearer ${tokens.good}` })
@@ -366,13 +375,13 @@ async function gate() {
     ])
     expect(writable === '', `the server can write its own code: ${writable.split('\n').slice(0, 5).join(', ')}`)
   })
-  await check('its log holds one audit line per request whoami answered, and no token', () => {
+  await check('its log holds one audit line per request the API answered, and no token', () => {
     const lines = docker(['logs', name])
       .output.split('\n')
       .filter((line) => line.startsWith('{'))
     const audited = lines.map((line) => JSON.parse(line)).filter((line) => line.msg === 'audit')
-    const asked = 4 // whoami: no token, a good one, a forgery, no tenant
-    expect(audited.length === asked, `the log holds ${String(audited.length)} audit lines for ${String(asked)} requests whoami answered`)
+    const asked = 5 // whoami: no token, a good one, a forgery, no tenant; and the model's GET
+    expect(audited.length === asked, `the log holds ${String(audited.length)} audit lines for ${String(asked)} requests the API answered`)
     expect(
       audited.every((line) => line.audit.tenant === null && line.audit.actor === null),
       'an audit line named who asked without an audit key',
